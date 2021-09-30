@@ -15,6 +15,8 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
     string public constant TRADER_POOL_FACTORY_NAME = "TRADER_POOL_REGISTRY";
     string public constant TRADER_POOL_REGISTRY_NAME = "TRADER_POOL_REGISTRY";
 
+    string public constant DEXE_NAME = "DEXE";
+
     mapping(string => address) private _contracts;
     mapping(address => bool) private _isProxy;
 
@@ -30,6 +32,10 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
 
     function getTraderPoolRegistryContract() external view override returns (address) {
         return getContract(TRADER_POOL_REGISTRY_NAME);
+    }
+
+    function getDEXEContract() external view override returns (address) {
+        return getContract(DEXE_NAME);
     }
 
     function getContract(string memory name) public view returns (address) {
