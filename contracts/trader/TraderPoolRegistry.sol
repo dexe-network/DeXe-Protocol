@@ -72,20 +72,6 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         }
     }
 
-    function getImplementation(string calldata name) external view returns (address) {
-        address contractAddress = _implementations[name];
-
-        require(contractAddress != address(0), "TraderPoolRegistry: This mapping doesn't exist");
-
-        return contractAddress;
-    }
-
-    function getUpgrader() external view returns (address) {
-        require(address(upgrader) != address(0), "TraderPoolRegistry: Bad upgrader");
-
-        return address(upgrader);
-    }
-
     function upgradeExistingPools(
         string calldata name,
         address newImplementation,
@@ -146,20 +132,39 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         _implementations[name] = implementation;
     }
 
+    function getImplementation(string calldata name) external view override returns (address) {
+        address contractAddress = _implementations[name];
+
+        require(contractAddress != address(0), "TraderPoolRegistry: This mapping doesn't exist");
+
+        return contractAddress;
+    }
+
+    function getUpgrader() external view override returns (address) {
+        require(address(upgrader) != address(0), "TraderPoolRegistry: Bad upgrader");
+
+        return address(upgrader);
+    }
+
     function addPool(
         address user,
         string calldata name,
         address poolAddress
-    ) external onlyTraderPoolFactory {
+    ) external override onlyTraderPoolFactory {
         _allPools[name].add(poolAddress);
         _userPools[user][name].add(poolAddress);
     }
 
-    function countPools(string calldata name) external view returns (uint256) {
+    function countPools(string calldata name) external view override returns (uint256) {
         return _allPools[name].length();
     }
 
-    function countUserPools(address user, string calldata name) external view returns (uint256) {
+    function countUserPools(address user, string calldata name)
+        external
+        view
+        override
+        returns (uint256)
+    {
         return _userPools[user][name].length();
     }
 
@@ -167,7 +172,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         string calldata name,
         uint256 offset,
         uint256 limit
-    ) external view returns (address[] memory pools) {
+    ) external view override returns (address[] memory pools) {
         uint256 to = (offset + limit).min(_allPools[name].length()).max(offset);
 
         pools = new address[](to - offset);
@@ -182,7 +187,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         string calldata name,
         uint256 offset,
         uint256 limit
-    ) external view returns (address[] memory pools) {
+    ) external view override returns (address[] memory pools) {
         uint256 to = (offset + limit).min(_userPools[user][name].length()).max(offset);
 
         pools = new address[](to - offset);
@@ -190,5 +195,12 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         for (uint256 i = offset; i < limit; i++) {
             pools[i - offset] = _userPools[user][name].at(i);
         }
+    }
+
+    function isPool(address potentialPool) external view override returns (bool) {
+        return
+            _allPools[BASIC_POOL_NAME].contains(potentialPool) ||
+            _allPools[RISKY_POOL_NAME].contains(potentialPool) ||
+            _allPools[INVEST_POOL_NAME].contains(potentialPool);
     }
 }
