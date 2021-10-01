@@ -2,15 +2,18 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "../interfaces/insurance/IInsurance.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/trader/ITraderPoolRegistry.sol";
-
 import "../helpers/AbstractDependant.sol";
 
 contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
     ITraderPoolRegistry internal _traderPoolRegistry;
+    ERC20 internal _dexe;
+
+    mapping(address => uint256) public userStakes;
 
     modifier onlyTraderPool() {
         require(_traderPoolRegistry.isPool(_msgSender()), "Insurance: Not a trader pool");
@@ -29,6 +32,8 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
         _traderPoolRegistry = ITraderPoolRegistry(
             contractsRegistry.getTraderPoolRegistryContract()
         );
+
+        _dexe = ERC20(contractsRegistry.getDEXEContract());
     }
 
     function receiveDexeFromPools() external onlyTraderPool {
@@ -36,11 +41,13 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
     }
 
     function buyInsurance(uint256 insuranceAmount) external {
-        // TODO
+        userStakes[_msgSender()] += insuranceAmount;
+        _dexe.transferFrom(_msgSender(), address(this), insuranceAmount);
     }
 
     function withdraw(uint256 amountToWithdraw) external {
-        // TODO
+        userStakes[_msgSender()] -= amountToWithdraw;
+        _dexe.transfer(_msgSender(), amountToWithdraw);
     }
 
     function claim(string calldata url) external {
