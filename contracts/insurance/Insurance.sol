@@ -14,6 +14,9 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
     ERC20 internal _dexe;
 
     mapping(address => uint256) public userStakes;
+    mapping(string => address) public urlUser;
+
+    uint256 public totalPool;
 
     modifier onlyTraderPool() {
         require(_traderPoolRegistry.isPool(_msgSender()), "Insurance: Not a trader pool");
@@ -51,7 +54,8 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
     }
 
     function claim(string calldata url) external {
-        // TODO
+        require(urlUser[url] == address(0), "Insurance: Url is not unique");
+        urlUser[url] = _msgSender();
     }
 
     function listOngoingClaims(uint256 offset, uint256 limit)
@@ -79,6 +83,23 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
         address[] calldata users,
         uint256[] memory amounts
     ) external onlyOwner {
-        // TODO
+        uint256 maxPayPool = totalPool;
+        uint256 totalToPay;
+        for (uint256 i; i < amounts.length; i++) {
+            totalToPay += amounts[i];
+        }
+        if (totalToPay >= maxPayPool / 3) {
+            for (uint256 i; i < amounts.length; i++) {
+                _dexe.transfer(
+                    users[i],
+                    (amounts[i] * getProportionalPart(amounts[i], totalToPay)) /
+                        10**_dexe.decimals()
+                );
+            }
+        }
+    }
+
+    function getProportionalPart(uint256 amount, uint256 total) internal view returns (uint256) {
+        return (amount * 10**_dexe.decimals()) / total;
     }
 }
