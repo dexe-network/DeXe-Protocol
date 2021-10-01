@@ -15,6 +15,14 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
 
     mapping(address => uint256) public userStakes;
     mapping(string => address) public urlUser;
+    mapping(string => FinishedClaims) internal finishedClaims; // for listFinishedClaims; url => claimers, amounts
+
+    string[] public finishedUrls;
+
+    struct FinishedClaims {
+        address[] claimers;
+        uint256[] amounts;
+    }
 
     uint256 public totalPool;
 
@@ -66,16 +74,8 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
         // TODO
     }
 
-    function listFinishedClaims(uint256 offset, uint256 limit)
-        external
-        view
-        returns (
-            string[] memory urls,
-            address[] memory claimers,
-            uint256[] memory amounts
-        )
-    {
-        // TODO
+    function listFinishedClaims() external view returns (string[] memory urls) {
+        urls = finishedUrls;
     }
 
     function batchPayout(
@@ -85,18 +85,21 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
     ) external onlyOwner {
         uint256 maxPayPool = totalPool;
         uint256 totalToPay;
+
         for (uint256 i; i < amounts.length; i++) {
             totalToPay += amounts[i];
         }
+
         if (totalToPay >= maxPayPool / 3) {
             for (uint256 i; i < amounts.length; i++) {
-                _dexe.transfer(
-                    users[i],
-                    (amounts[i] * getProportionalPart(amounts[i], totalToPay)) /
-                        10**_dexe.decimals()
-                );
+                uint256 toPay = (amounts[i] * getProportionalPart(amounts[i], totalToPay)) /
+                    10**_dexe.decimals();
+                _dexe.transfer(users[i], toPay);
+                finishedClaims[url].claimers.push(users[i]);
+                finishedClaims[url].amounts.push(toPay);
             }
         }
+        finishedUrls.push(url);
     }
 
     function getProportionalPart(uint256 amount, uint256 total) internal view returns (uint256) {
