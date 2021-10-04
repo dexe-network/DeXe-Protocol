@@ -12,7 +12,7 @@ import "../helpers/Upgrader.sol";
 contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
     Upgrader internal upgrader;
 
-    string public constant TRADER_POOL_FACTORY_NAME = "TRADER_POOL_REGISTRY";
+    string public constant TRADER_POOL_FACTORY_NAME = "TRADER_POOL_FACTORY";
     string public constant TRADER_POOL_REGISTRY_NAME = "TRADER_POOL_REGISTRY";
 
     string public constant DEXE_NAME = "DEXE";
