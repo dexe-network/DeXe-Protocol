@@ -177,7 +177,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
 
         pools = new address[](to - offset);
 
-        for (uint256 i = offset; i < limit; i++) {
+        for (uint256 i = offset; i < to; i++) {
             pools[i - offset] = _allPools[name].at(i);
         }
     }
@@ -192,7 +192,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
 
         pools = new address[](to - offset);
 
-        for (uint256 i = offset; i < limit; i++) {
+        for (uint256 i = offset; i < to; i++) {
             pools[i - offset] = _userPools[user][name].at(i);
         }
     }
