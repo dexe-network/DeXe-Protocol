@@ -7,7 +7,7 @@ const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
 ContractsRegistry.numberFormat = "BigNumber";
 TraderPoolRegistry.numberFormat = "BigNumber";
 
-describe("TraderPoolRegistry", async () => {
+describe("TraderPoolRegistry", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -40,7 +40,7 @@ describe("TraderPoolRegistry", async () => {
     await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_REGISTRY_NAME());
   });
 
-  describe("add and list pools", async () => {
+  describe("add and list pools", () => {
     let BASIC_NAME;
     let RISKY_NAME;
     let INVEST_NAME;
