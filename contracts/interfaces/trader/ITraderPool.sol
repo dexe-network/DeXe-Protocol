@@ -14,8 +14,13 @@ interface ITraderPool {
         bool privatePool;
         uint256 totalLPEmission; // zero means unlimited
         address baseToken;
-        uint256 minimalInvestment;
+        uint256 baseTokenDecimals;
+        uint256 minimalInvestment; // zero means any value
         CommissionPeriod commissionPeriod;
         uint256 commissionPercentage;
+    }
+
+    struct PositionInfo {
+        uint256 spentBaseToken;
     }
 }
