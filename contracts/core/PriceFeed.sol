@@ -12,4 +12,20 @@ contract PriceFeed is IPriceFeed, AbstractDependant {
         override
         onlyInjectorOrZero
     {}
+
+    function getPriceIn(
+        address inToken,
+        address outToken,
+        uint256 amount
+    ) external view override returns (uint256) {
+        return 0;
+    }
+
+    function exchangeTo(
+        address inToken,
+        address outToken,
+        uint256 amount
+    ) external override returns (uint256) {
+        return 0;
+    }
 }

@@ -1,13 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-interface ITraderPool {
-    enum CommissionPeriod {
-        MONTH_1,
-        MONTH_3,
-        MONTH_12
-    }
+import "../core/ICoreProperties.sol";
 
+interface ITraderPool {
     struct PoolParameters {
         string description;
         bool activePortfolio;
@@ -16,11 +12,12 @@ interface ITraderPool {
         address baseToken;
         uint256 baseTokenDecimals;
         uint256 minimalInvestment; // zero means any value
-        CommissionPeriod commissionPeriod;
+        ICoreProperties.CommissionPeriod commissionPeriod;
         uint256 commissionPercentage;
     }
 
-    struct PositionInfo {
-        uint256 spentBaseToken;
+    struct InvestorInfo {
+        uint256 investedBase;
+        uint256 commissionUnlockEpoch;
     }
 }

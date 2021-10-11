@@ -13,4 +13,10 @@ interface IContractsRegistry {
     function getDEXAbstractionContract() external view returns (address);
 
     function getInsuranceContract() external view returns (address);
+
+    function getTreasuryContract() external view returns (address);
+
+    function getDividendsContract() external view returns (address);
+
+    function getCorePropertiesContract() external view returns (address);
 }

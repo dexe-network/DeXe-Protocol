@@ -22,6 +22,10 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
     string public constant DEX_ABSTRACTION_NAME = "DEX_ABSTRACTION";
 
     string public constant INSURANCE_NAME = "INSURANCE";
+    string public constant TREASURY_NAME = "TREASURY";
+    string public constant DIVIDENDS_NAME = "DIVIDENDS";
+
+    string public constant CORE_PROPERTIES_NAME = "CORE_PROPERTIES";
 
     mapping(string => address) private _contracts;
     mapping(address => bool) private _isProxy;
@@ -54,6 +58,18 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
 
     function getInsuranceContract() external view override returns (address) {
         return getContract(INSURANCE_NAME);
+    }
+
+    function getTreasuryContract() external view override returns (address) {
+        return getContract(TREASURY_NAME);
+    }
+
+    function getDividendsContract() external view override returns (address) {
+        return getContract(DIVIDENDS_NAME);
+    }
+
+    function getCorePropertiesContract() external view override returns (address) {
+        return getContract(CORE_PROPERTIES_NAME);
     }
 
     function getContract(string memory name) public view returns (address) {
