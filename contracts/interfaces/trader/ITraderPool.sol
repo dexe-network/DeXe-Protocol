@@ -6,6 +6,7 @@ import "../core/ICoreProperties.sol";
 interface ITraderPool {
     struct PoolParameters {
         string description;
+        address trader;
         bool activePortfolio;
         bool privatePool;
         uint256 totalLPEmission; // zero means unlimited

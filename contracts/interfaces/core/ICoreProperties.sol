@@ -8,13 +8,19 @@ interface ICoreProperties {
         MONTH_12
     }
 
+    enum CommissionTypes {
+        INSURANCE,
+        TREASURY,
+        DIVIDENDS
+    }
+
     function getCommissionPeriod(CommissionPeriod period) external pure returns (uint256);
 
     function getBaseCommissionTimestamp() external view returns (uint256);
 
-    /// @notice individualPercentages[0] - insurance commission
-    /// @notice individualPercentages[1] - treasury commission
-    /// @notice individualPercentages[2] - dividends commission
+    /// @notice individualPercentages[INSURANCE] - insurance commission
+    /// @notice individualPercentages[TREASURY] - treasury commission
+    /// @notice individualPercentages[DIVIDENDS] - dividends commission
     function getDEXECommissionPercentages()
         external
         view
