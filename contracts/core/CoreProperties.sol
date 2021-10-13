@@ -14,6 +14,14 @@ contract CoreProperties is ICoreProperties, AbstractDependant {
         onlyInjectorOrZero
     {}
 
+    function getMaximumPoolInvestors() external view override returns (uint256) {
+        return 0;
+    }
+
+    function getMaximumOpenPositions() external view override returns (uint256) {
+        return 0;
+    }
+
     function getCommissionPeriod(CommissionPeriod period)
         external
         pure

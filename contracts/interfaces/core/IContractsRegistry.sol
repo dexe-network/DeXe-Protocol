@@ -8,6 +8,8 @@ interface IContractsRegistry {
 
     function getDEXEContract() external view returns (address);
 
+    function getDAIContract() external view returns (address);
+
     function getPriceFeedContract() external view returns (address);
 
     function getDEXAbstractionContract() external view returns (address);

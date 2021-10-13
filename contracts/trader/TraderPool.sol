@@ -29,6 +29,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     using TraderPoolHelper for PoolParameters;
 
     IERC20 internal _dexeToken;
+    IERC20 internal _daiToken;
     IPriceFeed internal _priceFeed;
     IDEXAbstraction internal _dexAbstraction;
     IInsurance internal _insurance;
@@ -87,6 +88,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             commissionPeriod,
             commissionPercentage
         );
+
+        traderAdmins[trader] = true;
     }
 
     function setDependencies(IContractsRegistry contractsRegistry)
@@ -96,6 +99,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         onlyInjectorOrZero
     {
         _dexeToken = IERC20(contractsRegistry.getDEXEContract());
+        _daiToken = IERC20(contractsRegistry.getDAIContract());
         _priceFeed = IPriceFeed(contractsRegistry.getPriceFeedContract());
         _dexAbstraction = IDEXAbstraction(contractsRegistry.getDEXAbstractionContract());
         _insurance = IInsurance(contractsRegistry.getInsuranceContract());
@@ -177,21 +181,27 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         if (!isTrader(_msgSender())) {
             _investors.add(_msgSender());
 
+            require(
+                _investors.length() <= _coreProperties.getMaximumPoolInvestors(),
+                "TraderPool: max investors"
+            );
+
             InvestorInfo memory oldInfo = investorsInfo[_msgSender()];
 
             investorsInfo[_msgSender()] = InvestorInfo(
                 oldInfo.investedBase + amountInBaseToInvest,
                 oldInfo.commissionUnlockEpoch == 0
-                    ? _getCurrentCommissionEpoch(block.timestamp) + 1
+                    ? _getNextCommissionEpoch(block.timestamp)
                     : oldInfo.commissionUnlockEpoch
             );
         }
     }
 
-    function _getCurrentCommissionEpoch(uint256 timestamp) internal view returns (uint256) {
+    function _getNextCommissionEpoch(uint256 timestamp) internal view returns (uint256) {
         return
             (timestamp - _coreProperties.getBaseCommissionTimestamp()) /
-            _coreProperties.getCommissionPeriod(poolParameters.commissionPeriod);
+            _coreProperties.getCommissionPeriod(poolParameters.commissionPeriod) +
+            1;
     }
 
     function _transferCommission(
@@ -252,15 +262,17 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         for (uint256 i = offset; i < to; i++) {
             address investor = _investors.at(i);
-            uint256 currentCommissionEpoch = _getCurrentCommissionEpoch(block.timestamp);
+            uint256 nextCommissionEpoch = _getNextCommissionEpoch(block.timestamp);
 
-            if (currentCommissionEpoch >= investorsInfo[investor].commissionUnlockEpoch) {
-                investorsInfo[investor].commissionUnlockEpoch = currentCommissionEpoch + 1;
+            if (nextCommissionEpoch > investorsInfo[investor].commissionUnlockEpoch) {
+                (
+                    uint256 investorBaseAmount,
+                    uint256 baseCommission,
+                    uint256 lpCommission
+                ) = _calculateCommissionOnReinvest(investor, totalSupply);
 
-                (uint256 baseCommission, uint256 lpCommission) = _calculateCommissionOnReinvest(
-                    investor,
-                    totalSupply
-                );
+                investorsInfo[investor].investedBase = investorBaseAmount - baseCommission;
+                investorsInfo[investor].commissionUnlockEpoch = nextCommissionEpoch;
 
                 _burn(investor, lpCommission);
 
@@ -275,43 +287,44 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     function _calculateCommissionOnReinvest(address investor, uint256 oldTotalSupply)
         internal
         view
-        returns (uint256, uint256)
+        returns (
+            uint256 investorBaseAmount,
+            uint256 baseCommission,
+            uint256 lpCommission
+        )
     {
         uint256 baseTokenBalance = ERC20(poolParameters.baseToken)
             .balanceOf(address(this))
             .convertTo18(poolParameters.baseTokenDecimals);
 
-        uint256 investorBaseAmount = (baseTokenBalance * balanceOf(investor)) / oldTotalSupply;
+        investorBaseAmount = (baseTokenBalance * balanceOf(investor)) / oldTotalSupply;
 
-        return
-            poolParameters.calculateCommission(
-                investorBaseAmount,
-                balanceOf(investor),
-                investorsInfo[investor].investedBase
-            );
+        (baseCommission, lpCommission) = poolParameters.calculateCommission(
+            investorBaseAmount,
+            balanceOf(investor),
+            investorsInfo[investor].investedBase
+        );
     }
 
     function _calculateCommissionOnDivest(
         address investor,
         uint256 investorBaseAmount,
         uint256 amountLP
-    ) internal view returns (uint256, uint256) {
+    ) internal view returns (uint256 baseCommission, uint256 lpCommission) {
         uint256 investedBaseConverted = (investorsInfo[investor].investedBase * amountLP) /
             balanceOf(investor);
 
-        return
-            poolParameters.calculateCommission(
-                investorBaseAmount,
-                amountLP,
-                investedBaseConverted
-            );
+        (baseCommission, lpCommission) = poolParameters.calculateCommission(
+            investorBaseAmount,
+            amountLP,
+            investedBaseConverted
+        );
     }
 
     function _divestInvestor(uint256 amountLP) internal {
         IERC20 baseToken = IERC20(poolParameters.baseToken);
 
         uint256 totalSupply = totalSupply();
-        uint256 investorBalance = balanceOf(_msgSender());
 
         uint256 length = _openPositions.length();
         uint256 investorBaseAmount = (baseToken.balanceOf(address(this)) * amountLP) / totalSupply;
@@ -348,14 +361,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             _distributeCommission(baseCommission, lpCommission);
         }
 
-        if (amountLP == investorBalance) {
-            _investors.remove(_msgSender());
-            delete investorsInfo[_msgSender()];
-        } else {
-            investorsInfo[_msgSender()].investedBase -=
-                (amountLP * investorsInfo[_msgSender()].investedBase) /
-                investorBalance;
-        }
+        _updateFromInvestor(_msgSender(), amountLP);
     }
 
     function _divestTrader(uint256 amountLP) internal {
@@ -383,15 +389,102 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
     }
 
+    function getMaxTraderVolumeDAI() public view returns (uint256) {}
+
+    function getPositionsVolumeDAI() public view returns (uint256) {}
+
+    // TODO check approvals
     function exchange(
         address from,
         address to,
         uint256 amount
-    ) external virtual onlyTraderAdmin {}
+    ) external virtual onlyTraderAdmin {
+        require(
+            from == poolParameters.baseToken || _openPositions.contains(from),
+            "TraderPool: invalid exchange address"
+        );
+        require(
+            amount <= ERC20(from).balanceOf(address(this)),
+            "TraderPool: invalid exchange amount"
+        );
 
+        uint256 convertedAmount = amount.convertFrom18(ERC20(from).decimals());
+
+        if (from == poolParameters.baseToken) {
+            require(
+                _priceFeed.getPriceIn(from, address(_daiToken), convertedAmount) +
+                    getPositionsVolumeDAI() <=
+                    getMaxTraderVolumeDAI(),
+                "TraderPool: exchange exceeds leverage"
+            );
+
+            _openPositions.add(to);
+            _priceFeed.exchangeTo(from, to, convertedAmount);
+        } else {
+            if (to != poolParameters.baseToken) {
+                _openPositions.add(to);
+            }
+
+            _priceFeed.exchangeTo(from, to, convertedAmount);
+
+            if (ERC20(from).balanceOf(address(this)) == 0) {
+                _openPositions.remove(from);
+            }
+        }
+    }
+
+    function _updateFromInvestor(address investor, uint256 amount)
+        internal
+        returns (uint256 baseTransfer)
+    {
+        baseTransfer = (investorsInfo[investor].investedBase * amount) / balanceOf(investor);
+
+        if (amount == balanceOf(investor)) {
+            _investors.remove(investor);
+            investorsInfo[investor].commissionUnlockEpoch = 0;
+        }
+
+        investorsInfo[investor].investedBase -= baseTransfer;
+    }
+
+    function _updateToInvestor(address investor, uint256 amount) internal {
+        if (balanceOf(investor) == 0) {
+            _investors.add(investor);
+            investorsInfo[investor].commissionUnlockEpoch = _getNextCommissionEpoch(
+                block.timestamp
+            );
+
+            require(
+                _investors.length() <= _coreProperties.getMaximumPoolInvestors(),
+                "TraderPool: max investors"
+            );
+        }
+
+        investorsInfo[investor].investedBase += amount;
+    }
+
+    /// @notice if trader transfers tokens to an investor, we will count them as "earned" and add to the commission calculation
     function _beforeTokenTransfer(
         address from,
         address to,
         uint256 amount
-    ) internal override {}
+    ) internal virtual override {
+        require(amount > 0, "TraderPool: 0 transfer");
+        require(
+            !poolParameters.privatePool || isTraderAdmin(to) || _privateInvestors.contains(to),
+            "TraderPool: prohibited transfer"
+        );
+
+        if (from != address(0) && to != address(0)) {
+            uint256 baseTransfer; // intended to be zero if sender is a trader
+
+            if (!isTrader(from)) {
+                baseTransfer = _updateFromInvestor(from, amount);
+            }
+
+            if (!isTrader(to)) {
+                _updateFromInvestor(from, baseTransfer);
+            }
+        }
+    }
 }

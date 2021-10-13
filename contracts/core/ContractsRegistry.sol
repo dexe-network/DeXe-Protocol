@@ -16,6 +16,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
     string public constant TRADER_POOL_REGISTRY_NAME = "TRADER_POOL_REGISTRY";
 
     string public constant DEXE_NAME = "DEXE";
+    string public constant DAI_NAME = "DAI";
 
     string public constant PRICE_FEED_NAME = "PRICE_FEED";
 
@@ -46,6 +47,10 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
 
     function getDEXEContract() external view override returns (address) {
         return getContract(DEXE_NAME);
+    }
+
+    function getDAIContract() external view override returns (address) {
+        return getContract(DAI_NAME);
     }
 
     function getPriceFeedContract() external view override returns (address) {

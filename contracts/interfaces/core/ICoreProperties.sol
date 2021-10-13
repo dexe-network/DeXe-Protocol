@@ -14,7 +14,11 @@ interface ICoreProperties {
         DIVIDENDS
     }
 
-    function getCommissionPeriod(CommissionPeriod period) external pure returns (uint256);
+    function getMaximumPoolInvestors() external view returns (uint256);
+
+    function getMaximumOpenPositions() external view returns (uint256);
+
+    function getCommissionPeriod(CommissionPeriod period) external view returns (uint256);
 
     function getBaseCommissionTimestamp() external view returns (uint256);
 
