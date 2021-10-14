@@ -16,15 +16,16 @@ library TraderPoolHelper {
     using EnumerableSet for EnumerableSet.AddressSet;
     using DecimalsConverter for uint256;
 
-    function getOpenPositionsPrice(
+    function getPoolPrice(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions,
         IPriceFeed priceFeed
     )
-        internal
+        public
         view
         returns (
             uint256 totalPriceInBase,
+            uint256 currentBaseAmount,
             address[] memory positionTokens,
             uint256[] memory positionPricesInBase
         )
@@ -32,7 +33,7 @@ library TraderPoolHelper {
         uint256 length = openPositions.length();
 
         IERC20 baseToken = IERC20(poolParameters.baseToken);
-        totalPriceInBase = baseToken.balanceOf(address(this));
+        totalPriceInBase = currentBaseAmount = baseToken.balanceOf(address(this));
 
         positionTokens = new address[](length);
         positionPricesInBase = new uint256[](length);
@@ -50,18 +51,41 @@ library TraderPoolHelper {
         }
     }
 
-    function calculateCommission(
+    function getPoolInfoInToken(
         ITraderPool.PoolParameters storage poolParameters,
-        uint256 investorBaseAmount,
-        uint256 investorLPAmount,
-        uint256 investedBaseAmount
-    ) internal view returns (uint256 baseCommission, uint256 lpCommission) {
-        if (investorBaseAmount > investedBaseAmount) {
-            baseCommission =
-                ((investorBaseAmount - investedBaseAmount) * poolParameters.commissionPercentage) /
-                PERCENTAGE_100;
+        EnumerableSet.AddressSet storage openPositions,
+        IPriceFeed priceFeed,
+        address token
+    ) public view returns (uint256 totalBaseInToken, uint256 positionsInToken) {
+        (uint256 totalBase, uint256 currentBase, , ) = getPoolPrice(
+            poolParameters,
+            openPositions,
+            priceFeed
+        );
 
-            lpCommission = (investorLPAmount * baseCommission) / investorBaseAmount;
-        }
+        uint256 baseInToken = priceFeed.getPriceIn(
+            poolParameters.baseToken,
+            token,
+            10**poolParameters.baseTokenDecimals
+        );
+
+        totalBaseInToken = totalBase * baseInToken;
+        positionsInToken = (totalBase - currentBase) * baseInToken;
+    }
+
+    function getMaxTraderLeverage(
+        uint256 traderDAI,
+        uint256 threshold,
+        uint256 slope
+    ) public pure returns (uint256 maxTraderLeverage) {
+        uint256 traderUSD = traderDAI / 10**18;
+        uint256 multiplier = traderUSD / threshold;
+
+        uint256 numerator = ((multiplier + 1) * (2 * traderUSD - threshold)) +
+            threshold -
+            (multiplier * multiplier * threshold);
+        uint256 boost = traderUSD * 2;
+
+        return numerator / slope + boost;
     }
 }

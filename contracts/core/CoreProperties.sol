@@ -22,6 +22,16 @@ contract CoreProperties is ICoreProperties, AbstractDependant {
         return 0;
     }
 
+    function getTraderLeverageParams()
+        external
+        view
+        override
+        returns (uint256 threshold, uint256 slope)
+    {
+        threshold = 0;
+        slope = 0;
+    }
+
     function getCommissionPeriod(CommissionPeriod period)
         external
         pure

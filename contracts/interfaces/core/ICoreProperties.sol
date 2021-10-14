@@ -18,6 +18,8 @@ interface ICoreProperties {
 
     function getMaximumOpenPositions() external view returns (uint256);
 
+    function getTraderLeverageParams() external view returns (uint256 threshold, uint256 slope);
+
     function getCommissionPeriod(CommissionPeriod period) external view returns (uint256);
 
     function getBaseCommissionTimestamp() external view returns (uint256);
