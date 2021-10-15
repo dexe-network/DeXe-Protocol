@@ -3,9 +3,9 @@ pragma solidity ^0.8.4;
 
 interface ICoreProperties {
     enum CommissionPeriod {
-        MONTH_1,
-        MONTH_3,
-        MONTH_12
+        PERIOD_1,
+        PERIOD_2,
+        PERIOD_3
     }
 
     enum CommissionTypes {
@@ -14,15 +14,26 @@ interface ICoreProperties {
         DIVIDENDS
     }
 
+    struct CoreParameters {
+        uint256 maximumPoolInvestors;
+        uint256 maximumOpenPositions;
+        uint256 leverageThreshold;
+        uint256 leverageSlope;
+        uint256 commissionInitTimestamp;
+        uint256[] commissionDurations;
+        uint256 dexeCommissionPercentage;
+        uint256[] dexeCommissionDistributionPercentages;
+    }
+
     function getMaximumPoolInvestors() external view returns (uint256);
 
     function getMaximumOpenPositions() external view returns (uint256);
 
     function getTraderLeverageParams() external view returns (uint256 threshold, uint256 slope);
 
-    function getCommissionPeriod(CommissionPeriod period) external view returns (uint256);
+    function getCommissionInitTimestamp() external view returns (uint256);
 
-    function getBaseCommissionTimestamp() external view returns (uint256);
+    function getCommissionDuration(CommissionPeriod period) external view returns (uint256);
 
     /// @notice individualPercentages[INSURANCE] - insurance commission
     /// @notice individualPercentages[TREASURY] - treasury commission

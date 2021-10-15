@@ -1,62 +1,90 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
 import "../helpers/AbstractDependant.sol";
 import "./Globals.sol";
 
-contract CoreProperties is ICoreProperties, AbstractDependant {
-    function setDependencies(IContractsRegistry contractsRegistry)
-        external
-        override
-        onlyInjectorOrZero
-    {}
+contract CoreProperties is ICoreProperties, OwnableUpgradeable {
+    CoreParameters public coreParameters;
+
+    function __CoreProperties_init(CoreParameters calldata _coreParameters) external initializer {
+        __Ownable_init();
+
+        coreParameters = _coreParameters;
+    }
+
+    function setCoreParameters(CoreParameters calldata _coreParameters) external onlyOwner {
+        coreParameters = _coreParameters;
+    }
+
+    function setMaximumPoolInvestors(uint256 count) external onlyOwner {
+        coreParameters.maximumPoolInvestors = count;
+    }
+
+    function setMaximumOpenPositions(uint256 count) external onlyOwner {
+        coreParameters.maximumOpenPositions = count;
+    }
+
+    function setTraderLeverageParams(uint256 threshold, uint256 slope) external onlyOwner {
+        coreParameters.leverageThreshold = threshold;
+        coreParameters.leverageSlope = slope;
+    }
+
+    function setCommissionInitTimestamp(uint256 timestamp) external onlyOwner {
+        coreParameters.commissionInitTimestamp = timestamp;
+    }
+
+    function setCommissionDurations(uint256[] calldata durations) external onlyOwner {
+        coreParameters.commissionDurations = durations;
+    }
+
+    function setDEXECommissionPercentages(
+        uint256 dexeCommission,
+        uint256[] calldata distributionPercentages
+    ) external {
+        coreParameters.dexeCommissionPercentage = dexeCommission;
+        coreParameters.dexeCommissionDistributionPercentages = distributionPercentages;
+    }
 
     function getMaximumPoolInvestors() external view override returns (uint256) {
-        return 0;
+        return coreParameters.maximumPoolInvestors;
     }
 
     function getMaximumOpenPositions() external view override returns (uint256) {
-        return 0;
+        return coreParameters.maximumOpenPositions;
     }
 
-    function getTraderLeverageParams()
+    function getTraderLeverageParams() external view override returns (uint256, uint256) {
+        return (coreParameters.leverageThreshold, coreParameters.leverageSlope);
+    }
+
+    function getCommissionInitTimestamp() external view override returns (uint256) {
+        return coreParameters.commissionInitTimestamp;
+    }
+
+    function getCommissionDuration(CommissionPeriod period)
         external
         view
         override
-        returns (uint256 threshold, uint256 slope)
-    {
-        threshold = 0;
-        slope = 0;
-    }
-
-    function getCommissionPeriod(CommissionPeriod period)
-        external
-        pure
-        override
         returns (uint256)
     {
-        if (period == CommissionPeriod.MONTH_1) {
-            return SECONDS_IN_MONTH;
-        } else if (period == CommissionPeriod.MONTH_3) {
-            return 3 * SECONDS_IN_MONTH;
-        }
-
-        return 12 * SECONDS_IN_MONTH;
-    }
-
-    function getBaseCommissionTimestamp() external view override returns (uint256) {
-        return 0;
+        return coreParameters.commissionDurations[uint256(period)];
     }
 
     function getDEXECommissionPercentages()
         external
         view
         override
-        returns (uint256 totalPercentage, uint256[] memory individualPercentages)
+        returns (uint256, uint256[] memory)
     {
-        individualPercentages = new uint256[](3);
+        return (
+            coreParameters.dexeCommissionPercentage,
+            coreParameters.dexeCommissionDistributionPercentages
+        );
     }
 }

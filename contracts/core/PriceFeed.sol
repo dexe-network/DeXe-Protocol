@@ -20,12 +20,4 @@ contract PriceFeed is IPriceFeed, AbstractDependant {
     ) external view override returns (uint256) {
         return 0;
     }
-
-    function exchangeTo(
-        address inToken,
-        address outToken,
-        uint256 amount
-    ) external override returns (uint256) {
-        return 0;
-    }
 }

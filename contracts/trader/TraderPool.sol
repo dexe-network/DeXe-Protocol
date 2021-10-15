@@ -148,14 +148,14 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         _transferBaseAndMintLP(totalBase, amountInBaseToInvest);
 
-        IPriceFeed priceFeed = _priceFeed;
+        IDEXAbstraction dexAbstraction = _dexAbstraction;
         address baseToken = poolParameters.baseToken;
 
         for (uint256 i = 0; i < positionTokens.length; i++) {
             uint256 tokensToExchange = (positionPricesInBase[i] *
                 amountInBaseToInvest.convertFrom18(baseTokenDecimals)) / totalBase;
 
-            priceFeed.exchangeTo(baseToken, positionTokens[i], tokensToExchange);
+            dexAbstraction.exchangeTo(baseToken, positionTokens[i], tokensToExchange);
         }
     }
 
@@ -199,8 +199,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     function _getNextCommissionEpoch(uint256 timestamp) internal view returns (uint256) {
         return
-            (timestamp - _coreProperties.getBaseCommissionTimestamp()) /
-            _coreProperties.getCommissionPeriod(poolParameters.commissionPeriod) +
+            (timestamp - _coreProperties.getCommissionInitTimestamp()) /
+            _coreProperties.getCommissionDuration(poolParameters.commissionPeriod) +
             1;
     }
 
@@ -226,7 +226,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             PERCENTAGE_100;
         uint256 dexeBaseCommission = ((baseTokensToDistribute * dexeCommissionPercentage) /
             PERCENTAGE_100).convertFrom18(poolParameters.baseTokenDecimals);
-        uint256 dexeDexeCommission = _priceFeed.exchangeTo(
+        uint256 dexeDexeCommission = _dexAbstraction.exchangeTo(
             poolParameters.baseToken,
             address(_dexeToken),
             dexeBaseCommission
@@ -249,6 +249,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             _dividendsAddress,
             dexeIndividualPercentages[uint256(ICoreProperties.CommissionTypes.DIVIDENDS)]
         );
+
+        _insurance.receiveDexeFromPools();
     }
 
     function reinvestCommission(uint256 offset, uint256 limit) external virtual onlyTraderAdmin {
@@ -337,6 +339,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     function _divestInvestor(uint256 amountLP) internal {
         IERC20 baseToken = IERC20(poolParameters.baseToken);
+        IDEXAbstraction dexAbstraction = _dexAbstraction;
 
         uint256 totalSupply = totalSupply();
 
@@ -349,7 +352,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             uint256 positionAmount = (positionToken.balanceOf(address(this)) * amountLP) /
                 totalSupply;
 
-            investorBaseAmount += _priceFeed.exchangeTo(
+            investorBaseAmount += dexAbstraction.exchangeTo(
                 address(positionToken),
                 address(baseToken),
                 positionAmount
@@ -443,21 +446,16 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         if (from == poolParameters.baseToken) {
             _checkLeverage(_priceFeed.getPriceIn(from, address(_daiToken), convertedAmount));
-
             _openPositions.add(to);
-            _priceFeed.exchangeTo(from, to, convertedAmount);
-        } else {
-            if (to != poolParameters.baseToken) {
-                _checkLeverage(0);
+        } else if (to != poolParameters.baseToken) {
+            _checkLeverage(0);
+            _openPositions.add(to);
+        }
 
-                _openPositions.add(to);
-            }
+        _dexAbstraction.exchangeTo(from, to, convertedAmount);
 
-            _priceFeed.exchangeTo(from, to, convertedAmount);
-
-            if (ERC20(from).balanceOf(address(this)) == 0) {
-                _openPositions.remove(from);
-            }
+        if (ERC20(from).balanceOf(address(this)) == 0) {
+            _openPositions.remove(from);
         }
     }
 

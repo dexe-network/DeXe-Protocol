@@ -70,7 +70,7 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
         decimal = 10**_dexe.decimals();
     }
 
-    function receiveDexeFromPools(uint256 amount) external onlyTraderPool {
+    function receiveDexeFromPools(uint256 amount) external override onlyTraderPool {
         totalPool += amount;
     }
 
