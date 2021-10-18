@@ -11,7 +11,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "../interfaces/trader/ITraderPool.sol";
 import "../interfaces/core/IPriceFeed.sol";
-import "../interfaces/dex/IDEXAbstraction.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/insurance/IInsurance.sol";
 
@@ -31,9 +30,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     using MathHelper for uint256;
 
     IERC20 internal _dexeToken;
-    IERC20 internal _daiToken;
     IPriceFeed internal _priceFeed;
-    IDEXAbstraction internal _dexAbstraction;
     IInsurance internal _insurance;
     ICoreProperties internal _coreProperties;
     address internal _treasuryAddress;
@@ -101,9 +98,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         onlyInjectorOrZero
     {
         _dexeToken = IERC20(contractsRegistry.getDEXEContract());
-        _daiToken = IERC20(contractsRegistry.getDAIContract());
         _priceFeed = IPriceFeed(contractsRegistry.getPriceFeedContract());
-        _dexAbstraction = IDEXAbstraction(contractsRegistry.getDEXAbstractionContract());
         _insurance = IInsurance(contractsRegistry.getInsuranceContract());
         _coreProperties = ICoreProperties(contractsRegistry.getCorePropertiesContract());
         _treasuryAddress = contractsRegistry.getTreasuryContract();
@@ -140,24 +135,25 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     }
 
     function _investActivePortfolio(uint256 amountInBaseToInvest) internal {
+        IPriceFeed priceFeed = _priceFeed;
+
         uint256 baseTokenDecimals = poolParameters.baseTokenDecimals;
         (
             uint256 totalBase,
             ,
             address[] memory positionTokens,
             uint256[] memory positionPricesInBase
-        ) = poolParameters.getPoolPrice(_openPositions, _priceFeed);
+        ) = poolParameters.getPoolPrice(_openPositions, priceFeed);
 
         _transferBaseAndMintLP(totalBase, amountInBaseToInvest);
 
-        IDEXAbstraction dexAbstraction = _dexAbstraction;
         address baseToken = poolParameters.baseToken;
 
         for (uint256 i = 0; i < positionTokens.length; i++) {
             uint256 tokensToExchange = (positionPricesInBase[i] *
                 amountInBaseToInvest.convertFrom18(baseTokenDecimals)) / totalBase;
 
-            dexAbstraction.exchangeTo(baseToken, positionTokens[i], tokensToExchange);
+            priceFeed.exchangeTo(baseToken, positionTokens[i], tokensToExchange);
         }
     }
 
@@ -226,7 +222,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             PERCENTAGE_100;
         uint256 dexeBaseCommission = ((baseTokensToDistribute * dexeCommissionPercentage) /
             PERCENTAGE_100).convertFrom18(poolParameters.baseTokenDecimals);
-        uint256 dexeDexeCommission = _dexAbstraction.exchangeTo(
+        uint256 dexeDexeCommission = _priceFeed.exchangeTo(
             poolParameters.baseToken,
             address(_dexeToken),
             dexeBaseCommission
@@ -337,7 +333,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     function _divestInvestor(uint256 amountLP) internal {
         IERC20 baseToken = IERC20(poolParameters.baseToken);
-        IDEXAbstraction dexAbstraction = _dexAbstraction;
+        IPriceFeed priceFeed = _priceFeed;
 
         uint256 totalSupply = totalSupply();
 
@@ -350,7 +346,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             uint256 positionAmount = (positionToken.balanceOf(address(this)) * amountLP) /
                 totalSupply;
 
-            investorBaseAmount += dexAbstraction.exchangeTo(
+            investorBaseAmount += priceFeed.exchangeTo(
                 address(positionToken),
                 address(baseToken),
                 positionAmount
@@ -405,10 +401,9 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     }
 
     function _checkLeverage(uint256 addInDAI) internal view {
-        (uint256 totalBaseInDAI, uint256 positionsInDAI) = poolParameters.getPoolInfoInToken(
+        (uint256 totalBaseInDAI, uint256 positionsInDAI) = poolParameters.getPoolInfoInDAI(
             _openPositions,
-            _priceFeed,
-            address(_daiToken)
+            _priceFeed
         );
 
         (uint256 threshold, uint256 slope) = _coreProperties.getTraderLeverageParams();
@@ -440,17 +435,18 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             "TraderPool: invalid exchange amount"
         );
 
+        IPriceFeed priceFeed = _priceFeed;
         uint256 convertedAmount = amount.convertFrom18(ERC20(from).decimals());
 
         if (from == poolParameters.baseToken) {
-            _checkLeverage(_priceFeed.getPriceIn(from, address(_daiToken), convertedAmount));
+            _checkLeverage(priceFeed.getPriceInDAI(convertedAmount, from));
             _openPositions.add(to);
         } else if (to != poolParameters.baseToken) {
             _checkLeverage(0);
             _openPositions.add(to);
         }
 
-        _dexAbstraction.exchangeTo(from, to, convertedAmount);
+        priceFeed.exchangeTo(from, to, convertedAmount);
 
         if (ERC20(from).balanceOf(address(this)) == 0) {
             _openPositions.remove(from);

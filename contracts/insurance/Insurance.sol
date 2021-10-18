@@ -25,7 +25,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
     mapping(address => mapping(uint256 => uint256)) internal _depositOnBlocks; // user => blocknum => deposit
     mapping(string => FinishedClaims) internal _finishedClaimsInfo;
 
-    mapping(address => uint256) public _lastPropose; // user => timestamp
+    mapping(address => uint256) public _lastProposal; // user => timestamp
 
     StringSet.Set internal _finishedClaims;
     StringSet.Set internal _ongoingClaims;
@@ -50,9 +50,12 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
     }
 
     modifier onlyOncePerDay(address user) {
-        require(_lastPropose[user] + 1 days <= block.timestamp, "Insurance: Propose once per day");
+        require(
+            _lastProposal[user] + 1 days <= block.timestamp,
+            "Insurance: Proposal once per day"
+        );
         _;
-        _lastPropose[user] = block.timestamp;
+        _lastProposal[user] = block.timestamp;
     }
 
     function __Insurance_init() external initializer {
@@ -168,6 +171,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
                 amounts[i] = toPay + (toPay / DEPOSIT_MULTIPLIER);
                 paid += toPay;
             }
+
             totalPool -= paid;
         } else {
             for (uint256 i; i < amounts.length; i++) {

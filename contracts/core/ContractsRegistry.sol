@@ -19,8 +19,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
     string public constant DAI_NAME = "DAI";
 
     string public constant PRICE_FEED_NAME = "PRICE_FEED";
-
-    string public constant DEX_ABSTRACTION_NAME = "DEX_ABSTRACTION";
+    string public constant UNISWAP_V2_ROUTER_NAME = "UNISWAP_V2_ROUTER";
 
     string public constant INSURANCE_NAME = "INSURANCE";
     string public constant TREASURY_NAME = "TREASURY";
@@ -57,8 +56,8 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         return getContract(PRICE_FEED_NAME);
     }
 
-    function getDEXAbstractionContract() external view override returns (address) {
-        return getContract(DEX_ABSTRACTION_NAME);
+    function getUniswapV2RounterContract() external view override returns (address) {
+        return getContract(UNISWAP_V2_ROUTER_NAME);
     }
 
     function getInsuranceContract() external view override returns (address) {
