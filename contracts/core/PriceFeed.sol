@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
@@ -10,6 +12,7 @@ import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
 import "../helpers/AbstractDependant.sol";
+import "../core/Globals.sol";
 
 contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -20,7 +23,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     EnumerableSet.AddressSet internal _pathTokens;
     EnumerableSet.AddressSet internal _supportedBaseTokens;
 
-    function __PriceFeed_init_() external initializer {
+    function __PriceFeed_init() external initializer {
         __Ownable_init();
     }
 
@@ -70,7 +73,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         uint256 amount,
         address inToken,
         address outToken
-    ) public view override returns (uint256) {
+    ) public view virtual override returns (uint256) {
         // TODO
     }
 
@@ -87,7 +90,11 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address inToken,
         address outToken,
         uint256 amount
-    ) external override returns (uint256) {
+    ) external virtual override returns (uint256) {
         // TODO
+    }
+
+    function isSupportedBaseToken(address token) external view returns (bool) {
+        return _supportedBaseTokens.contains(token);
     }
 }

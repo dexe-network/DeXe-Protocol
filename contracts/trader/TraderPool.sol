@@ -3,11 +3,12 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+import "hardhat/console.sol";
 
 import "../interfaces/trader/ITraderPool.sol";
 import "../interfaces/core/IPriceFeed.sol";
@@ -63,32 +64,12 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     function __TraderPool_init(
         string memory name,
         string memory symbol,
-        string memory description,
-        address trader,
-        bool activePortfolio,
-        bool privatePool,
-        uint256 totalLPEmission,
-        address baseToken,
-        uint256 minimalInvestment,
-        ICoreProperties.CommissionPeriod commissionPeriod,
-        uint256 commissionPercentage
+        PoolParameters memory _poolParameters
     ) public {
         __ERC20_init(name, symbol);
 
-        poolParameters = PoolParameters(
-            description,
-            trader,
-            activePortfolio,
-            privatePool,
-            totalLPEmission,
-            baseToken,
-            ERC20(baseToken).decimals(),
-            minimalInvestment,
-            commissionPeriod,
-            commissionPercentage
-        );
-
-        traderAdmins[trader] = true;
+        poolParameters = _poolParameters;
+        traderAdmins[_poolParameters.trader] = true;
     }
 
     function setDependencies(IContractsRegistry contractsRegistry)
@@ -122,7 +103,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             : amountInBaseToInvest;
 
         require(
-            totalSupply() + toMintLP <= poolParameters.totalLPEmission,
+            poolParameters.totalLPEmission == 0 ||
+                totalSupply() + toMintLP <= poolParameters.totalLPEmission,
             "TraderPool: minting more than emission allows"
         );
 
@@ -253,12 +235,12 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 to = (offset + limit).min(_investors.length()).max(offset);
         uint256 totalSupply = totalSupply();
 
+        uint256 nextCommissionEpoch = _getNextCommissionEpoch(block.timestamp);
         uint256 allBaseCommission;
         uint256 allLPCommission;
 
         for (uint256 i = offset; i < to; i++) {
             address investor = _investors.at(i);
-            uint256 nextCommissionEpoch = _getNextCommissionEpoch(block.timestamp);
 
             if (nextCommissionEpoch > investorsInfo[investor].commissionUnlockEpoch) {
                 (
@@ -267,13 +249,16 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
                     uint256 lpCommission
                 ) = _calculateCommissionOnReinvest(investor, totalSupply);
 
-                investorsInfo[investor].investedBase = investorBaseAmount - baseCommission;
                 investorsInfo[investor].commissionUnlockEpoch = nextCommissionEpoch;
 
-                _burn(investor, lpCommission);
+                if (lpCommission > 0) {
+                    investorsInfo[investor].investedBase = investorBaseAmount - baseCommission;
 
-                allBaseCommission += baseCommission;
-                allLPCommission += lpCommission;
+                    _burn(investor, lpCommission);
+
+                    allBaseCommission += baseCommission;
+                    allLPCommission += lpCommission;
+                }
             }
         }
 
@@ -361,8 +346,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             amountLP
         );
 
-        _burn(_msgSender(), amountLP);
-
         baseToken.safeTransfer(
             _msgSender(),
             (investorBaseAmount - baseCommission).convertFrom18(poolParameters.baseTokenDecimals)
@@ -373,6 +356,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
 
         _updateFromInvestor(_msgSender(), amountLP);
+
+        _burn(_msgSender(), amountLP);
     }
 
     function _divestTrader(uint256 amountLP) internal {
@@ -420,7 +405,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         );
     }
 
-    // TODO check approvals
     function exchange(
         address from,
         address to,
@@ -437,6 +421,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         IPriceFeed priceFeed = _priceFeed;
         uint256 convertedAmount = amount.convertFrom18(ERC20(from).decimals());
+
+        if (IERC20(from).allowance(address(this), address(_priceFeed)) == 0) {
+            IERC20(from).safeApprove(address(_priceFeed), MAX_UINT);
+        }
 
         if (from == poolParameters.baseToken) {
             _checkLeverage(priceFeed.getPriceInDAI(convertedAmount, from));
@@ -484,7 +472,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     }
 
     /// @notice if trader transfers tokens to an investor, we will count them as "earned" and add to the commission calculation
-    /// TODO check LP transfer to this address
     function _beforeTokenTransfer(
         address from,
         address to,
@@ -504,7 +491,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             }
 
             if (!isTrader(to)) {
-                _updateFromInvestor(from, baseTransfer);
+                _updateToInvestor(to, baseTransfer);
             }
         }
     }

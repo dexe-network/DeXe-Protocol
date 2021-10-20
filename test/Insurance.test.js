@@ -34,6 +34,7 @@ describe("Insurance", async () => {
     SECOND = await accounts(1);
     THIRD = await accounts(2);
     POOL = await accounts(3);
+
     await setNextBlockTime(UNIX_DAY);
   });
 
@@ -41,7 +42,7 @@ describe("Insurance", async () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _traderPoolRegistry = await TraderPoolRegistry.new();
     const _insurance = await Insurance.new();
-    dexe = await ERC20Mock.new();
+    dexe = await ERC20Mock.new("DEXE", "DEXE", 18);
 
     await contractsRegistry.__ContractsRegistry_init();
 
@@ -69,8 +70,8 @@ describe("Insurance", async () => {
 
     depositMultiplier = await insurance.DEPOSIT_MULTIPLIER();
 
-    await dexe.mint(toBN(1000000).multipliedBy(toBN(10).pow(decimal)), POOL);
-    await dexe.mint(toBN(1000).multipliedBy(toBN(10).pow(decimal)), SECOND);
+    await dexe.mint(POOL, toBN(1000000).multipliedBy(toBN(10).pow(decimal)));
+    await dexe.mint(SECOND, toBN(1000).multipliedBy(toBN(10).pow(decimal)));
 
     await dexe.approve(insurance.address, toBN(1000).multipliedBy(toBN(10).pow(decimal)), { from: SECOND });
   });
@@ -307,9 +308,9 @@ describe("Insurance", async () => {
     beforeEach("make ongoing claim", async () => {
       const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
 
-      await dexe.mint(deposit, ALICE);
-      await dexe.mint(deposit, RON);
-      await dexe.mint(deposit, BOB);
+      await dexe.mint(ALICE, deposit);
+      await dexe.mint(RON, deposit);
+      await dexe.mint(BOB, deposit);
 
       await dexe.approve(insurance.address, deposit, { from: ALICE });
       await dexe.approve(insurance.address, deposit, { from: RON });
@@ -494,9 +495,9 @@ describe("Insurance", async () => {
     beforeEach("make ongoing claim", async () => {
       const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
 
-      await dexe.mint(deposit, ALICE);
-      await dexe.mint(deposit, RON);
-      await dexe.mint(deposit, BOB);
+      await dexe.mint(ALICE, deposit);
+      await dexe.mint(RON, deposit);
+      await dexe.mint(BOB, deposit);
 
       await dexe.approve(insurance.address, deposit, { from: ALICE });
       await dexe.approve(insurance.address, deposit, { from: RON });
@@ -545,9 +546,9 @@ describe("Insurance", async () => {
     beforeEach("make finished claims", async () => {
       const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
 
-      await dexe.mint(deposit, ALICE);
-      await dexe.mint(deposit, RON);
-      await dexe.mint(deposit, BOB);
+      await dexe.mint(ALICE, deposit);
+      await dexe.mint(RON, deposit);
+      await dexe.mint(BOB, deposit);
 
       await dexe.approve(insurance.address, deposit, { from: ALICE });
       await dexe.approve(insurance.address, deposit, { from: RON });

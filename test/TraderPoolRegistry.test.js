@@ -1,17 +1,20 @@
 const { assert } = require("chai");
-const { toBN, accounts } = require("./helpers/utils");
+const { accounts } = require("./helpers/utils");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
+const ERC20Mock = artifacts.require("ERC20Mock");
 
 ContractsRegistry.numberFormat = "BigNumber";
 TraderPoolRegistry.numberFormat = "BigNumber";
+ERC20Mock.numberFormat = "BigNumber";
 
 describe("TraderPoolRegistry", () => {
   let OWNER;
   let SECOND;
   let THIRD;
 
+  let token;
   let traderPoolRegistry;
 
   before("setup", async () => {
@@ -23,6 +26,7 @@ describe("TraderPoolRegistry", () => {
   beforeEach("setup", async () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _traderPoolRegistry = await TraderPoolRegistry.new();
+    token = await ERC20Mock.new("MOCK", "MOCK", 18);
 
     await contractsRegistry.__ContractsRegistry_init();
 
@@ -60,9 +64,9 @@ describe("TraderPoolRegistry", () => {
     });
 
     it("should successfully add and get implementation", async () => {
-      await traderPoolRegistry.addImplementation(BASIC_NAME, POOL_1);
+      await traderPoolRegistry.setNewImplementations([BASIC_NAME], [token.address]);
 
-      assert.equal(await traderPoolRegistry.getImplementation(BASIC_NAME), POOL_1);
+      assert.equal(await traderPoolRegistry.getImplementation(BASIC_NAME), token.address);
     });
 
     it("should successfully add new pools", async () => {

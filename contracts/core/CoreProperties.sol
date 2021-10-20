@@ -87,4 +87,8 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable {
             coreParameters.dexeCommissionDistributionPercentages
         );
     }
+
+    function getTraderCommissions() external view override returns (uint256, uint256[] memory) {
+        return (coreParameters.minimalTraderCommission, coreParameters.maximalTraderCommissions);
+    }
 }

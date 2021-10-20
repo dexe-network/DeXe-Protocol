@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 interface ITraderPoolRegistry {
     function getImplementation(string calldata name) external view returns (address);
 
-    function getUpgrader() external view returns (address);
+    function getProxyBeacon(string calldata name) external view returns (address);
 
     function addPool(
         address user,

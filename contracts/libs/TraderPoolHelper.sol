@@ -75,15 +75,16 @@ library TraderPoolHelper {
         uint256 traderDAI,
         uint256 threshold,
         uint256 slope
-    ) public pure returns (uint256 maxTraderLeverage) {
-        uint256 traderUSD = traderDAI / 10**18;
-        uint256 multiplier = traderUSD / threshold;
+    ) public pure returns (uint256 maxTraderLeverageDAI) {
+        int256 traderUSD = int256(traderDAI / 10**18);
+        int256 multiplier = traderUSD / int256(threshold);
 
-        uint256 numerator = ((multiplier + 1) * (2 * traderUSD - threshold)) +
-            threshold -
-            (multiplier * multiplier * threshold);
-        uint256 boost = traderUSD * 2;
+        int256 numerator = int256(threshold) +
+            ((multiplier + 1) * (2 * traderUSD - int256(threshold))) -
+            (multiplier * multiplier * int256(threshold));
 
-        return numerator / slope + boost;
+        int256 boost = traderUSD * 2;
+
+        maxTraderLeverageDAI = uint256((numerator / int256(slope) + boost)) * 10**18;
     }
 }
