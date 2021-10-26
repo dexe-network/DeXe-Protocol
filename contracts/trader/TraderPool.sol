@@ -419,25 +419,29 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             "TraderPool: invalid exchange amount"
         );
 
-        IPriceFeed priceFeed = _priceFeed;
         uint256 convertedAmount = amount.convertFrom18(ERC20(from).decimals());
 
-        if (IERC20(from).allowance(address(this), address(_priceFeed)) == 0) {
-            IERC20(from).safeApprove(address(_priceFeed), MAX_UINT);
-        }
+        _checkPriceFeedAllowance(from);
+        _checkPriceFeedAllowance(to);
 
         if (from == poolParameters.baseToken) {
-            _checkLeverage(priceFeed.getPriceInDAI(convertedAmount, from));
+            _checkLeverage(_priceFeed.getPriceInDAI(convertedAmount, from));
             _openPositions.add(to);
         } else if (to != poolParameters.baseToken) {
             _checkLeverage(0);
             _openPositions.add(to);
         }
 
-        priceFeed.exchangeTo(from, to, convertedAmount);
+        _priceFeed.exchangeTo(from, to, convertedAmount);
 
         if (ERC20(from).balanceOf(address(this)) == 0) {
             _openPositions.remove(from);
+        }
+    }
+
+    function _checkPriceFeedAllowance(address token) internal {
+        if (IERC20(token).allowance(address(this), address(_priceFeed)) == 0) {
+            IERC20(token).safeApprove(address(_priceFeed), MAX_UINT);
         }
     }
 

@@ -92,7 +92,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
     }
 
     function getProxyBeacon(string calldata name) external view override returns (address) {
-        require(address(_beacons[name]) != address(0), "TraderPoolRegistry: Bad upgrader");
+        require(address(_beacons[name]) != address(0), "TraderPoolRegistry: Bad ProxyBeacon");
 
         return address(_beacons[name]);
     }
