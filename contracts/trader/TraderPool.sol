@@ -169,7 +169,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
     }
 
-    function invest(uint256 amountInBaseToInvest) external virtual {
+    function invest(uint256 amountInBaseToInvest) public virtual {
         require(
             !poolParameters.privatePool ||
                 isTraderAdmin(_msgSender()) ||
