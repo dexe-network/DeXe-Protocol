@@ -86,6 +86,36 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _dividendsAddress = contractsRegistry.getDividendsContract();
     }
 
+    function changePoolParameters(
+        string calldata descriptionURL,
+        bool privatePool,
+        uint256 totalLPemission,
+        uint256 minimalInvestment
+    ) external onlyTraderAdmin {
+        require(
+            totalLPemission == 0 || totalSupply() <= totalLPemission,
+            "TraderPool: wrong emission supply"
+        );
+
+        poolParameters.descriptionURL = descriptionURL;
+        poolParameters.privatePool = privatePool;
+        poolParameters.totalLPEmission = totalLPemission;
+        poolParameters.minimalInvestment = minimalInvestment;
+    }
+
+    function changePrivateInvestors(bool remove, address[] calldata privateInvestors)
+        external
+        onlyTraderAdmin
+    {
+        for (uint256 i = 0; i < privateInvestors.length; i++) {
+            _privateInvestors.add(privateInvestors[i]);
+
+            if (remove && balanceOf(privateInvestors[i]) == 0) {
+                _privateInvestors.remove(privateInvestors[i]);
+            }
+        }
+    }
+
     function _transferBaseAndMintLP(uint256 totalBaseInPool, uint256 amountInBaseToInvest)
         internal
     {
@@ -414,12 +444,13 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             from == poolParameters.baseToken || _openPositions.contains(from),
             "TraderPool: invalid exchange address"
         );
-        require(
-            amount <= ERC20(from).balanceOf(address(this)),
-            "TraderPool: invalid exchange amount"
-        );
 
         uint256 convertedAmount = amount.convertFrom18(ERC20(from).decimals());
+
+        require(
+            convertedAmount <= ERC20(from).balanceOf(address(this)),
+            "TraderPool: invalid exchange amount"
+        );
 
         _checkPriceFeedAllowance(from);
         _checkPriceFeedAllowance(to);
