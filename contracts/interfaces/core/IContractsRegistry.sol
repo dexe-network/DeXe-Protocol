@@ -2,11 +2,23 @@
 pragma solidity ^0.8.4;
 
 interface IContractsRegistry {
-    // function getInsuranceContract() external view returns (address);
-
     function getTraderPoolFactoryContract() external view returns (address);
 
     function getTraderPoolRegistryContract() external view returns (address);
 
     function getDEXEContract() external view returns (address);
+
+    function getDAIContract() external view returns (address);
+
+    function getPriceFeedContract() external view returns (address);
+
+    function getUniswapV2RounterContract() external view returns (address);
+
+    function getInsuranceContract() external view returns (address);
+
+    function getTreasuryContract() external view returns (address);
+
+    function getDividendsContract() external view returns (address);
+
+    function getCorePropertiesContract() external view returns (address);
 }

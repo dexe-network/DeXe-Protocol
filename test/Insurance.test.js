@@ -12,7 +12,6 @@ Insurance.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 TraderPoolRegistry.numberFormat = "BigNumber";
 
-const INSURANSE_NAME = "INSURANCE";
 const UNIX_DAY = 86400;
 
 describe("Insurance", async () => {
@@ -35,47 +34,45 @@ describe("Insurance", async () => {
     SECOND = await accounts(1);
     THIRD = await accounts(2);
     POOL = await accounts(3);
+
     await setNextBlockTime(UNIX_DAY);
   });
 
   beforeEach("setup", async () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _traderPoolRegistry = await TraderPoolRegistry.new();
-
     const _insurance = await Insurance.new();
-    const _dexe = await ERC20Mock.new();
+    dexe = await ERC20Mock.new("DEXE", "DEXE", 18);
 
     await contractsRegistry.__ContractsRegistry_init();
 
-    await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), _dexe.address);
-    await contractsRegistry.addContract(await contractsRegistry.TRADER_POOL_FACTORY_NAME(), SECOND);
-    await contractsRegistry.addProxyContract(INSURANSE_NAME, _insurance.address);
-
+    await contractsRegistry.addProxyContract(await contractsRegistry.INSURANCE_NAME(), _insurance.address);
     await contractsRegistry.addProxyContract(
       await contractsRegistry.TRADER_POOL_REGISTRY_NAME(),
       _traderPoolRegistry.address
     );
 
+    await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), dexe.address);
+    await contractsRegistry.addContract(await contractsRegistry.TRADER_POOL_FACTORY_NAME(), SECOND);
+
     let traderPoolRegistry = await TraderPoolRegistry.at(await contractsRegistry.getTraderPoolRegistryContract());
-    await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_REGISTRY_NAME());
+    insurance = await Insurance.at(await contractsRegistry.getInsuranceContract());
+
     await traderPoolRegistry.__TraderPoolRegistry_init();
+    await insurance.__Insurance_init();
 
-    let BASIC_NAME = await traderPoolRegistry.BASIC_POOL_NAME();
-    await traderPoolRegistry.addPool(OWNER, BASIC_NAME, POOL, { from: SECOND });
+    await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_REGISTRY_NAME());
+    await contractsRegistry.injectDependencies(await contractsRegistry.INSURANCE_NAME());
 
-    dexe = await ERC20Mock.at(await contractsRegistry.getDEXEContract());
     decimal = await dexe.decimals();
 
-    await contractsRegistry.injectDependencies(INSURANSE_NAME);
-
-    insurance = await Insurance.at(await contractsRegistry.getContract(INSURANSE_NAME));
-    await insurance.__Insurance_init();
+    await traderPoolRegistry.addPool(OWNER, await traderPoolRegistry.BASIC_POOL_NAME(), POOL, { from: SECOND });
 
     depositMultiplier = await insurance.DEPOSIT_MULTIPLIER();
 
-    await dexe.mint(toBN(1000000).multipliedBy(toBN(10).pow(decimal)), POOL);
+    await dexe.mint(POOL, toBN(1000000).multipliedBy(toBN(10).pow(decimal)));
+    await dexe.mint(SECOND, toBN(1000).multipliedBy(toBN(10).pow(decimal)));
 
-    await dexe.mint(toBN(1000).multipliedBy(toBN(10).pow(decimal)), SECOND);
     await dexe.approve(insurance.address, toBN(1000).multipliedBy(toBN(10).pow(decimal)), { from: SECOND });
   });
 
@@ -311,9 +308,9 @@ describe("Insurance", async () => {
     beforeEach("make ongoing claim", async () => {
       const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
 
-      await dexe.mint(deposit, ALICE);
-      await dexe.mint(deposit, RON);
-      await dexe.mint(deposit, BOB);
+      await dexe.mint(ALICE, deposit);
+      await dexe.mint(RON, deposit);
+      await dexe.mint(BOB, deposit);
 
       await dexe.approve(insurance.address, deposit, { from: ALICE });
       await dexe.approve(insurance.address, deposit, { from: RON });
@@ -377,9 +374,9 @@ describe("Insurance", async () => {
       assert.equal(users.length, finishedClaims[1][0][0].length);
       assert.equal(amounts.length, finishedClaims[1][0][1].length);
 
-      assert.equal(11, finishedClaims[1][0][1][0]);
-      assert.equal(11, finishedClaims[1][0][1][1]);
-      assert.equal(11, finishedClaims[1][0][1][2]);
+      assert.equal(12, finishedClaims[1][0][1][0]);
+      assert.equal(12, finishedClaims[1][0][1][1]);
+      assert.equal(12, finishedClaims[1][0][1][2]);
 
       assert.equal(ALICE, finishedClaims[1][0][0][0]);
       assert.equal(RON, finishedClaims[1][0][0][1]);
@@ -498,9 +495,9 @@ describe("Insurance", async () => {
     beforeEach("make ongoing claim", async () => {
       const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
 
-      await dexe.mint(deposit, ALICE);
-      await dexe.mint(deposit, RON);
-      await dexe.mint(deposit, BOB);
+      await dexe.mint(ALICE, deposit);
+      await dexe.mint(RON, deposit);
+      await dexe.mint(BOB, deposit);
 
       await dexe.approve(insurance.address, deposit, { from: ALICE });
       await dexe.approve(insurance.address, deposit, { from: RON });
@@ -549,9 +546,9 @@ describe("Insurance", async () => {
     beforeEach("make finished claims", async () => {
       const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
 
-      await dexe.mint(deposit, ALICE);
-      await dexe.mint(deposit, RON);
-      await dexe.mint(deposit, BOB);
+      await dexe.mint(ALICE, deposit);
+      await dexe.mint(RON, deposit);
+      await dexe.mint(BOB, deposit);
 
       await dexe.approve(insurance.address, deposit, { from: ALICE });
       await dexe.approve(insurance.address, deposit, { from: RON });

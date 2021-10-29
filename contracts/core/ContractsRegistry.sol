@@ -7,15 +7,25 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 import "../interfaces/core/IContractsRegistry.sol";
 
 import "../helpers/AbstractDependant.sol";
-import "../helpers/Upgrader.sol";
+import "../helpers/ProxyUpgrader.sol";
 
 contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
-    Upgrader internal upgrader;
+    ProxyUpgrader internal proxyUpgrader;
 
     string public constant TRADER_POOL_FACTORY_NAME = "TRADER_POOL_FACTORY";
     string public constant TRADER_POOL_REGISTRY_NAME = "TRADER_POOL_REGISTRY";
 
     string public constant DEXE_NAME = "DEXE";
+    string public constant DAI_NAME = "DAI";
+
+    string public constant PRICE_FEED_NAME = "PRICE_FEED";
+    string public constant UNISWAP_V2_ROUTER_NAME = "UNISWAP_V2_ROUTER";
+
+    string public constant INSURANCE_NAME = "INSURANCE";
+    string public constant TREASURY_NAME = "TREASURY";
+    string public constant DIVIDENDS_NAME = "DIVIDENDS";
+
+    string public constant CORE_PROPERTIES_NAME = "CORE_PROPERTIES";
 
     mapping(string => address) private _contracts;
     mapping(address => bool) private _isProxy;
@@ -23,7 +33,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
     function __ContractsRegistry_init() external initializer {
         __Ownable_init();
 
-        upgrader = new Upgrader();
+        proxyUpgrader = new ProxyUpgrader();
     }
 
     function getTraderPoolFactoryContract() external view override returns (address) {
@@ -36,6 +46,34 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
 
     function getDEXEContract() external view override returns (address) {
         return getContract(DEXE_NAME);
+    }
+
+    function getDAIContract() external view override returns (address) {
+        return getContract(DAI_NAME);
+    }
+
+    function getPriceFeedContract() external view override returns (address) {
+        return getContract(PRICE_FEED_NAME);
+    }
+
+    function getUniswapV2RounterContract() external view override returns (address) {
+        return getContract(UNISWAP_V2_ROUTER_NAME);
+    }
+
+    function getInsuranceContract() external view override returns (address) {
+        return getContract(INSURANCE_NAME);
+    }
+
+    function getTreasuryContract() external view override returns (address) {
+        return getContract(TREASURY_NAME);
+    }
+
+    function getDividendsContract() external view override returns (address) {
+        return getContract(DIVIDENDS_NAME);
+    }
+
+    function getCorePropertiesContract() external view override returns (address) {
+        return getContract(CORE_PROPERTIES_NAME);
     }
 
     function getContract(string memory name) public view returns (address) {
@@ -56,7 +94,6 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         require(contractAddress != address(0), "ContractsRegistry: This mapping doesn't exist");
 
         AbstractDependant dependant = AbstractDependant(contractAddress);
-
         if (dependant.injector() == address(0)) {
             dependant.setInjector(address(this));
         }
@@ -64,19 +101,19 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         dependant.setDependencies(this);
     }
 
-    function getUpgrader() external view returns (address) {
-        require(address(upgrader) != address(0), "ContractsRegistry: Bad upgrader");
+    function getProxyUpgrader() external view returns (address) {
+        require(address(proxyUpgrader) != address(0), "ContractsRegistry: Bad upgrader");
 
-        return address(upgrader);
+        return address(proxyUpgrader);
     }
 
-    function getImplementation(string calldata name) external returns (address) {
+    function getImplementation(string calldata name) external view returns (address) {
         address contractProxy = _contracts[name];
 
         require(contractProxy != address(0), "ContractsRegistry: This mapping doesn't exist");
         require(_isProxy[contractProxy], "ContractsRegistry: Not a proxy contract");
 
-        return upgrader.getImplementation(contractProxy);
+        return proxyUpgrader.getImplementation(contractProxy);
     }
 
     function upgradeContract(string calldata name, address newImplementation) external onlyOwner {
@@ -102,15 +139,11 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         require(contractToUpgrade != address(0), "ContractsRegistry: This mapping doesn't exist");
         require(_isProxy[contractToUpgrade], "ContractsRegistry: Not a proxy contract");
 
-        if (bytes(functionSignature).length > 0) {
-            upgrader.upgradeAndCall(
-                contractToUpgrade,
-                newImplementation,
-                abi.encodeWithSignature(functionSignature)
-            );
-        } else {
-            upgrader.upgrade(contractToUpgrade, newImplementation);
-        }
+        proxyUpgrader.upgrade(
+            contractToUpgrade,
+            newImplementation,
+            abi.encodeWithSignature(functionSignature)
+        );
     }
 
     function addContract(string calldata name, address contractAddress) external onlyOwner {
@@ -124,7 +157,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
 
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
             contractAddress,
-            address(upgrader),
+            address(proxyUpgrader),
             ""
         );
 

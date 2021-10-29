@@ -8,11 +8,14 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/insurance/IInsurance.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/trader/ITraderPoolRegistry.sol";
+
 import "../helpers/AbstractDependant.sol";
 import "../libs/StringSet.sol";
+import "../core/Globals.sol";
 
-contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
+contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
     using StringSet for StringSet.Set;
+
     uint256 public constant DEPOSIT_MULTIPLIER = 10;
 
     ITraderPoolRegistry internal _traderPoolRegistry;
@@ -22,7 +25,7 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
     mapping(address => mapping(uint256 => uint256)) internal _depositOnBlocks; // user => blocknum => deposit
     mapping(string => FinishedClaims) internal _finishedClaimsInfo;
 
-    mapping(address => uint256) public _lastPropose; // user => timestamp
+    mapping(address => uint256) public _lastProposal; // user => timestamp
 
     StringSet.Set internal _finishedClaims;
     StringSet.Set internal _ongoingClaims;
@@ -40,7 +43,6 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
     }
 
     uint256 public totalPool; // tokens only from pools
-    uint256 public decimal;
 
     modifier onlyTraderPool() {
         require(_traderPoolRegistry.isPool(_msgSender()), "Insurance: Not a trader pool");
@@ -48,9 +50,12 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
     }
 
     modifier onlyOncePerDay(address user) {
-        require(_lastPropose[user] + 1 days <= block.timestamp, "Insurance: Propose once per day");
+        require(
+            _lastProposal[user] + 1 days <= block.timestamp,
+            "Insurance: Proposal once per day"
+        );
         _;
-        _lastPropose[user] = block.timestamp;
+        _lastProposal[user] = block.timestamp;
     }
 
     function __Insurance_init() external initializer {
@@ -67,24 +72,30 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
         );
 
         _dexe = ERC20(contractsRegistry.getDEXEContract());
-        decimal = 10**_dexe.decimals();
     }
 
-    function receiveDexeFromPools(uint256 amount) external onlyTraderPool {
+    function receiveDexeFromPools(uint256 amount) external override onlyTraderPool {
         totalPool += amount;
     }
 
     function buyInsurance(uint256 insuranceAmount) external {
-        require(insuranceAmount >= 10 * decimal, "Insurance: insuranceAmount must be 10 or more");
+        require(
+            insuranceAmount >= 10 * 10**_dexe.decimals(),
+            "Insurance: insuranceAmount must be 10 or more"
+        );
+
         userStakes[_msgSender()] += insuranceAmount;
         _depositOnBlocks[_msgSender()][block.number] = insuranceAmount;
+
         _dexe.transferFrom(_msgSender(), address(this), insuranceAmount);
     }
 
     function withdraw(uint256 amountToWithdraw) external {
         uint256 availableAmount = userStakes[_msgSender()] -
             _depositOnBlocks[_msgSender()][block.number];
+
         require(availableAmount >= amountToWithdraw, "Insurance: out of available amount");
+
         userStakes[_msgSender()] -= amountToWithdraw;
         _dexe.transfer(_msgSender(), amountToWithdraw);
     }
@@ -95,6 +106,7 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
             !_ongoingClaims.contains(url) && !_finishedClaims.contains(url),
             "Insurance: Url is not unique"
         );
+
         _ongoingClaims.add(url);
     }
 
@@ -104,7 +116,9 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
         returns (string[] memory urls)
     {
         uint256 to = Math.max(Math.min(offset + limit, _ongoingClaims.length()), offset);
+
         urls = new string[](to - offset);
+
         for (uint256 i = offset; i < to; i++) {
             urls[i - offset] = _ongoingClaims._values[i];
         }
@@ -116,10 +130,13 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
         returns (string[] memory urls, FinishedClaims[] memory info)
     {
         uint256 to = Math.max(Math.min(offset + limit, _finishedClaims.length()), offset);
+
         urls = new string[](to - offset);
         info = new FinishedClaims[](to - offset);
+
         for (uint256 i = offset; i < to; i++) {
             string memory value = _finishedClaims._values[i];
+
             urls[i - offset] = value;
             info[i - offset] = _finishedClaimsInfo[value];
         }
@@ -136,6 +153,7 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
 
         for (uint256 i; i < amounts.length; i++) {
             uint256 userBalance = userStakes[users[i]] * DEPOSIT_MULTIPLIER;
+
             amounts[i] = Math.min(amounts[i], userBalance);
             totalToPay += amounts[i];
         }
@@ -144,44 +162,50 @@ contract Insurance is IInsurance, AbstractDependant, OwnableUpgradeable {
 
         if (totalToPay >= accessiblePool) {
             uint256 paid;
+
             for (uint256 i; i < amounts.length; i++) {
-                uint256 toPay = (accessiblePool * _getProportionalPart(amounts[i], totalToPay)) /
-                    decimal;
+                uint256 toPay = (accessiblePool * amounts[i]) / totalToPay;
+
                 _payout(users[i], toPay);
+
                 amounts[i] = toPay + (toPay / DEPOSIT_MULTIPLIER);
                 paid += toPay;
             }
+
             totalPool -= paid;
         } else {
             for (uint256 i; i < amounts.length; i++) {
                 _payout(users[i], amounts[i]);
+
                 amounts[i] += amounts[i] / DEPOSIT_MULTIPLIER;
             }
+
             totalPool -= totalToPay;
         }
+
         _finishedClaims.add(url);
         _finishedClaimsInfo[url] = FinishedClaims(users, amounts, ClaimStatus.ACCEPTED);
+
         _ongoingClaims.remove(url);
     }
 
     function rejectClaim(string calldata url) external onlyOwner {
         require(_ongoingClaims.contains(url), "Insurance: url is not ongoing");
+
         _finishedClaims.add(url);
         _finishedClaimsInfo[url] = FinishedClaims(
             new address[](0),
             new uint256[](0),
             ClaimStatus.REJECTED
         );
+
         _ongoingClaims.remove(url);
     }
 
     function getInsurance() external view returns (uint256, uint256) {
         uint256 deposit = userStakes[_msgSender()];
-        return (deposit, deposit * DEPOSIT_MULTIPLIER);
-    }
 
-    function _getProportionalPart(uint256 amount, uint256 total) internal view returns (uint256) {
-        return (amount * decimal) / total;
+        return (deposit, deposit * DEPOSIT_MULTIPLIER);
     }
 
     function _payout(address user, uint256 amount) internal {

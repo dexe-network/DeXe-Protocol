@@ -9,7 +9,7 @@ import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/trader/ITraderPoolRegistry.sol";
 
 import "../helpers/AbstractDependant.sol";
-import "../helpers/Upgrader.sol";
+import "../helpers/ProxyBeacon.sol";
 
 contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -19,12 +19,10 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
     string public constant RISKY_POOL_NAME = "RISKY_POOL";
     string public constant INVEST_POOL_NAME = "INVEST_POOL";
 
-    Upgrader internal upgrader;
-
     IContractsRegistry internal _contractsRegistry;
     address internal _traderPoolFactory;
 
-    mapping(string => address) private _implementations;
+    mapping(string => ProxyBeacon) private _beacons;
 
     mapping(address => mapping(string => EnumerableSet.AddressSet)) internal _userPools; // user => name => pool
     mapping(string => EnumerableSet.AddressSet) internal _allPools; // name => pool
@@ -37,7 +35,9 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
     function __TraderPoolRegistry_init() external initializer {
         __Ownable_init();
 
-        upgrader = new Upgrader();
+        _beacons[BASIC_POOL_NAME] = new ProxyBeacon();
+        _beacons[RISKY_POOL_NAME] = new ProxyBeacon();
+        _beacons[INVEST_POOL_NAME] = new ProxyBeacon();
     }
 
     function setDependencies(IContractsRegistry contractsRegistry)
@@ -72,78 +72,29 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         }
     }
 
-    function upgradeExistingPools(
-        string calldata name,
-        address newImplementation,
-        uint256 offset,
-        uint256 limit
-    ) external onlyOwner {
-        _upgradeExistingPools(name, newImplementation, "", offset, limit);
-    }
-
-    /// @notice can only call functions that have no parameters
-    function upgradeExistingPoolsAndCall(
-        string calldata name,
-        address newImplementation,
-        string calldata functionSignature,
-        uint256 offset,
-        uint256 limit
-    ) external onlyOwner {
-        _upgradeExistingPools(name, newImplementation, functionSignature, offset, limit);
-    }
-
-    /// @notice can only call functions that have no parameters
-    function _upgradeExistingPools(
-        string memory name,
-        address newImplementation,
-        string memory functionSignature,
-        uint256 offset,
-        uint256 limit
-    ) internal {
-        EnumerableSet.AddressSet storage pools = _allPools[name];
-
-        uint256 to = (offset + limit).min(pools.length()).max(offset);
-        require(to - offset > 0, "TraderPoolRegistry: No pools to upgrade");
-
-        for (uint256 i = offset; i < to; i++) {
-            if (bytes(functionSignature).length > 0) {
-                upgrader.upgradeAndCall(
-                    pools.at(i),
-                    newImplementation,
-                    abi.encodeWithSignature(functionSignature)
-                );
-            } else {
-                upgrader.upgrade(pools.at(i), newImplementation);
+    function setNewImplementations(string[] calldata names, address[] calldata newImplementations)
+        external
+        onlyOwner
+    {
+        for (uint256 i = 0; i < names.length; i++) {
+            if (_beacons[names[i]].implementation() != newImplementations[i]) {
+                _beacons[names[i]].upgrade(newImplementations[i]);
             }
         }
-
-        /// @dev this doesn't save gas in this tx, but does if the call is paginated
-        if (_implementations[name] != newImplementation) {
-            _implementations[name] = newImplementation;
-        }
-    }
-
-    function addImplementation(string calldata name, address implementation) external onlyOwner {
-        require(
-            _implementations[name] == address(0),
-            "TraderPoolRegistry: Adding existing implementation"
-        );
-
-        _implementations[name] = implementation;
     }
 
     function getImplementation(string calldata name) external view override returns (address) {
-        address contractAddress = _implementations[name];
+        address contractAddress = _beacons[name].implementation();
 
         require(contractAddress != address(0), "TraderPoolRegistry: This mapping doesn't exist");
 
         return contractAddress;
     }
 
-    function getUpgrader() external view override returns (address) {
-        require(address(upgrader) != address(0), "TraderPoolRegistry: Bad upgrader");
+    function getProxyBeacon(string calldata name) external view override returns (address) {
+        require(address(_beacons[name]) != address(0), "TraderPoolRegistry: Bad upgrader");
 
-        return address(upgrader);
+        return address(_beacons[name]);
     }
 
     function addPool(
