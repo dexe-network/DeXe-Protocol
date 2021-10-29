@@ -25,6 +25,7 @@ interface ICoreProperties {
         uint256[] dexeCommissionDistributionPercentages;
         uint256 minimalTraderCommission;
         uint256[] maximalTraderCommissions;
+        uint256 delayForRiskyPool;
     }
 
     function getMaximumPoolInvestors() external view returns (uint256);
@@ -46,4 +47,6 @@ interface ICoreProperties {
         returns (uint256 totalPercentage, uint256[] memory individualPercentages);
 
     function getTraderCommissions() external view returns (uint256, uint256[] memory);
+
+    function getDelayForRiskyPool() external view returns (uint256);
 }

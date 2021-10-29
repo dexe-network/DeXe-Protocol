@@ -439,7 +439,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         address from,
         address to,
         uint256 amount
-    ) external virtual onlyTraderAdmin {
+    ) public virtual onlyTraderAdmin {
         require(
             from == poolParameters.baseToken || _openPositions.contains(from),
             "TraderPool: invalid exchange address"

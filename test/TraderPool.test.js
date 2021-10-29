@@ -51,6 +51,7 @@ const DEFAULT_CORE_PROPERTIES = {
     PRECISION.times(50).toFixed(),
     PRECISION.times(70).toFixed(),
   ],
+  delayForRiskyPool: SECONDS_IN_DAY * 20,
 };
 
 describe("TraderPool", () => {
