@@ -197,5 +197,22 @@ describe("RiskyTraderPool", async () => {
         "RiskyTraderPool: wait a few days after first invest"
       );
     });
+
+    it("should invest after delay", async () => {
+      await testCoin.mint(OWNER, 100);
+      await testCoin.approve(risky.address, 100);
+      await risky.invest(100, { from: OWNER });
+      await testCoin.mint(SECOND, 100);
+      await testCoin.approve(risky.address, 100);
+      let token = await ERC20Mock.new("test", "TS", 100);
+
+      await setNextBlockTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
+
+      await risky.exchange(testCoin.address, token.address, 100);
+      await truffleAssert.reverts(
+        risky.invest(100, { from: SECOND }),
+        "RiskyTraderPool: wait a few days after first invest"
+      );
+    });
   });
 });
