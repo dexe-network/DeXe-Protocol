@@ -35,7 +35,8 @@ contract RiskyTraderPool is IRiskyTraderPool, TraderPool {
     function invest(uint256 amountInBaseToInvest) public override {
         require(
             traderAdmins[_msgSender()] ||
-                _firstExchange + _coreProperties.getDelayForRiskyPool() <= block.timestamp,
+                (_firstExchange != 0 &&
+                    _firstExchange + _coreProperties.getDelayForRiskyPool() <= block.timestamp),
             "RiskyTraderPool: wait a few days after first invest"
         );
         super.invest(amountInBaseToInvest);
