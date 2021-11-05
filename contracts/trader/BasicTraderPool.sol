@@ -13,4 +13,14 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
     ) public override {
         TraderPool.__TraderPool_init(name, symbol, _poolParameters);
     }
+
+    function exchange(
+        address from,
+        address to,
+        uint256 amount
+    ) public override onlyTraderAdmin {
+        require(_priceFeed.isSupportedBaseToken(to), "BTP: invalid exchange");
+
+        super.exchange(from, to, amount);
+    }
 }

@@ -70,20 +70,20 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     }
 
     function getPriceIn(
-        uint256 amount,
         address inToken,
-        address outToken
+        address outToken,
+        uint256 amount
     ) public view virtual override returns (uint256) {
         // TODO
     }
 
-    function getPriceInDAI(uint256 amount, address inToken)
+    function getPriceInDAI(address inToken, uint256 amount)
         external
         view
         override
         returns (uint256)
     {
-        return getPriceIn(amount, inToken, _daiAddress);
+        return getPriceIn(inToken, _daiAddress, amount);
     }
 
     function exchangeTo(
@@ -94,7 +94,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         // TODO
     }
 
-    function isSupportedBaseToken(address token) external view returns (bool) {
+    function isSupportedBaseToken(address token) external view override returns (bool) {
         return _supportedBaseTokens.contains(token);
     }
 }

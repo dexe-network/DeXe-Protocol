@@ -70,7 +70,6 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         _traderPoolRegistry = ITraderPoolRegistry(
             contractsRegistry.getTraderPoolRegistryContract()
         );
-
         _dexe = ERC20(contractsRegistry.getDEXEContract());
     }
 

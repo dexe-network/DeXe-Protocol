@@ -10,9 +10,9 @@ contract PriceFeedMock is PriceFeed {
     using MathHelper for uint256;
 
     function getPriceIn(
-        uint256 amount,
         address inToken,
-        address outToken
+        address outToken,
+        uint256 amount
     ) public view override returns (uint256) {
         address[] memory path = new address[](2);
 

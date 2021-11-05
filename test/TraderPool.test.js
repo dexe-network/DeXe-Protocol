@@ -284,7 +284,7 @@ describe("TraderPool", () => {
         assert.equal((await baseTokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("900"));
         assert.equal((await baseTokens.MANA.balanceOf(traderPool.address)).toFixed(), wei("100"));
 
-        const price = await priceFeed.getPriceIn(wei("500"), baseTokens.WETH.address, baseTokens.MANA.address);
+        const price = await priceFeed.getPriceIn(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
 
         await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
 
@@ -313,7 +313,7 @@ describe("TraderPool", () => {
 
         assert.equal((await traderPool.openPositions()).length, 1);
 
-        const price = await priceFeed.getPriceIn(wei("50"), baseTokens.MANA.address, baseTokens.WBTC.address);
+        const price = await priceFeed.getPriceIn(baseTokens.MANA.address, baseTokens.WBTC.address, wei("50"));
 
         await traderPool.exchange(baseTokens.MANA.address, baseTokens.WBTC.address, wei("50"));
 
@@ -347,7 +347,7 @@ describe("TraderPool", () => {
 
         assert.equal((await baseTokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("3000"));
 
-        await truffleAssert.reverts(traderPool.reinvestCommission(0, 5), "TraderPool: no commission available");
+        await truffleAssert.reverts(traderPool.reinvestCommission(0, 5), "TP: no commission available");
 
         await setNextBlockTime((await getCurrentBlockTime()) + ONE_MONTH);
 
@@ -361,7 +361,7 @@ describe("TraderPool", () => {
           toBN(wei("0.000001")).toNumber()
         );
 
-        await truffleAssert.reverts(traderPool.reinvestCommission(0, 5), "TraderPool: no commission available");
+        await truffleAssert.reverts(traderPool.reinvestCommission(0, 5), "TP: no commission available");
       });
 
       it("there shouldn't be any commission 1", async () => {
@@ -378,7 +378,7 @@ describe("TraderPool", () => {
 
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("1000"));
 
-        await truffleAssert.reverts(traderPool.reinvestCommission(0, 5), "TraderPool: no commission available");
+        await truffleAssert.reverts(traderPool.reinvestCommission(0, 5), "TP: no commission available");
       });
 
       it("there shouldn't be any commission 2", async () => {
@@ -411,7 +411,7 @@ describe("TraderPool", () => {
           await baseTokens.MANA.balanceOf(traderPool.address)
         );
 
-        await truffleAssert.reverts(traderPool.reinvestCommission(0, 5), "TraderPool: no commission available");
+        await truffleAssert.reverts(traderPool.reinvestCommission(0, 5), "TP: no commission available");
       });
     });
 
@@ -650,7 +650,7 @@ describe("TraderPool", () => {
         assert.equal(wbtcBalance.toFixed(), wei("600", 8));
         assert.equal(manaBalance.toFixed(), wei("400"));
 
-        const manaPrice = await priceFeed.getPriceIn(wei("400"), baseTokens.MANA.address, baseTokens.WBTC.address);
+        const manaPrice = await priceFeed.getPriceIn(baseTokens.MANA.address, baseTokens.WBTC.address, wei("400"));
         const wbtcPrice = await baseTokens.WBTC.balanceOf(traderPool.address);
         const totalPrice = manaPrice.plus(wbtcPrice);
 
@@ -659,7 +659,7 @@ describe("TraderPool", () => {
 
         const wbtc = wbtcBalance.plus(proportionWBTC).plus(1);
         const mana = manaBalance.plus(
-          await priceFeed.getPriceIn(proportionMANA, baseTokens.WBTC.address, baseTokens.MANA.address)
+          await priceFeed.getPriceIn(baseTokens.WBTC.address, baseTokens.MANA.address, proportionMANA)
         );
 
         await baseTokens.WBTC.mint(SECOND, wei("1000", 8));
