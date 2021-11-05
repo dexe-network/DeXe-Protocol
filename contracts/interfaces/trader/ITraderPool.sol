@@ -5,7 +5,7 @@ import "../core/ICoreProperties.sol";
 
 interface ITraderPool {
     struct PoolParameters {
-        string description;
+        string descriptionURL;
         address trader;
         bool activePortfolio;
         bool privatePool;

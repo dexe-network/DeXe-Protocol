@@ -102,7 +102,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
     }
 
     function getProxyUpgrader() external view returns (address) {
-        require(address(proxyUpgrader) != address(0), "ContractsRegistry: Bad upgrader");
+        require(address(proxyUpgrader) != address(0), "ContractsRegistry: Bad ProxyUpgrader");
 
         return address(proxyUpgrader);
     }

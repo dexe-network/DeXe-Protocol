@@ -86,6 +86,36 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _dividendsAddress = contractsRegistry.getDividendsContract();
     }
 
+    function changePoolParameters(
+        string calldata descriptionURL,
+        bool privatePool,
+        uint256 totalLPemission,
+        uint256 minimalInvestment
+    ) external onlyTraderAdmin {
+        require(
+            totalLPemission == 0 || totalSupply() <= totalLPemission,
+            "TraderPool: wrong emission supply"
+        );
+
+        poolParameters.descriptionURL = descriptionURL;
+        poolParameters.privatePool = privatePool;
+        poolParameters.totalLPEmission = totalLPemission;
+        poolParameters.minimalInvestment = minimalInvestment;
+    }
+
+    function changePrivateInvestors(bool remove, address[] calldata privateInvestors)
+        external
+        onlyTraderAdmin
+    {
+        for (uint256 i = 0; i < privateInvestors.length; i++) {
+            _privateInvestors.add(privateInvestors[i]);
+
+            if (remove && balanceOf(privateInvestors[i]) == 0) {
+                _privateInvestors.remove(privateInvestors[i]);
+            }
+        }
+    }
+
     function _transferBaseAndMintLP(uint256 totalBaseInPool, uint256 amountInBaseToInvest)
         internal
     {
@@ -414,30 +444,35 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             from == poolParameters.baseToken || _openPositions.contains(from),
             "TraderPool: invalid exchange address"
         );
+
+        uint256 convertedAmount = amount.convertFrom18(ERC20(from).decimals());
+
         require(
-            amount <= ERC20(from).balanceOf(address(this)),
+            convertedAmount <= ERC20(from).balanceOf(address(this)),
             "TraderPool: invalid exchange amount"
         );
 
-        IPriceFeed priceFeed = _priceFeed;
-        uint256 convertedAmount = amount.convertFrom18(ERC20(from).decimals());
-
-        if (IERC20(from).allowance(address(this), address(_priceFeed)) == 0) {
-            IERC20(from).safeApprove(address(_priceFeed), MAX_UINT);
-        }
+        _checkPriceFeedAllowance(from);
+        _checkPriceFeedAllowance(to);
 
         if (from == poolParameters.baseToken) {
-            _checkLeverage(priceFeed.getPriceInDAI(convertedAmount, from));
+            _checkLeverage(_priceFeed.getPriceInDAI(convertedAmount, from));
             _openPositions.add(to);
         } else if (to != poolParameters.baseToken) {
             _checkLeverage(0);
             _openPositions.add(to);
         }
 
-        priceFeed.exchangeTo(from, to, convertedAmount);
+        _priceFeed.exchangeTo(from, to, convertedAmount);
 
         if (ERC20(from).balanceOf(address(this)) == 0) {
             _openPositions.remove(from);
+        }
+    }
+
+    function _checkPriceFeedAllowance(address token) internal {
+        if (IERC20(token).allowance(address(this), address(_priceFeed)) == 0) {
+            IERC20(token).safeApprove(address(_priceFeed), MAX_UINT);
         }
     }
 

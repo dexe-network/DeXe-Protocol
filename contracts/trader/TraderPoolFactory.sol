@@ -1,22 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+
 import "../interfaces/trader/ITraderPoolFactory.sol";
 import "../interfaces/core/IContractsRegistry.sol";
-import "../trader/TraderPoolRegistry.sol";
 import "../interfaces/trader/IRiskyTraderPool.sol";
 import "../interfaces/trader/IBasicTraderPool.sol";
 import "../interfaces/trader/IInvestTraderPool.sol";
 import "../interfaces/trader/ITraderPool.sol";
+
+import "../trader/TraderPoolRegistry.sol";
 import "../helpers/AbstractDependant.sol";
 import "../core/CoreProperties.sol";
 import "../core/Globals.sol";
 import "../core/PriceFeed.sol";
 
-import "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-
-contract TraderPoolFactory is ITraderPoolFactory, AbstractDependant, OwnableUpgradeable {
+contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDependant {
     IContractsRegistry internal _contractsRegistry;
     TraderPoolRegistry internal _poolRegistry;
     PriceFeed internal _priceFeed;
@@ -34,6 +35,7 @@ contract TraderPoolFactory is ITraderPoolFactory, AbstractDependant, OwnableUpgr
 
     function __TraderPoolFactory_init() external initializer {
         __Ownable_init();
+
         _initMetods[_poolRegistry.RISKY_POOL_NAME()] = _initRisky;
         _initMetods[_poolRegistry.BASIC_POOL_NAME()] = _initBasic;
         _initMetods[_poolRegistry.INVEST_POOL_NAME()] = _initInvest;
@@ -45,6 +47,7 @@ contract TraderPoolFactory is ITraderPoolFactory, AbstractDependant, OwnableUpgr
         onlyInjectorOrZero
     {
         _contractsRegistry = contractsRegistry;
+
         _poolRegistry = TraderPoolRegistry(contractsRegistry.getTraderPoolRegistryContract());
         _priceFeed = PriceFeed(contractsRegistry.getPriceFeedContract());
         _coreProperties = CoreProperties(contractsRegistry.getCorePropertiesContract());
@@ -56,16 +59,18 @@ contract TraderPoolFactory is ITraderPoolFactory, AbstractDependant, OwnableUpgr
         string calldata symbol,
         ITraderPool.PoolParameters memory _poolParameters
     ) internal {
-        _validating(_poolParameters);
-        BeaconProxy _proxy = new BeaconProxy(_poolRegistry.getProxyBeacon(name), "");
+        _validate(_poolParameters);
 
-        _initMetods[name](address(_proxy), poolName, symbol, _poolParameters);
+        address _proxy = address(new BeaconProxy(_poolRegistry.getProxyBeacon(name), ""));
 
-        AbstractDependant(address(_proxy)).setDependencies(_contractsRegistry);
-        AbstractDependant(address(_proxy)).setInjector(address(_poolRegistry));
-        _poolRegistry.addPool(_msgSender(), name, address(_proxy));
+        _initMetods[name](_proxy, poolName, symbol, _poolParameters);
 
-        emit Deployed(_msgSender(), name, address(_proxy));
+        AbstractDependant(_proxy).setDependencies(_contractsRegistry);
+        AbstractDependant(_proxy).setInjector(address(_poolRegistry));
+
+        _poolRegistry.addPool(_msgSender(), name, _proxy);
+
+        emit Deployed(_msgSender(), name, _proxy);
     }
 
     function deployRiskyPool(
@@ -119,7 +124,7 @@ contract TraderPoolFactory is ITraderPoolFactory, AbstractDependant, OwnableUpgr
         IInvestTraderPool(_proxy).__InvestTraderPool_init(name, symbol, _poolParameters);
     }
 
-    function _validating(ITraderPool.PoolParameters memory _poolParameters) internal view {
+    function _validate(ITraderPool.PoolParameters memory _poolParameters) internal view {
         (uint256 general, uint256[] memory byPeriod) = _coreProperties.getTraderCommissions();
 
         require(
