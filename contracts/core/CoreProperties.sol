@@ -91,4 +91,8 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable {
     function getTraderCommissions() external view override returns (uint256, uint256[] memory) {
         return (coreParameters.minimalTraderCommission, coreParameters.maximalTraderCommissions);
     }
+
+    function getDelayForRiskyPool() external view override returns (uint256) {
+        return coreParameters.delayForRiskyPool;
+    }
 }

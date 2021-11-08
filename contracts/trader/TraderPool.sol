@@ -169,7 +169,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
     }
 
-    function invest(uint256 amountInBaseToInvest) external virtual {
+    function invest(uint256 amountInBaseToInvest) public virtual {
         require(
             !poolParameters.privatePool ||
                 isTraderAdmin(_msgSender()) ||
@@ -439,7 +439,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         address from,
         address to,
         uint256 amount
-    ) external virtual onlyTraderAdmin {
+    ) public virtual onlyTraderAdmin {
         require(
             from == poolParameters.baseToken || _openPositions.contains(from),
             "TraderPool: invalid exchange address"
