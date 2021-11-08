@@ -96,6 +96,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         require(availableAmount >= amountToWithdraw, "Insurance: out of available amount");
 
         userStakes[_msgSender()] -= amountToWithdraw;
+
         _dexe.transfer(_msgSender(), amountToWithdraw);
     }
 
@@ -209,6 +210,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
 
     function _payout(address user, uint256 amount) internal {
         _dexe.transfer(user, amount + (amount / DEPOSIT_MULTIPLIER)); // transfer tokens from totalPool
+
         userStakes[user] -= amount / DEPOSIT_MULTIPLIER; // remove "used tokens"
     }
 }

@@ -29,6 +29,10 @@ contract PriceFeedMock is PriceFeed {
         address outToken,
         uint256 amount
     ) external override returns (uint256) {
+        if (amount == 0) {
+            return 0;
+        }
+
         IERC20(inToken).safeTransferFrom(_msgSender(), address(this), amount);
 
         if (IERC20(inToken).allowance(address(this), address(_uniswapV2Router)) == 0) {
