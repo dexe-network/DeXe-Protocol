@@ -1,25 +1,46 @@
-const BigNumber = require("bignumber.js");
-const toBN = (value) => new BigNumber(value);
+const Deployer = require("@truffle/deployer");
+const Reporter = require("@truffle/reporters").migrationsV5;
+
+let reporter;
+let deployer;
+
+const start = async (confirmations = 0) => {
+  try {
+    reporter = new Reporter();
+
+    deployer = new Deployer({
+      logger: console,
+      confirmations: confirmations,
+      provider: web3.currentProvider,
+      networks: {},
+      network: "",
+      network_id: await web3.eth.getChainId(),
+    });
+
+    reporter.confirmations = confirmations;
+    reporter.setMigration({ dryRun: false });
+    reporter.setDeployer(deployer);
+
+    reporter.preMigrate({
+      isFirst: true,
+      file: "Contracts:",
+      network: await web3.eth.net.getNetworkType(),
+      networkId: await web3.eth.getChainId(),
+      blockLimit: (await web3.eth.getBlock("latest")).gasLimit,
+    });
+
+    reporter.listen();
+
+    deployer.start();
+  } catch (e) {
+    console.log(e);
+  }
+};
 
 const deploy = async (name, ...args) => {
   try {
-    console.log("\tDeploying", name, "\n");
-
     const Instance = artifacts.require(name);
-    Instance.numberFormat = "BigNumber";
-
-    const gasLimit = toBN(await Instance.new.estimateGas(...args));
-    const gasPrice = toBN(await web3.eth.getGasPrice());
-    const deploymentCost = gasLimit.times(gasPrice);
-    const instance = await Instance.new(...args);
-
-    console.log("Name:", name);
-    console.log("Address:", await instance.address);
-    console.log("GasLimit:", gasLimit.toFixed());
-    console.log("GasPrice:", gasPrice.toFixed());
-    console.log("Cost:", web3.utils.fromWei(deploymentCost.toFixed()), "ETH\n");
-
-    Instance.setAsDeployed(instance);
+    const instance = await deployer.deploy(Instance, ...args);
 
     return instance;
   } catch (e) {
@@ -27,4 +48,20 @@ const deploy = async (name, ...args) => {
   }
 };
 
-module.exports = deploy;
+const finish = async () => {
+  try {
+    deployer.finish();
+
+    reporter.postMigrate({
+      isLast: true,
+    });
+  } catch (e) {
+    console.log(e);
+  }
+};
+
+module.exports = {
+  start,
+  deploy,
+  finish,
+};

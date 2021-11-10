@@ -1,18 +1,17 @@
-const { assert } = require("chai");
-const deploy = require("./deployer");
+const { start, deploy, finish } = require("./deployer");
 
-const Instance = artifacts.require("HelloWorld");
+async function migrate() {
+  await start();
 
-const main = async () => {
-  const contract = await deploy("HelloWorld", "123");
-  const sanity = await Instance.deployed();
+  const mock = await deploy("ERC20Mock", "Mock", "Mock", 18);
+  const mock2 = await deploy("ERC20Mock", "Mock", "Mock", 18);
 
-  assert.equal(contract.address, sanity.address);
-};
+  await finish();
+}
 
-main()
+migrate()
   .then(() => process.exit(0))
   .catch((e) => {
-    console.error(e);
+    console.log(e);
     process.exit(1);
   });
