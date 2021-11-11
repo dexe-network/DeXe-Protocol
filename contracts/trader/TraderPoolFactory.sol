@@ -35,10 +35,6 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
 
     function __TraderPoolFactory_init() external initializer {
         __Ownable_init();
-
-        _initMetods[_poolRegistry.RISKY_POOL_NAME()] = _initRisky;
-        _initMetods[_poolRegistry.BASIC_POOL_NAME()] = _initBasic;
-        _initMetods[_poolRegistry.INVEST_POOL_NAME()] = _initInvest;
     }
 
     function setDependencies(IContractsRegistry contractsRegistry)
@@ -51,6 +47,10 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         _poolRegistry = TraderPoolRegistry(contractsRegistry.getTraderPoolRegistryContract());
         _priceFeed = PriceFeed(contractsRegistry.getPriceFeedContract());
         _coreProperties = CoreProperties(contractsRegistry.getCorePropertiesContract());
+
+        _initMetods[_poolRegistry.RISKY_POOL_NAME()] = _initRisky;
+        _initMetods[_poolRegistry.BASIC_POOL_NAME()] = _initBasic;
+        _initMetods[_poolRegistry.INVEST_POOL_NAME()] = _initInvest;
     }
 
     function _deploy(

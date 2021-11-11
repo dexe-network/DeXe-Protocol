@@ -119,12 +119,12 @@ describe("TraderPoolFactory", () => {
     traderPoolFactory = await TraderPoolFactory.at(await contractsRegistry.getTraderPoolFactoryContract());
     const priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
 
-    await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_REGISTRY_NAME());
-    await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_FACTORY_NAME());
-
     await priceFeed.__PriceFeed_init();
     await traderPoolRegistry.__TraderPoolRegistry_init();
     await traderPoolFactory.__TraderPoolFactory_init();
+
+    await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_REGISTRY_NAME());
+    await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_FACTORY_NAME());
 
     let _investTraderPool = await InvestTraderPool.new();
     let _basicTraderPool = await BasicTraderPool.new();

@@ -56,7 +56,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         return getContract(PRICE_FEED_NAME);
     }
 
-    function getUniswapV2RounterContract() external view override returns (address) {
+    function getUniswapV2RouterContract() external view override returns (address) {
         return getContract(UNISWAP_V2_ROUTER_NAME);
     }
 

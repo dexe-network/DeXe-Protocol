@@ -32,7 +32,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         override
         onlyInjectorOrZero
     {
-        _uniswapV2Router = IUniswapV2Router02(contractsRegistry.getUniswapV2RounterContract());
+        _uniswapV2Router = IUniswapV2Router02(contractsRegistry.getUniswapV2RouterContract());
         _daiAddress = contractsRegistry.getDAIContract();
     }
 
