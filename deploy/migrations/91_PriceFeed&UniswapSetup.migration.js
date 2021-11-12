@@ -28,7 +28,7 @@ async function getAndDeployBaseAddresses(deployer, deployedTokens) {
 
   for (let i = 0; i < keys.length; i++) {
     if (!(keys[i] in deployedTokens)) {
-      const token = await deployer.deploy("ERC20Mock", keys[i], keys[i], testBaseTokens[keys[i]]);
+      const token = await deployer.deploy(ERC20Mock, keys[i], keys[i], testBaseTokens[keys[i]]);
 
       deployedTokens[keys[i]] = token.address;
     }

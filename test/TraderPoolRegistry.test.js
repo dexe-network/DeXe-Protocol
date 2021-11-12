@@ -1,5 +1,5 @@
 const { assert } = require("chai");
-const { accounts } = require("./helpers/utils");
+const { accounts } = require("../scripts/helpers/utils");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
