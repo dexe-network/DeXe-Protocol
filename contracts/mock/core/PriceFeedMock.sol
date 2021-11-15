@@ -28,7 +28,7 @@ contract PriceFeedMock is PriceFeed {
         address inToken,
         address outToken,
         uint256 amount
-    ) external override returns (uint256) {
+    ) public override returns (uint256) {
         if (amount == 0) {
             return 0;
         }

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -11,11 +12,14 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
+import "../libs/DecimalsConverter.sol";
+
 import "../helpers/AbstractDependant.sol";
 import "../core/Globals.sol";
 
 contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     using EnumerableSet for EnumerableSet.AddressSet;
+    using DecimalsConverter for uint256;
 
     IUniswapV2Router02 internal _uniswapV2Router;
     address internal _daiAddress;
@@ -77,6 +81,16 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         // TODO
     }
 
+    function getNormalizedPriceIn(
+        address inToken,
+        address outToken,
+        uint256 amount
+    ) external view virtual override returns (uint256) {
+        return
+            getPriceIn(inToken, outToken, amount.convertFrom18(ERC20(inToken).decimals()))
+                .convertTo18(ERC20(outToken).decimals());
+    }
+
     function getPriceInDAI(address inToken, uint256 amount)
         external
         view
@@ -90,8 +104,18 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address inToken,
         address outToken,
         uint256 amount
-    ) external virtual override returns (uint256) {
+    ) public virtual override returns (uint256) {
         // TODO
+    }
+
+    function normalizedExchangeTo(
+        address inToken,
+        address outToken,
+        uint256 amount
+    ) external virtual override returns (uint256) {
+        return
+            exchangeTo(inToken, outToken, amount.convertFrom18(ERC20(inToken).decimals()))
+                .convertTo18(ERC20(outToken).decimals());
     }
 
     function isSupportedBaseToken(address token) external view override returns (bool) {

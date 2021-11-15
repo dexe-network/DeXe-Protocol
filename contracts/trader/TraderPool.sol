@@ -128,7 +128,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         IERC20(poolParameters.baseToken).safeTransferFrom(
             _msgSender(),
             address(this),
-            DecimalsConverter.convertFrom18(amountInBaseToInvest, baseTokenDecimals)
+            amountInBaseToInvest.convertFrom18(baseTokenDecimals)
         );
 
         uint256 toMintLP = totalBaseInPool > 0
@@ -147,12 +147,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _mint(_msgSender(), toMintLP);
     }
 
-    function _investPassivePortfolio(uint256 amountInBaseToInvest) internal {
-        (uint256 totalBase, , , ) = poolParameters.getPoolPrice(_openPositions, _priceFeed);
-        _transferBaseAndMintLP(totalBase, amountInBaseToInvest);
-    }
-
-    function _investActivePortfolio(uint256 amountInBaseToInvest) internal {
+    function _invest(uint256 amountInBaseToInvest) internal {
         IPriceFeed priceFeed = _priceFeed;
 
         uint256 baseTokenDecimals = poolParameters.baseTokenDecimals;
@@ -187,11 +182,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         require(amountInBaseToInvest > 0, "TP: zero investment");
         require(amountInBaseToInvest >= poolParameters.minimalInvestment, "TP: underinvestment");
 
-        if (poolParameters.activePortfolio) {
-            _investActivePortfolio(amountInBaseToInvest);
-        } else {
-            _investPassivePortfolio(amountInBaseToInvest);
-        }
+        _invest(amountInBaseToInvest);
 
         if (!isTrader(_msgSender())) {
             _investors.add(_msgSender());
@@ -425,9 +416,9 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         if (isTrader(_msgSender())) {
             _divestTrader(amountLP);
+        } else {
+            _divestInvestor(amountLP);
         }
-
-        _divestInvestor(amountLP);
     }
 
     function _checkLeverage(uint256 addInDAI) internal view {

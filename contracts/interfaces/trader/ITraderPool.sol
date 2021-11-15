@@ -7,7 +7,6 @@ interface ITraderPool {
     struct PoolParameters {
         string descriptionURL;
         address trader;
-        bool activePortfolio;
         bool privatePool;
         uint256 totalLPEmission; // zero means unlimited
         address baseToken;

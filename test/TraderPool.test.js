@@ -178,7 +178,6 @@ describe("TraderPool", () => {
       POOL_PARAMETERS = {
         descriptionURL: "placeholder.com",
         trader: OWNER,
-        activePortfolio: false,
         privatePool: false,
         totalLPEmission: 0,
         baseToken: baseTokens.WETH.address,

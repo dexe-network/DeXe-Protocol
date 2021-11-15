@@ -96,9 +96,10 @@ contract TraderPoolProposal is ITraderPoolProposal, ERC1155SupplyUpgradeable, Ab
         address token,
         uint256 timestampLimit,
         uint256 investBaseLimit,
+        uint256 maxTokenPriceLimit,
         uint256 lpInvestment,
         uint256 baseInvestment,
-        bool instantTrade
+        uint256 instantTradePercentage
     ) external onlyParentTraderPool {
         require(timestampLimit == 0 || timestampLimit >= block.timestamp, "TPP: wrong timestamp");
         require(
@@ -106,6 +107,7 @@ contract TraderPoolProposal is ITraderPoolProposal, ERC1155SupplyUpgradeable, Ab
             "TPP: wrong investment limit"
         );
         require(lpInvestment > 0 && baseInvestment > 0, "TPP: zero investment");
+        require(instantTradePercentage <= PERCENTAGE_100, "TPP: percantage is bigger than 100");
 
         uint256 proposalsTotalNum = _proposalsTotalNum + 1;
 
@@ -127,22 +129,25 @@ contract TraderPoolProposal is ITraderPoolProposal, ERC1155SupplyUpgradeable, Ab
 
         _proposalInfos[proposalsTotalNum] = ProposalInfo(
             token,
+            ERC20(token).decimals(),
             timestampLimit,
             investBaseLimit,
+            maxTokenPriceLimit,
             baseInvestment,
             baseInvestment,
             0
         );
 
-        if (instantTrade) {
-            _proposalInfos[proposalsTotalNum].balancePosition = _priceFeed
-                .exchangeTo(
-                    baseToken,
-                    token,
-                    baseInvestment.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
-                )
-                .convertTo18(ERC20(token).decimals());
-            _proposalInfos[proposalsTotalNum].balanceBase = 0;
+        if (instantTradePercentage > 0) {
+            _proposalInfos[proposalsTotalNum].balancePosition = _priceFeed.normalizedExchangeTo(
+                baseToken,
+                token,
+                baseInvestment.percentage(instantTradePercentage)
+            );
+
+            _proposalInfos[proposalsTotalNum].balanceBase = baseInvestment.percentage(
+                PERCENTAGE_100 - instantTradePercentage
+            );
         }
 
         _proposalsTotalNum = proposalsTotalNum;
@@ -171,14 +176,29 @@ contract TraderPoolProposal is ITraderPoolProposal, ERC1155SupplyUpgradeable, Ab
         uint256 baseInvestment
     ) external onlyParentTraderPool {
         require(proposalId <= _proposalsTotalNum, "TPP: proposal doesn't exist");
+
+        ProposalInfo storage info = _proposalInfos[proposalId];
+
         require(
-            block.timestamp <= _proposalInfos[proposalId].timestampLimit,
+            info.timestampLimit == 0 || block.timestamp <= info.timestampLimit,
             "TPP: proposal is closed"
         );
         require(
-            _proposalInfos[proposalId].investedBase + baseInvestment <=
-                _proposalInfos[proposalId].investBaseLimit,
+            info.investBaseLimit == 0 ||
+                info.investedBase + baseInvestment <= info.investBaseLimit,
             "TPP: proposal is overinvested"
+        );
+
+        uint256 tokensPriceConverted = _priceFeed.getNormalizedPriceIn(
+            info.token,
+            _parentTraderPoolInfo.baseToken,
+            info.balancePosition
+        );
+
+        require(
+            info.maxTokenPriceLimit == 0 ||
+                tokensPriceConverted / info.balancePosition <= info.maxTokenPriceLimit,
+            "TPP: token price too high"
         );
 
         address trader = _parentTraderPoolInfo.trader;
@@ -192,33 +212,23 @@ contract TraderPoolProposal is ITraderPoolProposal, ERC1155SupplyUpgradeable, Ab
 
         _transferAndMintLP(proposalId, user, lpInvestment, baseInvestment);
 
+        uint256 baseToExchange = baseInvestment.ratio(
+            tokensPriceConverted,
+            tokensPriceConverted + info.balanceBase
+        );
+
+        info.balanceBase += baseInvestment - baseToExchange;
+        info.balancePosition += _priceFeed.normalizedExchangeTo(
+            _parentTraderPoolInfo.baseToken,
+            info.token,
+            baseToExchange
+        );
+
         _investmentsInfos[user][proposalId].investedLP += lpInvestment;
         _investmentsInfos[user][proposalId].investedBase += baseInvestment;
 
         _totalInvestmentsInfos[user].investedLP += lpInvestment;
         _totalInvestmentsInfos[user].investedBase += baseInvestment;
-
-        _proposalInfos[proposalId].balanceBase += baseInvestment;
-    }
-
-    function _updateInvestInfo(
-        uint256 proposalId,
-        address user,
-        uint256 lp2
-    ) internal returns (uint256 lpToBurn) {
-        InvestmentInfo storage traderProposalInfo = _investmentsInfos[user][proposalId];
-
-        lpToBurn = traderProposalInfo.investedLP.ratio(lp2, totalSupply(proposalId));
-
-        uint256 baseDivested = traderProposalInfo.investedBase.ratio(lp2, totalSupply(proposalId));
-
-        traderProposalInfo.investedBase -= baseDivested;
-        traderProposalInfo.investedLP -= lpToBurn;
-
-        _totalInvestmentsInfos[user].investedBase -= baseDivested;
-        _totalInvestmentsInfos[user].investedLP -= lpToBurn;
-
-        _burn(user, proposalId, lp2);
     }
 
     function _divestProposalTrader(
@@ -232,7 +242,7 @@ contract TraderPoolProposal is ITraderPoolProposal, ERC1155SupplyUpgradeable, Ab
         );
 
         receivedBase = _proposalInfos[proposalId].balanceBase.ratio(lp2, totalSupply(proposalId));
-        lpToBurn = _updateInvestInfo(proposalId, trader, lp2);
+        lpToBurn = _updateInfo(trader, proposalId, lp2);
 
         _proposalInfos[proposalId].balanceBase -= receivedBase;
     }
@@ -253,15 +263,13 @@ contract TraderPoolProposal is ITraderPoolProposal, ERC1155SupplyUpgradeable, Ab
 
         receivedBase =
             baseShare +
-            _priceFeed
-                .exchangeTo(
-                    _proposalInfos[proposalId].token,
-                    _parentTraderPoolInfo.baseToken,
-                    positionShare.convertFrom18(ERC20(_proposalInfos[proposalId].token).decimals())
-                )
-                .convertTo18(_parentTraderPoolInfo.baseTokenDecimals);
+            _priceFeed.normalizedExchangeTo(
+                _proposalInfos[proposalId].token,
+                _parentTraderPoolInfo.baseToken,
+                positionShare
+            );
 
-        lpToBurn = _updateInvestInfo(proposalId, investor, lp2);
+        lpToBurn = _updateInfo(investor, proposalId, lp2);
 
         _proposalInfos[proposalId].balanceBase -= baseShare;
         _proposalInfos[proposalId].balancePosition -= positionShare;
@@ -287,29 +295,61 @@ contract TraderPoolProposal is ITraderPoolProposal, ERC1155SupplyUpgradeable, Ab
         address from,
         uint256 amount
     ) external onlyParentTraderPool {
-        // TODO
+        require(proposalId <= _proposalsTotalNum, "TPP: proposal doesn't exist");
+
+        ProposalInfo storage info = _proposalInfos[proposalId];
+        address baseToken = _parentTraderPoolInfo.baseToken;
+
+        require(from == baseToken || from == info.token, "TPP: invalid from token");
+
+        address to;
+
+        if (from == baseToken) {
+            require(amount <= info.balanceBase, "TPP: wrong base amount");
+            to = info.token;
+        } else {
+            require(amount <= info.balancePosition, "TPP: wrong position amount");
+            to = baseToken;
+        }
+
+        uint256 receivedAmount = _priceFeed.normalizedExchangeTo(
+            from,
+            from == baseToken ? info.token : baseToken,
+            amount
+        );
+
+        if (from == baseToken) {
+            info.balanceBase -= amount;
+            info.balancePosition += receivedAmount;
+        } else {
+            info.balanceBase += receivedAmount;
+            info.balancePosition -= amount;
+        }
     }
 
     function _getBaseInProposal(uint256 proposalId) internal view returns (uint256) {
-        uint256 balancePositionConverted = _proposalInfos[proposalId]
-            .balancePosition
-            .convertFrom18(ERC20(_proposalInfos[proposalId].token).decimals());
-
         return
             _proposalInfos[proposalId].balanceBase +
-            _priceFeed
-                .getPriceIn(
-                    _proposalInfos[proposalId].token,
-                    _parentTraderPoolInfo.baseToken,
-                    balancePositionConverted
-                )
-                .convertTo18(_parentTraderPoolInfo.baseTokenDecimals);
+            _priceFeed.getNormalizedPriceIn(
+                _proposalInfos[proposalId].token,
+                _parentTraderPoolInfo.baseToken,
+                _proposalInfos[proposalId].balancePosition
+            );
     }
 
     function _checkPriceFeedAllowance(address token) internal {
         if (IERC20(token).allowance(address(this), address(_priceFeed)) == 0) {
             IERC20(token).safeApprove(address(_priceFeed), MAX_UINT);
         }
+    }
+
+    function _updateInfo(
+        address user,
+        uint256 proposalId,
+        uint256 lp2
+    ) internal returns (uint256 lpToBurn) {
+        (, lpToBurn) = _updateFrom(user, proposalId, lp2);
+        _burn(user, proposalId, lp2);
     }
 
     function _updateFrom(
