@@ -6,22 +6,26 @@ interface ITraderPoolProposal {
         address parentPoolAddress;
         address trader;
         address baseToken;
-        uint8 baseTokenDecimals;
+        uint256 baseTokenDecimals;
     }
 
     struct ProposalInfo {
         address token;
-        uint8 tokenDecimals;
+        uint256 tokenDecimals;
         uint256 timestampLimit;
-        uint256 investBaseLimit;
+        uint256 investLPLimit;
         uint256 maxTokenPriceLimit;
-        uint256 investedBase;
+        uint256 investedLP;
         uint256 balanceBase;
         uint256 balancePosition;
     }
 
-    struct InvestmentInfo {
-        uint256 investedLP;
-        uint256 investedBase;
-    }
+    function __TraderPoolProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
+        external;
+
+    function totalLockedLP() external view returns (uint256);
+
+    function totalInvestedBase() external view returns (uint256);
+
+    function totalLPInvestments(address user) external view returns (uint256);
 }

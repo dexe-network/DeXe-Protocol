@@ -7,6 +7,7 @@ interface IBasicTraderPool is ITraderPool {
     function __BasicTraderPool_init(
         string calldata name,
         string calldata symbol,
-        ITraderPool.PoolParameters memory _poolParameters
+        ITraderPool.PoolParameters memory _poolParameters,
+        address traderPoolProposal
     ) external;
 }

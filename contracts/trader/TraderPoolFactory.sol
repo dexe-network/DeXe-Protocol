@@ -10,6 +10,7 @@ import "../interfaces/trader/IRiskyTraderPool.sol";
 import "../interfaces/trader/IBasicTraderPool.sol";
 import "../interfaces/trader/IInvestTraderPool.sol";
 import "../interfaces/trader/ITraderPool.sol";
+import "../interfaces/trader/ITraderPoolProposal.sol";
 
 import "../trader/TraderPoolRegistry.sol";
 import "../helpers/AbstractDependant.sol";
@@ -22,14 +23,6 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
     TraderPoolRegistry internal _poolRegistry;
     PriceFeed internal _priceFeed;
     CoreProperties internal _coreProperties;
-
-    mapping(string => function(
-        address,
-        string calldata,
-        string calldata,
-        ITraderPool.PoolParameters memory
-    ))
-        internal _initMetods; // name => _init
 
     event Deployed(address user, string poolName, address at);
 
@@ -47,96 +40,108 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         _poolRegistry = TraderPoolRegistry(contractsRegistry.getTraderPoolRegistryContract());
         _priceFeed = PriceFeed(contractsRegistry.getPriceFeedContract());
         _coreProperties = CoreProperties(contractsRegistry.getCorePropertiesContract());
-
-        _initMetods[_poolRegistry.RISKY_POOL_NAME()] = _initRisky;
-        _initMetods[_poolRegistry.BASIC_POOL_NAME()] = _initBasic;
-        _initMetods[_poolRegistry.INVEST_POOL_NAME()] = _initInvest;
     }
 
-    function _deploy(
-        string memory name,
-        string calldata poolName,
-        string calldata symbol,
-        ITraderPool.PoolParameters memory _poolParameters
-    ) internal {
-        _validate(_poolParameters);
+    function _deploy(string memory name) internal returns (address proxy) {
+        proxy = address(new BeaconProxy(_poolRegistry.getProxyBeacon(name), ""));
 
-        address _proxy = address(new BeaconProxy(_poolRegistry.getProxyBeacon(name), ""));
+        AbstractDependant(proxy).setDependencies(_contractsRegistry);
+        AbstractDependant(proxy).setInjector(address(_poolRegistry));
 
-        _initMetods[name](_proxy, poolName, symbol, _poolParameters);
-
-        AbstractDependant(_proxy).setDependencies(_contractsRegistry);
-        AbstractDependant(_proxy).setInjector(address(_poolRegistry));
-
-        _poolRegistry.addPool(_msgSender(), name, _proxy);
-
-        emit Deployed(_msgSender(), name, _proxy);
+        emit Deployed(_msgSender(), name, proxy);
     }
 
-    function deployRiskyPool(
-        string calldata name,
-        string calldata symbol,
-        ITraderPool.PoolParameters memory _poolParameters
-    ) external {
-        _deploy(_poolRegistry.RISKY_POOL_NAME(), name, symbol, _poolParameters);
+    function _deployTraderPool(string memory name) internal returns (address proxy) {
+        proxy = _deploy(name);
+        _poolRegistry.addPool(_msgSender(), name, proxy);
     }
 
     function deployBasicPool(
         string calldata name,
         string calldata symbol,
-        ITraderPool.PoolParameters memory _poolParameters
+        PoolDeployParameters memory poolDeployParameters
     ) external {
-        _deploy(_poolRegistry.BASIC_POOL_NAME(), name, symbol, _poolParameters);
+        ITraderPool.PoolParameters memory poolParameters = _validateAndConstructParameters(
+            poolDeployParameters
+        );
+
+        address poolProxy = _deployTraderPool(_poolRegistry.BASIC_POOL_NAME());
+        address proposalProxy = _deploy(_poolRegistry.PROPOSAL_NAME());
+
+        IBasicTraderPool(poolProxy).__BasicTraderPool_init(
+            name,
+            symbol,
+            poolParameters,
+            proposalProxy
+        );
+
+        ITraderPoolProposal(proposalProxy).__TraderPoolProposal_init(
+            ITraderPoolProposal.ParentTraderPoolInfo(
+                poolProxy,
+                poolParameters.trader,
+                poolParameters.baseToken,
+                poolParameters.baseTokenDecimals
+            )
+        );
+    }
+
+    function deployRiskyPool(
+        string calldata name,
+        string calldata symbol,
+        PoolDeployParameters memory poolDeployParameters
+    ) external {
+        ITraderPool.PoolParameters memory poolParameters = _validateAndConstructParameters(
+            poolDeployParameters
+        );
+
+        address poolProxy = _deployTraderPool(_poolRegistry.RISKY_POOL_NAME());
+
+        IRiskyTraderPool(poolProxy).__RiskyTraderPool_init(name, symbol, poolParameters);
     }
 
     function deployInvestPool(
         string calldata name,
         string calldata symbol,
-        ITraderPool.PoolParameters memory _poolParameters
+        PoolDeployParameters memory poolDeployParameters
     ) external {
-        _deploy(_poolRegistry.INVEST_POOL_NAME(), name, symbol, _poolParameters);
+        ITraderPool.PoolParameters memory poolParameters = _validateAndConstructParameters(
+            poolDeployParameters
+        );
+
+        address poolProxy = _deployTraderPool(_poolRegistry.INVEST_POOL_NAME());
+
+        IInvestTraderPool(poolProxy).__InvestTraderPool_init(name, symbol, poolParameters);
     }
 
-    function _initRisky(
-        address _proxy,
-        string calldata name,
-        string calldata symbol,
-        ITraderPool.PoolParameters memory _poolParameters
-    ) internal {
-        IRiskyTraderPool(_proxy).__RiskyTraderPool_init(name, symbol, _poolParameters);
-    }
-
-    function _initBasic(
-        address _proxy,
-        string calldata name,
-        string calldata symbol,
-        ITraderPool.PoolParameters memory _poolParameters
-    ) internal {
-        IBasicTraderPool(_proxy).__BasicTraderPool_init(name, symbol, _poolParameters);
-    }
-
-    function _initInvest(
-        address _proxy,
-        string calldata name,
-        string calldata symbol,
-        ITraderPool.PoolParameters memory _poolParameters
-    ) internal {
-        IInvestTraderPool(_proxy).__InvestTraderPool_init(name, symbol, _poolParameters);
-    }
-
-    function _validate(ITraderPool.PoolParameters memory _poolParameters) internal view {
+    function _validateAndConstructParameters(PoolDeployParameters memory poolDeployParameters)
+        internal
+        view
+        returns (ITraderPool.PoolParameters memory poolParameters)
+    {
         (uint256 general, uint256[] memory byPeriod) = _coreProperties.getTraderCommissions();
 
         require(
-            _priceFeed.isSupportedBaseToken(_poolParameters.baseToken),
+            _priceFeed.isSupportedBaseToken(poolDeployParameters.baseToken),
             "TraderPoolFactory: Unsupported token."
         );
 
         require(
-            _poolParameters.commissionPercentage >= general &&
-                _poolParameters.commissionPercentage <=
-                byPeriod[uint256(_poolParameters.commissionPeriod)],
+            poolDeployParameters.commissionPercentage >= general &&
+                poolDeployParameters.commissionPercentage <=
+                byPeriod[uint256(poolDeployParameters.commissionPeriod)],
             "TraderPoolFactory: Incorrect percentage."
+        );
+
+        poolParameters = ITraderPool.PoolParameters(
+            poolDeployParameters.descriptionURL,
+            _msgSender(),
+            poolDeployParameters.privatePool,
+            poolDeployParameters.totalLPEmission,
+            poolDeployParameters.baseToken,
+            ERC20(poolDeployParameters.baseToken).decimals(),
+            poolDeployParameters.minimalInvestment,
+            poolDeployParameters.commissionPeriod,
+            poolDeployParameters.commissionPercentage
         );
     }
 }

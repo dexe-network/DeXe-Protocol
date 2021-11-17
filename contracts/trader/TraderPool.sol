@@ -53,6 +53,11 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _;
     }
 
+    modifier onlyTrader() {
+        require(isTrader(_msgSender()), "TP: msg.sender is not a trader admin");
+        _;
+    }
+
     function isPrivateInvestor(address who) public view returns (bool) {
         return _privateInvestors.contains(who);
     }
@@ -97,7 +102,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 minimalInvestment
     ) external onlyTraderAdmin {
         require(
-            totalLPEmission == 0 || totalSupply() <= totalLPEmission,
+            totalLPEmission == 0 || _totalEmission() <= totalLPEmission,
             "TP: wrong emission supply"
         );
 
@@ -120,6 +125,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
     }
 
+    function _totalEmission() internal view virtual returns (uint256) {
+        return totalSupply();
+    }
+
     function _transferBaseAndMintLP(uint256 totalBaseInPool, uint256 amountInBaseToInvest)
         internal
     {
@@ -140,11 +149,37 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         require(
             poolParameters.totalLPEmission == 0 ||
-                totalSupply() + toMintLP <= poolParameters.totalLPEmission,
+                _totalEmission() + toMintLP <= poolParameters.totalLPEmission,
             "TP: minting more than emission allows"
         );
 
         _mint(_msgSender(), toMintLP);
+    }
+
+    function _leveragePoolPriceInDAI()
+        internal
+        view
+        virtual
+        returns (uint256 totalInDAI, uint256 traderInDAI)
+    {
+        (totalInDAI, ) = poolParameters.getPoolPriceInDAI(_openPositions, _priceFeed);
+        traderInDAI = totalInDAI.ratio(balanceOf(poolParameters.trader), totalSupply());
+    }
+
+    function _checkLeverage(uint256 addInDAI) internal view {
+        (uint256 totalPriceInDAI, uint256 traderPriceInDAI) = _leveragePoolPriceInDAI();
+        (uint256 threshold, uint256 slope) = _coreProperties.getTraderLeverageParams();
+
+        uint256 maxTraderVolumeInDAI = TraderPoolHelper.getMaxTraderLeverage(
+            traderPriceInDAI,
+            threshold,
+            slope
+        );
+
+        require(
+            addInDAI + totalPriceInDAI <= maxTraderVolumeInDAI,
+            "TP: exchange exceeds leverage"
+        );
     }
 
     function _invest(uint256 amountInBaseToInvest) internal {
@@ -158,15 +193,17 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             uint256[] memory positionPricesInBase
         ) = poolParameters.getPoolPrice(_openPositions, priceFeed);
 
+        address baseToken = poolParameters.baseToken;
+        uint256 baseConverted = amountInBaseToInvest.convertFrom18(baseTokenDecimals);
+
+        if (!isTrader(_msgSender())) {
+            _checkLeverage(priceFeed.getPriceInDAI(baseToken, baseConverted));
+        }
+
         _transferBaseAndMintLP(totalBase, amountInBaseToInvest);
 
-        address baseToken = poolParameters.baseToken;
-
         for (uint256 i = 0; i < positionTokens.length; i++) {
-            uint256 tokensToExchange = positionPricesInBase[i].ratio(
-                amountInBaseToInvest.convertFrom18(baseTokenDecimals),
-                totalBase
-            );
+            uint256 tokensToExchange = positionPricesInBase[i].ratio(baseConverted, totalBase);
 
             priceFeed.exchangeTo(baseToken, positionTokens[i], tokensToExchange);
         }
@@ -197,17 +234,18 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             investorsInfo[_msgSender()] = InvestorInfo(
                 oldInfo.investedBase + amountInBaseToInvest,
                 oldInfo.commissionUnlockEpoch == 0
-                    ? _getNextCommissionEpoch(block.timestamp)
+                    ? _nextCommissionEpoch()
                     : oldInfo.commissionUnlockEpoch
             );
         }
     }
 
-    function _getNextCommissionEpoch(uint256 timestamp) internal view returns (uint256) {
+    function _nextCommissionEpoch() internal view returns (uint256) {
         return
-            (timestamp - _coreProperties.getCommissionInitTimestamp()) /
-            _coreProperties.getCommissionDuration(poolParameters.commissionPeriod) +
-            1;
+            _coreProperties.getNextCommissionEpoch(
+                block.timestamp,
+                poolParameters.commissionPeriod
+            );
     }
 
     function _transferCommission(
@@ -261,7 +299,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 to = (offset + limit).min(_investors.length()).max(offset);
         uint256 totalSupply = totalSupply();
 
-        uint256 nextCommissionEpoch = _getNextCommissionEpoch(block.timestamp);
+        uint256 nextCommissionEpoch = _nextCommissionEpoch();
         uint256 allBaseCommission;
         uint256 allLPCommission;
 
@@ -421,26 +459,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
     }
 
-    function _checkLeverage(uint256 addInDAI) internal view {
-        (uint256 totalBaseInDAI, uint256 positionsInDAI) = poolParameters.getPoolInfoInDAI(
-            _openPositions,
-            _priceFeed
-        );
-
-        (uint256 threshold, uint256 slope) = _coreProperties.getTraderLeverageParams();
-
-        uint256 maxTraderVolumeInDAI = TraderPoolHelper.getMaxTraderLeverage(
-            totalBaseInDAI.ratio(balanceOf(poolParameters.trader), totalSupply()),
-            threshold,
-            slope
-        );
-
-        require(
-            addInDAI + positionsInDAI <= maxTraderVolumeInDAI,
-            "TP: exchange exceeds leverage"
-        );
-    }
-
     function exchange(
         address from,
         address to,
@@ -461,11 +479,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _checkPriceFeedAllowance(from);
         _checkPriceFeedAllowance(to);
 
-        if (from == poolParameters.baseToken) {
-            _checkLeverage(_priceFeed.getPriceInDAI(from, convertedAmount));
-            _openPositions.add(to);
-        } else if (to != poolParameters.baseToken) {
-            _checkLeverage(0);
+        if (from == poolParameters.baseToken || to != poolParameters.baseToken) {
             _openPositions.add(to);
         }
 
@@ -499,9 +513,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     function _updateTo(address investor, uint256 baseAmount) internal {
         if (balanceOf(investor) == 0) {
             _investors.add(investor);
-            investorsInfo[investor].commissionUnlockEpoch = _getNextCommissionEpoch(
-                block.timestamp
-            );
+            investorsInfo[investor].commissionUnlockEpoch = _nextCommissionEpoch();
 
             require(
                 _investors.length() <= _coreProperties.getMaximumPoolInvestors(),

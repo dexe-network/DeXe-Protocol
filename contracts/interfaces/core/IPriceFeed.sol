@@ -16,6 +16,11 @@ interface IPriceFeed {
 
     function getPriceInDAI(address inToken, uint256 amount) external view returns (uint256);
 
+    function getNormalizedPriceInDAI(address inToken, uint256 amount)
+        external
+        view
+        returns (uint256);
+
     function exchangeTo(
         address inToken,
         address outToken,

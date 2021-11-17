@@ -63,12 +63,12 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable {
         return (coreParameters.leverageThreshold, coreParameters.leverageSlope);
     }
 
-    function getCommissionInitTimestamp() external view override returns (uint256) {
+    function getCommissionInitTimestamp() public view override returns (uint256) {
         return coreParameters.commissionInitTimestamp;
     }
 
     function getCommissionDuration(CommissionPeriod period)
-        external
+        public
         view
         override
         returns (uint256)
@@ -94,5 +94,17 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable {
 
     function getDelayForRiskyPool() external view override returns (uint256) {
         return coreParameters.delayForRiskyPool;
+    }
+    
+    function getNextCommissionEpoch(uint256 timestamp, CommissionPeriod commissionPeriod)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return
+            (timestamp - getCommissionInitTimestamp()) /
+            getCommissionDuration(commissionPeriod) +
+            1;
     }
 }

@@ -85,7 +85,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address inToken,
         address outToken,
         uint256 amount
-    ) external view virtual override returns (uint256) {
+    ) public view virtual override returns (uint256) {
         return
             getPriceIn(inToken, outToken, amount.convertFrom18(ERC20(inToken).decimals()))
                 .convertTo18(ERC20(outToken).decimals());
@@ -98,6 +98,15 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         returns (uint256)
     {
         return getPriceIn(inToken, _daiAddress, amount);
+    }
+
+    function getNormalizedPriceInDAI(address inToken, uint256 amount)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return getNormalizedPriceIn(inToken, _daiAddress, amount);
     }
 
     function exchangeTo(

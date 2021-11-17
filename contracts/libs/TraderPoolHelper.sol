@@ -51,7 +51,7 @@ library TraderPoolHelper {
         }
     }
 
-    function getPoolInfoInDAI(
+    function getPoolPriceInDAI(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions,
         IPriceFeed priceFeed

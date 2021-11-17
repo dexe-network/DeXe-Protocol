@@ -49,4 +49,9 @@ interface ICoreProperties {
     function getTraderCommissions() external view returns (uint256, uint256[] memory);
 
     function getDelayForRiskyPool() external view returns (uint256);
+    
+    function getNextCommissionEpoch(uint256 timestamp, CommissionPeriod commissionPeriod)
+        external
+        view
+        returns (uint256);
 }
