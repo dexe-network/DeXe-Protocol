@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/trader/ITraderPoolRegistry.sol";
@@ -13,6 +14,7 @@ import "../helpers/ProxyBeacon.sol";
 
 contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
+    using Address for address;
     using Math for uint256;
 
     string public constant BASIC_POOL_NAME = "BASIC_POOL";
@@ -74,14 +76,23 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         }
     }
 
+    function setNewImplementation(string calldata name, address newImplementation)
+        public
+        onlyOwner
+    {
+        require(newImplementation.isContract(), "TraderPoolRegistry: not a contract");
+
+        if (_beacons[name].implementation() != newImplementation) {
+            _beacons[name].upgrade(newImplementation);
+        }
+    }
+
     function setNewImplementations(string[] calldata names, address[] calldata newImplementations)
         external
         onlyOwner
     {
         for (uint256 i = 0; i < names.length; i++) {
-            if (_beacons[names[i]].implementation() != newImplementations[i]) {
-                _beacons[names[i]].upgrade(newImplementations[i]);
-            }
+            setNewImplementation(names[i], newImplementations[i]);
         }
     }
 

@@ -59,7 +59,7 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
     function deployBasicPool(
         string calldata name,
         string calldata symbol,
-        PoolDeployParameters memory poolDeployParameters
+        PoolDeployParameters calldata poolDeployParameters
     ) external {
         ITraderPool.PoolParameters memory poolParameters = _validateAndConstructParameters(
             poolDeployParameters
@@ -88,7 +88,7 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
     function deployRiskyPool(
         string calldata name,
         string calldata symbol,
-        PoolDeployParameters memory poolDeployParameters
+        PoolDeployParameters calldata poolDeployParameters
     ) external {
         ITraderPool.PoolParameters memory poolParameters = _validateAndConstructParameters(
             poolDeployParameters
@@ -102,7 +102,7 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
     function deployInvestPool(
         string calldata name,
         string calldata symbol,
-        PoolDeployParameters memory poolDeployParameters
+        PoolDeployParameters calldata poolDeployParameters
     ) external {
         ITraderPool.PoolParameters memory poolParameters = _validateAndConstructParameters(
             poolDeployParameters
@@ -113,7 +113,7 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         IInvestTraderPool(poolProxy).__InvestTraderPool_init(name, symbol, poolParameters);
     }
 
-    function _validateAndConstructParameters(PoolDeployParameters memory poolDeployParameters)
+    function _validateAndConstructParameters(PoolDeployParameters calldata poolDeployParameters)
         internal
         view
         returns (ITraderPool.PoolParameters memory poolParameters)

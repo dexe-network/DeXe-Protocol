@@ -129,13 +129,15 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         return totalSupply();
     }
 
-    function _transferBaseAndMintLP(uint256 totalBaseInPool, uint256 amountInBaseToInvest)
-        internal
-    {
+    function _transferBaseAndMintLP(
+        address baseHolder,
+        uint256 totalBaseInPool,
+        uint256 amountInBaseToInvest
+    ) internal {
         uint256 baseTokenDecimals = poolParameters.baseTokenDecimals;
 
         IERC20(poolParameters.baseToken).safeTransferFrom(
-            _msgSender(),
+            baseHolder,
             address(this),
             amountInBaseToInvest.convertFrom18(baseTokenDecimals)
         );
@@ -182,7 +184,25 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         );
     }
 
-    function _invest(uint256 amountInBaseToInvest) internal {
+    function _updateInvestor(uint256 amountInBaseToInvest) internal {
+        _investors.add(_msgSender());
+
+        require(
+            _investors.length() <= _coreProperties.getMaximumPoolInvestors(),
+            "TP: max investors"
+        );
+
+        InvestorInfo memory oldInfo = investorsInfo[_msgSender()];
+
+        investorsInfo[_msgSender()] = InvestorInfo(
+            oldInfo.investedBase + amountInBaseToInvest,
+            oldInfo.commissionUnlockEpoch == 0
+                ? _nextCommissionEpoch()
+                : oldInfo.commissionUnlockEpoch
+        );
+    }
+
+    function _invest(address baseHolder, uint256 amountInBaseToInvest) internal {
         IPriceFeed priceFeed = _priceFeed;
 
         uint256 baseTokenDecimals = poolParameters.baseTokenDecimals;
@@ -200,12 +220,16 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             _checkLeverage(priceFeed.getPriceInDAI(baseToken, baseConverted));
         }
 
-        _transferBaseAndMintLP(totalBase, amountInBaseToInvest);
+        _transferBaseAndMintLP(baseHolder, totalBase, amountInBaseToInvest);
 
         for (uint256 i = 0; i < positionTokens.length; i++) {
             uint256 tokensToExchange = positionPricesInBase[i].ratio(baseConverted, totalBase);
 
             priceFeed.exchangeTo(baseToken, positionTokens[i], tokensToExchange);
+        }
+
+        if (!isTrader(_msgSender())) {
+            _updateInvestor(amountInBaseToInvest);
         }
     }
 
@@ -219,25 +243,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         require(amountInBaseToInvest > 0, "TP: zero investment");
         require(amountInBaseToInvest >= poolParameters.minimalInvestment, "TP: underinvestment");
 
-        _invest(amountInBaseToInvest);
-
-        if (!isTrader(_msgSender())) {
-            _investors.add(_msgSender());
-
-            require(
-                _investors.length() <= _coreProperties.getMaximumPoolInvestors(),
-                "TP: max investors"
-            );
-
-            InvestorInfo memory oldInfo = investorsInfo[_msgSender()];
-
-            investorsInfo[_msgSender()] = InvestorInfo(
-                oldInfo.investedBase + amountInBaseToInvest,
-                oldInfo.commissionUnlockEpoch == 0
-                    ? _nextCommissionEpoch()
-                    : oldInfo.commissionUnlockEpoch
-            );
-        }
+        _invest(_msgSender(), amountInBaseToInvest);
     }
 
     function _nextCommissionEpoch() internal view returns (uint256) {
@@ -431,7 +437,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
 
         _updateFrom(_msgSender(), amountLP);
-
         _burn(_msgSender(), amountLP);
     }
 

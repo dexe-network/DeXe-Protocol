@@ -28,4 +28,33 @@ interface ITraderPoolProposal {
     function totalInvestedBase() external view returns (uint256);
 
     function totalLPInvestments(address user) external view returns (uint256);
+
+    function createProposal(
+        address token,
+        uint256 timestampLimit,
+        uint256 investLPLimit,
+        uint256 maxTokenPriceLimit,
+        uint256 lpInvestment,
+        uint256 baseInvestment,
+        uint256 instantTradePercentage
+    ) external;
+
+    function investProposal(
+        uint256 proposalId,
+        address user,
+        uint256 lpInvestment,
+        uint256 baseInvestment
+    ) external;
+
+    function divestProposal(
+        uint256 proposalId,
+        address user,
+        uint256 lp2
+    ) external returns (uint256);
+
+    function exchange(
+        uint256 proposalId,
+        address from,
+        uint256 amount
+    ) external;
 }

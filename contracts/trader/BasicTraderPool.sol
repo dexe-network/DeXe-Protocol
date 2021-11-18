@@ -12,6 +12,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
     using Address for address;
     using TraderPoolHelper for PoolParameters;
     using MathHelper for uint256;
+    using SafeERC20 for IERC20;
 
     ITraderPoolProposal internal _traderPoolProposal;
 
@@ -24,6 +25,8 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         TraderPool.__TraderPool_init(name, symbol, _poolParameters);
 
         _traderPoolProposal = ITraderPoolProposal(traderPoolProposal);
+
+        IERC20(_poolParameters.baseToken).safeApprove(traderPoolProposal, MAX_UINT);
     }
 
     function _totalEmission() internal view override returns (uint256) {
@@ -70,15 +73,50 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
     ) external onlyTrader {
         require(token.isContract(), "BTP: not a contract");
         require(token != poolParameters.baseToken, "BTP: wrong token");
+        require(balanceOf(_msgSender()) >= lpAmount, "BTP: not enought LPs");
+
+        uint256 baseAmount = _divestPositions(lpAmount);
+
+        _traderPoolProposal.createProposal(
+            token,
+            timestampLimit,
+            investBaseLimit,
+            maxTokenPriceLimit,
+            lpAmount,
+            baseAmount,
+            instantTradePercentage
+        );
+
+        _burn(_msgSender(), lpAmount);
     }
 
-    function investProposal(uint256 proposalId, uint256 lpAmount) external {}
+    function investProposal(uint256 proposalId, uint256 lpAmount) external {
+        require(lpAmount > 0, "BTP: zero LPs");
+        require(balanceOf(_msgSender()) >= lpAmount, "BTP: not enought LPs");
 
-    function divestProposal(uint256 proposalId, uint256 lp2Amount) external {}
+        uint256 baseAmount = _divestPositions(lpAmount);
 
-    function exchange(
+        _traderPoolProposal.investProposal(proposalId, _msgSender(), lpAmount, baseAmount);
+
+        _updateFrom(_msgSender(), lpAmount);
+        _burn(_msgSender(), lpAmount);
+    }
+
+    function divestProposal(uint256 proposalId, uint256 lp2Amount) external {
+        uint256 receivedBase = _traderPoolProposal.divestProposal(
+            proposalId,
+            _msgSender(),
+            lp2Amount
+        );
+
+        _invest(address(_traderPoolProposal), receivedBase);
+    }
+
+    function exchangeProposal(
         uint256 proposalId,
         address from,
         uint256 amount
-    ) external onlyTraderAdmin {}
+    ) external onlyTraderAdmin {
+        _traderPoolProposal.exchange(proposalId, from, amount);
+    }
 }

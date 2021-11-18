@@ -9,12 +9,17 @@ import "../interfaces/insurance/IInsurance.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/trader/ITraderPoolRegistry.sol";
 
-import "../helpers/AbstractDependant.sol";
 import "../libs/StringSet.sol";
+import "../libs/MathHelper.sol";
+
+import "../helpers/AbstractDependant.sol";
+
 import "../core/Globals.sol";
 
 contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
     using StringSet for StringSet.Set;
+    using Math for uint256;
+    using MathHelper for uint256;
 
     uint256 public constant DEPOSIT_MULTIPLIER = 10;
 
@@ -25,22 +30,10 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
     mapping(address => mapping(uint256 => uint256)) internal _depositOnBlocks; // user => blocknum => deposit
     mapping(string => FinishedClaims) internal _finishedClaimsInfo;
 
-    mapping(address => uint256) public _lastProposal; // user => timestamp
+    mapping(address => uint256) public lastProposal; // user => timestamp
 
     StringSet.Set internal _finishedClaims;
     StringSet.Set internal _ongoingClaims;
-
-    struct FinishedClaims {
-        address[] claimers;
-        uint256[] amounts;
-        ClaimStatus status;
-    }
-
-    enum ClaimStatus {
-        NULL,
-        ACCEPTED,
-        REJECTED
-    }
 
     uint256 public totalPool; // tokens only from pools
 
@@ -51,11 +44,11 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
 
     modifier onlyOncePerDay(address user) {
         require(
-            _lastProposal[user] + 1 days <= block.timestamp,
+            lastProposal[user] + 1 days <= block.timestamp,
             "Insurance: Proposal once per day"
         );
         _;
-        _lastProposal[user] = block.timestamp;
+        lastProposal[user] = block.timestamp;
     }
 
     function __Insurance_init() external initializer {
@@ -115,12 +108,12 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         view
         returns (string[] memory urls)
     {
-        uint256 to = Math.max(Math.min(offset + limit, _ongoingClaims.length()), offset);
+        uint256 to = (offset + limit).min(_ongoingClaims.length()).max(offset);
 
         urls = new string[](to - offset);
 
         for (uint256 i = offset; i < to; i++) {
-            urls[i - offset] = _ongoingClaims._values[i];
+            urls[i - offset] = _ongoingClaims.at(i);
         }
     }
 
@@ -129,13 +122,13 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         view
         returns (string[] memory urls, FinishedClaims[] memory info)
     {
-        uint256 to = Math.max(Math.min(offset + limit, _finishedClaims.length()), offset);
+        uint256 to = (offset + limit).min(_finishedClaims.length()).max(offset);
 
         urls = new string[](to - offset);
         info = new FinishedClaims[](to - offset);
 
         for (uint256 i = offset; i < to; i++) {
-            string memory value = _finishedClaims._values[i];
+            string memory value = _finishedClaims.at(i);
 
             urls[i - offset] = value;
             info[i - offset] = _finishedClaimsInfo[value];
@@ -151,37 +144,26 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
 
         uint256 totalToPay;
 
-        for (uint256 i; i < amounts.length; i++) {
+        for (uint256 i = 0; i < amounts.length; i++) {
             uint256 userBalance = userStakes[users[i]] * DEPOSIT_MULTIPLIER;
 
-            amounts[i] = Math.min(amounts[i], userBalance);
+            amounts[i] = amounts[i].min(userBalance);
             totalToPay += amounts[i];
         }
 
         uint256 accessiblePool = totalPool / 3;
 
         if (totalToPay >= accessiblePool) {
-            uint256 paid;
-
-            for (uint256 i; i < amounts.length; i++) {
-                uint256 toPay = (accessiblePool * amounts[i]) / totalToPay;
-
-                _payout(users[i], toPay);
-
-                amounts[i] = toPay + (toPay / DEPOSIT_MULTIPLIER);
-                paid += toPay;
+            for (uint256 i = 0; i < amounts.length; i++) {
+                amounts[i] = _payout(users[i], accessiblePool.ratio(amounts[i], totalToPay));
             }
-
-            totalPool -= paid;
         } else {
-            for (uint256 i; i < amounts.length; i++) {
-                _payout(users[i], amounts[i]);
-
-                amounts[i] += amounts[i] / DEPOSIT_MULTIPLIER;
+            for (uint256 i = 0; i < amounts.length; i++) {
+                amounts[i] = _payout(users[i], amounts[i]);
             }
-
-            totalPool -= totalToPay;
         }
+
+        totalPool -= totalToPay.min(accessiblePool);
 
         _finishedClaims.add(url);
         _finishedClaimsInfo[url] = FinishedClaims(users, amounts, ClaimStatus.ACCEPTED);
@@ -208,9 +190,14 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         return (deposit, deposit * DEPOSIT_MULTIPLIER);
     }
 
-    function _payout(address user, uint256 amount) internal {
-        _dexe.transfer(user, amount + (amount / DEPOSIT_MULTIPLIER)); // transfer tokens from totalPool
+    function _payout(address user, uint256 toPayFromPool) internal returns (uint256) {
+        uint256 userStakePayout = toPayFromPool / DEPOSIT_MULTIPLIER;
+        uint256 payout = toPayFromPool + userStakePayout;
 
-        userStakes[user] -= amount / DEPOSIT_MULTIPLIER; // remove "used tokens"
+        _dexe.transfer(user, payout);
+
+        userStakes[user] -= userStakePayout;
+
+        return payout;
     }
 }
