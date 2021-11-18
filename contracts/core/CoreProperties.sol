@@ -9,13 +9,28 @@ import "../interfaces/core/IContractsRegistry.sol";
 import "../helpers/AbstractDependant.sol";
 import "./Globals.sol";
 
-contract CoreProperties is ICoreProperties, OwnableUpgradeable {
+contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependant {
     CoreParameters public coreParameters;
+
+    address internal _insuranceAddress;
+    address internal _treasuryAddress;
+    address internal _dividendsAddress;
 
     function __CoreProperties_init(CoreParameters calldata _coreParameters) external initializer {
         __Ownable_init();
 
         coreParameters = _coreParameters;
+    }
+
+    function setDependencies(IContractsRegistry contractsRegistry)
+        public
+        virtual
+        override
+        onlyInjectorOrZero
+    {
+        _insuranceAddress = contractsRegistry.getInsuranceContract();
+        _treasuryAddress = contractsRegistry.getTreasuryContract();
+        _dividendsAddress = contractsRegistry.getDividendsContract();
     }
 
     function setCoreParameters(CoreParameters calldata _coreParameters) external onlyOwner {
@@ -80,11 +95,16 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable {
         external
         view
         override
-        returns (uint256, uint256[] memory)
+        returns (
+            uint256,
+            uint256[] memory,
+            address[3] memory
+        )
     {
         return (
             coreParameters.dexeCommissionPercentage,
-            coreParameters.dexeCommissionDistributionPercentages
+            coreParameters.dexeCommissionDistributionPercentages,
+            [_insuranceAddress, _treasuryAddress, _dividendsAddress]
         );
     }
 
@@ -95,7 +115,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable {
     function getDelayForRiskyPool() external view override returns (uint256) {
         return coreParameters.delayForRiskyPool;
     }
-    
+
     function getNextCommissionEpoch(uint256 timestamp, CommissionPeriod commissionPeriod)
         external
         view

@@ -8,8 +8,6 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import "hardhat/console.sol";
-
 import "../interfaces/trader/ITraderPool.sol";
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/core/IContractsRegistry.sol";
@@ -32,10 +30,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     IERC20 internal _dexeToken;
     IPriceFeed internal _priceFeed;
-    IInsurance internal _insurance;
     ICoreProperties internal _coreProperties;
-    address internal _treasuryAddress;
-    address internal _dividendsAddress;
 
     mapping(address => bool) public traderAdmins;
 
@@ -89,10 +84,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     {
         _dexeToken = IERC20(contractsRegistry.getDEXEContract());
         _priceFeed = IPriceFeed(contractsRegistry.getPriceFeedContract());
-        _insurance = IInsurance(contractsRegistry.getInsuranceContract());
         _coreProperties = ICoreProperties(contractsRegistry.getCorePropertiesContract());
-        _treasuryAddress = contractsRegistry.getTreasuryContract();
-        _dividendsAddress = contractsRegistry.getDividendsContract();
     }
 
     function changePoolParameters(
@@ -254,49 +246,53 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             );
     }
 
-    function _transferCommission(
-        uint256 commission,
-        address where,
-        uint256 percentage
-    ) private {
-        _dexeToken.safeTransfer(where, (commission * percentage) / PERCENTAGE_100);
-    }
+    function _calculateDexeCommission(
+        uint256 baseToDistribute,
+        uint256 lpToDistribute,
+        uint256 dexePercentage
+    ) internal returns (uint256 lpCommission, uint256 dexeCommission) {
+        require(baseToDistribute > 0, "TP: no commission available");
 
-    function _distributeCommission(uint256 baseTokensToDistribute, uint256 lpTokensToDistribute)
-        internal
-    {
-        require(baseTokensToDistribute > 0, "TP: no commission available");
+        lpCommission = lpToDistribute.percentage(dexePercentage);
 
-        (uint256 dexeCommissionPercentage, uint256[] memory poolPercentages) = _coreProperties
-            .getDEXECommissionPercentages();
+        uint256 baseCommission = baseToDistribute.percentage(dexePercentage).convertFrom18(
+            poolParameters.baseTokenDecimals
+        );
 
-        uint256 dexeLPCommission = lpTokensToDistribute.percentage(dexeCommissionPercentage);
-        uint256 dexeBaseCommission = baseTokensToDistribute
-            .percentage(dexeCommissionPercentage)
-            .convertFrom18(poolParameters.baseTokenDecimals);
-        uint256 dexeDexeCommission = _priceFeed.exchangeTo(
+        dexeCommission = _priceFeed.exchangeTo(
             poolParameters.baseToken,
             address(_dexeToken),
-            dexeBaseCommission
+            baseCommission
+        );
+    }
+
+    function _distributeCommission(uint256 baseToDistribute, uint256 lpToDistribute) internal {
+        (
+            uint256 dexePercentage,
+            uint256[] memory poolPercentages,
+            address[3] memory commissionReceivers
+        ) = _coreProperties.getDEXECommissionPercentages();
+
+        (uint256 lpCommission, uint256 dexeCommission) = _calculateDexeCommission(
+            baseToDistribute,
+            lpToDistribute,
+            dexePercentage
         );
 
-        _mint(poolParameters.trader, lpTokensToDistribute - dexeLPCommission);
+        _mint(poolParameters.trader, lpToDistribute - lpCommission);
 
-        uint256 insuranceCommission = dexeDexeCommission.percentage(
-            poolPercentages[uint256(ICoreProperties.CommissionTypes.INSURANCE)]
-        );
-        uint256 treasuryCommission = dexeDexeCommission.percentage(
-            poolPercentages[uint256(ICoreProperties.CommissionTypes.TREASURY)]
-        );
-        uint256 dividentsCommission = dexeDexeCommission.percentage(
-            poolPercentages[uint256(ICoreProperties.CommissionTypes.DIVIDENDS)]
-        );
+        uint256[] memory receivedCommissions = new uint256[](3);
 
-        _dexeToken.safeTransfer(address(_insurance), insuranceCommission);
-        _dexeToken.safeTransfer(_treasuryAddress, treasuryCommission);
-        _dexeToken.safeTransfer(_dividendsAddress, dividentsCommission);
+        for (uint256 i = 0; i < commissionReceivers.length; i++) {
+            receivedCommissions[i] = dexeCommission.percentage(poolPercentages[i]);
+            _dexeToken.safeTransfer(commissionReceivers[i], receivedCommissions[i]);
+        }
 
-        _insurance.receiveDexeFromPools(insuranceCommission);
+        uint256 insurance = uint256(ICoreProperties.CommissionTypes.INSURANCE);
+
+        IInsurance(commissionReceivers[insurance]).receiveDexeFromPools(
+            receivedCommissions[insurance]
+        );
     }
 
     function reinvestCommission(uint256 offset, uint256 limit) external virtual onlyTraderAdmin {
@@ -427,6 +423,9 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             amountLP
         );
 
+        _updateFrom(_msgSender(), amountLP);
+        _burn(_msgSender(), amountLP);
+
         IERC20(poolParameters.baseToken).safeTransfer(
             _msgSender(),
             (investorBaseAmount - baseCommission).convertFrom18(poolParameters.baseTokenDecimals)
@@ -435,9 +434,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         if (baseCommission > 0) {
             _distributeCommission(baseCommission, lpCommission);
         }
-
-        _updateFrom(_msgSender(), amountLP);
-        _burn(_msgSender(), amountLP);
     }
 
     function _divestTrader(uint256 amountLP) internal {

@@ -29,16 +29,18 @@ contract RiskyTraderPool is IRiskyTraderPool, TraderPool {
         if (_firstExchange == 0) {
             _firstExchange = block.timestamp;
         }
+
         super.exchange(from, to, amount);
     }
 
     function invest(uint256 amountInBaseToInvest) public override {
         require(
-            traderAdmins[_msgSender()] ||
+            isTraderAdmin(_msgSender()) ||
                 (_firstExchange != 0 &&
                     _firstExchange + _coreProperties.getDelayForRiskyPool() <= block.timestamp),
-            "RiskyTraderPool: wait a few days after first invest"
+            "RTP: investment delay"
         );
+
         super.invest(amountInBaseToInvest);
     }
 }

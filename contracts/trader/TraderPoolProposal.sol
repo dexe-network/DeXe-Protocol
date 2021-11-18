@@ -30,10 +30,10 @@ contract TraderPoolProposal is ITraderPoolProposal, ERC1155SupplyUpgradeable, Ab
 
     uint256 internal _proposalsTotalNum;
 
-    mapping(uint256 => ProposalInfo) internal _proposalInfos; // proposal id => info
-
     uint256 public override totalLockedLP;
     uint256 public override totalInvestedBase;
+
+    mapping(uint256 => ProposalInfo) internal _proposalInfos; // proposal id => info
 
     mapping(address => mapping(uint256 => uint256)) internal _lpInvestments; // user => proposal id => LP invested
     mapping(address => uint256) public override totalLPInvestments; // user => LP invested
@@ -166,7 +166,6 @@ contract TraderPoolProposal is ITraderPoolProposal, ERC1155SupplyUpgradeable, Ab
             );
     }
 
-    // TODO parentPool has to exchange every position asset to base token proportionally to LP invested, then call this function. Otherwise we are breaking pool shares
     function investProposal(
         uint256 proposalId,
         address user,

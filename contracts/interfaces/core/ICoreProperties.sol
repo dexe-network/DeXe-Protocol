@@ -44,12 +44,16 @@ interface ICoreProperties {
     function getDEXECommissionPercentages()
         external
         view
-        returns (uint256 totalPercentage, uint256[] memory individualPercentages);
+        returns (
+            uint256 totalPercentage,
+            uint256[] memory individualPercentages,
+            address[3] memory commissionReceivers
+        );
 
     function getTraderCommissions() external view returns (uint256, uint256[] memory);
 
     function getDelayForRiskyPool() external view returns (uint256);
-    
+
     function getNextCommissionEpoch(uint256 timestamp, CommissionPeriod commissionPeriod)
         external
         view
