@@ -31,11 +31,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         __Ownable_init();
     }
 
-    function setDependencies(IContractsRegistry contractsRegistry)
-        external
-        override
-        onlyInjectorOrZero
-    {
+    function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
         _uniswapV2Router = IUniswapV2Router02(contractsRegistry.getUniswapV2RouterContract());
         _daiAddress = contractsRegistry.getDAIContract();
     }

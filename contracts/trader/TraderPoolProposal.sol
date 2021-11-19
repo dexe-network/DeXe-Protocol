@@ -58,11 +58,7 @@ contract TraderPoolProposal is ITraderPoolProposal, ERC1155SupplyUpgradeable, Ab
         );
     }
 
-    function setDependencies(IContractsRegistry contractsRegistry)
-        external
-        override
-        onlyInjectorOrZero
-    {
+    function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
         _priceFeed = IPriceFeed(contractsRegistry.getPriceFeedContract());
     }
 

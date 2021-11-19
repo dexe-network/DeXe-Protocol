@@ -55,11 +55,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         __Ownable_init();
     }
 
-    function setDependencies(IContractsRegistry contractsRegistry)
-        external
-        override
-        onlyInjectorOrZero
-    {
+    function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
         _traderPoolRegistry = ITraderPoolRegistry(
             contractsRegistry.getTraderPoolRegistryContract()
         );

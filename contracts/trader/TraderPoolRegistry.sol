@@ -44,11 +44,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         _beacons[PROPOSAL_NAME] = new ProxyBeacon();
     }
 
-    function setDependencies(IContractsRegistry contractsRegistry)
-        external
-        override
-        onlyInjectorOrZero
-    {
+    function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
         _contractsRegistry = contractsRegistry;
         _traderPoolFactory = contractsRegistry.getTraderPoolFactoryContract();
     }
@@ -67,11 +63,6 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
 
         for (uint256 i = offset; i < to; i++) {
             AbstractDependant dependant = AbstractDependant(pools.at(i));
-
-            if (dependant.injector() == address(0)) {
-                dependant.setInjector(address(this));
-            }
-
             dependant.setDependencies(contractsRegistry);
         }
     }

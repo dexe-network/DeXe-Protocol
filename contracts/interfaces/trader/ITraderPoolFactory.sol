@@ -6,6 +6,7 @@ import "../core/ICoreProperties.sol";
 interface ITraderPoolFactory {
     struct PoolDeployParameters {
         string descriptionURL;
+        address trader;
         bool privatePool;
         uint256 totalLPEmission; // zero means unlimited
         address baseToken;

@@ -20,7 +20,7 @@ import "../core/PriceFeed.sol";
 
 contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDependant {
     IContractsRegistry internal _contractsRegistry;
-    TraderPoolRegistry internal _poolRegistry;
+    TraderPoolRegistry internal _traderPoolRegistry;
     PriceFeed internal _priceFeed;
     CoreProperties internal _coreProperties;
 
@@ -30,30 +30,31 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         __Ownable_init();
     }
 
-    function setDependencies(IContractsRegistry contractsRegistry)
-        external
-        override
-        onlyInjectorOrZero
-    {
+    function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
         _contractsRegistry = contractsRegistry;
 
-        _poolRegistry = TraderPoolRegistry(contractsRegistry.getTraderPoolRegistryContract());
+        _traderPoolRegistry = TraderPoolRegistry(
+            contractsRegistry.getTraderPoolRegistryContract()
+        );
         _priceFeed = PriceFeed(contractsRegistry.getPriceFeedContract());
         _coreProperties = CoreProperties(contractsRegistry.getCorePropertiesContract());
     }
 
     function _deploy(string memory name) internal returns (address proxy) {
-        proxy = address(new BeaconProxy(_poolRegistry.getProxyBeacon(name), ""));
-
-        AbstractDependant(proxy).setDependencies(_contractsRegistry);
-        AbstractDependant(proxy).setInjector(address(_poolRegistry));
+        proxy = address(new BeaconProxy(_traderPoolRegistry.getProxyBeacon(name), ""));
 
         emit Deployed(_msgSender(), name, proxy);
     }
 
     function _deployTraderPool(string memory name) internal returns (address proxy) {
         proxy = _deploy(name);
-        _poolRegistry.addPool(_msgSender(), name, proxy);
+
+        _traderPoolRegistry.addPool(_msgSender(), name, proxy);
+    }
+
+    function _injectDependencies(address proxy) internal {
+        AbstractDependant(proxy).setDependencies(_contractsRegistry);
+        AbstractDependant(proxy).setInjector(address(_traderPoolRegistry));
     }
 
     function deployBasicPool(
@@ -65,8 +66,8 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
             poolDeployParameters
         );
 
-        address poolProxy = _deployTraderPool(_poolRegistry.BASIC_POOL_NAME());
-        address proposalProxy = _deploy(_poolRegistry.PROPOSAL_NAME());
+        address poolProxy = _deployTraderPool(_traderPoolRegistry.BASIC_POOL_NAME());
+        address proposalProxy = _deploy(_traderPoolRegistry.PROPOSAL_NAME());
 
         IBasicTraderPool(poolProxy).__BasicTraderPool_init(
             name,
@@ -83,6 +84,8 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
                 poolParameters.baseTokenDecimals
             )
         );
+
+        _injectDependencies(poolProxy);
     }
 
     function deployRiskyPool(
@@ -94,9 +97,11 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
             poolDeployParameters
         );
 
-        address poolProxy = _deployTraderPool(_poolRegistry.RISKY_POOL_NAME());
+        address poolProxy = _deployTraderPool(_traderPoolRegistry.RISKY_POOL_NAME());
 
         IRiskyTraderPool(poolProxy).__RiskyTraderPool_init(name, symbol, poolParameters);
+
+        _injectDependencies(poolProxy);
     }
 
     function deployInvestPool(
@@ -108,9 +113,11 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
             poolDeployParameters
         );
 
-        address poolProxy = _deployTraderPool(_poolRegistry.INVEST_POOL_NAME());
+        address poolProxy = _deployTraderPool(_traderPoolRegistry.INVEST_POOL_NAME());
 
         IInvestTraderPool(poolProxy).__InvestTraderPool_init(name, symbol, poolParameters);
+
+        _injectDependencies(poolProxy);
     }
 
     function _validateAndConstructParameters(PoolDeployParameters calldata poolDeployParameters)
@@ -134,7 +141,7 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
 
         poolParameters = ITraderPool.PoolParameters(
             poolDeployParameters.descriptionURL,
-            _msgSender(),
+            poolDeployParameters.trader,
             poolDeployParameters.privatePool,
             poolDeployParameters.totalLPEmission,
             poolDeployParameters.baseToken,

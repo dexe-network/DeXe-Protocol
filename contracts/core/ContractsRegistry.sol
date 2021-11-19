@@ -94,10 +94,6 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         require(contractAddress != address(0), "ContractsRegistry: This mapping doesn't exist");
 
         AbstractDependant dependant = AbstractDependant(contractAddress);
-        if (dependant.injector() == address(0)) {
-            dependant.setInjector(address(this));
-        }
-
         dependant.setDependencies(this);
     }
 

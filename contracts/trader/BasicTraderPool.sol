@@ -29,6 +29,11 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         IERC20(_poolParameters.baseToken).safeApprove(traderPoolProposal, MAX_UINT);
     }
 
+    function setDependencies(IContractsRegistry contractsRegistry) public override dependant {
+        super.setDependencies(contractsRegistry);
+        AbstractDependant(address(_traderPoolProposal)).setDependencies(contractsRegistry);
+    }
+
     function _totalEmission() internal view override returns (uint256) {
         return totalSupply() + _traderPoolProposal.totalLockedLP();
     }
@@ -91,8 +96,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
     }
 
     function investProposal(uint256 proposalId, uint256 lpAmount) external {
-        require(lpAmount > 0, "BTP: zero LPs");
-        require(balanceOf(_msgSender()) >= lpAmount, "BTP: not enought LPs");
+        require(lpAmount > 0 && balanceOf(_msgSender()) >= lpAmount, "BTP: wrong LPs amount");
 
         uint256 baseAmount = _divestPositions(lpAmount);
 

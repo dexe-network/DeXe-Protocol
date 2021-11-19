@@ -80,7 +80,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         public
         virtual
         override
-        onlyInjectorOrZero
+        dependant
     {
         _dexeToken = IERC20(contractsRegistry.getDEXEContract());
         _priceFeed = IPriceFeed(contractsRegistry.getPriceFeedContract());

@@ -12,6 +12,7 @@ const TraderPoolHelperLib = artifacts.require("TraderPoolHelper");
 const InvestTraderPool = artifacts.require("InvestTraderPool");
 const RiskyTraderPool = artifacts.require("RiskyTraderPool");
 const BasicTraderPool = artifacts.require("BasicTraderPool");
+const PoolProposal = artifacts.require("TraderPoolProposal");
 const TraderPoolFactory = artifacts.require("TraderPoolFactory");
 
 ContractsRegistry.numberFormat = "BigNumber";
@@ -23,6 +24,7 @@ TraderPoolMock.numberFormat = "BigNumber";
 InvestTraderPool.numberFormat = "BigNumber";
 RiskyTraderPool.numberFormat = "BigNumber";
 BasicTraderPool.numberFormat = "BigNumber";
+PoolProposal.numberFormat = "BigNumber";
 TraderPoolFactory.numberFormat = "BigNumber";
 
 const SECONDS_IN_DAY = 86400;
@@ -58,10 +60,7 @@ const DEFAULT_CORE_PROPERTIES = {
 };
 
 describe("TraderPoolFactory", () => {
-  const PRECISION = toBN(10).pow(25);
-
   let OWNER;
-  let SECOND;
   let THIRD;
   let NOTHING;
 
@@ -73,7 +72,6 @@ describe("TraderPoolFactory", () => {
 
   before("setup", async () => {
     OWNER = await accounts(0);
-    SECOND = await accounts(1);
     THIRD = await accounts(2);
     NOTHING = await accounts(3);
 
@@ -112,9 +110,7 @@ describe("TraderPoolFactory", () => {
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
 
-    let coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
-    await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
-
+    const coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     traderPoolRegistry = await TraderPoolRegistry.at(await contractsRegistry.getTraderPoolRegistryContract());
     traderPoolFactory = await TraderPoolFactory.at(await contractsRegistry.getTraderPoolFactoryContract());
     const priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
@@ -122,21 +118,30 @@ describe("TraderPoolFactory", () => {
     await priceFeed.__PriceFeed_init();
     await traderPoolRegistry.__TraderPoolRegistry_init();
     await traderPoolFactory.__TraderPoolFactory_init();
+    await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
 
     await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_REGISTRY_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_FACTORY_NAME());
+    await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
 
-    let _investTraderPool = await InvestTraderPool.new();
-    let _basicTraderPool = await BasicTraderPool.new();
-    let _riskyTraderPool = await RiskyTraderPool.new();
+    let investTraderPool = await InvestTraderPool.new();
+    let riskyTraderPool = await RiskyTraderPool.new();
+    let basicTraderPool = await BasicTraderPool.new();
+    let poolProposal = await PoolProposal.new();
 
     const poolNames = [
       await traderPoolRegistry.INVEST_POOL_NAME(),
       await traderPoolRegistry.RISKY_POOL_NAME(),
       await traderPoolRegistry.BASIC_POOL_NAME(),
+      await traderPoolRegistry.PROPOSAL_NAME(),
     ];
 
-    const poolAddrs = [_investTraderPool.address, _riskyTraderPool.address, _basicTraderPool.address];
+    const poolAddrs = [
+      investTraderPool.address,
+      riskyTraderPool.address,
+      basicTraderPool.address,
+      poolProposal.address,
+    ];
 
     await traderPoolRegistry.setNewImplementations(poolNames, poolAddrs);
     await priceFeed.addSupportedBaseTokens([testCoin.address]);
@@ -169,7 +174,7 @@ describe("TraderPoolFactory", () => {
       assert.equal("RISKY_POOL", event.args.poolName);
     });
 
-    it("should deploy pool and check traderPoolRedistry", async () => {
+    it("should deploy pool and check TraderPoolRegistry", async () => {
       let lenPools = await traderPoolRegistry.countPools(await traderPoolRegistry.RISKY_POOL_NAME());
       let lenUser = await traderPoolRegistry.countUserPools(OWNER, await traderPoolRegistry.RISKY_POOL_NAME());
 
@@ -216,7 +221,7 @@ describe("TraderPoolFactory", () => {
       assert.equal("BASIC_POOL", event.args.poolName);
     });
 
-    it("should deploy pool and check traderPoolRedistry", async () => {
+    it("should deploy pool and check TraderPoolRegistry", async () => {
       let lenPools = await traderPoolRegistry.countPools(await traderPoolRegistry.BASIC_POOL_NAME());
       let lenUser = await traderPoolRegistry.countUserPools(OWNER, await traderPoolRegistry.BASIC_POOL_NAME());
 
@@ -237,7 +242,7 @@ describe("TraderPoolFactory", () => {
   });
 
   describe("deployInvestPool", async () => {
-    let POOL_PARAMETERS;
+    let POOL_PARAMETERS = {};
 
     beforeEach("Pool parameters", async () => {
       POOL_PARAMETERS = {
@@ -247,14 +252,13 @@ describe("TraderPoolFactory", () => {
         privatePool: false,
         totalLPEmission: 0,
         baseToken: testCoin.address,
-        baseTokenDecimals: 18,
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_1,
         commissionPercentage: toBN(30).times(PRECISION).toFixed(),
       };
     });
 
-    it("should deploy invest pool and check event", async () => {
+    it("should deploy invest pool and check events", async () => {
       let tx = await traderPoolFactory.deployInvestPool("Invest", "IP", POOL_PARAMETERS);
       let event = tx.receipt.logs[0];
 
@@ -263,7 +267,7 @@ describe("TraderPoolFactory", () => {
       assert.equal("INVEST_POOL", event.args.poolName);
     });
 
-    it("should deploy pool and check traderPoolRedistry", async () => {
+    it("should deploy pool and check TraderPoolRegistry", async () => {
       let lenPools = await traderPoolRegistry.countPools(await traderPoolRegistry.INVEST_POOL_NAME());
       let lenUser = await traderPoolRegistry.countUserPools(OWNER, await traderPoolRegistry.INVEST_POOL_NAME());
 
@@ -284,6 +288,8 @@ describe("TraderPoolFactory", () => {
   });
 
   describe("validating", async () => {
+    let POOL_PARAMETERS = {};
+
     it("should revert when try to deploy with incorrect percentage for Period1", async () => {
       POOL_PARAMETERS = {
         descriptionURL: "placeholder.com",
@@ -292,7 +298,6 @@ describe("TraderPoolFactory", () => {
         privatePool: false,
         totalLPEmission: 0,
         baseToken: testCoin.address,
-        baseTokenDecimals: 18,
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_1,
         commissionPercentage: toBN(50).times(PRECISION).toFixed(),
@@ -312,7 +317,6 @@ describe("TraderPoolFactory", () => {
         privatePool: false,
         totalLPEmission: 0,
         baseToken: testCoin.address,
-        baseTokenDecimals: 18,
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_2,
         commissionPercentage: toBN(70).times(PRECISION).toFixed(),
@@ -332,7 +336,6 @@ describe("TraderPoolFactory", () => {
         privatePool: false,
         totalLPEmission: 0,
         baseToken: testCoin.address,
-        baseTokenDecimals: 18,
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_3,
         commissionPercentage: toBN(100).times(PRECISION).toFixed(),
@@ -352,7 +355,6 @@ describe("TraderPoolFactory", () => {
         privatePool: false,
         totalLPEmission: 0,
         baseToken: THIRD,
-        baseTokenDecimals: 18,
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_3,
         commissionPercentage: toBN(50).times(PRECISION).toFixed(),

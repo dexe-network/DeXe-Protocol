@@ -10,6 +10,7 @@ const TraderPoolHelper = artifacts.require("TraderPoolHelper");
 const BasicTraderPool = artifacts.require("BasicTraderPool");
 const RiskyTraderPool = artifacts.require("RiskyTraderPool");
 const InvestTraderPool = artifacts.require("InvestTraderPool");
+const PoolProposal = artifacts.require("TraderPoolProposal");
 
 module.exports = async (deployer) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
@@ -23,15 +24,17 @@ module.exports = async (deployer) => {
   const basicTraderPool = await deployer.deploy(BasicTraderPool);
   const riskyTraderPool = await deployer.deploy(RiskyTraderPool);
   const investTraderPool = await deployer.deploy(InvestTraderPool);
+  const poolProposal = await deployer.deploy(PoolProposal);
 
   const basicPoolName = await traderPoolRegistry.BASIC_POOL_NAME();
   const riskyPoolName = await traderPoolRegistry.RISKY_POOL_NAME();
   const investPoolName = await traderPoolRegistry.INVEST_POOL_NAME();
+  const proposalName = await traderPoolRegistry.PROPOSAL_NAE();
 
   logTransaction(
     await traderPoolRegistry.setNewImplementations(
-      [basicPoolName, riskyPoolName, investPoolName],
-      [basicTraderPool.address, riskyTraderPool.address, investTraderPool.address]
+      [basicPoolName, riskyPoolName, investPoolName, proposalName],
+      [basicTraderPool.address, riskyTraderPool.address, investTraderPool.address, poolProposal.address]
     ),
     "Set TraderPools implementations"
   );

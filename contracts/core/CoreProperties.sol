@@ -26,7 +26,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         public
         virtual
         override
-        onlyInjectorOrZero
+        dependant
     {
         _insuranceAddress = contractsRegistry.getInsuranceContract();
         _treasuryAddress = contractsRegistry.getTreasuryContract();
