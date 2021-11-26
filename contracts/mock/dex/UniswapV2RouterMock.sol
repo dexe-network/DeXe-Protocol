@@ -62,14 +62,12 @@ contract UniswapV2RouterMock {
         address[] memory path,
         address _to
     ) internal virtual {
-        for (uint256 i; i < path.length - 1; i++) {
-            reserves[path[i]] = IERC20(path[i]).balanceOf(address(this));
-        }
-
         IERC20(path[0]).safeTransferFrom(msg.sender, address(this), amounts[0]);
         IERC20(path[path.length - 1]).safeTransfer(_to, amounts[amounts.length - 1]);
 
-        reserves[path[path.length - 1]] = IERC20(path[path.length - 1]).balanceOf(address(this));
+        for (uint256 i; i < path.length; i++) {
+            reserves[path[i]] = IERC20(path[i]).balanceOf(address(this));
+        }
     }
 
     function swapExactTokensForTokens(

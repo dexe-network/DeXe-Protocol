@@ -58,6 +58,11 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         );
     }
 
+    function divestAll() public override {
+        reinvestAllProposals();
+        divest(balanceOf(_msgSender()));
+    }
+
     function exchange(
         address from,
         address to,
@@ -106,12 +111,18 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         _burn(_msgSender(), lpAmount);
     }
 
-    function divestProposal(uint256 proposalId, uint256 lp2Amount) external {
+    function reinvestProposal(uint256 proposalId, uint256 lp2Amount) external {
         uint256 receivedBase = _traderPoolProposal.divestProposal(
             proposalId,
             _msgSender(),
             lp2Amount
         );
+
+        _invest(address(_traderPoolProposal), receivedBase);
+    }
+
+    function reinvestAllProposals() public {
+        uint256 receivedBase = _traderPoolProposal.divestAllProposals(_msgSender());
 
         _invest(address(_traderPoolProposal), receivedBase);
     }

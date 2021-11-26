@@ -460,6 +460,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
     }
 
+    function divestAll() public virtual {
+        divest(balanceOf(_msgSender()));
+    }
+
     function exchange(
         address from,
         address to,

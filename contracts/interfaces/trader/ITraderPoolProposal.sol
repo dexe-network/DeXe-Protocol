@@ -20,6 +20,13 @@ interface ITraderPoolProposal {
         uint256 balancePosition;
     }
 
+    struct ActiveInvestmentInfo {
+        uint256 proposalId;
+        uint256 lpInvested;
+        uint256 baseShare;
+        uint256 positionShare;
+    }
+
     function __TraderPoolProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         external;
 
@@ -51,6 +58,8 @@ interface ITraderPoolProposal {
         address user,
         uint256 lp2
     ) external returns (uint256);
+
+    function divestAllProposals(address user) external returns (uint256);
 
     function exchange(
         uint256 proposalId,

@@ -342,6 +342,7 @@ describe("TraderPool", () => {
         await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
 
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("500000")));
+        await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
         await traderPool.exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
 
@@ -369,6 +370,7 @@ describe("TraderPool", () => {
 
         await baseTokens.MANA.approve(uniswapV2Router.address, toBN(wei("2000000")));
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("2000000")));
+        await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
         await traderPool.exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
 
@@ -385,6 +387,7 @@ describe("TraderPool", () => {
         await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
 
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("500000")));
+        await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
         await traderPool.exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
 
@@ -430,6 +433,7 @@ describe("TraderPool", () => {
         await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
 
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("500000")));
+        await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
         await traderPool.exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
 
@@ -445,6 +449,7 @@ describe("TraderPool", () => {
         await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
 
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("500000")));
+        await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
         await traderPool.exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
 
@@ -466,6 +471,7 @@ describe("TraderPool", () => {
 
         await baseTokens.MANA.approve(uniswapV2Router.address, toBN(wei("2000000")));
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("2000000")));
+        await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
         await traderPool.exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
 
@@ -482,6 +488,7 @@ describe("TraderPool", () => {
         await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
 
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("500000")));
+        await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
         const balance = await traderPool.balanceOf(OWNER);
 
@@ -501,6 +508,7 @@ describe("TraderPool", () => {
 
         await baseTokens.MANA.approve(uniswapV2Router.address, toBN(wei("2000000")));
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("2000000")));
+        await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
         const balance = await traderPool.balanceOf(OWNER);
 
@@ -515,6 +523,7 @@ describe("TraderPool", () => {
         await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
 
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("500000")));
+        await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
         const balance = await traderPool.balanceOf(OWNER);
 

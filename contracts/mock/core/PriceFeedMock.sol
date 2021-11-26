@@ -14,6 +14,10 @@ contract PriceFeedMock is PriceFeed {
         address outToken,
         uint256 amount
     ) public view override returns (uint256) {
+        if (amount == 0) {
+            return 0;
+        }
+
         address[] memory path = new address[](2);
 
         path[0] = inToken;
