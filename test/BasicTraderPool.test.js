@@ -11,7 +11,7 @@ const PriceFeedMock = artifacts.require("PriceFeedMock");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
 const BasicTraderPool = artifacts.require("BasicTraderPool");
-const PoolProposal = artifacts.require("TraderPoolProposal");
+const PoolProposal = artifacts.require("TraderPoolRiskyProposal");
 const TraderPoolHelperLib = artifacts.require("TraderPoolHelper");
 
 ContractsRegistry.numberFormat = "BigNumber";

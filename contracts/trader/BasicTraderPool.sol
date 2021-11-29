@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/Address.sol";
 
 import "../interfaces/trader/IBasicTraderPool.sol";
-import "../interfaces/trader/ITraderPoolProposal.sol";
+import "../interfaces/trader/ITraderPoolRiskyProposal.sol";
 
 import "./TraderPool.sol";
 
@@ -14,7 +14,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
     using MathHelper for uint256;
     using SafeERC20 for IERC20;
 
-    ITraderPoolProposal internal _traderPoolProposal;
+    ITraderPoolRiskyProposal internal _traderPoolProposal;
 
     function __BasicTraderPool_init(
         string calldata name,
@@ -24,7 +24,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
     ) public override {
         TraderPool.__TraderPool_init(name, symbol, _poolParameters);
 
-        _traderPoolProposal = ITraderPoolProposal(traderPoolProposal);
+        _traderPoolProposal = ITraderPoolRiskyProposal(traderPoolProposal);
 
         IERC20(_poolParameters.baseToken).safeApprove(traderPoolProposal, MAX_UINT);
     }

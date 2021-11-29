@@ -67,7 +67,7 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         );
 
         address poolProxy = _deployTraderPool(_traderPoolRegistry.BASIC_POOL_NAME());
-        address proposalProxy = _deploy(_traderPoolRegistry.PROPOSAL_NAME());
+        address proposalProxy = _deploy(_traderPoolRegistry.RISKY_PROPOSAL_NAME());
 
         IBasicTraderPool(poolProxy).__BasicTraderPool_init(
             name,
