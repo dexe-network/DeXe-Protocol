@@ -21,6 +21,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
     string public constant RISKY_POOL_NAME = "RISKY_POOL";
     string public constant INVEST_POOL_NAME = "INVEST_POOL";
     string public constant RISKY_PROPOSAL_NAME = "POOL_RISKY_PROPOSAL";
+    string public constant INVEST_PROPOSAL_NAME = "POOL_INVEST_PROPOSAL";
 
     IContractsRegistry internal _contractsRegistry;
     address internal _traderPoolFactory;
@@ -42,6 +43,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         _beacons[RISKY_POOL_NAME] = new ProxyBeacon();
         _beacons[INVEST_POOL_NAME] = new ProxyBeacon();
         _beacons[RISKY_PROPOSAL_NAME] = new ProxyBeacon();
+        _beacons[INVEST_PROPOSAL_NAME] = new ProxyBeacon();
     }
 
     function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
@@ -71,8 +73,6 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         public
         onlyOwner
     {
-        require(newImplementation.isContract(), "TraderPoolRegistry: not a contract");
-
         if (_beacons[name].implementation() != newImplementation) {
             _beacons[name].upgrade(newImplementation);
         }

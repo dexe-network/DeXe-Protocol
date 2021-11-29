@@ -94,7 +94,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 minimalInvestment
     ) external onlyTraderAdmin {
         require(
-            totalLPEmission == 0 || _totalEmission() <= totalLPEmission,
+            totalLPEmission == 0 || totalEmission() <= totalLPEmission,
             "TP: wrong emission supply"
         );
 
@@ -117,7 +117,11 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
     }
 
-    function _totalEmission() internal view virtual returns (uint256) {
+    function proposalPoolAddress() external view virtual override returns (address) {
+        return address(0);
+    }
+
+    function totalEmission() public view virtual override returns (uint256) {
         return totalSupply();
     }
 
@@ -143,25 +147,16 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         require(
             poolParameters.totalLPEmission == 0 ||
-                _totalEmission() + toMintLP <= poolParameters.totalLPEmission,
+                totalEmission() + toMintLP <= poolParameters.totalLPEmission,
             "TP: minting more than emission allows"
         );
 
         _mint(_msgSender(), toMintLP);
     }
 
-    function _leveragePoolPriceInDAI()
-        internal
-        view
-        virtual
-        returns (uint256 totalInDAI, uint256 traderInDAI)
-    {
-        (totalInDAI, ) = poolParameters.getPoolPriceInDAI(_openPositions, _priceFeed);
-        traderInDAI = totalInDAI.ratio(balanceOf(poolParameters.trader), totalSupply());
-    }
-
     function _checkLeverage(uint256 addInDAI) internal view {
-        (uint256 totalPriceInDAI, uint256 traderPriceInDAI) = _leveragePoolPriceInDAI();
+        (uint256 totalPriceInDAI, uint256 traderPriceInDAI) = poolParameters
+            .getLeveragePoolPriceInDAI(_openPositions, _priceFeed);
         (uint256 threshold, uint256 slope) = _coreProperties.getTraderLeverageParams();
 
         uint256 maxTraderVolumeInDAI = TraderPoolHelper.getMaxTraderLeverage(

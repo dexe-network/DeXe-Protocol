@@ -427,7 +427,7 @@ describe("BasicTraderPool", () => {
 
         await truffleAssert.reverts(
           traderPool.investProposal(1, wei("100"), { from: SECOND }),
-          "TPP: token price too high"
+          "TPRP: token price too high"
         );
       });
 
@@ -440,7 +440,7 @@ describe("BasicTraderPool", () => {
 
         await truffleAssert.reverts(
           traderPool.investProposal(1, wei("1000"), { from: SECOND }),
-          "TPP: investing more than trader"
+          "TPRP: investing more than trader"
         );
       });
     });

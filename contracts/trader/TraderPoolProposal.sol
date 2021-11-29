@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Supp
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/trader/ITraderPoolProposal.sol";
 
 import "../libs/MathHelper.sol";
@@ -23,6 +24,8 @@ abstract contract TraderPoolProposal is
 
     ParentTraderPoolInfo internal _parentTraderPoolInfo;
 
+    IPriceFeed internal _priceFeed;
+
     uint256 public proposalsTotalNum;
 
     uint256 public override totalLockedLP;
@@ -39,7 +42,6 @@ abstract contract TraderPoolProposal is
 
     function __TraderPoolProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         public
-        override
         initializer
     {
         __ERC1155_init("");
@@ -50,6 +52,15 @@ abstract contract TraderPoolProposal is
             parentTraderPoolInfo.parentPoolAddress,
             MAX_UINT
         );
+    }
+
+    function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
+        _priceFeed = IPriceFeed(contractsRegistry.getPriceFeedContract());
+    }
+
+    function getInvestedBaseInDAI() external view override returns (uint256) {
+        return
+            _priceFeed.getNormalizedPriceInDAI(_parentTraderPoolInfo.baseToken, totalInvestedBase);
     }
 
     function _updateFrom(

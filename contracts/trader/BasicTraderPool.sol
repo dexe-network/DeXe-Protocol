@@ -22,7 +22,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         ITraderPool.PoolParameters memory _poolParameters,
         address traderPoolProposal
     ) public override {
-        TraderPool.__TraderPool_init(name, symbol, _poolParameters);
+        __TraderPool_init(name, symbol, _poolParameters);
 
         _traderPoolProposal = ITraderPoolRiskyProposal(traderPoolProposal);
 
@@ -31,31 +31,16 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
 
     function setDependencies(IContractsRegistry contractsRegistry) public override dependant {
         super.setDependencies(contractsRegistry);
+
         AbstractDependant(address(_traderPoolProposal)).setDependencies(contractsRegistry);
     }
 
-    function _totalEmission() internal view override returns (uint256) {
-        return totalSupply() + _traderPoolProposal.totalLockedLP();
+    function proposalPoolAddress() external view override returns (address) {
+        return address(_traderPoolProposal);
     }
 
-    function _leveragePoolPriceInDAI()
-        internal
-        view
-        override
-        returns (uint256 totalInDAI, uint256 traderInDAI)
-    {
-        (totalInDAI, ) = poolParameters.getPoolPriceInDAI(_openPositions, _priceFeed);
-        totalInDAI += _priceFeed.getNormalizedPriceInDAI(
-            poolParameters.baseToken,
-            _traderPoolProposal.totalInvestedBase()
-        );
-
-        address trader = poolParameters.trader;
-
-        traderInDAI = totalInDAI.ratio(
-            balanceOf(trader) + _traderPoolProposal.totalLPInvestments(trader),
-            _totalEmission()
-        );
+    function totalEmission() public view override returns (uint256) {
+        return totalSupply() + _traderPoolProposal.totalLockedLP();
     }
 
     function divestAll() public override {

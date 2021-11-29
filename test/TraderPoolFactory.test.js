@@ -13,6 +13,7 @@ const InvestTraderPool = artifacts.require("InvestTraderPool");
 const RiskyTraderPool = artifacts.require("RiskyTraderPool");
 const BasicTraderPool = artifacts.require("BasicTraderPool");
 const RiskyPoolProposal = artifacts.require("TraderPoolRiskyProposal");
+const InvestPoolProposal = artifacts.require("TraderPoolInvestProposal");
 const TraderPoolFactory = artifacts.require("TraderPoolFactory");
 
 ContractsRegistry.numberFormat = "BigNumber";
@@ -25,6 +26,7 @@ InvestTraderPool.numberFormat = "BigNumber";
 RiskyTraderPool.numberFormat = "BigNumber";
 BasicTraderPool.numberFormat = "BigNumber";
 RiskyPoolProposal.numberFormat = "BigNumber";
+InvestPoolProposal.numberFormat = "BigNumber";
 TraderPoolFactory.numberFormat = "BigNumber";
 
 const SECONDS_IN_DAY = 86400;
@@ -127,20 +129,23 @@ describe("TraderPoolFactory", () => {
     let investTraderPool = await InvestTraderPool.new();
     let riskyTraderPool = await RiskyTraderPool.new();
     let basicTraderPool = await BasicTraderPool.new();
-    let riskypoolProposal = await RiskyPoolProposal.new();
+    let riskyPoolProposal = await RiskyPoolProposal.new();
+    let investPoolProposal = await InvestPoolProposal.new();
 
     const poolNames = [
       await traderPoolRegistry.INVEST_POOL_NAME(),
       await traderPoolRegistry.RISKY_POOL_NAME(),
       await traderPoolRegistry.BASIC_POOL_NAME(),
       await traderPoolRegistry.RISKY_PROPOSAL_NAME(),
+      await traderPoolRegistry.INVEST_PROPOSAL_NAME(),
     ];
 
     const poolAddrs = [
       investTraderPool.address,
       riskyTraderPool.address,
       basicTraderPool.address,
-      riskypoolProposal.address,
+      riskyPoolProposal.address,
+      investPoolProposal.address,
     ];
 
     await traderPoolRegistry.setNewImplementations(poolNames, poolAddrs);

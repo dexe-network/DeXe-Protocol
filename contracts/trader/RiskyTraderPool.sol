@@ -18,7 +18,7 @@ contract RiskyTraderPool is IRiskyTraderPool, TraderPool {
         string calldata symbol,
         ITraderPool.PoolParameters memory _poolParameters
     ) public override {
-        TraderPool.__TraderPool_init(name, symbol, _poolParameters);
+        __TraderPool_init(name, symbol, _poolParameters);
     }
 
     function exchange(

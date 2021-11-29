@@ -9,12 +9,11 @@ interface ITraderPoolProposal {
         uint256 baseTokenDecimals;
     }
 
-    function __TraderPoolProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
-        external;
-
     function totalLockedLP() external view returns (uint256);
 
     function totalInvestedBase() external view returns (uint256);
 
     function totalLPInvestments(address user) external view returns (uint256);
+
+    function getInvestedBaseInDAI() external view returns (uint256);
 }
