@@ -12,7 +12,8 @@ const Insurance = artifacts.require("Insurance");
 const TraderPoolFactory = artifacts.require("TraderPoolFactory");
 const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
 
-const SECONDS_IN_MONTH = 86400 * 30;
+const SECONDS_IN_DAY = 86400;
+const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
 const PRECISION = toBN(10).pow(25);
 
 const DEFAULT_CORE_PROPERTIES = {
@@ -34,6 +35,7 @@ const DEFAULT_CORE_PROPERTIES = {
     PRECISION.times(50).toFixed(),
     PRECISION.times(70).toFixed(),
   ],
+  delayForRiskyPool: SECONDS_IN_DAY * 20,
 };
 
 module.exports = async (deployer) => {

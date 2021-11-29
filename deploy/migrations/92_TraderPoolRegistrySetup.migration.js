@@ -29,7 +29,7 @@ module.exports = async (deployer) => {
   const basicPoolName = await traderPoolRegistry.BASIC_POOL_NAME();
   const riskyPoolName = await traderPoolRegistry.RISKY_POOL_NAME();
   const investPoolName = await traderPoolRegistry.INVEST_POOL_NAME();
-  const proposalName = await traderPoolRegistry.PROPOSAL_NAE();
+  const proposalName = await traderPoolRegistry.PROPOSAL_NAME();
 
   logTransaction(
     await traderPoolRegistry.setNewImplementations(

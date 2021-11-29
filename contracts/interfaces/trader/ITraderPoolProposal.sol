@@ -30,6 +30,13 @@ interface ITraderPoolProposal {
     function __TraderPoolProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         external;
 
+    function changeProposalRestrictions(
+        uint256 proposalId,
+        uint256 timestampLimit,
+        uint256 investLPLimit,
+        uint256 maxTokenPriceLimit
+    ) external;
+
     function totalLockedLP() external view returns (uint256);
 
     function totalInvestedBase() external view returns (uint256);

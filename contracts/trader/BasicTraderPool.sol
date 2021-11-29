@@ -73,6 +73,20 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         super.exchange(from, to, amount);
     }
 
+    function changeProposalRestrictions(
+        uint256 proposalId,
+        uint256 timestampLimit,
+        uint256 investLPLimit,
+        uint256 maxTokenPriceLimit
+    ) external onlyTraderAdmin {
+        _traderPoolProposal.changeProposalRestrictions(
+            proposalId,
+            timestampLimit,
+            investLPLimit,
+            maxTokenPriceLimit
+        );
+    }
+
     function createProposal(
         address token,
         uint256 lpAmount,
@@ -82,7 +96,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256 instantTradePercentage
     ) external onlyTrader {
         require(token.isContract(), "BTP: not a contract");
-        require(token != poolParameters.baseToken, "BTP: wrong token");
+        require(token != poolParameters.baseToken, "BTP: wrong proposal token");
         require(balanceOf(_msgSender()) >= lpAmount, "BTP: not enought LPs");
 
         uint256 baseAmount = _divestPositions(lpAmount);

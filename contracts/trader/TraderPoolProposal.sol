@@ -32,7 +32,7 @@ contract TraderPoolProposal is ITraderPoolProposal, ERC1155SupplyUpgradeable, Ab
 
     ParentTraderPoolInfo internal _parentTraderPoolInfo;
 
-    uint256 internal _proposalsTotalNum;
+    uint256 public proposalsTotalNum;
 
     uint256 public override totalLockedLP;
     uint256 public override totalInvestedBase;
@@ -67,12 +67,25 @@ contract TraderPoolProposal is ITraderPoolProposal, ERC1155SupplyUpgradeable, Ab
         _priceFeed = IPriceFeed(contractsRegistry.getPriceFeedContract());
     }
 
+    function changeProposalRestrictions(
+        uint256 proposalId,
+        uint256 timestampLimit,
+        uint256 investLPLimit,
+        uint256 maxTokenPriceLimit
+    ) external override onlyParentTraderPool {
+        require(proposalId <= proposalsTotalNum, "TPP: proposal doesn't exist");
+
+        proposalInfos[proposalId].timestampLimit = timestampLimit;
+        proposalInfos[proposalId].investLPLimit = investLPLimit;
+        proposalInfos[proposalId].maxTokenPriceLimit = maxTokenPriceLimit;
+    }
+
     function getProposalInfos(uint256 offset, uint256 limit)
         external
         view
         returns (ProposalInfo[] memory proposals)
     {
-        uint256 to = (offset + limit).min(_proposalsTotalNum).max(offset);
+        uint256 to = (offset + limit).min(proposalsTotalNum).max(offset);
 
         proposals = new ProposalInfo[](to - offset);
 
@@ -166,7 +179,7 @@ contract TraderPoolProposal is ITraderPoolProposal, ERC1155SupplyUpgradeable, Ab
         require(lpInvestment > 0 && baseInvestment > 0, "TPP: zero investment");
         require(instantTradePercentage <= PERCENTAGE_100, "TPP: percantage is bigger than 100");
 
-        uint256 proposalsTotalNum = ++_proposalsTotalNum;
+        uint256 proposalsTotalNum = ++proposalsTotalNum;
 
         address baseToken = _parentTraderPoolInfo.baseToken;
         address trader = _parentTraderPoolInfo.trader;
@@ -231,7 +244,7 @@ contract TraderPoolProposal is ITraderPoolProposal, ERC1155SupplyUpgradeable, Ab
         uint256 lpInvestment,
         uint256 baseInvestment
     ) external override onlyParentTraderPool {
-        require(proposalId <= _proposalsTotalNum, "TPP: proposal doesn't exist");
+        require(proposalId <= proposalsTotalNum, "TPP: proposal doesn't exist");
 
         ProposalInfo storage info = proposalInfos[proposalId];
 
@@ -319,7 +332,7 @@ contract TraderPoolProposal is ITraderPoolProposal, ERC1155SupplyUpgradeable, Ab
         address user,
         uint256 lp2
     ) public override onlyParentTraderPool returns (uint256) {
-        require(proposalId <= _proposalsTotalNum, "TPP: proposal doesn't exist");
+        require(proposalId <= proposalsTotalNum, "TPP: proposal doesn't exist");
         require(lp2 > 0 && balanceOf(user, proposalId) >= lp2, "TPP: divesting more than balance");
 
         uint256 receivedBase;
@@ -357,7 +370,7 @@ contract TraderPoolProposal is ITraderPoolProposal, ERC1155SupplyUpgradeable, Ab
         address from,
         uint256 amount
     ) external override onlyParentTraderPool {
-        require(proposalId <= _proposalsTotalNum, "TPP: proposal doesn't exist");
+        require(proposalId <= proposalsTotalNum, "TPP: proposal doesn't exist");
 
         ProposalInfo storage info = proposalInfos[proposalId];
         address baseToken = _parentTraderPoolInfo.baseToken;
