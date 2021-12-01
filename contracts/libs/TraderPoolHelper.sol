@@ -86,8 +86,8 @@ library TraderPoolHelper {
         (totalInDAI, ) = getPoolPriceInDAI(poolParameters, openPositions, priceFeed);
 
         if (proposalPool != address(0)) {
-            totalInDAI += ITraderPoolProposal(proposalPool).getInvestedBaseInDAI();
-            traderBalance += ITraderPoolProposal(proposalPool).totalLPInvestments(trader);
+            totalInDAI += ITraderPoolProposal(proposalPool).getBalanceBaseInDAI();
+            traderBalance += ITraderPoolProposal(proposalPool).totalLPBalances(trader);
         }
 
         traderInDAI = totalInDAI.ratio(traderBalance, ITraderPool(address(this)).totalEmission());

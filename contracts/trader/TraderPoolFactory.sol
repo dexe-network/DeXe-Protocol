@@ -89,22 +89,6 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         _injectDependencies(poolProxy);
     }
 
-    function deployRiskyPool(
-        string calldata name,
-        string calldata symbol,
-        PoolDeployParameters calldata poolDeployParameters
-    ) external {
-        ITraderPool.PoolParameters memory poolParameters = _validateAndConstructParameters(
-            poolDeployParameters
-        );
-
-        address poolProxy = _deployTraderPool(_traderPoolRegistry.RISKY_POOL_NAME());
-
-        IRiskyTraderPool(poolProxy).__RiskyTraderPool_init(name, symbol, poolParameters);
-
-        _injectDependencies(poolProxy);
-    }
-
     function deployInvestPool(
         string calldata name,
         string calldata symbol,

@@ -18,7 +18,6 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
     using Math for uint256;
 
     string public constant BASIC_POOL_NAME = "BASIC_POOL";
-    string public constant RISKY_POOL_NAME = "RISKY_POOL";
     string public constant INVEST_POOL_NAME = "INVEST_POOL";
     string public constant RISKY_PROPOSAL_NAME = "POOL_RISKY_PROPOSAL";
     string public constant INVEST_PROPOSAL_NAME = "POOL_INVEST_PROPOSAL";
@@ -40,7 +39,6 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         __Ownable_init();
 
         _beacons[BASIC_POOL_NAME] = new ProxyBeacon();
-        _beacons[RISKY_POOL_NAME] = new ProxyBeacon();
         _beacons[INVEST_POOL_NAME] = new ProxyBeacon();
         _beacons[RISKY_PROPOSAL_NAME] = new ProxyBeacon();
         _beacons[INVEST_PROPOSAL_NAME] = new ProxyBeacon();
@@ -155,7 +153,6 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
     function isPool(address potentialPool) external view override returns (bool) {
         return
             _allPools[BASIC_POOL_NAME].contains(potentialPool) ||
-            _allPools[RISKY_POOL_NAME].contains(potentialPool) ||
             _allPools[INVEST_POOL_NAME].contains(potentialPool);
     }
 }

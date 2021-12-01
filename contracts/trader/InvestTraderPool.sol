@@ -4,14 +4,16 @@ pragma solidity ^0.8.4;
 import "../interfaces/trader/IInvestTraderPool.sol";
 import "../interfaces/trader/ITraderPoolInvestProposal.sol";
 
-import "./RiskyTraderPool.sol";
+import "./TraderPool.sol";
 
-contract InvestTraderPool is IInvestTraderPool, RiskyTraderPool {
+contract InvestTraderPool is IInvestTraderPool, TraderPool {
     using SafeERC20 for IERC20;
     using TraderPoolHelper for PoolParameters;
     using MathHelper for uint256;
 
     ITraderPoolInvestProposal internal _traderPoolProposal;
+
+    uint256 internal _firstExchange;
 
     function __InvestTraderPool_init(
         string calldata name,
@@ -19,7 +21,7 @@ contract InvestTraderPool is IInvestTraderPool, RiskyTraderPool {
         ITraderPool.PoolParameters memory _poolParameters,
         address traderPoolProposal
     ) public override {
-        __RiskyTraderPool_init(name, symbol, _poolParameters);
+        __TraderPool_init(name, symbol, _poolParameters);
 
         _traderPoolProposal = ITraderPoolInvestProposal(traderPoolProposal);
 
@@ -47,6 +49,29 @@ contract InvestTraderPool is IInvestTraderPool, RiskyTraderPool {
         _traderPoolProposal.changeProposalRestrictions(proposalId, timestampLimit, investLPLimit);
     }
 
+    function exchange(
+        address from,
+        address to,
+        uint256 amount
+    ) public override onlyTraderAdmin {
+        if (_firstExchange == 0) {
+            _firstExchange = block.timestamp;
+        }
+
+        super.exchange(from, to, amount);
+    }
+
+    function invest(uint256 amountInBaseToInvest) public override {
+        require(
+            isTraderAdmin(_msgSender()) ||
+                (_firstExchange != 0 &&
+                    _firstExchange + _coreProperties.getDelayForRiskyPool() <= block.timestamp),
+            "RTP: investment delay"
+        );
+
+        super.invest(amountInBaseToInvest);
+    }
+
     function createProposal(
         uint256 lpAmount,
         uint256 timestampLimit,
@@ -72,18 +97,14 @@ contract InvestTraderPool is IInvestTraderPool, RiskyTraderPool {
         _burn(_msgSender(), lpAmount);
     }
 
-    function reinvestProposal(uint256 proposalId, uint256 lp2Amount) external {
-        uint256 receivedBase = _traderPoolProposal.divestProposal(
-            proposalId,
-            _msgSender(),
-            lp2Amount
-        );
+    function reinvestProposal(uint256 proposalId) external {
+        uint256 receivedBase = _traderPoolProposal.claimProposal(proposalId, _msgSender());
 
         _invest(address(_traderPoolProposal), receivedBase);
     }
 
     function reinvestAllProposals() public {
-        uint256 receivedBase = _traderPoolProposal.divestAllProposals(_msgSender());
+        uint256 receivedBase = _traderPoolProposal.claimAllProposals(_msgSender());
 
         _invest(address(_traderPoolProposal), receivedBase);
     }
@@ -94,5 +115,9 @@ contract InvestTraderPool is IInvestTraderPool, RiskyTraderPool {
 
     function supplyProposal(uint256 proposalId, uint256 amount) external {
         _traderPoolProposal.supply(proposalId, _msgSender(), amount);
+    }
+
+    function convertToDividendsProposal(uint256 proposalId) external onlyTraderAdmin {
+        _traderPoolProposal.convertToDividends(proposalId);
     }
 }

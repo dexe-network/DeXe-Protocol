@@ -19,6 +19,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     using Math for uint256;
 
     mapping(uint256 => ProposalInfo) public proposalInfos; // proposal id => info
+    mapping(address => mapping(uint256 => RewardInfo)) public rewardInfos;
 
     function __TraderPoolInvestProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         public
@@ -39,39 +40,8 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         proposalInfos[proposalId].investLPLimit = investLPLimit;
     }
 
-    function _transferAndMintLP(
-        uint256 proposalId,
-        address to,
-        uint256 lpInvestment,
-        uint256 baseInvestment
-    ) internal {
-        IERC20(_parentTraderPoolInfo.baseToken).safeTransferFrom(
-            _parentTraderPoolInfo.parentPoolAddress,
-            address(this),
-            baseInvestment.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
-        );
-
-        uint256 totalSupply = totalSupply(proposalId);
-        uint256 toMint = baseInvestment;
-
-        if (totalSupply != 0) {
-            uint256 totalBase = proposalInfos[proposalId].balanceBase +
-                proposalInfos[proposalId].debt;
-
-            toMint = toMint.ratio(totalBase, totalSupply);
-        }
-
-        totalLockedLP += lpInvestment;
-        totalInvestedBase += baseInvestment;
-
-        _activeInvestments[to].add(proposalId);
-
-        proposalInfos[proposalId].investedLP += lpInvestment;
-
-        _lpInvestments[to][proposalId] += lpInvestment;
-        totalLPInvestments[to] += lpInvestment;
-
-        _mint(to, proposalId, toMint, "");
+    function _baseInProposal(uint256 proposalId) internal view override returns (uint256) {
+        return proposalInfos[proposalId].investedBase;
     }
 
     function createProposal(
@@ -93,22 +63,19 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
         proposalInfos[proposals].timestampLimit = timestampLimit;
         proposalInfos[proposals].investLPLimit = investLPLimit;
-        proposalInfos[proposals].balanceBase = baseInvestment;
+        proposalInfos[proposals].investedLP = lpInvestment;
+        proposalInfos[proposals].investedBase = baseInvestment;
+        proposalInfos[proposals].newInvestedBase = baseInvestment;
     }
 
-    function _getInvestmentPercentage(
-        uint256 proposalId,
-        address user,
-        uint256 toBeInvested
-    ) internal view returns (uint256) {
-        uint256 traderLPBalance = totalLPInvestments[user] +
-            IERC20(_parentTraderPoolInfo.parentPoolAddress).balanceOf(user);
+    function _updateRewards(uint256 proposalId, address user) internal {
+        RewardInfo storage rewardInfo = rewardInfos[user][proposalId];
+        uint256 cumulativeSum = proposalInfos[proposalId].cumulativeSum;
 
-        return
-            (_lpInvestments[user][proposalId] + toBeInvested).ratio(
-                PERCENTAGE_100,
-                traderLPBalance
-            );
+        rewardInfo.rewardStored +=
+            ((cumulativeSum - rewardInfo.cumulativeSumStored) * balanceOf(user, proposalId)) /
+            PRECISION;
+        rewardInfo.cumulativeSumStored = cumulativeSum;
     }
 
     function investProposal(
@@ -130,57 +97,36 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             "TPIP: proposal is overinvested"
         );
 
-        address trader = _parentTraderPoolInfo.trader;
-
-        if (user != trader) {
-            uint256 traderPercentage = _getInvestmentPercentage(proposalId, trader, 0);
-            uint256 userPercentage = _getInvestmentPercentage(proposalId, user, lpInvestment);
-
-            require(userPercentage <= traderPercentage, "TPIP: investing more than trader");
-        }
-
+        _updateRewards(proposalId, user);
         _transferAndMintLP(proposalId, user, lpInvestment, baseInvestment);
 
-        proposalInfos[proposalId].balanceBase += baseInvestment;
+        info.investedLP += lpInvestment;
+        info.investedBase += baseInvestment;
+        info.newInvestedBase += baseInvestment;
     }
 
-    function _divestProposal(
-        uint256 proposalId,
-        address investor,
-        uint256 lp2
-    ) internal returns (uint256 receivedBase, uint256 lpToBurn) {
-        receivedBase = proposalInfos[proposalId].balanceBase.ratio(lp2, totalSupply(proposalId));
-        lpToBurn = _updateFrom(investor, proposalId, lp2);
+    function _claimProposal(uint256 proposalId, address user) internal returns (uint256 claimed) {
+        _updateFromHelper(user, proposalId, claimed);
 
-        proposalInfos[proposalId].balanceBase -= receivedBase;
+        claimed = rewardInfos[user][proposalId].rewardStored;
+        delete rewardInfos[user][proposalId].rewardStored;
 
-        _burn(investor, proposalId, lp2);
+        totalLockedLP -= claimed.min(totalLockedLP);
+        totalBalanceBase -= claimed.min(totalBalanceBase);
     }
 
-    function divestProposal(
-        uint256 proposalId,
-        address user,
-        uint256 lp2
-    ) public override onlyParentTraderPool returns (uint256) {
+    function claimProposal(uint256 proposalId, address user)
+        public
+        override
+        onlyParentTraderPool
+        returns (uint256)
+    {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
-        require(
-            lp2 > 0 && balanceOf(user, proposalId) >= lp2,
-            "TPIP: divesting more than balance"
-        );
-        require(
-            user != _parentTraderPoolInfo.trader || proposalInfos[proposalId].debt == 0,
-            "TPIP: divesting with open position"
-        );
 
-        (uint256 receivedBase, uint256 lpToBurn) = _divestProposal(proposalId, user, lp2);
-
-        totalLockedLP -= lpToBurn;
-        totalInvestedBase -= receivedBase;
-
-        return receivedBase;
+        return _claimProposal(proposalId, user);
     }
 
-    function divestAllProposals(address user)
+    function claimAllProposals(address user)
         external
         override
         onlyParentTraderPool
@@ -190,18 +136,18 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
         while (length > 0) {
             uint256 proposalId = _activeInvestments[user].at(--length);
-
-            totalReceivedBase += divestProposal(proposalId, user, balanceOf(user, proposalId));
+            totalReceivedBase += _claimProposal(proposalId, user);
         }
     }
 
     function withdraw(uint256 proposalId, uint256 amount) external override onlyParentTraderPool {
-        ProposalInfo storage info = proposalInfos[proposalId];
+        require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
+        require(
+            amount <= proposalInfos[proposalId].newInvestedBase,
+            "TPIP: withdrawing more than balance"
+        );
 
-        require(amount <= info.balanceBase, "TPIP: withdrawing more than balance");
-
-        info.balanceBase -= amount;
-        info.debt += amount;
+        proposalInfos[proposalId].newInvestedBase -= amount;
 
         IERC20(_parentTraderPoolInfo.baseToken).safeTransfer(
             _parentTraderPoolInfo.trader,
@@ -214,6 +160,8 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         address user,
         uint256 amount
     ) external override onlyParentTraderPool {
+        require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
+
         ProposalInfo storage info = proposalInfos[proposalId];
 
         IERC20(_parentTraderPoolInfo.baseToken).safeTransferFrom(
@@ -222,7 +170,51 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             amount.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
         );
 
-        info.balanceBase += amount;
-        info.debt -= info.debt.min(amount);
+        info.cumulativeSum += (amount * PRECISION) / totalSupply(proposalId);
+    }
+
+    function convertToDividends(uint256 proposalId) external override onlyParentTraderPool {
+        require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
+
+        proposalInfos[proposalId].cumulativeSum +=
+            (proposalInfos[proposalId].newInvestedBase * PRECISION) /
+            totalSupply(proposalId);
+        delete proposalInfos[proposalId].newInvestedBase;
+    }
+
+    function _updateFromHelper(
+        address user,
+        uint256 proposalId,
+        uint256 amount
+    ) internal returns (uint256 lpTransfer) {
+        _updateRewards(proposalId, user);
+
+        lpTransfer = _lpBalances[user][proposalId].ratio(amount, balanceOf(user, proposalId));
+
+        _lpBalances[user][proposalId] -= lpTransfer;
+        totalLPBalances[user] -= lpTransfer;
+    }
+
+    function _updateFrom(
+        address user,
+        uint256 proposalId,
+        uint256 amount
+    ) internal override returns (uint256 lpTransfer) {
+        if (balanceOf(user, proposalId) - amount == 0) {
+            _activeInvestments[user].remove(proposalId);
+        }
+
+        return _updateFromHelper(user, proposalId, amount);
+    }
+
+    function _updateTo(
+        address user,
+        uint256 proposalId,
+        uint256 lpAmount
+    ) internal override {
+        _updateRewards(proposalId, user);
+
+        _lpBalances[user][proposalId] += lpAmount;
+        totalLPBalances[user] += lpAmount;
     }
 }

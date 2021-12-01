@@ -6,8 +6,6 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../interfaces/trader/ITraderPoolRiskyProposal.sol";
 
-import "../libs/DecimalsConverter.sol";
-
 import "../core/Globals.sol";
 import "./TraderPoolProposal.sol";
 
@@ -77,43 +75,11 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
 
             investments[i - offset] = ActiveInvestmentInfo(
                 proposalId,
-                _lpInvestments[user][proposalId],
+                _lpBalances[user][proposalId],
                 baseShare,
                 positionShare
             );
         }
-    }
-
-    function _transferAndMintLP(
-        uint256 proposalId,
-        address to,
-        uint256 lpInvestment,
-        uint256 baseInvestment
-    ) internal {
-        IERC20(_parentTraderPoolInfo.baseToken).safeTransferFrom(
-            _parentTraderPoolInfo.parentPoolAddress,
-            address(this),
-            baseInvestment.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
-        );
-
-        uint256 totalSupply = totalSupply(proposalId);
-        uint256 toMint = baseInvestment;
-
-        if (totalSupply != 0) {
-            toMint = toMint.ratio(_getBaseInProposal(proposalId), totalSupply);
-        }
-
-        totalLockedLP += lpInvestment;
-        totalInvestedBase += baseInvestment;
-
-        _activeInvestments[to].add(proposalId);
-
-        proposalInfos[proposalId].investedLP += lpInvestment;
-
-        _lpInvestments[to][proposalId] += lpInvestment;
-        totalLPInvestments[to] += lpInvestment;
-
-        _mint(to, proposalId, toMint, "");
     }
 
     function createProposal(
@@ -123,7 +89,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 maxTokenPriceLimit,
         uint256 lpInvestment,
         uint256 baseInvestment,
-        uint256 instantTradePercentage
+        uint256 tradePercentage
     ) external override onlyParentTraderPool {
         require(timestampLimit == 0 || timestampLimit >= block.timestamp, "TPRP: wrong timestamp");
         require(
@@ -131,7 +97,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             "TPRP: wrong investment limit"
         );
         require(lpInvestment > 0 && baseInvestment > 0, "TPRP: zero investment");
-        require(instantTradePercentage <= PERCENTAGE_100, "TPRP: percantage is bigger than 100");
+        require(tradePercentage <= PERCENTAGE_100, "TPRP: percantage is bigger than 100");
 
         uint256 proposals = ++proposalsTotalNum;
 
@@ -149,34 +115,21 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         proposalInfos[proposals].investLPLimit = investLPLimit;
         proposalInfos[proposals].maxTokenPriceLimit = maxTokenPriceLimit;
 
-        _activePortfolio(proposals, instantTradePercentage, PERCENTAGE_100, baseInvestment);
-    }
-
-    function _getInvestmentPercentage(
-        uint256 proposalId,
-        address user,
-        uint256 toBeInvested
-    ) internal view returns (uint256) {
-        uint256 traderLPBalance = totalLPInvestments[user] +
-            IERC20(_parentTraderPoolInfo.parentPoolAddress).balanceOf(user);
-
-        return
-            (_lpInvestments[user][proposalId] + toBeInvested).ratio(
-                PERCENTAGE_100,
-                traderLPBalance
-            );
+        _activePortfolio(proposals, tradePercentage, PERCENTAGE_100, baseInvestment, lpInvestment);
     }
 
     function _activePortfolio(
         uint256 proposalId,
         uint256 positionTokens,
         uint256 totalTokens,
-        uint256 baseInvestment
+        uint256 baseInvestment,
+        uint256 lpInvestment
     ) internal {
         ProposalInfo storage info = proposalInfos[proposalId];
 
         uint256 baseToExchange = baseInvestment.ratio(positionTokens, totalTokens);
 
+        info.investedLP += lpInvestment;
         info.balanceBase += baseInvestment - baseToExchange;
         info.balancePosition += _priceFeed.normalizedExchangeTo(
             _parentTraderPoolInfo.baseToken,
@@ -231,7 +184,8 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             proposalId,
             positionTokens,
             positionTokens + info.balanceBase,
-            baseInvestment
+            baseInvestment,
+            lpInvestment
         );
     }
 
@@ -299,7 +253,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         }
 
         totalLockedLP -= lpToBurn;
-        totalInvestedBase -= receivedBase;
+        totalBalanceBase -= receivedBase;
 
         return receivedBase;
     }
@@ -344,7 +298,19 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         }
     }
 
-    function _getBaseInProposal(uint256 proposalId) internal view returns (uint256) {
+    function _getInvestmentPercentage(
+        uint256 proposalId,
+        address user,
+        uint256 toBeInvested
+    ) internal view returns (uint256) {
+        uint256 traderLPBalance = totalLPBalances[user] +
+            IERC20(_parentTraderPoolInfo.parentPoolAddress).balanceOf(user);
+
+        return
+            (_lpBalances[user][proposalId] + toBeInvested).ratio(PERCENTAGE_100, traderLPBalance);
+    }
+
+    function _baseInProposal(uint256 proposalId) internal view override returns (uint256) {
         return
             proposalInfos[proposalId].balanceBase +
             _priceFeed.getNormalizedPriceIn(
@@ -358,5 +324,29 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         if (IERC20(token).allowance(address(this), address(_priceFeed)) == 0) {
             IERC20(token).safeApprove(address(_priceFeed), MAX_UINT);
         }
+    }
+
+    function _updateFrom(
+        address user,
+        uint256 proposalId,
+        uint256 amount
+    ) internal override returns (uint256 lpTransfer) {
+        lpTransfer = _lpBalances[user][proposalId].ratio(amount, balanceOf(user, proposalId));
+
+        _lpBalances[user][proposalId] -= lpTransfer;
+        totalLPBalances[user] -= lpTransfer;
+
+        if (balanceOf(user, proposalId) - amount == 0) {
+            _activeInvestments[user].remove(proposalId);
+        }
+    }
+
+    function _updateTo(
+        address user,
+        uint256 proposalId,
+        uint256 lpAmount
+    ) internal override {
+        _lpBalances[user][proposalId] += lpAmount;
+        totalLPBalances[user] += lpAmount;
     }
 }

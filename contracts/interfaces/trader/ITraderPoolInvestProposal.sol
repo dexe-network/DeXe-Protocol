@@ -7,9 +7,15 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
     struct ProposalInfo {
         uint256 timestampLimit;
         uint256 investLPLimit;
+        uint256 cumulativeSum; // with PRECISION
         uint256 investedLP;
-        uint256 balanceBase;
-        uint256 debt;
+        uint256 investedBase;
+        uint256 newInvestedBase;
+    }
+
+    struct RewardInfo {
+        uint256 rewardStored;
+        uint256 cumulativeSumStored; // with PRECISION
     }
 
     function __TraderPoolInvestProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
@@ -35,15 +41,13 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
         uint256 baseInvestment
     ) external;
 
-    function divestProposal(
-        uint256 proposalId,
-        address user,
-        uint256 lp2
-    ) external returns (uint256);
+    function claimProposal(uint256 proposalId, address user) external returns (uint256);
 
-    function divestAllProposals(address user) external returns (uint256);
+    function claimAllProposals(address user) external returns (uint256);
 
     function withdraw(uint256 proposalId, uint256 amount) external;
+
+    function convertToDividends(uint256 proposalId) external;
 
     function supply(
         uint256 proposalId,

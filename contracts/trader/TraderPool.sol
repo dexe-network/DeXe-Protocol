@@ -117,13 +117,9 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
     }
 
-    function proposalPoolAddress() external view virtual override returns (address) {
-        return address(0);
-    }
+    function proposalPoolAddress() external view virtual override returns (address);
 
-    function totalEmission() public view virtual override returns (uint256) {
-        return totalSupply();
-    }
+    function totalEmission() public view virtual override returns (uint256);
 
     function _transferBaseAndMintLP(
         address baseHolder,
@@ -138,12 +134,14 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             amountInBaseToInvest.convertFrom18(baseTokenDecimals)
         );
 
-        uint256 toMintLP = totalBaseInPool > 0
-            ? totalSupply().ratio(
-                amountInBaseToInvest,
+        uint256 toMintLP = amountInBaseToInvest;
+
+        if (totalBaseInPool > 0) {
+            toMintLP = toMintLP.ratio(
+                totalSupply(),
                 totalBaseInPool.convertTo18(baseTokenDecimals)
-            )
-            : amountInBaseToInvest;
+            );
+        }
 
         require(
             poolParameters.totalLPEmission == 0 ||
