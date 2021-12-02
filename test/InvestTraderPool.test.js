@@ -53,7 +53,7 @@ const DEFAULT_CORE_PROPERTIES = {
   delayForRiskyPool: SECONDS_IN_DAY * 20,
 };
 
-describe("RiskyTraderPool", () => {
+describe("InvestTraderPool", () => {
   let OWNER;
   let SECOND;
   let NOTHING;
