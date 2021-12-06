@@ -11,9 +11,9 @@ interface ITraderPoolProposal {
 
     function totalLockedLP() external view returns (uint256);
 
-    function totalBalanceBase() external view returns (uint256);
+    function investedBase() external view returns (uint256);
 
     function totalLPBalances(address user) external view returns (uint256);
 
-    function getBalanceBaseInDAI() external view returns (uint256);
+    function getInvestedBaseInDAI() external view returns (uint256);
 }

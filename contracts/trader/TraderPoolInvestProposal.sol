@@ -109,10 +109,13 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         _updateFromHelper(user, proposalId, claimed);
 
         claimed = rewardInfos[user][proposalId].rewardStored;
+
+        require(claimed > 0, "TPIP: nothing to claim");
+
         delete rewardInfos[user][proposalId].rewardStored;
 
         totalLockedLP -= claimed.min(totalLockedLP);
-        totalBalanceBase -= claimed.min(totalBalanceBase);
+        investedBase -= claimed.min(investedBase);
     }
 
     function claimProposal(uint256 proposalId, address user)
@@ -162,24 +165,24 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     ) external override onlyParentTraderPool {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
-        ProposalInfo storage info = proposalInfos[proposalId];
-
         IERC20(_parentTraderPoolInfo.baseToken).safeTransferFrom(
             user,
             address(this),
             amount.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
         );
 
-        info.cumulativeSum += (amount * PRECISION) / totalSupply(proposalId);
+        _updateCumulativeSum(proposalId, amount);
     }
 
     function convertToDividends(uint256 proposalId) external override onlyParentTraderPool {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
-        proposalInfos[proposalId].cumulativeSum +=
-            (proposalInfos[proposalId].newInvestedBase * PRECISION) /
-            totalSupply(proposalId);
+        _updateCumulativeSum(proposalId, proposalInfos[proposalId].newInvestedBase);
         delete proposalInfos[proposalId].newInvestedBase;
+    }
+
+    function _updateCumulativeSum(uint256 proposalId, uint256 amount) internal {
+        proposalInfos[proposalId].cumulativeSum += (amount * PRECISION) / totalSupply(proposalId);
     }
 
     function _updateFromHelper(

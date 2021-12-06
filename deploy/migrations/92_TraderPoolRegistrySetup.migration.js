@@ -8,9 +8,9 @@ const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
 const TraderPoolHelper = artifacts.require("TraderPoolHelper");
 
 const BasicTraderPool = artifacts.require("BasicTraderPool");
-const RiskyTraderPool = artifacts.require("RiskyTraderPool");
 const InvestTraderPool = artifacts.require("InvestTraderPool");
-const PoolProposal = artifacts.require("TraderPoolProposal");
+const RiskyPoolProposal = artifacts.require("TraderPoolRiskyProposal");
+const InvestPoolProposal = artifacts.require("TraderPoolInvestProposal");
 
 module.exports = async (deployer) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
@@ -19,22 +19,22 @@ module.exports = async (deployer) => {
 
   await deployer.deploy(TraderPoolHelper);
 
-  await deployer.link(TraderPoolHelper, BasicTraderPool, RiskyTraderPool, InvestTraderPool);
+  await deployer.link(TraderPoolHelper, BasicTraderPool, InvestTraderPool);
 
   const basicTraderPool = await deployer.deploy(BasicTraderPool);
-  const riskyTraderPool = await deployer.deploy(RiskyTraderPool);
   const investTraderPool = await deployer.deploy(InvestTraderPool);
-  const poolProposal = await deployer.deploy(PoolProposal);
+  const riskyPoolProposal = await deployer.deploy(RiskyPoolProposal);
+  const investPoolProposal = await deployer.deploy(InvestPoolProposal);
 
   const basicPoolName = await traderPoolRegistry.BASIC_POOL_NAME();
-  const riskyPoolName = await traderPoolRegistry.RISKY_POOL_NAME();
   const investPoolName = await traderPoolRegistry.INVEST_POOL_NAME();
-  const proposalName = await traderPoolRegistry.PROPOSAL_NAME();
+  const riskyProposalName = await traderPoolRegistry.RISKY_PROPOSAL_NAME();
+  const investProposalName = await traderPoolRegistry.INVEST_PROPOSAL_NAME();
 
   logTransaction(
     await traderPoolRegistry.setNewImplementations(
-      [basicPoolName, riskyPoolName, investPoolName, proposalName],
-      [basicTraderPool.address, riskyTraderPool.address, investTraderPool.address, poolProposal.address]
+      [basicPoolName, riskyPoolName, investPoolName, riskyProposalName, investProposalName],
+      [basicTraderPool.address, investTraderPool.address, riskyProposalName.address, investProposalName.address]
     ),
     "Set TraderPools implementations"
   );

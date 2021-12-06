@@ -19,8 +19,8 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
 
     string public constant BASIC_POOL_NAME = "BASIC_POOL";
     string public constant INVEST_POOL_NAME = "INVEST_POOL";
-    string public constant RISKY_PROPOSAL_NAME = "POOL_RISKY_PROPOSAL";
-    string public constant INVEST_PROPOSAL_NAME = "POOL_INVEST_PROPOSAL";
+    string public constant RISKY_PROPOSAL_NAME = "RISKY_POOL_PROPOSAL";
+    string public constant INVEST_PROPOSAL_NAME = "INVEST_POOL_PROPOSAL";
 
     IContractsRegistry internal _contractsRegistry;
     address internal _traderPoolFactory;

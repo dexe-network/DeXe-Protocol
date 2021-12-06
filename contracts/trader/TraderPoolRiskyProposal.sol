@@ -253,7 +253,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         }
 
         totalLockedLP -= lpToBurn;
-        totalBalanceBase -= receivedBase;
+        investedBase -= receivedBase.min(investedBase);
 
         return receivedBase;
     }

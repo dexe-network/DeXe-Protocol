@@ -10,7 +10,6 @@ const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
 const TraderPoolMock = artifacts.require("TraderPoolMock");
 const TraderPoolHelperLib = artifacts.require("TraderPoolHelper");
 const InvestTraderPool = artifacts.require("InvestTraderPool");
-const RiskyTraderPool = artifacts.require("RiskyTraderPool");
 const BasicTraderPool = artifacts.require("BasicTraderPool");
 const RiskyPoolProposal = artifacts.require("TraderPoolRiskyProposal");
 const InvestPoolProposal = artifacts.require("TraderPoolInvestProposal");
@@ -23,7 +22,6 @@ PriceFeed.numberFormat = "BigNumber";
 TraderPoolRegistry.numberFormat = "BigNumber";
 TraderPoolMock.numberFormat = "BigNumber";
 InvestTraderPool.numberFormat = "BigNumber";
-RiskyTraderPool.numberFormat = "BigNumber";
 BasicTraderPool.numberFormat = "BigNumber";
 RiskyPoolProposal.numberFormat = "BigNumber";
 InvestPoolProposal.numberFormat = "BigNumber";
@@ -80,7 +78,6 @@ describe("TraderPoolFactory", () => {
     const traderPoolHelper = await TraderPoolHelperLib.new();
 
     await InvestTraderPool.link(traderPoolHelper);
-    await RiskyTraderPool.link(traderPoolHelper);
     await BasicTraderPool.link(traderPoolHelper);
   });
 
@@ -127,14 +124,12 @@ describe("TraderPoolFactory", () => {
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
 
     let investTraderPool = await InvestTraderPool.new();
-    let riskyTraderPool = await RiskyTraderPool.new();
     let basicTraderPool = await BasicTraderPool.new();
     let riskyPoolProposal = await RiskyPoolProposal.new();
     let investPoolProposal = await InvestPoolProposal.new();
 
     const poolNames = [
       await traderPoolRegistry.INVEST_POOL_NAME(),
-      await traderPoolRegistry.RISKY_POOL_NAME(),
       await traderPoolRegistry.BASIC_POOL_NAME(),
       await traderPoolRegistry.RISKY_PROPOSAL_NAME(),
       await traderPoolRegistry.INVEST_PROPOSAL_NAME(),
@@ -142,7 +137,6 @@ describe("TraderPoolFactory", () => {
 
     const poolAddrs = [
       investTraderPool.address,
-      riskyTraderPool.address,
       basicTraderPool.address,
       riskyPoolProposal.address,
       investPoolProposal.address,

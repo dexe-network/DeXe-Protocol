@@ -181,7 +181,7 @@ describe("BasicTraderPool", () => {
     return [traderPool, proposal];
   }
 
-  describe("Default TraderPool", () => {
+  describe("Default Pool", () => {
     let POOL_PARAMETERS;
 
     let traderPool;

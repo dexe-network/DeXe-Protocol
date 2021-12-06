@@ -31,7 +31,7 @@ abstract contract TraderPoolProposal is
     uint256 public proposalsTotalNum;
 
     uint256 public override totalLockedLP;
-    uint256 public override totalBalanceBase;
+    uint256 public override investedBase;
 
     mapping(address => EnumerableSet.UintSet) internal _activeInvestments; // user => proposals
     mapping(address => mapping(uint256 => uint256)) internal _lpBalances; // user => proposal id => LP invested
@@ -60,9 +60,8 @@ abstract contract TraderPoolProposal is
         _priceFeed = IPriceFeed(contractsRegistry.getPriceFeedContract());
     }
 
-    function getBalanceBaseInDAI() external view override returns (uint256) {
-        return
-            _priceFeed.getNormalizedPriceInDAI(_parentTraderPoolInfo.baseToken, totalBalanceBase);
+    function getInvestedBaseInDAI() external view override returns (uint256) {
+        return _priceFeed.getNormalizedPriceInDAI(_parentTraderPoolInfo.baseToken, investedBase);
     }
 
     function _baseInProposal(uint256 proposalId) internal view virtual returns (uint256);
@@ -87,7 +86,7 @@ abstract contract TraderPoolProposal is
         }
 
         totalLockedLP += lpInvestment;
-        totalBalanceBase += baseInvestment;
+        investedBase += baseInvestment;
 
         _activeInvestments[to].add(proposalId);
 

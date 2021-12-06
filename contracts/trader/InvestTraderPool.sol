@@ -10,6 +10,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
     using SafeERC20 for IERC20;
     using TraderPoolHelper for PoolParameters;
     using MathHelper for uint256;
+    using DecimalsConverter for uint256;
 
     ITraderPoolInvestProposal internal _traderPoolProposal;
 
@@ -26,6 +27,12 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         _traderPoolProposal = ITraderPoolInvestProposal(traderPoolProposal);
 
         IERC20(_poolParameters.baseToken).safeApprove(traderPoolProposal, MAX_UINT);
+    }
+
+    function setDependencies(IContractsRegistry contractsRegistry) public override dependant {
+        super.setDependencies(contractsRegistry);
+
+        AbstractDependant(address(_traderPoolProposal)).setDependencies(contractsRegistry);
     }
 
     function proposalPoolAddress() external view override returns (address) {
@@ -66,7 +73,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
             isTraderAdmin(_msgSender()) ||
                 (_firstExchange != 0 &&
                     _firstExchange + _coreProperties.getDelayForRiskyPool() <= block.timestamp),
-            "RTP: investment delay"
+            "BTP: investment delay"
         );
 
         super.invest(amountInBaseToInvest);
@@ -88,6 +95,12 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
 
     function investProposal(uint256 proposalId, uint256 lpAmount) external {
         require(lpAmount > 0 && balanceOf(_msgSender()) >= lpAmount, "BTP: wrong LPs amount");
+        require(
+            isTraderAdmin(_msgSender()) ||
+                (_firstExchange != 0 &&
+                    _firstExchange + _coreProperties.getDelayForRiskyPool() <= block.timestamp),
+            "BTP: investment delay"
+        );
 
         uint256 baseAmount = _divestPositions(lpAmount);
 
@@ -109,6 +122,14 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         _invest(address(_traderPoolProposal), receivedBase);
     }
 
+    function claimProposal(uint256 proposalId) external {
+        _payoutProposal(_traderPoolProposal.claimProposal(proposalId, _msgSender()));
+    }
+
+    function claimAllProposals() external {
+        _payoutProposal(_traderPoolProposal.claimAllProposals(_msgSender()));
+    }
+
     function withdrawProposal(uint256 proposalId, uint256 amount) external onlyTraderAdmin {
         _traderPoolProposal.withdraw(proposalId, amount);
     }
@@ -119,5 +140,13 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
 
     function convertToDividendsProposal(uint256 proposalId) external onlyTraderAdmin {
         _traderPoolProposal.convertToDividends(proposalId);
+    }
+
+    function _payoutProposal(uint256 amount) internal {
+        IERC20(poolParameters.baseToken).safeTransferFrom(
+            address(_traderPoolProposal),
+            _msgSender(),
+            amount.convertFrom18(poolParameters.baseTokenDecimals)
+        );
     }
 }

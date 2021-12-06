@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./IRiskyTraderPool.sol";
+import "./ITraderPool.sol";
 
 interface IInvestTraderPool {
     function __InvestTraderPool_init(

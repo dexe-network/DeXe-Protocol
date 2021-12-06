@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "../interfaces/trader/ITraderPoolFactory.sol";
 import "../interfaces/core/IContractsRegistry.sol";
-import "../interfaces/trader/IRiskyTraderPool.sol";
 import "../interfaces/trader/IBasicTraderPool.sol";
 import "../interfaces/trader/IInvestTraderPool.sol";
 import "../interfaces/trader/ITraderPool.sol";
