@@ -94,7 +94,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 minimalInvestment
     ) external onlyTraderAdmin {
         require(
-            totalLPEmission == 0 || _totalEmission() <= totalLPEmission,
+            totalLPEmission == 0 || totalEmission() <= totalLPEmission,
             "TP: wrong emission supply"
         );
 
@@ -117,9 +117,9 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
     }
 
-    function _totalEmission() internal view virtual returns (uint256) {
-        return totalSupply();
-    }
+    function proposalPoolAddress() external view virtual override returns (address);
+
+    function totalEmission() public view virtual override returns (uint256);
 
     function _transferBaseAndMintLP(
         address baseHolder,
@@ -134,34 +134,27 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             amountInBaseToInvest.convertFrom18(baseTokenDecimals)
         );
 
-        uint256 toMintLP = totalBaseInPool > 0
-            ? totalSupply().ratio(
-                amountInBaseToInvest,
+        uint256 toMintLP = amountInBaseToInvest;
+
+        if (totalBaseInPool > 0) {
+            toMintLP = toMintLP.ratio(
+                totalSupply(),
                 totalBaseInPool.convertTo18(baseTokenDecimals)
-            )
-            : amountInBaseToInvest;
+            );
+        }
 
         require(
             poolParameters.totalLPEmission == 0 ||
-                _totalEmission() + toMintLP <= poolParameters.totalLPEmission,
+                totalEmission() + toMintLP <= poolParameters.totalLPEmission,
             "TP: minting more than emission allows"
         );
 
         _mint(_msgSender(), toMintLP);
     }
 
-    function _leveragePoolPriceInDAI()
-        internal
-        view
-        virtual
-        returns (uint256 totalInDAI, uint256 traderInDAI)
-    {
-        (totalInDAI, ) = poolParameters.getPoolPriceInDAI(_openPositions, _priceFeed);
-        traderInDAI = totalInDAI.ratio(balanceOf(poolParameters.trader), totalSupply());
-    }
-
     function _checkLeverage(uint256 addInDAI) internal view {
-        (uint256 totalPriceInDAI, uint256 traderPriceInDAI) = _leveragePoolPriceInDAI();
+        (uint256 totalPriceInDAI, uint256 traderPriceInDAI) = poolParameters
+            .getLeveragePoolPriceInDAI(_openPositions, _priceFeed);
         (uint256 threshold, uint256 slope) = _coreProperties.getTraderLeverageParams();
 
         uint256 maxTraderVolumeInDAI = TraderPoolHelper.getMaxTraderLeverage(

@@ -170,7 +170,7 @@ describe("BasicTraderPool", () => {
     };
 
     await traderPool.__BasicTraderPool_init("Test pool", "TP", poolParameters, proposal.address);
-    await proposal.__TraderPoolProposal_init(parentPoolInfo);
+    await proposal.__TraderPoolRiskyProposal_init(parentPoolInfo);
 
     await traderPoolRegistry.addPool(OWNER, POOL_NAME, traderPool.address, {
       from: FACTORY,
@@ -181,7 +181,7 @@ describe("BasicTraderPool", () => {
     return [traderPool, proposal];
   }
 
-  describe("Default TraderPool", () => {
+  describe("Default Pool", () => {
     let POOL_PARAMETERS;
 
     let traderPool;
@@ -427,7 +427,7 @@ describe("BasicTraderPool", () => {
 
         await truffleAssert.reverts(
           traderPool.investProposal(1, wei("100"), { from: SECOND }),
-          "TPP: token price too high"
+          "TPRP: token price too high"
         );
       });
 
@@ -440,7 +440,7 @@ describe("BasicTraderPool", () => {
 
         await truffleAssert.reverts(
           traderPool.investProposal(1, wei("1000"), { from: SECOND }),
-          "TPP: investing more than trader"
+          "TPRP: investing more than trader"
         );
       });
     });

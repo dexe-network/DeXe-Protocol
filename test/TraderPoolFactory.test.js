@@ -10,9 +10,9 @@ const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
 const TraderPoolMock = artifacts.require("TraderPoolMock");
 const TraderPoolHelperLib = artifacts.require("TraderPoolHelper");
 const InvestTraderPool = artifacts.require("InvestTraderPool");
-const RiskyTraderPool = artifacts.require("RiskyTraderPool");
 const BasicTraderPool = artifacts.require("BasicTraderPool");
 const RiskyPoolProposal = artifacts.require("TraderPoolRiskyProposal");
+const InvestPoolProposal = artifacts.require("TraderPoolInvestProposal");
 const TraderPoolFactory = artifacts.require("TraderPoolFactory");
 
 ContractsRegistry.numberFormat = "BigNumber";
@@ -22,9 +22,9 @@ PriceFeed.numberFormat = "BigNumber";
 TraderPoolRegistry.numberFormat = "BigNumber";
 TraderPoolMock.numberFormat = "BigNumber";
 InvestTraderPool.numberFormat = "BigNumber";
-RiskyTraderPool.numberFormat = "BigNumber";
 BasicTraderPool.numberFormat = "BigNumber";
 RiskyPoolProposal.numberFormat = "BigNumber";
+InvestPoolProposal.numberFormat = "BigNumber";
 TraderPoolFactory.numberFormat = "BigNumber";
 
 const SECONDS_IN_DAY = 86400;
@@ -78,7 +78,6 @@ describe("TraderPoolFactory", () => {
     const traderPoolHelper = await TraderPoolHelperLib.new();
 
     await InvestTraderPool.link(traderPoolHelper);
-    await RiskyTraderPool.link(traderPoolHelper);
     await BasicTraderPool.link(traderPoolHelper);
   });
 
@@ -125,73 +124,26 @@ describe("TraderPoolFactory", () => {
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
 
     let investTraderPool = await InvestTraderPool.new();
-    let riskyTraderPool = await RiskyTraderPool.new();
     let basicTraderPool = await BasicTraderPool.new();
-    let riskypoolProposal = await RiskyPoolProposal.new();
+    let riskyPoolProposal = await RiskyPoolProposal.new();
+    let investPoolProposal = await InvestPoolProposal.new();
 
     const poolNames = [
       await traderPoolRegistry.INVEST_POOL_NAME(),
-      await traderPoolRegistry.RISKY_POOL_NAME(),
       await traderPoolRegistry.BASIC_POOL_NAME(),
       await traderPoolRegistry.RISKY_PROPOSAL_NAME(),
+      await traderPoolRegistry.INVEST_PROPOSAL_NAME(),
     ];
 
     const poolAddrs = [
       investTraderPool.address,
-      riskyTraderPool.address,
       basicTraderPool.address,
-      riskypoolProposal.address,
+      riskyPoolProposal.address,
+      investPoolProposal.address,
     ];
 
     await traderPoolRegistry.setNewImplementations(poolNames, poolAddrs);
     await priceFeed.addSupportedBaseTokens([testCoin.address]);
-  });
-
-  describe("deployRiskyPool", async () => {
-    let POOL_PARAMETERS;
-
-    beforeEach("Pool parameters", async () => {
-      POOL_PARAMETERS = {
-        descriptionURL: "placeholder.com",
-        trader: OWNER,
-        activePortfolio: false,
-        privatePool: false,
-        totalLPEmission: 0,
-        baseToken: testCoin.address,
-        baseTokenDecimals: 18,
-        minimalInvestment: 0,
-        commissionPeriod: ComissionPeriods.PERIOD_1,
-        commissionPercentage: toBN(30).times(PRECISION).toFixed(),
-      };
-    });
-
-    it("should deploy risky pool and check event", async () => {
-      let tx = await traderPoolFactory.deployRiskyPool("Risky", "RP", POOL_PARAMETERS);
-      let event = tx.receipt.logs[0];
-
-      assert.equal("Deployed", event.event);
-      assert.equal(OWNER, event.args.user);
-      assert.equal("RISKY_POOL", event.args.poolName);
-    });
-
-    it("should deploy pool and check TraderPoolRegistry", async () => {
-      let lenPools = await traderPoolRegistry.countPools(await traderPoolRegistry.RISKY_POOL_NAME());
-      let lenUser = await traderPoolRegistry.countUserPools(OWNER, await traderPoolRegistry.RISKY_POOL_NAME());
-
-      let tx = await traderPoolFactory.deployRiskyPool("Risky", "RP", POOL_PARAMETERS);
-      let event = tx.receipt.logs[0];
-
-      assert.isTrue(await traderPoolRegistry.isPool(event.args.at));
-
-      assert.equal(
-        (await traderPoolRegistry.countPools(await traderPoolRegistry.RISKY_POOL_NAME())).toString(),
-        lenPools.plus(1).toString()
-      );
-      assert.equal(
-        (await traderPoolRegistry.countUserPools(OWNER, await traderPoolRegistry.RISKY_POOL_NAME())).toString(),
-        lenUser.plus(1).toString()
-      );
-    });
   });
 
   describe("deployBasicPool", async () => {

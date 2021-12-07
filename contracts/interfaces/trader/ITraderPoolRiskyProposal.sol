@@ -22,6 +22,9 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
         uint256 positionShare;
     }
 
+    function __TraderPoolRiskyProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
+        external;
+
     function changeProposalRestrictions(
         uint256 proposalId,
         uint256 timestampLimit,

@@ -4,28 +4,26 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/trader/ITraderPoolRiskyProposal.sol";
-
-import "../libs/DecimalsConverter.sol";
 
 import "../core/Globals.sol";
 import "./TraderPoolProposal.sol";
 
 contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal {
     using EnumerableSet for EnumerableSet.UintSet;
-    using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
     using DecimalsConverter for uint256;
     using MathHelper for uint256;
     using Math for uint256;
 
-    IPriceFeed internal _priceFeed;
-
     mapping(uint256 => ProposalInfo) public proposalInfos; // proposal id => info
 
-    function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
-        _priceFeed = IPriceFeed(contractsRegistry.getPriceFeedContract());
+    function __TraderPoolRiskyProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
+        public
+        override
+        initializer
+    {
+        __TraderPoolProposal_init(parentTraderPoolInfo);
     }
 
     function changeProposalRestrictions(
@@ -34,7 +32,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 investLPLimit,
         uint256 maxTokenPriceLimit
     ) external override onlyParentTraderPool {
-        require(proposalId <= proposalsTotalNum, "TPP: proposal doesn't exist");
+        require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
 
         proposalInfos[proposalId].timestampLimit = timestampLimit;
         proposalInfos[proposalId].investLPLimit = investLPLimit;
@@ -77,50 +75,11 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
 
             investments[i - offset] = ActiveInvestmentInfo(
                 proposalId,
-                _lpInvestments[user][proposalId],
+                _lpBalances[user][proposalId],
                 baseShare,
                 positionShare
             );
         }
-    }
-
-    function _transferAndMintLP(
-        uint256 proposalNum,
-        address to,
-        uint256 lpInvestment,
-        uint256 baseInvestment
-    ) internal {
-        address parentPool = _parentTraderPoolInfo.parentPoolAddress;
-        uint256 baseInvesmentConverted = baseInvestment.convertFrom18(
-            _parentTraderPoolInfo.baseTokenDecimals
-        );
-
-        IERC20(_parentTraderPoolInfo.baseToken).safeTransferFrom(
-            parentPool,
-            address(this),
-            baseInvesmentConverted
-        );
-
-        uint256 totalSupply = totalSupply(proposalNum);
-        uint256 toMint;
-
-        if (totalSupply == 0) {
-            toMint = baseInvestment;
-        } else {
-            toMint = baseInvestment.ratio(_getBaseInProposal(proposalNum), totalSupply);
-        }
-
-        totalLockedLP += lpInvestment;
-        totalInvestedBase += baseInvestment;
-
-        _activeInvestments[to].add(proposalNum);
-
-        proposalInfos[proposalNum].investedLP += lpInvestment;
-
-        _lpInvestments[to][proposalNum] += lpInvestment;
-        totalLPInvestments[to] += lpInvestment;
-
-        _mint(to, proposalNum, toMint, "");
     }
 
     function createProposal(
@@ -130,22 +89,20 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 maxTokenPriceLimit,
         uint256 lpInvestment,
         uint256 baseInvestment,
-        uint256 instantTradePercentage
+        uint256 tradePercentage
     ) external override onlyParentTraderPool {
-        require(timestampLimit == 0 || timestampLimit >= block.timestamp, "TPP: wrong timestamp");
+        require(timestampLimit == 0 || timestampLimit >= block.timestamp, "TPRP: wrong timestamp");
         require(
             investLPLimit == 0 || investLPLimit >= lpInvestment,
-            "TPP: wrong investment limit"
+            "TPRP: wrong investment limit"
         );
-        require(lpInvestment > 0 && baseInvestment > 0, "TPP: zero investment");
-        require(instantTradePercentage <= PERCENTAGE_100, "TPP: percantage is bigger than 100");
+        require(lpInvestment > 0 && baseInvestment > 0, "TPRP: zero investment");
+        require(tradePercentage <= PERCENTAGE_100, "TPRP: percantage is bigger than 100");
 
         uint256 proposals = ++proposalsTotalNum;
 
         address baseToken = _parentTraderPoolInfo.baseToken;
         address trader = _parentTraderPoolInfo.trader;
-
-        _transferAndMintLP(proposals, trader, lpInvestment, baseInvestment);
 
         _checkPriceFeedAllowance(baseToken);
         _checkPriceFeedAllowance(token);
@@ -156,34 +113,22 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         proposalInfos[proposals].investLPLimit = investLPLimit;
         proposalInfos[proposals].maxTokenPriceLimit = maxTokenPriceLimit;
 
-        _activePortfolio(proposals, instantTradePercentage, PERCENTAGE_100, baseInvestment);
-    }
-
-    function _getInvestmentPercentage(
-        uint256 proposalId,
-        address user,
-        uint256 toBeInvested
-    ) internal view returns (uint256) {
-        uint256 traderLPBalance = totalLPInvestments[user] +
-            IERC20(_parentTraderPoolInfo.parentPoolAddress).balanceOf(user);
-
-        return
-            (_lpInvestments[user][proposalId] + toBeInvested).ratio(
-                PERCENTAGE_100,
-                traderLPBalance
-            );
+        _transferAndMintLP(proposals, trader, lpInvestment, baseInvestment);
+        _activePortfolio(proposals, tradePercentage, PERCENTAGE_100, baseInvestment, lpInvestment);
     }
 
     function _activePortfolio(
         uint256 proposalId,
         uint256 positionTokens,
         uint256 totalTokens,
-        uint256 baseInvestment
+        uint256 baseInvestment,
+        uint256 lpInvestment
     ) internal {
         ProposalInfo storage info = proposalInfos[proposalId];
 
         uint256 baseToExchange = baseInvestment.ratio(positionTokens, totalTokens);
 
+        info.investedLP += lpInvestment;
         info.balanceBase += baseInvestment - baseToExchange;
         info.balancePosition += _priceFeed.normalizedExchangeTo(
             _parentTraderPoolInfo.baseToken,
@@ -198,17 +143,17 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 lpInvestment,
         uint256 baseInvestment
     ) external override onlyParentTraderPool {
-        require(proposalId <= proposalsTotalNum, "TPP: proposal doesn't exist");
+        require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
 
         ProposalInfo storage info = proposalInfos[proposalId];
 
         require(
             info.timestampLimit == 0 || block.timestamp <= info.timestampLimit,
-            "TPP: proposal is closed"
+            "TPRP: proposal is closed"
         );
         require(
             info.investLPLimit == 0 || info.investedLP + lpInvestment <= info.investLPLimit,
-            "TPP: proposal is overinvested"
+            "TPRP: proposal is overinvested"
         );
 
         uint256 tokenPriceConverted = _priceFeed.getNormalizedPriceIn(
@@ -219,7 +164,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
 
         require(
             info.maxTokenPriceLimit == 0 || tokenPriceConverted <= info.maxTokenPriceLimit,
-            "TPP: token price too high"
+            "TPRP: token price too high"
         );
 
         address trader = _parentTraderPoolInfo.trader;
@@ -228,7 +173,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             uint256 traderPercentage = _getInvestmentPercentage(proposalId, trader, 0);
             uint256 userPercentage = _getInvestmentPercentage(proposalId, user, lpInvestment);
 
-            require(userPercentage <= traderPercentage, "TPP: investing more than trader");
+            require(userPercentage <= traderPercentage, "TPRP: investing more than trader");
         }
 
         uint256 positionTokens = tokenPriceConverted.ratio(info.balancePosition, 10**18);
@@ -238,7 +183,8 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             proposalId,
             positionTokens,
             positionTokens + info.balanceBase,
-            baseInvestment
+            baseInvestment,
+            lpInvestment
         );
     }
 
@@ -249,7 +195,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     ) internal returns (uint256 receivedBase, uint256 lpToBurn) {
         require(
             proposalInfos[proposalId].balancePosition == 0,
-            "TPP: divesting with open position"
+            "TPRP: divesting with open position"
         );
 
         receivedBase = proposalInfos[proposalId].balanceBase.ratio(lp2, totalSupply(proposalId));
@@ -290,8 +236,11 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         address user,
         uint256 lp2
     ) public override onlyParentTraderPool returns (uint256) {
-        require(proposalId <= proposalsTotalNum, "TPP: proposal doesn't exist");
-        require(lp2 > 0 && balanceOf(user, proposalId) >= lp2, "TPP: divesting more than balance");
+        require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
+        require(
+            lp2 > 0 && balanceOf(user, proposalId) >= lp2,
+            "TPRP: divesting more than balance"
+        );
 
         uint256 receivedBase;
         uint256 lpToBurn;
@@ -303,7 +252,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         }
 
         totalLockedLP -= lpToBurn;
-        totalInvestedBase -= receivedBase;
+        investedBase -= receivedBase.min(investedBase);
 
         return receivedBase;
     }
@@ -328,27 +277,39 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         address from,
         uint256 amount
     ) external override onlyParentTraderPool {
-        require(proposalId <= proposalsTotalNum, "TPP: proposal doesn't exist");
+        require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
 
         ProposalInfo storage info = proposalInfos[proposalId];
         address baseToken = _parentTraderPoolInfo.baseToken;
 
-        require(from == baseToken || from == info.token, "TPP: invalid from token");
+        require(from == baseToken || from == info.token, "TPRP: invalid from token");
 
         if (from == baseToken) {
-            require(amount <= info.balanceBase, "TPP: wrong base amount");
+            require(amount <= info.balanceBase, "TPRP: wrong base amount");
 
             info.balanceBase -= amount;
             info.balancePosition += _priceFeed.normalizedExchangeTo(from, info.token, amount);
         } else {
-            require(amount <= info.balancePosition, "TPP: wrong position amount");
+            require(amount <= info.balancePosition, "TPRP: wrong position amount");
 
             info.balanceBase += _priceFeed.normalizedExchangeTo(from, baseToken, amount);
             info.balancePosition -= amount;
         }
     }
 
-    function _getBaseInProposal(uint256 proposalId) internal view returns (uint256) {
+    function _getInvestmentPercentage(
+        uint256 proposalId,
+        address user,
+        uint256 toBeInvested
+    ) internal view returns (uint256) {
+        uint256 traderLPBalance = totalLPBalances[user] +
+            IERC20(_parentTraderPoolInfo.parentPoolAddress).balanceOf(user);
+
+        return
+            (_lpBalances[user][proposalId] + toBeInvested).ratio(PERCENTAGE_100, traderLPBalance);
+    }
+
+    function _baseInProposal(uint256 proposalId) internal view override returns (uint256) {
         return
             proposalInfos[proposalId].balanceBase +
             _priceFeed.getNormalizedPriceIn(
@@ -362,5 +323,29 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         if (IERC20(token).allowance(address(this), address(_priceFeed)) == 0) {
             IERC20(token).safeApprove(address(_priceFeed), MAX_UINT);
         }
+    }
+
+    function _updateFrom(
+        address user,
+        uint256 proposalId,
+        uint256 amount
+    ) internal override returns (uint256 lpTransfer) {
+        lpTransfer = _lpBalances[user][proposalId].ratio(amount, balanceOf(user, proposalId));
+
+        _lpBalances[user][proposalId] -= lpTransfer;
+        totalLPBalances[user] -= lpTransfer;
+
+        if (balanceOf(user, proposalId) - amount == 0) {
+            _activeInvestments[user].remove(proposalId);
+        }
+    }
+
+    function _updateTo(
+        address user,
+        uint256 proposalId,
+        uint256 lpAmount
+    ) internal override {
+        _lpBalances[user][proposalId] += lpAmount;
+        totalLPBalances[user] += lpAmount;
     }
 }

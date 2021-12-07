@@ -7,14 +7,17 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "../interfaces/trader/ITraderPool.sol";
+import "../interfaces/trader/ITraderPoolProposal.sol";
 import "../interfaces/core/IPriceFeed.sol";
 
 import "../libs/DecimalsConverter.sol";
 import "../core/Globals.sol";
+import "../libs/MathHelper.sol";
 
 library TraderPoolHelper {
     using EnumerableSet for EnumerableSet.AddressSet;
     using DecimalsConverter for uint256;
+    using MathHelper for uint256;
 
     function getPoolPrice(
         ITraderPool.PoolParameters storage poolParameters,
@@ -69,6 +72,25 @@ library TraderPoolHelper {
 
         totalBaseInToken = totalBase * baseInToken;
         positionsInToken = (totalBase - currentBase) * baseInToken;
+    }
+
+    function getLeveragePoolPriceInDAI(
+        ITraderPool.PoolParameters storage poolParameters,
+        EnumerableSet.AddressSet storage openPositions,
+        IPriceFeed priceFeed
+    ) public view returns (uint256 totalInDAI, uint256 traderInDAI) {
+        address trader = poolParameters.trader;
+        address proposalPool = ITraderPool(address(this)).proposalPoolAddress();
+        uint256 traderBalance = IERC20(address(this)).balanceOf(trader);
+
+        (totalInDAI, ) = getPoolPriceInDAI(poolParameters, openPositions, priceFeed);
+
+        if (proposalPool != address(0)) {
+            totalInDAI += ITraderPoolProposal(proposalPool).getInvestedBaseInDAI();
+            traderBalance += ITraderPoolProposal(proposalPool).totalLPBalances(trader);
+        }
+
+        traderInDAI = totalInDAI.ratio(traderBalance, ITraderPool(address(this)).totalEmission());
     }
 
     function getMaxTraderLeverage(

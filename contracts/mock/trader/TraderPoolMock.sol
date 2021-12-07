@@ -14,6 +14,14 @@ contract TraderPoolMock is TraderPool {
         return TraderPoolHelper.getMaxTraderLeverage(traderDAI, threshold, slope);
     }
 
+    function proposalPoolAddress() external pure override returns (address) {
+        return address(0);
+    }
+
+    function totalEmission() public view override returns (uint256) {
+        return totalSupply();
+    }
+
     function openPositions() external view returns (address[] memory) {
         return _openPositions.values();
     }

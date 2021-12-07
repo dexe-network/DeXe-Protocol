@@ -6,11 +6,11 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "../interfaces/trader/ITraderPoolFactory.sol";
 import "../interfaces/core/IContractsRegistry.sol";
-import "../interfaces/trader/IRiskyTraderPool.sol";
 import "../interfaces/trader/IBasicTraderPool.sol";
 import "../interfaces/trader/IInvestTraderPool.sol";
 import "../interfaces/trader/ITraderPool.sol";
-import "../interfaces/trader/ITraderPoolProposal.sol";
+import "../interfaces/trader/ITraderPoolRiskyProposal.sol";
+import "../interfaces/trader/ITraderPoolInvestProposal.sol";
 
 import "../trader/TraderPoolRegistry.sol";
 import "../helpers/AbstractDependant.sol";
@@ -76,7 +76,7 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
             proposalProxy
         );
 
-        ITraderPoolProposal(proposalProxy).__TraderPoolProposal_init(
+        ITraderPoolRiskyProposal(proposalProxy).__TraderPoolRiskyProposal_init(
             ITraderPoolProposal.ParentTraderPoolInfo(
                 poolProxy,
                 poolParameters.trader,
@@ -84,22 +84,6 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
                 poolParameters.baseTokenDecimals
             )
         );
-
-        _injectDependencies(poolProxy);
-    }
-
-    function deployRiskyPool(
-        string calldata name,
-        string calldata symbol,
-        PoolDeployParameters calldata poolDeployParameters
-    ) external {
-        ITraderPool.PoolParameters memory poolParameters = _validateAndConstructParameters(
-            poolDeployParameters
-        );
-
-        address poolProxy = _deployTraderPool(_traderPoolRegistry.RISKY_POOL_NAME());
-
-        IRiskyTraderPool(poolProxy).__RiskyTraderPool_init(name, symbol, poolParameters);
 
         _injectDependencies(poolProxy);
     }
@@ -114,8 +98,23 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         );
 
         address poolProxy = _deployTraderPool(_traderPoolRegistry.INVEST_POOL_NAME());
+        address proposalProxy = _deploy(_traderPoolRegistry.INVEST_PROPOSAL_NAME());
 
-        IInvestTraderPool(poolProxy).__InvestTraderPool_init(name, symbol, poolParameters);
+        IInvestTraderPool(poolProxy).__InvestTraderPool_init(
+            name,
+            symbol,
+            poolParameters,
+            proposalProxy
+        );
+
+        ITraderPoolInvestProposal(proposalProxy).__TraderPoolInvestProposal_init(
+            ITraderPoolProposal.ParentTraderPoolInfo(
+                poolProxy,
+                poolParameters.trader,
+                poolParameters.baseToken,
+                poolParameters.baseTokenDecimals
+            )
+        );
 
         _injectDependencies(poolProxy);
     }

@@ -20,4 +20,8 @@ interface ITraderPool {
         uint256 investedBase;
         uint256 commissionUnlockEpoch;
     }
+
+    function proposalPoolAddress() external view returns (address);
+
+    function totalEmission() external view returns (uint256);
 }
