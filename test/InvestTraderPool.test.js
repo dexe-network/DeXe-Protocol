@@ -160,7 +160,7 @@ describe("InvestTraderPool", () => {
   });
 
   async function deployPool(poolParameters) {
-    const POOL_NAME = await traderPoolRegistry.BASIC_POOL_NAME();
+    const POOL_NAME = await traderPoolRegistry.INVEST_POOL_NAME();
 
     const traderPool = await InvestTraderPool.new();
     const proposal = await PoolProposal.new();
@@ -173,7 +173,7 @@ describe("InvestTraderPool", () => {
     };
 
     await traderPool.__InvestTraderPool_init("Test pool", "TP", poolParameters, proposal.address);
-    await proposal.__TraderPoolProposal_init(parentPoolInfo);
+    await proposal.__TraderPoolInvestProposal_init(parentPoolInfo);
 
     await traderPoolRegistry.addPool(OWNER, POOL_NAME, traderPool.address, {
       from: FACTORY,
@@ -184,7 +184,7 @@ describe("InvestTraderPool", () => {
     return [traderPool, proposal];
   }
 
-  describe.only("Default Pool", () => {
+  describe("Default Pool", () => {
     let POOL_PARAMETERS = {};
 
     let traderPool;
@@ -343,7 +343,7 @@ describe("InvestTraderPool", () => {
       });
     });
 
-    describe.only("claimProposal", () => {
+    describe("claimProposal", () => {
       beforeEach("setup", async () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"));
         await traderPool.invest(wei("1000"));

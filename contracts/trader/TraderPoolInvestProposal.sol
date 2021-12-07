@@ -59,10 +59,11 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
         uint256 proposals = ++proposalsTotalNum;
 
-        _transferAndMintLP(proposals, _parentTraderPoolInfo.trader, lpInvestment, baseInvestment);
-
         proposalInfos[proposals].timestampLimit = timestampLimit;
         proposalInfos[proposals].investLPLimit = investLPLimit;
+
+        _transferAndMintLP(proposals, _parentTraderPoolInfo.trader, lpInvestment, baseInvestment);
+
         proposalInfos[proposals].investedLP = lpInvestment;
         proposalInfos[proposals].investedBase = baseInvestment;
         proposalInfos[proposals].newInvestedBase = baseInvestment;

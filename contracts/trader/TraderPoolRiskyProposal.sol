@@ -104,8 +104,6 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         address baseToken = _parentTraderPoolInfo.baseToken;
         address trader = _parentTraderPoolInfo.trader;
 
-        _transferAndMintLP(proposals, trader, lpInvestment, baseInvestment);
-
         _checkPriceFeedAllowance(baseToken);
         _checkPriceFeedAllowance(token);
 
@@ -115,6 +113,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         proposalInfos[proposals].investLPLimit = investLPLimit;
         proposalInfos[proposals].maxTokenPriceLimit = maxTokenPriceLimit;
 
+        _transferAndMintLP(proposals, trader, lpInvestment, baseInvestment);
         _activePortfolio(proposals, tradePercentage, PERCENTAGE_100, baseInvestment, lpInvestment);
     }
 

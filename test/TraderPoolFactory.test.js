@@ -146,53 +146,6 @@ describe("TraderPoolFactory", () => {
     await priceFeed.addSupportedBaseTokens([testCoin.address]);
   });
 
-  describe("deployRiskyPool", async () => {
-    let POOL_PARAMETERS;
-
-    beforeEach("Pool parameters", async () => {
-      POOL_PARAMETERS = {
-        descriptionURL: "placeholder.com",
-        trader: OWNER,
-        activePortfolio: false,
-        privatePool: false,
-        totalLPEmission: 0,
-        baseToken: testCoin.address,
-        baseTokenDecimals: 18,
-        minimalInvestment: 0,
-        commissionPeriod: ComissionPeriods.PERIOD_1,
-        commissionPercentage: toBN(30).times(PRECISION).toFixed(),
-      };
-    });
-
-    it("should deploy risky pool and check event", async () => {
-      let tx = await traderPoolFactory.deployRiskyPool("Risky", "RP", POOL_PARAMETERS);
-      let event = tx.receipt.logs[0];
-
-      assert.equal("Deployed", event.event);
-      assert.equal(OWNER, event.args.user);
-      assert.equal("RISKY_POOL", event.args.poolName);
-    });
-
-    it("should deploy pool and check TraderPoolRegistry", async () => {
-      let lenPools = await traderPoolRegistry.countPools(await traderPoolRegistry.RISKY_POOL_NAME());
-      let lenUser = await traderPoolRegistry.countUserPools(OWNER, await traderPoolRegistry.RISKY_POOL_NAME());
-
-      let tx = await traderPoolFactory.deployRiskyPool("Risky", "RP", POOL_PARAMETERS);
-      let event = tx.receipt.logs[0];
-
-      assert.isTrue(await traderPoolRegistry.isPool(event.args.at));
-
-      assert.equal(
-        (await traderPoolRegistry.countPools(await traderPoolRegistry.RISKY_POOL_NAME())).toString(),
-        lenPools.plus(1).toString()
-      );
-      assert.equal(
-        (await traderPoolRegistry.countUserPools(OWNER, await traderPoolRegistry.RISKY_POOL_NAME())).toString(),
-        lenUser.plus(1).toString()
-      );
-    });
-  });
-
   describe("deployBasicPool", async () => {
     let POOL_PARAMETERS;
 
