@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -11,11 +12,14 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
+import "../libs/DecimalsConverter.sol";
+
 import "../helpers/AbstractDependant.sol";
 import "../core/Globals.sol";
 
 contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     using EnumerableSet for EnumerableSet.AddressSet;
+    using DecimalsConverter for uint256;
 
     IUniswapV2Router02 internal _uniswapV2Router;
     address internal _daiAddress;
@@ -27,12 +31,8 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         __Ownable_init();
     }
 
-    function setDependencies(IContractsRegistry contractsRegistry)
-        external
-        override
-        onlyInjectorOrZero
-    {
-        _uniswapV2Router = IUniswapV2Router02(contractsRegistry.getUniswapV2RounterContract());
+    function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
+        _uniswapV2Router = IUniswapV2Router02(contractsRegistry.getUniswapV2RouterContract());
         _daiAddress = contractsRegistry.getDAIContract();
     }
 
@@ -70,31 +70,60 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     }
 
     function getPriceIn(
-        uint256 amount,
         address inToken,
-        address outToken
+        address outToken,
+        uint256 amount
     ) public view virtual override returns (uint256) {
         // TODO
     }
 
-    function getPriceInDAI(uint256 amount, address inToken)
+    function getNormalizedPriceIn(
+        address inToken,
+        address outToken,
+        uint256 amount
+    ) public view virtual override returns (uint256) {
+        return
+            getPriceIn(inToken, outToken, amount.convertFrom18(ERC20(inToken).decimals()))
+                .convertTo18(ERC20(outToken).decimals());
+    }
+
+    function getPriceInDAI(address inToken, uint256 amount)
         external
         view
         override
         returns (uint256)
     {
-        return getPriceIn(amount, inToken, _daiAddress);
+        return getPriceIn(inToken, _daiAddress, amount);
+    }
+
+    function getNormalizedPriceInDAI(address inToken, uint256 amount)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return getNormalizedPriceIn(inToken, _daiAddress, amount);
     }
 
     function exchangeTo(
         address inToken,
         address outToken,
         uint256 amount
-    ) external virtual override returns (uint256) {
+    ) public virtual override returns (uint256) {
         // TODO
     }
 
-    function isSupportedBaseToken(address token) external view returns (bool) {
+    function normalizedExchangeTo(
+        address inToken,
+        address outToken,
+        uint256 amount
+    ) external virtual override returns (uint256) {
+        return
+            exchangeTo(inToken, outToken, amount.convertFrom18(ERC20(inToken).decimals()))
+                .convertTo18(ERC20(outToken).decimals());
+    }
+
+    function isSupportedBaseToken(address token) external view override returns (bool) {
         return _supportedBaseTokens.contains(token);
     }
 }

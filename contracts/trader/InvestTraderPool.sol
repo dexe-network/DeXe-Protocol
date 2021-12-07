@@ -11,4 +11,8 @@ contract InvestTraderPool is IInvestTraderPool, RiskyTraderPool {
         string calldata symbol,
         ITraderPool.PoolParameters memory _poolParameters
     ) public override {}
+
+    function _totalEmission() internal view override returns (uint256) {
+        return totalSupply();
+    }
 }

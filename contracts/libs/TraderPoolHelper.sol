@@ -42,16 +42,16 @@ library TraderPoolHelper {
             positionTokens[i] = openPositions.at(i);
 
             positionPricesInBase[i] = priceFeed.getPriceIn(
-                IERC20(positionTokens[i]).balanceOf(address(this)),
                 positionTokens[i],
-                address(baseToken)
+                address(baseToken),
+                IERC20(positionTokens[i]).balanceOf(address(this))
             );
 
             totalPriceInBase += positionPricesInBase[i];
         }
     }
 
-    function getPoolInfoInDAI(
+    function getPoolPriceInDAI(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions,
         IPriceFeed priceFeed
@@ -63,8 +63,8 @@ library TraderPoolHelper {
         );
 
         uint256 baseInToken = priceFeed.getPriceInDAI(
-            10**poolParameters.baseTokenDecimals,
-            poolParameters.baseToken
+            poolParameters.baseToken,
+            10**poolParameters.baseTokenDecimals
         );
 
         totalBaseInToken = totalBase * baseInToken;

@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract UniswapRouterV2Mock {
+contract UniswapV2RouterMock {
     using SafeERC20 for IERC20;
 
     mapping(address => uint256) public reserves;
@@ -62,14 +62,12 @@ contract UniswapRouterV2Mock {
         address[] memory path,
         address _to
     ) internal virtual {
-        for (uint256 i; i < path.length - 1; i++) {
-            reserves[path[i]] = IERC20(path[i]).balanceOf(address(this));
-        }
-
         IERC20(path[0]).safeTransferFrom(msg.sender, address(this), amounts[0]);
         IERC20(path[path.length - 1]).safeTransfer(_to, amounts[amounts.length - 1]);
 
-        reserves[path[path.length - 1]] = IERC20(path[path.length - 1]).balanceOf(address(this));
+        for (uint256 i; i < path.length; i++) {
+            reserves[path[i]] = IERC20(path[i]).balanceOf(address(this));
+        }
     }
 
     function swapExactTokensForTokens(

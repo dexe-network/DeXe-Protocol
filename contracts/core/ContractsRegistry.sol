@@ -56,7 +56,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         return getContract(PRICE_FEED_NAME);
     }
 
-    function getUniswapV2RounterContract() external view override returns (address) {
+    function getUniswapV2RouterContract() external view override returns (address) {
         return getContract(UNISWAP_V2_ROUTER_NAME);
     }
 
@@ -94,10 +94,6 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         require(contractAddress != address(0), "ContractsRegistry: This mapping doesn't exist");
 
         AbstractDependant dependant = AbstractDependant(contractAddress);
-        if (dependant.injector() == address(0)) {
-            dependant.setInjector(address(this));
-        }
-
         dependant.setDependencies(this);
     }
 

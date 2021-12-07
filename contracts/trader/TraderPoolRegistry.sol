@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/trader/ITraderPoolRegistry.sol";
@@ -13,11 +14,13 @@ import "../helpers/ProxyBeacon.sol";
 
 contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
+    using Address for address;
     using Math for uint256;
 
     string public constant BASIC_POOL_NAME = "BASIC_POOL";
     string public constant RISKY_POOL_NAME = "RISKY_POOL";
     string public constant INVEST_POOL_NAME = "INVEST_POOL";
+    string public constant RISKY_PROPOSAL_NAME = "POOL_RISKY_PROPOSAL";
 
     IContractsRegistry internal _contractsRegistry;
     address internal _traderPoolFactory;
@@ -38,13 +41,10 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         _beacons[BASIC_POOL_NAME] = new ProxyBeacon();
         _beacons[RISKY_POOL_NAME] = new ProxyBeacon();
         _beacons[INVEST_POOL_NAME] = new ProxyBeacon();
+        _beacons[RISKY_PROPOSAL_NAME] = new ProxyBeacon();
     }
 
-    function setDependencies(IContractsRegistry contractsRegistry)
-        external
-        override
-        onlyInjectorOrZero
-    {
+    function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
         _contractsRegistry = contractsRegistry;
         _traderPoolFactory = contractsRegistry.getTraderPoolFactoryContract();
     }
@@ -63,12 +63,18 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
 
         for (uint256 i = offset; i < to; i++) {
             AbstractDependant dependant = AbstractDependant(pools.at(i));
-
-            if (dependant.injector() == address(0)) {
-                dependant.setInjector(address(this));
-            }
-
             dependant.setDependencies(contractsRegistry);
+        }
+    }
+
+    function setNewImplementation(string calldata name, address newImplementation)
+        public
+        onlyOwner
+    {
+        require(newImplementation.isContract(), "TraderPoolRegistry: not a contract");
+
+        if (_beacons[name].implementation() != newImplementation) {
+            _beacons[name].upgrade(newImplementation);
         }
     }
 
@@ -77,9 +83,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         onlyOwner
     {
         for (uint256 i = 0; i < names.length; i++) {
-            if (_beacons[names[i]].implementation() != newImplementations[i]) {
-                _beacons[names[i]].upgrade(newImplementations[i]);
-            }
+            setNewImplementation(names[i], newImplementations[i]);
         }
     }
 

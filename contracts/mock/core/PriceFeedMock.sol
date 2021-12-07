@@ -10,10 +10,14 @@ contract PriceFeedMock is PriceFeed {
     using MathHelper for uint256;
 
     function getPriceIn(
-        uint256 amount,
         address inToken,
-        address outToken
+        address outToken,
+        uint256 amount
     ) public view override returns (uint256) {
+        if (amount == 0) {
+            return 0;
+        }
+
         address[] memory path = new address[](2);
 
         path[0] = inToken;
@@ -28,7 +32,11 @@ contract PriceFeedMock is PriceFeed {
         address inToken,
         address outToken,
         uint256 amount
-    ) external override returns (uint256) {
+    ) public override returns (uint256) {
+        if (amount == 0) {
+            return 0;
+        }
+
         IERC20(inToken).safeTransferFrom(_msgSender(), address(this), amount);
 
         if (IERC20(inToken).allowance(address(this), address(_uniswapV2Router)) == 0) {

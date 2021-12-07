@@ -8,29 +8,39 @@ abstract contract AbstractDependant {
     bytes32 private constant _INJECTOR_SLOT =
         0xd6b8f2e074594ceb05d47c27386969754b6ad0c15e5eb8f691399cd0be980e76;
 
-    modifier onlyInjectorOrZero() {
-        address _injector = injector();
-
-        require(_injector == address(0) || _injector == msg.sender, "Dependant: Not an injector");
+    modifier dependant() {
+        _checkInjector();
         _;
+        _setInjector(msg.sender);
     }
 
-    function setInjector(address _injector) external onlyInjectorOrZero {
-        bytes32 slot = _INJECTOR_SLOT;
-
-        assembly {
-            sstore(slot, _injector)
-        }
-    }
-
-    /// @dev has to apply onlyInjectorOrZero() modifier
+    /// @dev has to apply dependant() modifier
     function setDependencies(IContractsRegistry) external virtual;
 
-    function injector() public view returns (address _injector) {
+    function setInjector(address _injector) external {
+        _checkInjector();
+        _setInjector(_injector);
+    }
+
+    function getInjector() public view returns (address _injector) {
         bytes32 slot = _INJECTOR_SLOT;
 
         assembly {
             _injector := sload(slot)
+        }
+    }
+
+    function _checkInjector() internal view {
+        address _injector = getInjector();
+
+        require(_injector == address(0) || _injector == msg.sender, "Dependant: Not an injector");
+    }
+
+    function _setInjector(address _injector) internal {
+        bytes32 slot = _INJECTOR_SLOT;
+
+        assembly {
+            sstore(slot, _injector)
         }
     }
 }
