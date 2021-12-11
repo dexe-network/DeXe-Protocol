@@ -152,19 +152,12 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _mint(_msgSender(), toMintLP);
     }
 
-    function _checkLeverage(uint256 addInDAI) internal view {
-        (uint256 totalPriceInDAI, uint256 traderPriceInDAI) = poolParameters
-            .getLeveragePoolPriceInDAI(_openPositions, _priceFeed);
-        (uint256 threshold, uint256 slope) = _coreProperties.getTraderLeverageParams();
-
-        uint256 maxTraderVolumeInDAI = TraderPoolHelper.getMaxTraderLeverage(
-            traderPriceInDAI,
-            threshold,
-            slope
-        );
+    function _checkLeverage(uint256 addInUSD) internal view {
+        (uint256 totalPriceInUSD, uint256 maxTraderVolumeInUSD) = poolParameters
+            .getMaxTraderLeverage(_openPositions, _priceFeed, _coreProperties);
 
         require(
-            addInDAI + totalPriceInDAI <= maxTraderVolumeInDAI,
+            addInUSD + totalPriceInUSD <= maxTraderVolumeInUSD,
             "TP: exchange exceeds leverage"
         );
     }
@@ -187,7 +180,19 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         );
     }
 
-    function _invest(address baseHolder, uint256 amountInBaseToInvest) internal {
+    function getReceivedTokensOnInvest(uint256 amountInBaseToInvest)
+        public
+        view
+        returns (address[] memory tokens, uint256[] memory amounts)
+    {
+        // TODO
+    }
+
+    function _invest(
+        address baseHolder,
+        uint256 amountInBaseToInvest,
+        uint256[] memory minPositionsOut
+    ) internal {
         IPriceFeed priceFeed = _priceFeed;
 
         uint256 baseTokenDecimals = poolParameters.baseTokenDecimals;
@@ -202,7 +207,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 baseConverted = amountInBaseToInvest.convertFrom18(baseTokenDecimals);
 
         if (!isTrader(_msgSender())) {
-            _checkLeverage(priceFeed.getPriceInDAI(baseToken, baseConverted));
+            _checkLeverage(priceFeed.getPriceInUSD(baseToken, baseConverted));
         }
 
         _transferBaseAndMintLP(baseHolder, totalBase, amountInBaseToInvest);
@@ -210,7 +215,14 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         for (uint256 i = 0; i < positionTokens.length; i++) {
             uint256 tokensToExchange = positionPricesInBase[i].ratio(baseConverted, totalBase);
 
-            priceFeed.exchangeTo(baseToken, positionTokens[i], tokensToExchange);
+            priceFeed.exchangeTo(
+                baseToken,
+                positionTokens[i],
+                tokensToExchange,
+                new address[](0),
+                minPositionsOut[i],
+                block.timestamp
+            );
         }
 
         if (!isTrader(_msgSender())) {
@@ -218,7 +230,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
     }
 
-    function invest(uint256 amountInBaseToInvest) public virtual {
+    function invest(uint256 amountInBaseToInvest, uint256[] memory minPositionsOut)
+        public
+        virtual
+    {
         require(
             !poolParameters.privatePool ||
                 isTraderAdmin(_msgSender()) ||
@@ -228,7 +243,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         require(amountInBaseToInvest > 0, "TP: zero investment");
         require(amountInBaseToInvest >= poolParameters.minimalInvestment, "TP: underinvestment");
 
-        _invest(_msgSender(), amountInBaseToInvest);
+        _invest(_msgSender(), amountInBaseToInvest, minPositionsOut);
     }
 
     function _nextCommissionEpoch() internal view returns (uint256) {
@@ -242,7 +257,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     function _calculateDexeCommission(
         uint256 baseToDistribute,
         uint256 lpToDistribute,
-        uint256 dexePercentage
+        uint256 dexePercentage,
+        uint256 minCommissionOut
     ) internal returns (uint256 lpCommission, uint256 dexeCommission) {
         require(baseToDistribute > 0, "TP: no commission available");
 
@@ -255,11 +271,18 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         dexeCommission = _priceFeed.exchangeTo(
             poolParameters.baseToken,
             address(_dexeToken),
-            baseCommission
+            baseCommission,
+            new address[](0),
+            minCommissionOut,
+            block.timestamp
         );
     }
 
-    function _distributeCommission(uint256 baseToDistribute, uint256 lpToDistribute) internal {
+    function _distributeCommission(
+        uint256 baseToDistribute,
+        uint256 lpToDistribute,
+        uint256 minDexeCommissionOut
+    ) internal {
         (
             uint256 dexePercentage,
             uint256[] memory poolPercentages,
@@ -269,7 +292,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         (uint256 lpCommission, uint256 dexeCommission) = _calculateDexeCommission(
             baseToDistribute,
             lpToDistribute,
-            dexePercentage
+            dexePercentage,
+            minDexeCommissionOut
         );
 
         _mint(poolParameters.trader, lpToDistribute - lpCommission);
@@ -288,7 +312,19 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         );
     }
 
-    function reinvestCommission(uint256 offset, uint256 limit) external virtual onlyTraderAdmin {
+    function getReinvestCommissions(uint256 offset, uint256 limit)
+        public
+        view
+        returns (uint256 traderBaseCommission, uint256 dexeDexeCommission)
+    {
+        // TODO
+    }
+
+    function reinvestCommission(
+        uint256 offset,
+        uint256 limit,
+        uint256 minDexeCommissionOut
+    ) external virtual onlyTraderAdmin {
         require(_openPositions.length() == 0, "TP: can't reinvest with opened positions");
 
         uint256 to = (offset + limit).min(_investors.length()).max(offset);
@@ -321,7 +357,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             }
         }
 
-        _distributeCommission(allBaseCommission, allLPCommission);
+        _distributeCommission(allBaseCommission, allLPCommission, minDexeCommissionOut);
     }
 
     function _calculateCommission(
@@ -377,7 +413,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         );
     }
 
-    function _divestPositions(uint256 amountLP) internal returns (uint256) {
+    function _divestPositions(uint256 amountLP, uint256[] memory minPositionsOut)
+        internal
+        returns (uint256)
+    {
         IERC20 baseToken = IERC20(poolParameters.baseToken);
         IPriceFeed priceFeed = _priceFeed;
 
@@ -400,15 +439,22 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             investorBaseAmount += priceFeed.exchangeTo(
                 address(positionToken),
                 address(baseToken),
-                positionAmount
+                positionAmount,
+                new address[](0),
+                minPositionsOut[i],
+                block.timestamp
             );
         }
 
         return investorBaseAmount.convertTo18(poolParameters.baseTokenDecimals);
     }
 
-    function _divestInvestor(uint256 amountLP) internal {
-        uint256 investorBaseAmount = _divestPositions(amountLP);
+    function _divestInvestor(
+        uint256 amountLP,
+        uint256[] memory minPositionsOut,
+        uint256 minDexeCommissionOut
+    ) internal {
+        uint256 investorBaseAmount = _divestPositions(amountLP, minPositionsOut);
 
         (uint256 baseCommission, uint256 lpCommission) = _calculateCommissionOnDivest(
             _msgSender(),
@@ -425,7 +471,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         );
 
         if (baseCommission > 0) {
-            _distributeCommission(baseCommission, lpCommission);
+            _distributeCommission(baseCommission, lpCommission, minDexeCommissionOut);
         }
     }
 
@@ -442,25 +488,56 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         baseToken.safeTransfer(_msgSender(), traderBaseAmount);
     }
 
-    function divest(uint256 amountLP) public virtual {
+    function getDivestBaseAmountsAndDexeCommission(uint256 amountLP)
+        public
+        view
+        returns (
+            address[] memory positions,
+            uint256[] memory baseAmounts,
+            uint256 dexeDexeCommission
+        )
+    {
+        // TODO
+    }
+
+    function divest(
+        uint256 amountLP,
+        uint256[] memory minPositionsOut,
+        uint256 minDexeCommissionOut
+    ) public virtual {
         require(!isTrader(_msgSender()) || _openPositions.length() == 0, "TP: can't divest");
         require(amountLP <= balanceOf(_msgSender()), "TP: can't divest that amount");
 
         if (isTrader(_msgSender())) {
             _divestTrader(amountLP);
         } else {
-            _divestInvestor(amountLP);
+            _divestInvestor(amountLP, minPositionsOut, minDexeCommissionOut);
         }
     }
 
-    function divestAll() public virtual {
-        divest(balanceOf(_msgSender()));
+    function divestAll(uint256[] memory minPositionsOut, uint256 minDexeCommissionOut)
+        public
+        virtual
+    {
+        divest(balanceOf(_msgSender()), minPositionsOut, minDexeCommissionOut);
+    }
+
+    function getExchangeAmount(
+        address from,
+        address to,
+        uint256 amount,
+        address[] memory optionalPath
+    ) public view returns (uint256 minAmountOut) {
+        // TODO
     }
 
     function exchange(
         address from,
         address to,
-        uint256 amount
+        uint256 amount,
+        address[] memory optionalPath,
+        uint256 minAmountOut,
+        uint256 deadline
     ) public virtual onlyTraderAdmin {
         require(
             from == poolParameters.baseToken || _openPositions.contains(from),
@@ -468,6 +545,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         );
 
         uint256 convertedAmount = amount.convertFrom18(ERC20(from).decimals());
+        uint256 convertedMinAmountOut = minAmountOut.convertFrom18(ERC20(from).decimals());
 
         require(
             convertedAmount <= ERC20(from).balanceOf(address(this)),
@@ -481,7 +559,14 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             _openPositions.add(to);
         }
 
-        _priceFeed.exchangeTo(from, to, convertedAmount);
+        _priceFeed.exchangeTo(
+            from,
+            to,
+            convertedAmount,
+            optionalPath,
+            convertedMinAmountOut,
+            deadline
+        );
 
         if (ERC20(from).balanceOf(address(this)) == 0) {
             _openPositions.remove(from);

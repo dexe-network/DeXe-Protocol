@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../interfaces/trader/ITraderPool.sol";
 import "../interfaces/trader/ITraderPoolProposal.sol";
 import "../interfaces/core/IPriceFeed.sol";
+import "../interfaces/core/ICoreProperties.sol";
 
 import "../libs/DecimalsConverter.sol";
 import "../core/Globals.sol";
@@ -54,51 +55,54 @@ library TraderPoolHelper {
         }
     }
 
-    function getPoolPriceInDAI(
+    function _getNormalizedPoolPriceInUSD(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions,
         IPriceFeed priceFeed
-    ) public view returns (uint256 totalBaseInToken, uint256 positionsInToken) {
-        (uint256 totalBase, uint256 currentBase, , ) = getPoolPrice(
-            poolParameters,
-            openPositions,
-            priceFeed
-        );
+    ) internal view returns (uint256 totalBaseInUSD) {
+        (uint256 totalBase, , , ) = getPoolPrice(poolParameters, openPositions, priceFeed);
 
-        uint256 baseInToken = priceFeed.getPriceInDAI(
-            poolParameters.baseToken,
-            10**poolParameters.baseTokenDecimals
-        );
+        totalBase = totalBase.convertTo18(poolParameters.baseTokenDecimals);
+        uint256 baseInUSD = priceFeed.getNormalizedPriceInUSD(poolParameters.baseToken, 10**18);
 
-        totalBaseInToken = totalBase * baseInToken;
-        positionsInToken = (totalBase - currentBase) * baseInToken;
+        totalBaseInUSD = (totalBase * baseInUSD) / 10**18;
     }
 
-    function getLeveragePoolPriceInDAI(
+    function _getNormalizedLeveragePoolPriceInUSD(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions,
         IPriceFeed priceFeed
-    ) public view returns (uint256 totalInDAI, uint256 traderInDAI) {
+    ) internal view returns (uint256 totalInUSD, uint256 traderInUSD) {
         address trader = poolParameters.trader;
         address proposalPool = ITraderPool(address(this)).proposalPoolAddress();
         uint256 traderBalance = IERC20(address(this)).balanceOf(trader);
 
-        (totalInDAI, ) = getPoolPriceInDAI(poolParameters, openPositions, priceFeed);
+        totalInUSD = _getNormalizedPoolPriceInUSD(poolParameters, openPositions, priceFeed);
 
         if (proposalPool != address(0)) {
-            totalInDAI += ITraderPoolProposal(proposalPool).getInvestedBaseInDAI();
+            totalInUSD += ITraderPoolProposal(proposalPool).getInvestedBaseInUSD();
             traderBalance += ITraderPoolProposal(proposalPool).totalLPBalances(trader);
         }
 
-        traderInDAI = totalInDAI.ratio(traderBalance, ITraderPool(address(this)).totalEmission());
+        traderInUSD = totalInUSD.ratio(traderBalance, ITraderPool(address(this)).totalEmission());
     }
 
     function getMaxTraderLeverage(
-        uint256 traderDAI,
-        uint256 threshold,
-        uint256 slope
-    ) public pure returns (uint256 maxTraderLeverageDAI) {
-        int256 traderUSD = int256(traderDAI / 10**18);
+        ITraderPool.PoolParameters storage poolParameters,
+        EnumerableSet.AddressSet storage openPositions,
+        IPriceFeed priceFeed,
+        ICoreProperties coreProperties
+    ) public view returns (uint256 totalTokensUSD, uint256 maxTraderLeverageUSDTokens) {
+        uint256 traderUSDTokens;
+
+        (totalTokensUSD, traderUSDTokens) = _getNormalizedLeveragePoolPriceInUSD(
+            poolParameters,
+            openPositions,
+            priceFeed
+        );
+        (uint256 threshold, uint256 slope) = coreProperties.getTraderLeverageParams();
+
+        int256 traderUSD = int256(traderUSDTokens / 10**18);
         int256 multiplier = traderUSD / int256(threshold);
 
         int256 numerator = int256(threshold) +
@@ -107,6 +111,6 @@ library TraderPoolHelper {
 
         int256 boost = traderUSD * 2;
 
-        maxTraderLeverageDAI = uint256((numerator / int256(slope) + boost)) * 10**18;
+        maxTraderLeverageUSDTokens = uint256((numerator / int256(slope) + boost)) * 10**18;
     }
 }

@@ -65,7 +65,7 @@ describe("InvestTraderPool", () => {
 
   let insurance;
   let DEXE;
-  let DAI;
+  let USD;
   let coreProperties;
   let priceFeed;
   let uniswapV2Router;
@@ -76,13 +76,13 @@ describe("InvestTraderPool", () => {
     let tokensToMint = toBN(1000000000);
     let reserveTokens = toBN(1000000);
 
-    let tokenNames = ["DAI", "DEXE", "WETH", "USDT", "MANA", "WBTC"];
+    let tokenNames = ["USD", "DEXE", "WETH", "USDT", "MANA", "WBTC"];
     let decimals = [18, 18, 18, 6, 18, 8];
     let support = [true, true, true, false, true, false];
 
     for (let i = 0; i < tokenNames.length; i++) {
-      if (tokenNames[i] == "DAI") {
-        tokens[tokenNames[i]] = DAI;
+      if (tokenNames[i] == "USD") {
+        tokens[tokenNames[i]] = USD;
       } else if (tokenNames[i] == "DEXE") {
         tokens[tokenNames[i]] = DEXE;
       } else {
@@ -117,7 +117,7 @@ describe("InvestTraderPool", () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _insurance = await Insurance.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
-    DAI = await ERC20Mock.new("DAI", "DAI", 18);
+    USD = await ERC20Mock.new("USD", "USD", 18);
     const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeedMock.new();
     uniswapV2Router = await UniswapV2RouterMock.new();
@@ -134,7 +134,7 @@ describe("InvestTraderPool", () => {
     );
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
-    await contractsRegistry.addContract(await contractsRegistry.DAI_NAME(), DAI.address);
+    await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
     await contractsRegistry.addContract(await contractsRegistry.TRADER_POOL_FACTORY_NAME(), FACTORY);
 

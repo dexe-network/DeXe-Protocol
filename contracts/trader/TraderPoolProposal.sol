@@ -60,8 +60,8 @@ abstract contract TraderPoolProposal is
         _priceFeed = IPriceFeed(contractsRegistry.getPriceFeedContract());
     }
 
-    function getInvestedBaseInDAI() external view override returns (uint256) {
-        return _priceFeed.getNormalizedPriceInDAI(_parentTraderPoolInfo.baseToken, investedBase);
+    function getInvestedBaseInUSD() external view override returns (uint256) {
+        return _priceFeed.getNormalizedPriceInUSD(_parentTraderPoolInfo.baseToken, investedBase);
     }
 
     function _baseInProposal(uint256 proposalId) internal view virtual returns (uint256);

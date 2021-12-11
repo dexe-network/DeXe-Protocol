@@ -7,11 +7,11 @@ contract TraderPoolMock is TraderPool {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     function getMaxTraderLeverage(
-        uint256 traderDAI,
+        uint256 traderUSD,
         uint256 threshold,
         uint256 slope
     ) public pure returns (uint256 maxTraderLeverage) {
-        return TraderPoolHelper.getMaxTraderLeverage(traderDAI, threshold, slope);
+        return TraderPoolHelper.getMaxTraderLeverage(traderUSD, threshold, slope);
     }
 
     function proposalPoolAddress() external pure override returns (address) {

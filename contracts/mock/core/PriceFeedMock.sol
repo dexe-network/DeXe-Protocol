@@ -31,7 +31,10 @@ contract PriceFeedMock is PriceFeed {
     function exchangeTo(
         address inToken,
         address outToken,
-        uint256 amount
+        uint256 amount,
+        address[] memory optionalPath,
+        uint256 minAmountOut,
+        uint256 deadline
     ) public override returns (uint256) {
         if (amount == 0) {
             return 0;
@@ -50,10 +53,10 @@ contract PriceFeedMock is PriceFeed {
 
         uint256[] memory outs = _uniswapV2Router.swapExactTokensForTokens(
             amount,
-            0,
+            minAmountOut,
             path,
             _msgSender(),
-            block.timestamp + 1
+            deadline
         );
 
         return outs[outs.length - 1];
