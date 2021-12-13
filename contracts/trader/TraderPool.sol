@@ -13,8 +13,10 @@ import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/insurance/IInsurance.sol";
 
+import "../libs/TraderPool/TraderPoolPrice.sol";
+import "../libs/TraderPool/TraderPoolLeverage.sol";
+import "../libs/TraderPool/TraderPoolCommission.sol";
 import "../libs/DecimalsConverter.sol";
-import "../libs/TraderPoolHelper.sol";
 import "../libs/MathHelper.sol";
 
 import "../helpers/AbstractDependant.sol";
@@ -25,7 +27,9 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     using EnumerableSet for EnumerableSet.AddressSet;
     using Math for uint256;
     using DecimalsConverter for uint256;
-    using TraderPoolHelper for PoolParameters;
+    using TraderPoolPrice for PoolParameters;
+    using TraderPoolLeverage for PoolParameters;
+    using TraderPoolCommission for PoolParameters;
     using MathHelper for uint256;
 
     IERC20 internal _dexeToken;
@@ -180,12 +184,41 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         );
     }
 
-    function getReceivedTokensOnInvest(uint256 amountInBaseToInvest)
+    function getInvestTokens(uint256 amountInBaseToInvest)
         public
         view
-        returns (address[] memory tokens, uint256[] memory amounts)
+        returns (
+            address baseToken,
+            uint256 receivedBaseAmount, // not normalized
+            address[] memory positions,
+            uint256[] memory receivedPositionAmounts // not normalized
+        )
     {
-        // TODO
+        IPriceFeed priceFeed = _priceFeed;
+        (
+            uint256 totalBase,
+            uint256 currentBaseAmount,
+            address[] memory positionTokens,
+            uint256[] memory positionPricesInBase
+        ) = poolParameters.getPoolPrice(_openPositions, priceFeed);
+
+        positions = positionTokens;
+        receivedPositionAmounts = new uint256[](positionTokens.length);
+
+        uint256 baseConverted = amountInBaseToInvest.convertFrom18(
+            poolParameters.baseTokenDecimals
+        );
+
+        baseToken = poolParameters.baseToken;
+        receivedBaseAmount = currentBaseAmount.ratio(baseConverted, totalBase);
+
+        for (uint256 i = 0; i < positionTokens.length; i++) {
+            receivedPositionAmounts[i] = priceFeed.getPriceIn(
+                baseToken,
+                positionTokens[i],
+                positionPricesInBase[i].ratio(baseConverted, totalBase)
+            );
+        }
     }
 
     function _invest(
@@ -194,8 +227,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256[] memory minPositionsOut
     ) internal {
         IPriceFeed priceFeed = _priceFeed;
-
-        uint256 baseTokenDecimals = poolParameters.baseTokenDecimals;
         (
             uint256 totalBase,
             ,
@@ -204,7 +235,9 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         ) = poolParameters.getPoolPrice(_openPositions, priceFeed);
 
         address baseToken = poolParameters.baseToken;
-        uint256 baseConverted = amountInBaseToInvest.convertFrom18(baseTokenDecimals);
+        uint256 baseConverted = amountInBaseToInvest.convertFrom18(
+            poolParameters.baseTokenDecimals
+        );
 
         if (!isTrader(_msgSender())) {
             _checkLeverage(priceFeed.getPriceInUSD(baseToken, baseConverted));
@@ -213,12 +246,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _transferBaseAndMintLP(baseHolder, totalBase, amountInBaseToInvest);
 
         for (uint256 i = 0; i < positionTokens.length; i++) {
-            uint256 tokensToExchange = positionPricesInBase[i].ratio(baseConverted, totalBase);
-
             priceFeed.exchangeTo(
                 baseToken,
                 positionTokens[i],
-                tokensToExchange,
+                positionPricesInBase[i].ratio(baseConverted, totalBase),
                 new address[](0),
                 minPositionsOut[i],
                 block.timestamp
@@ -254,50 +285,11 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             );
     }
 
-    function _calculateDexeCommission(
-        uint256 baseToDistribute,
-        uint256 lpToDistribute,
-        uint256 dexePercentage,
-        uint256 minCommissionOut
-    ) internal returns (uint256 lpCommission, uint256 dexeCommission) {
-        require(baseToDistribute > 0, "TP: no commission available");
-
-        lpCommission = lpToDistribute.percentage(dexePercentage);
-
-        uint256 baseCommission = baseToDistribute.percentage(dexePercentage).convertFrom18(
-            poolParameters.baseTokenDecimals
-        );
-
-        dexeCommission = _priceFeed.exchangeTo(
-            poolParameters.baseToken,
-            address(_dexeToken),
-            baseCommission,
-            new address[](0),
-            minCommissionOut,
-            block.timestamp
-        );
-    }
-
-    function _distributeCommission(
-        uint256 baseToDistribute,
-        uint256 lpToDistribute,
-        uint256 minDexeCommissionOut
+    function _sendDexeCommission(
+        uint256 dexeCommission,
+        uint256[] memory poolPercentages,
+        address[3] memory commissionReceivers
     ) internal {
-        (
-            uint256 dexePercentage,
-            uint256[] memory poolPercentages,
-            address[3] memory commissionReceivers
-        ) = _coreProperties.getDEXECommissionPercentages();
-
-        (uint256 lpCommission, uint256 dexeCommission) = _calculateDexeCommission(
-            baseToDistribute,
-            lpToDistribute,
-            dexePercentage,
-            minDexeCommissionOut
-        );
-
-        _mint(poolParameters.trader, lpToDistribute - lpCommission);
-
         uint256[] memory receivedCommissions = new uint256[](3);
 
         for (uint256 i = 0; i < commissionReceivers.length; i++) {
@@ -312,12 +304,93 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         );
     }
 
+    function _distributeCommission(
+        uint256 baseToDistribute,
+        uint256 lpToDistribute,
+        uint256 minDexeCommissionOut
+    ) internal {
+        require(baseToDistribute > 0, "TP: no commission available");
+
+        (
+            uint256 dexePercentage,
+            uint256[] memory poolPercentages,
+            address[3] memory commissionReceivers
+        ) = _coreProperties.getDEXECommissionPercentages();
+
+        (uint256 dexeLPCommission, uint256 dexeBaseCommission) = poolParameters
+            .calculateDexeCommission(baseToDistribute, lpToDistribute, dexePercentage);
+        uint256 dexeCommission = _priceFeed.exchangeTo(
+            poolParameters.baseToken,
+            address(_dexeToken),
+            dexeBaseCommission,
+            new address[](0),
+            minDexeCommissionOut,
+            block.timestamp
+        );
+
+        _mint(poolParameters.trader, lpToDistribute - dexeLPCommission);
+        _sendDexeCommission(dexeCommission, poolPercentages, commissionReceivers);
+    }
+
+    function _getCommissions(uint256 baseCommission)
+        internal
+        view
+        returns (
+            uint256 traderBaseCommission, // not normalized
+            uint256 dexeBaseCommission, // not normalized
+            uint256 dexeDexeCommission // not normalized
+        )
+    {
+        uint256 baseTokenDecimals = poolParameters.baseTokenDecimals;
+        (uint256 dexePercentage, , ) = _coreProperties.getDEXECommissionPercentages();
+
+        dexeBaseCommission = baseCommission.percentage(dexePercentage).convertFrom18(
+            baseTokenDecimals
+        );
+        traderBaseCommission =
+            baseCommission.convertFrom18(baseTokenDecimals) -
+            dexeBaseCommission;
+
+        dexeDexeCommission = _priceFeed.getPriceIn(
+            poolParameters.baseToken,
+            address(_dexeToken),
+            dexeBaseCommission
+        );
+    }
+
     function getReinvestCommissions(uint256 offset, uint256 limit)
         public
         view
-        returns (uint256 traderBaseCommission, uint256 dexeDexeCommission)
+        returns (
+            uint256 traderBaseCommission, // not normalized
+            uint256 dexeBaseCommission, // not normalized
+            uint256 dexeDexeCommission // not normalized
+        )
     {
-        // TODO
+        if (_openPositions.length() != 0) {
+            return (0, 0, 0);
+        }
+
+        uint256 to = (offset + limit).min(_investors.length()).max(offset);
+        uint256 totalSupply = totalSupply();
+
+        uint256 nextCommissionEpoch = _nextCommissionEpoch();
+        uint256 allBaseCommission;
+        uint256 allLPCommission;
+
+        for (uint256 i = offset; i < to; i++) {
+            address investor = _investors.at(i);
+
+            if (nextCommissionEpoch > investorsInfo[investor].commissionUnlockEpoch) {
+                (, uint256 baseCommission, uint256 lpCommission) = poolParameters
+                    .calculateCommissionOnReinvest(investorsInfo[investor], investor, totalSupply);
+
+                allBaseCommission += baseCommission;
+                allLPCommission += lpCommission;
+            }
+        }
+
+        return _getCommissions(allBaseCommission);
     }
 
     function reinvestCommission(
@@ -342,7 +415,11 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
                     uint256 investorBaseAmount,
                     uint256 baseCommission,
                     uint256 lpCommission
-                ) = _calculateCommissionOnReinvest(investor, totalSupply);
+                ) = poolParameters.calculateCommissionOnReinvest(
+                        investorsInfo[investor],
+                        investor,
+                        totalSupply
+                    );
 
                 investorsInfo[investor].commissionUnlockEpoch = nextCommissionEpoch;
 
@@ -360,59 +437,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _distributeCommission(allBaseCommission, allLPCommission, minDexeCommissionOut);
     }
 
-    function _calculateCommission(
-        uint256 investorBaseAmount,
-        uint256 investorLPAmount,
-        uint256 investedBaseAmount
-    ) internal view returns (uint256 baseCommission, uint256 lpCommission) {
-        if (investorBaseAmount > investedBaseAmount) {
-            baseCommission = (investorBaseAmount - investedBaseAmount).percentage(
-                poolParameters.commissionPercentage
-            );
-
-            lpCommission = (investorLPAmount * baseCommission) / investorBaseAmount;
-        }
-    }
-
-    function _calculateCommissionOnReinvest(address investor, uint256 oldTotalSupply)
-        internal
-        view
-        returns (
-            uint256 investorBaseAmount,
-            uint256 baseCommission,
-            uint256 lpCommission
-        )
-    {
-        uint256 baseTokenBalance = ERC20(poolParameters.baseToken)
-            .balanceOf(address(this))
-            .convertTo18(poolParameters.baseTokenDecimals);
-
-        investorBaseAmount = baseTokenBalance.ratio(balanceOf(investor), oldTotalSupply);
-
-        (baseCommission, lpCommission) = _calculateCommission(
-            investorBaseAmount,
-            balanceOf(investor),
-            investorsInfo[investor].investedBase
-        );
-    }
-
-    function _calculateCommissionOnDivest(
-        address investor,
-        uint256 investorBaseAmount,
-        uint256 amountLP
-    ) internal view returns (uint256 baseCommission, uint256 lpCommission) {
-        uint256 investedBaseConverted = investorsInfo[investor].investedBase.ratio(
-            amountLP,
-            balanceOf(investor)
-        );
-
-        (baseCommission, lpCommission) = _calculateCommission(
-            investorBaseAmount,
-            amountLP,
-            investedBaseConverted
-        );
-    }
-
     function _divestPositions(uint256 amountLP, uint256[] memory minPositionsOut)
         internal
         returns (uint256)
@@ -421,7 +445,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         IPriceFeed priceFeed = _priceFeed;
 
         uint256 totalSupply = totalSupply();
-
         uint256 length = _openPositions.length();
         uint256 investorBaseAmount = baseToken.balanceOf(address(this)).ratio(
             amountLP,
@@ -456,11 +479,13 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     ) internal {
         uint256 investorBaseAmount = _divestPositions(amountLP, minPositionsOut);
 
-        (uint256 baseCommission, uint256 lpCommission) = _calculateCommissionOnDivest(
-            _msgSender(),
-            investorBaseAmount,
-            amountLP
-        );
+        (uint256 baseCommission, uint256 lpCommission) = poolParameters
+            .calculateCommissionOnDivest(
+                investorsInfo[_msgSender()],
+                _msgSender(),
+                investorBaseAmount,
+                amountLP
+            );
 
         _updateFrom(_msgSender(), amountLP);
         _burn(_msgSender(), amountLP);
@@ -484,20 +509,64 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         );
 
         _burn(_msgSender(), amountLP);
-
         baseToken.safeTransfer(_msgSender(), traderBaseAmount);
     }
 
-    function getDivestBaseAmountsAndDexeCommission(uint256 amountLP)
+    function getDivestAmountsAndCommissions(uint256 amountLP)
         public
         view
         returns (
+            uint256 totalReceivedBase, // not normalized
             address[] memory positions,
             uint256[] memory baseAmounts,
-            uint256 dexeDexeCommission
+            uint256 traderBaseCommission, // not normalized
+            uint256 dexeBaseCommission, // not normalized
+            uint256 dexeDexeCommission // not normalized
         )
     {
-        // TODO
+        IERC20 baseToken = IERC20(poolParameters.baseToken);
+        IPriceFeed priceFeed = _priceFeed;
+
+        uint256 totalSupply = totalSupply();
+        uint256 length = _openPositions.length();
+
+        positions = new address[](length);
+        baseAmounts = new uint256[](length);
+
+        uint256 investorBaseAmount = baseToken.balanceOf(address(this)).ratio(
+            amountLP,
+            totalSupply
+        );
+
+        for (uint256 i = 0; i < length; i++) {
+            positions[i] = _openPositions.at(i);
+
+            uint256 positionAmount = ERC20(positions[i]).balanceOf(address(this)).ratio(
+                amountLP,
+                totalSupply
+            );
+
+            baseAmounts[i] = priceFeed.getPriceIn(
+                positions[i],
+                address(baseToken),
+                positionAmount
+            );
+            investorBaseAmount += baseAmounts[i];
+        }
+
+        (uint256 baseCommission, ) = poolParameters.calculateCommissionOnDivest(
+            investorsInfo[_msgSender()],
+            _msgSender(),
+            investorBaseAmount,
+            amountLP
+        );
+
+        totalReceivedBase = (investorBaseAmount - baseCommission).convertFrom18(
+            poolParameters.baseTokenDecimals
+        );
+        (traderBaseCommission, dexeBaseCommission, dexeDexeCommission) = _getCommissions(
+            baseCommission
+        );
     }
 
     function divest(
