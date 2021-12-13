@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import "../core/IPriceFeed.sol";
 import "../core/ICoreProperties.sol";
 
 interface ITraderPool {
@@ -20,6 +23,12 @@ interface ITraderPool {
         uint256 investedBase;
         uint256 commissionUnlockEpoch;
     }
+
+    function dexeToken() external view returns (IERC20);
+
+    function priceFeed() external view returns (IPriceFeed);
+
+    function coreProperties() external view returns (ICoreProperties);
 
     function proposalPoolAddress() external view returns (address);
 

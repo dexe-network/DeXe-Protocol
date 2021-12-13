@@ -54,7 +54,7 @@ interface ICoreProperties {
 
     function getDelayForRiskyPool() external view returns (uint256);
 
-    function getNextCommissionEpoch(uint256 timestamp, CommissionPeriod commissionPeriod)
+    function getCommissionEpoch(uint256 timestamp, CommissionPeriod commissionPeriod)
         external
         view
         returns (uint256);

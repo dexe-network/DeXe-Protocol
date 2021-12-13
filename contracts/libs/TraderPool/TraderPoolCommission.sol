@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "../../interfaces/trader/ITraderPool.sol";
+import "../../interfaces/core/ICoreProperties.sol";
 
 import "./TraderPoolPrice.sol";
 import "../../libs/DecimalsConverter.sol";
@@ -14,7 +15,7 @@ library TraderPoolCommission {
     using MathHelper for uint256;
     using TraderPoolPrice for ITraderPool.PoolParameters;
 
-    function _calculateCommission(
+    function _calculateInvestorCommission(
         ITraderPool.PoolParameters storage poolParameters,
         uint256 investorBaseAmount,
         uint256 investorLPAmount,
@@ -27,6 +28,13 @@ library TraderPoolCommission {
 
             lpCommission = (investorLPAmount * baseCommission) / investorBaseAmount;
         }
+    }
+
+    function nextCommissionEpoch(
+        ITraderPool.PoolParameters storage poolParameters,
+        ICoreProperties coreProperties
+    ) public view returns (uint256) {
+        return coreProperties.getCommissionEpoch(block.timestamp, poolParameters.commissionPeriod);
     }
 
     function calculateCommissionOnReinvest(
@@ -48,7 +56,7 @@ library TraderPoolCommission {
 
         investorBaseAmount = baseTokenBalance.ratio(investorBalance, oldTotalSupply);
 
-        (baseCommission, lpCommission) = _calculateCommission(
+        (baseCommission, lpCommission) = _calculateInvestorCommission(
             poolParameters,
             investorBaseAmount,
             investorBalance,
@@ -68,7 +76,7 @@ library TraderPoolCommission {
             IERC20(address(this)).balanceOf(investor)
         );
 
-        (baseCommission, lpCommission) = _calculateCommission(
+        (baseCommission, lpCommission) = _calculateInvestorCommission(
             poolParameters,
             investorBaseAmount,
             amountLP,

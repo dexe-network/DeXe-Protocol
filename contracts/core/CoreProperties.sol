@@ -116,7 +116,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         return coreParameters.delayForRiskyPool;
     }
 
-    function getNextCommissionEpoch(uint256 timestamp, CommissionPeriod commissionPeriod)
+    function getCommissionEpoch(uint256 timestamp, CommissionPeriod commissionPeriod)
         external
         view
         override

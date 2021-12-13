@@ -5,13 +5,10 @@ import "../../trader/TraderPool.sol";
 
 contract TraderPoolMock is TraderPool {
     using EnumerableSet for EnumerableSet.AddressSet;
+    using TraderPoolLeverage for PoolParameters;
 
-    function getMaxTraderLeverage(
-        uint256 traderUSD,
-        uint256 threshold,
-        uint256 slope
-    ) public pure returns (uint256 maxTraderLeverage) {
-        return TraderPoolHelper.getMaxTraderLeverage(traderUSD, threshold, slope);
+    function getMaxTraderLeverage() public view returns (uint256 maxTraderLeverage) {
+        (, maxTraderLeverage) = poolParameters.getMaxTraderLeverage(_openPositions);
     }
 
     function proposalPoolAddress() external pure override returns (address) {

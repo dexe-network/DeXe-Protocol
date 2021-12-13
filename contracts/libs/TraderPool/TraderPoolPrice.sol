@@ -26,8 +26,7 @@ library TraderPoolPrice {
 
     function getPoolPrice(
         ITraderPool.PoolParameters storage poolParameters,
-        EnumerableSet.AddressSet storage openPositions,
-        IPriceFeed priceFeed
+        EnumerableSet.AddressSet storage openPositions
     )
         public
         view
@@ -41,6 +40,7 @@ library TraderPoolPrice {
         uint256 length = openPositions.length();
 
         IERC20 baseToken = IERC20(poolParameters.baseToken);
+        IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
         totalPriceInBase = currentBaseAmount = baseToken.balanceOf(address(this));
 
         positionTokens = new address[](length);
@@ -61,13 +61,15 @@ library TraderPoolPrice {
 
     function getNormalizedPoolPriceInUSD(
         ITraderPool.PoolParameters storage poolParameters,
-        EnumerableSet.AddressSet storage openPositions,
-        IPriceFeed priceFeed
+        EnumerableSet.AddressSet storage openPositions
     ) public view returns (uint256 totalBaseInUSD) {
-        (uint256 totalBase, , , ) = getPoolPrice(poolParameters, openPositions, priceFeed);
+        (uint256 totalBase, , , ) = getPoolPrice(poolParameters, openPositions);
 
         totalBase = totalBase.convertTo18(poolParameters.baseTokenDecimals);
-        uint256 baseInUSD = priceFeed.getNormalizedPriceInUSD(poolParameters.baseToken, 10**18);
+        uint256 baseInUSD = ITraderPool(address(this)).priceFeed().getNormalizedPriceInUSD(
+            poolParameters.baseToken,
+            10**18
+        );
 
         totalBaseInUSD = (totalBase * baseInUSD) / 10**18;
     }

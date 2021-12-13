@@ -29,15 +29,14 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         __TraderPoolProposal_init(parentTraderPoolInfo);
     }
 
-    function changeProposalRestrictions(
-        uint256 proposalId,
-        uint256 timestampLimit,
-        uint256 investLPLimit
-    ) external override onlyParentTraderPool {
+    function changeProposalRestrictions(uint256 proposalId, ProposalLimits calldata proposalLimits)
+        external
+        override
+        onlyParentTraderPool
+    {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
-        proposalInfos[proposalId].timestampLimit = timestampLimit;
-        proposalInfos[proposalId].investLPLimit = investLPLimit;
+        proposalInfos[proposalId].proposalLimits = proposalLimits;
     }
 
     function _baseInProposal(uint256 proposalId) internal view override returns (uint256) {
@@ -45,22 +44,23 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     }
 
     function createProposal(
-        uint256 timestampLimit,
-        uint256 investLPLimit,
+        ProposalLimits calldata proposalLimits,
         uint256 lpInvestment,
         uint256 baseInvestment
     ) external override onlyParentTraderPool {
-        require(timestampLimit == 0 || timestampLimit >= block.timestamp, "TPIP: wrong timestamp");
         require(
-            investLPLimit == 0 || investLPLimit >= lpInvestment,
+            proposalLimits.timestampLimit == 0 || proposalLimits.timestampLimit >= block.timestamp,
+            "TPIP: wrong timestamp"
+        );
+        require(
+            proposalLimits.investLPLimit == 0 || proposalLimits.investLPLimit >= lpInvestment,
             "TPIP: wrong investment limit"
         );
         require(lpInvestment > 0 && baseInvestment > 0, "TPIP: zero investment");
 
         uint256 proposals = ++proposalsTotalNum;
 
-        proposalInfos[proposals].timestampLimit = timestampLimit;
-        proposalInfos[proposals].investLPLimit = investLPLimit;
+        proposalInfos[proposals].proposalLimits = proposalLimits;
 
         _transferAndMintLP(proposals, _parentTraderPoolInfo.trader, lpInvestment, baseInvestment);
 
@@ -90,11 +90,13 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         ProposalInfo storage info = proposalInfos[proposalId];
 
         require(
-            info.timestampLimit == 0 || block.timestamp <= info.timestampLimit,
+            info.proposalLimits.timestampLimit == 0 ||
+                block.timestamp <= info.proposalLimits.timestampLimit,
             "TPIP: proposal is closed"
         );
         require(
-            info.investLPLimit == 0 || info.investedLP + lpInvestment <= info.investLPLimit,
+            info.proposalLimits.investLPLimit == 0 ||
+                info.investedLP + lpInvestment <= info.proposalLimits.investLPLimit,
             "TPIP: proposal is overinvested"
         );
 

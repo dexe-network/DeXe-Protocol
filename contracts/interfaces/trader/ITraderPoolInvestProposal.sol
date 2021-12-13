@@ -4,9 +4,13 @@ pragma solidity ^0.8.4;
 import "./ITraderPoolProposal.sol";
 
 interface ITraderPoolInvestProposal is ITraderPoolProposal {
-    struct ProposalInfo {
+    struct ProposalLimits {
         uint256 timestampLimit;
         uint256 investLPLimit;
+    }
+
+    struct ProposalInfo {
+        ProposalLimits proposalLimits;
         uint256 cumulativeSum; // with PRECISION
         uint256 investedLP;
         uint256 investedBase;
@@ -21,15 +25,11 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
     function __TraderPoolInvestProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         external;
 
-    function changeProposalRestrictions(
-        uint256 proposalId,
-        uint256 timestampLimit,
-        uint256 investLPLimit
-    ) external;
+    function changeProposalRestrictions(uint256 proposalId, ProposalLimits calldata proposalLimits)
+        external;
 
     function createProposal(
-        uint256 timestampLimit,
-        uint256 investLPLimit,
+        ProposalLimits calldata proposalLimits,
         uint256 lpInvestment,
         uint256 baseInvestment
     ) external;

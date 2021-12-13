@@ -33,8 +33,7 @@ contract PriceFeedMock is PriceFeed {
         address outToken,
         uint256 amount,
         address[] memory optionalPath,
-        uint256 minAmountOut,
-        uint256 deadline
+        uint256 minAmountOut
     ) public override returns (uint256) {
         if (amount == 0) {
             return 0;
@@ -56,7 +55,7 @@ contract PriceFeedMock is PriceFeed {
             minAmountOut,
             path,
             _msgSender(),
-            deadline
+            block.timestamp
         );
 
         return outs[outs.length - 1];
