@@ -86,7 +86,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         ProposalLimits calldata proposalLimits,
         uint256 lpInvestment,
         uint256 baseInvestment,
-        uint256 tradePercentage,
+        uint256 baseToExchange,
         address[] calldata optionalPath,
         uint256 minPositionOut
     ) external override onlyParentTraderPool {
@@ -101,7 +101,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             "TPRP: wrong investment limit"
         );
         require(lpInvestment > 0 && baseInvestment > 0, "TPRP: zero investment");
-        require(tradePercentage <= PERCENTAGE_100, "TPRP: percantage is bigger than 100");
+        require(baseToExchange <= baseInvestment, "TPRP: percantage is bigger than 100");
 
         uint256 proposals = ++proposalsTotalNum;
 
@@ -118,8 +118,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         _transferAndMintLP(proposals, trader, lpInvestment, baseInvestment);
         _activePortfolio(
             proposals,
-            tradePercentage,
-            PERCENTAGE_100,
+            baseToExchange,
             baseInvestment,
             lpInvestment,
             optionalPath,
@@ -127,18 +126,35 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         );
     }
 
+    function getCreationTokens(
+        address token,
+        uint256 baseToExchange,
+        address[] calldata optionalPath
+    ) external view returns (uint256) {
+        address baseToken = _parentTraderPoolInfo.baseToken;
+
+        if (!token.isContract() || token == baseToken) {
+            return 0;
+        }
+
+        return
+            _priceFeed.getExtendedPriceIn(
+                baseToken,
+                token,
+                baseToExchange.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals),
+                optionalPath
+            );
+    }
+
     function _activePortfolio(
         uint256 proposalId,
-        uint256 positionTokens,
-        uint256 totalTokens,
         uint256 baseInvestment,
+        uint256 baseToExchange,
         uint256 lpInvestment,
         address[] memory optionalPath,
         uint256 minPositionOut
     ) internal {
         ProposalInfo storage info = proposalInfos[proposalId];
-
-        uint256 baseToExchange = baseInvestment.ratio(positionTokens, totalTokens);
 
         info.investedLP += lpInvestment;
         info.balanceBase += baseInvestment - baseToExchange;
@@ -148,6 +164,35 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             baseToExchange,
             optionalPath,
             minPositionOut
+        );
+    }
+
+    function getInvestTokens(uint256 proposalId, uint256 baseInvestment)
+        external
+        view
+        returns (uint256 baseAmount, uint256 positionAmount)
+    {
+        if (proposalId > proposalsTotalNum) {
+            return (0, 0);
+        }
+
+        ProposalInfo storage info = proposalInfos[proposalId];
+
+        uint256 tokensPriceConverted = _priceFeed.getNormalizedPriceIn(
+            info.token,
+            _parentTraderPoolInfo.baseToken,
+            info.balancePosition
+        );
+        uint256 baseToExchange = baseInvestment.ratio(
+            tokensPriceConverted,
+            tokensPriceConverted + info.balanceBase
+        );
+
+        baseAmount = baseInvestment - baseToExchange;
+        positionAmount = _priceFeed.getPriceIn(
+            _parentTraderPoolInfo.baseToken,
+            info.token,
+            baseToExchange.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
         );
     }
 
@@ -195,35 +240,20 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         }
 
         uint256 positionTokens = tokenPriceConverted.ratio(info.balancePosition, 10**18);
+        uint256 baseToExchange = baseInvestment.ratio(
+            positionTokens,
+            positionTokens + info.balanceBase
+        );
 
         _transferAndMintLP(proposalId, user, lpInvestment, baseInvestment);
         _activePortfolio(
             proposalId,
-            positionTokens,
-            positionTokens + info.balanceBase,
+            baseToExchange,
             baseInvestment,
             lpInvestment,
             new address[](0),
             minPositionOut
         );
-    }
-
-    function _divestProposalTrader(
-        uint256 proposalId,
-        address trader,
-        uint256 lp2
-    ) internal returns (uint256 receivedBase, uint256 lpToBurn) {
-        require(
-            proposalInfos[proposalId].balancePosition == 0,
-            "TPRP: divesting with open position"
-        );
-
-        receivedBase = proposalInfos[proposalId].balanceBase.ratio(lp2, totalSupply(proposalId));
-        lpToBurn = _updateFrom(trader, proposalId, lp2);
-
-        proposalInfos[proposalId].balanceBase -= receivedBase;
-
-        _burn(trader, proposalId, lp2);
     }
 
     function _divestProposalInvestor(
@@ -254,6 +284,56 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         _burn(investor, proposalId, lp2);
     }
 
+    function _divestProposalTrader(
+        uint256 proposalId,
+        address trader,
+        uint256 lp2
+    ) internal returns (uint256 receivedBase, uint256 lpToBurn) {
+        require(
+            proposalInfos[proposalId].balancePosition == 0,
+            "TPRP: divesting with open position"
+        );
+
+        receivedBase = proposalInfos[proposalId].balanceBase.ratio(lp2, totalSupply(proposalId));
+        lpToBurn = _updateFrom(trader, proposalId, lp2);
+
+        proposalInfos[proposalId].balanceBase -= receivedBase;
+
+        _burn(trader, proposalId, lp2);
+    }
+
+    function getDivestAmount(uint256 proposalId, uint256 lp2)
+        external
+        view
+        returns (
+            uint256 totalBaseAmount,
+            uint256 baseFromPosition, // should be used as minAmountOut
+            uint256 positionAmount
+        )
+    {
+        if (proposalId > proposalsTotalNum) {
+            return (0, 0, 0);
+        }
+
+        uint256 propSupply = totalSupply(proposalId);
+
+        positionAmount = proposalInfos[proposalId]
+            .balancePosition
+            .ratio(lp2, propSupply)
+            .convertFrom18(proposalInfos[proposalId].tokenDecimals);
+        totalBaseAmount = proposalInfos[proposalId]
+            .balanceBase
+            .ratio(lp2, propSupply)
+            .convertFrom18(_parentTraderPoolInfo.baseTokenDecimals);
+
+        baseFromPosition = _priceFeed.getPriceIn(
+            proposalInfos[proposalId].token,
+            _parentTraderPoolInfo.baseToken,
+            positionAmount
+        );
+        totalBaseAmount += baseFromPosition;
+    }
+
     function divestProposal(
         uint256 proposalId,
         address user,
@@ -261,10 +341,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 minPositionOut
     ) public override onlyParentTraderPool returns (uint256) {
         require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
-        require(
-            lp2 > 0 && balanceOf(user, proposalId) >= lp2,
-            "TPRP: divesting more than balance"
-        );
+        require(balanceOf(user, proposalId) >= lp2, "TPRP: divesting more than balance");
 
         uint256 receivedBase;
         uint256 lpToBurn;
@@ -304,6 +381,39 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
                 minPositionsOut[length]
             );
         }
+    }
+
+    function getExchangeAmount(
+        uint256 proposalId,
+        address from,
+        uint256 amount,
+        address[] calldata optionalPath
+    ) external view returns (uint256 minAmountOut) {
+        if (proposalId > proposalsTotalNum) {
+            return 0;
+        }
+
+        address baseToken = _parentTraderPoolInfo.baseToken;
+        address positionToken = proposalInfos[proposalId].token;
+        address to;
+
+        if (from != baseToken && from != positionToken) {
+            return 0;
+        }
+
+        if (from == baseToken) {
+            to = positionToken;
+        } else {
+            to = baseToken;
+        }
+
+        return
+            _priceFeed.getExtendedPriceIn(
+                from,
+                to,
+                amount.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals),
+                optionalPath
+            );
     }
 
     function exchange(

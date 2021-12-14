@@ -228,6 +228,10 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address[] memory optionalPath,
         uint256 minAmountOut
     ) public virtual override returns (uint256) {
+        if (amount == 0) {
+            return 0;
+        }
+
         IERC20(inToken).safeTransferFrom(_msgSender(), address(this), amount);
 
         if (IERC20(inToken).allowance(address(this), address(_uniswapV2Router)) == 0) {
@@ -274,7 +278,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
                 outToken,
                 amount.convertFrom18(ERC20(inToken).decimals()),
                 optionalPath,
-                minAmountOut.convertFrom18(outTokenDecimals)
+                minAmountOut
             ).convertTo18(outTokenDecimals);
     }
 

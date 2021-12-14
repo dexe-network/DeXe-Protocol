@@ -87,8 +87,6 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         ITraderPoolInvestProposal.ProposalLimits calldata proposalLimits,
         uint256[] calldata minPositionsOut
     ) external onlyTrader {
-        require(lpAmount > 0 && balanceOf(_msgSender()) >= lpAmount, "ITP: not enought LPs");
-
         uint256 baseAmount = _divestPositions(lpAmount, minPositionsOut);
 
         _traderPoolProposal.createProposal(proposalLimits, lpAmount, baseAmount);
@@ -101,7 +99,6 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         uint256 lpAmount,
         uint256[] calldata minPositionsOut
     ) external {
-        require(lpAmount > 0 && balanceOf(_msgSender()) >= lpAmount, "ITP: wrong LPs amount");
         require(
             isTraderAdmin(_msgSender()) ||
                 (_firstExchange != 0 &&

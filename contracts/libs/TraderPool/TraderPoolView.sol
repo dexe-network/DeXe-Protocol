@@ -177,11 +177,17 @@ library TraderPoolView {
     }
 
     function getExchangeAmount(
+        ITraderPool.PoolParameters storage poolParameters,
+        EnumerableSet.AddressSet storage openPositions,
         address from,
         address to,
         uint256 amount,
         address[] memory optionalPath
     ) public view returns (uint256) {
+        if (from == to || (from != poolParameters.baseToken && !openPositions.contains(from))) {
+            return 0;
+        }
+
         return
             ITraderPool(address(this)).priceFeed().getExtendedPriceIn(
                 from,

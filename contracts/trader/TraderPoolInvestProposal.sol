@@ -108,6 +108,20 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         info.newInvestedBase += baseInvestment;
     }
 
+    function getRewards(uint256 proposalId, address user) external view returns (uint256) {
+        if (proposalId > proposalsTotalNum) {
+            return 0;
+        }
+
+        RewardInfo storage rewardInfo = rewardInfos[user][proposalId];
+
+        return
+            rewardInfos[user][proposalId].rewardStored +
+            ((proposalInfos[proposalId].cumulativeSum - rewardInfo.cumulativeSumStored) *
+                balanceOf(user, proposalId)) /
+            PRECISION;
+    }
+
     function _claimProposal(uint256 proposalId, address user) internal returns (uint256 claimed) {
         _updateFromHelper(user, proposalId, claimed);
 

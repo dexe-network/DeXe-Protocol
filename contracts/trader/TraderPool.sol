@@ -373,6 +373,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         internal
         returns (uint256)
     {
+        require(amountLP <= balanceOf(_msgSender()), "TP: can't divest that amount");
+
         IERC20 baseToken = IERC20(poolParameters.baseToken);
         IPriceFeed _priceFeed = priceFeed;
 
@@ -485,7 +487,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 amount,
         address[] calldata optionalPath
     ) external view returns (uint256 minAmountOut) {
-        return TraderPoolView.getExchangeAmount(from, to, amount, optionalPath);
+        return poolParameters.getExchangeAmount(_investors, from, to, amount, optionalPath);
     }
 
     function exchange(

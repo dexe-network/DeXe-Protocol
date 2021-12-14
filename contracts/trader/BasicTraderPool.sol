@@ -60,8 +60,6 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         address[] calldata optionalPath,
         uint256 minProposalOut
     ) external onlyTrader {
-        require(lpAmount > 0 && balanceOf(_msgSender()) >= lpAmount, "BTP: not enought LPs");
-
         uint256 baseAmount = _divestPositions(lpAmount, minDivestOut);
 
         _traderPoolProposal.createProposal(
@@ -83,8 +81,6 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256[] calldata minDivestOut,
         uint256 minProposalOut
     ) external {
-        require(lpAmount > 0 && balanceOf(_msgSender()) >= lpAmount, "BTP: wrong LPs amount");
-
         uint256 baseAmount = _divestPositions(lpAmount, minDivestOut);
 
         _traderPoolProposal.investProposal(
