@@ -121,23 +121,20 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         investedBase -= claimed.min(investedBase);
     }
 
-    function claimProposal(uint256 proposalId, address user)
-        public
-        override
-        onlyParentTraderPool
-        returns (uint256)
-    {
+    function _payout(uint256 amount) internal {
+        IERC20(_parentTraderPoolInfo.baseToken).safeTransfer(
+            _msgSender(),
+            amount.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
+        );
+    }
+
+    function _divestProposal(uint256 proposalId, address user) internal returns (uint256) {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
         return _claimProposal(proposalId, user);
     }
 
-    function claimAllProposals(address user)
-        external
-        override
-        onlyParentTraderPool
-        returns (uint256 totalReceivedBase)
-    {
+    function _divestAllProposals(address user) internal returns (uint256 totalReceivedBase) {
         uint256 length = _activeInvestments[user].length();
 
         while (length > 0) {
@@ -146,7 +143,33 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         }
     }
 
-    function withdraw(uint256 proposalId, uint256 amount) external override onlyParentTraderPool {
+    function divestProposal(uint256 proposalId, address user)
+        external
+        override
+        onlyParentTraderPool
+        returns (uint256)
+    {
+        return _divestProposal(proposalId, user);
+    }
+
+    function divestAllProposals(address user)
+        external
+        override
+        onlyParentTraderPool
+        returns (uint256)
+    {
+        return _divestAllProposals(user);
+    }
+
+    function claimProposal(uint256 proposalId) external override {
+        _payout(_divestProposal(proposalId, _msgSender()));
+    }
+
+    function claimAllProposals() external override {
+        _payout(_divestAllProposals(_msgSender()));
+    }
+
+    function withdraw(uint256 proposalId, uint256 amount) external override onlyTraderAdmin {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
         require(
             amount <= proposalInfos[proposalId].newInvestedBase,
@@ -161,15 +184,11 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         );
     }
 
-    function supply(
-        uint256 proposalId,
-        address user,
-        uint256 amount
-    ) external override onlyParentTraderPool {
+    function supply(uint256 proposalId, uint256 amount) external override {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
         IERC20(_parentTraderPoolInfo.baseToken).safeTransferFrom(
-            user,
+            _msgSender(),
             address(this),
             amount.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
         );
@@ -177,7 +196,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         _updateCumulativeSum(proposalId, amount);
     }
 
-    function convertToDividends(uint256 proposalId) external override onlyParentTraderPool {
+    function convertToDividends(uint256 proposalId) external override onlyTraderAdmin {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
         _updateCumulativeSum(proposalId, proposalInfos[proposalId].newInvestedBase);

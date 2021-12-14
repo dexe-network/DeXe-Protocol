@@ -24,8 +24,6 @@ interface ITraderPool {
         uint256 commissionUnlockEpoch;
     }
 
-    function dexeToken() external view returns (IERC20);
-
     function priceFeed() external view returns (IPriceFeed);
 
     function coreProperties() external view returns (ICoreProperties);

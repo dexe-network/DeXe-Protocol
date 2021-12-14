@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 import "../interfaces/trader/ITraderPoolRiskyProposal.sol";
 
@@ -15,6 +16,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     using DecimalsConverter for uint256;
     using MathHelper for uint256;
     using Math for uint256;
+    using Address for address;
 
     mapping(uint256 => ProposalInfo) public proposalInfos; // proposal id => info
 
@@ -29,7 +31,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     function changeProposalRestrictions(uint256 proposalId, ProposalLimits calldata proposalLimits)
         external
         override
-        onlyParentTraderPool
+        onlyTraderAdmin
     {
         require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
 
@@ -88,6 +90,8 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         address[] calldata optionalPath,
         uint256 minPositionOut
     ) external override onlyParentTraderPool {
+        require(token.isContract(), "BTP: not a contract");
+        require(token != _parentTraderPoolInfo.baseToken, "BTP: wrong proposal token");
         require(
             proposalLimits.timestampLimit == 0 || proposalLimits.timestampLimit >= block.timestamp,
             "TPRP: wrong timestamp"
@@ -308,7 +312,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 amount,
         address[] calldata optionalPath,
         uint256 minAmountOut
-    ) external override onlyParentTraderPool {
+    ) external override onlyTraderAdmin {
         require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
 
         ProposalInfo storage info = proposalInfos[proposalId];

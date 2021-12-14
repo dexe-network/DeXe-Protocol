@@ -15,6 +15,11 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
 
     uint256 internal _firstExchange;
 
+    modifier onlyProposalPool() {
+        require(_msgSender() == address(_traderPoolProposal), "ITP: not a proposal pool");
+        _;
+    }
+
     function __InvestTraderPool_init(
         string calldata name,
         string calldata symbol,
@@ -71,7 +76,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
             isTraderAdmin(_msgSender()) ||
                 (_firstExchange != 0 &&
                     _firstExchange + coreProperties.getDelayForRiskyPool() <= block.timestamp),
-            "BTP: investment delay"
+            "ITP: investment delay"
         );
 
         super.invest(amountInBaseToInvest, minPositionsOut);
@@ -82,7 +87,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         ITraderPoolInvestProposal.ProposalLimits calldata proposalLimits,
         uint256[] calldata minPositionsOut
     ) external onlyTrader {
-        require(balanceOf(_msgSender()) >= lpAmount, "BTP: not enought LPs");
+        require(lpAmount > 0 && balanceOf(_msgSender()) >= lpAmount, "ITP: not enought LPs");
 
         uint256 baseAmount = _divestPositions(lpAmount, minPositionsOut);
 
@@ -94,14 +99,14 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
     function investProposal(
         uint256 proposalId,
         uint256 lpAmount,
-        uint256[] memory minPositionsOut
+        uint256[] calldata minPositionsOut
     ) external {
-        require(lpAmount > 0 && balanceOf(_msgSender()) >= lpAmount, "BTP: wrong LPs amount");
+        require(lpAmount > 0 && balanceOf(_msgSender()) >= lpAmount, "ITP: wrong LPs amount");
         require(
             isTraderAdmin(_msgSender()) ||
                 (_firstExchange != 0 &&
                     _firstExchange + coreProperties.getDelayForRiskyPool() <= block.timestamp),
-            "BTP: investment delay"
+            "ITP: investment delay"
         );
 
         uint256 baseAmount = _divestPositions(lpAmount, minPositionsOut);
@@ -113,42 +118,14 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
     }
 
     function reinvestProposal(uint256 proposalId, uint256[] calldata minPositionsOut) external {
-        uint256 receivedBase = _traderPoolProposal.claimProposal(proposalId, _msgSender());
+        uint256 receivedBase = _traderPoolProposal.divestProposal(proposalId, _msgSender());
 
         _invest(address(_traderPoolProposal), receivedBase, minPositionsOut);
     }
 
     function reinvestAllProposals(uint256[] calldata minPositionsOut) external {
-        uint256 receivedBase = _traderPoolProposal.claimAllProposals(_msgSender());
+        uint256 receivedBase = _traderPoolProposal.divestAllProposals(_msgSender());
 
         _invest(address(_traderPoolProposal), receivedBase, minPositionsOut);
-    }
-
-    function claimProposal(uint256 proposalId) external {
-        _payoutProposal(_traderPoolProposal.claimProposal(proposalId, _msgSender()));
-    }
-
-    function claimAllProposals() external {
-        _payoutProposal(_traderPoolProposal.claimAllProposals(_msgSender()));
-    }
-
-    function withdrawProposal(uint256 proposalId, uint256 amount) external onlyTraderAdmin {
-        _traderPoolProposal.withdraw(proposalId, amount);
-    }
-
-    function supplyProposal(uint256 proposalId, uint256 amount) external {
-        _traderPoolProposal.supply(proposalId, _msgSender(), amount);
-    }
-
-    function convertToDividendsProposal(uint256 proposalId) external onlyTraderAdmin {
-        _traderPoolProposal.convertToDividends(proposalId);
-    }
-
-    function _payoutProposal(uint256 amount) internal {
-        IERC20(poolParameters.baseToken).safeTransferFrom(
-            address(_traderPoolProposal),
-            _msgSender(),
-            amount.convertFrom18(poolParameters.baseTokenDecimals)
-        );
     }
 }

@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/utils/Address.sol";
-
 import "../interfaces/trader/IBasicTraderPool.sol";
 import "../interfaces/trader/ITraderPoolRiskyProposal.sol";
 
 import "./TraderPool.sol";
 
 contract BasicTraderPool is IBasicTraderPool, TraderPool {
-    using Address for address;
     using MathHelper for uint256;
     using SafeERC20 for IERC20;
 
@@ -54,13 +51,6 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         super.exchange(from, to, amount, optionalPath, minAmountOut);
     }
 
-    function changeProposalRestrictions(
-        uint256 proposalId,
-        ITraderPoolRiskyProposal.ProposalLimits calldata proposalLimits
-    ) external onlyTraderAdmin {
-        _traderPoolProposal.changeProposalRestrictions(proposalId, proposalLimits);
-    }
-
     function createProposal(
         address token,
         uint256 lpAmount,
@@ -70,9 +60,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         address[] calldata optionalPath,
         uint256 minProposalOut
     ) external onlyTrader {
-        require(token.isContract(), "BTP: not a contract");
-        require(token != poolParameters.baseToken, "BTP: wrong proposal token");
-        require(balanceOf(_msgSender()) >= lpAmount, "BTP: not enought LPs");
+        require(lpAmount > 0 && balanceOf(_msgSender()) >= lpAmount, "BTP: not enought LPs");
 
         uint256 baseAmount = _divestPositions(lpAmount, minDivestOut);
 
@@ -137,15 +125,5 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         );
 
         _invest(address(_traderPoolProposal), receivedBase, minInvestsOut);
-    }
-
-    function exchangeProposal(
-        uint256 proposalId,
-        address from,
-        uint256 amount,
-        address[] calldata optionalPath,
-        uint256 minAmountOut
-    ) external onlyTraderAdmin {
-        _traderPoolProposal.exchange(proposalId, from, amount, optionalPath, minAmountOut);
     }
 }

@@ -13,6 +13,7 @@ import "../libs/MathHelper.sol";
 import "../libs/DecimalsConverter.sol";
 
 import "../helpers/AbstractDependant.sol";
+import "./TraderPool.sol";
 
 abstract contract TraderPoolProposal is
     ITraderPoolProposal,
@@ -38,7 +39,15 @@ abstract contract TraderPoolProposal is
     mapping(address => uint256) public override totalLPBalances; // user => LP invested
 
     modifier onlyParentTraderPool() {
-        require(msg.sender == _parentTraderPoolInfo.parentPoolAddress, "TPP: not a ParentPool");
+        require(_msgSender() == _parentTraderPoolInfo.parentPoolAddress, "TPP: not a ParentPool");
+        _;
+    }
+
+    modifier onlyTraderAdmin() {
+        require(
+            TraderPool(_parentTraderPoolInfo.parentPoolAddress).isTraderAdmin(_msgSender()),
+            "TPP: not a trader admin"
+        );
         _;
     }
 

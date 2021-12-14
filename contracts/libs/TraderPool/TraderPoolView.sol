@@ -104,9 +104,7 @@ library TraderPoolView {
         uint256 to = (offset + limit).min(investors.length()).max(offset);
         uint256 totalSupply = IERC20(address(this)).totalSupply();
 
-        uint256 nextCommissionEpoch = poolParameters.nextCommissionEpoch(
-            ITraderPool(address(this)).coreProperties()
-        );
+        uint256 nextCommissionEpoch = poolParameters.nextCommissionEpoch();
         uint256 allBaseCommission;
 
         for (uint256 i = offset; i < to; i++) {

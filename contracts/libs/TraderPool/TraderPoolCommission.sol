@@ -30,11 +30,16 @@ library TraderPoolCommission {
         }
     }
 
-    function nextCommissionEpoch(
-        ITraderPool.PoolParameters storage poolParameters,
-        ICoreProperties coreProperties
-    ) public view returns (uint256) {
-        return coreProperties.getCommissionEpoch(block.timestamp, poolParameters.commissionPeriod);
+    function nextCommissionEpoch(ITraderPool.PoolParameters storage poolParameters)
+        public
+        view
+        returns (uint256)
+    {
+        return
+            ITraderPool(address(this)).coreProperties().getCommissionEpoch(
+                block.timestamp,
+                poolParameters.commissionPeriod
+            );
     }
 
     function calculateCommissionOnReinvest(
