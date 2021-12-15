@@ -19,13 +19,6 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
         uint256 balancePosition;
     }
 
-    struct ActiveInvestmentInfo {
-        uint256 proposalId;
-        uint256 lpInvested;
-        uint256 baseShare;
-        uint256 positionShare;
-    }
-
     function __TraderPoolRiskyProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         external;
 

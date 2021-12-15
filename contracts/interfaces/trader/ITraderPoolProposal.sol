@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "../core/IPriceFeed.sol";
+
 interface ITraderPoolProposal {
     struct ParentTraderPoolInfo {
         address parentPoolAddress;
@@ -8,6 +10,8 @@ interface ITraderPoolProposal {
         address baseToken;
         uint256 baseTokenDecimals;
     }
+
+    function priceFeed() external view returns (IPriceFeed);
 
     function totalLockedLP() external view returns (uint256);
 

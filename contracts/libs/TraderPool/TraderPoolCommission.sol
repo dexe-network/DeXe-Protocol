@@ -48,7 +48,7 @@ library TraderPoolCommission {
         address investor,
         uint256 oldTotalSupply
     )
-        public
+        external
         view
         returns (
             uint256 investorBaseAmount,
@@ -75,7 +75,7 @@ library TraderPoolCommission {
         address investor,
         uint256 investorBaseAmount,
         uint256 amountLP
-    ) public view returns (uint256 baseCommission, uint256 lpCommission) {
+    ) external view returns (uint256 baseCommission, uint256 lpCommission) {
         uint256 investedBaseConverted = investorInfo.investedBase.ratio(
             amountLP,
             IERC20(address(this)).balanceOf(investor)
@@ -94,7 +94,7 @@ library TraderPoolCommission {
         uint256 baseToDistribute,
         uint256 lpToDistribute,
         uint256 dexePercentage
-    ) public view returns (uint256 lpCommission, uint256 baseCommission) {
+    ) external view returns (uint256 lpCommission, uint256 baseCommission) {
         lpCommission = lpToDistribute.percentage(dexePercentage);
         baseCommission = baseToDistribute.percentage(dexePercentage).convertFrom18(
             poolParameters.baseTokenDecimals

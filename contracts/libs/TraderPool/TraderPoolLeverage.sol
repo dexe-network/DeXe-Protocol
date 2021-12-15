@@ -36,7 +36,7 @@ library TraderPoolLeverage {
     function getMaxTraderLeverage(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions
-    ) public view returns (uint256 totalTokensUSD, uint256 maxTraderLeverageUSDTokens) {
+    ) external view returns (uint256 totalTokensUSD, uint256 maxTraderLeverageUSDTokens) {
         uint256 traderUSDTokens;
 
         (totalTokensUSD, traderUSDTokens) = _getNormalizedLeveragePoolPriceInUSD(

@@ -14,7 +14,7 @@ library TraderPoolPrice {
     using DecimalsConverter for uint256;
 
     function getNormalizedBaseInPool(ITraderPool.PoolParameters storage poolParameters)
-        public
+        external
         view
         returns (uint256)
     {
@@ -62,7 +62,7 @@ library TraderPoolPrice {
     function getNormalizedPoolPriceInUSD(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions
-    ) public view returns (uint256 totalBaseInUSD) {
+    ) external view returns (uint256 totalBaseInUSD) {
         (uint256 totalBase, , , ) = getPoolPrice(poolParameters, openPositions);
 
         totalBase = totalBase.convertTo18(poolParameters.baseTokenDecimals);

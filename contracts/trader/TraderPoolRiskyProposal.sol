@@ -2,10 +2,11 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 import "../interfaces/trader/ITraderPoolRiskyProposal.sol";
+
+import "../libs/TraderPoolProposal/TraderPoolRiskyProposalView.sol";
 
 import "../core/Globals.sol";
 import "./TraderPoolProposal.sol";
@@ -17,6 +18,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     using MathHelper for uint256;
     using Math for uint256;
     using Address for address;
+    using TraderPoolRiskyProposalView for ParentTraderPoolInfo;
 
     mapping(uint256 => ProposalInfo) public proposalInfos; // proposal id => info
 
@@ -43,42 +45,27 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         view
         returns (ProposalInfo[] memory proposals)
     {
-        uint256 to = (offset + limit).min(proposalsTotalNum).max(offset);
-
-        proposals = new ProposalInfo[](to - offset);
-
-        for (uint256 i = offset; i < to; i++) {
-            proposals[i - offset] = proposalInfos[i];
-        }
+        return TraderPoolRiskyProposalView.getProposalInfos(proposalInfos, offset, limit);
     }
 
     function getActiveInvestmentsInfo(
         address user,
         uint256 offset,
         uint256 limit
-    ) external view returns (ActiveInvestmentInfo[] memory investments) {
-        uint256 to = (offset + limit).min(_activeInvestments[user].length()).max(offset);
-
-        investments = new ActiveInvestmentInfo[](to - offset);
-
-        for (uint256 i = offset; i < to; i++) {
-            uint256 proposalId = _activeInvestments[user].at(i);
-            uint256 balance = balanceOf(user, proposalId);
-            uint256 supply = totalSupply(proposalId);
-
-            uint256 baseShare = proposalInfos[proposalId].balanceBase.ratio(balance, supply);
-            uint256 positionShare = proposalInfos[proposalId].balancePosition.ratio(
-                balance,
-                supply
+    )
+        external
+        view
+        returns (TraderPoolRiskyProposalView.ActiveInvestmentInfo[] memory investments)
+    {
+        return
+            TraderPoolRiskyProposalView.getActiveInvestmentsInfo(
+                _activeInvestments[user],
+                proposalInfos,
+                _lpBalances,
+                user,
+                offset,
+                limit
             );
-
-            investments[i - offset] = ActiveInvestmentInfo(
-                proposalId,
-                _lpBalances[user][proposalId],
-                baseShare,
-                positionShare
-            );
-        }
     }
 
     function createProposal(
@@ -131,19 +118,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 baseToExchange,
         address[] calldata optionalPath
     ) external view returns (uint256) {
-        address baseToken = _parentTraderPoolInfo.baseToken;
-
-        if (!token.isContract() || token == baseToken) {
-            return 0;
-        }
-
-        return
-            _priceFeed.getExtendedPriceIn(
-                baseToken,
-                token,
-                baseToExchange.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals),
-                optionalPath
-            );
+        return _parentTraderPoolInfo.getCreationTokens(token, baseToExchange, optionalPath);
     }
 
     function _activePortfolio(
@@ -158,7 +133,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
 
         info.investedLP += lpInvestment;
         info.balanceBase += baseInvestment - baseToExchange;
-        info.balancePosition += _priceFeed.normalizedExchangeTo(
+        info.balancePosition += priceFeed.normalizedExchangeTo(
             _parentTraderPoolInfo.baseToken,
             info.token,
             baseToExchange,
@@ -172,28 +147,12 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         view
         returns (uint256 baseAmount, uint256 positionAmount)
     {
-        if (proposalId > proposalsTotalNum) {
-            return (0, 0);
-        }
-
-        ProposalInfo storage info = proposalInfos[proposalId];
-
-        uint256 tokensPriceConverted = _priceFeed.getNormalizedPriceIn(
-            info.token,
-            _parentTraderPoolInfo.baseToken,
-            info.balancePosition
-        );
-        uint256 baseToExchange = baseInvestment.ratio(
-            tokensPriceConverted,
-            tokensPriceConverted + info.balanceBase
-        );
-
-        baseAmount = baseInvestment - baseToExchange;
-        positionAmount = _priceFeed.getPriceIn(
-            _parentTraderPoolInfo.baseToken,
-            info.token,
-            baseToExchange.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
-        );
+        return
+            _parentTraderPoolInfo.getInvestTokens(
+                proposalInfos[proposalId],
+                proposalId,
+                baseInvestment
+            );
     }
 
     function investProposal(
@@ -218,7 +177,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             "TPRP: proposal is overinvested"
         );
 
-        uint256 tokenPriceConverted = _priceFeed.getNormalizedPriceIn(
+        uint256 tokenPriceConverted = priceFeed.getNormalizedPriceIn(
             info.token,
             _parentTraderPoolInfo.baseToken,
             10**18
@@ -269,7 +228,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
 
         receivedBase =
             baseShare +
-            _priceFeed.normalizedExchangeTo(
+            priceFeed.normalizedExchangeTo(
                 proposalInfos[proposalId].token,
                 _parentTraderPoolInfo.baseToken,
                 positionShare,
@@ -302,36 +261,12 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         _burn(trader, proposalId, lp2);
     }
 
-    function getDivestAmount(uint256 proposalId, uint256 lp2)
+    function getDivestAmounts(uint256[] calldata proposalIds, uint256[] calldata lp2s)
         external
         view
-        returns (
-            uint256 totalBaseAmount,
-            uint256 baseFromPosition, // should be used as minAmountOut
-            uint256 positionAmount
-        )
+        returns (TraderPoolRiskyProposalView.Receptions[] memory receptions)
     {
-        if (proposalId > proposalsTotalNum) {
-            return (0, 0, 0);
-        }
-
-        uint256 propSupply = totalSupply(proposalId);
-
-        positionAmount = proposalInfos[proposalId]
-            .balancePosition
-            .ratio(lp2, propSupply)
-            .convertFrom18(proposalInfos[proposalId].tokenDecimals);
-        totalBaseAmount = proposalInfos[proposalId]
-            .balanceBase
-            .ratio(lp2, propSupply)
-            .convertFrom18(_parentTraderPoolInfo.baseTokenDecimals);
-
-        baseFromPosition = _priceFeed.getPriceIn(
-            proposalInfos[proposalId].token,
-            _parentTraderPoolInfo.baseToken,
-            positionAmount
-        );
-        totalBaseAmount += baseFromPosition;
+        return _parentTraderPoolInfo.getDivestAmounts(proposalInfos, proposalIds, lp2s);
     }
 
     function divestProposal(
@@ -389,29 +324,12 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 amount,
         address[] calldata optionalPath
     ) external view returns (uint256 minAmountOut) {
-        if (proposalId > proposalsTotalNum) {
-            return 0;
-        }
-
-        address baseToken = _parentTraderPoolInfo.baseToken;
-        address positionToken = proposalInfos[proposalId].token;
-        address to;
-
-        if (from != baseToken && from != positionToken) {
-            return 0;
-        }
-
-        if (from == baseToken) {
-            to = positionToken;
-        } else {
-            to = baseToken;
-        }
-
         return
-            _priceFeed.getExtendedPriceIn(
+            _parentTraderPoolInfo.getExchangeAmount(
+                proposalInfos[proposalId].token,
+                proposalId,
                 from,
-                to,
-                amount.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals),
+                amount,
                 optionalPath
             );
     }
@@ -434,7 +352,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             require(amount <= info.balanceBase, "TPRP: wrong base amount");
 
             info.balanceBase -= amount;
-            info.balancePosition += _priceFeed.normalizedExchangeTo(
+            info.balancePosition += priceFeed.normalizedExchangeTo(
                 from,
                 info.token,
                 amount,
@@ -444,7 +362,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         } else {
             require(amount <= info.balancePosition, "TPRP: wrong position amount");
 
-            info.balanceBase += _priceFeed.normalizedExchangeTo(
+            info.balanceBase += priceFeed.normalizedExchangeTo(
                 from,
                 baseToken,
                 amount,
@@ -470,7 +388,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     function _baseInProposal(uint256 proposalId) internal view override returns (uint256) {
         return
             proposalInfos[proposalId].balanceBase +
-            _priceFeed.getNormalizedPriceIn(
+            priceFeed.getNormalizedPriceIn(
                 proposalInfos[proposalId].token,
                 _parentTraderPoolInfo.baseToken,
                 proposalInfos[proposalId].balancePosition
@@ -478,8 +396,8 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     }
 
     function _checkPriceFeedAllowance(address token) internal {
-        if (IERC20(token).allowance(address(this), address(_priceFeed)) == 0) {
-            IERC20(token).safeApprove(address(_priceFeed), MAX_UINT);
+        if (IERC20(token).allowance(address(this), address(priceFeed)) == 0) {
+            IERC20(token).safeApprove(address(priceFeed), MAX_UINT);
         }
     }
 

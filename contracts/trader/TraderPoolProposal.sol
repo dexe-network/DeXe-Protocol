@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/trader/ITraderPoolProposal.sol";
@@ -24,10 +25,11 @@ abstract contract TraderPoolProposal is
     using SafeERC20 for IERC20;
     using MathHelper for uint256;
     using DecimalsConverter for uint256;
+    using Math for uint256;
 
     ParentTraderPoolInfo internal _parentTraderPoolInfo;
 
-    IPriceFeed internal _priceFeed;
+    IPriceFeed public override priceFeed;
 
     uint256 public proposalsTotalNum;
 
@@ -66,11 +68,11 @@ abstract contract TraderPoolProposal is
     }
 
     function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
-        _priceFeed = IPriceFeed(contractsRegistry.getPriceFeedContract());
+        priceFeed = IPriceFeed(contractsRegistry.getPriceFeedContract());
     }
 
     function getInvestedBaseInUSD() external view override returns (uint256) {
-        return _priceFeed.getNormalizedPriceInUSD(_parentTraderPoolInfo.baseToken, investedBase);
+        return priceFeed.getNormalizedPriceInUSD(_parentTraderPoolInfo.baseToken, investedBase);
     }
 
     function _baseInProposal(uint256 proposalId) internal view virtual returns (uint256);

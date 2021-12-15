@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../interfaces/trader/ITraderPoolInvestProposal.sol";
 
+import "../libs/TraderPoolProposal/TraderPoolInvestProposalView.sol";
 import "../libs/DecimalsConverter.sol";
 
 import "../core/Globals.sol";
@@ -17,6 +18,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     using DecimalsConverter for uint256;
     using MathHelper for uint256;
     using Math for uint256;
+    using TraderPoolInvestProposalView for ParentTraderPoolInfo;
 
     mapping(uint256 => ProposalInfo) public proposalInfos; // proposal id => info
     mapping(address => mapping(uint256 => RewardInfo)) public rewardInfos;
@@ -37,6 +39,14 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
         proposalInfos[proposalId].proposalLimits = proposalLimits;
+    }
+
+    function getProposalInfos(uint256 offset, uint256 limit)
+        external
+        view
+        returns (ProposalInfo[] memory proposals)
+    {
+        return TraderPoolInvestProposalView.getProposalInfos(proposalInfos, offset, limit);
     }
 
     function _baseInProposal(uint256 proposalId) internal view override returns (uint256) {
@@ -108,18 +118,13 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         info.newInvestedBase += baseInvestment;
     }
 
-    function getRewards(uint256 proposalId, address user) external view returns (uint256) {
-        if (proposalId > proposalsTotalNum) {
-            return 0;
-        }
-
-        RewardInfo storage rewardInfo = rewardInfos[user][proposalId];
-
+    function getRewards(uint256[] calldata proposalIds, address user)
+        external
+        view
+        returns (uint256[] memory amounts)
+    {
         return
-            rewardInfos[user][proposalId].rewardStored +
-            ((proposalInfos[proposalId].cumulativeSum - rewardInfo.cumulativeSumStored) *
-                balanceOf(user, proposalId)) /
-            PRECISION;
+            TraderPoolInvestProposalView.getRewards(proposalInfos, rewardInfos, proposalIds, user);
     }
 
     function _claimProposal(uint256 proposalId, address user) internal returns (uint256 claimed) {

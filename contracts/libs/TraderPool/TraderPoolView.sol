@@ -60,7 +60,7 @@ library TraderPoolView {
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions,
         uint256 amountInBaseToInvest
-    ) public view returns (Receptions memory receptions) {
+    ) external view returns (Receptions memory receptions) {
         (
             uint256 totalBase,
             uint256 currentBaseAmount,
@@ -96,7 +96,7 @@ library TraderPoolView {
         uint256 openPositionsAmount,
         uint256 offset,
         uint256 limit
-    ) public view returns (Commissions memory commissions) {
+    ) external view returns (Commissions memory commissions) {
         if (openPositionsAmount != 0) {
             return Commissions(0, 0, 0);
         }
@@ -130,7 +130,7 @@ library TraderPoolView {
         ITraderPool.InvestorInfo storage investorInfo,
         address investor,
         uint256 amountLP
-    ) public view returns (Receptions memory receptions, Commissions memory commissions) {
+    ) external view returns (Receptions memory receptions, Commissions memory commissions) {
         IERC20 baseToken = IERC20(poolParameters.baseToken);
         IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
 
@@ -183,7 +183,7 @@ library TraderPoolView {
         address to,
         uint256 amount,
         address[] memory optionalPath
-    ) public view returns (uint256) {
+    ) external view returns (uint256) {
         if (from == to || (from != poolParameters.baseToken && !openPositions.contains(from))) {
             return 0;
         }
