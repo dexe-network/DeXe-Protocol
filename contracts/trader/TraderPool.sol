@@ -75,7 +75,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         string memory name,
         string memory symbol,
         PoolParameters memory _poolParameters
-    ) public initializer {
+    ) public onlyInitializing {
         __ERC20_init(name, symbol);
 
         poolParameters = _poolParameters;
@@ -212,7 +212,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     function _invest(
         address baseHolder,
         uint256 amountInBaseToInvest,
-        uint256[] memory minPositionsOut
+        uint256[] calldata minPositionsOut
     ) internal {
         IPriceFeed _priceFeed = priceFeed;
         (
@@ -248,7 +248,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
     }
 
-    function invest(uint256 amountInBaseToInvest, uint256[] memory minPositionsOut)
+    function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut)
         public
         virtual
     {
@@ -369,7 +369,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _distributeCommission(allBaseCommission, allLPCommission, minDexeCommissionOut);
     }
 
-    function _divestPositions(uint256 amountLP, uint256[] memory minPositionsOut)
+    function _divestPositions(uint256 amountLP, uint256[] calldata minPositionsOut)
         internal
         returns (uint256)
     {
@@ -388,15 +388,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         for (uint256 i = 0; i < length; i++) {
             ERC20 positionToken = ERC20(_openPositions.at(i));
 
-            uint256 positionAmount = positionToken.balanceOf(address(this)).ratio(
-                amountLP,
-                totalSupply
-            );
-
             investorBaseAmount += _priceFeed.exchangeTo(
                 address(positionToken),
                 address(baseToken),
-                positionAmount,
+                positionToken.balanceOf(address(this)).ratio(amountLP, totalSupply),
                 new address[](0),
                 minPositionsOut[i]
             );
@@ -407,7 +402,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     function _divestInvestor(
         uint256 amountLP,
-        uint256[] memory minPositionsOut,
+        uint256[] calldata minPositionsOut,
         uint256 minDexeCommissionOut
     ) internal {
         uint256 investorBaseAmount = _divestPositions(amountLP, minPositionsOut);
@@ -464,7 +459,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     function divest(
         uint256 amountLP,
-        uint256[] memory minPositionsOut,
+        uint256[] calldata minPositionsOut,
         uint256 minDexeCommissionOut
     ) public virtual {
         require(!isTrader(_msgSender()) || _openPositions.length() == 0, "TP: can't divest");
@@ -494,8 +489,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         address from,
         address to,
         uint256 amount,
-        address[] memory optionalPath,
-        uint256 minAmountOut
+        uint256 minAmountOut,
+        address[] calldata optionalPath
     ) public virtual onlyTraderAdmin {
         require(from != to, "TP: ambiguous exchange");
         require(

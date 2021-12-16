@@ -76,7 +76,10 @@ library TraderPoolView {
         );
 
         address baseToken = poolParameters.baseToken;
-        receptions.baseAmount = currentBaseAmount.ratio(baseConverted, totalBase);
+
+        if (totalBase > 0) {
+            receptions.baseAmount = currentBaseAmount.ratio(baseConverted, totalBase);
+        }
 
         IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
 
@@ -140,38 +143,30 @@ library TraderPoolView {
         receptions.positions = new address[](length);
         receptions.receivedAmounts = new uint256[](length);
 
-        uint256 investorBaseAmount = baseToken.balanceOf(address(this)).ratio(
-            amountLP,
-            totalSupply
-        );
+        receptions.baseAmount = baseToken.balanceOf(address(this)).ratio(amountLP, totalSupply);
 
         for (uint256 i = 0; i < length; i++) {
             receptions.positions[i] = openPositions.at(i);
 
-            uint256 positionAmount = ERC20(receptions.positions[i]).balanceOf(address(this)).ratio(
-                amountLP,
-                totalSupply
-            );
-
             receptions.receivedAmounts[i] = priceFeed.getPriceIn(
                 receptions.positions[i],
                 address(baseToken),
-                positionAmount
+                ERC20(receptions.positions[i]).balanceOf(address(this)).ratio(
+                    amountLP,
+                    totalSupply
+                )
             );
-            investorBaseAmount += receptions.receivedAmounts[i];
+            receptions.baseAmount += receptions.receivedAmounts[i];
         }
 
         if (investor != poolParameters.trader) {
             (uint256 baseCommission, ) = poolParameters.calculateCommissionOnDivest(
                 investorInfo,
                 investor,
-                investorBaseAmount,
+                receptions.baseAmount,
                 amountLP
             );
 
-            receptions.baseAmount = (investorBaseAmount - baseCommission).convertFrom18(
-                poolParameters.baseTokenDecimals
-            );
             commissions = _getTraderAndPlatformCommissions(poolParameters, baseCommission);
         }
     }
@@ -182,7 +177,7 @@ library TraderPoolView {
         address from,
         address to,
         uint256 amount,
-        address[] memory optionalPath
+        address[] calldata optionalPath
     ) external view returns (uint256) {
         if (from == to || (from != poolParameters.baseToken && !openPositions.contains(from))) {
             return 0;

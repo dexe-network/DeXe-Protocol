@@ -8,7 +8,10 @@ const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
 const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
 const TraderPoolMock = artifacts.require("TraderPoolMock");
-const TraderPoolHelperLib = artifacts.require("TraderPoolHelper");
+const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
+const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
+const TraderPoolPriceLib = artifacts.require("TraderPoolPrice");
+const TraderPoolViewLib = artifacts.require("TraderPoolView");
 const InvestTraderPool = artifacts.require("InvestTraderPool");
 const BasicTraderPool = artifacts.require("BasicTraderPool");
 const RiskyPoolProposal = artifacts.require("TraderPoolRiskyProposal");
@@ -75,10 +78,10 @@ describe("TraderPoolFactory", () => {
     THIRD = await accounts(2);
     NOTHING = await accounts(3);
 
-    const traderPoolHelper = await TraderPoolHelperLib.new();
+    // const traderPoolHelper = await TraderPoolHelperLib.new();
 
-    await InvestTraderPool.link(traderPoolHelper);
-    await BasicTraderPool.link(traderPoolHelper);
+    // await InvestTraderPool.link(traderPoolHelper);
+    // await BasicTraderPool.link(traderPoolHelper);
   });
 
   beforeEach("setup", async () => {

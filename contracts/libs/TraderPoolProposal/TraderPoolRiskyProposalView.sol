@@ -28,9 +28,10 @@ library TraderPoolRiskyProposalView {
     }
 
     struct Receptions {
-        uint256 totalBaseAmount;
-        uint256 baseFromPosition; // should be used as minAmountOut
-        uint256 positionAmount;
+        uint256 baseAmount;
+        address[] positions;
+        uint256[] receivedBaseAmounts; // should be used as minAmountOut
+        uint256[] receivedPositionAmounts; // should be used as minAmountOut
     }
 
     function getProposalInfos(
@@ -137,8 +138,10 @@ library TraderPoolRiskyProposalView {
         mapping(uint256 => ITraderPoolRiskyProposal.ProposalInfo) storage proposalInfos,
         uint256[] calldata proposalIds,
         uint256[] calldata lp2s
-    ) external view returns (Receptions[] memory receptions) {
-        receptions = new Receptions[](proposalIds.length);
+    ) external view returns (Receptions memory receptions) {
+        receptions.positions = new address[](proposalIds.length);
+        receptions.receivedBaseAmounts = new uint256[](proposalIds.length);
+        receptions.receivedPositionAmounts = new uint256[](proposalIds.length);
 
         IPriceFeed priceFeed = ITraderPoolRiskyProposal(address(this)).priceFeed();
         uint256 proposalsTotalNum = TraderPoolRiskyProposal(address(this)).proposalsTotalNum();
@@ -152,21 +155,24 @@ library TraderPoolRiskyProposalView {
 
             uint256 propSupply = TraderPoolRiskyProposal(address(this)).totalSupply(proposalId);
 
-            receptions[i].positionAmount = proposalInfos[proposalId]
-                .balancePosition
-                .ratio(lp2s[i], propSupply)
-                .convertFrom18(proposalInfos[proposalId].tokenDecimals);
-            receptions[i].totalBaseAmount = proposalInfos[proposalId]
-                .balanceBase
-                .ratio(lp2s[i], propSupply)
-                .convertFrom18(parentTraderPoolInfo.baseTokenDecimals);
+            if (propSupply > 0) {
+                receptions.receivedPositionAmounts[i] = proposalInfos[proposalId]
+                    .balancePosition
+                    .ratio(lp2s[i], propSupply)
+                    .convertFrom18(proposalInfos[proposalId].tokenDecimals);
+                receptions.baseAmount += proposalInfos[proposalId]
+                    .balanceBase
+                    .ratio(lp2s[i], propSupply)
+                    .convertFrom18(parentTraderPoolInfo.baseTokenDecimals);
 
-            receptions[i].baseFromPosition = priceFeed.getPriceIn(
-                proposalInfos[proposalId].token,
-                parentTraderPoolInfo.baseToken,
-                receptions[i].positionAmount
-            );
-            receptions[i].totalBaseAmount += receptions[i].baseFromPosition;
+                receptions.receivedBaseAmounts[i] = priceFeed.getPriceIn(
+                    proposalInfos[proposalId].token,
+                    parentTraderPoolInfo.baseToken,
+                    receptions.receivedPositionAmounts[i]
+                );
+                receptions.baseAmount += receptions.receivedBaseAmounts[i];
+                receptions.positions[i] = proposalInfos[proposalId].token;
+            }
         }
     }
 

@@ -12,7 +12,11 @@ const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
 const BasicTraderPool = artifacts.require("BasicTraderPool");
 const PoolProposal = artifacts.require("TraderPoolRiskyProposal");
-const TraderPoolHelperLib = artifacts.require("TraderPoolHelper");
+const PoolProposalLib = artifacts.require("TraderPoolRiskyProposalView");
+const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
+const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
+const TraderPoolPriceLib = artifacts.require("TraderPoolPrice");
+const TraderPoolViewLib = artifacts.require("TraderPoolView");
 
 ContractsRegistry.numberFormat = "BigNumber";
 Insurance.numberFormat = "BigNumber";
@@ -56,7 +60,7 @@ const DEFAULT_CORE_PROPERTIES = {
   delayForRiskyPool: SECONDS_IN_DAY * 20,
 };
 
-describe("BasicTraderPool", () => {
+describe.only("BasicTraderPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -106,8 +110,27 @@ describe("BasicTraderPool", () => {
     FACTORY = await accounts(3);
     NOTHING = await accounts(9);
 
-    const traderPoolHelperLib = await TraderPoolHelperLib.new();
-    await BasicTraderPool.link(traderPoolHelperLib);
+    const traderPoolPriceLib = await TraderPoolPriceLib.new();
+
+    await TraderPoolCommissionLib.link(traderPoolPriceLib);
+    await TraderPoolLeverageLib.link(traderPoolPriceLib);
+
+    const traderPoolCommissionLib = await TraderPoolCommissionLib.new();
+    const traderPoolLeverageLib = await TraderPoolLeverageLib.new();
+
+    await TraderPoolViewLib.link(traderPoolPriceLib);
+    await TraderPoolViewLib.link(traderPoolCommissionLib);
+
+    const traderPoolViewLib = await TraderPoolViewLib.new();
+
+    await BasicTraderPool.link(traderPoolCommissionLib);
+    await BasicTraderPool.link(traderPoolLeverageLib);
+    await BasicTraderPool.link(traderPoolPriceLib);
+    await BasicTraderPool.link(traderPoolViewLib);
+
+    const poolProposalLib = await PoolProposalLib.new();
+
+    await PoolProposal.link(poolProposalLib);
   });
 
   beforeEach("setup", async () => {
@@ -137,6 +160,7 @@ describe("BasicTraderPool", () => {
 
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
+    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), NOTHING);
 
     insurance = await Insurance.at(await contractsRegistry.getInsuranceContract());
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
@@ -203,10 +227,32 @@ describe("BasicTraderPool", () => {
       [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);
     });
 
+    async function createProposal(value, limits, percentage) {
+      const divests = await traderPool.getDivestAmountsAndCommissions(OWNER, value);
+      const creationTokens = await proposalPool.getCreationTokens(
+        baseTokens.MANA.address,
+        divests.receptions.baseAmount,
+        percentage,
+        []
+      );
+
+      await traderPool.createProposal(
+        baseTokens.MANA.address,
+        value,
+        limits,
+        percentage,
+        divests.receptions.receivedAmounts,
+        creationTokens,
+        []
+      );
+    }
+
     describe("createProposal", () => {
       beforeEach("setup", async () => {
         await baseTokens.WETH.approve(traderPool.address, wei("1000"));
-        await traderPool.invest(wei("1000"));
+
+        const receptions = await traderPool.getInvestTokens(wei("1000"));
+        await traderPool.invest(wei("1000"), receptions.receivedAmounts);
       });
 
       it("should create a proposal", async () => {
@@ -325,7 +371,9 @@ describe("BasicTraderPool", () => {
     describe("investProposal", () => {
       beforeEach("setup", async () => {
         await baseTokens.WETH.approve(traderPool.address, wei("1000"));
-        await traderPool.invest(wei("1000"));
+
+        const receptions = await traderPool.getInvestTokens(wei("1000"));
+        await traderPool.invest(wei("1000"), receptions.receivedAmounts);
 
         await baseTokens.WETH.mint(SECOND, wei("1000"));
         await baseTokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
@@ -445,28 +493,22 @@ describe("BasicTraderPool", () => {
       });
     });
 
-    describe("divestProposal", async () => {
+    describe.only("divestProposal", async () => {
       beforeEach("setup", async () => {
         await baseTokens.WETH.approve(traderPool.address, wei("1000"));
-        await traderPool.invest(wei("1000"));
+
+        const receptions = await traderPool.getInvestTokens(wei("1000"));
+        await traderPool.invest(wei("1000"), receptions.receivedAmounts);
 
         await baseTokens.WETH.mint(SECOND, wei("1000"));
         await baseTokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
       });
 
       it("should create and then divest from proposal", async () => {
-        const time = toBN(await getCurrentBlockTime());
-
         assert.equal((await baseTokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("1000"));
 
-        await traderPool.createProposal(
-          baseTokens.MANA.address,
-          wei("500"),
-          time.plus(100000),
-          wei("10000"),
-          wei("2"),
-          0
-        );
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(wei("500"), [time.plus(100000), wei("10000"), wei("2")], 0);
 
         assert.equal((await baseTokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("500"));
 
@@ -474,7 +516,12 @@ describe("BasicTraderPool", () => {
         assert.equal((await proposalPool.totalLockedLP()).toFixed(), wei("500"));
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("500"));
 
-        await traderPool.reinvestProposal(1, wei("250"));
+        assert.equal((await proposalPool.totalSupply(1)).toFixed(), wei("500"));
+
+        const divests = await proposalPool.getDivestAmounts([1], [wei("250")]);
+        const invests = await traderPool.getInvestTokens(divests.baseAmount);
+
+        await traderPool.reinvestProposal(1, wei("250"), invests.receivedAmounts, divests.receivedBaseAmounts[0]);
 
         assert.equal((await proposalPool.balanceOf(OWNER, 1)).toFixed(), wei("250"));
         assert.equal((await proposalPool.totalLockedLP()).toFixed(), wei("250"));
@@ -605,27 +652,22 @@ describe("BasicTraderPool", () => {
     describe("exchangeProposal", () => {
       beforeEach("setup", async () => {
         await baseTokens.WETH.approve(traderPool.address, wei("1000"));
-        await traderPool.invest(wei("1000"));
+
+        const receptions = await traderPool.getInvestTokens(wei("1000"));
+        await traderPool.invest(wei("1000"), receptions.receivedAmounts);
       });
 
       it("should exchange in proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
-
-        await traderPool.createProposal(
-          baseTokens.MANA.address,
-          wei("500"),
-          time.plus(100000),
-          wei("10000"),
-          wei("2"),
-          0
-        );
+        await createProposal(wei("500"), [time.plus(100000), wei("10000"), wei("2")], 0);
 
         let proposalInfo = await proposalPool.proposalInfos(1);
 
         assert.closeTo(proposalInfo.balanceBase.toNumber(), toBN(wei("500")).toNumber(), toBN(wei("1")).toNumber());
         assert.equal(proposalInfo.balancePosition.toFixed(), "0");
 
-        await traderPool.exchangeProposal(1, baseTokens.WETH.address, wei("250"));
+        const amountOut = await proposalPool.getExchangeAmount(1, baseTokens.WETH.address, wei("250"), []);
+        await proposalPool.exchange(1, baseTokens.WETH.address, wei("250"), amountOut, []);
 
         proposalInfo = await proposalPool.proposalInfos(1);
 
@@ -635,19 +677,12 @@ describe("BasicTraderPool", () => {
 
       it("should exchange from proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
-
-        await traderPool.createProposal(
-          baseTokens.MANA.address,
-          wei("500"),
-          time.plus(100000),
-          wei("10000"),
-          wei("2"),
-          PRECISION.times(80)
-        );
+        await createProposal(wei("500"), [time.plus(100000), wei("10000"), wei("2")], PRECISION.times(80));
 
         let proposalInfo = await proposalPool.proposalInfos(1);
 
-        await traderPool.exchangeProposal(1, baseTokens.MANA.address, wei("400"));
+        const amountOut = await proposalPool.getExchangeAmount(1, baseTokens.MANA.address, wei("400"), []);
+        await proposalPool.exchange(1, baseTokens.MANA.address, wei("400"), amountOut, []);
 
         proposalInfo = await proposalPool.proposalInfos(1);
 

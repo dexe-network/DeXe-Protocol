@@ -11,7 +11,10 @@ const PriceFeedMock = artifacts.require("PriceFeedMock");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
 const TraderPoolMock = artifacts.require("TraderPoolMock");
-const TraderPoolHelperLib = artifacts.require("TraderPoolHelper");
+const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
+const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
+const TraderPoolPriceLib = artifacts.require("TraderPoolPrice");
+const TraderPoolViewLib = artifacts.require("TraderPoolView");
 
 ContractsRegistry.numberFormat = "BigNumber";
 Insurance.numberFormat = "BigNumber";
@@ -104,8 +107,8 @@ describe("TraderPool", () => {
     FACTORY = await accounts(3);
     NOTHING = await accounts(9);
 
-    const traderPoolHelperLib = await TraderPoolHelperLib.new();
-    await TraderPoolMock.link(traderPoolHelperLib);
+    // const traderPoolHelperLib = await TraderPoolHelperLib.new();
+    // await TraderPoolMock.link(traderPoolHelperLib);
   });
 
   beforeEach("setup", async () => {

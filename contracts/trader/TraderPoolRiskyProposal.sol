@@ -73,9 +73,9 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         ProposalLimits calldata proposalLimits,
         uint256 lpInvestment,
         uint256 baseInvestment,
-        uint256 baseToExchange,
-        address[] calldata optionalPath,
-        uint256 minPositionOut
+        uint256 instantTradePercentage,
+        uint256 minProposalOut,
+        address[] calldata optionalPath
     ) external override onlyParentTraderPool {
         require(token.isContract(), "BTP: not a contract");
         require(token != _parentTraderPoolInfo.baseToken, "BTP: wrong proposal token");
@@ -88,7 +88,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             "TPRP: wrong investment limit"
         );
         require(lpInvestment > 0 && baseInvestment > 0, "TPRP: zero investment");
-        require(baseToExchange <= baseInvestment, "TPRP: percantage is bigger than 100");
+        require(instantTradePercentage <= PERCENTAGE_100, "TPRP: percantage is bigger than 100");
 
         uint256 proposals = ++proposalsTotalNum;
 
@@ -105,20 +105,26 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         _transferAndMintLP(proposals, trader, lpInvestment, baseInvestment);
         _activePortfolio(
             proposals,
-            baseToExchange,
             baseInvestment,
+            baseInvestment.percentage(instantTradePercentage),
             lpInvestment,
             optionalPath,
-            minPositionOut
+            minProposalOut
         );
     }
 
     function getCreationTokens(
         address token,
-        uint256 baseToExchange,
+        uint256 baseInvestment,
+        uint256 instantTradePercentage,
         address[] calldata optionalPath
     ) external view returns (uint256) {
-        return _parentTraderPoolInfo.getCreationTokens(token, baseToExchange, optionalPath);
+        return
+            _parentTraderPoolInfo.getCreationTokens(
+                token,
+                baseInvestment.percentage(instantTradePercentage),
+                optionalPath
+            );
     }
 
     function _activePortfolio(
@@ -127,7 +133,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 baseToExchange,
         uint256 lpInvestment,
         address[] memory optionalPath,
-        uint256 minPositionOut
+        uint256 minProposalOut
     ) internal {
         ProposalInfo storage info = proposalInfos[proposalId];
 
@@ -138,7 +144,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             info.token,
             baseToExchange,
             optionalPath,
-            minPositionOut
+            minProposalOut
         );
     }
 
@@ -264,7 +270,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     function getDivestAmounts(uint256[] calldata proposalIds, uint256[] calldata lp2s)
         external
         view
-        returns (TraderPoolRiskyProposalView.Receptions[] memory receptions)
+        returns (TraderPoolRiskyProposalView.Receptions memory receptions)
     {
         return _parentTraderPoolInfo.getDivestAmounts(proposalInfos, proposalIds, lp2s);
     }
@@ -338,8 +344,8 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 proposalId,
         address from,
         uint256 amount,
-        address[] calldata optionalPath,
-        uint256 minAmountOut
+        uint256 minAmountOut,
+        address[] calldata optionalPath
     ) external override onlyTraderAdmin {
         require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
 

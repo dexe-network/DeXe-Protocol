@@ -17,7 +17,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         string calldata symbol,
         ITraderPool.PoolParameters memory _poolParameters,
         address traderPoolProposal
-    ) public override {
+    ) public override initializer {
         __TraderPool_init(name, symbol, _poolParameters);
 
         _traderPoolProposal = ITraderPoolRiskyProposal(traderPoolProposal);
@@ -43,12 +43,12 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         address from,
         address to,
         uint256 amount,
-        address[] memory optionalPath,
-        uint256 minAmountOut
+        uint256 minAmountOut,
+        address[] calldata optionalPath
     ) public override onlyTraderAdmin {
         require(priceFeed.isSupportedBaseToken(to), "BTP: invalid exchange");
 
-        super.exchange(from, to, amount, optionalPath, minAmountOut);
+        super.exchange(from, to, amount, minAmountOut, optionalPath);
     }
 
     function createProposal(
@@ -57,8 +57,8 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         ITraderPoolRiskyProposal.ProposalLimits calldata proposalLimits,
         uint256 instantTradePercentage,
         uint256[] calldata minDivestOut,
-        address[] calldata optionalPath,
-        uint256 minProposalOut
+        uint256 minProposalOut,
+        address[] calldata optionalPath
     ) external onlyTrader {
         uint256 baseAmount = _divestPositions(lpAmount, minDivestOut);
 
@@ -68,8 +68,8 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
             lpAmount,
             baseAmount,
             instantTradePercentage,
-            optionalPath,
-            minProposalOut
+            minProposalOut,
+            optionalPath
         );
 
         _burn(_msgSender(), lpAmount);

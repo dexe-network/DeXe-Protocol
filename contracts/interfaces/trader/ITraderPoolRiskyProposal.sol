@@ -31,8 +31,8 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
         uint256 lpInvestment,
         uint256 baseInvestment,
         uint256 instantTradePercentage,
-        address[] calldata optionalPath,
-        uint256 minPositionOut
+        uint256 minPositionOut,
+        address[] calldata optionalPath
     ) external;
 
     function investProposal(
@@ -58,7 +58,7 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
         uint256 proposalId,
         address from,
         uint256 amount,
-        address[] calldata optionalPath,
-        uint256 minAmountOut
+        uint256 minAmountOut,
+        address[] calldata optionalPath
     ) external;
 }

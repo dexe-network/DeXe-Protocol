@@ -9,10 +9,11 @@ contract PriceFeedMock is PriceFeed {
     using SafeERC20 for IERC20;
     using MathHelper for uint256;
 
-    function getPriceIn(
+    function getExtendedPriceIn(
         address inToken,
         address outToken,
-        uint256 amount
+        uint256 amount,
+        address[] memory optionalPath
     ) public view override returns (uint256) {
         if (amount == 0) {
             return 0;
@@ -32,7 +33,7 @@ contract PriceFeedMock is PriceFeed {
         address inToken,
         address outToken,
         uint256 amount,
-        address[] memory optionalPath,
+        address[] calldata optionalPath,
         uint256 minAmountOut
     ) public override returns (uint256) {
         if (amount == 0) {

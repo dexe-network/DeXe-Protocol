@@ -25,7 +25,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         string calldata symbol,
         ITraderPool.PoolParameters memory _poolParameters,
         address traderPoolProposal
-    ) public override {
+    ) public override initializer {
         __TraderPool_init(name, symbol, _poolParameters);
 
         _traderPoolProposal = ITraderPoolInvestProposal(traderPoolProposal);
@@ -58,17 +58,17 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         address from,
         address to,
         uint256 amount,
-        address[] memory optionalPath,
-        uint256 minAmountOut
+        uint256 minAmountOut,
+        address[] calldata optionalPath
     ) public override onlyTraderAdmin {
         if (_firstExchange == 0) {
             _firstExchange = block.timestamp;
         }
 
-        super.exchange(from, to, amount, optionalPath, minAmountOut);
+        super.exchange(from, to, amount, minAmountOut, optionalPath);
     }
 
-    function invest(uint256 amountInBaseToInvest, uint256[] memory minPositionsOut)
+    function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut)
         public
         override
     {

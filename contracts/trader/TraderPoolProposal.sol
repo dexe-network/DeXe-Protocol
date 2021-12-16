@@ -55,9 +55,9 @@ abstract contract TraderPoolProposal is
 
     function __TraderPoolProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         public
-        initializer
+        onlyInitializing
     {
-        __ERC1155_init("");
+        __ERC1155Supply_init();
 
         _parentTraderPoolInfo = parentTraderPoolInfo;
 
@@ -127,6 +127,8 @@ abstract contract TraderPoolProposal is
         uint256[] memory amounts,
         bytes memory data
     ) internal override {
+        super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+
         for (uint256 i = 0; i < amounts.length; i++) {
             require(amounts[i] > 0, "TPP: 0 transfer");
 

@@ -46,7 +46,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         _dexeAddress = contractsRegistry.getDEXEContract();
     }
 
-    function _insertInto(EnumerableSet.AddressSet storage addressSet, address[] memory array)
+    function _insertInto(EnumerableSet.AddressSet storage addressSet, address[] calldata array)
         private
     {
         for (uint256 i = 0; i < array.length; i++) {
@@ -54,7 +54,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         }
     }
 
-    function _removeFrom(EnumerableSet.AddressSet storage addressSet, address[] memory array)
+    function _removeFrom(EnumerableSet.AddressSet storage addressSet, address[] calldata array)
         private
     {
         for (uint256 i = 0; i < array.length; i++) {
@@ -160,7 +160,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address outToken,
         uint256 amount,
         address[] memory optionalPath
-    ) public view override returns (uint256) {
+    ) public view virtual override returns (uint256) {
         if (optionalPath.length == 0) {
             optionalPath = _savedPaths[_msgSender()][inToken][outToken];
         }
@@ -174,7 +174,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address inToken,
         address outToken,
         uint256 amount
-    ) public view virtual override returns (uint256) {
+    ) public view override returns (uint256) {
         return
             getExtendedPriceIn(
                 inToken,
@@ -225,7 +225,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address inToken,
         address outToken,
         uint256 amount,
-        address[] memory optionalPath,
+        address[] calldata optionalPath,
         uint256 minAmountOut
     ) public virtual override returns (uint256) {
         if (amount == 0) {
@@ -267,11 +267,9 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address inToken,
         address outToken,
         uint256 amount,
-        address[] memory optionalPath,
+        address[] calldata optionalPath,
         uint256 minAmountOut
     ) external virtual override returns (uint256) {
-        uint256 outTokenDecimals = ERC20(outToken).decimals();
-
         return
             exchangeTo(
                 inToken,
@@ -279,7 +277,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
                 amount.convertFrom18(ERC20(inToken).decimals()),
                 optionalPath,
                 minAmountOut
-            ).convertTo18(outTokenDecimals);
+            ).convertTo18(ERC20(outToken).decimals());
     }
 
     function isSupportedBaseToken(address token) external view override returns (bool) {
