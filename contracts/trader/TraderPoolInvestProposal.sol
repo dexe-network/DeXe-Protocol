@@ -49,11 +49,32 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         return TraderPoolInvestProposalView.getProposalInfos(proposalInfos, offset, limit);
     }
 
+    function getActiveInvestmentsInfo(
+        address user,
+        uint256 offset,
+        uint256 limit
+    )
+        external
+        view
+        returns (TraderPoolInvestProposalView.ActiveInvestmentInfo[] memory investments)
+    {
+        return
+            TraderPoolInvestProposalView.getActiveInvestmentsInfo(
+                _activeInvestments[user],
+                proposalInfos,
+                _lpBalances,
+                rewardInfos,
+                user,
+                offset,
+                limit
+            );
+    }
+
     function _baseInProposal(uint256 proposalId) internal view override returns (uint256) {
         return proposalInfos[proposalId].investedBase;
     }
 
-    function createProposal(
+    function create(
         ProposalLimits calldata proposalLimits,
         uint256 lpInvestment,
         uint256 baseInvestment
@@ -89,7 +110,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         rewardInfo.cumulativeSumStored = cumulativeSum;
     }
 
-    function investProposal(
+    function invest(
         uint256 proposalId,
         address user,
         uint256 lpInvestment,
@@ -121,7 +142,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     function getRewards(uint256[] calldata proposalIds, address user)
         external
         view
-        returns (uint256[] memory amounts)
+        returns (TraderPoolInvestProposalView.Receptions memory receptions)
     {
         return
             TraderPoolInvestProposalView.getRewards(proposalInfos, rewardInfos, proposalIds, user);
@@ -162,7 +183,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         }
     }
 
-    function divestProposal(uint256 proposalId, address user)
+    function divest(uint256 proposalId, address user)
         external
         override
         onlyParentTraderPool
@@ -171,20 +192,15 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         return _divestProposal(proposalId, user);
     }
 
-    function divestAllProposals(address user)
-        external
-        override
-        onlyParentTraderPool
-        returns (uint256)
-    {
+    function divestAll(address user) external override onlyParentTraderPool returns (uint256) {
         return _divestAllProposals(user);
     }
 
-    function claimProposal(uint256 proposalId) external override {
+    function claim(uint256 proposalId) external override {
         _payout(_divestProposal(proposalId, _msgSender()));
     }
 
-    function claimAllProposals() external override {
+    function claimAll() external override {
         _payout(_divestAllProposals(_msgSender()));
     }
 

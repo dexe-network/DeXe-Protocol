@@ -28,26 +28,26 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
     function changeProposalRestrictions(uint256 proposalId, ProposalLimits calldata proposalLimits)
         external;
 
-    function createProposal(
+    function create(
         ProposalLimits calldata proposalLimits,
         uint256 lpInvestment,
         uint256 baseInvestment
     ) external;
 
-    function investProposal(
+    function invest(
         uint256 proposalId,
         address user,
         uint256 lpInvestment,
         uint256 baseInvestment
     ) external;
 
-    function divestProposal(uint256 proposalId, address user) external returns (uint256);
+    function divest(uint256 proposalId, address user) external returns (uint256);
 
-    function divestAllProposals(address user) external returns (uint256);
+    function divestAll(address user) external returns (uint256);
 
-    function claimProposal(uint256 proposalId) external;
+    function claim(uint256 proposalId) external;
 
-    function claimAllProposals() external;
+    function claimAll() external;
 
     function withdraw(uint256 proposalId, uint256 amount) external;
 

@@ -62,7 +62,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
     ) external onlyTrader {
         uint256 baseAmount = _divestPositions(lpAmount, minDivestOut);
 
-        _traderPoolProposal.createProposal(
+        _traderPoolProposal.create(
             token,
             proposalLimits,
             lpAmount,
@@ -83,13 +83,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
     ) external {
         uint256 baseAmount = _divestPositions(lpAmount, minDivestOut);
 
-        _traderPoolProposal.investProposal(
-            proposalId,
-            _msgSender(),
-            lpAmount,
-            baseAmount,
-            minProposalOut
-        );
+        _traderPoolProposal.invest(proposalId, _msgSender(), lpAmount, baseAmount, minProposalOut);
 
         _updateFrom(_msgSender(), lpAmount);
         _burn(_msgSender(), lpAmount);
@@ -101,7 +95,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256[] calldata minPositionsOut,
         uint256 minProposalOut
     ) external {
-        uint256 receivedBase = _traderPoolProposal.divestProposal(
+        uint256 receivedBase = _traderPoolProposal.divest(
             proposalId,
             _msgSender(),
             lp2Amount,
@@ -115,10 +109,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256[] calldata minInvestsOut,
         uint256[] calldata minProposalsOut
     ) external {
-        uint256 receivedBase = _traderPoolProposal.divestAllProposals(
-            _msgSender(),
-            minProposalsOut
-        );
+        uint256 receivedBase = _traderPoolProposal.divestAll(_msgSender(), minProposalsOut);
 
         _invest(address(_traderPoolProposal), receivedBase, minInvestsOut);
     }

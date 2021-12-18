@@ -25,7 +25,7 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     function changeProposalRestrictions(uint256 proposalId, ProposalLimits calldata proposalLimits)
         external;
 
-    function createProposal(
+    function create(
         address token,
         ProposalLimits calldata proposalLimits,
         uint256 lpInvestment,
@@ -35,7 +35,7 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
         address[] calldata optionalPath
     ) external;
 
-    function investProposal(
+    function invest(
         uint256 proposalId,
         address user,
         uint256 lpInvestment,
@@ -43,14 +43,14 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
         uint256 minPositionOut
     ) external;
 
-    function divestProposal(
+    function divest(
         uint256 proposalId,
         address user,
         uint256 lp2,
         uint256 minPositionOut
     ) external returns (uint256);
 
-    function divestAllProposals(address user, uint256[] calldata minPositionsOut)
+    function divestAll(address user, uint256[] calldata minPositionsOut)
         external
         returns (uint256);
 

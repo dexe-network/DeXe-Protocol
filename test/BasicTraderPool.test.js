@@ -76,6 +76,9 @@ describe("BasicTraderPool", () => {
   let traderPoolRegistry;
   let baseTokens = {};
 
+  let traderPool;
+  let proposalPool;
+
   async function configureBaseTokens() {
     let tokensToMint = toBN(1000000000);
     let reserveTokens = toBN(1000000);
@@ -204,12 +207,71 @@ describe("BasicTraderPool", () => {
 
     return [traderPool, proposal];
   }
+  async function invest(amount, account) {
+    const receptions = await traderPool.getInvestTokens(amount);
+    await traderPool.invest(amount, receptions.receivedAmounts, { from: account });
+  }
 
-  describe.only("Default Pool", () => {
+  async function exchange(from, to, amount) {
+    const exchange = await traderPool.getExchangeAmount(from, to, amount, []);
+    await traderPool.exchange(from, to, amount, exchange, []);
+  }
+
+  async function createProposal(token, value, limits, percentage) {
+    const divests = await traderPool.getDivestAmountsAndCommissions(OWNER, value);
+    const creationTokens = await proposalPool.getCreationTokens(token, divests.receptions.baseAmount, percentage, []);
+
+    await traderPool.createProposal(
+      token,
+      value,
+      limits,
+      percentage,
+      divests.receptions.receivedAmounts,
+      creationTokens,
+      []
+    );
+  }
+
+  async function investProposal(proposalId, amount, account) {
+    const divests = await traderPool.getDivestAmountsAndCommissions(account, amount);
+    const invests = await proposalPool.getInvestTokens(proposalId, divests.receptions.baseAmount);
+
+    await traderPool.investProposal(proposalId, amount, divests.receptions.receivedAmounts, invests.positionAmount, {
+      from: account,
+    });
+  }
+
+  async function exchangeProposal(proposalId, from, amount) {
+    const amountOut = await proposalPool.getExchangeAmount(proposalId, from, amount, []);
+    await proposalPool.exchange(proposalId, from, amount, amountOut, []);
+  }
+
+  async function reinvestProposal(propoaslId, amount, account) {
+    const divests = await proposalPool.getDivestAmounts([propoaslId], [amount]);
+    const invests = await traderPool.getInvestTokens(divests.baseAmount);
+
+    await traderPool.reinvestProposal(propoaslId, amount, invests.receivedAmounts, divests.receivedBaseAmounts[0], {
+      from: account,
+    });
+  }
+
+  async function reinvestAllProposals(slippage, account) {
+    const length = await proposalPool.getTotalActiveInvestments(account);
+    const activeProposals = await proposalPool.getActiveInvestmentsInfo(account, 0, length);
+
+    const proposals = activeProposals.map((prop) => prop.proposalId);
+    const amounts = activeProposals.map((prop) => prop.lp2Balance);
+
+    const divests = await proposalPool.getDivestAmounts(proposals, amounts);
+    const invests = await traderPool.getInvestTokens(divests.baseAmount);
+
+    const slippageAmounts = divests.receivedBaseAmounts.map((amount) => toBN(amount).times(slippage).dp(0).toFixed());
+
+    await traderPool.reinvestAllProposals(invests.receivedAmounts, slippageAmounts, { from: account });
+  }
+
+  describe("Default Pool", () => {
     let POOL_PARAMETERS;
-
-    let traderPool;
-    let proposalPool;
 
     beforeEach("setup", async () => {
       POOL_PARAMETERS = {
@@ -226,69 +288,6 @@ describe("BasicTraderPool", () => {
 
       [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);
     });
-
-    async function createProposal(token, value, limits, percentage) {
-      const divests = await traderPool.getDivestAmountsAndCommissions(OWNER, value);
-      const creationTokens = await proposalPool.getCreationTokens(token, divests.receptions.baseAmount, percentage, []);
-
-      await traderPool.createProposal(
-        token,
-        value,
-        limits,
-        percentage,
-        divests.receptions.receivedAmounts,
-        creationTokens,
-        []
-      );
-    }
-
-    async function investProposal(proposalId, amount, account) {
-      const divests = await traderPool.getDivestAmountsAndCommissions(account, amount);
-      const invests = await proposalPool.getInvestTokens(proposalId, divests.receptions.baseAmount);
-
-      await traderPool.investProposal(proposalId, amount, divests.receptions.receivedAmounts, invests.positionAmount, {
-        from: account,
-      });
-    }
-
-    async function reinvestProposal(propoaslId, amount, account) {
-      const divests = await proposalPool.getDivestAmounts([propoaslId], [amount]);
-      const invests = await traderPool.getInvestTokens(divests.baseAmount);
-
-      await traderPool.reinvestProposal(propoaslId, amount, invests.receivedAmounts, divests.receivedBaseAmounts[0], {
-        from: account,
-      });
-    }
-
-    async function reinvestAllProposals(slippage, account) {
-      const length = await proposalPool.getTotalActiveInvestments(account);
-      const activeProposals = await proposalPool.getActiveInvestmentsInfo(account, 0, length);
-
-      const proposals = activeProposals.map((prop) => prop.proposalId);
-      const amounts = activeProposals.map((prop) => prop.lp2Balance);
-
-      const divests = await proposalPool.getDivestAmounts(proposals, amounts);
-      const invests = await traderPool.getInvestTokens(divests.baseAmount);
-
-      const slippageAmounts = divests.receivedBaseAmounts.map((amount) => toBN(amount).times(slippage).dp(0).toFixed());
-
-      await traderPool.reinvestAllProposals(invests.receivedAmounts, slippageAmounts, { from: account });
-    }
-
-    async function invest(amount, account) {
-      const receptions = await traderPool.getInvestTokens(amount);
-      await traderPool.invest(amount, receptions.receivedAmounts, { from: account });
-    }
-
-    async function exchange(from, to, amount) {
-      const exchange = await traderPool.getExchangeAmount(from, to, amount, []);
-      await traderPool.exchange(from, to, amount, exchange, []);
-    }
-
-    async function exchangeProposal(proposalId, from, amount) {
-      const amountOut = await proposalPool.getExchangeAmount(proposalId, from, amount, []);
-      await proposalPool.exchange(proposalId, from, amount, amountOut, []);
-    }
 
     describe("createProposal", () => {
       beforeEach("setup", async () => {

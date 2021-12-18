@@ -89,7 +89,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
     ) external onlyTrader {
         uint256 baseAmount = _divestPositions(lpAmount, minPositionsOut);
 
-        _traderPoolProposal.createProposal(proposalLimits, lpAmount, baseAmount);
+        _traderPoolProposal.create(proposalLimits, lpAmount, baseAmount);
 
         _burn(_msgSender(), lpAmount);
     }
@@ -108,20 +108,20 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
 
         uint256 baseAmount = _divestPositions(lpAmount, minPositionsOut);
 
-        _traderPoolProposal.investProposal(proposalId, _msgSender(), lpAmount, baseAmount);
+        _traderPoolProposal.invest(proposalId, _msgSender(), lpAmount, baseAmount);
 
         _updateFrom(_msgSender(), lpAmount);
         _burn(_msgSender(), lpAmount);
     }
 
     function reinvestProposal(uint256 proposalId, uint256[] calldata minPositionsOut) external {
-        uint256 receivedBase = _traderPoolProposal.divestProposal(proposalId, _msgSender());
+        uint256 receivedBase = _traderPoolProposal.divest(proposalId, _msgSender());
 
         _invest(address(_traderPoolProposal), receivedBase, minPositionsOut);
     }
 
     function reinvestAllProposals(uint256[] calldata minPositionsOut) external {
-        uint256 receivedBase = _traderPoolProposal.divestAllProposals(_msgSender());
+        uint256 receivedBase = _traderPoolProposal.divestAll(_msgSender());
 
         _invest(address(_traderPoolProposal), receivedBase, minPositionsOut);
     }

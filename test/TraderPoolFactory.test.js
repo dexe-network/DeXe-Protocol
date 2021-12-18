@@ -14,6 +14,8 @@ const TraderPoolPriceLib = artifacts.require("TraderPoolPrice");
 const TraderPoolViewLib = artifacts.require("TraderPoolView");
 const InvestTraderPool = artifacts.require("InvestTraderPool");
 const BasicTraderPool = artifacts.require("BasicTraderPool");
+const RiskyPoolProposalLib = artifacts.require("TraderPoolRiskyProposalView");
+const InvestPoolProposalLib = artifacts.require("TraderPoolInvestProposalView");
 const RiskyPoolProposal = artifacts.require("TraderPoolRiskyProposal");
 const InvestPoolProposal = artifacts.require("TraderPoolInvestProposal");
 const TraderPoolFactory = artifacts.require("TraderPoolFactory");
@@ -78,10 +80,34 @@ describe("TraderPoolFactory", () => {
     THIRD = await accounts(2);
     NOTHING = await accounts(3);
 
-    // const traderPoolHelper = await TraderPoolHelperLib.new();
+    const traderPoolPriceLib = await TraderPoolPriceLib.new();
 
-    // await InvestTraderPool.link(traderPoolHelper);
-    // await BasicTraderPool.link(traderPoolHelper);
+    await TraderPoolCommissionLib.link(traderPoolPriceLib);
+    await TraderPoolLeverageLib.link(traderPoolPriceLib);
+
+    const traderPoolCommissionLib = await TraderPoolCommissionLib.new();
+    const traderPoolLeverageLib = await TraderPoolLeverageLib.new();
+
+    await TraderPoolViewLib.link(traderPoolPriceLib);
+    await TraderPoolViewLib.link(traderPoolCommissionLib);
+
+    const traderPoolViewLib = await TraderPoolViewLib.new();
+
+    await InvestTraderPool.link(traderPoolCommissionLib);
+    await InvestTraderPool.link(traderPoolLeverageLib);
+    await InvestTraderPool.link(traderPoolPriceLib);
+    await InvestTraderPool.link(traderPoolViewLib);
+
+    await BasicTraderPool.link(traderPoolCommissionLib);
+    await BasicTraderPool.link(traderPoolLeverageLib);
+    await BasicTraderPool.link(traderPoolPriceLib);
+    await BasicTraderPool.link(traderPoolViewLib);
+
+    const riskyPoolProposalLib = await RiskyPoolProposalLib.new();
+    const investPoolProposalLib = await InvestPoolProposalLib.new();
+
+    await RiskyPoolProposal.link(riskyPoolProposalLib);
+    await InvestPoolProposal.link(investPoolProposalLib);
   });
 
   beforeEach("setup", async () => {

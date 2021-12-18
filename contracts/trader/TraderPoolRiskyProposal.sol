@@ -68,7 +68,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             );
     }
 
-    function createProposal(
+    function create(
         address token,
         ProposalLimits calldata proposalLimits,
         uint256 lpInvestment,
@@ -161,7 +161,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             );
     }
 
-    function investProposal(
+    function invest(
         uint256 proposalId,
         address user,
         uint256 lpInvestment,
@@ -275,7 +275,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         return _parentTraderPoolInfo.getDivestAmounts(proposalInfos, proposalIds, lp2s);
     }
 
-    function divestProposal(
+    function divest(
         uint256 proposalId,
         address user,
         uint256 lp2,
@@ -304,7 +304,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         return receivedBase;
     }
 
-    function divestAllProposals(address user, uint256[] calldata minPositionsOut)
+    function divestAll(address user, uint256[] calldata minPositionsOut)
         external
         override
         onlyParentTraderPool
@@ -315,7 +315,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         while (length > 0) {
             uint256 proposalId = _activeInvestments[user].at(--length);
 
-            totalReceivedBase += divestProposal(
+            totalReceivedBase += divest(
                 proposalId,
                 user,
                 balanceOf(user, proposalId),

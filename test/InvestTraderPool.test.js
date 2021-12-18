@@ -12,6 +12,7 @@ const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
 const InvestTraderPool = artifacts.require("InvestTraderPool");
 const PoolProposal = artifacts.require("TraderPoolInvestProposal");
+const PoolProposalLib = artifacts.require("TraderPoolInvestProposalView");
 const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
 const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
 const TraderPoolPriceLib = artifacts.require("TraderPoolPrice");
@@ -75,6 +76,9 @@ describe("InvestTraderPool", () => {
   let traderPoolRegistry;
   let tokens = {};
 
+  let traderPool;
+  let proposalPool;
+
   async function configureBaseTokens() {
     let tokensToMint = toBN(1000000000);
     let reserveTokens = toBN(1000000);
@@ -112,8 +116,27 @@ describe("InvestTraderPool", () => {
     FACTORY = await accounts(3);
     NOTHING = await accounts(9);
 
-    // const traderPoolHelperLib = await TraderPoolHelperLib.new();
-    // await InvestTraderPool.link(traderPoolHelperLib);
+    const traderPoolPriceLib = await TraderPoolPriceLib.new();
+
+    await TraderPoolCommissionLib.link(traderPoolPriceLib);
+    await TraderPoolLeverageLib.link(traderPoolPriceLib);
+
+    const traderPoolCommissionLib = await TraderPoolCommissionLib.new();
+    const traderPoolLeverageLib = await TraderPoolLeverageLib.new();
+
+    await TraderPoolViewLib.link(traderPoolPriceLib);
+    await TraderPoolViewLib.link(traderPoolCommissionLib);
+
+    const traderPoolViewLib = await TraderPoolViewLib.new();
+
+    await InvestTraderPool.link(traderPoolCommissionLib);
+    await InvestTraderPool.link(traderPoolLeverageLib);
+    await InvestTraderPool.link(traderPoolPriceLib);
+    await InvestTraderPool.link(traderPoolViewLib);
+
+    const poolProposalLib = await PoolProposalLib.new();
+
+    await PoolProposal.link(poolProposalLib);
   });
 
   beforeEach("setup", async () => {
@@ -143,6 +166,7 @@ describe("InvestTraderPool", () => {
 
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
+    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), NOTHING);
 
     insurance = await Insurance.at(await contractsRegistry.getInsuranceContract());
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
@@ -187,11 +211,65 @@ describe("InvestTraderPool", () => {
     return [traderPool, proposal];
   }
 
+  async function invest(amount, account) {
+    const receptions = await traderPool.getInvestTokens(amount);
+    await traderPool.invest(amount, receptions.receivedAmounts, { from: account });
+  }
+
+  async function exchange(from, to, amount) {
+    const exchange = await traderPool.getExchangeAmount(from, to, amount, []);
+    await traderPool.exchange(from, to, amount, exchange, []);
+  }
+
+  async function createProposal(value, limits) {
+    const divests = await traderPool.getDivestAmountsAndCommissions(OWNER, value);
+
+    await traderPool.createProposal(value, limits, divests.receptions.receivedAmounts);
+  }
+
+  async function investProposal(proposalId, amount, account) {
+    const divests = await traderPool.getDivestAmountsAndCommissions(account, amount);
+
+    await traderPool.investProposal(proposalId, amount, divests.receptions.receivedAmounts, { from: account });
+  }
+
+  async function reinvestProposal(propoaslId, account) {
+    const divests = await proposalPool.getRewards([propoaslId], account);
+    const invests = await traderPool.getInvestTokens(divests.baseAmount);
+
+    await traderPool.reinvestProposal(propoaslId, invests.receivedAmounts, { from: account });
+  }
+
+  async function convertToDividends(proposalId) {
+    await proposalPool.convertToDividends(proposalId);
+  }
+
+  async function withdrawProposal(proposalId, amount) {
+    await proposalPool.withdraw(proposalId, amount);
+  }
+
+  async function claimProposal(proposalId, account) {
+    await proposalPool.claim(proposalId, { from: account });
+  }
+
+  async function supplyProposal(proposalId, amount) {
+    await proposalPool.supply(proposalId, amount);
+  }
+
+  async function reinvestAllProposals(account) {
+    const length = await proposalPool.getTotalActiveInvestments(account);
+    const activeProposals = await proposalPool.getActiveInvestmentsInfo(account, 0, length);
+
+    const proposals = activeProposals.map((prop) => prop.proposalId);
+
+    const divests = await proposalPool.getRewards(proposals, account);
+    const invests = await traderPool.getInvestTokens(divests.baseAmount);
+
+    await traderPool.reinvestAllProposals(invests.receivedAmounts, { from: account });
+  }
+
   describe("Default Pool", () => {
     let POOL_PARAMETERS = {};
-
-    let traderPool;
-    let proposalPool;
 
     beforeEach("Pool parameters", async () => {
       POOL_PARAMETERS = {
@@ -216,34 +294,34 @@ describe("InvestTraderPool", () => {
       });
 
       it("should revert when investing before exchange", async () => {
-        await truffleAssert.reverts(traderPool.invest(wei("100"), { from: SECOND }), "BTP: investment delay");
+        await truffleAssert.reverts(invest(wei("100"), SECOND), "ITP: investment delay");
       });
 
       it("should revert when investing with delay", async () => {
         await tokens.WETH.approve(traderPool.address, wei("100"));
 
-        await traderPool.invest(wei("100"));
-        await traderPool.exchange(tokens.WETH.address, tokens.USDT.address, wei("100"));
+        await invest(wei("100"), OWNER);
+        await exchange(tokens.WETH.address, tokens.USDT.address, wei("100"));
 
-        await truffleAssert.reverts(traderPool.invest(wei("100"), { from: SECOND }), "BTP: investment delay");
+        await truffleAssert.reverts(invest(wei("100"), SECOND), "ITP: investment delay");
       });
 
       it("should invest after delay", async () => {
         await tokens.WETH.approve(traderPool.address, wei("100"));
 
-        await traderPool.invest(wei("100"));
-        await traderPool.exchange(tokens.WETH.address, tokens.USDT.address, wei("100"));
+        await invest(wei("100"), OWNER);
+        await exchange(tokens.WETH.address, tokens.USDT.address, wei("100"));
 
         await setNextBlockTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
 
-        await truffleAssert.passes(traderPool.invest(wei("100"), { from: SECOND }), "Invested");
+        await truffleAssert.passes(invest(wei("100"), SECOND), "Invested");
       });
     });
 
     describe("createProposal", () => {
       beforeEach("setup", async () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"));
-        await traderPool.invest(wei("1000"));
+        await invest(wei("1000"), OWNER);
       });
 
       it("should create a proposal", async () => {
@@ -252,7 +330,7 @@ describe("InvestTraderPool", () => {
 
         const time = toBN(await getCurrentBlockTime());
 
-        await traderPool.createProposal(wei("100"), time.plus(100000), wei("10000"));
+        await createProposal(wei("100"), [time.plus(100000), wei("10000")]);
 
         assert.equal((await proposalPool.balanceOf(OWNER, 1)).toFixed(), wei("100"));
         assert.equal((await proposalPool.totalLockedLP()).toFixed(), wei("100"));
@@ -262,8 +340,8 @@ describe("InvestTraderPool", () => {
       it("should create 2 proposals", async () => {
         const time = toBN(await getCurrentBlockTime());
 
-        await traderPool.createProposal(wei("100"), time.plus(100000), wei("10000"));
-        await traderPool.createProposal(wei("100"), time.plus(100000), wei("10000"));
+        await createProposal(wei("100"), [time.plus(100000), wei("10000")]);
+        await createProposal(wei("100"), [time.plus(100000), wei("10000")]);
 
         assert.equal((await proposalPool.proposalsTotalNum()).toFixed(), "2");
 
@@ -279,7 +357,7 @@ describe("InvestTraderPool", () => {
     describe("investProposal", () => {
       beforeEach("setup", async () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"));
-        await traderPool.invest(wei("1000"));
+        await invest(wei("1000"), OWNER);
 
         await tokens.WETH.mint(SECOND, wei("1000"));
         await tokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
@@ -288,13 +366,13 @@ describe("InvestTraderPool", () => {
       it("should invest into the proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
 
-        await traderPool.createProposal(wei("100"), time.plus(10000000), wei("10000"));
+        await createProposal(wei("100"), [time.plus(10000000), wei("10000")]);
 
-        await traderPool.exchange(tokens.WETH.address, tokens.USDT.address, wei("100"));
+        await exchange(tokens.WETH.address, tokens.USDT.address, wei("100"));
         await setNextBlockTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
 
-        await traderPool.invest(wei("1000"), { from: SECOND });
-        await traderPool.investProposal(1, wei("500"), { from: SECOND });
+        await invest(wei("1000"), SECOND);
+        await investProposal(1, wei("500"), SECOND);
 
         assert.equal((await proposalPool.balanceOf(OWNER, 1)).toFixed(), wei("100"));
         assert.closeTo(
@@ -315,7 +393,7 @@ describe("InvestTraderPool", () => {
     describe("withdrawProposal", () => {
       beforeEach("setup", async () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"));
-        await traderPool.invest(wei("1000"));
+        await invest(wei("1000"), OWNER);
 
         await tokens.WETH.mint(SECOND, wei("1000"));
         await tokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
@@ -324,20 +402,20 @@ describe("InvestTraderPool", () => {
       it("should withdraw the deposit", async () => {
         const time = toBN(await getCurrentBlockTime());
 
-        await traderPool.createProposal(wei("100"), time.plus(10000000), wei("10000"));
+        await createProposal(wei("100"), [time.plus(10000000), wei("10000")]);
 
-        await traderPool.exchange(tokens.WETH.address, tokens.USDT.address, wei("100"));
+        await exchange(tokens.WETH.address, tokens.USDT.address, wei("100"));
         await setNextBlockTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
 
-        await traderPool.invest(wei("1000"), { from: SECOND });
-        await traderPool.investProposal(1, wei("500"), { from: SECOND });
+        await invest(wei("1000"), SECOND);
+        await investProposal(1, wei("500"), SECOND);
 
         let info = await proposalPool.proposalInfos(1);
         assert.closeTo(info.newInvestedBase.toNumber(), toBN(wei("600")).toNumber(), toBN(wei("1")).toNumber());
 
         assert.equal((await tokens.WETH.balanceOf(OWNER)).toFixed(), wei("998999000"));
 
-        await traderPool.withdrawProposal(1, wei("600"));
+        await withdrawProposal(1, wei("600"));
 
         assert.equal((await tokens.WETH.balanceOf(OWNER)).toFixed(), wei("998999600"));
 
@@ -349,31 +427,31 @@ describe("InvestTraderPool", () => {
     describe("claimProposal", () => {
       beforeEach("setup", async () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"));
-        await traderPool.invest(wei("1000"));
+        await invest(wei("1000"), OWNER);
 
         await tokens.WETH.mint(SECOND, wei("1000"));
         await tokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
 
         const time = toBN(await getCurrentBlockTime());
 
-        await traderPool.createProposal(wei("100"), time.plus(10000000), wei("10000"));
+        await createProposal(wei("100"), [time.plus(10000000), wei("10000")]);
 
-        await traderPool.exchange(tokens.WETH.address, tokens.USDT.address, wei("100"));
+        await exchange(tokens.WETH.address, tokens.USDT.address, wei("100"));
         await setNextBlockTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
 
-        await traderPool.invest(wei("1000"), { from: SECOND });
-        await traderPool.investProposal(1, wei("500"), { from: SECOND });
+        await invest(wei("1000"), SECOND);
+        await investProposal(1, wei("500"), SECOND);
       });
 
       it("should claim the deposit", async () => {
-        await traderPool.withdrawProposal(1, wei("600"));
+        await withdrawProposal(1, wei("600"));
 
         await tokens.WETH.approve(proposalPool.address, wei("600"));
-        await traderPool.supplyProposal(1, wei("600"));
+        await supplyProposal(1, wei("600"));
 
         assert.equal((await tokens.WETH.balanceOf(SECOND)).toFixed(), "0");
 
-        await traderPool.claimProposal(1, { from: SECOND });
+        await claimProposal(1, SECOND);
 
         assert.closeTo(
           (await tokens.WETH.balanceOf(SECOND)).toNumber(),
@@ -381,16 +459,16 @@ describe("InvestTraderPool", () => {
           toBN(wei("1")).toNumber()
         );
 
-        await truffleAssert.reverts(traderPool.claimProposal(1, { from: SECOND }), "TPIP: nothing to claim");
+        await truffleAssert.reverts(claimProposal(1, SECOND), "TPIP: nothing to claim");
       });
 
       it("should claim the deposit twice", async () => {
-        await traderPool.withdrawProposal(1, wei("600"));
+        await withdrawProposal(1, wei("600"));
 
         await tokens.WETH.approve(proposalPool.address, wei("1000"));
 
-        await traderPool.supplyProposal(1, wei("600"));
-        await traderPool.claimProposal(1, { from: SECOND });
+        await supplyProposal(1, wei("600"));
+        await claimProposal(1, SECOND);
 
         assert.closeTo(
           (await tokens.WETH.balanceOf(SECOND)).toNumber(),
@@ -398,14 +476,109 @@ describe("InvestTraderPool", () => {
           toBN(wei("1")).toNumber()
         );
 
-        await traderPool.supplyProposal(1, wei("400"));
-        await traderPool.claimProposal(1, { from: SECOND });
+        await supplyProposal(1, wei("400"));
+        await claimProposal(1, SECOND);
 
         assert.closeTo(
           (await tokens.WETH.balanceOf(SECOND)).toNumber(),
           toBN(wei("833")).toNumber(),
           toBN(wei("1")).toNumber()
         );
+      });
+    });
+
+    describe("reinvestProposal", () => {
+      beforeEach("setup", async () => {
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await invest(wei("1000"), OWNER);
+
+        await tokens.WETH.mint(SECOND, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
+
+        const time = toBN(await getCurrentBlockTime());
+
+        await createProposal(wei("100"), [time.plus(10000000), wei("10000")]);
+
+        await exchange(tokens.WETH.address, tokens.USDT.address, wei("100"));
+        await setNextBlockTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
+
+        await invest(wei("1000"), SECOND);
+        await investProposal(1, wei("500"), SECOND);
+      });
+
+      it("should reinvest proposal", async () => {
+        assert.closeTo(
+          (await traderPool.balanceOf(SECOND)).toNumber(),
+          toBN(wei("500")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          (await proposalPool.balanceOf(SECOND, 1)).toNumber(),
+          toBN(wei("500")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+
+        await convertToDividends(1);
+        await reinvestProposal(1, SECOND);
+
+        assert.closeTo(
+          (await traderPool.balanceOf(SECOND)).toNumber(),
+          toBN(wei("1000")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          (await proposalPool.balanceOf(SECOND, 1)).toNumber(),
+          toBN(wei("500")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+
+        await truffleAssert.reverts(reinvestProposal(1, SECOND), "TPIP: nothing to claim");
+      });
+
+      it("should reinvest all proposals", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        await createProposal(wei("200"), [time.plus(10000000), wei("5000")]);
+        await investProposal(2, wei("400"), SECOND);
+
+        await convertToDividends(1);
+        await convertToDividends(2);
+
+        assert.closeTo(
+          (await traderPool.balanceOf(SECOND)).toNumber(),
+          toBN(wei("100")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          (await proposalPool.balanceOf(SECOND, 1)).toNumber(),
+          toBN(wei("500")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          (await proposalPool.balanceOf(SECOND, 2)).toNumber(),
+          toBN(wei("400")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+
+        await reinvestAllProposals(SECOND);
+
+        assert.closeTo(
+          (await traderPool.balanceOf(SECOND)).toNumber(),
+          toBN(wei("1000")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          (await proposalPool.balanceOf(SECOND, 1)).toNumber(),
+          toBN(wei("500")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          (await proposalPool.balanceOf(SECOND, 2)).toNumber(),
+          toBN(wei("400")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+
+        await truffleAssert.reverts(reinvestAllProposals(SECOND), "TPIP: nothing to claim");
       });
     });
   });

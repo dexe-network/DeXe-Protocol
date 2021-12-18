@@ -7,6 +7,14 @@ contract TraderPoolMock is TraderPool {
     using EnumerableSet for EnumerableSet.AddressSet;
     using TraderPoolLeverage for PoolParameters;
 
+    function __TraderPoolMock_init(
+        string memory name,
+        string memory symbol,
+        PoolParameters memory _poolParameters
+    ) public initializer {
+        __TraderPool_init(name, symbol, _poolParameters);
+    }
+
     function getMaxTraderLeverage() public view returns (uint256 maxTraderLeverage) {
         (, maxTraderLeverage) = poolParameters.getMaxTraderLeverage(_openPositions);
     }

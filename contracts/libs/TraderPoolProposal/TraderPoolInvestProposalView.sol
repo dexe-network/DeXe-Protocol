@@ -19,6 +19,18 @@ library TraderPoolInvestProposalView {
     using Math for uint256;
     using Address for address;
 
+    struct ActiveInvestmentInfo {
+        uint256 proposalId;
+        uint256 lp2Balance;
+        uint256 lpInvested;
+        uint256 reward;
+    }
+
+    struct Receptions {
+        uint256 baseAmount;
+        uint256[] receivedBaseAmounts; // should be used as minAmountOut
+    }
+
     function getProposalInfos(
         mapping(uint256 => ITraderPoolInvestProposal.ProposalInfo) storage proposalInfos,
         uint256 offset,
@@ -35,16 +47,48 @@ library TraderPoolInvestProposalView {
         }
     }
 
+    function getActiveInvestmentsInfo(
+        EnumerableSet.UintSet storage activeInvestments,
+        mapping(uint256 => ITraderPoolInvestProposal.ProposalInfo) storage proposalInfos,
+        mapping(address => mapping(uint256 => uint256)) storage lpBalances,
+        mapping(address => mapping(uint256 => ITraderPoolInvestProposal.RewardInfo))
+            storage rewardInfos,
+        address user,
+        uint256 offset,
+        uint256 limit
+    ) external view returns (ActiveInvestmentInfo[] memory investments) {
+        uint256 to = (offset + limit).min(activeInvestments.length()).max(offset);
+        investments = new ActiveInvestmentInfo[](to - offset);
+
+        for (uint256 i = offset; i < to; i++) {
+            uint256 proposalId = activeInvestments.at(i);
+            uint256 balance = TraderPoolInvestProposal(address(this)).balanceOf(user, proposalId);
+
+            TraderPoolInvestProposal.RewardInfo storage rewardInfo = rewardInfos[user][proposalId];
+
+            uint256 reward = rewardInfo.rewardStored +
+                ((proposalInfos[proposalId].cumulativeSum - rewardInfo.cumulativeSumStored) *
+                    balance) /
+                PRECISION;
+
+            investments[i - offset] = ActiveInvestmentInfo(
+                proposalId,
+                balance,
+                lpBalances[user][proposalId],
+                reward
+            );
+        }
+    }
+
     function getRewards(
         mapping(uint256 => ITraderPoolInvestProposal.ProposalInfo) storage proposalInfos,
         mapping(address => mapping(uint256 => ITraderPoolInvestProposal.RewardInfo))
             storage rewardInfos,
         uint256[] calldata proposalIds,
         address user
-    ) external view returns (uint256[] memory amounts) {
-        amounts = new uint256[](proposalIds.length);
-
+    ) external view returns (Receptions memory receptions) {
         uint256 proposalsTotalNum = TraderPoolInvestProposal(address(this)).proposalsTotalNum();
+        receptions.receivedBaseAmounts = new uint256[](proposalIds.length);
 
         for (uint256 i = 0; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
@@ -55,11 +99,12 @@ library TraderPoolInvestProposalView {
 
             TraderPoolInvestProposal.RewardInfo storage rewardInfo = rewardInfos[user][proposalId];
 
-            amounts[i] =
-                rewardInfos[user][proposalId].rewardStored +
+            receptions.receivedBaseAmounts[i] =
+                rewardInfo.rewardStored +
                 ((proposalInfos[proposalId].cumulativeSum - rewardInfo.cumulativeSumStored) *
                     TraderPoolInvestProposal(address(this)).balanceOf(user, proposalId)) /
                 PRECISION;
+            receptions.baseAmount += receptions.receivedBaseAmounts[i];
         }
     }
 }
