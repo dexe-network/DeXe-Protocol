@@ -213,8 +213,8 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         _transferAndMintLP(proposalId, user, lpInvestment, baseInvestment);
         _activePortfolio(
             proposalId,
-            baseToExchange,
             baseInvestment,
+            baseToExchange,
             lpInvestment,
             new address[](0),
             minPositionOut

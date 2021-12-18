@@ -22,6 +22,7 @@ library TraderPoolRiskyProposalView {
 
     struct ActiveInvestmentInfo {
         uint256 proposalId;
+        uint256 lp2Balance;
         uint256 lpInvested;
         uint256 baseShare;
         uint256 positionShare;
@@ -75,6 +76,7 @@ library TraderPoolRiskyProposalView {
 
             investments[i - offset] = ActiveInvestmentInfo(
                 proposalId,
+                balance,
                 lpBalances[user][proposalId],
                 baseShare,
                 positionShare

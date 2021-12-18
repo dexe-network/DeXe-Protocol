@@ -75,6 +75,10 @@ abstract contract TraderPoolProposal is
         return priceFeed.getNormalizedPriceInUSD(_parentTraderPoolInfo.baseToken, investedBase);
     }
 
+    function getTotalActiveInvestments(address user) external view returns (uint256) {
+        return _activeInvestments[user].length();
+    }
+
     function _baseInProposal(uint256 proposalId) internal view virtual returns (uint256);
 
     function _transferAndMintLP(
