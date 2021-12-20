@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+/**
+ * This is the price feed contract which is used to fetch the spot price from the UniswapV2 propotol + execute swaps
+ * on its pairs. The propotol does not require price oracles to still be secure and reliable. There only is a pathfinder
+ * built into the contract
+ */
 interface IPriceFeed {
     function setPathTokens(address[] calldata pathTokens) external;
 

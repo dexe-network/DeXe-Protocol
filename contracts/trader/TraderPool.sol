@@ -49,6 +49,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     EnumerableSet.AddressSet internal _openPositions;
 
+    mapping(address => mapping(uint256 => uint256)) internal _investsInBlocks; // user => block => LP amount
+
     modifier onlyTraderAdmin() {
         require(isTraderAdmin(_msgSender()), "TP: not a trader admin");
         _;
@@ -171,6 +173,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             "TP: minting more than emission allows"
         );
 
+        _investsInBlocks[_msgSender()][block.number] += toMintLP;
         _mint(_msgSender(), toMintLP);
     }
 
@@ -377,7 +380,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         internal
         returns (uint256)
     {
-        require(amountLP <= balanceOf(_msgSender()), "TP: can't divest that amount");
+        require(
+            amountLP <= balanceOf(_msgSender()) - _investsInBlocks[_msgSender()][block.number],
+            "TP: can't divest that amount"
+        );
 
         IERC20 baseToken = IERC20(poolParameters.baseToken);
         IPriceFeed _priceFeed = priceFeed;
@@ -433,6 +439,11 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     }
 
     function _divestTrader(uint256 amountLP) internal {
+        require(
+            amountLP <= balanceOf(_msgSender()) - _investsInBlocks[_msgSender()][block.number],
+            "TP: can't divest that amount"
+        );
+
         IERC20 baseToken = IERC20(poolParameters.baseToken);
 
         uint256 traderBaseAmount = baseToken.balanceOf(address(this)).ratio(
@@ -465,7 +476,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 minDexeCommissionOut
     ) public virtual override {
         require(!isTrader(_msgSender()) || _openPositions.length() == 0, "TP: can't divest");
-        require(amountLP <= balanceOf(_msgSender()), "TP: can't divest that amount");
 
         if (isTrader(_msgSender())) {
             _divestTrader(amountLP);
