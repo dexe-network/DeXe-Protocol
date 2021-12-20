@@ -34,7 +34,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     function changeProposalRestrictions(uint256 proposalId, ProposalLimits calldata proposalLimits)
         external
         override
-        onlyParentTraderPool
+        onlyTraderAdmin
     {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
@@ -44,6 +44,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     function getProposalInfos(uint256 offset, uint256 limit)
         external
         view
+        override
         returns (ProposalInfo[] memory proposals)
     {
         return TraderPoolInvestProposalView.getProposalInfos(proposalInfos, offset, limit);
@@ -53,11 +54,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         address user,
         uint256 offset,
         uint256 limit
-    )
-        external
-        view
-        returns (TraderPoolInvestProposalView.ActiveInvestmentInfo[] memory investments)
-    {
+    ) external view override returns (ActiveInvestmentInfo[] memory investments) {
         return
             TraderPoolInvestProposalView.getActiveInvestmentsInfo(
                 _activeInvestments[user],
@@ -142,7 +139,8 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     function getRewards(uint256[] calldata proposalIds, address user)
         external
         view
-        returns (TraderPoolInvestProposalView.Receptions memory receptions)
+        override
+        returns (Receptions memory receptions)
     {
         return
             TraderPoolInvestProposalView.getRewards(proposalInfos, rewardInfos, proposalIds, user);

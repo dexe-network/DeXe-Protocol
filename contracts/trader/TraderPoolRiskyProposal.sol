@@ -43,6 +43,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     function getProposalInfos(uint256 offset, uint256 limit)
         external
         view
+        override
         returns (ProposalInfo[] memory proposals)
     {
         return TraderPoolRiskyProposalView.getProposalInfos(proposalInfos, offset, limit);
@@ -52,11 +53,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         address user,
         uint256 offset,
         uint256 limit
-    )
-        external
-        view
-        returns (TraderPoolRiskyProposalView.ActiveInvestmentInfo[] memory investments)
-    {
+    ) external view override returns (ActiveInvestmentInfo[] memory investments) {
         return
             TraderPoolRiskyProposalView.getActiveInvestmentsInfo(
                 _activeInvestments[user],
@@ -118,7 +115,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 baseInvestment,
         uint256 instantTradePercentage,
         address[] calldata optionalPath
-    ) external view returns (uint256) {
+    ) external view override returns (uint256) {
         return
             _parentTraderPoolInfo.getCreationTokens(
                 token,
@@ -151,6 +148,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     function getInvestTokens(uint256 proposalId, uint256 baseInvestment)
         external
         view
+        override
         returns (uint256 baseAmount, uint256 positionAmount)
     {
         return
@@ -270,7 +268,8 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     function getDivestAmounts(uint256[] calldata proposalIds, uint256[] calldata lp2s)
         external
         view
-        returns (TraderPoolRiskyProposalView.Receptions memory receptions)
+        override
+        returns (Receptions memory receptions)
     {
         return _parentTraderPoolInfo.getDivestAmounts(proposalInfos, proposalIds, lp2s);
     }
@@ -329,7 +328,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         address from,
         uint256 amount,
         address[] calldata optionalPath
-    ) external view returns (uint256 minAmountOut) {
+    ) external view override returns (uint256 minAmountOut) {
         return
             _parentTraderPoolInfo.getExchangeAmount(
                 proposalInfos[proposalId].token,

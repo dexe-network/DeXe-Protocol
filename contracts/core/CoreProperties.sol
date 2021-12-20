@@ -33,45 +33,62 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         _dividendsAddress = contractsRegistry.getDividendsContract();
     }
 
-    function setCoreParameters(CoreParameters calldata _coreParameters) external onlyOwner {
+    function setCoreParameters(CoreParameters calldata _coreParameters)
+        external
+        override
+        onlyOwner
+    {
         coreParameters = _coreParameters;
     }
 
-    function setMaximumPoolInvestors(uint256 count) external onlyOwner {
-        coreParameters.maximumPoolInvestors = count;
+    function setMaximumPoolInvestors(uint256 count) external override onlyOwner {
+        coreParameters.maxPoolInvestors = count;
     }
 
-    function setMaximumOpenPositions(uint256 count) external onlyOwner {
-        coreParameters.maximumOpenPositions = count;
+    function setMaximumOpenPositions(uint256 count) external override onlyOwner {
+        coreParameters.maxOpenPositions = count;
     }
 
-    function setTraderLeverageParams(uint256 threshold, uint256 slope) external onlyOwner {
+    function setTraderLeverageParams(uint256 threshold, uint256 slope)
+        external
+        override
+        onlyOwner
+    {
         coreParameters.leverageThreshold = threshold;
         coreParameters.leverageSlope = slope;
     }
 
-    function setCommissionInitTimestamp(uint256 timestamp) external onlyOwner {
+    function setCommissionInitTimestamp(uint256 timestamp) external override onlyOwner {
         coreParameters.commissionInitTimestamp = timestamp;
     }
 
-    function setCommissionDurations(uint256[] calldata durations) external onlyOwner {
+    function setCommissionDurations(uint256[] calldata durations) external override onlyOwner {
         coreParameters.commissionDurations = durations;
     }
 
     function setDEXECommissionPercentages(
         uint256 dexeCommission,
         uint256[] calldata distributionPercentages
-    ) external {
+    ) external override onlyOwner {
         coreParameters.dexeCommissionPercentage = dexeCommission;
         coreParameters.dexeCommissionDistributionPercentages = distributionPercentages;
     }
 
+    function setInsuranceParameters(uint256 insuranceFactor, uint256 maxInsurancePoolShare)
+        external
+        override
+        onlyOwner
+    {
+        coreParameters.insuranceFactor = insuranceFactor;
+        coreParameters.maxInsurancePoolShare = maxInsurancePoolShare;
+    }
+
     function getMaximumPoolInvestors() external view override returns (uint256) {
-        return coreParameters.maximumPoolInvestors;
+        return coreParameters.maxPoolInvestors;
     }
 
     function getMaximumOpenPositions() external view override returns (uint256) {
-        return coreParameters.maximumOpenPositions;
+        return coreParameters.maxOpenPositions;
     }
 
     function getTraderLeverageParams() external view override returns (uint256, uint256) {
@@ -109,11 +126,19 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
     }
 
     function getTraderCommissions() external view override returns (uint256, uint256[] memory) {
-        return (coreParameters.minimalTraderCommission, coreParameters.maximalTraderCommissions);
+        return (coreParameters.minTraderCommission, coreParameters.maxTraderCommissions);
     }
 
     function getDelayForRiskyPool() external view override returns (uint256) {
         return coreParameters.delayForRiskyPool;
+    }
+
+    function getInsuranceFactor() external view override returns (uint256) {
+        return coreParameters.insuranceFactor;
+    }
+
+    function getMaxInsurancePoolShare() external view override returns (uint256) {
+        return coreParameters.maxInsurancePoolShare;
     }
 
     function getCommissionEpoch(uint256 timestamp, CommissionPeriod commissionPeriod)

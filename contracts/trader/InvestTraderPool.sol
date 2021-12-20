@@ -23,7 +23,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
     function __InvestTraderPool_init(
         string calldata name,
         string calldata symbol,
-        ITraderPool.PoolParameters memory _poolParameters,
+        ITraderPool.PoolParameters calldata _poolParameters,
         address traderPoolProposal
     ) public override initializer {
         __TraderPool_init(name, symbol, _poolParameters);
@@ -45,13 +45,6 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
 
     function totalEmission() public view override returns (uint256) {
         return totalSupply() + _traderPoolProposal.totalLockedLP();
-    }
-
-    function changeProposalRestrictions(
-        uint256 proposalId,
-        ITraderPoolInvestProposal.ProposalLimits calldata proposalLimits
-    ) external onlyTraderAdmin {
-        _traderPoolProposal.changeProposalRestrictions(proposalId, proposalLimits);
     }
 
     function exchange(
@@ -86,7 +79,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         uint256 lpAmount,
         ITraderPoolInvestProposal.ProposalLimits calldata proposalLimits,
         uint256[] calldata minPositionsOut
-    ) external onlyTrader {
+    ) external override onlyTrader {
         uint256 baseAmount = _divestPositions(lpAmount, minPositionsOut);
 
         _traderPoolProposal.create(proposalLimits, lpAmount, baseAmount);
@@ -98,7 +91,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         uint256 proposalId,
         uint256 lpAmount,
         uint256[] calldata minPositionsOut
-    ) external {
+    ) external override {
         require(
             isTraderAdmin(_msgSender()) ||
                 (_firstExchange != 0 &&
@@ -114,13 +107,16 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         _burn(_msgSender(), lpAmount);
     }
 
-    function reinvestProposal(uint256 proposalId, uint256[] calldata minPositionsOut) external {
+    function reinvestProposal(uint256 proposalId, uint256[] calldata minPositionsOut)
+        external
+        override
+    {
         uint256 receivedBase = _traderPoolProposal.divest(proposalId, _msgSender());
 
         _invest(address(_traderPoolProposal), receivedBase, minPositionsOut);
     }
 
-    function reinvestAllProposals(uint256[] calldata minPositionsOut) external {
+    function reinvestAllProposals(uint256[] calldata minPositionsOut) external override {
         uint256 receivedBase = _traderPoolProposal.divestAll(_msgSender());
 
         _invest(address(_traderPoolProposal), receivedBase, minPositionsOut);

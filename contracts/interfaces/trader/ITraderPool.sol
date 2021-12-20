@@ -24,11 +24,86 @@ interface ITraderPool {
         uint256 commissionUnlockEpoch;
     }
 
+    struct Commissions {
+        uint256 traderBaseCommission;
+        uint256 dexeBaseCommission;
+        uint256 dexeDexeCommission;
+    }
+
+    struct Receptions {
+        uint256 baseAmount;
+        address[] positions;
+        uint256[] receivedAmounts;
+    }
+
     function priceFeed() external view returns (IPriceFeed);
 
     function coreProperties() external view returns (ICoreProperties);
 
+    function isTraderAdmin(address who) external view returns (bool);
+
+    function isTrader(address who) external view returns (bool);
+
+    function addAdmins(address[] calldata admins) external;
+
+    function removeAdmins(address[] calldata admins) external;
+
+    function changePoolParameters(
+        string calldata descriptionURL,
+        bool privatePool,
+        uint256 totalLPEmission,
+        uint256 minimalInvestment
+    ) external;
+
+    function changePrivateInvestors(bool remove, address[] calldata privateInvestors) external;
+
     function proposalPoolAddress() external view returns (address);
 
     function totalEmission() external view returns (uint256);
+
+    function getInvestTokens(uint256 amountInBaseToInvest)
+        external
+        view
+        returns (Receptions memory receptions);
+
+    function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut) external;
+
+    function getReinvestCommissions(uint256 offset, uint256 limit)
+        external
+        view
+        returns (Commissions memory commissions);
+
+    function reinvestCommission(
+        uint256 offset,
+        uint256 limit,
+        uint256 minDexeCommissionOut
+    ) external;
+
+    function getDivestAmountsAndCommissions(address user, uint256 amountLP)
+        external
+        view
+        returns (Receptions memory receptions, Commissions memory commissions);
+
+    function divest(
+        uint256 amountLP,
+        uint256[] calldata minPositionsOut,
+        uint256 minDexeCommissionOut
+    ) external;
+
+    function divestAll(uint256[] calldata minPositionsOut, uint256 minDexeCommissionOut) external;
+
+    function getExchangeAmount(
+        address from,
+        address to,
+        uint256 amount,
+        address[] calldata optionalPath
+    ) external view returns (uint256 minAmountOut);
+
+    function exchange(
+        address from,
+        address to,
+        uint256 amount,
+        uint256 minAmountOut,
+        address[] calldata optionalPath
+    ) external;
 }

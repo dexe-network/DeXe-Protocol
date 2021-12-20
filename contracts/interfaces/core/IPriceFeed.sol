@@ -2,6 +2,14 @@
 pragma solidity ^0.8.4;
 
 interface IPriceFeed {
+    function setPathTokens(address[] calldata pathTokens) external;
+
+    function removePathTokens(address[] calldata pathTokens) external;
+
+    function addSupportedBaseTokens(address[] calldata baseTokens) external;
+
+    function removeSupportedBaseTokens(address[] calldata baseTokens) external;
+
     function getExtendedPriceIn(
         address inToken,
         address outToken,
@@ -34,7 +42,7 @@ interface IPriceFeed {
         address inToken,
         address outToken,
         uint256 amount,
-        address[] memory optionalPath,
+        address[] calldata optionalPath,
         uint256 minAmountOut
     ) external returns (uint256);
 
@@ -42,7 +50,7 @@ interface IPriceFeed {
         address inToken,
         address outToken,
         uint256 amount,
-        address[] memory optionalPath,
+        address[] calldata optionalPath,
         uint256 minAmountOut
     ) external returns (uint256);
 

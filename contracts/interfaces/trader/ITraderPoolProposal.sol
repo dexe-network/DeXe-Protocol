@@ -20,4 +20,6 @@ interface ITraderPoolProposal {
     function totalLPBalances(address user) external view returns (uint256);
 
     function getInvestedBaseInUSD() external view returns (uint256);
+
+    function getTotalActiveInvestments(address user) external view returns (uint256);
 }

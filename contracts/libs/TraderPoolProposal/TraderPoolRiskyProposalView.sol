@@ -20,21 +20,6 @@ library TraderPoolRiskyProposalView {
     using Math for uint256;
     using Address for address;
 
-    struct ActiveInvestmentInfo {
-        uint256 proposalId;
-        uint256 lp2Balance;
-        uint256 lpInvested;
-        uint256 baseShare;
-        uint256 positionShare;
-    }
-
-    struct Receptions {
-        uint256 baseAmount;
-        address[] positions;
-        uint256[] receivedBaseAmounts; // should be used as minAmountOut
-        uint256[] receivedPositionAmounts; // should be used as minAmountOut
-    }
-
     function getProposalInfos(
         mapping(uint256 => ITraderPoolRiskyProposal.ProposalInfo) storage proposalInfos,
         uint256 offset,
@@ -58,10 +43,10 @@ library TraderPoolRiskyProposalView {
         address user,
         uint256 offset,
         uint256 limit
-    ) external view returns (ActiveInvestmentInfo[] memory investments) {
+    ) external view returns (ITraderPoolRiskyProposal.ActiveInvestmentInfo[] memory investments) {
         uint256 to = (offset + limit).min(activeInvestments.length()).max(offset);
 
-        investments = new ActiveInvestmentInfo[](to - offset);
+        investments = new ITraderPoolRiskyProposal.ActiveInvestmentInfo[](to - offset);
 
         for (uint256 i = offset; i < to; i++) {
             uint256 proposalId = activeInvestments.at(i);
@@ -74,7 +59,7 @@ library TraderPoolRiskyProposalView {
                 supply
             );
 
-            investments[i - offset] = ActiveInvestmentInfo(
+            investments[i - offset] = ITraderPoolRiskyProposal.ActiveInvestmentInfo(
                 proposalId,
                 balance,
                 lpBalances[user][proposalId],
@@ -140,7 +125,7 @@ library TraderPoolRiskyProposalView {
         mapping(uint256 => ITraderPoolRiskyProposal.ProposalInfo) storage proposalInfos,
         uint256[] calldata proposalIds,
         uint256[] calldata lp2s
-    ) external view returns (Receptions memory receptions) {
+    ) external view returns (ITraderPoolRiskyProposal.Receptions memory receptions) {
         receptions.positions = new address[](proposalIds.length);
         receptions.receivedBaseAmounts = new uint256[](proposalIds.length);
         receptions.receivedPositionAmounts = new uint256[](proposalIds.length);

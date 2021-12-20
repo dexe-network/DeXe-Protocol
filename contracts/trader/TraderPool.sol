@@ -63,18 +63,18 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         return _privateInvestors.contains(who);
     }
 
-    function isTraderAdmin(address who) public view returns (bool) {
+    function isTraderAdmin(address who) public view override returns (bool) {
         return traderAdmins[who];
     }
 
-    function isTrader(address who) public view returns (bool) {
+    function isTrader(address who) public view override returns (bool) {
         return poolParameters.trader == who;
     }
 
     function __TraderPool_init(
-        string memory name,
-        string memory symbol,
-        PoolParameters memory _poolParameters
+        string calldata name,
+        string calldata symbol,
+        PoolParameters calldata _poolParameters
     ) public onlyInitializing {
         __ERC20_init(name, symbol);
 
@@ -99,11 +99,11 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
     }
 
-    function addAdmins(address[] calldata admins) external onlyTraderAdmin {
+    function addAdmins(address[] calldata admins) external override onlyTraderAdmin {
         _modifyAdmins(admins, true);
     }
 
-    function removeAdmins(address[] calldata admins) external onlyTraderAdmin {
+    function removeAdmins(address[] calldata admins) external override onlyTraderAdmin {
         _modifyAdmins(admins, false);
         traderAdmins[poolParameters.trader] = true;
     }
@@ -113,7 +113,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         bool privatePool,
         uint256 totalLPEmission,
         uint256 minimalInvestment
-    ) external onlyTraderAdmin {
+    ) external override onlyTraderAdmin {
         require(
             totalLPEmission == 0 || totalEmission() <= totalLPEmission,
             "TP: wrong emission supply"
@@ -127,6 +127,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     function changePrivateInvestors(bool remove, address[] calldata privateInvestors)
         external
+        override
         onlyTraderAdmin
     {
         for (uint256 i = 0; i < privateInvestors.length; i++) {
@@ -204,7 +205,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     function getInvestTokens(uint256 amountInBaseToInvest)
         external
         view
-        returns (TraderPoolView.Receptions memory receptions)
+        override
+        returns (Receptions memory receptions)
     {
         return poolParameters.getInvestTokens(_openPositions, amountInBaseToInvest);
     }
@@ -251,6 +253,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut)
         public
         virtual
+        override
     {
         require(
             !poolParameters.privatePool ||
@@ -313,7 +316,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     function getReinvestCommissions(uint256 offset, uint256 limit)
         external
         view
-        returns (TraderPoolView.Commissions memory commissions)
+        override
+        returns (Commissions memory commissions)
     {
         return
             poolParameters.getReinvestCommissions(
@@ -329,7 +333,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 offset,
         uint256 limit,
         uint256 minDexeCommissionOut
-    ) external virtual onlyTraderAdmin {
+    ) external virtual override onlyTraderAdmin {
         require(_openPositions.length() == 0, "TP: can't reinvest with opened positions");
 
         uint256 to = (offset + limit).min(_investors.length()).max(offset);
@@ -443,10 +447,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     function getDivestAmountsAndCommissions(address user, uint256 amountLP)
         external
         view
-        returns (
-            TraderPoolView.Receptions memory receptions,
-            TraderPoolView.Commissions memory commissions
-        )
+        override
+        returns (Receptions memory receptions, Commissions memory commissions)
     {
         return
             poolParameters.getDivestAmountsAndCommissions(
@@ -461,7 +463,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 amountLP,
         uint256[] calldata minPositionsOut,
         uint256 minDexeCommissionOut
-    ) public virtual {
+    ) public virtual override {
         require(!isTrader(_msgSender()) || _openPositions.length() == 0, "TP: can't divest");
         require(amountLP <= balanceOf(_msgSender()), "TP: can't divest that amount");
 
@@ -472,7 +474,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
     }
 
-    function divestAll(uint256[] calldata minPositionsOut, uint256 minDexeCommissionOut) external {
+    function divestAll(uint256[] calldata minPositionsOut, uint256 minDexeCommissionOut)
+        external
+        override
+    {
         divest(balanceOf(_msgSender()), minPositionsOut, minDexeCommissionOut);
     }
 
@@ -481,7 +486,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         address to,
         uint256 amount,
         address[] calldata optionalPath
-    ) external view returns (uint256 minAmountOut) {
+    ) external view override returns (uint256 minAmountOut) {
         return poolParameters.getExchangeAmount(_investors, from, to, amount, optionalPath);
     }
 
@@ -491,7 +496,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 amount,
         uint256 minAmountOut,
         address[] calldata optionalPath
-    ) public virtual onlyTraderAdmin {
+    ) public virtual override onlyTraderAdmin {
         require(from != to, "TP: ambiguous exchange");
         require(
             from == poolParameters.baseToken || _openPositions.contains(from),

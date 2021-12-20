@@ -14,4 +14,16 @@ interface ITraderPoolFactory {
         ICoreProperties.CommissionPeriod commissionPeriod;
         uint256 commissionPercentage;
     }
+
+    function deployBasicPool(
+        string calldata name,
+        string calldata symbol,
+        PoolDeployParameters calldata poolDeployParameters
+    ) external;
+
+    function deployInvestPool(
+        string calldata name,
+        string calldata symbol,
+        PoolDeployParameters calldata poolDeployParameters
+    ) external;
 }

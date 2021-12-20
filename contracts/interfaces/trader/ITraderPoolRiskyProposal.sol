@@ -19,11 +19,37 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
         uint256 balancePosition;
     }
 
+    struct ActiveInvestmentInfo {
+        uint256 proposalId;
+        uint256 lp2Balance;
+        uint256 lpInvested;
+        uint256 baseShare;
+        uint256 positionShare;
+    }
+
+    struct Receptions {
+        uint256 baseAmount;
+        address[] positions;
+        uint256[] receivedBaseAmounts; // should be used as minAmountOut
+        uint256[] receivedPositionAmounts; // should be used as minAmountOut
+    }
+
     function __TraderPoolRiskyProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         external;
 
     function changeProposalRestrictions(uint256 proposalId, ProposalLimits calldata proposalLimits)
         external;
+
+    function getProposalInfos(uint256 offset, uint256 limit)
+        external
+        view
+        returns (ProposalInfo[] memory proposals);
+
+    function getActiveInvestmentsInfo(
+        address user,
+        uint256 offset,
+        uint256 limit
+    ) external view returns (ActiveInvestmentInfo[] memory investments);
 
     function create(
         address token,
@@ -35,6 +61,18 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
         address[] calldata optionalPath
     ) external;
 
+    function getCreationTokens(
+        address token,
+        uint256 baseInvestment,
+        uint256 instantTradePercentage,
+        address[] calldata optionalPath
+    ) external view returns (uint256);
+
+    function getInvestTokens(uint256 proposalId, uint256 baseInvestment)
+        external
+        view
+        returns (uint256 baseAmount, uint256 positionAmount);
+
     function invest(
         uint256 proposalId,
         address user,
@@ -42,6 +80,11 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
         uint256 baseInvestment,
         uint256 minPositionOut
     ) external;
+
+    function getDivestAmounts(uint256[] calldata proposalIds, uint256[] calldata lp2s)
+        external
+        view
+        returns (Receptions memory receptions);
 
     function divest(
         uint256 proposalId,
@@ -53,6 +96,13 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     function divestAll(address user, uint256[] calldata minPositionsOut)
         external
         returns (uint256);
+
+    function getExchangeAmount(
+        uint256 proposalId,
+        address from,
+        uint256 amount,
+        address[] calldata optionalPath
+    ) external view returns (uint256 minAmountOut);
 
     function exchange(
         uint256 proposalId,

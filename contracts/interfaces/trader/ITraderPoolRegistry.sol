@@ -2,6 +2,17 @@
 pragma solidity ^0.8.4;
 
 interface ITraderPoolRegistry {
+    function injectDependenciesToExistingPools(
+        string calldata name,
+        uint256 offset,
+        uint256 limit
+    ) external;
+
+    function setNewImplementation(string calldata name, address newImplementation) external;
+
+    function setNewImplementations(string[] calldata names, address[] calldata newImplementations)
+        external;
+
     function getImplementation(string calldata name) external view returns (address);
 
     function getProxyBeacon(string calldata name) external view returns (address);

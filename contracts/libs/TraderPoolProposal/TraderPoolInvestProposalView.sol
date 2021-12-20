@@ -19,18 +19,6 @@ library TraderPoolInvestProposalView {
     using Math for uint256;
     using Address for address;
 
-    struct ActiveInvestmentInfo {
-        uint256 proposalId;
-        uint256 lp2Balance;
-        uint256 lpInvested;
-        uint256 reward;
-    }
-
-    struct Receptions {
-        uint256 baseAmount;
-        uint256[] receivedBaseAmounts; // should be used as minAmountOut
-    }
-
     function getProposalInfos(
         mapping(uint256 => ITraderPoolInvestProposal.ProposalInfo) storage proposalInfos,
         uint256 offset,
@@ -56,9 +44,9 @@ library TraderPoolInvestProposalView {
         address user,
         uint256 offset,
         uint256 limit
-    ) external view returns (ActiveInvestmentInfo[] memory investments) {
+    ) external view returns (ITraderPoolInvestProposal.ActiveInvestmentInfo[] memory investments) {
         uint256 to = (offset + limit).min(activeInvestments.length()).max(offset);
-        investments = new ActiveInvestmentInfo[](to - offset);
+        investments = new ITraderPoolInvestProposal.ActiveInvestmentInfo[](to - offset);
 
         for (uint256 i = offset; i < to; i++) {
             uint256 proposalId = activeInvestments.at(i);
@@ -71,7 +59,7 @@ library TraderPoolInvestProposalView {
                     balance) /
                 PRECISION;
 
-            investments[i - offset] = ActiveInvestmentInfo(
+            investments[i - offset] = ITraderPoolInvestProposal.ActiveInvestmentInfo(
                 proposalId,
                 balance,
                 lpBalances[user][proposalId],
@@ -86,7 +74,7 @@ library TraderPoolInvestProposalView {
             storage rewardInfos,
         uint256[] calldata proposalIds,
         address user
-    ) external view returns (Receptions memory receptions) {
+    ) external view returns (ITraderPoolInvestProposal.Receptions memory receptions) {
         uint256 proposalsTotalNum = TraderPoolInvestProposal(address(this)).proposalsTotalNum();
         receptions.receivedBaseAmounts = new uint256[](proposalIds.length);
 

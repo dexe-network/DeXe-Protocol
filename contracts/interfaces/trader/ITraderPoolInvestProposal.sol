@@ -22,17 +22,45 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
         uint256 cumulativeSumStored; // with PRECISION
     }
 
+    struct ActiveInvestmentInfo {
+        uint256 proposalId;
+        uint256 lp2Balance;
+        uint256 lpInvested;
+        uint256 reward;
+    }
+
+    struct Receptions {
+        uint256 baseAmount;
+        uint256[] receivedBaseAmounts; // should be used as minAmountOut
+    }
+
     function __TraderPoolInvestProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         external;
 
     function changeProposalRestrictions(uint256 proposalId, ProposalLimits calldata proposalLimits)
         external;
 
+    function getProposalInfos(uint256 offset, uint256 limit)
+        external
+        view
+        returns (ProposalInfo[] memory proposals);
+
+    function getActiveInvestmentsInfo(
+        address user,
+        uint256 offset,
+        uint256 limit
+    ) external view returns (ActiveInvestmentInfo[] memory investments);
+
     function create(
         ProposalLimits calldata proposalLimits,
         uint256 lpInvestment,
         uint256 baseInvestment
     ) external;
+
+    function getRewards(uint256[] calldata proposalIds, address user)
+        external
+        view
+        returns (Receptions memory receptions);
 
     function invest(
         uint256 proposalId,

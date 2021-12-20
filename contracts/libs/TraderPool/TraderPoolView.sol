@@ -23,22 +23,10 @@ library TraderPoolView {
     using MathHelper for uint256;
     using Math for uint256;
 
-    struct Commissions {
-        uint256 traderBaseCommission;
-        uint256 dexeBaseCommission;
-        uint256 dexeDexeCommission;
-    }
-
-    struct Receptions {
-        uint256 baseAmount;
-        address[] positions;
-        uint256[] receivedAmounts;
-    }
-
     function _getTraderAndPlatformCommissions(
         ITraderPool.PoolParameters storage poolParameters,
         uint256 baseCommission
-    ) internal view returns (Commissions memory commissions) {
+    ) internal view returns (ITraderPool.Commissions memory commissions) {
         uint256 baseTokenDecimals = poolParameters.baseTokenDecimals;
         (uint256 dexePercentage, , ) = ITraderPool(address(this))
             .coreProperties()
@@ -60,7 +48,7 @@ library TraderPoolView {
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions,
         uint256 amountInBaseToInvest
-    ) external view returns (Receptions memory receptions) {
+    ) external view returns (ITraderPool.Receptions memory receptions) {
         (
             uint256 totalBase,
             uint256 currentBaseAmount,
@@ -99,9 +87,9 @@ library TraderPoolView {
         uint256 openPositionsAmount,
         uint256 offset,
         uint256 limit
-    ) external view returns (Commissions memory commissions) {
+    ) external view returns (ITraderPool.Commissions memory commissions) {
         if (openPositionsAmount != 0) {
-            return Commissions(0, 0, 0);
+            return ITraderPool.Commissions(0, 0, 0);
         }
 
         uint256 to = (offset + limit).min(investors.length()).max(offset);
@@ -133,7 +121,14 @@ library TraderPoolView {
         ITraderPool.InvestorInfo storage investorInfo,
         address investor,
         uint256 amountLP
-    ) external view returns (Receptions memory receptions, Commissions memory commissions) {
+    )
+        external
+        view
+        returns (
+            ITraderPool.Receptions memory receptions,
+            ITraderPool.Commissions memory commissions
+        )
+    {
         IERC20 baseToken = IERC20(poolParameters.baseToken);
         IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
 
