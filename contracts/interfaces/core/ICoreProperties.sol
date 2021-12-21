@@ -34,6 +34,7 @@ interface ICoreProperties {
     /// @param delayForRiskyPool the investment delay after the first exchange in the risky pool in seconds
     /// @param insuranceFactor the deposit insurance multiplier. Means how many insurance tokens is recived per deposited token
     /// @param maxInsurancePoolShare the maximal share of the pool which can be used to pay out the insurance. 3 = 1/3 of the pool
+    /// @param minInsuranceDeposit the minumal required deposit in DEXE tokens to receive an insurance
     struct CoreParameters {
         uint256 maxPoolInvestors;
         uint256 maxOpenPositions;
@@ -48,6 +49,7 @@ interface ICoreProperties {
         uint256 delayForRiskyPool;
         uint256 insuranceFactor;
         uint256 maxInsurancePoolShare;
+        uint256 minInsuranceDeposit;
     }
 
     /// @notice The function to set CoreParameters
@@ -98,8 +100,12 @@ interface ICoreProperties {
     /// @notice The function to set new insurance parameters
     /// @param insuranceFactor the deposit tokens multiplier
     /// @param maxInsurancePoolShare the maximum share of the insurance pool to be paid in a single payout
-    function setInsuranceParameters(uint256 insuranceFactor, uint256 maxInsurancePoolShare)
-        external;
+    /// @param minInsuranceDeposit the minimum allowed deposit in DEXE tokens to receive an insurance
+    function setInsuranceParameters(
+        uint256 insuranceFactor,
+        uint256 maxInsurancePoolShare,
+        uint256 minInsuranceDeposit
+    ) external;
 
     /// @notice The function to fetch the maximum pool investors
     /// @return maximum pool investors
@@ -157,6 +163,10 @@ interface ICoreProperties {
     /// @notice The function to get the max payout share of the insurance pool
     /// @return the max pool share to be paid in a single request
     function getMaxInsurancePoolShare() external view returns (uint256);
+
+    /// @notice The function to get the min allowed insurance deposit
+    /// @return the min allowed insurance deposit in DEXE tokens
+    function getMinInsuranceDeposit() external view returns (uint256);
 
     /// @notice The function to current commission epoch based on the timestamp and period
     /// @return the number of the epoch

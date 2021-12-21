@@ -17,6 +17,7 @@ CoreProperties.numberFormat = "BigNumber";
 const SECONDS_IN_DAY = 86400;
 const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
 const PRECISION = toBN(10).pow(25);
+const DECIMAL = toBN(10).pow(18);
 
 const DEFAULT_CORE_PROPERTIES = {
   maxPoolInvestors: 1000,
@@ -36,6 +37,7 @@ const DEFAULT_CORE_PROPERTIES = {
   delayForRiskyPool: SECONDS_IN_DAY * 20,
   insuranceFactor: 10,
   maxInsurancePoolShare: 3,
+  minInsuranceDeposit: DECIMAL.times(10).toFixed(),
 };
 
 describe("Insurance", async () => {
@@ -142,7 +144,7 @@ describe("Insurance", async () => {
       const deposit = 9;
       await truffleAssert.reverts(
         insurance.buyInsurance(deposit, { from: SECOND }),
-        "Insurance: insuranceAmount must be 10 or more"
+        "Insurance: deposit must be 10 or more"
       );
     });
   });
