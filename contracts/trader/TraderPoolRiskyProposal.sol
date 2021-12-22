@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 import "../interfaces/trader/ITraderPoolRiskyProposal.sol";
+import "../interfaces/trader/IBasicTraderPool.sol";
 
 import "../libs/TraderPoolProposal/TraderPoolRiskyProposalView.sol";
 
@@ -24,7 +25,6 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
 
     function __TraderPoolRiskyProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         public
-        override
         initializer
     {
         __TraderPoolProposal_init(parentTraderPoolInfo);
@@ -416,8 +416,14 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         _lpBalances[user][proposalId] -= lpTransfer;
         totalLPBalances[user] -= lpTransfer;
 
-        if (balanceOf(user, proposalId) - amount == 0) {
+        if (balanceOf(user, proposalId) == amount) {
             _activeInvestments[user].remove(proposalId);
+
+            if (_activeInvestments[user].length() == 0) {
+                IBasicTraderPool(_parentTraderPoolInfo.parentPoolAddress).checkRemoveInvestor(
+                    user
+                );
+            }
         }
     }
 
@@ -426,6 +432,8 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 proposalId,
         uint256 lpAmount
     ) internal override {
+        IBasicTraderPool(_parentTraderPoolInfo.parentPoolAddress).checkNewInvestor(user);
+
         _lpBalances[user][proposalId] += lpAmount;
         totalLPBalances[user] += lpAmount;
     }

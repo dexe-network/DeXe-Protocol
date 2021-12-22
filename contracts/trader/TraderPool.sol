@@ -141,6 +141,14 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
     }
 
+    function totalOpenPositions() external view override returns (uint256) {
+        return _openPositions.length();
+    }
+
+    function totalInvestors() external view override returns (uint256) {
+        return _investors.length();
+    }
+
     function proposalPoolAddress() external view virtual override returns (address);
 
     function totalEmission() public view virtual override returns (uint256);
@@ -184,24 +192,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         require(
             addInUSD + totalPriceInUSD <= maxTraderVolumeInUSD,
             "TP: exchange exceeds leverage"
-        );
-    }
-
-    function _updateInvestor(uint256 amountInBaseToInvest) internal {
-        _investors.add(_msgSender());
-
-        require(
-            _investors.length() <= coreProperties.getMaximumPoolInvestors(),
-            "TP: max investors"
-        );
-
-        InvestorInfo memory oldInfo = investorsInfo[_msgSender()];
-
-        investorsInfo[_msgSender()] = InvestorInfo(
-            oldInfo.investedBase + amountInBaseToInvest,
-            oldInfo.commissionUnlockEpoch == 0
-                ? poolParameters.nextCommissionEpoch()
-                : oldInfo.commissionUnlockEpoch
         );
     }
 
@@ -249,7 +239,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
 
         if (!isTrader(_msgSender())) {
-            _updateInvestor(amountInBaseToInvest);
+            _updateTo(_msgSender(), amountInBaseToInvest);
         }
     }
 
@@ -258,12 +248,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         virtual
         override
     {
-        require(
-            !poolParameters.privatePool ||
-                isTraderAdmin(_msgSender()) ||
-                _isPrivateInvestor(_msgSender()),
-            "TP: msg.sender is not allowed to invest"
-        );
         require(amountInBaseToInvest > 0, "TP: zero investment");
         require(amountInBaseToInvest >= poolParameters.minimalInvestment, "TP: underinvestment");
 
@@ -497,7 +481,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 amount,
         address[] calldata optionalPath
     ) external view override returns (uint256 minAmountOut) {
-        return poolParameters.getExchangeAmount(_investors, from, to, amount, optionalPath);
+        return poolParameters.getExchangeAmount(_openPositions, from, to, amount, optionalPath);
     }
 
     function exchange(
@@ -541,22 +525,28 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
     }
 
-    function _updateFrom(address investor, uint256 lpAmount)
+    function _updateFromData(address investor, uint256 lpAmount)
         internal
         returns (uint256 baseTransfer)
     {
         baseTransfer = investorsInfo[investor].investedBase.ratio(lpAmount, balanceOf(investor));
+        investorsInfo[investor].investedBase -= baseTransfer;
+    }
 
+    function _checkRemoveInvestor(address investor, uint256 lpAmount) internal {
         if (lpAmount == balanceOf(investor)) {
             _investors.remove(investor);
             investorsInfo[investor].commissionUnlockEpoch = 0;
         }
-
-        investorsInfo[investor].investedBase -= baseTransfer;
     }
 
-    function _updateTo(address investor, uint256 baseAmount) internal {
-        if (balanceOf(investor) == 0) {
+    function _checkNewInvestor(address investor) internal {
+        require(
+            !poolParameters.privatePool || isTraderAdmin(investor) || _isPrivateInvestor(investor),
+            "TP: private pool"
+        );
+
+        if (!_investors.contains(investor)) {
             _investors.add(investor);
             investorsInfo[investor].commissionUnlockEpoch = poolParameters.nextCommissionEpoch();
 
@@ -565,7 +555,18 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
                 "TP: max investors"
             );
         }
+    }
 
+    function _updateFrom(address investor, uint256 lpAmount)
+        internal
+        returns (uint256 baseTransfer)
+    {
+        _checkRemoveInvestor(investor, lpAmount);
+        return _updateFromData(investor, lpAmount);
+    }
+
+    function _updateTo(address investor, uint256 baseAmount) internal {
+        _checkNewInvestor(investor);
         investorsInfo[investor].investedBase += baseAmount;
     }
 
@@ -576,10 +577,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 amount
     ) internal virtual override {
         require(amount > 0, "TP: 0 transfer");
-        require(
-            !poolParameters.privatePool || isTraderAdmin(to) || _isPrivateInvestor(to),
-            "TP: prohibited transfer"
-        );
 
         if (from != address(0) && to != address(0)) {
             uint256 baseTransfer; // intended to be zero if sender is a trader

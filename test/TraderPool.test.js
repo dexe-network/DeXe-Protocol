@@ -1,6 +1,6 @@
 const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
-const { setNextBlockTime, getCurrentBlockTime } = require("./helpers/hardhatTimeTraveller");
+const { setTime, getCurrentBlockTime } = require("./helpers/hardhatTimeTraveller");
 const truffleAssert = require("truffle-assertions");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -364,8 +364,6 @@ describe("TraderPool", () => {
     });
 
     describe("commission", () => {
-      const ONE_MONTH = 60 * 60 * 24 * 30;
-
       beforeEach("setup", async () => {
         await baseTokens.WETH.mint(SECOND, wei("1000"));
 
@@ -388,7 +386,7 @@ describe("TraderPool", () => {
 
         await truffleAssert.reverts(reinvestCommission(0, 5), "TP: no commission available");
 
-        await setNextBlockTime((await getCurrentBlockTime()) + ONE_MONTH);
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_MONTH);
 
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("1000"));
 
@@ -414,7 +412,7 @@ describe("TraderPool", () => {
 
         assert.equal((await baseTokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("1500"));
 
-        await setNextBlockTime((await getCurrentBlockTime()) + ONE_MONTH);
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_MONTH);
 
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("1000"));
 
@@ -429,7 +427,7 @@ describe("TraderPool", () => {
 
         await exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
 
-        await setNextBlockTime((await getCurrentBlockTime()) + ONE_MONTH);
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_MONTH);
 
         await reinvestCommission(0, 5);
 
@@ -439,7 +437,7 @@ describe("TraderPool", () => {
           toBN(wei("0.000001")).toNumber()
         );
 
-        await setNextBlockTime((await getCurrentBlockTime()) + ONE_MONTH);
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_MONTH);
 
         await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("200"));
 

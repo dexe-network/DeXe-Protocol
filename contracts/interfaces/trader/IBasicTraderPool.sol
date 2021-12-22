@@ -4,14 +4,14 @@ pragma solidity ^0.8.4;
 import "./ITraderPoolRiskyProposal.sol";
 import "./ITraderPool.sol";
 
+/**
+ * This is the one of the possible pools that can de deployed by the trader in the DEXE platform.
+ * BasicTraderPool inherits TraderPool functionality and adds the possiblity to invest into the risky proposals.
+ * RiskyProposals are basically subpools where the trader is only allowed to open positions to the prespecified token.
+ * Investors can enter subpools by allocating parts of their funds to the proposals
+ */
 interface IBasicTraderPool {
-    function __BasicTraderPool_init(
-        string calldata name,
-        string calldata symbol,
-        ITraderPool.PoolParameters memory _poolParameters,
-        address traderPoolProposal
-    ) external;
-
+    /// @notice This function is used to create risky proposals
     function createProposal(
         address token,
         uint256 lpAmount,
@@ -40,4 +40,8 @@ interface IBasicTraderPool {
         uint256[] calldata minInvestsOut,
         uint256[] calldata minProposalsOut
     ) external;
+
+    function checkRemoveInvestor(address user) external;
+
+    function checkNewInvestor(address user) external;
 }

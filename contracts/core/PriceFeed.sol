@@ -140,7 +140,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         }
 
         if (
-            savedPath.length >= 2 &&
+            savedPath.length >= 3 &&
             savedPath[0] == inToken &&
             savedPath[savedPath.length - 1] == outToken &&
             _uniswapPairsExist(savedPath)

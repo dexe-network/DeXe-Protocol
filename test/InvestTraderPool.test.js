@@ -1,5 +1,5 @@
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
-const { setNextBlockTime, getCurrentBlockTime } = require("./helpers/hardhatTimeTraveller");
+const { setTime, getCurrentBlockTime } = require("./helpers/hardhatTimeTraveller");
 const truffleAssert = require("truffle-assertions");
 const { assert } = require("chai");
 
@@ -216,6 +216,11 @@ describe("InvestTraderPool", () => {
     await traderPool.invest(amount, receptions.receivedAmounts, { from: account });
   }
 
+  async function reinvestCommission(offset, limit) {
+    const commissions = await traderPool.getReinvestCommissions(offset, limit);
+    await traderPool.reinvestCommission(offset, limit, commissions.dexeDexeCommission);
+  }
+
   async function exchange(from, to, amount) {
     const exchange = await traderPool.getExchangeAmount(from, to, amount, []);
     await traderPool.exchange(from, to, amount, exchange, []);
@@ -312,7 +317,7 @@ describe("InvestTraderPool", () => {
         await invest(wei("100"), OWNER);
         await exchange(tokens.WETH.address, tokens.USDT.address, wei("100"));
 
-        await setNextBlockTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
 
         await truffleAssert.passes(invest(wei("100"), SECOND), "Invested");
       });
@@ -369,7 +374,7 @@ describe("InvestTraderPool", () => {
         await createProposal(wei("100"), [time.plus(10000000), wei("10000")]);
 
         await exchange(tokens.WETH.address, tokens.USDT.address, wei("100"));
-        await setNextBlockTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
 
         await invest(wei("1000"), SECOND);
         await investProposal(1, wei("500"), SECOND);
@@ -386,6 +391,49 @@ describe("InvestTraderPool", () => {
           (await traderPool.balanceOf(SECOND)).toNumber(),
           toBN(wei("500")).toNumber(),
           toBN(wei("1")).toNumber()
+        );
+      });
+
+      it("should calculate the commission correctly after the proposal investment", async () => {
+        await tokens.WETH.approve(uniswapV2Router.address, toBN(wei("10000000")));
+        await tokens.USDT.approve(uniswapV2Router.address, toBN(wei("10000000", 6)));
+
+        await exchange(tokens.WETH.address, tokens.USDT.address, wei("100"));
+
+        await uniswapV2Router.setReserve(tokens.WETH.address, toBN(wei("1000000")));
+        await uniswapV2Router.setReserve(tokens.USDT.address, toBN(wei("1000000", 6)));
+
+        await exchange(tokens.USDT.address, tokens.WETH.address, wei("100"));
+
+        await uniswapV2Router.setReserve(tokens.WETH.address, toBN(wei("1000000")));
+
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(wei("500"), [time.plus(100000000), wei("10000")]);
+
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
+
+        await invest(wei("1000"), SECOND);
+        await investProposal(1, wei("500"), SECOND);
+
+        await exchange(tokens.WETH.address, tokens.MANA.address, wei("500"));
+
+        await uniswapV2Router.setReserve(tokens.MANA.address, toBN(wei("500000")));
+        await uniswapV2Router.setReserve(tokens.WETH.address, toBN(wei("1000000")));
+
+        await exchange(tokens.MANA.address, tokens.WETH.address, wei("500"));
+
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_MONTH);
+
+        assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("500"));
+
+        const commissions = await traderPool.getReinvestCommissions(0, 5);
+        await reinvestCommission(0, 5);
+
+        assert.equal(toBN(commissions.traderBaseCommission).toFixed(), wei("52.5"));
+        assert.closeTo(
+          (await traderPool.balanceOf(OWNER)).toNumber(),
+          toBN(wei("535")).toNumber(),
+          toBN(wei("0.000001")).toNumber()
         );
       });
     });
@@ -405,7 +453,7 @@ describe("InvestTraderPool", () => {
         await createProposal(wei("100"), [time.plus(10000000), wei("10000")]);
 
         await exchange(tokens.WETH.address, tokens.USDT.address, wei("100"));
-        await setNextBlockTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
 
         await invest(wei("1000"), SECOND);
         await investProposal(1, wei("500"), SECOND);
@@ -437,7 +485,7 @@ describe("InvestTraderPool", () => {
         await createProposal(wei("100"), [time.plus(10000000), wei("10000")]);
 
         await exchange(tokens.WETH.address, tokens.USDT.address, wei("100"));
-        await setNextBlockTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
 
         await invest(wei("1000"), SECOND);
         await investProposal(1, wei("500"), SECOND);
@@ -500,7 +548,7 @@ describe("InvestTraderPool", () => {
         await createProposal(wei("100"), [time.plus(10000000), wei("10000")]);
 
         await exchange(tokens.WETH.address, tokens.USDT.address, wei("100"));
-        await setNextBlockTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
 
         await invest(wei("1000"), SECOND);
         await investProposal(1, wei("500"), SECOND);

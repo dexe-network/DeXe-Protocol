@@ -57,6 +57,10 @@ interface ITraderPool {
 
     function changePrivateInvestors(bool remove, address[] calldata privateInvestors) external;
 
+    function totalOpenPositions() external view returns (uint256);
+
+    function totalInvestors() external view returns (uint256);
+
     function proposalPoolAddress() external view returns (address);
 
     function totalEmission() external view returns (uint256);

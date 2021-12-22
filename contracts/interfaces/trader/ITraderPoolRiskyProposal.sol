@@ -34,9 +34,6 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
         uint256[] receivedPositionAmounts; // should be used as minAmountOut
     }
 
-    function __TraderPoolRiskyProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
-        external;
-
     function changeProposalRestrictions(uint256 proposalId, ProposalLimits calldata proposalLimits)
         external;
 

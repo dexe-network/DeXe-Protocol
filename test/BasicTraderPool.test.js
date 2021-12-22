@@ -1,6 +1,6 @@
 const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
-const { setNextBlockTime, getCurrentBlockTime } = require("./helpers/hardhatTimeTraveller");
+const { setTime, getCurrentBlockTime } = require("./helpers/hardhatTimeTraveller");
 const truffleAssert = require("truffle-assertions");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -210,6 +210,11 @@ describe("BasicTraderPool", () => {
   async function invest(amount, account) {
     const receptions = await traderPool.getInvestTokens(amount);
     await traderPool.invest(amount, receptions.receivedAmounts, { from: account });
+  }
+
+  async function reinvestCommission(offset, limit) {
+    const commissions = await traderPool.getReinvestCommissions(offset, limit);
+    await traderPool.reinvestCommission(offset, limit, commissions.dexeDexeCommission);
   }
 
   async function exchange(from, to, amount) {
@@ -453,6 +458,72 @@ describe("BasicTraderPool", () => {
 
         assert.closeTo(proposalInfo.balanceBase.toNumber(), toBN(wei("300")).toNumber(), toBN(wei("1")).toNumber());
         assert.closeTo(proposalInfo.balancePosition.toNumber(), toBN(wei("300")).toNumber(), toBN(wei("1")).toNumber());
+      });
+
+      it("should calculate the commission correctly after the proposal investment", async () => {
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(
+          baseTokens.WBTC.address,
+          wei("500"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          PRECISION.times(50)
+        );
+
+        await invest(wei("1000"), SECOND);
+        await investProposal(1, wei("500"), SECOND);
+
+        await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
+
+        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
+
+        await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("500000")));
+        await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
+
+        await exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("500"));
+
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_MONTH);
+
+        assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("500"));
+
+        const commissions = await traderPool.getReinvestCommissions(0, 5);
+        await reinvestCommission(0, 5);
+
+        assert.equal(toBN(commissions.traderBaseCommission).toFixed(), wei("87.5"));
+        assert.closeTo(
+          (await traderPool.balanceOf(OWNER)).toNumber(),
+          toBN(wei("558.3333333")).toNumber(),
+          toBN(wei("0.000001")).toNumber()
+        );
+      });
+
+      it("should be able to invest 100% of the funds", async () => {
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(
+          baseTokens.WBTC.address,
+          wei("1000"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          PRECISION.times(50)
+        );
+
+        await baseTokens.WBTC.approve(uniswapV2Router.address, toBN(wei("1000000", 8)));
+
+        await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
+        await uniswapV2Router.setReserve(baseTokens.WBTC.address, toBN(wei("1000000", 8)));
+
+        await invest(wei("1000"), SECOND);
+        await investProposal(1, wei("1000"), SECOND);
+
+        assert.equal((await traderPool.balanceOf(SECOND)).toFixed(), "0");
+        assert.equal((await traderPool.totalInvestors()).toFixed(), "1");
+
+        assert.equal((await proposalPool.balanceOf(SECOND, 1)).toFixed(), wei("1000"));
+
+        await proposalPool.safeTransferFrom(SECOND, OWNER, 1, wei("1000"), "0x", { from: SECOND });
+
+        assert.equal((await traderPool.balanceOf(SECOND)).toFixed(), "0");
+        assert.equal((await proposalPool.getTotalActiveInvestments(SECOND)).toFixed(), "0");
+        assert.equal((await proposalPool.balanceOf(SECOND, 1)).toFixed(), "0");
+        assert.equal((await traderPool.totalInvestors()).toFixed(), "0");
       });
 
       it("shouldn't invest into the proposal when the price is too high", async () => {

@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../interfaces/trader/ITraderPoolInvestProposal.sol";
+import "../interfaces/trader/IInvestTraderPool.sol";
 
 import "../libs/TraderPoolProposal/TraderPoolInvestProposalView.sol";
 import "../libs/DecimalsConverter.sol";
@@ -25,7 +26,6 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
     function __TraderPoolInvestProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         public
-        override
         initializer
     {
         __TraderPoolProposal_init(parentTraderPoolInfo);
@@ -147,7 +147,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     }
 
     function _claimProposal(uint256 proposalId, address user) internal returns (uint256 claimed) {
-        _updateFromHelper(user, proposalId, claimed);
+        _updateFromData(user, proposalId, claimed);
 
         claimed = rewardInfos[user][proposalId].rewardStored;
 
@@ -240,7 +240,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         proposalInfos[proposalId].cumulativeSum += (amount * PRECISION) / totalSupply(proposalId);
     }
 
-    function _updateFromHelper(
+    function _updateFromData(
         address user,
         uint256 proposalId,
         uint256 amount
@@ -258,11 +258,17 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         uint256 proposalId,
         uint256 amount
     ) internal override returns (uint256 lpTransfer) {
-        if (balanceOf(user, proposalId) - amount == 0) {
+        if (balanceOf(user, proposalId) == amount) {
             _activeInvestments[user].remove(proposalId);
+
+            if (_activeInvestments[user].length() == 0) {
+                IInvestTraderPool(_parentTraderPoolInfo.parentPoolAddress).checkRemoveInvestor(
+                    user
+                );
+            }
         }
 
-        return _updateFromHelper(user, proposalId, amount);
+        return _updateFromData(user, proposalId, amount);
     }
 
     function _updateTo(
@@ -270,6 +276,8 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         uint256 proposalId,
         uint256 lpAmount
     ) internal override {
+        IInvestTraderPool(_parentTraderPoolInfo.parentPoolAddress).checkNewInvestor(user);
+
         _updateRewards(proposalId, user);
 
         _lpBalances[user][proposalId] += lpAmount;
