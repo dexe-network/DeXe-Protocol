@@ -50,6 +50,12 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     mapping(address => mapping(uint256 => uint256)) internal _investsInBlocks; // user => block => LP amount
 
     mapping(address => InvestorInfo) public investorsInfo;
+    event Exchanged(address fromToken, address toToken, uint256 fromVolume, uint256 toVolume);
+    event PositionClosed(address position);
+    event InvestorAdded(address investor);
+    event Invest(address investor, uint256 amount, uint256 lpPurchasePrice);
+    event InvestorRemoved(address investor);
+    event Divest(address investor, uint256 amount, uint256 commission);
 
     modifier onlyTraderAdmin() {
         _onlyTraderAdmin();
