@@ -1,0 +1,13 @@
+image: node:14.17.3
+
+cache:
+  key: $CI_COMMIT_REF_NAME
+  paths:
+    - node_modules/
+
+pipeline:
+  tags:
+    - runner
+  script:
+      - npm install
+      - npm run test
