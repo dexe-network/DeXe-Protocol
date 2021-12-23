@@ -4,6 +4,11 @@ pragma solidity ^0.8.4;
 import "./ITraderPoolInvestProposal.sol";
 import "./ITraderPool.sol";
 
+/**
+ * This is the second type of the pool the trader is able to create in the DEXE platform. Similar to the BasicTraderPool,
+ * it inherits the functionality of the TraderPool yet differs in the proposals implementation. Investors can fund the
+ * investment proposals and the trader will be able to do whetever he wants to do with the received funds then
+ */
 interface IInvestTraderPool {
     function createProposal(
         uint256 lpAmount,
