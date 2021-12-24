@@ -161,6 +161,10 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         uint256 amount,
         address[] memory optionalPath
     ) public view virtual override returns (uint256) {
+        if (inToken == outToken) {
+            return amount;
+        }
+
         if (optionalPath.length == 0) {
             optionalPath = _savedPaths[_msgSender()][inToken][outToken];
         }
@@ -232,10 +236,8 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             return 0;
         }
 
-        IERC20(inToken).safeTransferFrom(_msgSender(), address(this), amount);
-
-        if (IERC20(inToken).allowance(address(this), address(_uniswapV2Router)) == 0) {
-            IERC20(inToken).safeApprove(address(_uniswapV2Router), MAX_UINT);
+        if (inToken == outToken) {
+            return amount;
         }
 
         (address[] memory path, , bool save) = _getPathWithPriceIn(
@@ -250,6 +252,12 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         if (save) {
             _savedPaths[_msgSender()][inToken][outToken] = optionalPath;
             _savedPaths[_msgSender()][outToken][inToken] = optionalPath.reverse();
+        }
+
+        IERC20(inToken).safeTransferFrom(_msgSender(), address(this), amount);
+
+        if (IERC20(inToken).allowance(address(this), address(_uniswapV2Router)) == 0) {
+            IERC20(inToken).safeApprove(address(_uniswapV2Router), MAX_UINT);
         }
 
         uint256[] memory outs = _uniswapV2Router.swapExactTokensForTokens(
