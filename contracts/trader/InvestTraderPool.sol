@@ -47,10 +47,10 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         return totalSupply() + _traderPoolProposal.totalLockedLP();
     }
 
-    function exchange(
+    function exchangeFromExact(
         address from,
         address to,
-        uint256 amount,
+        uint256 amountIn,
         uint256 minAmountOut,
         address[] calldata optionalPath
     ) public override onlyTraderAdmin {
@@ -58,7 +58,21 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
             _firstExchange = block.timestamp;
         }
 
-        super.exchange(from, to, amount, minAmountOut, optionalPath);
+        super.exchangeFromExact(from, to, amountIn, minAmountOut, optionalPath);
+    }
+
+    function exchangeToExact(
+        address from,
+        address to,
+        uint256 amountOut,
+        uint256 maxAmountIn,
+        address[] calldata optionalPath
+    ) public override onlyTraderAdmin {
+        if (_firstExchange == 0) {
+            _firstExchange = block.timestamp;
+        }
+
+        super.exchangeToExact(from, to, amountOut, maxAmountIn, optionalPath);
     }
 
     function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut)

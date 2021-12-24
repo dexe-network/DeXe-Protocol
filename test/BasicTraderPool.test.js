@@ -60,7 +60,7 @@ const DEFAULT_CORE_PROPERTIES = {
   minInsuranceDeposit: DECIMAL.times(10).toFixed(),
 };
 
-describe("BasicTraderPool", () => {
+describe.only("BasicTraderPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -217,9 +217,14 @@ describe("BasicTraderPool", () => {
     await traderPool.reinvestCommission(offset, limit, commissions.dexeDexeCommission);
   }
 
-  async function exchange(from, to, amount) {
-    const exchange = await traderPool.getExchangeAmount(from, to, amount, []);
-    await traderPool.exchange(from, to, amount, exchange, []);
+  async function exchangeFromExact(from, to, amount) {
+    const exchange = await traderPool.getExchangeFromExactAmount(from, to, amount, []);
+    await traderPool.exchangeFromExact(from, to, amount, exchange, []);
+  }
+
+  async function exchangeToExact(from, to, amount) {
+    const exchange = await traderPool.getExchangeToExactAmount(from, to, amount, []);
+    await traderPool.exchangeToExact(from, to, amount, exchange, []);
   }
 
   async function createProposal(token, value, limits, percentage) {
@@ -246,9 +251,14 @@ describe("BasicTraderPool", () => {
     });
   }
 
-  async function exchangeProposal(proposalId, from, amount) {
-    const amountOut = await proposalPool.getExchangeAmount(proposalId, from, amount, []);
-    await proposalPool.exchange(proposalId, from, amount, amountOut, []);
+  async function exchangeFromExactProposal(proposalId, from, amount) {
+    const amountOut = await proposalPool.getExchangeFromExactAmount(proposalId, from, amount, []);
+    await proposalPool.exchangeFromExact(proposalId, from, amount, amountOut, []);
+  }
+
+  async function exchangeToExactProposal(proposalId, from, amount) {
+    const amountOut = await proposalPool.getExchangeToExactAmount(proposalId, from, amount, []);
+    await proposalPool.exchangeToExact(proposalId, from, amount, amountOut, []);
   }
 
   async function reinvestProposal(propoaslId, amount, account) {
@@ -315,7 +325,7 @@ describe("BasicTraderPool", () => {
       });
 
       it("should create a proposal 2", async () => {
-        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
+        await exchangeFromExact(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
 
         await baseTokens.MANA.approve(uniswapV2Router.address, toBN(wei("1000000")));
 
@@ -332,7 +342,7 @@ describe("BasicTraderPool", () => {
       });
 
       it("should create a proposal 3", async () => {
-        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
+        await exchangeToExact(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
 
         await baseTokens.MANA.approve(uniswapV2Router.address, toBN(wei("1000000")));
 
@@ -414,7 +424,7 @@ describe("BasicTraderPool", () => {
       });
 
       it("should invest into proposal 2", async () => {
-        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
+        await exchangeFromExact(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
 
         await baseTokens.MANA.approve(uniswapV2Router.address, toBN(wei("1000000")));
 
@@ -474,12 +484,12 @@ describe("BasicTraderPool", () => {
 
         await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
-        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
+        await exchangeFromExact(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
 
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("500000")));
         await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
-        await exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("500"));
+        await exchangeFromExact(baseTokens.MANA.address, baseTokens.WETH.address, wei("500"));
 
         await setTime((await getCurrentBlockTime()) + SECONDS_IN_MONTH);
 
@@ -583,7 +593,7 @@ describe("BasicTraderPool", () => {
       });
 
       it("should create, invest and divest from proposal", async () => {
-        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
+        await exchangeToExact(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
 
         const time = toBN(await getCurrentBlockTime());
         await createProposal(
@@ -630,7 +640,7 @@ describe("BasicTraderPool", () => {
       });
 
       it("should divest from all proposals", async () => {
-        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
+        await exchangeFromExact(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
 
         await invest(wei("1000"), SECOND);
 
@@ -711,7 +721,7 @@ describe("BasicTraderPool", () => {
         assert.closeTo(proposalInfo.balanceBase.toNumber(), toBN(wei("500")).toNumber(), toBN(wei("1")).toNumber());
         assert.equal(proposalInfo.balancePosition.toFixed(), "0");
 
-        await exchangeProposal(1, baseTokens.WETH.address, wei("250"));
+        await exchangeFromExactProposal(1, baseTokens.WETH.address, wei("250"));
 
         proposalInfo = await proposalPool.proposalInfos(1);
 
@@ -730,7 +740,7 @@ describe("BasicTraderPool", () => {
 
         let proposalInfo = await proposalPool.proposalInfos(1);
 
-        await exchangeProposal(1, baseTokens.MANA.address, wei("400"));
+        await exchangeFromExactProposal(1, baseTokens.MANA.address, wei("400"));
 
         proposalInfo = await proposalPool.proposalInfos(1);
 

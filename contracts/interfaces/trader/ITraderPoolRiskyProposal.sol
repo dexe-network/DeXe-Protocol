@@ -94,18 +94,33 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
         external
         returns (uint256);
 
-    function getExchangeAmount(
+    function getExchangeFromExactAmount(
         uint256 proposalId,
         address from,
-        uint256 amount,
+        uint256 amountIn,
         address[] calldata optionalPath
     ) external view returns (uint256 minAmountOut);
 
-    function exchange(
+    function getExchangeToExactAmount(
         uint256 proposalId,
         address from,
-        uint256 amount,
+        uint256 amountOut,
+        address[] calldata optionalPath
+    ) external view returns (uint256 maxAmountIn);
+
+    function exchangeFromExact(
+        uint256 proposalId,
+        address from,
+        uint256 amountIn,
         uint256 minAmountOut,
+        address[] calldata optionalPath
+    ) external;
+
+    function exchangeToExact(
+        uint256 proposalId,
+        address from,
+        uint256 amountOut,
+        uint256 maxAmountIn,
         address[] calldata optionalPath
     ) external;
 }

@@ -27,21 +27,15 @@ library TraderPoolView {
         ITraderPool.PoolParameters storage poolParameters,
         uint256 baseCommission
     ) internal view returns (ITraderPool.Commissions memory commissions) {
-        uint256 baseTokenDecimals = poolParameters.baseTokenDecimals;
         (uint256 dexePercentage, , ) = ITraderPool(address(this))
             .coreProperties()
             .getDEXECommissionPercentages();
 
-        commissions.dexeBaseCommission = baseCommission.percentage(dexePercentage).convertFrom18(
-            baseTokenDecimals
-        );
-        commissions.traderBaseCommission =
-            baseCommission.convertFrom18(baseTokenDecimals) -
-            commissions.dexeBaseCommission;
-        commissions.dexeDexeCommission = ITraderPool(address(this)).priceFeed().getPriceInDEXE(
-            poolParameters.baseToken,
-            commissions.dexeBaseCommission
-        );
+        commissions.dexeBaseCommission = baseCommission.percentage(dexePercentage);
+        commissions.traderBaseCommission = baseCommission - commissions.dexeBaseCommission;
+        commissions.dexeDexeCommission = ITraderPool(address(this))
+            .priceFeed()
+            .getNormalizedPriceOutDEXE(poolParameters.baseToken, commissions.dexeBaseCommission);
     }
 
     function getInvestTokens(
@@ -54,28 +48,22 @@ library TraderPoolView {
             uint256 currentBaseAmount,
             address[] memory positionTokens,
             uint256[] memory positionPricesInBase
-        ) = poolParameters.getPoolPrice(openPositions);
+        ) = poolParameters.getNormalizedPoolPrice(openPositions);
 
         receptions.positions = positionTokens;
         receptions.receivedAmounts = new uint256[](positionTokens.length);
 
-        uint256 baseConverted = amountInBaseToInvest.convertFrom18(
-            poolParameters.baseTokenDecimals
-        );
-
-        address baseToken = poolParameters.baseToken;
-
         if (totalBase > 0) {
-            receptions.baseAmount = currentBaseAmount.ratio(baseConverted, totalBase);
+            receptions.baseAmount = currentBaseAmount.ratio(amountInBaseToInvest, totalBase);
         }
 
         IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
 
         for (uint256 i = 0; i < positionTokens.length; i++) {
-            receptions.receivedAmounts[i] = priceFeed.getPriceIn(
-                baseToken,
+            receptions.receivedAmounts[i] = priceFeed.getNormalizedPriceOut(
+                poolParameters.baseToken,
                 positionTokens[i],
-                positionPricesInBase[i].ratio(baseConverted, totalBase)
+                positionPricesInBase[i].ratio(amountInBaseToInvest, totalBase)
             );
         }
     }
@@ -129,7 +117,7 @@ library TraderPoolView {
             ITraderPool.Commissions memory commissions
         )
     {
-        IERC20 baseToken = IERC20(poolParameters.baseToken);
+        ERC20 baseToken = ERC20(poolParameters.baseToken);
         IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
 
         uint256 totalSupply = IERC20(address(this)).totalSupply();
@@ -138,18 +126,22 @@ library TraderPoolView {
         receptions.positions = new address[](length);
         receptions.receivedAmounts = new uint256[](length);
 
-        receptions.baseAmount = baseToken.balanceOf(address(this)).ratio(amountLP, totalSupply);
+        receptions.baseAmount = baseToken
+            .balanceOf(address(this))
+            .ratio(amountLP, totalSupply)
+            .convertTo18(baseToken.decimals());
 
         for (uint256 i = 0; i < length; i++) {
             receptions.positions[i] = openPositions.at(i);
+            uint256 positionsConverted = ERC20(receptions.positions[i])
+                .balanceOf(address(this))
+                .ratio(amountLP, totalSupply)
+                .convertTo18(ERC20(receptions.positions[i]).decimals());
 
-            receptions.receivedAmounts[i] = priceFeed.getPriceIn(
+            receptions.receivedAmounts[i] = priceFeed.getNormalizedPriceOut(
                 receptions.positions[i],
                 address(baseToken),
-                ERC20(receptions.positions[i]).balanceOf(address(this)).ratio(
-                    amountLP,
-                    totalSupply
-                )
+                positionsConverted
             );
             receptions.baseAmount += receptions.receivedAmounts[i];
         }
@@ -172,18 +164,18 @@ library TraderPoolView {
         address from,
         address to,
         uint256 amount,
-        address[] calldata optionalPath
+        address[] calldata optionalPath,
+        bool fromExact
     ) external view returns (uint256) {
         if (from == to || (from != poolParameters.baseToken && !openPositions.contains(from))) {
             return 0;
         }
 
+        IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
+
         return
-            ITraderPool(address(this)).priceFeed().getExtendedPriceIn(
-                from,
-                to,
-                amount.convertFrom18(ERC20(from).decimals()),
-                optionalPath
-            );
+            fromExact
+                ? priceFeed.getNormalizedExtendedPriceOut(from, to, amount, optionalPath)
+                : priceFeed.getNormalizedExtendedPriceIn(from, to, amount, optionalPath);
     }
 }

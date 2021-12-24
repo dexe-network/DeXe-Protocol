@@ -7,6 +7,12 @@ pragma solidity ^0.8.4;
  * built into the contract to find the optimal* path between the pairs
  */
 interface IPriceFeed {
+    struct FoundPath {
+        address[] path;
+        uint256[] amounts;
+        bool withSavedPath;
+    }
+
     /// @notice This function sets path tokens that will be used in the pathfinder
     /// @param pathTokens the array of tokens to be added into the path finder
     function setPathTokens(address[] calldata pathTokens) external;
@@ -27,56 +33,69 @@ interface IPriceFeed {
     /// custom pathfinder, saved paths and optional specified path
     /// @param inToken the token to start exchange from
     /// @param outToken the received token
-    /// @param amount the amount of inToken to be excanged (in inToken decimals)
+    /// @param amountIn the amount of inToken to be excanged (in inToken decimals)
     /// @param optionalPath the optional path between inToken and outToken that will be used in the pathfinder
     /// @return received amount of outToken after the swap (in outToken decimals)
-    function getExtendedPriceIn(
+    function getExtendedPriceOut(
         address inToken,
         address outToken,
-        uint256 amount,
+        uint256 amountIn,
         address[] memory optionalPath
     ) external view returns (uint256);
 
-    /// @notice The same functionality as "getExtedndedPriceIn" function except that there is no optionalPath option
-    /// @param inToken the token to exchange from
-    /// @param outToken the destination token (to exchange to)
-    /// @param amount the amount of inToken tokens to be exchanged (in inToken decimals)
-    /// @return amount of outToken tokens after the swap (basically price in inTokens) (in outToken decimals)
-    function getPriceIn(
+    function getExtendedPriceIn(
         address inToken,
         address outToken,
-        uint256 amount
+        uint256 amountOut,
+        address[] memory optionalPath
     ) external view returns (uint256);
 
     /// @notice Shares the same functionality as "getPriceIn" function, however it accepts and returns amount with 18 decimals
     /// regardless of the inToken and outToken decimals
     /// @param inToken the token to exchange from
     /// @param outToken the token to exchange to
-    /// @param amount the amount of inToken (with 18 decimals)
+    /// @param amountIn the amount of inToken (with 18 decimals)
     /// @return the amount of outToken after the swap (with 18 decimals)
+    function getNormalizedPriceOut(
+        address inToken,
+        address outToken,
+        uint256 amountIn
+    ) external view returns (uint256);
+
     function getNormalizedPriceIn(
         address inToken,
         address outToken,
-        uint256 amount
+        uint256 amountOut
     ) external view returns (uint256);
 
-    /// @notice The same as "getPriceIn" with "outToken" being DEXE token
-    /// @param inToken the token to be exchanged from
-    /// @param amount the amount of inToken to exchange
-    /// @return received amount of DEXE tokens after the swap
-    function getPriceInDEXE(address inToken, uint256 amount) external view returns (uint256);
+    function getNormalizedExtendedPriceOut(
+        address inToken,
+        address outToken,
+        uint256 amountIn,
+        address[] memory optionalPath
+    ) external view returns (uint256);
 
-    /// @notice The same as "getPriceIn" with "outToken" being native USD token
-    /// @param inToken the token to be exchanged from
-    /// @param amount the amount of inToken to exchange (with inToken decimals)
-    /// @return received amount of native USD tokens after the swap (with USD decimals)
-    function getPriceInUSD(address inToken, uint256 amount) external view returns (uint256);
+    function getNormalizedExtendedPriceIn(
+        address inToken,
+        address outToken,
+        uint256 amountOut,
+        address[] memory optionalPath
+    ) external view returns (uint256);
 
-    /// @notice The same as "getPriceInUSD", however the amounts are normalized (simplified to 18 decimals)
+    /// @notice The same as "getPriceOut" with "outToken" being DEXE token
     /// @param inToken the token to be exchanged from
-    /// @param amount the amount of inTokens to be exchanged (with 18 decimals)
+    /// @param amountIn the amount of inToken to exchange (with 18 decimals)
+    /// @return received amount of DEXE tokens after the swap (with 18 decimals)
+    function getNormalizedPriceOutDEXE(address inToken, uint256 amountIn)
+        external
+        view
+        returns (uint256);
+
+    /// @notice The same as "getPriceOut" with "outToken" being native USD token
+    /// @param inToken the token to be exchanged from
+    /// @param amountIn the amount of inToken to exchange (with 18 decimals)
     /// @return received amount of native USD tokens after the swap (with 18 decimals)
-    function getNormalizedPriceInUSD(address inToken, uint256 amount)
+    function getNormalizedPriceOutUSD(address inToken, uint256 amountIn)
         external
         view
         returns (uint256);
@@ -85,32 +104,48 @@ interface IPriceFeed {
     /// and sending received outTokens back. The approval to this address has to be made beforehand
     /// @param inToken the token to be exchanged from
     /// @param outToken the token to be exchanged to
-    /// @param amount the amount of inToken tokens to be exchanged
+    /// @param amountIn the amount of inToken tokens to be exchanged
     /// @param optionalPath the optional path that will be considered by the pathfinder to find the best route
     /// @param minAmountOut the minimal amount of outToken tokens that have to be received after the swap.
     /// basically this is a sandwich attack protection mechanism
     /// @return the amount of outToken tokens sent to the msg.sender after the swap
-    function exchangeTo(
+    function exchangeFromExact(
         address inToken,
         address outToken,
-        uint256 amount,
+        uint256 amountIn,
         address[] calldata optionalPath,
         uint256 minAmountOut
+    ) external returns (uint256);
+
+    function exchangeToExact(
+        address inToken,
+        address outToken,
+        uint256 amountOut,
+        address[] calldata optionalPath,
+        uint256 maxAmountIn
     ) external returns (uint256);
 
     /// @notice The same as "exchangeTo" except that the amount of inTokens and received amount of outTokens is normalized
     /// @param inToken the token to be exchanged from
     /// @param outToken the token to be exchanged to
-    /// @param amount the amount of inTokens to be exchanged (in 18 decimals)
+    /// @param amountIn the amount of inTokens to be exchanged (in 18 decimals)
     /// @param optionalPath the optional path that will be considered by the pathfinder
     /// @param minAmountOut the minimal amount of outTokens to be received. Note that this parameter is NOT normalized
     /// @return normalized amount of outTokens sent to the msg.sender after the swap
-    function normalizedExchangeTo(
+    function normalizedExchangeFromExact(
         address inToken,
         address outToken,
-        uint256 amount,
+        uint256 amountIn,
         address[] calldata optionalPath,
         uint256 minAmountOut
+    ) external returns (uint256);
+
+    function normalizedExchangeToExact(
+        address inToken,
+        address outToken,
+        uint256 amountOut,
+        address[] calldata optionalPath,
+        uint256 maxAmountIn
     ) external returns (uint256);
 
     /// @notice This function checks if the provided token can be used as a base token

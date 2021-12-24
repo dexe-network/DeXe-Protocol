@@ -57,7 +57,7 @@ library TraderPoolCommission {
         )
     {
         uint256 investorBalance = IERC20(address(this)).balanceOf(investor);
-        uint256 baseTokenBalance = poolParameters.getNormalizedBaseInPool();
+        uint256 baseTokenBalance = TraderPoolPrice.getNormalizedBalance(poolParameters.baseToken);
 
         investorBaseAmount = baseTokenBalance.ratio(investorBalance, oldTotalSupply);
 
@@ -76,7 +76,7 @@ library TraderPoolCommission {
         uint256 investorBaseAmount,
         uint256 amountLP
     ) external view returns (uint256 baseCommission, uint256 lpCommission) {
-        uint256 investedBaseConverted = investorInfo.investedBase.ratio(
+        uint256 investedBase = investorInfo.investedBase.ratio(
             amountLP,
             IERC20(address(this)).balanceOf(investor)
         );
@@ -85,19 +85,16 @@ library TraderPoolCommission {
             poolParameters,
             investorBaseAmount,
             amountLP,
-            investedBaseConverted
+            investedBase
         );
     }
 
     function calculateDexeCommission(
-        ITraderPool.PoolParameters storage poolParameters,
         uint256 baseToDistribute,
         uint256 lpToDistribute,
         uint256 dexePercentage
-    ) external view returns (uint256 lpCommission, uint256 baseCommission) {
+    ) external pure returns (uint256 lpCommission, uint256 baseCommission) {
         lpCommission = lpToDistribute.percentage(dexePercentage);
-        baseCommission = baseToDistribute.percentage(dexePercentage).convertFrom18(
-            poolParameters.baseTokenDecimals
-        );
+        baseCommission = baseToDistribute.percentage(dexePercentage);
     }
 }

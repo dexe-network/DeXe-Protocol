@@ -9,13 +9,13 @@ contract PriceFeedMock is PriceFeed {
     using SafeERC20 for IERC20;
     using MathHelper for uint256;
 
-    function getExtendedPriceIn(
+    function getExtendedPriceOut(
         address inToken,
         address outToken,
-        uint256 amount,
+        uint256 amountIn,
         address[] memory optionalPath
     ) public view override returns (uint256) {
-        if (amount == 0) {
+        if (amountIn == 0) {
             return 0;
         }
 
@@ -24,26 +24,19 @@ contract PriceFeedMock is PriceFeed {
         path[0] = inToken;
         path[1] = outToken;
 
-        uint256[] memory outs = _uniswapV2Router.getAmountsOut(amount, path);
+        uint256[] memory outs = uniswapV2Router.getAmountsOut(amountIn, path);
 
         return outs[outs.length - 1];
     }
 
-    function exchangeTo(
+    function getExtendedPriceIn(
         address inToken,
         address outToken,
-        uint256 amount,
-        address[] calldata optionalPath,
-        uint256 minAmountOut
-    ) public override returns (uint256) {
-        if (amount == 0) {
+        uint256 amountOut,
+        address[] memory optionalPath
+    ) public view override returns (uint256) {
+        if (amountOut == 0) {
             return 0;
-        }
-
-        IERC20(inToken).safeTransferFrom(_msgSender(), address(this), amount);
-
-        if (IERC20(inToken).allowance(address(this), address(_uniswapV2Router)) == 0) {
-            IERC20(inToken).safeApprove(address(_uniswapV2Router), MAX_UINT);
         }
 
         address[] memory path = new address[](2);
@@ -51,8 +44,60 @@ contract PriceFeedMock is PriceFeed {
         path[0] = inToken;
         path[1] = outToken;
 
-        uint256[] memory outs = _uniswapV2Router.swapExactTokensForTokens(
-            amount,
+        uint256[] memory ins = uniswapV2Router.getAmountsIn(amountOut, path);
+
+        return ins[0];
+    }
+
+    function exchangeFromExact(
+        address inToken,
+        address outToken,
+        uint256 amountIn,
+        address[] calldata optionalPath,
+        uint256 minAmountOut
+    ) public override returns (uint256) {
+        if (amountIn == 0) {
+            return 0;
+        }
+
+        _grabTokens(inToken, amountIn);
+
+        address[] memory path = new address[](2);
+
+        path[0] = inToken;
+        path[1] = outToken;
+
+        uint256[] memory outs = uniswapV2Router.swapExactTokensForTokens(
+            amountIn,
+            minAmountOut,
+            path,
+            _msgSender(),
+            block.timestamp
+        );
+
+        return outs[outs.length - 1];
+    }
+
+    function exchangeToExact(
+        address inToken,
+        address outToken,
+        uint256 amountIn,
+        address[] calldata optionalPath,
+        uint256 minAmountOut
+    ) public override returns (uint256) {
+        if (amountIn == 0) {
+            return 0;
+        }
+
+        _grabTokens(inToken, amountIn);
+
+        address[] memory path = new address[](2);
+
+        path[0] = inToken;
+        path[1] = outToken;
+
+        uint256[] memory outs = uniswapV2Router.swapExactTokensForTokens(
+            amountIn,
             minAmountOut,
             path,
             _msgSender(),

@@ -57,6 +57,34 @@ contract UniswapV2RouterMock {
         }
     }
 
+    /// @dev modified formula for simplicity
+    function _getAmountIn(
+        uint256 amountOut,
+        uint256 reserveIn,
+        uint256 reserveOut
+    ) internal pure returns (uint256 amountIn) {
+        require(amountOut > 0, "UniswapV2Library: INSUFFICIENT_OUTPUT_AMOUNT");
+        require(reserveIn > 0 && reserveOut > 0, "UniswapV2Library: INSUFFICIENT_LIQUIDITY");
+
+        amountIn = (amountOut * reserveIn) / reserveOut;
+    }
+
+    function getAmountsIn(uint256 amountOut, address[] memory path)
+        public
+        view
+        returns (uint256[] memory amounts)
+    {
+        require(path.length >= 2, "UniswapV2Library: INVALID_PATH");
+
+        amounts = new uint256[](path.length);
+        amounts[amounts.length - 1] = amountOut;
+
+        for (uint256 i = path.length - 1; i > 0; i--) {
+            (uint256 reserveIn, uint256 reserveOut) = _getReserves(path[i - 1], path[i]);
+            amounts[i - 1] = _getAmountIn(amounts[i], reserveIn, reserveOut);
+        }
+    }
+
     function _swap(
         uint256[] memory amounts,
         address[] memory path,
@@ -83,6 +111,20 @@ contract UniswapV2RouterMock {
             amounts[amounts.length - 1] >= amountOutMin,
             "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
         );
+
+        _swap(amounts, path, to);
+    }
+
+    function swapTokensForExactTokens(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external returns (uint256[] memory amounts) {
+        amounts = getAmountsIn(amountOut, path);
+
+        require(amounts[0] <= amountInMax, "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT");
 
         _swap(amounts, path, to);
     }

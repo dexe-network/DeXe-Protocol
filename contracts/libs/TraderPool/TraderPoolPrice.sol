@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "../../interfaces/trader/ITraderPool.sol";
@@ -13,18 +14,11 @@ library TraderPoolPrice {
     using EnumerableSet for EnumerableSet.AddressSet;
     using DecimalsConverter for uint256;
 
-    function getNormalizedBaseInPool(ITraderPool.PoolParameters storage poolParameters)
-        external
-        view
-        returns (uint256)
-    {
-        return
-            IERC20(poolParameters.baseToken).balanceOf(address(this)).convertTo18(
-                poolParameters.baseTokenDecimals
-            );
+    function getNormalizedBalance(address token) public view returns (uint256) {
+        return IERC20(token).balanceOf(address(this)).convertTo18(ERC20(token).decimals());
     }
 
-    function getPoolPrice(
+    function getNormalizedPoolPrice(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions
     )
@@ -39,9 +33,8 @@ library TraderPoolPrice {
     {
         uint256 length = openPositions.length();
 
-        IERC20 baseToken = IERC20(poolParameters.baseToken);
         IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
-        totalPriceInBase = currentBaseAmount = baseToken.balanceOf(address(this));
+        totalPriceInBase = currentBaseAmount = getNormalizedBalance(poolParameters.baseToken);
 
         positionTokens = new address[](length);
         positionPricesInBase = new uint256[](length);
@@ -49,10 +42,10 @@ library TraderPoolPrice {
         for (uint256 i = 0; i < length; i++) {
             positionTokens[i] = openPositions.at(i);
 
-            positionPricesInBase[i] = priceFeed.getPriceIn(
+            positionPricesInBase[i] = priceFeed.getNormalizedPriceOut(
                 positionTokens[i],
-                address(baseToken),
-                IERC20(positionTokens[i]).balanceOf(address(this))
+                poolParameters.baseToken,
+                getNormalizedBalance(positionTokens[i])
             );
 
             totalPriceInBase += positionPricesInBase[i];
@@ -62,15 +55,13 @@ library TraderPoolPrice {
     function getNormalizedPoolPriceInUSD(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions
-    ) external view returns (uint256 totalBaseInUSD) {
-        (uint256 totalBase, , , ) = getPoolPrice(poolParameters, openPositions);
+    ) external view returns (uint256) {
+        (uint256 totalBase, , , ) = getNormalizedPoolPrice(poolParameters, openPositions);
 
-        totalBase = totalBase.convertTo18(poolParameters.baseTokenDecimals);
-        uint256 baseInUSD = ITraderPool(address(this)).priceFeed().getNormalizedPriceInUSD(
-            poolParameters.baseToken,
-            10**18
-        );
-
-        totalBaseInUSD = (totalBase * baseInUSD) / 10**18;
+        return
+            ITraderPool(address(this)).priceFeed().getNormalizedPriceOutUSD(
+                poolParameters.baseToken,
+                totalBase
+            );
     }
 }

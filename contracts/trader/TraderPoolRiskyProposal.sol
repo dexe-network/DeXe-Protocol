@@ -136,7 +136,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
 
         info.investedLP += lpInvestment;
         info.balanceBase += baseInvestment - baseToExchange;
-        info.balancePosition += priceFeed.normalizedExchangeTo(
+        info.balancePosition += priceFeed.normalizedExchangeFromExact(
             _parentTraderPoolInfo.baseToken,
             info.token,
             baseToExchange,
@@ -181,7 +181,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             "TPRP: proposal is overinvested"
         );
 
-        uint256 tokenPriceConverted = priceFeed.getNormalizedPriceIn(
+        uint256 tokenPriceConverted = priceFeed.getNormalizedPriceOut(
             info.token,
             _parentTraderPoolInfo.baseToken,
             10**18
@@ -225,14 +225,14 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 lp2,
         uint256 minPositionOut
     ) internal returns (uint256 receivedBase, uint256 lpToBurn) {
-        uint256 propSupply = totalSupply(proposalId);
+        uint256 supply = totalSupply(proposalId);
 
-        uint256 positionShare = proposalInfos[proposalId].balancePosition.ratio(lp2, propSupply);
-        uint256 baseShare = proposalInfos[proposalId].balanceBase.ratio(lp2, propSupply);
+        uint256 positionShare = proposalInfos[proposalId].balancePosition.ratio(lp2, supply);
+        uint256 baseShare = proposalInfos[proposalId].balanceBase.ratio(lp2, supply);
 
         receivedBase =
             baseShare +
-            priceFeed.normalizedExchangeTo(
+            priceFeed.normalizedExchangeFromExact(
                 proposalInfos[proposalId].token,
                 _parentTraderPoolInfo.baseToken,
                 positionShare,
@@ -323,26 +323,37 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         }
     }
 
-    function getExchangeAmount(
+    function _getExchangeAmount(
         uint256 proposalId,
         address from,
         uint256 amount,
-        address[] calldata optionalPath
-    ) external view override returns (uint256 minAmountOut) {
+        address[] calldata optionalPath,
+        bool fromExact
+    ) internal view returns (uint256) {
         return
             _parentTraderPoolInfo.getExchangeAmount(
                 proposalInfos[proposalId].token,
                 proposalId,
                 from,
                 amount,
-                optionalPath
+                optionalPath,
+                fromExact
             );
     }
 
-    function exchange(
+    function getExchangeFromExactAmount(
         uint256 proposalId,
         address from,
-        uint256 amount,
+        uint256 amountIn,
+        address[] calldata optionalPath
+    ) external view override returns (uint256 minAmountOut) {
+        return _getExchangeAmount(proposalId, from, amountIn, optionalPath, true);
+    }
+
+    function exchangeFromExact(
+        uint256 proposalId,
+        address from,
+        uint256 amountIn,
         uint256 minAmountOut,
         address[] calldata optionalPath
     ) external override onlyTraderAdmin {
@@ -350,31 +361,81 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
 
         ProposalInfo storage info = proposalInfos[proposalId];
         address baseToken = _parentTraderPoolInfo.baseToken;
+        address positionToken = info.token;
 
-        require(from == baseToken || from == info.token, "TPRP: invalid from token");
+        require(from == baseToken || from == positionToken, "TPRP: invalid from token");
 
         if (from == baseToken) {
-            require(amount <= info.balanceBase, "TPRP: wrong base amount");
+            require(amountIn <= info.balanceBase, "TPRP: wrong base amount");
 
-            info.balanceBase -= amount;
-            info.balancePosition += priceFeed.normalizedExchangeTo(
-                from,
-                info.token,
-                amount,
-                optionalPath,
-                minAmountOut
-            );
-        } else {
-            require(amount <= info.balancePosition, "TPRP: wrong position amount");
-
-            info.balanceBase += priceFeed.normalizedExchangeTo(
-                from,
+            info.balancePosition += priceFeed.normalizedExchangeFromExact(
                 baseToken,
-                amount,
+                positionToken,
+                amountIn,
                 optionalPath,
                 minAmountOut
             );
-            info.balancePosition -= amount;
+            info.balanceBase -= amountIn;
+        } else {
+            require(amountIn <= info.balancePosition, "TPRP: wrong position amount");
+
+            info.balanceBase += priceFeed.normalizedExchangeFromExact(
+                positionToken,
+                baseToken,
+                amountIn,
+                optionalPath,
+                minAmountOut
+            );
+            info.balancePosition -= amountIn;
+        }
+    }
+
+    function getExchangeToExactAmount(
+        uint256 proposalId,
+        address from,
+        uint256 amountOut,
+        address[] calldata optionalPath
+    ) external view override returns (uint256 maxAmountIn) {
+        return _getExchangeAmount(proposalId, from, amountOut, optionalPath, true);
+    }
+
+    function exchangeToExact(
+        uint256 proposalId,
+        address from,
+        uint256 amountOut,
+        uint256 maxAmountIn,
+        address[] calldata optionalPath
+    ) external override onlyTraderAdmin {
+        require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
+
+        ProposalInfo storage info = proposalInfos[proposalId];
+        address baseToken = _parentTraderPoolInfo.baseToken;
+        address positionToken = info.token;
+
+        require(from == baseToken || from == positionToken, "TPRP: invalid from token");
+
+        if (from == baseToken) {
+            require(maxAmountIn <= info.balanceBase, "TPRP: wrong base amount");
+
+            info.balanceBase -= priceFeed.normalizedExchangeToExact(
+                baseToken,
+                positionToken,
+                amountOut,
+                optionalPath,
+                maxAmountIn
+            );
+            info.balancePosition += amountOut;
+        } else {
+            require(maxAmountIn <= info.balancePosition, "TPRP: wrong position amount");
+
+            info.balancePosition -= priceFeed.normalizedExchangeToExact(
+                positionToken,
+                baseToken,
+                amountOut,
+                optionalPath,
+                maxAmountIn
+            );
+            info.balanceBase += amountOut;
         }
     }
 
@@ -393,7 +454,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     function _baseInProposal(uint256 proposalId) internal view override returns (uint256) {
         return
             proposalInfos[proposalId].balanceBase +
-            priceFeed.getNormalizedPriceIn(
+            priceFeed.getNormalizedPriceOut(
                 proposalInfos[proposalId].token,
                 _parentTraderPoolInfo.baseToken,
                 proposalInfos[proposalId].balancePosition

@@ -13,6 +13,7 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
+import "../libs/PriceFeed/UniswapV2PathFinder.sol";
 import "../libs/DecimalsConverter.sol";
 import "../libs/ArrayHelper.sol";
 
@@ -24,9 +25,10 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     using DecimalsConverter for uint256;
     using SafeERC20 for IERC20;
     using ArrayHelper for address[];
+    using UniswapV2PathFinder for EnumerableSet.AddressSet;
 
-    IUniswapV2Factory internal _uniswapFactory;
-    IUniswapV2Router02 internal _uniswapV2Router;
+    IUniswapV2Factory public uniswapFactory;
+    IUniswapV2Router02 public uniswapV2Router;
     address internal _usdAddress;
     address internal _dexeAddress;
 
@@ -40,8 +42,8 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     }
 
     function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
-        _uniswapFactory = IUniswapV2Factory(contractsRegistry.getUniswapV2FactoryContract());
-        _uniswapV2Router = IUniswapV2Router02(contractsRegistry.getUniswapV2RouterContract());
+        uniswapFactory = IUniswapV2Factory(contractsRegistry.getUniswapV2FactoryContract());
+        uniswapV2Router = IUniswapV2Router02(contractsRegistry.getUniswapV2RouterContract());
         _usdAddress = contractsRegistry.getUSDContract();
         _dexeAddress = contractsRegistry.getDEXEContract();
     }
@@ -79,191 +81,181 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         _removeFrom(_supportedBaseTokens, baseTokens);
     }
 
-    function _uniswapPairExists(address token0, address token1) internal view returns (bool) {
-        return _uniswapFactory.getPair(token0, token1) != address(0);
-    }
-
-    function _uniswapPairsExist(address[] memory path) internal view returns (bool) {
-        for (uint256 i = 1; i < path.length; i++) {
-            if (!_uniswapPairExists(path[i - 1], path[i])) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    function _getPathWithPriceIn(
+    function getExtendedPriceOut(
         address inToken,
         address outToken,
-        uint256 amount,
-        address[] memory savedPath
-    )
-        internal
-        view
-        returns (
-            address[] memory path,
-            uint256[] memory outs,
-            bool withSavedPath
-        )
-    {
-        if (amount == 0) {
-            return (new address[](0), new uint256[](0), true);
-        }
-
-        if (_uniswapPairExists(inToken, outToken)) {
-            path = new address[](2);
-            path[0] = inToken;
-            path[1] = outToken;
-
-            outs = _uniswapV2Router.getAmountsOut(amount, path);
-        }
-
-        address[] memory path3 = new address[](3);
-        path3[0] = inToken;
-        path3[2] = outToken;
-
-        uint256[] memory tmpOuts;
-        uint256 length = _pathTokens.length();
-
-        for (uint256 i = 0; i < length; i++) {
-            path3[1] = _pathTokens.at(i);
-
-            if (_uniswapPairsExist(path3)) {
-                tmpOuts = _uniswapV2Router.getAmountsOut(amount, path3);
-
-                if (outs.length == 0 || tmpOuts[tmpOuts.length - 1] > outs[outs.length - 1]) {
-                    outs = tmpOuts;
-                    path = path3;
-                }
-            }
-        }
-
-        if (
-            savedPath.length >= 3 &&
-            savedPath[0] == inToken &&
-            savedPath[savedPath.length - 1] == outToken &&
-            _uniswapPairsExist(savedPath)
-        ) {
-            tmpOuts = _uniswapV2Router.getAmountsOut(amount, savedPath);
-
-            if (outs.length == 0 || tmpOuts[tmpOuts.length - 1] > outs[outs.length - 1]) {
-                outs = tmpOuts;
-                path = savedPath;
-                withSavedPath = true;
-            }
-        }
-    }
-
-    function getExtendedPriceIn(
-        address inToken,
-        address outToken,
-        uint256 amount,
+        uint256 amountIn,
         address[] memory optionalPath
     ) public view virtual override returns (uint256) {
         if (inToken == outToken) {
-            return amount;
+            return amountIn;
         }
 
         if (optionalPath.length == 0) {
             optionalPath = _savedPaths[_msgSender()][inToken][outToken];
         }
 
-        (, uint256[] memory outs, ) = _getPathWithPriceIn(inToken, outToken, amount, optionalPath);
+        FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceOut(
+            inToken,
+            outToken,
+            amountIn,
+            optionalPath
+        );
 
-        return outs.length > 0 ? outs[outs.length - 1] : 0;
+        return foundPath.amounts.length > 0 ? foundPath.amounts[foundPath.amounts.length - 1] : 0;
     }
 
-    function getPriceIn(
+    function getExtendedPriceIn(
         address inToken,
         address outToken,
-        uint256 amount
-    ) public view override returns (uint256) {
+        uint256 amountOut,
+        address[] memory optionalPath
+    ) public view virtual override returns (uint256) {
+        if (inToken == outToken) {
+            return amountOut;
+        }
+
+        if (optionalPath.length == 0) {
+            optionalPath = _savedPaths[_msgSender()][inToken][outToken];
+        }
+
+        FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceIn(
+            inToken,
+            outToken,
+            amountOut,
+            optionalPath
+        );
+
+        return foundPath.amounts.length > 0 ? foundPath.amounts[0] : 0;
+    }
+
+    function getNormalizedExtendedPriceOut(
+        address inToken,
+        address outToken,
+        uint256 amountIn,
+        address[] memory optionalPath
+    ) public view virtual override returns (uint256) {
+        return
+            getExtendedPriceOut(
+                inToken,
+                outToken,
+                amountIn.convertFrom18(ERC20(inToken).decimals()),
+                optionalPath
+            ).convertTo18(ERC20(outToken).decimals());
+    }
+
+    function getNormalizedExtendedPriceIn(
+        address inToken,
+        address outToken,
+        uint256 amountOut,
+        address[] memory optionalPath
+    ) public view virtual override returns (uint256) {
         return
             getExtendedPriceIn(
                 inToken,
                 outToken,
-                amount,
+                amountOut.convertFrom18(ERC20(outToken).decimals()),
+                optionalPath
+            ).convertTo18(ERC20(inToken).decimals());
+    }
+
+    function getNormalizedPriceOut(
+        address inToken,
+        address outToken,
+        uint256 amountIn
+    ) public view virtual override returns (uint256) {
+        return
+            getExtendedPriceOut(
+                inToken,
+                outToken,
+                amountIn.convertFrom18(ERC20(inToken).decimals()),
                 _savedPaths[_msgSender()][inToken][outToken]
-            );
+            ).convertTo18(ERC20(outToken).decimals());
     }
 
     function getNormalizedPriceIn(
         address inToken,
         address outToken,
-        uint256 amount
+        uint256 amountOut
     ) public view virtual override returns (uint256) {
         return
-            getPriceIn(inToken, outToken, amount.convertFrom18(ERC20(inToken).decimals()))
-                .convertTo18(ERC20(outToken).decimals());
+            getExtendedPriceIn(
+                inToken,
+                outToken,
+                amountOut.convertFrom18(ERC20(outToken).decimals()),
+                _savedPaths[_msgSender()][inToken][outToken]
+            ).convertTo18(ERC20(inToken).decimals());
     }
 
-    function getPriceInDEXE(address inToken, uint256 amount)
+    function getNormalizedPriceOutDEXE(address inToken, uint256 amountIn)
         external
         view
         override
         returns (uint256)
     {
-        return getPriceIn(inToken, _dexeAddress, amount);
+        return getNormalizedPriceOut(inToken, _dexeAddress, amountIn);
     }
 
-    function getPriceInUSD(address inToken, uint256 amount)
+    function getNormalizedPriceOutUSD(address inToken, uint256 amountIn)
         external
         view
         override
         returns (uint256)
     {
-        return getPriceIn(inToken, _usdAddress, amount);
+        return getNormalizedPriceOut(inToken, _usdAddress, amountIn);
     }
 
-    function getNormalizedPriceInUSD(address inToken, uint256 amount)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        return getNormalizedPriceIn(inToken, _usdAddress, amount);
-    }
-
-    function exchangeTo(
+    function _savePath(
         address inToken,
         address outToken,
-        uint256 amount,
+        address[] memory path,
+        bool save
+    ) internal {
+        require(path.length > 0, "PriceFeed: unreacheable asset");
+
+        if (save) {
+            _savedPaths[_msgSender()][inToken][outToken] = path;
+            _savedPaths[_msgSender()][outToken][inToken] = path.reverse();
+        }
+    }
+
+    function _grabTokens(address token, uint256 amount) internal {
+        IERC20(token).safeTransferFrom(_msgSender(), address(this), amount);
+
+        if (IERC20(token).allowance(address(this), address(uniswapV2Router)) == 0) {
+            IERC20(token).safeApprove(address(uniswapV2Router), MAX_UINT);
+        }
+    }
+
+    function exchangeFromExact(
+        address inToken,
+        address outToken,
+        uint256 amountIn,
         address[] calldata optionalPath,
         uint256 minAmountOut
     ) public virtual override returns (uint256) {
-        if (amount == 0) {
+        if (amountIn == 0) {
             return 0;
         }
 
         if (inToken == outToken) {
-            return amount;
+            return amountIn;
         }
 
-        (address[] memory path, , bool save) = _getPathWithPriceIn(
+        FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceOut(
             inToken,
             outToken,
-            amount,
+            amountIn,
             optionalPath
         );
 
-        require(path.length > 0, "PriceFeed: unreacheable asset");
+        _savePath(inToken, outToken, foundPath.path, foundPath.withSavedPath);
+        _grabTokens(inToken, amountIn);
 
-        if (save) {
-            _savedPaths[_msgSender()][inToken][outToken] = optionalPath;
-            _savedPaths[_msgSender()][outToken][inToken] = optionalPath.reverse();
-        }
-
-        IERC20(inToken).safeTransferFrom(_msgSender(), address(this), amount);
-
-        if (IERC20(inToken).allowance(address(this), address(_uniswapV2Router)) == 0) {
-            IERC20(inToken).safeApprove(address(_uniswapV2Router), MAX_UINT);
-        }
-
-        uint256[] memory outs = _uniswapV2Router.swapExactTokensForTokens(
-            amount,
+        uint256[] memory outs = uniswapV2Router.swapExactTokensForTokens(
+            amountIn,
             minAmountOut,
-            path,
+            foundPath.path,
             _msgSender(),
             block.timestamp
         );
@@ -271,21 +263,80 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         return outs[outs.length - 1];
     }
 
-    function normalizedExchangeTo(
+    function exchangeToExact(
         address inToken,
         address outToken,
-        uint256 amount,
+        uint256 amountOut,
+        address[] calldata optionalPath,
+        uint256 maxAmountIn
+    ) public virtual override returns (uint256) {
+        if (amountOut == 0) {
+            return 0;
+        }
+
+        if (inToken == outToken) {
+            return amountOut;
+        }
+
+        FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceIn(
+            inToken,
+            outToken,
+            amountOut,
+            optionalPath
+        );
+
+        _savePath(inToken, outToken, foundPath.path, foundPath.withSavedPath);
+        _grabTokens(inToken, maxAmountIn);
+
+        uint256[] memory ins = uniswapV2Router.swapTokensForExactTokens(
+            amountOut,
+            maxAmountIn,
+            foundPath.path,
+            _msgSender(),
+            block.timestamp
+        );
+
+        IERC20(inToken).safeTransfer(_msgSender(), maxAmountIn - ins[0]);
+
+        return ins[0];
+    }
+
+    function normalizedExchangeFromExact(
+        address inToken,
+        address outToken,
+        uint256 amountIn,
         address[] calldata optionalPath,
         uint256 minAmountOut
     ) external virtual override returns (uint256) {
+        uint256 outDecimals = ERC20(outToken).decimals();
+
         return
-            exchangeTo(
+            exchangeFromExact(
                 inToken,
                 outToken,
-                amount.convertFrom18(ERC20(inToken).decimals()),
+                amountIn.convertFrom18(ERC20(inToken).decimals()),
                 optionalPath,
-                minAmountOut
-            ).convertTo18(ERC20(outToken).decimals());
+                minAmountOut.convertFrom18(outDecimals)
+            ).convertTo18(outDecimals);
+    }
+
+    function normalizedExchangeToExact(
+        address inToken,
+        address outToken,
+        uint256 amountOut,
+        address[] calldata optionalPath,
+        uint256 maxAmountIn
+    ) external virtual override returns (uint256) {
+        uint256 inDecimals = ERC20(inToken).decimals();
+
+        return
+            exchangeToExact(
+                inToken,
+                outToken,
+                amountOut.convertFrom18(ERC20(outToken).decimals()),
+                optionalPath,
+                maxAmountIn.convertFrom18(inDecimals)
+            ).convertTo18(inDecimals);
     }
 
     function isSupportedBaseToken(address token) external view override returns (bool) {

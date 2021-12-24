@@ -72,7 +72,7 @@ abstract contract TraderPoolProposal is
     }
 
     function getInvestedBaseInUSD() external view override returns (uint256) {
-        return priceFeed.getNormalizedPriceInUSD(_parentTraderPoolInfo.baseToken, investedBase);
+        return priceFeed.getNormalizedPriceOutUSD(_parentTraderPoolInfo.baseToken, investedBase);
     }
 
     function getTotalActiveInvestments(address user) external view override returns (uint256) {

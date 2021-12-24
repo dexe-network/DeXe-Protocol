@@ -44,16 +44,28 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         return totalSupply() + _traderPoolProposal.totalLockedLP();
     }
 
-    function exchange(
+    function exchangeFromExact(
         address from,
         address to,
-        uint256 amount,
+        uint256 amountIn,
         uint256 minAmountOut,
         address[] calldata optionalPath
     ) public override onlyTraderAdmin {
         require(priceFeed.isSupportedBaseToken(to), "BTP: invalid exchange");
 
-        super.exchange(from, to, amount, minAmountOut, optionalPath);
+        super.exchangeFromExact(from, to, amountIn, minAmountOut, optionalPath);
+    }
+
+    function exchangeToExact(
+        address from,
+        address to,
+        uint256 amountOut,
+        uint256 maxAmountIn,
+        address[] calldata optionalPath
+    ) public override onlyTraderAdmin {
+        require(priceFeed.isSupportedBaseToken(to), "BTP: invalid exchange");
+
+        super.exchangeToExact(from, to, amountOut, maxAmountIn, optionalPath);
     }
 
     function createProposal(
