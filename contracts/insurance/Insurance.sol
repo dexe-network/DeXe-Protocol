@@ -67,16 +67,20 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         totalPool += amount;
     }
 
-    function buyInsurance(uint256 insuranceAmount) external override {
+    function buyInsurance(uint256 deposit) external override {
         require(
-            insuranceAmount >= 10 * 10**_dexe.decimals(),
-            "Insurance: insuranceAmount must be 10 or more"
+            deposit >= _coreProperties.getMinInsuranceDeposit(),
+            "Insurance: deposit must be 10 or more"
         );
 
-        userStakes[_msgSender()] += insuranceAmount;
-        _depositOnBlocks[_msgSender()][block.number] = insuranceAmount;
+        userStakes[_msgSender()] += deposit;
+        _depositOnBlocks[_msgSender()][block.number] += deposit;
 
-        _dexe.transferFrom(_msgSender(), address(this), insuranceAmount);
+        _dexe.transferFrom(_msgSender(), address(this), deposit);
+    }
+
+    function getReceivedInsurance(uint256 deposit) external view override returns (uint256) {
+        return deposit * _coreProperties.getInsuranceFactor();
     }
 
     function withdraw(uint256 amountToWithdraw) external override {
@@ -100,6 +104,10 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         _ongoingClaims.add(url);
     }
 
+    function ongoingClaimsCount() external view override returns (uint256) {
+        return _ongoingClaims.length();
+    }
+
     function listOngoingClaims(uint256 offset, uint256 limit)
         external
         view
@@ -113,6 +121,10 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         for (uint256 i = offset; i < to; i++) {
             urls[i - offset] = _ongoingClaims.at(i);
         }
+    }
+
+    function finishedClaimsCount() external view override returns (uint256) {
+        return _finishedClaims.length();
     }
 
     function listFinishedClaims(uint256 offset, uint256 limit)
@@ -138,7 +150,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         string calldata url,
         address[] calldata users,
         uint256[] memory amounts
-    ) external onlyOwner {
+    ) external override onlyOwner {
         require(_ongoingClaims.contains(url), "Insurance: invalid claim url");
 
         uint256 totalToPay;
@@ -170,7 +182,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         _ongoingClaims.remove(url);
     }
 
-    function rejectClaim(string calldata url) external onlyOwner {
+    function rejectClaim(string calldata url) external override onlyOwner {
         require(_ongoingClaims.contains(url), "Insurance: url is not ongoing");
 
         _finishedClaims.add(url);

@@ -15,10 +15,11 @@ const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
 const SECONDS_IN_DAY = 86400;
 const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
 const PRECISION = toBN(10).pow(25);
+const DECIMAL = toBN(10).pow(18);
 
 const DEFAULT_CORE_PROPERTIES = {
-  maximumPoolInvestors: 1000,
-  maximumOpenPositions: 25,
+  maxPoolInvestors: 1000,
+  maxOpenPositions: 25,
   leverageThreshold: 2500,
   leverageSlope: 5,
   commissionInitTimestamp: 0,
@@ -29,13 +30,12 @@ const DEFAULT_CORE_PROPERTIES = {
     PRECISION.times(33).toFixed(),
     PRECISION.times(33).toFixed(),
   ],
-  minimalTraderCommission: PRECISION.times(20).toFixed(),
-  maximalTraderCommissions: [
-    PRECISION.times(30).toFixed(),
-    PRECISION.times(50).toFixed(),
-    PRECISION.times(70).toFixed(),
-  ],
+  minTraderCommission: PRECISION.times(20).toFixed(),
+  maxTraderCommissions: [PRECISION.times(30).toFixed(), PRECISION.times(50).toFixed(), PRECISION.times(70).toFixed()],
   delayForRiskyPool: SECONDS_IN_DAY * 20,
+  insuranceFactor: 10,
+  maxInsurancePoolShare: 3,
+  minInsuranceDeposit: DECIMAL.times(10).toFixed(),
 };
 
 module.exports = async (deployer) => {

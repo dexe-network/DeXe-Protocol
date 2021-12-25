@@ -12,12 +12,17 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
 
     ITraderPoolRiskyProposal internal _traderPoolProposal;
 
+    modifier onlyProposalPool() {
+        require(_msgSender() == address(_traderPoolProposal), "BTP: not a proposal");
+        _;
+    }
+
     function __BasicTraderPool_init(
         string calldata name,
         string calldata symbol,
         ITraderPool.PoolParameters calldata _poolParameters,
         address traderPoolProposal
-    ) public override initializer {
+    ) public initializer {
         __TraderPool_init(name, symbol, _poolParameters);
 
         _traderPoolProposal = ITraderPoolRiskyProposal(traderPoolProposal);
@@ -39,16 +44,28 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         return totalSupply() + _traderPoolProposal.totalLockedLP();
     }
 
-    function exchange(
+    function exchangeFromExact(
         address from,
         address to,
-        uint256 amount,
+        uint256 amountIn,
         uint256 minAmountOut,
         address[] calldata optionalPath
     ) public override onlyTraderAdmin {
         require(priceFeed.isSupportedBaseToken(to), "BTP: invalid exchange");
 
-        super.exchange(from, to, amount, minAmountOut, optionalPath);
+        super.exchangeFromExact(from, to, amountIn, minAmountOut, optionalPath);
+    }
+
+    function exchangeToExact(
+        address from,
+        address to,
+        uint256 amountOut,
+        uint256 maxAmountIn,
+        address[] calldata optionalPath
+    ) public override onlyTraderAdmin {
+        require(priceFeed.isSupportedBaseToken(to), "BTP: invalid exchange");
+
+        super.exchangeToExact(from, to, amountOut, maxAmountIn, optionalPath);
     }
 
     function createProposal(
@@ -85,7 +102,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
 
         _traderPoolProposal.invest(proposalId, _msgSender(), lpAmount, baseAmount, minProposalOut);
 
-        _updateFrom(_msgSender(), lpAmount);
+        _updateFromData(_msgSender(), lpAmount);
         _burn(_msgSender(), lpAmount);
     }
 
@@ -112,5 +129,17 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256 receivedBase = _traderPoolProposal.divestAll(_msgSender(), minProposalsOut);
 
         _invest(address(_traderPoolProposal), receivedBase, minInvestsOut);
+    }
+
+    function checkRemoveInvestor(address user) external override onlyProposalPool {
+        if (user != poolParameters.trader) {
+            _checkRemoveInvestor(user, 0);
+        }
+    }
+
+    function checkNewInvestor(address user) external override onlyProposalPool {
+        if (user != poolParameters.trader) {
+            _checkNewInvestor(user);
+        }
     }
 }

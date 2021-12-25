@@ -57,6 +57,10 @@ interface ITraderPool {
 
     function changePrivateInvestors(bool remove, address[] calldata privateInvestors) external;
 
+    function totalOpenPositions() external view returns (uint256);
+
+    function totalInvestors() external view returns (uint256);
+
     function proposalPoolAddress() external view returns (address);
 
     function totalEmission() external view returns (uint256);
@@ -92,18 +96,33 @@ interface ITraderPool {
 
     function divestAll(uint256[] calldata minPositionsOut, uint256 minDexeCommissionOut) external;
 
-    function getExchangeAmount(
+    function getExchangeFromExactAmount(
         address from,
         address to,
-        uint256 amount,
+        uint256 amountIn,
         address[] calldata optionalPath
     ) external view returns (uint256 minAmountOut);
 
-    function exchange(
+    function exchangeFromExact(
         address from,
         address to,
-        uint256 amount,
+        uint256 amountIn,
         uint256 minAmountOut,
+        address[] calldata optionalPath
+    ) external;
+
+    function getExchangeToExactAmount(
+        address from,
+        address to,
+        uint256 amountOut,
+        address[] calldata optionalPath
+    ) external view returns (uint256 maxAmountIn);
+
+    function exchangeToExact(
+        address from,
+        address to,
+        uint256 amountOut,
+        uint256 maxAmountIn,
         address[] calldata optionalPath
     ) external;
 }

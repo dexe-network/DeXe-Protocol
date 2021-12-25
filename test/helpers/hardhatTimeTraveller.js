@@ -1,5 +1,10 @@
 const setNextBlockTime = async (time) => {
-  return await network.provider.send("evm_setNextBlockTimestamp", [time]);
+  await network.provider.send("evm_setNextBlockTimestamp", [time]);
+};
+
+const setTime = async (time) => {
+  await network.provider.send("evm_setNextBlockTimestamp", [time]);
+  await mine();
 };
 
 const getCurrentBlockTime = async () => {
@@ -15,5 +20,6 @@ const mine = async (numberOfBlocks = 1) => {
 module.exports = {
   getCurrentBlockTime,
   setNextBlockTime,
+  setTime,
   mine,
 };

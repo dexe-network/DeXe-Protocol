@@ -19,6 +19,7 @@ const InvestPoolProposalLib = artifacts.require("TraderPoolInvestProposalView");
 const RiskyPoolProposal = artifacts.require("TraderPoolRiskyProposal");
 const InvestPoolProposal = artifacts.require("TraderPoolInvestProposal");
 const TraderPoolFactory = artifacts.require("TraderPoolFactory");
+const UniswapV2PathFinderLib = artifacts.require("UniswapV2PathFinder");
 
 ContractsRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
@@ -35,6 +36,7 @@ TraderPoolFactory.numberFormat = "BigNumber";
 const SECONDS_IN_DAY = 86400;
 const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
 const PRECISION = toBN(10).pow(25);
+const DECIMAL = toBN(10).pow(18);
 
 const ComissionPeriods = {
   PERIOD_1: 0,
@@ -60,6 +62,7 @@ const DEFAULT_CORE_PROPERTIES = {
   delayForRiskyPool: SECONDS_IN_DAY * 20,
   insuranceFactor: 10,
   maxInsurancePoolShare: 3,
+  minInsuranceDeposit: DECIMAL.times(10).toFixed(),
 };
 
 describe("TraderPoolFactory", () => {
@@ -106,6 +109,10 @@ describe("TraderPoolFactory", () => {
 
     await RiskyPoolProposal.link(riskyPoolProposalLib);
     await InvestPoolProposal.link(investPoolProposalLib);
+
+    const uniswapV2PathFinderLib = await UniswapV2PathFinderLib.new();
+
+    await PriceFeed.link(uniswapV2PathFinderLib);
   });
 
   beforeEach("setup", async () => {

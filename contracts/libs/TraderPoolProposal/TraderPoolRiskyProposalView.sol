@@ -82,10 +82,10 @@ library TraderPoolRiskyProposalView {
         }
 
         return
-            ITraderPoolRiskyProposal(address(this)).priceFeed().getExtendedPriceIn(
+            ITraderPoolRiskyProposal(address(this)).priceFeed().getNormalizedExtendedPriceOut(
                 baseToken,
                 token,
-                baseToExchange.convertFrom18(parentTraderPoolInfo.baseTokenDecimals),
+                baseToExchange,
                 optionalPath
             );
     }
@@ -102,21 +102,18 @@ library TraderPoolRiskyProposalView {
 
         IPriceFeed priceFeed = ITraderPoolRiskyProposal(address(this)).priceFeed();
 
-        uint256 tokensPriceConverted = priceFeed.getNormalizedPriceIn(
+        uint256 tokensPrice = priceFeed.getNormalizedPriceOut(
             info.token,
             parentTraderPoolInfo.baseToken,
             info.balancePosition
         );
-        uint256 baseToExchange = baseInvestment.ratio(
-            tokensPriceConverted,
-            tokensPriceConverted + info.balanceBase
-        );
+        uint256 baseToExchange = baseInvestment.ratio(tokensPrice, tokensPrice + info.balanceBase);
 
         baseAmount = baseInvestment - baseToExchange;
-        positionAmount = priceFeed.getPriceIn(
+        positionAmount = priceFeed.getNormalizedPriceOut(
             parentTraderPoolInfo.baseToken,
             info.token,
-            baseToExchange.convertFrom18(parentTraderPoolInfo.baseTokenDecimals)
+            baseToExchange
         );
     }
 
@@ -145,14 +142,13 @@ library TraderPoolRiskyProposalView {
             if (propSupply > 0) {
                 receptions.receivedPositionAmounts[i] = proposalInfos[proposalId]
                     .balancePosition
-                    .ratio(lp2s[i], propSupply)
-                    .convertFrom18(proposalInfos[proposalId].tokenDecimals);
-                receptions.baseAmount += proposalInfos[proposalId]
-                    .balanceBase
-                    .ratio(lp2s[i], propSupply)
-                    .convertFrom18(parentTraderPoolInfo.baseTokenDecimals);
+                    .ratio(lp2s[i], propSupply);
+                receptions.baseAmount += proposalInfos[proposalId].balanceBase.ratio(
+                    lp2s[i],
+                    propSupply
+                );
 
-                receptions.receivedBaseAmounts[i] = priceFeed.getPriceIn(
+                receptions.receivedBaseAmounts[i] = priceFeed.getNormalizedPriceOut(
                     proposalInfos[proposalId].token,
                     parentTraderPoolInfo.baseToken,
                     receptions.receivedPositionAmounts[i]
@@ -169,8 +165,9 @@ library TraderPoolRiskyProposalView {
         uint256 proposalId,
         address from,
         uint256 amount,
-        address[] calldata optionalPath
-    ) external view returns (uint256 minAmountOut) {
+        address[] calldata optionalPath,
+        bool fromExact
+    ) external view returns (uint256) {
         if (proposalId > TraderPoolRiskyProposal(address(this)).proposalsTotalNum()) {
             return 0;
         }
@@ -188,12 +185,11 @@ library TraderPoolRiskyProposalView {
             to = baseToken;
         }
 
+        IPriceFeed priceFeed = ITraderPoolRiskyProposal(address(this)).priceFeed();
+
         return
-            ITraderPoolRiskyProposal(address(this)).priceFeed().getExtendedPriceIn(
-                from,
-                to,
-                amount.convertFrom18(parentTraderPoolInfo.baseTokenDecimals),
-                optionalPath
-            );
+            fromExact
+                ? priceFeed.getNormalizedExtendedPriceOut(from, to, amount, optionalPath)
+                : priceFeed.getNormalizedExtendedPriceIn(from, to, amount, optionalPath);
     }
 }

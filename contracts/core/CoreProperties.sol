@@ -74,13 +74,26 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         coreParameters.dexeCommissionDistributionPercentages = distributionPercentages;
     }
 
-    function setInsuranceParameters(uint256 insuranceFactor, uint256 maxInsurancePoolShare)
-        external
-        override
-        onlyOwner
-    {
+    function setTraderCommissionPercentages(
+        uint256 minTraderCommission,
+        uint256[] calldata maxTraderCommissions
+    ) external override onlyOwner {
+        coreParameters.minTraderCommission = minTraderCommission;
+        coreParameters.maxTraderCommissions = maxTraderCommissions;
+    }
+
+    function setDelayForRiskyPool(uint256 delayForRiskyPool) external override onlyOwner {
+        coreParameters.delayForRiskyPool = delayForRiskyPool;
+    }
+
+    function setInsuranceParameters(
+        uint256 insuranceFactor,
+        uint256 maxInsurancePoolShare,
+        uint256 minInsuranceDeposit
+    ) external override onlyOwner {
         coreParameters.insuranceFactor = insuranceFactor;
         coreParameters.maxInsurancePoolShare = maxInsurancePoolShare;
+        coreParameters.minInsuranceDeposit = minInsuranceDeposit;
     }
 
     function getMaximumPoolInvestors() external view override returns (uint256) {
@@ -139,6 +152,10 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
 
     function getMaxInsurancePoolShare() external view override returns (uint256) {
         return coreParameters.maxInsurancePoolShare;
+    }
+
+    function getMinInsuranceDeposit() external view override returns (uint256) {
+        return coreParameters.minInsuranceDeposit;
     }
 
     function getCommissionEpoch(uint256 timestamp, CommissionPeriod commissionPeriod)

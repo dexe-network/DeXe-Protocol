@@ -6,12 +6,12 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "../interfaces/trader/ITraderPoolFactory.sol";
 import "../interfaces/core/IContractsRegistry.sol";
-import "../interfaces/trader/IBasicTraderPool.sol";
-import "../interfaces/trader/IInvestTraderPool.sol";
 import "../interfaces/trader/ITraderPool.sol";
-import "../interfaces/trader/ITraderPoolRiskyProposal.sol";
-import "../interfaces/trader/ITraderPoolInvestProposal.sol";
 
+import "../trader/BasicTraderPool.sol";
+import "../trader/InvestTraderPool.sol";
+import "../trader/TraderPoolRiskyProposal.sol";
+import "../trader/TraderPoolInvestProposal.sol";
 import "../trader/TraderPoolRegistry.sol";
 import "../helpers/AbstractDependant.sol";
 import "../core/CoreProperties.sol";
@@ -69,14 +69,14 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         address poolProxy = _deployTraderPool(_traderPoolRegistry.BASIC_POOL_NAME());
         address proposalProxy = _deploy(_traderPoolRegistry.RISKY_PROPOSAL_NAME());
 
-        IBasicTraderPool(poolProxy).__BasicTraderPool_init(
+        BasicTraderPool(poolProxy).__BasicTraderPool_init(
             name,
             symbol,
             poolParameters,
             proposalProxy
         );
 
-        ITraderPoolRiskyProposal(proposalProxy).__TraderPoolRiskyProposal_init(
+        TraderPoolRiskyProposal(proposalProxy).__TraderPoolRiskyProposal_init(
             ITraderPoolProposal.ParentTraderPoolInfo(
                 poolProxy,
                 poolParameters.trader,
@@ -100,14 +100,14 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         address poolProxy = _deployTraderPool(_traderPoolRegistry.INVEST_POOL_NAME());
         address proposalProxy = _deploy(_traderPoolRegistry.INVEST_PROPOSAL_NAME());
 
-        IInvestTraderPool(poolProxy).__InvestTraderPool_init(
+        InvestTraderPool(poolProxy).__InvestTraderPool_init(
             name,
             symbol,
             poolParameters,
             proposalProxy
         );
 
-        ITraderPoolInvestProposal(proposalProxy).__TraderPoolInvestProposal_init(
+        TraderPoolInvestProposal(proposalProxy).__TraderPoolInvestProposal_init(
             ITraderPoolProposal.ParentTraderPoolInfo(
                 poolProxy,
                 poolParameters.trader,

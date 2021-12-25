@@ -72,7 +72,7 @@ abstract contract TraderPoolProposal is
     }
 
     function getInvestedBaseInUSD() external view override returns (uint256) {
-        return priceFeed.getNormalizedPriceInUSD(_parentTraderPoolInfo.baseToken, investedBase);
+        return priceFeed.getNormalizedPriceOutUSD(_parentTraderPoolInfo.baseToken, investedBase);
     }
 
     function getTotalActiveInvestments(address user) external view override returns (uint256) {
@@ -137,8 +137,6 @@ abstract contract TraderPoolProposal is
             require(amounts[i] > 0, "TPP: 0 transfer");
 
             if (from != address(0) && to != address(0)) {
-                require(balanceOf(to, ids[i]) > 0, "TPP: prohibited transfer");
-
                 uint256 lpTransfer = _updateFrom(from, ids[i], amounts[i]);
                 _updateTo(to, ids[i], lpTransfer);
             }

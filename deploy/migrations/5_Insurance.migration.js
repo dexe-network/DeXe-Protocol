@@ -5,8 +5,9 @@ const ContractsRegistry = artifacts.require("ContractsRegistry");
 
 const Insurace = artifacts.require("Insurance");
 
-const treasuryAddress = "";
-const dividendsAddress = "";
+// TODO change to actual addresses
+const treasuryAddress = "0x53638975BC11de3029E46DF193d64879EAeA94eB";
+const dividendsAddress = "0x53638975BC11de3029E46DF193d64879EAeA94eB";
 
 module.exports = async (deployer) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
@@ -18,11 +19,11 @@ module.exports = async (deployer) => {
     "AddProxy Insurance"
   );
   logTransaction(
-    await contractsRegistry.addProxyContract(await contractsRegistry.TREASURY_NAME(), insurance.address),
+    await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), treasuryAddress),
     "Add Treasury"
   );
   logTransaction(
-    await contractsRegistry.addProxyContract(await contractsRegistry.DIVIDENDS_NAME(), insurance.address),
+    await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), dividendsAddress),
     "Add Dividends"
   );
 };

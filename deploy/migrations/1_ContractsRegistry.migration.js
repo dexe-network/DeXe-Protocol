@@ -3,6 +3,7 @@ const { logTransaction } = require("../runners/logger.js");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const TransparentUpgradeableProxy = artifacts.require("TransparentUpgradeableProxy");
 
+// TODO change to DAO address
 const proxyAdmin = "0x53638975BC11de3029E46DF193d64879EAeA94eB";
 
 module.exports = async (deployer) => {
