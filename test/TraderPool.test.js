@@ -11,7 +11,10 @@ const PriceFeedMock = artifacts.require("PriceFeedMock");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
 const TraderPoolMock = artifacts.require("TraderPoolMock");
-const TraderPoolHelperLib = artifacts.require("TraderPoolHelper");
+const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
+const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
+const TraderPoolPriceLib = artifacts.require("TraderPoolPrice");
+const TraderPoolViewLib = artifacts.require("TraderPoolView");
 
 ContractsRegistry.numberFormat = "BigNumber";
 Insurance.numberFormat = "BigNumber";
@@ -33,8 +36,8 @@ const ComissionPeriods = {
 };
 
 const DEFAULT_CORE_PROPERTIES = {
-  maximumPoolInvestors: 1000,
-  maximumOpenPositions: 25,
+  maxPoolInvestors: 1000,
+  maxOpenPositions: 25,
   leverageThreshold: 2500,
   leverageSlope: 5,
   commissionInitTimestamp: 0,
@@ -45,13 +48,11 @@ const DEFAULT_CORE_PROPERTIES = {
     PRECISION.times(33).toFixed(),
     PRECISION.times(33).toFixed(),
   ],
-  minimalTraderCommission: PRECISION.times(20).toFixed(),
-  maximalTraderCommissions: [
-    PRECISION.times(30).toFixed(),
-    PRECISION.times(50).toFixed(),
-    PRECISION.times(70).toFixed(),
-  ],
+  minTraderCommission: PRECISION.times(20).toFixed(),
+  maxTraderCommissions: [PRECISION.times(30).toFixed(), PRECISION.times(50).toFixed(), PRECISION.times(70).toFixed()],
   delayForRiskyPool: SECONDS_IN_DAY * 20,
+  insuranceFactor: 10,
+  maxInsurancePoolShare: 3,
 };
 
 describe("TraderPool", () => {
@@ -63,23 +64,25 @@ describe("TraderPool", () => {
 
   let insurance;
   let DEXE;
-  let DAI;
+  let USD;
   let coreProperties;
   let priceFeed;
   let uniswapV2Router;
   let traderPoolRegistry;
   let baseTokens = {};
 
+  let traderPool;
+
   async function configureBaseTokens() {
     let tokensToMint = toBN(1000000000);
     let reserveTokens = toBN(1000000);
 
-    let tokens = ["DAI", "DEXE", "WETH", "USDT", "MANA", "WBTC"];
+    let tokens = ["USD", "DEXE", "WETH", "USDT", "MANA", "WBTC"];
     let decimals = [18, 18, 18, 6, 18, 8];
 
     for (let i = 0; i < tokens.length; i++) {
-      if (tokens[i] == "DAI") {
-        baseTokens[tokens[i]] = DAI;
+      if (tokens[i] == "USD") {
+        baseTokens[tokens[i]] = USD;
       } else if (tokens[i] == "DEXE") {
         baseTokens[tokens[i]] = DEXE;
       } else {
@@ -104,15 +107,30 @@ describe("TraderPool", () => {
     FACTORY = await accounts(3);
     NOTHING = await accounts(9);
 
-    const traderPoolHelperLib = await TraderPoolHelperLib.new();
-    await TraderPoolMock.link(traderPoolHelperLib);
+    const traderPoolPriceLib = await TraderPoolPriceLib.new();
+
+    await TraderPoolCommissionLib.link(traderPoolPriceLib);
+    await TraderPoolLeverageLib.link(traderPoolPriceLib);
+
+    const traderPoolCommissionLib = await TraderPoolCommissionLib.new();
+    const traderPoolLeverageLib = await TraderPoolLeverageLib.new();
+
+    await TraderPoolViewLib.link(traderPoolPriceLib);
+    await TraderPoolViewLib.link(traderPoolCommissionLib);
+
+    const traderPoolViewLib = await TraderPoolViewLib.new();
+
+    await TraderPoolMock.link(traderPoolCommissionLib);
+    await TraderPoolMock.link(traderPoolLeverageLib);
+    await TraderPoolMock.link(traderPoolPriceLib);
+    await TraderPoolMock.link(traderPoolViewLib);
   });
 
   beforeEach("setup", async () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _insurance = await Insurance.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
-    DAI = await ERC20Mock.new("DAI", "DAI", 18);
+    USD = await ERC20Mock.new("USD", "USD", 18);
     const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeedMock.new();
     uniswapV2Router = await UniswapV2RouterMock.new();
@@ -129,12 +147,13 @@ describe("TraderPool", () => {
     );
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
-    await contractsRegistry.addContract(await contractsRegistry.DAI_NAME(), DAI.address);
+    await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
     await contractsRegistry.addContract(await contractsRegistry.TRADER_POOL_FACTORY_NAME(), FACTORY);
 
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
+    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), NOTHING);
 
     insurance = await Insurance.at(await contractsRegistry.getInsuranceContract());
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
@@ -159,7 +178,7 @@ describe("TraderPool", () => {
 
     const traderPool = await TraderPoolMock.new();
 
-    await traderPool.__TraderPool_init("Test pool", "TP", poolParameters);
+    await traderPool.__TraderPoolMock_init("Test pool", "TP", poolParameters);
 
     await traderPoolRegistry.addPool(OWNER, NAME, traderPool.address, {
       from: FACTORY,
@@ -170,10 +189,31 @@ describe("TraderPool", () => {
     return traderPool;
   }
 
+  async function invest(amount, account) {
+    const receptions = await traderPool.getInvestTokens(amount);
+    await traderPool.invest(amount, receptions.receivedAmounts, { from: account });
+  }
+
+  async function divest(amount, account) {
+    const divests = await traderPool.getDivestAmountsAndCommissions(OWNER, amount);
+
+    await traderPool.divest(amount, divests.receptions.receivedAmounts, divests.commissions.dexeDexeCommission, {
+      from: account,
+    });
+  }
+
+  async function reinvestCommission(offset, limit) {
+    const commissions = await traderPool.getReinvestCommissions(offset, limit);
+    await traderPool.reinvestCommission(offset, limit, commissions.dexeDexeCommission);
+  }
+
+  async function exchange(from, to, amount) {
+    const exchange = await traderPool.getExchangeAmount(from, to, amount, []);
+    await traderPool.exchange(from, to, amount, exchange, []);
+  }
+
   describe("Default TraderPool", () => {
     let POOL_PARAMETERS;
-
-    let traderPool;
 
     beforeEach("setup", async () => {
       POOL_PARAMETERS = {
@@ -194,7 +234,7 @@ describe("TraderPool", () => {
     describe("invest", () => {
       it("should invest", async () => {
         await baseTokens.WETH.approve(traderPool.address, wei("1000"));
-        await traderPool.invest(wei("1000"));
+        await invest(wei("1000"), OWNER);
 
         assert.isTrue((await traderPool.isTrader(OWNER)) && (await traderPool.isTraderAdmin(OWNER)));
 
@@ -204,8 +244,8 @@ describe("TraderPool", () => {
 
       it("should invest twice", async () => {
         await baseTokens.WETH.approve(traderPool.address, wei("1000"));
-        await traderPool.invest(wei("500"));
-        await traderPool.invest(wei("500"));
+        await invest(wei("500"), OWNER);
+        await invest(wei("500"), OWNER);
 
         assert.equal((await baseTokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("1000"));
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("1000"));
@@ -215,10 +255,10 @@ describe("TraderPool", () => {
         await baseTokens.WETH.mint(SECOND, wei("1000"));
 
         await baseTokens.WETH.approve(traderPool.address, wei("1000"));
-        await traderPool.invest(wei("1000"));
+        await invest(wei("1000"), OWNER);
 
         await baseTokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
-        await traderPool.invest(wei("1000"), { from: SECOND });
+        await invest(wei("1000"), SECOND);
 
         assert.equal((await baseTokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("2000"));
         assert.equal((await traderPool.balanceOf(SECOND)).toFixed(), wei("1000"));
@@ -249,8 +289,12 @@ describe("TraderPool", () => {
         let threshold = toBN(2500);
         let slope = toBN(5);
 
+        await coreProperties.setTraderLeverageParams(threshold, slope);
+        await baseTokens.WETH.approve(traderPool.address, wei(usd.toFixed()));
+        await invest(wei(usd.toFixed()), OWNER);
+
         assert.equal(
-          (await traderPool.getMaxTraderLeverage(wei(usd.toFixed()), threshold, slope)).toFixed(),
+          (await traderPool.getMaxTraderLeverage()).toFixed(),
           wei(leverage(usd.toNumber(), threshold.toNumber(), slope.toNumber()).toFixed())
         );
       }
@@ -275,47 +319,39 @@ describe("TraderPool", () => {
     });
 
     describe("position", () => {
-      it("should open a position", async () => {
+      beforeEach("setup", async () => {
         await baseTokens.WETH.approve(traderPool.address, wei("1000"));
-        await traderPool.invest(wei("1000"));
+        await invest(wei("1000"), OWNER);
 
-        await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("100"));
+        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("100"));
+      });
 
+      it("should open a position", async () => {
         assert.equal((await baseTokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("900"));
         assert.equal((await baseTokens.MANA.balanceOf(traderPool.address)).toFixed(), wei("100"));
 
         const price = await priceFeed.getPriceIn(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
 
-        await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
+        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("500"));
 
         assert.equal((await baseTokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("400"));
         assert.equal((await baseTokens.MANA.balanceOf(traderPool.address)).toFixed(), toBN(wei("100")).plus(price));
       });
 
       it("should close a position", async () => {
-        await baseTokens.WETH.approve(traderPool.address, wei("1000"));
-        await traderPool.invest(wei("1000"));
-
-        await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("100"));
-
         assert.equal((await traderPool.openPositions()).length, 1);
 
-        await traderPool.exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("100"));
+        await exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("100"));
 
         assert.equal((await traderPool.openPositions()).length, 0);
       });
 
       it("should reopen a position", async () => {
-        await baseTokens.WETH.approve(traderPool.address, wei("1000"));
-        await traderPool.invest(wei("1000"));
-
-        await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("100"));
-
         assert.equal((await traderPool.openPositions()).length, 1);
 
         const price = await priceFeed.getPriceIn(baseTokens.MANA.address, baseTokens.WBTC.address, wei("50"));
 
-        await traderPool.exchange(baseTokens.MANA.address, baseTokens.WBTC.address, wei("50"));
+        await exchange(baseTokens.MANA.address, baseTokens.WBTC.address, wei("50"));
 
         assert.equal((await traderPool.openPositions()).length, 2);
 
@@ -332,29 +368,29 @@ describe("TraderPool", () => {
         await baseTokens.WETH.mint(SECOND, wei("1000"));
 
         await baseTokens.WETH.approve(traderPool.address, wei("1000"));
-        await traderPool.invest(wei("1000"));
+        await invest(wei("1000"), OWNER);
 
         await baseTokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
-        await traderPool.invest(wei("1000"), { from: SECOND });
+        await invest(wei("1000"), SECOND);
       });
 
       it("should calculate trader's commission", async () => {
-        await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
+        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
 
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("500000")));
         await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
-        await traderPool.exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
+        await exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
 
         assert.equal((await baseTokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("3000"));
 
-        await truffleAssert.reverts(traderPool.reinvestCommission(0, 5), "TP: no commission available");
+        await truffleAssert.reverts(reinvestCommission(0, 5), "TP: no commission available");
 
         await setNextBlockTime((await getCurrentBlockTime()) + ONE_MONTH);
 
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("1000"));
 
-        await traderPool.reinvestCommission(0, 5);
+        await reinvestCommission(0, 5);
 
         assert.closeTo(
           (await traderPool.balanceOf(OWNER)).toNumber(),
@@ -362,17 +398,17 @@ describe("TraderPool", () => {
           toBN(wei("0.000001")).toNumber()
         );
 
-        await truffleAssert.reverts(traderPool.reinvestCommission(0, 5), "TP: no commission available");
+        await truffleAssert.reverts(reinvestCommission(0, 5), "TP: no commission available");
       });
 
       it("there shouldn't be any commission 1", async () => {
-        await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
+        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
 
         await baseTokens.MANA.approve(uniswapV2Router.address, toBN(wei("2000000")));
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("2000000")));
         await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
-        await traderPool.exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
+        await exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
 
         assert.equal((await baseTokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("1500"));
 
@@ -380,20 +416,20 @@ describe("TraderPool", () => {
 
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("1000"));
 
-        await truffleAssert.reverts(traderPool.reinvestCommission(0, 5), "TP: no commission available");
+        await truffleAssert.reverts(reinvestCommission(0, 5), "TP: no commission available");
       });
 
       it("there shouldn't be any commission 2", async () => {
-        await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
+        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
 
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("500000")));
         await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
-        await traderPool.exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
+        await exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
 
         await setNextBlockTime((await getCurrentBlockTime()) + ONE_MONTH);
 
-        await traderPool.reinvestCommission(0, 5);
+        await reinvestCommission(0, 5);
 
         assert.closeTo(
           (await traderPool.balanceOf(OWNER)).toNumber(),
@@ -403,18 +439,18 @@ describe("TraderPool", () => {
 
         await setNextBlockTime((await getCurrentBlockTime()) + ONE_MONTH);
 
-        await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("200"));
+        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("200"));
 
         await baseTokens.MANA.approve(uniswapV2Router.address, toBN(wei("1000000")));
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("1000000")));
 
-        await traderPool.exchange(
+        await exchange(
           baseTokens.MANA.address,
           baseTokens.WETH.address,
           await baseTokens.MANA.balanceOf(traderPool.address)
         );
 
-        await truffleAssert.reverts(traderPool.reinvestCommission(0, 5), "TP: no commission available");
+        await truffleAssert.reverts(reinvestCommission(0, 5), "TP: no commission available");
       });
     });
 
@@ -423,39 +459,39 @@ describe("TraderPool", () => {
         await baseTokens.WETH.mint(SECOND, wei("1000"));
 
         await baseTokens.WETH.approve(traderPool.address, wei("1000"));
-        await traderPool.invest(wei("1000"));
+        await invest(wei("1000"), OWNER);
 
         await baseTokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
-        await traderPool.invest(wei("1000"), { from: SECOND });
+        await invest(wei("1000"), SECOND);
       });
 
       it("should divest trader", async () => {
-        await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
+        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
 
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("500000")));
         await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
-        await traderPool.exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
+        await exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
 
         const balance = await baseTokens.WETH.balanceOf(OWNER);
 
-        await traderPool.divest(wei("500"));
+        await divest(wei("500"), OWNER);
 
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("500"));
         assert.equal((await baseTokens.WETH.balanceOf(OWNER)).toFixed(), balance.plus(wei("750")).toFixed());
       });
 
       it("should divest investor with commission", async () => {
-        await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
+        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
 
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("500000")));
         await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
-        await traderPool.exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
+        await exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
 
         const balance = await traderPool.balanceOf(OWNER);
 
-        await traderPool.divest(wei("1000"), { from: SECOND });
+        await divest(wei("1000"), SECOND);
 
         assert.closeTo(
           (await traderPool.balanceOf(OWNER)).toNumber(),
@@ -467,17 +503,17 @@ describe("TraderPool", () => {
       });
 
       it("should divest investor without commission", async () => {
-        await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
+        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
 
         await baseTokens.MANA.approve(uniswapV2Router.address, toBN(wei("2000000")));
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("2000000")));
         await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
-        await traderPool.exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
+        await exchange(baseTokens.MANA.address, baseTokens.WETH.address, wei("1000"));
 
         const balance = await traderPool.balanceOf(OWNER);
 
-        await traderPool.divest(wei("1000"), { from: SECOND });
+        await divest(wei("1000"), SECOND);
 
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), balance.toFixed());
         assert.equal((await baseTokens.WETH.balanceOf(SECOND)).toFixed(), wei("750"));
@@ -485,14 +521,14 @@ describe("TraderPool", () => {
       });
 
       it("should divest investor with open positions with commission", async () => {
-        await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
+        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
 
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("500000")));
         await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
         const balance = await traderPool.balanceOf(OWNER);
 
-        await traderPool.divest(wei("1000"), { from: SECOND });
+        await divest(wei("1000"), SECOND);
 
         assert.closeTo(
           (await traderPool.balanceOf(OWNER)).toNumber(),
@@ -504,7 +540,7 @@ describe("TraderPool", () => {
       });
 
       it("should divest investor with open positions without commission", async () => {
-        await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
+        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
 
         await baseTokens.MANA.approve(uniswapV2Router.address, toBN(wei("2000000")));
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("2000000")));
@@ -512,7 +548,7 @@ describe("TraderPool", () => {
 
         const balance = await traderPool.balanceOf(OWNER);
 
-        await traderPool.divest(wei("1000"), { from: SECOND });
+        await divest(wei("1000"), SECOND);
 
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), balance.toFixed());
         assert.equal((await baseTokens.WETH.balanceOf(SECOND)).toFixed(), wei("750"));
@@ -520,14 +556,14 @@ describe("TraderPool", () => {
       });
 
       it("should divest investor half with commission", async () => {
-        await traderPool.exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
+        await exchange(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
 
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("500000")));
         await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
 
         const balance = await traderPool.balanceOf(OWNER);
 
-        await traderPool.divest(wei("500"), { from: SECOND });
+        await divest(wei("500"), SECOND);
 
         assert.closeTo(
           (await traderPool.balanceOf(OWNER)).toNumber(),
@@ -544,10 +580,10 @@ describe("TraderPool", () => {
         await baseTokens.WETH.mint(SECOND, wei("1000"));
 
         await baseTokens.WETH.approve(traderPool.address, wei("1000"));
-        await traderPool.invest(wei("1000"));
+        await invest(wei("1000"), OWNER);
 
         await baseTokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
-        await traderPool.invest(wei("1000"), { from: SECOND });
+        await invest(wei("1000"), SECOND);
       });
 
       it("should transfer trader tokens to a third party", async () => {
@@ -594,8 +630,6 @@ describe("TraderPool", () => {
   describe("Active TraderPool", () => {
     let POOL_PARAMETERS;
 
-    let traderPool;
-
     beforeEach("setup", async () => {
       POOL_PARAMETERS = {
         descriptionURL: "placeholder.com",
@@ -616,7 +650,7 @@ describe("TraderPool", () => {
     describe("invest", () => {
       it("should invest", async () => {
         await baseTokens.WBTC.approve(traderPool.address, wei("1000", 8));
-        await traderPool.invest(wei("1000"));
+        await invest(wei("1000"), OWNER);
 
         assert.isTrue((await traderPool.isTrader(OWNER)) && (await traderPool.isTraderAdmin(OWNER)));
 
@@ -628,10 +662,10 @@ describe("TraderPool", () => {
         await baseTokens.WBTC.mint(SECOND, wei("1000", 8));
 
         await baseTokens.WBTC.approve(traderPool.address, wei("1000", 8));
-        await traderPool.invest(wei("1000"));
+        await invest(wei("1000"), OWNER);
 
         await baseTokens.WBTC.approve(traderPool.address, wei("1000", 8), { from: SECOND });
-        await traderPool.invest(wei("1000"), { from: SECOND });
+        await invest(wei("1000"), SECOND);
 
         assert.equal((await baseTokens.WBTC.balanceOf(traderPool.address)).toFixed(), wei("2000", 8));
         assert.equal((await traderPool.balanceOf(SECOND)).toFixed(), wei("1000"));
@@ -649,9 +683,9 @@ describe("TraderPool", () => {
 
       it("should invest active portfolio", async () => {
         await baseTokens.WBTC.approve(traderPool.address, wei("1000", 8));
-        await traderPool.invest(wei("1000"));
+        await invest(wei("1000"), OWNER);
 
-        await traderPool.exchange(baseTokens.WBTC.address, baseTokens.MANA.address, wei("400"));
+        await exchange(baseTokens.WBTC.address, baseTokens.MANA.address, wei("400"));
 
         const wbtcBalance = await baseTokens.WBTC.balanceOf(traderPool.address);
         const manaBalance = await baseTokens.MANA.balanceOf(traderPool.address);
@@ -674,7 +708,7 @@ describe("TraderPool", () => {
         await baseTokens.WBTC.mint(SECOND, wei("1000", 8));
 
         await baseTokens.WBTC.approve(traderPool.address, wei("1000", 8), { from: SECOND });
-        await traderPool.invest(wei("1000"), { from: SECOND });
+        await invest(wei("1000"), SECOND);
 
         assert.equal((await baseTokens.WBTC.balanceOf(traderPool.address)).toFixed(), wbtc.toFixed());
         assert.equal((await baseTokens.MANA.balanceOf(traderPool.address)).toFixed(), mana.toFixed());

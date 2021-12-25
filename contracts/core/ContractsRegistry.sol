@@ -16,10 +16,11 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
     string public constant TRADER_POOL_REGISTRY_NAME = "TRADER_POOL_REGISTRY";
 
     string public constant DEXE_NAME = "DEXE";
-    string public constant DAI_NAME = "DAI";
+    string public constant USD_NAME = "USD";
 
     string public constant PRICE_FEED_NAME = "PRICE_FEED";
     string public constant UNISWAP_V2_ROUTER_NAME = "UNISWAP_V2_ROUTER";
+    string public constant UNISWAP_V2_FACTORY_NAME = "UNISWAP_V2_FACTORY";
 
     string public constant INSURANCE_NAME = "INSURANCE";
     string public constant TREASURY_NAME = "TREASURY";
@@ -48,8 +49,8 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         return getContract(DEXE_NAME);
     }
 
-    function getDAIContract() external view override returns (address) {
-        return getContract(DAI_NAME);
+    function getUSDContract() external view override returns (address) {
+        return getContract(USD_NAME);
     }
 
     function getPriceFeedContract() external view override returns (address) {
@@ -58,6 +59,10 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
 
     function getUniswapV2RouterContract() external view override returns (address) {
         return getContract(UNISWAP_V2_ROUTER_NAME);
+    }
+
+    function getUniswapV2FactoryContract() external view override returns (address) {
+        return getContract(UNISWAP_V2_FACTORY_NAME);
     }
 
     function getInsuranceContract() external view override returns (address) {
@@ -76,7 +81,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         return getContract(CORE_PROPERTIES_NAME);
     }
 
-    function getContract(string memory name) public view returns (address) {
+    function getContract(string memory name) public view override returns (address) {
         address contractAddress = _contracts[name];
 
         require(contractAddress != address(0), "ContractsRegistry: This mapping doesn't exist");
@@ -84,11 +89,11 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         return contractAddress;
     }
 
-    function hasContract(string calldata name) external view returns (bool) {
+    function hasContract(string calldata name) external view override returns (bool) {
         return _contracts[name] != address(0);
     }
 
-    function injectDependencies(string calldata name) external onlyOwner {
+    function injectDependencies(string calldata name) external override onlyOwner {
         address contractAddress = _contracts[name];
 
         require(contractAddress != address(0), "ContractsRegistry: This mapping doesn't exist");
@@ -97,13 +102,13 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         dependant.setDependencies(this);
     }
 
-    function getProxyUpgrader() external view returns (address) {
+    function getProxyUpgrader() external view override returns (address) {
         require(address(proxyUpgrader) != address(0), "ContractsRegistry: Bad ProxyUpgrader");
 
         return address(proxyUpgrader);
     }
 
-    function getImplementation(string calldata name) external view returns (address) {
+    function getImplementation(string calldata name) external view override returns (address) {
         address contractProxy = _contracts[name];
 
         require(contractProxy != address(0), "ContractsRegistry: This mapping doesn't exist");
@@ -112,7 +117,11 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         return proxyUpgrader.getImplementation(contractProxy);
     }
 
-    function upgradeContract(string calldata name, address newImplementation) external onlyOwner {
+    function upgradeContract(string calldata name, address newImplementation)
+        external
+        override
+        onlyOwner
+    {
         _upgradeContract(name, newImplementation, "");
     }
 
@@ -121,12 +130,12 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         string calldata name,
         address newImplementation,
         string calldata functionSignature
-    ) external onlyOwner {
+    ) external override onlyOwner {
         _upgradeContract(name, newImplementation, functionSignature);
     }
 
     function _upgradeContract(
-        string memory name,
+        string calldata name,
         address newImplementation,
         string memory functionSignature
     ) internal {
@@ -142,13 +151,21 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         );
     }
 
-    function addContract(string calldata name, address contractAddress) external onlyOwner {
+    function addContract(string calldata name, address contractAddress)
+        external
+        override
+        onlyOwner
+    {
         require(contractAddress != address(0), "ContractsRegistry: Null address is forbidden");
 
         _contracts[name] = contractAddress;
     }
 
-    function addProxyContract(string calldata name, address contractAddress) external onlyOwner {
+    function addProxyContract(string calldata name, address contractAddress)
+        external
+        override
+        onlyOwner
+    {
         require(contractAddress != address(0), "ContractsRegistry: Null address is forbidden");
 
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
@@ -163,6 +180,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
 
     function justAddProxyContract(string calldata name, address contractAddress)
         external
+        override
         onlyOwner
     {
         require(contractAddress != address(0), "ContractsRegistry: Null address is forbidden");
@@ -171,7 +189,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         _isProxy[contractAddress] = true;
     }
 
-    function deleteContract(string calldata name) external onlyOwner {
+    function deleteContract(string calldata name) external override onlyOwner {
         require(_contracts[name] != address(0), "ContractsRegistry: This mapping doesn't exist");
 
         delete _isProxy[_contracts[name]];

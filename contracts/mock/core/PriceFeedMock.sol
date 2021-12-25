@@ -9,10 +9,11 @@ contract PriceFeedMock is PriceFeed {
     using SafeERC20 for IERC20;
     using MathHelper for uint256;
 
-    function getPriceIn(
+    function getExtendedPriceIn(
         address inToken,
         address outToken,
-        uint256 amount
+        uint256 amount,
+        address[] memory optionalPath
     ) public view override returns (uint256) {
         if (amount == 0) {
             return 0;
@@ -31,7 +32,9 @@ contract PriceFeedMock is PriceFeed {
     function exchangeTo(
         address inToken,
         address outToken,
-        uint256 amount
+        uint256 amount,
+        address[] calldata optionalPath,
+        uint256 minAmountOut
     ) public override returns (uint256) {
         if (amount == 0) {
             return 0;
@@ -50,10 +53,10 @@ contract PriceFeedMock is PriceFeed {
 
         uint256[] memory outs = _uniswapV2Router.swapExactTokensForTokens(
             amount,
-            0,
+            minAmountOut,
             path,
             _msgSender(),
-            block.timestamp + 1
+            block.timestamp
         );
 
         return outs[outs.length - 1];

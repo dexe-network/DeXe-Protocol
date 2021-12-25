@@ -8,9 +8,14 @@ const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
 const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
 const TraderPoolMock = artifacts.require("TraderPoolMock");
-const TraderPoolHelperLib = artifacts.require("TraderPoolHelper");
+const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
+const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
+const TraderPoolPriceLib = artifacts.require("TraderPoolPrice");
+const TraderPoolViewLib = artifacts.require("TraderPoolView");
 const InvestTraderPool = artifacts.require("InvestTraderPool");
 const BasicTraderPool = artifacts.require("BasicTraderPool");
+const RiskyPoolProposalLib = artifacts.require("TraderPoolRiskyProposalView");
+const InvestPoolProposalLib = artifacts.require("TraderPoolInvestProposalView");
 const RiskyPoolProposal = artifacts.require("TraderPoolRiskyProposal");
 const InvestPoolProposal = artifacts.require("TraderPoolInvestProposal");
 const TraderPoolFactory = artifacts.require("TraderPoolFactory");
@@ -38,8 +43,8 @@ const ComissionPeriods = {
 };
 
 const DEFAULT_CORE_PROPERTIES = {
-  maximumPoolInvestors: 1000,
-  maximumOpenPositions: 25,
+  maxPoolInvestors: 1000,
+  maxOpenPositions: 25,
   leverageThreshold: 2500,
   leverageSlope: 5,
   commissionInitTimestamp: 0,
@@ -50,13 +55,11 @@ const DEFAULT_CORE_PROPERTIES = {
     PRECISION.times(33).toFixed(),
     PRECISION.times(33).toFixed(),
   ],
-  minimalTraderCommission: PRECISION.times(20).toFixed(),
-  maximalTraderCommissions: [
-    PRECISION.times(30).toFixed(),
-    PRECISION.times(50).toFixed(),
-    PRECISION.times(70).toFixed(),
-  ],
+  minTraderCommission: PRECISION.times(20).toFixed(),
+  maxTraderCommissions: [PRECISION.times(30).toFixed(), PRECISION.times(50).toFixed(), PRECISION.times(70).toFixed()],
   delayForRiskyPool: SECONDS_IN_DAY * 20,
+  insuranceFactor: 10,
+  maxInsurancePoolShare: 3,
 };
 
 describe("TraderPoolFactory", () => {
@@ -75,10 +78,34 @@ describe("TraderPoolFactory", () => {
     THIRD = await accounts(2);
     NOTHING = await accounts(3);
 
-    const traderPoolHelper = await TraderPoolHelperLib.new();
+    const traderPoolPriceLib = await TraderPoolPriceLib.new();
 
-    await InvestTraderPool.link(traderPoolHelper);
-    await BasicTraderPool.link(traderPoolHelper);
+    await TraderPoolCommissionLib.link(traderPoolPriceLib);
+    await TraderPoolLeverageLib.link(traderPoolPriceLib);
+
+    const traderPoolCommissionLib = await TraderPoolCommissionLib.new();
+    const traderPoolLeverageLib = await TraderPoolLeverageLib.new();
+
+    await TraderPoolViewLib.link(traderPoolPriceLib);
+    await TraderPoolViewLib.link(traderPoolCommissionLib);
+
+    const traderPoolViewLib = await TraderPoolViewLib.new();
+
+    await InvestTraderPool.link(traderPoolCommissionLib);
+    await InvestTraderPool.link(traderPoolLeverageLib);
+    await InvestTraderPool.link(traderPoolPriceLib);
+    await InvestTraderPool.link(traderPoolViewLib);
+
+    await BasicTraderPool.link(traderPoolCommissionLib);
+    await BasicTraderPool.link(traderPoolLeverageLib);
+    await BasicTraderPool.link(traderPoolPriceLib);
+    await BasicTraderPool.link(traderPoolViewLib);
+
+    const riskyPoolProposalLib = await RiskyPoolProposalLib.new();
+    const investPoolProposalLib = await InvestPoolProposalLib.new();
+
+    await RiskyPoolProposal.link(riskyPoolProposalLib);
+    await InvestPoolProposal.link(investPoolProposalLib);
   });
 
   beforeEach("setup", async () => {

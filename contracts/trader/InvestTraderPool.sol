@@ -8,7 +8,6 @@ import "./TraderPool.sol";
 
 contract InvestTraderPool is IInvestTraderPool, TraderPool {
     using SafeERC20 for IERC20;
-    using TraderPoolHelper for PoolParameters;
     using MathHelper for uint256;
     using DecimalsConverter for uint256;
 
@@ -16,12 +15,17 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
 
     uint256 internal _firstExchange;
 
+    modifier onlyProposalPool() {
+        require(_msgSender() == address(_traderPoolProposal), "ITP: not a proposal pool");
+        _;
+    }
+
     function __InvestTraderPool_init(
         string calldata name,
         string calldata symbol,
-        ITraderPool.PoolParameters memory _poolParameters,
+        ITraderPool.PoolParameters calldata _poolParameters,
         address traderPoolProposal
-    ) public override {
+    ) public override initializer {
         __TraderPool_init(name, symbol, _poolParameters);
 
         _traderPoolProposal = ITraderPoolInvestProposal(traderPoolProposal);
@@ -43,110 +47,78 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         return totalSupply() + _traderPoolProposal.totalLockedLP();
     }
 
-    function divestAll() public override {
-        reinvestAllProposals();
-        divest(balanceOf(_msgSender()));
-    }
-
-    function changeProposalRestrictions(
-        uint256 proposalId,
-        uint256 timestampLimit,
-        uint256 investLPLimit
-    ) external onlyTraderAdmin {
-        _traderPoolProposal.changeProposalRestrictions(proposalId, timestampLimit, investLPLimit);
-    }
-
     function exchange(
         address from,
         address to,
-        uint256 amount
+        uint256 amount,
+        uint256 minAmountOut,
+        address[] calldata optionalPath
     ) public override onlyTraderAdmin {
         if (_firstExchange == 0) {
             _firstExchange = block.timestamp;
         }
 
-        super.exchange(from, to, amount);
+        super.exchange(from, to, amount, minAmountOut, optionalPath);
     }
 
-    function invest(uint256 amountInBaseToInvest) public override {
+    function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut)
+        public
+        override
+    {
         require(
             isTraderAdmin(_msgSender()) ||
                 (_firstExchange != 0 &&
-                    _firstExchange + _coreProperties.getDelayForRiskyPool() <= block.timestamp),
-            "BTP: investment delay"
+                    _firstExchange + coreProperties.getDelayForRiskyPool() <= block.timestamp),
+            "ITP: investment delay"
         );
 
-        super.invest(amountInBaseToInvest);
+        super.invest(amountInBaseToInvest, minPositionsOut);
     }
 
     function createProposal(
         uint256 lpAmount,
-        uint256 timestampLimit,
-        uint256 investBaseLimit
-    ) external onlyTrader {
-        require(balanceOf(_msgSender()) >= lpAmount, "BTP: not enought LPs");
+        ITraderPoolInvestProposal.ProposalLimits calldata proposalLimits,
+        uint256[] calldata minPositionsOut
+    ) external override onlyTrader {
+        uint256 baseAmount = _divestPositions(lpAmount, minPositionsOut);
 
-        uint256 baseAmount = _divestPositions(lpAmount);
-
-        _traderPoolProposal.createProposal(timestampLimit, investBaseLimit, lpAmount, baseAmount);
+        _traderPoolProposal.create(proposalLimits, lpAmount, baseAmount);
 
         _burn(_msgSender(), lpAmount);
     }
 
-    function investProposal(uint256 proposalId, uint256 lpAmount) external {
-        require(lpAmount > 0 && balanceOf(_msgSender()) >= lpAmount, "BTP: wrong LPs amount");
+    function investProposal(
+        uint256 proposalId,
+        uint256 lpAmount,
+        uint256[] calldata minPositionsOut
+    ) external override {
         require(
             isTraderAdmin(_msgSender()) ||
                 (_firstExchange != 0 &&
-                    _firstExchange + _coreProperties.getDelayForRiskyPool() <= block.timestamp),
-            "BTP: investment delay"
+                    _firstExchange + coreProperties.getDelayForRiskyPool() <= block.timestamp),
+            "ITP: investment delay"
         );
 
-        uint256 baseAmount = _divestPositions(lpAmount);
+        uint256 baseAmount = _divestPositions(lpAmount, minPositionsOut);
 
-        _traderPoolProposal.investProposal(proposalId, _msgSender(), lpAmount, baseAmount);
+        _traderPoolProposal.invest(proposalId, _msgSender(), lpAmount, baseAmount);
 
         _updateFrom(_msgSender(), lpAmount);
         _burn(_msgSender(), lpAmount);
     }
 
-    function reinvestProposal(uint256 proposalId) external {
-        uint256 receivedBase = _traderPoolProposal.claimProposal(proposalId, _msgSender());
+    function reinvestProposal(uint256 proposalId, uint256[] calldata minPositionsOut)
+        external
+        override
+    {
+        uint256 receivedBase = _traderPoolProposal.divest(proposalId, _msgSender());
 
-        _invest(address(_traderPoolProposal), receivedBase);
+        _invest(address(_traderPoolProposal), receivedBase, minPositionsOut);
     }
 
-    function reinvestAllProposals() public {
-        uint256 receivedBase = _traderPoolProposal.claimAllProposals(_msgSender());
+    function reinvestAllProposals(uint256[] calldata minPositionsOut) external override {
+        uint256 receivedBase = _traderPoolProposal.divestAll(_msgSender());
 
-        _invest(address(_traderPoolProposal), receivedBase);
-    }
-
-    function claimProposal(uint256 proposalId) external {
-        _payoutProposal(_traderPoolProposal.claimProposal(proposalId, _msgSender()));
-    }
-
-    function claimAllProposals() external {
-        _payoutProposal(_traderPoolProposal.claimAllProposals(_msgSender()));
-    }
-
-    function withdrawProposal(uint256 proposalId, uint256 amount) external onlyTraderAdmin {
-        _traderPoolProposal.withdraw(proposalId, amount);
-    }
-
-    function supplyProposal(uint256 proposalId, uint256 amount) external {
-        _traderPoolProposal.supply(proposalId, _msgSender(), amount);
-    }
-
-    function convertToDividendsProposal(uint256 proposalId) external onlyTraderAdmin {
-        _traderPoolProposal.convertToDividends(proposalId);
-    }
-
-    function _payoutProposal(uint256 amount) internal {
-        IERC20(poolParameters.baseToken).safeTransferFrom(
-            address(_traderPoolProposal),
-            _msgSender(),
-            amount.convertFrom18(poolParameters.baseTokenDecimals)
-        );
+        _invest(address(_traderPoolProposal), receivedBase, minPositionsOut);
     }
 }

@@ -2,6 +2,21 @@
 pragma solidity ^0.8.4;
 
 interface IPriceFeed {
+    function setPathTokens(address[] calldata pathTokens) external;
+
+    function removePathTokens(address[] calldata pathTokens) external;
+
+    function addSupportedBaseTokens(address[] calldata baseTokens) external;
+
+    function removeSupportedBaseTokens(address[] calldata baseTokens) external;
+
+    function getExtendedPriceIn(
+        address inToken,
+        address outToken,
+        uint256 amount,
+        address[] memory optionalPath
+    ) external view returns (uint256);
+
     function getPriceIn(
         address inToken,
         address outToken,
@@ -14,9 +29,11 @@ interface IPriceFeed {
         uint256 amount
     ) external view returns (uint256);
 
-    function getPriceInDAI(address inToken, uint256 amount) external view returns (uint256);
+    function getPriceInDEXE(address inToken, uint256 amount) external view returns (uint256);
 
-    function getNormalizedPriceInDAI(address inToken, uint256 amount)
+    function getPriceInUSD(address inToken, uint256 amount) external view returns (uint256);
+
+    function getNormalizedPriceInUSD(address inToken, uint256 amount)
         external
         view
         returns (uint256);
@@ -24,14 +41,20 @@ interface IPriceFeed {
     function exchangeTo(
         address inToken,
         address outToken,
-        uint256 amount
+        uint256 amount,
+        address[] calldata optionalPath,
+        uint256 minAmountOut
     ) external returns (uint256);
 
     function normalizedExchangeTo(
         address inToken,
         address outToken,
-        uint256 amount
+        uint256 amount,
+        address[] calldata optionalPath,
+        uint256 minAmountOut
     ) external returns (uint256);
 
     function isSupportedBaseToken(address token) external view returns (bool);
+
+    function isSupportedPathToken(address token) external view returns (bool);
 }

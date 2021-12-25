@@ -61,7 +61,7 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         string calldata name,
         string calldata symbol,
         PoolDeployParameters calldata poolDeployParameters
-    ) external {
+    ) external override {
         ITraderPool.PoolParameters memory poolParameters = _validateAndConstructParameters(
             poolDeployParameters
         );
@@ -92,7 +92,7 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         string calldata name,
         string calldata symbol,
         PoolDeployParameters calldata poolDeployParameters
-    ) external {
+    ) external override {
         ITraderPool.PoolParameters memory poolParameters = _validateAndConstructParameters(
             poolDeployParameters
         );

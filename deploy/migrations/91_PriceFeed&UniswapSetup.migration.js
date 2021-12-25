@@ -12,7 +12,7 @@ const UniswapV2Router = artifacts.require("UniswapV2RouterMock");
 ERC20Mock.numberFormat = "BigNumber";
 
 const testBaseTokens = {
-  DAI: 18,
+  USD: 18,
   DEXE: 18,
   WETH: 18,
   USDT: 6,
@@ -20,7 +20,7 @@ const testBaseTokens = {
   WBTC: 8,
 };
 
-const testPathTokens = ["DAI", "WETH", "USDT", "WBTC"];
+const testPathTokens = ["USD", "WETH", "USDT", "WBTC"];
 
 async function getAndDeployBaseAddresses(deployer, deployedTokens) {
   let keys = Object.keys(testBaseTokens);
@@ -78,7 +78,7 @@ module.exports = async (deployer) => {
   const uniswapV2Router = await UniswapV2Router.at(await contractsRegistry.getUniswapV2RouterContract());
 
   let deployedTokens = {
-    DAI: await contractsRegistry.getDAIContract(),
+    USD: await contractsRegistry.getUSDContract(),
     DEXE: await contractsRegistry.getDEXEContract(),
   };
 

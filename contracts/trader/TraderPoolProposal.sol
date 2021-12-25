@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/trader/ITraderPoolProposal.sol";
@@ -13,6 +14,7 @@ import "../libs/MathHelper.sol";
 import "../libs/DecimalsConverter.sol";
 
 import "../helpers/AbstractDependant.sol";
+import "./TraderPool.sol";
 
 abstract contract TraderPoolProposal is
     ITraderPoolProposal,
@@ -23,10 +25,11 @@ abstract contract TraderPoolProposal is
     using SafeERC20 for IERC20;
     using MathHelper for uint256;
     using DecimalsConverter for uint256;
+    using Math for uint256;
 
     ParentTraderPoolInfo internal _parentTraderPoolInfo;
 
-    IPriceFeed internal _priceFeed;
+    IPriceFeed public override priceFeed;
 
     uint256 public proposalsTotalNum;
 
@@ -38,15 +41,23 @@ abstract contract TraderPoolProposal is
     mapping(address => uint256) public override totalLPBalances; // user => LP invested
 
     modifier onlyParentTraderPool() {
-        require(msg.sender == _parentTraderPoolInfo.parentPoolAddress, "TPP: not a ParentPool");
+        require(_msgSender() == _parentTraderPoolInfo.parentPoolAddress, "TPP: not a ParentPool");
+        _;
+    }
+
+    modifier onlyTraderAdmin() {
+        require(
+            TraderPool(_parentTraderPoolInfo.parentPoolAddress).isTraderAdmin(_msgSender()),
+            "TPP: not a trader admin"
+        );
         _;
     }
 
     function __TraderPoolProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         public
-        initializer
+        onlyInitializing
     {
-        __ERC1155_init("");
+        __ERC1155Supply_init();
 
         _parentTraderPoolInfo = parentTraderPoolInfo;
 
@@ -57,11 +68,15 @@ abstract contract TraderPoolProposal is
     }
 
     function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
-        _priceFeed = IPriceFeed(contractsRegistry.getPriceFeedContract());
+        priceFeed = IPriceFeed(contractsRegistry.getPriceFeedContract());
     }
 
-    function getInvestedBaseInDAI() external view override returns (uint256) {
-        return _priceFeed.getNormalizedPriceInDAI(_parentTraderPoolInfo.baseToken, investedBase);
+    function getInvestedBaseInUSD() external view override returns (uint256) {
+        return priceFeed.getNormalizedPriceInUSD(_parentTraderPoolInfo.baseToken, investedBase);
+    }
+
+    function getTotalActiveInvestments(address user) external view override returns (uint256) {
+        return _activeInvestments[user].length();
     }
 
     function _baseInProposal(uint256 proposalId) internal view virtual returns (uint256);
@@ -116,6 +131,8 @@ abstract contract TraderPoolProposal is
         uint256[] memory amounts,
         bytes memory data
     ) internal override {
+        super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+
         for (uint256 i = 0; i < amounts.length; i++) {
             require(amounts[i] > 0, "TPP: 0 transfer");
 

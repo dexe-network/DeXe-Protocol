@@ -23,7 +23,7 @@ contract ProxyUpgrader {
     function upgrade(
         address what,
         address to,
-        bytes memory data
+        bytes calldata data
     ) external onlyOwner {
         require(to.isContract(), "ProxyUpgrader: not a contract");
 

@@ -15,18 +15,40 @@ interface ICoreProperties {
     }
 
     struct CoreParameters {
-        uint256 maximumPoolInvestors;
-        uint256 maximumOpenPositions;
+        uint256 maxPoolInvestors;
+        uint256 maxOpenPositions;
         uint256 leverageThreshold;
         uint256 leverageSlope;
         uint256 commissionInitTimestamp;
         uint256[] commissionDurations;
         uint256 dexeCommissionPercentage;
         uint256[] dexeCommissionDistributionPercentages;
-        uint256 minimalTraderCommission;
-        uint256[] maximalTraderCommissions;
+        uint256 minTraderCommission;
+        uint256[] maxTraderCommissions;
         uint256 delayForRiskyPool;
+        uint256 insuranceFactor;
+        uint256 maxInsurancePoolShare;
     }
+
+    function setCoreParameters(CoreParameters calldata _coreParameters) external;
+
+    function setMaximumPoolInvestors(uint256 count) external;
+
+    function setMaximumOpenPositions(uint256 count) external;
+
+    function setTraderLeverageParams(uint256 threshold, uint256 slope) external;
+
+    function setCommissionInitTimestamp(uint256 timestamp) external;
+
+    function setCommissionDurations(uint256[] calldata durations) external;
+
+    function setDEXECommissionPercentages(
+        uint256 dexeCommission,
+        uint256[] calldata distributionPercentages
+    ) external;
+
+    function setInsuranceParameters(uint256 insuranceFactor, uint256 maxInsurancePoolShare)
+        external;
 
     function getMaximumPoolInvestors() external view returns (uint256);
 
@@ -54,7 +76,11 @@ interface ICoreProperties {
 
     function getDelayForRiskyPool() external view returns (uint256);
 
-    function getNextCommissionEpoch(uint256 timestamp, CommissionPeriod commissionPeriod)
+    function getInsuranceFactor() external view returns (uint256);
+
+    function getMaxInsurancePoolShare() external view returns (uint256);
+
+    function getCommissionEpoch(uint256 timestamp, CommissionPeriod commissionPeriod)
         external
         view
         returns (uint256);

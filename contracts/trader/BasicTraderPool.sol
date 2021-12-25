@@ -1,16 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/utils/Address.sol";
-
 import "../interfaces/trader/IBasicTraderPool.sol";
 import "../interfaces/trader/ITraderPoolRiskyProposal.sol";
 
 import "./TraderPool.sol";
 
 contract BasicTraderPool is IBasicTraderPool, TraderPool {
-    using Address for address;
-    using TraderPoolHelper for PoolParameters;
     using MathHelper for uint256;
     using SafeERC20 for IERC20;
 
@@ -19,9 +15,9 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
     function __BasicTraderPool_init(
         string calldata name,
         string calldata symbol,
-        ITraderPool.PoolParameters memory _poolParameters,
+        ITraderPool.PoolParameters calldata _poolParameters,
         address traderPoolProposal
-    ) public override {
+    ) public override initializer {
         __TraderPool_init(name, symbol, _poolParameters);
 
         _traderPoolProposal = ITraderPoolRiskyProposal(traderPoolProposal);
@@ -43,94 +39,78 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         return totalSupply() + _traderPoolProposal.totalLockedLP();
     }
 
-    function divestAll() public override {
-        reinvestAllProposals();
-        divest(balanceOf(_msgSender()));
-    }
-
     function exchange(
         address from,
         address to,
-        uint256 amount
+        uint256 amount,
+        uint256 minAmountOut,
+        address[] calldata optionalPath
     ) public override onlyTraderAdmin {
-        require(_priceFeed.isSupportedBaseToken(to), "BTP: invalid exchange");
+        require(priceFeed.isSupportedBaseToken(to), "BTP: invalid exchange");
 
-        super.exchange(from, to, amount);
-    }
-
-    function changeProposalRestrictions(
-        uint256 proposalId,
-        uint256 timestampLimit,
-        uint256 investLPLimit,
-        uint256 maxTokenPriceLimit
-    ) external onlyTraderAdmin {
-        _traderPoolProposal.changeProposalRestrictions(
-            proposalId,
-            timestampLimit,
-            investLPLimit,
-            maxTokenPriceLimit
-        );
+        super.exchange(from, to, amount, minAmountOut, optionalPath);
     }
 
     function createProposal(
         address token,
         uint256 lpAmount,
-        uint256 timestampLimit,
-        uint256 investBaseLimit,
-        uint256 maxTokenPriceLimit,
-        uint256 instantTradePercentage
-    ) external onlyTrader {
-        require(token.isContract(), "BTP: not a contract");
-        require(token != poolParameters.baseToken, "BTP: wrong proposal token");
-        require(balanceOf(_msgSender()) >= lpAmount, "BTP: not enought LPs");
+        ITraderPoolRiskyProposal.ProposalLimits calldata proposalLimits,
+        uint256 instantTradePercentage,
+        uint256[] calldata minDivestOut,
+        uint256 minProposalOut,
+        address[] calldata optionalPath
+    ) external override onlyTrader {
+        uint256 baseAmount = _divestPositions(lpAmount, minDivestOut);
 
-        uint256 baseAmount = _divestPositions(lpAmount);
-
-        _traderPoolProposal.createProposal(
+        _traderPoolProposal.create(
             token,
-            timestampLimit,
-            investBaseLimit,
-            maxTokenPriceLimit,
+            proposalLimits,
             lpAmount,
             baseAmount,
-            instantTradePercentage
+            instantTradePercentage,
+            minProposalOut,
+            optionalPath
         );
 
         _burn(_msgSender(), lpAmount);
     }
 
-    function investProposal(uint256 proposalId, uint256 lpAmount) external {
-        require(lpAmount > 0 && balanceOf(_msgSender()) >= lpAmount, "BTP: wrong LPs amount");
+    function investProposal(
+        uint256 proposalId,
+        uint256 lpAmount,
+        uint256[] calldata minDivestOut,
+        uint256 minProposalOut
+    ) external override {
+        uint256 baseAmount = _divestPositions(lpAmount, minDivestOut);
 
-        uint256 baseAmount = _divestPositions(lpAmount);
-
-        _traderPoolProposal.investProposal(proposalId, _msgSender(), lpAmount, baseAmount);
+        _traderPoolProposal.invest(proposalId, _msgSender(), lpAmount, baseAmount, minProposalOut);
 
         _updateFrom(_msgSender(), lpAmount);
         _burn(_msgSender(), lpAmount);
     }
 
-    function reinvestProposal(uint256 proposalId, uint256 lp2Amount) external {
-        uint256 receivedBase = _traderPoolProposal.divestProposal(
+    function reinvestProposal(
+        uint256 proposalId,
+        uint256 lp2Amount,
+        uint256[] calldata minPositionsOut,
+        uint256 minProposalOut
+    ) external override {
+        uint256 receivedBase = _traderPoolProposal.divest(
             proposalId,
             _msgSender(),
-            lp2Amount
+            lp2Amount,
+            minProposalOut
         );
 
-        _invest(address(_traderPoolProposal), receivedBase);
+        _invest(address(_traderPoolProposal), receivedBase, minPositionsOut);
     }
 
-    function reinvestAllProposals() public {
-        uint256 receivedBase = _traderPoolProposal.divestAllProposals(_msgSender());
+    function reinvestAllProposals(
+        uint256[] calldata minInvestsOut,
+        uint256[] calldata minProposalsOut
+    ) external override {
+        uint256 receivedBase = _traderPoolProposal.divestAll(_msgSender(), minProposalsOut);
 
-        _invest(address(_traderPoolProposal), receivedBase);
-    }
-
-    function exchangeProposal(
-        uint256 proposalId,
-        address from,
-        uint256 amount
-    ) external onlyTraderAdmin {
-        _traderPoolProposal.exchange(proposalId, from, amount);
+        _invest(address(_traderPoolProposal), receivedBase, minInvestsOut);
     }
 }

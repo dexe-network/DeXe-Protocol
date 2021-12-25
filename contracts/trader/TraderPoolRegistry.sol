@@ -53,7 +53,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         string calldata name,
         uint256 offset,
         uint256 limit
-    ) external onlyOwner {
+    ) external override onlyOwner {
         EnumerableSet.AddressSet storage pools = _allPools[name];
 
         uint256 to = (offset + limit).min(pools.length()).max(offset);
@@ -69,6 +69,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
 
     function setNewImplementation(string calldata name, address newImplementation)
         public
+        override
         onlyOwner
     {
         if (_beacons[name].implementation() != newImplementation) {
@@ -78,6 +79,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
 
     function setNewImplementations(string[] calldata names, address[] calldata newImplementations)
         external
+        override
         onlyOwner
     {
         for (uint256 i = 0; i < names.length; i++) {
