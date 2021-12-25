@@ -60,7 +60,7 @@ const DEFAULT_CORE_PROPERTIES = {
   minInsuranceDeposit: DECIMAL.times(10).toFixed(),
 };
 
-describe.only("BasicTraderPool", () => {
+describe("BasicTraderPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;

@@ -29,6 +29,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     using Math for uint256;
     using DecimalsConverter for uint256;
     using TraderPoolPrice for PoolParameters;
+    using TraderPoolPrice for address;
     using TraderPoolLeverage for PoolParameters;
     using TraderPoolCommission for PoolParameters;
     using TraderPoolView for PoolParameters;
@@ -365,20 +366,20 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             "TP: can't divest that amount"
         );
 
-        IERC20 baseToken = IERC20(poolParameters.baseToken);
+        address baseToken = poolParameters.baseToken;
         IPriceFeed _priceFeed = priceFeed;
 
         uint256 totalSupply = totalSupply();
         uint256 length = _openPositions.length();
-        investorBaseAmount = baseToken.balanceOf(address(this)).ratio(amountLP, totalSupply);
+        investorBaseAmount = baseToken.getNormalizedBalance().ratio(amountLP, totalSupply);
 
         for (uint256 i = 0; i < length; i++) {
-            ERC20 positionToken = ERC20(_openPositions.at(i));
-            uint256 positionBalance = TraderPoolPrice.getNormalizedBalance(address(positionToken));
+            address positionToken = _openPositions.at(i);
+            uint256 positionBalance = positionToken.getNormalizedBalance();
 
             investorBaseAmount += _priceFeed.normalizedExchangeFromExact(
-                address(positionToken),
-                address(baseToken),
+                positionToken,
+                baseToken,
                 positionBalance.ratio(amountLP, totalSupply),
                 new address[](0),
                 minPositionsOut[i]
@@ -532,7 +533,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 minAmountOut,
         address[] calldata optionalPath
     ) public virtual override onlyTraderAdmin {
-        require(amountIn <= ERC20(from).balanceOf(address(this)), "TP: invalid exchange amount");
+        require(amountIn <= from.getNormalizedBalance(), "TP: invalid exchange amount");
 
         _exchange(from, to, amountIn, minAmountOut, optionalPath, true);
     }
@@ -553,10 +554,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 maxAmountIn,
         address[] calldata optionalPath
     ) public virtual override onlyTraderAdmin {
-        require(
-            maxAmountIn <= ERC20(from).balanceOf(address(this)),
-            "TP: invalid exchange amount"
-        );
+        require(maxAmountIn <= from.getNormalizedBalance(), "TP: invalid exchange amount");
 
         _exchange(from, to, amountOut, maxAmountIn, optionalPath, false);
     }

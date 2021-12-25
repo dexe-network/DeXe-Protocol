@@ -14,6 +14,7 @@ library TraderPoolCommission {
     using DecimalsConverter for uint256;
     using MathHelper for uint256;
     using TraderPoolPrice for ITraderPool.PoolParameters;
+    using TraderPoolPrice for address;
 
     function _calculateInvestorCommission(
         ITraderPool.PoolParameters storage poolParameters,
@@ -57,7 +58,7 @@ library TraderPoolCommission {
         )
     {
         uint256 investorBalance = IERC20(address(this)).balanceOf(investor);
-        uint256 baseTokenBalance = TraderPoolPrice.getNormalizedBalance(poolParameters.baseToken);
+        uint256 baseTokenBalance = poolParameters.baseToken.getNormalizedBalance();
 
         investorBaseAmount = baseTokenBalance.ratio(investorBalance, oldTotalSupply);
 

@@ -19,6 +19,7 @@ const InvestPoolProposalLib = artifacts.require("TraderPoolInvestProposalView");
 const RiskyPoolProposal = artifacts.require("TraderPoolRiskyProposal");
 const InvestPoolProposal = artifacts.require("TraderPoolInvestProposal");
 const TraderPoolFactory = artifacts.require("TraderPoolFactory");
+const UniswapV2PathFinderLib = artifacts.require("UniswapV2PathFinder");
 
 ContractsRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
@@ -108,6 +109,10 @@ describe("TraderPoolFactory", () => {
 
     await RiskyPoolProposal.link(riskyPoolProposalLib);
     await InvestPoolProposal.link(investPoolProposalLib);
+
+    const uniswapV2PathFinderLib = await UniswapV2PathFinderLib.new();
+
+    await PriceFeed.link(uniswapV2PathFinderLib);
   });
 
   beforeEach("setup", async () => {

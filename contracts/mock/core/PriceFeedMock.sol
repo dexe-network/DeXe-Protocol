@@ -81,29 +81,31 @@ contract PriceFeedMock is PriceFeed {
     function exchangeToExact(
         address inToken,
         address outToken,
-        uint256 amountIn,
+        uint256 amountOut,
         address[] calldata optionalPath,
-        uint256 minAmountOut
+        uint256 maxAmountIn
     ) public override returns (uint256) {
-        if (amountIn == 0) {
+        if (amountOut == 0) {
             return 0;
         }
 
-        _grabTokens(inToken, amountIn);
+        _grabTokens(inToken, maxAmountIn);
 
         address[] memory path = new address[](2);
 
         path[0] = inToken;
         path[1] = outToken;
 
-        uint256[] memory outs = uniswapV2Router.swapExactTokensForTokens(
-            amountIn,
-            minAmountOut,
+        uint256[] memory ins = uniswapV2Router.swapTokensForExactTokens(
+            amountOut,
+            maxAmountIn,
             path,
             _msgSender(),
             block.timestamp
         );
 
-        return outs[outs.length - 1];
+        IERC20(inToken).safeTransfer(_msgSender(), maxAmountIn - ins[0]);
+
+        return ins[0];
     }
 }

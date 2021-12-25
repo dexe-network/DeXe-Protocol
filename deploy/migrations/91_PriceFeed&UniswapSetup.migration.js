@@ -1,70 +1,9 @@
-const { toBN, accounts, wei } = require("../../scripts/helpers/utils");
 const { logTransaction } = require("../runners/logger.js");
 
 const Proxy = artifacts.require("TransparentUpgradeableProxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 
-const ERC20Mock = artifacts.require("ERC20Mock");
-
 const PriceFeed = artifacts.require("PriceFeedMock");
-const UniswapV2Router = artifacts.require("UniswapV2RouterMock");
-
-ERC20Mock.numberFormat = "BigNumber";
-
-const testBaseTokens = {
-  USD: 18,
-  DEXE: 18,
-  WETH: 18,
-  USDT: 6,
-  MANA: 18,
-  WBTC: 8,
-};
-
-const testPathTokens = ["USD", "WETH", "USDT", "WBTC"];
-
-async function getAndDeployBaseAddresses(deployer, deployedTokens) {
-  let keys = Object.keys(testBaseTokens);
-  let baseAddresses = [];
-
-  for (let i = 0; i < keys.length; i++) {
-    if (!(keys[i] in deployedTokens)) {
-      const token = await deployer.deploy(ERC20Mock, keys[i], keys[i], testBaseTokens[keys[i]]);
-
-      deployedTokens[keys[i]] = token.address;
-    }
-
-    baseAddresses.push(deployedTokens[keys[i]]);
-  }
-
-  return baseAddresses;
-}
-
-async function getPathAddresses(deployedTokens) {
-  let pathAddresses = [];
-
-  for (let i = 0; i < testPathTokens.length; i++) {
-    pathAddresses.push(deployedTokens[testPathTokens[i]]);
-  }
-
-  return pathAddresses;
-}
-
-async function configureReserves(uniswapV2Router, baseAddresses) {
-  const OWNER = await accounts(0);
-
-  const tokensToMint = toBN(1000000000);
-  const reserveTokens = toBN(1000000);
-
-  for (let i = 0; i < baseAddresses.length; i++) {
-    const baseToken = await ERC20Mock.at(baseAddresses[i]);
-    const baseDecimals = (await baseToken.decimals()).toNumber();
-
-    await baseToken.mint(OWNER, wei(tokensToMint, baseDecimals));
-
-    await baseToken.approve(uniswapV2Router.address, wei(reserveTokens, baseDecimals));
-    await uniswapV2Router.setReserve(baseToken.address, wei(reserveTokens, baseDecimals));
-  }
-}
 
 async function configurePriceFeedTokens(priceFeed, baseAddresses, pathAddresses) {
   logTransaction(await priceFeed.addSupportedBaseTokens(baseAddresses), "Add supported base tokens");
@@ -75,18 +14,22 @@ module.exports = async (deployer) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
   const priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
-  const uniswapV2Router = await UniswapV2Router.at(await contractsRegistry.getUniswapV2RouterContract());
 
-  let deployedTokens = {
-    USD: await contractsRegistry.getUSDContract(),
-    DEXE: await contractsRegistry.getDEXEContract(),
-  };
+  let baseAddresses = [
+    "0xae13d989dac2f0debff460ac112a837c89baa7cd", // WBNB
+    "0x7ef95a0fee0dd31b22626fa2e10ee6a223f8a684", // USDT
+    "0x8babbb98678facc7342735486c851abd7a0d17ca", // WETH
+    "0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7", // BUSD
+    "0x8a9424745056Eb399FD19a0EC26A14316684e274", // DAI
+    "0xDAcbdeCc2992a63390d108e8507B98c7E2B5584a", // SAFEMOON
+    "0xf9f93cf501bfadb6494589cb4b4c15de49e85d0e", // pancake
+  ];
 
-  let baseAddresses = await getAndDeployBaseAddresses(deployer, deployedTokens);
-  let pathAddresses = await getPathAddresses(deployedTokens);
+  let pathAddresses = [
+    "0xae13d989dac2f0debff460ac112a837c89baa7cd", // WBNB
+    "0x7ef95a0fee0dd31b22626fa2e10ee6a223f8a684", // USDT
+    "0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7", // BUSD
+  ];
 
-  await configureReserves(uniswapV2Router, baseAddresses);
-
-  // only this code in needed for production
   await configurePriceFeedTokens(priceFeed, baseAddresses, pathAddresses);
 };
