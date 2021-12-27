@@ -72,6 +72,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     }
 
     function create(
+        string calldata descriptionURL,
         ProposalLimits calldata proposalLimits,
         uint256 lpInvestment,
         uint256 baseInvestment
@@ -92,6 +93,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
         _transferAndMintLP(proposals, _parentTraderPoolInfo.trader, lpInvestment, baseInvestment);
 
+        proposalInfos[proposals].descriptionURL = descriptionURL;
         proposalInfos[proposals].investedLP = lpInvestment;
         proposalInfos[proposals].investedBase = baseInvestment;
         proposalInfos[proposals].newInvestedBase = baseInvestment;

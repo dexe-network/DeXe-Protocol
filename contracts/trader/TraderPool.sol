@@ -96,19 +96,26 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         coreProperties = ICoreProperties(contractsRegistry.getCorePropertiesContract());
     }
 
-    function _modifyAdmins(address[] calldata admins, bool value) internal {
+    function modifyAdmins(address[] calldata admins, bool add) external override onlyTraderAdmin {
         for (uint256 i = 0; i < admins.length; i++) {
-            traderAdmins[admins[i]] = value;
+            traderAdmins[admins[i]] = add;
         }
-    }
 
-    function addAdmins(address[] calldata admins) external override onlyTraderAdmin {
-        _modifyAdmins(admins, true);
-    }
-
-    function removeAdmins(address[] calldata admins) external override onlyTraderAdmin {
-        _modifyAdmins(admins, false);
         traderAdmins[poolParameters.trader] = true;
+    }
+
+    function modifyPrivateInvestors(address[] calldata privateInvestors, bool add)
+        external
+        override
+        onlyTraderAdmin
+    {
+        for (uint256 i = 0; i < privateInvestors.length; i++) {
+            _privateInvestors.add(privateInvestors[i]);
+
+            if (!add && balanceOf(privateInvestors[i]) == 0) {
+                _privateInvestors.remove(privateInvestors[i]);
+            }
+        }
     }
 
     function changePoolParameters(
@@ -121,25 +128,15 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             totalLPEmission == 0 || totalEmission() <= totalLPEmission,
             "TP: wrong emission supply"
         );
+        require(
+            !privatePool || (privatePool && _investors.length() == 0),
+            "TP: pool is not empty"
+        );
 
         poolParameters.descriptionURL = descriptionURL;
         poolParameters.privatePool = privatePool;
         poolParameters.totalLPEmission = totalLPEmission;
         poolParameters.minimalInvestment = minimalInvestment;
-    }
-
-    function changePrivateInvestors(bool remove, address[] calldata privateInvestors)
-        external
-        override
-        onlyTraderAdmin
-    {
-        for (uint256 i = 0; i < privateInvestors.length; i++) {
-            _privateInvestors.add(privateInvestors[i]);
-
-            if (remove && balanceOf(privateInvestors[i]) == 0) {
-                _privateInvestors.remove(privateInvestors[i]);
-            }
-        }
     }
 
     function totalOpenPositions() external view override returns (uint256) {
@@ -458,13 +455,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         } else {
             _divestInvestor(amountLP, minPositionsOut, minDexeCommissionOut);
         }
-    }
-
-    function divestAll(uint256[] calldata minPositionsOut, uint256 minDexeCommissionOut)
-        external
-        override
-    {
-        divest(balanceOf(_msgSender()), minPositionsOut, minDexeCommissionOut);
     }
 
     function _exchange(
