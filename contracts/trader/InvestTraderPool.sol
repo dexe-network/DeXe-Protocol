@@ -90,13 +90,14 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
     }
 
     function createProposal(
+        string calldata descriptionURL,
         uint256 lpAmount,
         ITraderPoolInvestProposal.ProposalLimits calldata proposalLimits,
         uint256[] calldata minPositionsOut
     ) external override onlyTrader {
         uint256 baseAmount = _divestPositions(lpAmount, minPositionsOut);
 
-        _traderPoolProposal.create(proposalLimits, lpAmount, baseAmount);
+        _traderPoolProposal.create(descriptionURL, proposalLimits, lpAmount, baseAmount);
 
         _burn(_msgSender(), lpAmount);
     }

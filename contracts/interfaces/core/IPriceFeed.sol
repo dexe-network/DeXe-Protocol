@@ -7,6 +7,10 @@ pragma solidity ^0.8.4;
  * built into the contract to find the optimal* path between the pairs
  */
 interface IPriceFeed {
+    /// @notice A struct this is returned from the UniswapV2PathFinder library when an optimal* path is found
+    /// @param path the optimal* path itself
+    /// @param amounts either the "amounts out" or "amounts in" required
+    /// @param withSavedPath a bool flag saying if the path is found via the specified path
     struct FoundPath {
         address[] path;
         uint256[] amounts;
@@ -30,8 +34,9 @@ interface IPriceFeed {
     function removeSupportedBaseTokens(address[] calldata baseTokens) external;
 
     /// @notice This function tries to find the optimal exchange rate (the price) between "inToken" and "outToken" using
-    /// custom pathfinder, saved paths and optional specified path
-    /// @param inToken the token to start exchange from
+    /// custom pathfinder, saved paths and optional specified path. The optimality is reached when the amount of
+    /// outTokens is maximal
+    /// @param inToken the token to exchange from
     /// @param outToken the received token
     /// @param amountIn the amount of inToken to be excanged (in inToken decimals)
     /// @param optionalPath the optional path between inToken and outToken that will be used in the pathfinder
@@ -43,6 +48,14 @@ interface IPriceFeed {
         address[] memory optionalPath
     ) external view returns (uint256);
 
+    /// @notice This function tries to find the optimal exchange rate (the price) between "inToken" and "outToken" using
+    /// custom pathfinder, saved paths and optional specified path. The optimality is reached when the amount of
+    /// inTokens is minimal
+    /// @param inToken the token to exchange from
+    /// @param outToken the received token
+    /// @param amountOut the amount of outToken to be received (in inToken decimals)
+    /// @param optionalPath the optional path between inToken and outToken that will be used in the pathfinder
+    /// @return required amount of inToken to execute a swap (in outToken decimals)
     function getExtendedPriceIn(
         address inToken,
         address outToken,
@@ -50,24 +63,37 @@ interface IPriceFeed {
         address[] memory optionalPath
     ) external view returns (uint256);
 
-    /// @notice Shares the same functionality as "getPriceIn" function, however it accepts and returns amount with 18 decimals
-    /// regardless of the inToken and outToken decimals
+    /// @notice Shares the same functionality as "getExtendedPriceOut" function with automatical usage of saved paths.
+    /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
     /// @param inToken the token to exchange from
     /// @param outToken the token to exchange to
-    /// @param amountIn the amount of inToken (with 18 decimals)
-    /// @return the amount of outToken after the swap (with 18 decimals)
+    /// @param amountIn the amount of inToken to be exchanged (with 18 decimals)
+    /// @return the received amount of outToken after the swap (with 18 decimals)
     function getNormalizedPriceOut(
         address inToken,
         address outToken,
         uint256 amountIn
     ) external view returns (uint256);
 
+    /// @notice Shares the same functionality as "getExtendedPriceIn" function with automatical usage of saved paths.
+    /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
+    /// @param inToken the token to exchange from
+    /// @param outToken the token to exchange to
+    /// @param amountOut the amount of outToken to be received (with 18 decimals)
+    /// @return the required amount of inToken to execute the swap (with 18 decimals)
     function getNormalizedPriceIn(
         address inToken,
         address outToken,
         uint256 amountOut
     ) external view returns (uint256);
 
+    /// @notice Shares the same functionality as "getExtendedPriceOut" function.
+    /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
+    /// @param inToken the token to exchange from
+    /// @param outToken the token to exchange to
+    /// @param amountIn the amount of inToken to be exchanged (with 18 decimals)
+    /// @param optionalPath the optional path between inToken and outToken that will be used in the pathfinder
+    /// @return the received amount of outToken after the swap (with 18 decimals)
     function getNormalizedExtendedPriceOut(
         address inToken,
         address outToken,
@@ -75,6 +101,13 @@ interface IPriceFeed {
         address[] memory optionalPath
     ) external view returns (uint256);
 
+    /// @notice Shares the same functionality as "getExtendedPriceIn" function.
+    /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
+    /// @param inToken the token to exchange from
+    /// @param outToken the token to exchange to
+    /// @param amountOut the amount of outToken to be received (with 18 decimals)
+    /// @param optionalPath the optional path between inToken and outToken that will be used in the pathfinder
+    /// @return the required amount of inToken to execute the swap (with 18 decimals)
     function getNormalizedExtendedPriceIn(
         address inToken,
         address outToken,
@@ -100,8 +133,9 @@ interface IPriceFeed {
         view
         returns (uint256);
 
-    /// @notice The function that performs an actual Uniswap swap, taking the inToken tokens from the msg.sender
-    /// and sending received outTokens back. The approval to this address has to be made beforehand
+    /// @notice The function that performs an actual Uniswap swap (swapExactTokensForTokens),
+    /// taking the amountIn inToken tokens from the msg.sender and sending not less than minAmountOut outTokens back.
+    /// The approval of amountIn tokens has to be made to this address beforehand
     /// @param inToken the token to be exchanged from
     /// @param outToken the token to be exchanged to
     /// @param amountIn the amount of inToken tokens to be exchanged
@@ -117,6 +151,16 @@ interface IPriceFeed {
         uint256 minAmountOut
     ) external returns (uint256);
 
+    /// @notice The function that performs an actual Uniswap swap (swapTokensForExactTokens),
+    /// taking not more than maxAmountIn inToken tokens from the msg.sender and sending amountOut outTokens back.
+    /// The approval of maxAmountIn tokens has to be made to this address beforehand
+    /// @param inToken the token to be exchanged from
+    /// @param outToken the token to be exchanged to
+    /// @param amountOut the amount of outToken tokens to be received
+    /// @param optionalPath the optional path that will be considered by the pathfinder to find the best route
+    /// @param maxAmountIn the maximal amount of inTokens that have to be taked to execute the swap.
+    /// basically this is a sandwich attack protection mechanism
+    /// @return the amount of inTokens taken from the msg.sender
     function exchangeToExact(
         address inToken,
         address outToken,
@@ -125,12 +169,12 @@ interface IPriceFeed {
         uint256 maxAmountIn
     ) external returns (uint256);
 
-    /// @notice The same as "exchangeTo" except that the amount of inTokens and received amount of outTokens is normalized
+    /// @notice The same as "exchangeFromExact" except that the amount of inTokens and received amount of outTokens is normalized
     /// @param inToken the token to be exchanged from
     /// @param outToken the token to be exchanged to
     /// @param amountIn the amount of inTokens to be exchanged (in 18 decimals)
     /// @param optionalPath the optional path that will be considered by the pathfinder
-    /// @param minAmountOut the minimal amount of outTokens to be received. Note that this parameter is NOT normalized
+    /// @param minAmountOut the minimal amount of outTokens to be received (also normalized)
     /// @return normalized amount of outTokens sent to the msg.sender after the swap
     function normalizedExchangeFromExact(
         address inToken,
@@ -140,6 +184,13 @@ interface IPriceFeed {
         uint256 minAmountOut
     ) external returns (uint256);
 
+    /// @notice The same as "exchangeToExact" except that the amount of inTokens and received amount of outTokens is normalized
+    /// @param inToken the token to be exchanged from
+    /// @param outToken the token to be exchanged to
+    /// @param amountOut the amount of outTokens to be received (in 18 decimals)
+    /// @param optionalPath the optional path that will be considered by the pathfinder
+    /// @param maxAmountIn the maximal amount of inTokens to be taken (also normalized)
+    /// @return normalized amount of inTokens taken from the msg.sender to execute the swap
     function normalizedExchangeToExact(
         address inToken,
         address outToken,

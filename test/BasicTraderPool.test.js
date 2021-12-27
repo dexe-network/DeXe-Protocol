@@ -265,7 +265,7 @@ describe("BasicTraderPool", () => {
     const divests = await proposalPool.getDivestAmounts([propoaslId], [amount]);
     const invests = await traderPool.getInvestTokens(divests.baseAmount);
 
-    await traderPool.reinvestProposal(propoaslId, amount, invests.receivedAmounts, divests.receivedBaseAmounts[0], {
+    await traderPool.reinvestProposal(propoaslId, amount, invests.receivedAmounts, divests.receivedAmounts[0], {
       from: account,
     });
   }
@@ -280,7 +280,7 @@ describe("BasicTraderPool", () => {
     const divests = await proposalPool.getDivestAmounts(proposals, amounts);
     const invests = await traderPool.getInvestTokens(divests.baseAmount);
 
-    const slippageAmounts = divests.receivedBaseAmounts.map((amount) => toBN(amount).times(slippage).dp(0).toFixed());
+    const slippageAmounts = divests.receivedAmounts.map((amount) => toBN(amount).times(slippage).dp(0).toFixed());
 
     await traderPool.reinvestAllProposals(invests.receivedAmounts, slippageAmounts, { from: account });
   }

@@ -67,11 +67,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         }
     }
 
-    function setNewImplementation(string calldata name, address newImplementation)
-        public
-        override
-        onlyOwner
-    {
+    function _setNewImplementation(string calldata name, address newImplementation) internal {
         if (_beacons[name].implementation() != newImplementation) {
             _beacons[name].upgrade(newImplementation);
         }
@@ -83,7 +79,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         onlyOwner
     {
         for (uint256 i = 0; i < names.length; i++) {
-            setNewImplementation(names[i], newImplementations[i]);
+            _setNewImplementation(names[i], newImplementations[i]);
         }
     }
 

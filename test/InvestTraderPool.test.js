@@ -234,7 +234,7 @@ describe("InvestTraderPool", () => {
   async function createProposal(value, limits) {
     const divests = await traderPool.getDivestAmountsAndCommissions(OWNER, value);
 
-    await traderPool.createProposal(value, limits, divests.receptions.receivedAmounts);
+    await traderPool.createProposal("placeholder.com", value, limits, divests.receptions.receivedAmounts);
   }
 
   async function investProposal(proposalId, amount, account) {

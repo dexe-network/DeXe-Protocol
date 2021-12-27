@@ -6,14 +6,15 @@ import "./ITraderPool.sol";
 
 /**
  * This is the first type of pool that can de deployed by the trader in the DEXE platform.
- * BasicTraderPool inherits TraderPool functionality and adds the possiblity to invest into the risky proposals.
+ * BasicTraderPool inherits TraderPool functionality and adds the ability to invest into the risky proposals.
  * RiskyProposals are basically subpools where the trader is only allowed to open positions to the prespecified token.
  * Investors can enter subpools by allocating parts of their funds to the proposals. The allocation as done
  * through internal withdrawal and deposit process
  */
 interface IBasicTraderPool {
     /// @notice This function is used to create risky proposals (basicaly subpools) and allow investors to invest into it.
-    /// The proposals follow pretty much the same rules as the main pool except that the trade can happen with a specified token only
+    /// The proposals follow pretty much the same rules as the main pool except that the trade can happen with a specified token only.
+    /// Investors can't fund the proposal more than the trader percentage wise
     /// @param token the token the proposal will be opened to
     /// @param lpAmount the amount of LP tokens the trader would like to invest into the proposal at its creation
     /// @param proposalLimits the certain limits this proposal will have
