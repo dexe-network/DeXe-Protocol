@@ -57,11 +57,13 @@ interface ITraderPool {
     /// @notice The struct that is returned from the TraderPoolView contract to see the received amounts
     /// @param baseAmount total received base amount
     /// @param positions the addresses of positions tokens from which the "receivedAmounts" are calculated
+    /// @param givenAmounts the amounts (either in base tokens or in position tokens) given
     /// @param receivedAmounts the amounts (either in base tokens or in position tokens) received
     struct Receptions {
         uint256 baseAmount;
         address[] positions;
-        uint256[] receivedAmounts;
+        uint256[] givenAmounts;
+        uint256[] receivedAmounts; // should be used as minAmountOut
     }
 
     /// @notice The function that returns a PriceFeed contract
@@ -204,7 +206,7 @@ interface ITraderPool {
     /// @notice The function to get the amount of from tokens required for the swap
     /// @param from the token to exchange from
     /// @param to the token to exchange to
-    /// @param amountOut the amount of from tokens to be received
+    /// @param amountOut the amount of to tokens to be received
     /// @param optionalPath optional path between from and to tokens used by the pathfinder
     /// @return maxAmountIn the amount of from tokens required for the swap
     function getExchangeToExactAmount(

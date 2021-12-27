@@ -5,7 +5,9 @@ import "./ITraderPoolProposal.sol";
 
 /**
  * This is the proposal the trader is able to create for the TraderInvestPool. The proposal itself is a subpool where investors
- * can send funds to. These funds become fully controlled by the trader himself and might be withdrawn for any purposes
+ * can send funds to. These funds become fully controlled by the trader himself and might be withdrawn for any purposes.
+ * Anyone can supply funds to this kind of proposal and the funds will be distributed propostionaly between all the proposal
+ * investors
  */
 interface ITraderPoolInvestProposal is ITraderPoolProposal {
     /// @notice The limits of this proposal
@@ -127,7 +129,7 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
     /// @return the received amount of base tokens
     function divest(uint256 proposalId, address user) external returns (uint256);
 
-    /// @notice The function to divest profit from all proposals into the main pool
+    /// @notice The function to divest profit from all the active proposals into the main pool
     /// @param user the user who divests
     /// @return the amount of base tokens received
     function divestAll(address user) external returns (uint256);
@@ -136,7 +138,7 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
     /// @param proposalId the id of the proposal
     function claim(uint256 proposalId) external;
 
-    /// @notice The function to claim all proposals' profit to the msg.sender wallet
+    /// @notice The function to claim all the active proposals' profit to the msg.sender wallet
     function claimAll() external;
 
     /// @notice The trader function to withdraw the invested funds to his wallet

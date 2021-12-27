@@ -51,6 +51,7 @@ library TraderPoolView {
         ) = poolParameters.getNormalizedPoolPrice(openPositions);
 
         receptions.positions = positionTokens;
+        receptions.givenAmounts = new uint256[](positionTokens.length);
         receptions.receivedAmounts = new uint256[](positionTokens.length);
 
         if (totalBase > 0) {
@@ -60,10 +61,14 @@ library TraderPoolView {
         IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
 
         for (uint256 i = 0; i < positionTokens.length; i++) {
+            receptions.givenAmounts[i] = positionPricesInBase[i].ratio(
+                amountInBaseToInvest,
+                totalBase
+            );
             receptions.receivedAmounts[i] = priceFeed.getNormalizedPriceOut(
                 poolParameters.baseToken,
                 positionTokens[i],
-                positionPricesInBase[i].ratio(amountInBaseToInvest, totalBase)
+                receptions.givenAmounts[i]
             );
         }
     }
@@ -124,6 +129,7 @@ library TraderPoolView {
         uint256 length = openPositions.length();
 
         receptions.positions = new address[](length);
+        receptions.givenAmounts = new uint256[](length);
         receptions.receivedAmounts = new uint256[](length);
 
         receptions.baseAmount = baseToken
@@ -133,7 +139,7 @@ library TraderPoolView {
 
         for (uint256 i = 0; i < length; i++) {
             receptions.positions[i] = openPositions.at(i);
-            uint256 positionsConverted = ERC20(receptions.positions[i])
+            receptions.givenAmounts[i] = ERC20(receptions.positions[i])
                 .balanceOf(address(this))
                 .ratio(amountLP, totalSupply)
                 .convertTo18(ERC20(receptions.positions[i]).decimals());
@@ -141,7 +147,7 @@ library TraderPoolView {
             receptions.receivedAmounts[i] = priceFeed.getNormalizedPriceOut(
                 receptions.positions[i],
                 address(baseToken),
-                positionsConverted
+                receptions.givenAmounts[i]
             );
             receptions.baseAmount += receptions.receivedAmounts[i];
         }

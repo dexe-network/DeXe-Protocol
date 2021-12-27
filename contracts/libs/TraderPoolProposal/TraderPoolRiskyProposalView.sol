@@ -124,8 +124,8 @@ library TraderPoolRiskyProposalView {
         uint256[] calldata lp2s
     ) external view returns (ITraderPoolRiskyProposal.Receptions memory receptions) {
         receptions.positions = new address[](proposalIds.length);
-        receptions.receivedBaseAmounts = new uint256[](proposalIds.length);
-        receptions.receivedPositionAmounts = new uint256[](proposalIds.length);
+        receptions.givenAmounts = new uint256[](proposalIds.length);
+        receptions.receivedAmounts = new uint256[](proposalIds.length);
 
         IPriceFeed priceFeed = ITraderPoolRiskyProposal(address(this)).priceFeed();
         uint256 proposalsTotalNum = TraderPoolRiskyProposal(address(this)).proposalsTotalNum();
@@ -140,21 +140,22 @@ library TraderPoolRiskyProposalView {
             uint256 propSupply = TraderPoolRiskyProposal(address(this)).totalSupply(proposalId);
 
             if (propSupply > 0) {
-                receptions.receivedPositionAmounts[i] = proposalInfos[proposalId]
-                    .balancePosition
-                    .ratio(lp2s[i], propSupply);
+                receptions.positions[i] = proposalInfos[proposalId].token;
+                receptions.givenAmounts[i] = proposalInfos[proposalId].balancePosition.ratio(
+                    lp2s[i],
+                    propSupply
+                );
                 receptions.baseAmount += proposalInfos[proposalId].balanceBase.ratio(
                     lp2s[i],
                     propSupply
                 );
 
-                receptions.receivedBaseAmounts[i] = priceFeed.getNormalizedPriceOut(
+                receptions.receivedAmounts[i] = priceFeed.getNormalizedPriceOut(
                     proposalInfos[proposalId].token,
                     parentTraderPoolInfo.baseToken,
-                    receptions.receivedPositionAmounts[i]
+                    receptions.givenAmounts[i]
                 );
-                receptions.baseAmount += receptions.receivedBaseAmounts[i];
-                receptions.positions[i] = proposalInfos[proposalId].token;
+                receptions.baseAmount += receptions.receivedAmounts[i];
             }
         }
     }

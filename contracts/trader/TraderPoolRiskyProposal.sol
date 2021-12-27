@@ -65,6 +65,20 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             );
     }
 
+    function getCreationTokens(
+        address token,
+        uint256 baseInvestment,
+        uint256 instantTradePercentage,
+        address[] calldata optionalPath
+    ) external view override returns (uint256) {
+        return
+            _parentTraderPoolInfo.getCreationTokens(
+                token,
+                baseInvestment.percentage(instantTradePercentage),
+                optionalPath
+            );
+    }
+
     function create(
         address token,
         ProposalLimits calldata proposalLimits,
@@ -108,20 +122,6 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             optionalPath,
             minProposalOut
         );
-    }
-
-    function getCreationTokens(
-        address token,
-        uint256 baseInvestment,
-        uint256 instantTradePercentage,
-        address[] calldata optionalPath
-    ) external view override returns (uint256) {
-        return
-            _parentTraderPoolInfo.getCreationTokens(
-                token,
-                baseInvestment.percentage(instantTradePercentage),
-                optionalPath
-            );
     }
 
     function _activePortfolio(
