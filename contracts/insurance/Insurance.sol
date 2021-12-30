@@ -37,6 +37,8 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
 
     uint256 public totalPool; // tokens only from pools
 
+    event Deposit(uint256 amount, address investor);
+
     modifier onlyTraderPool() {
         require(_traderPoolRegistry.isPool(_msgSender()), "Insurance: Not a trader pool");
         _;
@@ -77,6 +79,8 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         _depositOnBlocks[_msgSender()][block.number] += deposit;
 
         _dexe.transferFrom(_msgSender(), address(this), deposit);
+
+        emit Deposit(deposit, _msgSender());
     }
 
     function getReceivedInsurance(uint256 deposit) external view override returns (uint256) {
