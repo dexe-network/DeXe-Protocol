@@ -57,6 +57,13 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     event InvestorRemoved(address investor);
     event Divest(address investor, uint256 amount, uint256 commission);
 
+    event Exchanged(address fromToken, address toToken, uint256 fromVolume, uint256 toVolume);
+    event PositionClosed(address position);
+    event InvestorAdded(address investor);
+    event Invest(address investor, uint256 amount, uint256 toMintLP);
+    event InvestorRemoved(address investor);
+    event Divest(address investor, uint256 amount, uint256 commission);
+
     modifier onlyTraderAdmin() {
         _onlyTraderAdmin();
         _;
@@ -444,6 +451,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         } else {
             _divestInvestor(amountLP, minPositionsOut, minDexeCommissionOut);
         }
+
+        emit Divest(_msgSender(), amountLP, minDexeCommissionOut);
     }
 
     function _exchange(
@@ -475,7 +484,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         if (_thisBalance(from) == 0) {
             _openPositions.remove(from);
+            emit PositionClosed(from);
         }
+
+        emit Exchanged(from, to, amount, amountBound);
     }
 
     function _getExchangeAmount(
@@ -587,6 +599,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         if (lpAmount == balanceOf(investor)) {
             _investors.remove(investor);
             investorsInfo[investor].commissionUnlockEpoch = 0;
+            emit InvestorRemoved(investor);
         }
     }
 
@@ -604,6 +617,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
                 _investors.length() <= coreProperties.getMaximumPoolInvestors(),
                 "TP: max investors"
             );
+
+            emit InvestorAdded(investor);
         }
     }
 
