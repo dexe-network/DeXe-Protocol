@@ -4,7 +4,7 @@ const ContractsRegistry = artifacts.require("ContractsRegistry");
 const TransparentUpgradeableProxy = artifacts.require("TransparentUpgradeableProxy");
 
 // TODO change to DAO address
-const proxyAdmin = "0x53638975BC11de3029E46DF193d64879EAeA94eB";
+const proxyAdmin = "0xEd498E75d471C3b874461a87Bb7146453CC8175A";
 
 module.exports = async (deployer) => {
   const contractsRegistry = await deployer.deploy(ContractsRegistry);
