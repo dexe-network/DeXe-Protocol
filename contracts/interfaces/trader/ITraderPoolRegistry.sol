@@ -77,5 +77,8 @@ interface ITraderPoolRegistry {
         uint256 limit
     ) external view returns (address[] memory pools);
 
+    /// @notice The function to check if the given address is a valid TraderPool
+    /// @param potentialPool the address to inspect
+    /// @return true if the address is a TraderPool, false otherwise
     function isPool(address potentialPool) external view returns (bool);
 }

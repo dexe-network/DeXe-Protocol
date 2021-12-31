@@ -109,6 +109,7 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// @param instantTradePercentage the percentage of tokens that will be traded instantly to a "token"
     /// @param minPositionOut the minimal amount of position tokens received (call getCreationTokens())
     /// @param optionalPath the optional path between base token and position token that will be used by the pathfinder
+    /// @return proposalId the id of the created proposal
     function create(
         address token,
         ProposalLimits calldata proposalLimits,
@@ -117,7 +118,7 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
         uint256 instantTradePercentage,
         uint256 minPositionOut,
         address[] calldata optionalPath
-    ) external;
+    ) external returns (uint256 proposalId);
 
     /// @notice The function to get the amount of base tokens and position tokens received on this proposal investment
     /// @param proposalId the id of the propoasl to invest in

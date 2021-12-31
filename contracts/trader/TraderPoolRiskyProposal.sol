@@ -87,7 +87,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 instantTradePercentage,
         uint256 minProposalOut,
         address[] calldata optionalPath
-    ) external override onlyParentTraderPool {
+    ) external override onlyParentTraderPool returns (uint256 proposalId) {
         require(token.isContract(), "BTP: not a contract");
         require(token != _parentTraderPoolInfo.baseToken, "BTP: wrong proposal token");
         require(
@@ -101,7 +101,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         require(lpInvestment > 0 && baseInvestment > 0, "TPRP: zero investment");
         require(instantTradePercentage <= PERCENTAGE_100, "TPRP: percantage is bigger than 100");
 
-        uint256 proposals = ++proposalsTotalNum;
+        proposalId = ++proposalsTotalNum;
 
         address baseToken = _parentTraderPoolInfo.baseToken;
         address trader = _parentTraderPoolInfo.trader;
@@ -109,13 +109,13 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         _checkPriceFeedAllowance(baseToken);
         _checkPriceFeedAllowance(token);
 
-        proposalInfos[proposals].token = token;
-        proposalInfos[proposals].tokenDecimals = ERC20(token).decimals();
-        proposalInfos[proposals].proposalLimits = proposalLimits;
+        proposalInfos[proposalId].token = token;
+        proposalInfos[proposalId].tokenDecimals = ERC20(token).decimals();
+        proposalInfos[proposalId].proposalLimits = proposalLimits;
 
-        _transferAndMintLP(proposals, trader, lpInvestment, baseInvestment);
+        _transferAndMintLP(proposalId, trader, lpInvestment, baseInvestment);
         _activePortfolio(
-            proposals,
+            proposalId,
             baseInvestment,
             baseInvestment.percentage(instantTradePercentage),
             lpInvestment,

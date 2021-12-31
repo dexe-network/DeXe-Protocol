@@ -47,6 +47,20 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         return totalSupply() + _traderPoolProposal.totalLockedLP();
     }
 
+    function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut)
+        public
+        override
+    {
+        require(
+            isTraderAdmin(_msgSender()) ||
+                (_firstExchange != 0 &&
+                    _firstExchange + coreProperties.getDelayForRiskyPool() <= block.timestamp),
+            "ITP: investment delay"
+        );
+
+        super.invest(amountInBaseToInvest, minPositionsOut);
+    }
+
     function exchangeFromExact(
         address from,
         address to,
@@ -73,20 +87,6 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         }
 
         super.exchangeToExact(from, to, amountOut, maxAmountIn, optionalPath);
-    }
-
-    function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut)
-        public
-        override
-    {
-        require(
-            isTraderAdmin(_msgSender()) ||
-                (_firstExchange != 0 &&
-                    _firstExchange + coreProperties.getDelayForRiskyPool() <= block.timestamp),
-            "ITP: investment delay"
-        );
-
-        super.invest(amountInBaseToInvest, minPositionsOut);
     }
 
     function createProposal(

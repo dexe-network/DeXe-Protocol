@@ -76,7 +76,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         ProposalLimits calldata proposalLimits,
         uint256 lpInvestment,
         uint256 baseInvestment
-    ) external override onlyParentTraderPool {
+    ) external override onlyParentTraderPool returns (uint256 proposalId) {
         require(
             proposalLimits.timestampLimit == 0 || proposalLimits.timestampLimit >= block.timestamp,
             "TPIP: wrong timestamp"
@@ -87,16 +87,16 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         );
         require(lpInvestment > 0 && baseInvestment > 0, "TPIP: zero investment");
 
-        uint256 proposals = ++proposalsTotalNum;
+        proposalId = ++proposalsTotalNum;
 
-        proposalInfos[proposals].proposalLimits = proposalLimits;
+        proposalInfos[proposalId].proposalLimits = proposalLimits;
 
-        _transferAndMintLP(proposals, _parentTraderPoolInfo.trader, lpInvestment, baseInvestment);
+        _transferAndMintLP(proposalId, _parentTraderPoolInfo.trader, lpInvestment, baseInvestment);
 
-        proposalInfos[proposals].descriptionURL = descriptionURL;
-        proposalInfos[proposals].investedLP = lpInvestment;
-        proposalInfos[proposals].investedBase = baseInvestment;
-        proposalInfos[proposals].newInvestedBase = baseInvestment;
+        proposalInfos[proposalId].descriptionURL = descriptionURL;
+        proposalInfos[proposalId].investedLP = lpInvestment;
+        proposalInfos[proposalId].investedBase = baseInvestment;
+        proposalInfos[proposalId].newInvestedBase = baseInvestment;
     }
 
     function _updateRewards(uint256 proposalId, address user) internal {

@@ -95,12 +95,13 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
     /// @param proposalLimits the certain limits of this proposal
     /// @param lpInvestment the amount of LP tokens invested on proposal's creation
     /// @param baseInvestment the equivalent amount of base tokens invested on proposal's creation
+    /// @return proposalId the id of the created proposal
     function create(
         string calldata descriptionURL,
         ProposalLimits calldata proposalLimits,
         uint256 lpInvestment,
         uint256 baseInvestment
-    ) external;
+    ) external returns (uint256 proposalId);
 
     /// @notice The function that is used to get user's rewards from the proposals
     /// @param proposalIds the array of proposals ids
