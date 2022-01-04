@@ -12,6 +12,7 @@ import "../../interfaces/core/ICoreProperties.sol";
 
 import "./TraderPoolPrice.sol";
 import "./TraderPoolCommission.sol";
+import "./TraderPoolLeverage.sol";
 import "../../libs/MathHelper.sol";
 import "../../libs/DecimalsConverter.sol";
 
@@ -19,6 +20,7 @@ library TraderPoolView {
     using EnumerableSet for EnumerableSet.AddressSet;
     using TraderPoolPrice for ITraderPool.PoolParameters;
     using TraderPoolCommission for ITraderPool.PoolParameters;
+    using TraderPoolLeverage for ITraderPool.PoolParameters;
     using DecimalsConverter for uint256;
     using MathHelper for uint256;
     using Math for uint256;
@@ -70,6 +72,23 @@ library TraderPoolView {
                 positionTokens[i],
                 receptions.givenAmounts[i]
             );
+        }
+    }
+
+    function getLeverageInfo(
+        ITraderPool.PoolParameters storage poolParameters,
+        EnumerableSet.AddressSet storage openPositions
+    ) external view returns (ITraderPool.LeverageInfo memory leverageInfo) {
+        (leverageInfo.totalPoolUSD, leverageInfo.traderLeverageUSDTokens) = poolParameters
+            .getMaxTraderLeverage(openPositions);
+
+        if (leverageInfo.traderLeverageUSDTokens > leverageInfo.totalPoolUSD) {
+            leverageInfo.freeLeverageUSD =
+                leverageInfo.traderLeverageUSDTokens -
+                leverageInfo.totalPoolUSD;
+            leverageInfo.freeLeverageBase = ITraderPool(address(this))
+                .priceFeed()
+                .getNormalizedPriceOutBase(poolParameters.baseToken, leverageInfo.freeLeverageUSD);
         }
     }
 

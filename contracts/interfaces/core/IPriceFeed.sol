@@ -133,6 +133,15 @@ interface IPriceFeed {
         view
         returns (uint256);
 
+    /// @notice The function to get the price of outToken given the amount in USD
+    /// @param outToken the token to get the price of
+    /// @param amountInUSD the amount of USD given
+    /// @return received amount of outToken with the given USD
+    function getNormalizedPriceOutBase(address outToken, uint256 amountInUSD)
+        external
+        view
+        returns (uint256);
+
     /// @notice The function that performs an actual Uniswap swap (swapExactTokensForTokens),
     /// taking the amountIn inToken tokens from the msg.sender and sending not less than minAmountOut outTokens back.
     /// The approval of amountIn tokens has to be made to this address beforehand

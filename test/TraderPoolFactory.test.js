@@ -91,6 +91,7 @@ describe("TraderPoolFactory", () => {
 
     await TraderPoolViewLib.link(traderPoolPriceLib);
     await TraderPoolViewLib.link(traderPoolCommissionLib);
+    await TraderPoolViewLib.link(traderPoolLeverageLib);
 
     const traderPoolViewLib = await TraderPoolViewLib.new();
 
@@ -191,7 +192,6 @@ describe("TraderPoolFactory", () => {
         privatePool: false,
         totalLPEmission: 0,
         baseToken: testCoin.address,
-        baseTokenDecimals: 18,
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_1,
         commissionPercentage: toBN(30).times(PRECISION).toFixed(),

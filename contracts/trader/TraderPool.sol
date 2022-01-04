@@ -178,14 +178,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _mint(_msgSender(), toMintLP);
     }
 
-    function _checkLeverage(uint256 addInUSD) internal view {
-        (uint256 totalPriceInUSD, uint256 maxTraderVolumeInUSD) = poolParameters
-            .getMaxTraderLeverage(_openPositions);
-
-        require(
-            addInUSD + totalPriceInUSD <= maxTraderVolumeInUSD,
-            "TP: exchange exceeds leverage"
-        );
+    function getLeverageInfo() external view returns (LeverageInfo memory leverageInfo) {
+        return poolParameters.getLeverageInfo(_openPositions);
     }
 
     function getInvestTokens(uint256 amountInBaseToInvest)
@@ -213,7 +207,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         address baseToken = poolParameters.baseToken;
 
         if (!isTrader(_msgSender())) {
-            _checkLeverage(_priceFeed.getNormalizedPriceOutUSD(baseToken, amountInBaseToInvest));
+            poolParameters.checkLeverage(_openPositions, amountInBaseToInvest);
         }
 
         _transferBaseAndMintLP(baseHolder, totalBase, amountInBaseToInvest);

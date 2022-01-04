@@ -66,6 +66,18 @@ interface ITraderPool {
         uint256[] receivedAmounts; // should be used as minAmountOut
     }
 
+    /// @notice The struct that is returned from the TraderPoolView contract and stores information about the trader leverage
+    /// @param totalPoolUSD the total USD value of the pool
+    /// @param traderLeverageUSDTokens the maximal amount of USD that the trader is allowed to own
+    /// @param freeLeverageUSD the amount of USD that could be invested into the pool
+    /// @param freeLeverageBase the amount of base tokens that could be invested into the pool (basically converted freeLeverageUSD)
+    struct LeverageInfo {
+        uint256 totalPoolUSD;
+        uint256 traderLeverageUSDTokens;
+        uint256 freeLeverageUSD;
+        uint256 freeLeverageBase;
+    }
+
     /// @notice The function that returns a PriceFeed contract
     /// @return the price feed used
     function priceFeed() external view returns (IPriceFeed);

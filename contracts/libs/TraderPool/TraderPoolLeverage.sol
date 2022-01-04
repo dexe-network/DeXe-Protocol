@@ -36,7 +36,7 @@ library TraderPoolLeverage {
     function getMaxTraderLeverage(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions
-    ) external view returns (uint256 totalTokensUSD, uint256 maxTraderLeverageUSDTokens) {
+    ) public view returns (uint256 totalTokensUSD, uint256 maxTraderLeverageUSDTokens) {
         uint256 traderUSDTokens;
 
         (totalTokensUSD, traderUSDTokens) = _getNormalizedLeveragePoolPriceInUSD(
@@ -57,5 +57,25 @@ library TraderPoolLeverage {
         int256 boost = traderUSD * 2;
 
         maxTraderLeverageUSDTokens = uint256((numerator / int256(slope) + boost)) * 10**18;
+    }
+
+    function checkLeverage(
+        ITraderPool.PoolParameters storage poolParameters,
+        EnumerableSet.AddressSet storage openPositions,
+        uint256 amountInBaseToInvest
+    ) external view {
+        (uint256 totalPriceInUSD, uint256 maxTraderVolumeInUSD) = getMaxTraderLeverage(
+            poolParameters,
+            openPositions
+        );
+        uint256 addInUSD = ITraderPool(address(this)).priceFeed().getNormalizedPriceOutUSD(
+            poolParameters.baseToken,
+            amountInBaseToInvest
+        );
+
+        require(
+            addInUSD + totalPriceInUSD <= maxTraderVolumeInUSD,
+            "TP: exchange exceeds leverage"
+        );
     }
 }

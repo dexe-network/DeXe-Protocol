@@ -205,6 +205,15 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         return getNormalizedPriceOut(inToken, _usdAddress, amountIn);
     }
 
+    function getNormalizedPriceOutBase(address outToken, uint256 amountInUSD)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return getNormalizedPriceOut(_usdAddress, outToken, amountInUSD);
+    }
+
     function _savePath(
         address inToken,
         address outToken,
