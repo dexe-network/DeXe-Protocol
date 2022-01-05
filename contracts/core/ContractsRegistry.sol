@@ -10,7 +10,7 @@ import "../helpers/AbstractDependant.sol";
 import "../helpers/ProxyUpgrader.sol";
 
 contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
-    ProxyUpgrader internal proxyUpgrader;
+    ProxyUpgrader internal _proxyUpgrader;
 
     string public constant TRADER_POOL_FACTORY_NAME = "TRADER_POOL_FACTORY";
     string public constant TRADER_POOL_REGISTRY_NAME = "TRADER_POOL_REGISTRY";
@@ -34,7 +34,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
     function __ContractsRegistry_init() external initializer {
         __Ownable_init();
 
-        proxyUpgrader = new ProxyUpgrader();
+        _proxyUpgrader = new ProxyUpgrader();
     }
 
     function getTraderPoolFactoryContract() external view override returns (address) {
@@ -103,9 +103,9 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
     }
 
     function getProxyUpgrader() external view override returns (address) {
-        require(address(proxyUpgrader) != address(0), "ContractsRegistry: Bad ProxyUpgrader");
+        require(address(_proxyUpgrader) != address(0), "ContractsRegistry: Bad ProxyUpgrader");
 
-        return address(proxyUpgrader);
+        return address(_proxyUpgrader);
     }
 
     function getImplementation(string calldata name) external view override returns (address) {
@@ -114,7 +114,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         require(contractProxy != address(0), "ContractsRegistry: This mapping doesn't exist");
         require(_isProxy[contractProxy], "ContractsRegistry: Not a proxy contract");
 
-        return proxyUpgrader.getImplementation(contractProxy);
+        return _proxyUpgrader.getImplementation(contractProxy);
     }
 
     function upgradeContract(string calldata name, address newImplementation)
@@ -144,7 +144,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         require(contractToUpgrade != address(0), "ContractsRegistry: This mapping doesn't exist");
         require(_isProxy[contractToUpgrade], "ContractsRegistry: Not a proxy contract");
 
-        proxyUpgrader.upgrade(
+        _proxyUpgrader.upgrade(
             contractToUpgrade,
             newImplementation,
             abi.encodeWithSignature(functionSignature)
@@ -170,7 +170,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
 
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
             contractAddress,
-            address(proxyUpgrader),
+            address(_proxyUpgrader),
             ""
         );
 
