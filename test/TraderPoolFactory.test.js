@@ -209,7 +209,7 @@ describe("TraderPoolFactory", () => {
 
     it("should deploy pool and check TraderPoolRegistry", async () => {
       let lenPools = await traderPoolRegistry.countPools(await traderPoolRegistry.BASIC_POOL_NAME());
-      let lenUser = await traderPoolRegistry.countUserPools(OWNER, await traderPoolRegistry.BASIC_POOL_NAME());
+      let lenUser = await traderPoolRegistry.countTraderPools(OWNER, await traderPoolRegistry.BASIC_POOL_NAME());
 
       let tx = await traderPoolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS);
       let event = tx.receipt.logs[0];
@@ -221,7 +221,7 @@ describe("TraderPoolFactory", () => {
         lenPools.plus(1).toString()
       );
       assert.equal(
-        (await traderPoolRegistry.countUserPools(OWNER, await traderPoolRegistry.BASIC_POOL_NAME())).toString(),
+        (await traderPoolRegistry.countTraderPools(OWNER, await traderPoolRegistry.BASIC_POOL_NAME())).toString(),
         lenUser.plus(1).toString()
       );
     });
@@ -255,7 +255,7 @@ describe("TraderPoolFactory", () => {
 
     it("should deploy pool and check TraderPoolRegistry", async () => {
       let lenPools = await traderPoolRegistry.countPools(await traderPoolRegistry.INVEST_POOL_NAME());
-      let lenUser = await traderPoolRegistry.countUserPools(OWNER, await traderPoolRegistry.INVEST_POOL_NAME());
+      let lenUser = await traderPoolRegistry.countTraderPools(OWNER, await traderPoolRegistry.INVEST_POOL_NAME());
 
       let tx = await traderPoolFactory.deployInvestPool("Invest", "IP", POOL_PARAMETERS);
       let event = tx.receipt.logs[0];
@@ -267,7 +267,7 @@ describe("TraderPoolFactory", () => {
         lenPools.plus(1).toString()
       );
       assert.equal(
-        (await traderPoolRegistry.countUserPools(OWNER, await traderPoolRegistry.INVEST_POOL_NAME())).toString(),
+        (await traderPoolRegistry.countTraderPools(OWNER, await traderPoolRegistry.INVEST_POOL_NAME())).toString(),
         lenUser.plus(1).toString()
       );
     });
@@ -291,7 +291,7 @@ describe("TraderPoolFactory", () => {
 
       await truffleAssert.reverts(
         traderPoolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
-        "TraderPoolFactory: Incorrect percentage."
+        "TraderPoolFactory: Incorrect percentage"
       );
     });
 
@@ -310,7 +310,7 @@ describe("TraderPoolFactory", () => {
 
       await truffleAssert.reverts(
         traderPoolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
-        "TraderPoolFactory: Incorrect percentage."
+        "TraderPoolFactory: Incorrect percentage"
       );
     });
 
@@ -329,7 +329,7 @@ describe("TraderPoolFactory", () => {
 
       await truffleAssert.reverts(
         traderPoolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
-        "TraderPoolFactory: Incorrect percentage."
+        "TraderPoolFactory: Incorrect percentage"
       );
     });
 
@@ -348,7 +348,7 @@ describe("TraderPoolFactory", () => {
 
       await truffleAssert.reverts(
         traderPoolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
-        "TraderPoolFactory: Unsupported token."
+        "TraderPoolFactory: Unsupported token"
       );
     });
   });

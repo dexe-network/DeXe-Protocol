@@ -74,8 +74,8 @@ describe("TraderPoolRegistry", () => {
       assert.equal((await traderPoolRegistry.countPools(BASIC_NAME)).toFixed(), "2");
       assert.equal((await traderPoolRegistry.countPools(INVEST_NAME)).toFixed(), "0");
 
-      assert.equal((await traderPoolRegistry.countUserPools(OWNER, BASIC_NAME)).toFixed(), "2");
-      assert.equal((await traderPoolRegistry.countUserPools(OWNER, INVEST_NAME)).toFixed(), "0");
+      assert.equal((await traderPoolRegistry.countTraderPools(OWNER, BASIC_NAME)).toFixed(), "2");
+      assert.equal((await traderPoolRegistry.countTraderPools(OWNER, INVEST_NAME)).toFixed(), "0");
 
       assert.isFalse(await traderPoolRegistry.isPool(POOL_3));
       assert.isTrue(await traderPoolRegistry.isPool(POOL_2));
@@ -91,11 +91,11 @@ describe("TraderPoolRegistry", () => {
       assert.deepEqual(await traderPoolRegistry.listPools(BASIC_NAME, 2, 0), []);
       assert.deepEqual(await traderPoolRegistry.listPools(INVEST_NAME, 0, 2), []);
 
-      assert.deepEqual(await traderPoolRegistry.listUserPools(OWNER, BASIC_NAME, 0, 2), [POOL_1, POOL_2]);
-      assert.deepEqual(await traderPoolRegistry.listUserPools(OWNER, BASIC_NAME, 0, 10), [POOL_1, POOL_2]);
-      assert.deepEqual(await traderPoolRegistry.listUserPools(OWNER, BASIC_NAME, 1, 1), [POOL_2]);
-      assert.deepEqual(await traderPoolRegistry.listUserPools(OWNER, BASIC_NAME, 2, 0), []);
-      assert.deepEqual(await traderPoolRegistry.listUserPools(OWNER, INVEST_NAME, 0, 2), []);
+      assert.deepEqual(await traderPoolRegistry.listTraderPools(OWNER, BASIC_NAME, 0, 2), [POOL_1, POOL_2]);
+      assert.deepEqual(await traderPoolRegistry.listTraderPools(OWNER, BASIC_NAME, 0, 10), [POOL_1, POOL_2]);
+      assert.deepEqual(await traderPoolRegistry.listTraderPools(OWNER, BASIC_NAME, 1, 1), [POOL_2]);
+      assert.deepEqual(await traderPoolRegistry.listTraderPools(OWNER, BASIC_NAME, 2, 0), []);
+      assert.deepEqual(await traderPoolRegistry.listTraderPools(OWNER, INVEST_NAME, 0, 2), []);
     });
   });
 });

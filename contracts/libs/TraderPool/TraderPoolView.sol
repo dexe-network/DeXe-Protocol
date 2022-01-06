@@ -19,6 +19,7 @@ import "../../libs/DecimalsConverter.sol";
 library TraderPoolView {
     using EnumerableSet for EnumerableSet.AddressSet;
     using TraderPoolPrice for ITraderPool.PoolParameters;
+    using TraderPoolPrice for address;
     using TraderPoolCommission for ITraderPool.PoolParameters;
     using TraderPoolLeverage for ITraderPool.PoolParameters;
     using DecimalsConverter for uint256;
@@ -78,7 +79,7 @@ library TraderPoolView {
     function getLeverageInfo(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions
-    ) external view returns (ITraderPool.LeverageInfo memory leverageInfo) {
+    ) public view returns (ITraderPool.LeverageInfo memory leverageInfo) {
         (leverageInfo.totalPoolUSD, leverageInfo.traderLeverageUSDTokens) = poolParameters
             .getMaxTraderLeverage(openPositions);
 
@@ -202,5 +203,26 @@ library TraderPoolView {
             fromExact
                 ? priceFeed.getNormalizedExtendedPriceOut(from, to, amount, optionalPath)
                 : priceFeed.getNormalizedExtendedPriceIn(from, to, amount, optionalPath);
+    }
+
+    function getPoolInfo(
+        ITraderPool.PoolParameters storage poolParameters,
+        EnumerableSet.AddressSet storage openPositions
+    ) external view returns (ITraderPool.PoolInfo memory poolInfo) {
+        poolInfo.ticker = ERC20(address(this)).symbol();
+        poolInfo.parameters = poolParameters;
+        poolInfo.openPositions = openPositions.values();
+
+        poolInfo.baseAndPositionBalances = new uint256[](poolInfo.openPositions.length + 1);
+        poolInfo.baseAndPositionBalances[0] = poolInfo.parameters.baseToken.getNormalizedBalance();
+
+        for (uint256 i = 0; i < poolInfo.openPositions.length; i++) {
+            poolInfo.baseAndPositionBalances[i + 1] = poolInfo
+                .openPositions[i]
+                .getNormalizedBalance();
+        }
+
+        poolInfo.totalPoolUSD = getLeverageInfo(poolParameters, openPositions).totalPoolUSD;
+        poolInfo.lpEmission = ITraderPool(address(this)).totalEmission();
     }
 }

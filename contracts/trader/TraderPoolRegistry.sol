@@ -27,7 +27,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
 
     mapping(string => ProxyBeacon) private _beacons;
 
-    mapping(address => mapping(string => EnumerableSet.AddressSet)) internal _userPools; // user => name => pool
+    mapping(address => mapping(string => EnumerableSet.AddressSet)) internal _traderPools; // trader => name => pool
     mapping(string => EnumerableSet.AddressSet) internal _allPools; // name => pool
 
     modifier onlyTraderPoolFactory() {
@@ -103,20 +103,20 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         address poolAddress
     ) external override onlyTraderPoolFactory {
         _allPools[name].add(poolAddress);
-        _userPools[user][name].add(poolAddress);
+        _traderPools[user][name].add(poolAddress);
     }
 
     function countPools(string calldata name) external view override returns (uint256) {
         return _allPools[name].length();
     }
 
-    function countUserPools(address user, string calldata name)
+    function countTraderPools(address user, string calldata name)
         external
         view
         override
         returns (uint256)
     {
-        return _userPools[user][name].length();
+        return _traderPools[user][name].length();
     }
 
     function listPools(
@@ -133,18 +133,39 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         }
     }
 
-    function listUserPools(
+    function listTraderPools(
         address user,
         string calldata name,
         uint256 offset,
         uint256 limit
     ) external view override returns (address[] memory pools) {
-        uint256 to = (offset + limit).min(_userPools[user][name].length()).max(offset);
+        uint256 to = (offset + limit).min(_traderPools[user][name].length()).max(offset);
 
         pools = new address[](to - offset);
 
         for (uint256 i = offset; i < to; i++) {
-            pools[i - offset] = _userPools[user][name].at(i);
+            pools[i - offset] = _traderPools[user][name].at(i);
+        }
+    }
+
+    function listPoolsWithInfo(
+        string calldata name,
+        uint256 offset,
+        uint256 limit
+    )
+        external
+        view
+        override
+        returns (address[] memory pools, ITraderPool.PoolInfo[] memory poolInfos)
+    {
+        uint256 to = (offset + limit).min(_allPools[name].length()).max(offset);
+
+        pools = new address[](to - offset);
+        poolInfos = new ITraderPool.PoolInfo[](to - offset);
+
+        for (uint256 i = offset; i < to; i++) {
+            pools[i - offset] = _allPools[name].at(i);
+            poolInfos[i - offset] = ITraderPool(pools[i - offset]).getPoolInfo();
         }
     }
 

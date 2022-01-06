@@ -128,14 +128,14 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
 
         require(
             _priceFeed.isSupportedBaseToken(poolDeployParameters.baseToken),
-            "TraderPoolFactory: Unsupported token."
+            "TraderPoolFactory: Unsupported token"
         );
 
         require(
             poolDeployParameters.commissionPercentage >= general &&
                 poolDeployParameters.commissionPercentage <=
                 byPeriod[uint256(poolDeployParameters.commissionPeriod)],
-            "TraderPoolFactory: Incorrect percentage."
+            "TraderPoolFactory: Incorrect percentage"
         );
 
         poolParameters = ITraderPool.PoolParameters(
