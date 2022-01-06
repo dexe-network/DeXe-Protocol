@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -26,6 +27,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     using SafeERC20 for IERC20;
     using ArrayHelper for address[];
     using UniswapV2PathFinder for EnumerableSet.AddressSet;
+    using Math for uint256;
 
     IUniswapV2Factory public uniswapFactory;
     IUniswapV2Router02 public uniswapV2Router;
@@ -346,6 +348,33 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
                 optionalPath,
                 maxAmountIn.convertFrom18(inDecimals)
             ).convertTo18(inDecimals);
+    }
+
+    function totalBaseTokens() external view override returns (uint256) {
+        return _supportedBaseTokens.length();
+    }
+
+    function totalPathTokens() external view override returns (uint256) {
+        return _pathTokens.length();
+    }
+
+    function getBaseTokens(uint256 offset, uint256 limit)
+        external
+        view
+        override
+        returns (address[] memory baseTokens)
+    {
+        uint256 to = (offset + limit).min(_supportedBaseTokens.length()).max(offset);
+
+        baseTokens = new address[](to - offset);
+
+        for (uint256 i = offset; i < to; i++) {
+            baseTokens[i - offset] = _supportedBaseTokens.at(i);
+        }
+    }
+
+    function getPathTokens() external view override returns (address[] memory) {
+        return _pathTokens.values();
     }
 
     function isSupportedBaseToken(address token) external view override returns (bool) {
