@@ -15,6 +15,21 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
 
     uint256 internal _firstExchange;
 
+    event ProposalCreated(
+        uint256 index,
+        address token,
+        ITraderPoolInvestProposal.ProposalLimits proposalLimits
+    );
+    event ProposalInvest(uint256 index, address investor, uint256 amountLP, uint256 amountBase);
+    event ProposalDivest(uint256 index, address investor, uint256 amount, uint256 commission);
+    event ProposalExchange(
+        uint256 index,
+        address fromToken,
+        address toToken,
+        uint256 fromVolume,
+        uint256 toVolume
+    );
+
     modifier onlyProposalPool() {
         _onlyProposalPool();
         _;

@@ -24,7 +24,7 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
     PriceFeed internal _priceFeed;
     CoreProperties internal _coreProperties;
 
-    event Deployed(address user, string poolName, address at);
+    event Deployed(address user, string poolName, address at, string symbol, address basicToken);
 
     function __TraderPoolFactory_init() external initializer {
         __Ownable_init();
@@ -42,8 +42,6 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
 
     function _deploy(string memory name) internal returns (address proxy) {
         proxy = address(new BeaconProxy(_traderPoolRegistry.getProxyBeacon(name), ""));
-
-        emit Deployed(_msgSender(), name, proxy);
     }
 
     function _deployTraderPool(string memory name) internal returns (address proxy) {
@@ -86,6 +84,13 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         );
 
         _injectDependencies(poolProxy);
+        emit Deployed(
+            _msgSender(),
+            _traderPoolRegistry.BASIC_POOL_NAME(),
+            poolProxy,
+            symbol,
+            poolParameters.baseToken
+        );
     }
 
     function deployInvestPool(
@@ -117,6 +122,13 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         );
 
         _injectDependencies(poolProxy);
+        emit Deployed(
+            _msgSender(),
+            _traderPoolRegistry.INVEST_PROPOSAL_NAME(),
+            poolProxy,
+            symbol,
+            poolParameters.baseToken
+        );
     }
 
     function _validateAndConstructParameters(PoolDeployParameters calldata poolDeployParameters)
