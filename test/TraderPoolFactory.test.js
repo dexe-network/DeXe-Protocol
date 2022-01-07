@@ -188,7 +188,6 @@ describe("TraderPoolFactory", () => {
       POOL_PARAMETERS = {
         descriptionURL: "placeholder.com",
         trader: OWNER,
-        activePortfolio: false,
         privatePool: false,
         totalLPEmission: 0,
         baseToken: testCoin.address,
@@ -234,7 +233,6 @@ describe("TraderPoolFactory", () => {
       POOL_PARAMETERS = {
         descriptionURL: "placeholder.com",
         trader: OWNER,
-        activePortfolio: false,
         privatePool: false,
         totalLPEmission: 0,
         baseToken: testCoin.address,
@@ -280,7 +278,6 @@ describe("TraderPoolFactory", () => {
       POOL_PARAMETERS = {
         descriptionURL: "placeholder.com",
         trader: OWNER,
-        activePortfolio: false,
         privatePool: false,
         totalLPEmission: 0,
         baseToken: testCoin.address,
@@ -299,7 +296,6 @@ describe("TraderPoolFactory", () => {
       POOL_PARAMETERS = {
         descriptionURL: "placeholder.com",
         trader: OWNER,
-        activePortfolio: false,
         privatePool: false,
         totalLPEmission: 0,
         baseToken: testCoin.address,
@@ -318,7 +314,6 @@ describe("TraderPoolFactory", () => {
       POOL_PARAMETERS = {
         descriptionURL: "placeholder.com",
         trader: OWNER,
-        activePortfolio: false,
         privatePool: false,
         totalLPEmission: 0,
         baseToken: testCoin.address,
@@ -337,7 +332,6 @@ describe("TraderPoolFactory", () => {
       POOL_PARAMETERS = {
         descriptionURL: "placeholder.com",
         trader: OWNER,
-        activePortfolio: false,
         privatePool: false,
         totalLPEmission: 0,
         baseToken: THIRD,

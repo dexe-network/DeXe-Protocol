@@ -12,6 +12,8 @@ import "../helpers/ProxyUpgrader.sol";
 contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
     ProxyUpgrader internal _proxyUpgrader;
 
+    string public constant USER_REGISTRY_NAME = "USER_REGISTRY";
+
     string public constant TRADER_POOL_FACTORY_NAME = "TRADER_POOL_FACTORY";
     string public constant TRADER_POOL_REGISTRY_NAME = "TRADER_POOL_REGISTRY";
 
@@ -35,6 +37,10 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         __Ownable_init();
 
         _proxyUpgrader = new ProxyUpgrader();
+    }
+
+    function getUserRegistryContract() external view override returns (address) {
+        return getContract(USER_REGISTRY_NAME);
     }
 
     function getTraderPoolFactoryContract() external view override returns (address) {

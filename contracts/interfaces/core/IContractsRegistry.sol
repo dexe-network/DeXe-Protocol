@@ -8,6 +8,10 @@ pragma solidity ^0.8.4;
  */
 interface IContractsRegistry {
     /// @notice Used in dependency injection mechanism
+    /// @return UserRegistry contract address
+    function getUserRegistryContract() external view returns (address);
+
+    /// @notice Used in dependency injection mechanism
     /// @return TraderPoolFactory contract address
     function getTraderPoolFactoryContract() external view returns (address);
 

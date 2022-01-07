@@ -37,6 +37,7 @@
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@truffle/deployer": "^3.2.50",
     "@truffle/reporters": "^1.1.2",
+    "@metamask/eth-sig-util": "^4.0.0",
     "chai": "^4.3.4",
     "hardhat-contract-sizer": "^2.1.1",
     "hardhat-gas-reporter": "^1.0.4",
