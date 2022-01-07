@@ -24,7 +24,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     mapping(uint256 => ProposalInfo) public proposalInfos; // proposal id => info
 
     event ProposalInvest(uint256 index, address investor, uint256 amountLP, uint256 amountBase);
-    event ProposalDivest(uint256 index, address investor, uint256 amount);
+    event ProposalDivest(uint256 index, address investor, uint256 amountLP, uint256 amountBase);
     event ProposalExchange(
         uint256 index,
         address fromToken,
@@ -138,7 +138,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             minProposalOut
         );
 
-        emit ProposalCreated(proposals, token, proposalLimits);
+        emit ProposalCreated(proposalId, token, proposalLimits);
     }
 
     function _activePortfolio(
@@ -320,7 +320,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         totalLockedLP -= lpToBurn;
         investedBase -= receivedBase.min(investedBase);
 
-        emit ProposalDivest(proposalId, user, lp2);
+        emit ProposalDivest(proposalId, user, lp2, receivedBase);
 
         return receivedBase;
     }
