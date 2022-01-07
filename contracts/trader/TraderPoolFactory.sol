@@ -24,7 +24,14 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
     PriceFeed internal _priceFeed;
     CoreProperties internal _coreProperties;
 
-    event Deployed(address user, string poolName, address at, string symbol, address basicToken);
+    event Deployed(
+        address user,
+        string poolName,
+        address at,
+        string symbol,
+        address basicToken,
+        address proposalContract
+    );
 
     function __TraderPoolFactory_init() external initializer {
         __Ownable_init();
@@ -89,7 +96,8 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
             _traderPoolRegistry.BASIC_POOL_NAME(),
             poolProxy,
             symbol,
-            poolParameters.baseToken
+            poolParameters.baseToken,
+            proposalProxy
         );
     }
 
@@ -127,7 +135,8 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
             _traderPoolRegistry.INVEST_PROPOSAL_NAME(),
             poolProxy,
             symbol,
-            poolParameters.baseToken
+            poolParameters.baseToken,
+            proposalProxy
         );
     }
 

@@ -16,20 +16,6 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         _onlyProposalPool();
         _;
     }
-    event ProposalCreated(
-        uint256 index,
-        address token,
-        ITraderPoolRiskyProposal.ProposalLimits proposalLimits
-    );
-    event ProposalInvest(uint256 index, address investor, uint256 amountLP, uint256 amountBase);
-    event ProposalDivest(uint256 index, address investor, uint256 amount, uint256 commission);
-    event ProposalExchange(
-        uint256 index,
-        address fromToken,
-        address toToken,
-        uint256 fromVolume,
-        uint256 toVolume
-    );
 
     function _onlyProposalPool() internal view {
         require(msg.sender == address(_traderPoolProposal), "BTP: not a proposal");

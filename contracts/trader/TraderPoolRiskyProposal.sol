@@ -23,6 +23,21 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
 
     mapping(uint256 => ProposalInfo) public proposalInfos; // proposal id => info
 
+    event ProposalInvest(uint256 index, address investor, uint256 amountLP, uint256 amountBase);
+    event ProposalDivest(uint256 index, address investor, uint256 amount);
+    event ProposalExchange(
+        uint256 index,
+        address fromToken,
+        address toToken,
+        uint256 fromVolume,
+        uint256 toVolume
+    );
+    event ProposalCreated(
+        uint256 index,
+        address token,
+        ITraderPoolRiskyProposal.ProposalLimits proposalLimits
+    );
+
     function __TraderPoolRiskyProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         public
         initializer
@@ -122,6 +137,8 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             optionalPath,
             minProposalOut
         );
+
+        emit ProposalCreated(proposals, token, proposalLimits);
     }
 
     function _activePortfolio(
@@ -303,6 +320,8 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         totalLockedLP -= lpToBurn;
         investedBase -= receivedBase.min(investedBase);
 
+        emit ProposalDivest(proposalId, user, lp2);
+
         return receivedBase;
     }
 
@@ -379,6 +398,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
                 minAmountOut
             );
             info.balanceBase -= amountIn;
+            emit ProposalExchange(proposalId, baseToken, positionToken, amountIn, minAmountOut);
         } else {
             require(amountIn <= info.balancePosition, "TPRP: wrong position amount");
 
@@ -390,6 +410,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
                 minAmountOut
             );
             info.balancePosition -= amountIn;
+            emit ProposalExchange(proposalId, positionToken, baseToken, amountIn, minAmountOut);
         }
     }
 
@@ -428,6 +449,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
                 maxAmountIn
             );
             info.balancePosition += amountOut;
+            emit ProposalExchange(proposalId, baseToken, positionToken, amountOut, maxAmountIn);
         } else {
             require(maxAmountIn <= info.balancePosition, "TPRP: wrong position amount");
 
@@ -439,6 +461,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
                 maxAmountIn
             );
             info.balanceBase += amountOut;
+            emit ProposalExchange(proposalId, positionToken, baseToken, amountOut, maxAmountIn);
         }
     }
 
