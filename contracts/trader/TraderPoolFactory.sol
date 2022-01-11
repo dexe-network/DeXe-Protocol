@@ -127,15 +127,18 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         (uint256 general, uint256[] memory byPeriod) = _coreProperties.getTraderCommissions();
 
         require(
-            _priceFeed.isSupportedBaseToken(poolDeployParameters.baseToken),
-            "TraderPoolFactory: Unsupported token."
+            poolDeployParameters.trader != address(0),
+            "TraderPoolFactory: invalid trader address"
         );
-
+        require(
+            _priceFeed.isSupportedBaseToken(poolDeployParameters.baseToken),
+            "TraderPoolFactory: Unsupported token"
+        );
         require(
             poolDeployParameters.commissionPercentage >= general &&
                 poolDeployParameters.commissionPercentage <=
                 byPeriod[uint256(poolDeployParameters.commissionPeriod)],
-            "TraderPoolFactory: Incorrect percentage."
+            "TraderPoolFactory: Incorrect percentage"
         );
 
         poolParameters = ITraderPool.PoolParameters(

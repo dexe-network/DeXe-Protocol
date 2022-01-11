@@ -136,7 +136,7 @@ abstract contract TraderPoolProposal is
         for (uint256 i = 0; i < amounts.length; i++) {
             require(amounts[i] > 0, "TPP: 0 transfer");
 
-            if (from != address(0) && to != address(0)) {
+            if (from != address(0) && to != address(0) && to != from) {
                 uint256 lpTransfer = _updateFrom(from, ids[i], amounts[i]);
                 _updateTo(to, ids[i], lpTransfer);
             }

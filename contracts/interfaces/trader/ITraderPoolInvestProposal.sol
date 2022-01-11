@@ -23,7 +23,7 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
     /// @param proposalLimits the limits of this proposal
     /// @param cumulativeSum the helper value needed to calculate the investors' rewards
     /// @param investedLP the total amount of currently invested LP tokens
-    /// @param investedBase the total amount of currently invested base tokens
+    /// @param investedBase the total amount of currently invested base tokens (this should never decrease because we don't burn LP)
     /// @param newInvestedBase the total amount of newly invested base tokens that the trader can withdraw
     struct ProposalInfo {
         string descriptionURL;

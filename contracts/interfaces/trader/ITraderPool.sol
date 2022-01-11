@@ -66,6 +66,50 @@ interface ITraderPool {
         uint256[] receivedAmounts; // should be used as minAmountOut
     }
 
+    /// @notice The struct that is returned from the TraderPoolView contract and stores information about the trader leverage
+    /// @param totalPoolUSD the total USD value of the pool
+    /// @param traderLeverageUSDTokens the maximal amount of USD that the trader is allowed to own
+    /// @param freeLeverageUSD the amount of USD that could be invested into the pool
+    /// @param freeLeverageBase the amount of base tokens that could be invested into the pool (basically converted freeLeverageUSD)
+    struct LeverageInfo {
+        uint256 totalPoolUSD;
+        uint256 traderLeverageUSDTokens;
+        uint256 freeLeverageUSD;
+        uint256 freeLeverageBase;
+    }
+
+    /// @notice The struct that is returned from the TraderPoolView contract and stores information about the investor
+    /// @param poolLPBalance the LP token balance of this used excluding proposals balance. The same as calling .balanceOf() function
+    /// @param investedBase the amount of base tokens invested into the pool (after commission calculation this might increase)
+    /// @param poolUSDShare the amount of USD that represent the user's pool share
+    /// @param poolUSDShare the equivalent amount of base tokens that represent the user's pool share
+    struct UserInfo {
+        uint256 poolLPBalance;
+        uint256 investedBase;
+        uint256 poolUSDShare;
+        uint256 poolBaseShare;
+    }
+
+    /// @notice The structure that is returned from the TraderPoolView contract and stores static information about the pool
+    /// @param ticker the ERC20 symbol of this pool
+    /// @param name the ERC20 name of this pool
+    /// @param parameters the active pool parametrs (that are set in the constructor)
+    /// @param openPositions the array of open positions addresses
+    /// @param baseAndPositionBalances the array of balances. [0] is the balance of base tokens (array is normalized)
+    /// @param totalPoolUSD is the current USD TVL in this pool
+    /// @param lpEmission is the current number of LP tokens
+    struct PoolInfo {
+        string ticker;
+        string name;
+        PoolParameters parameters;
+        address[] openPositions;
+        uint256[] baseAndPositionBalances;
+        uint256 totalInvestors;
+        uint256 totalPoolUSD;
+        uint256 totalPoolBase;
+        uint256 lpEmission;
+    }
+
     /// @notice The function that returns a PriceFeed contract
     /// @return the price feed used
     function priceFeed() external view returns (IPriceFeed);
@@ -73,6 +117,11 @@ interface ITraderPool {
     /// @notice The function that returns a CoreProperties contract
     /// @return the core properties contract
     function coreProperties() external view returns (ICoreProperties);
+
+    /// @notice The function that checks whther the specified address is a private investor
+    /// @param who the address to check
+    /// @return true if the pool is private and who is a private investor, false otherwise
+    function isPrivateInvestor(address who) external view returns (bool);
 
     /// @notice The function that checks whether the specified address is a trader admin
     /// @param who the address to check
@@ -121,6 +170,23 @@ interface ITraderPool {
     /// @notice The function that returns the actual LP emmission (the totalSupply() might be less)
     /// @return the actual LP tokens emission
     function totalEmission() external view returns (uint256);
+
+    /// @notice The function that returns the information about the investors
+    /// @param offset the starting index of the investors array
+    /// @param limit the length of the observed array
+    /// @return usersInfo the information about the investors
+    function getUsersInfo(uint256 offset, uint256 limit)
+        external
+        view
+        returns (UserInfo[] memory usersInfo);
+
+    /// @notice The funciton to get the static pool information
+    /// @return poolInfo the static info of the pool
+    function getPoolInfo() external view returns (PoolInfo memory poolInfo);
+
+    /// @notice The function to get the trader leverage information
+    /// @return leverageInfo the trader leverage information
+    function getLeverageInfo() external view returns (LeverageInfo memory leverageInfo);
 
     /// @notice The function to get the amounts of positions tokens that will be given to the investor on the investment
     /// @param amountInBaseToInvest normalized amount of base tokens to be invested

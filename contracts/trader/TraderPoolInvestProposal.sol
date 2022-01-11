@@ -149,11 +149,13 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     }
 
     function _claimProposal(uint256 proposalId, address user) internal returns (uint256 claimed) {
-        _updateFromData(user, proposalId, claimed);
+        _updateRewards(proposalId, user);
 
         claimed = rewardInfos[user][proposalId].rewardStored;
 
         require(claimed > 0, "TPIP: nothing to claim");
+
+        _updateFromData(user, proposalId, claimed);
 
         delete rewardInfos[user][proposalId].rewardStored;
 
@@ -222,10 +224,14 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     function supply(uint256 proposalId, uint256 amount) external override {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
+        uint256 actualAmount = amount.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals);
+
+        require(actualAmount > 0, "TPIP: amount is 0");
+
         IERC20(_parentTraderPoolInfo.baseToken).safeTransferFrom(
             _msgSender(),
             address(this),
-            amount.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
+            actualAmount
         );
 
         _updateCumulativeSum(proposalId, amount);
@@ -247,9 +253,8 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         uint256 proposalId,
         uint256 amount
     ) internal returns (uint256 lpTransfer) {
-        _updateRewards(proposalId, user);
-
-        lpTransfer = _lpBalances[user][proposalId].ratio(amount, balanceOf(user, proposalId));
+        uint256 lpBalance = _lpBalances[user][proposalId];
+        lpTransfer = lpBalance.ratio(amount, balanceOf(user, proposalId)).min(lpBalance);
 
         _lpBalances[user][proposalId] -= lpTransfer;
         totalLPBalances[user] -= lpTransfer;
@@ -269,6 +274,8 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
                 );
             }
         }
+
+        _updateRewards(proposalId, user);
 
         return _updateFromData(user, proposalId, amount);
     }

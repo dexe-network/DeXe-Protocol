@@ -4,6 +4,8 @@ const { logTransaction } = require("../runners/logger.js");
 const Proxy = artifacts.require("TransparentUpgradeableProxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 
+const UserRegistry = artifacts.require("UserRegistry");
+
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
 
@@ -41,6 +43,8 @@ const DEFAULT_CORE_PROPERTIES = {
 module.exports = async (deployer) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
+  const userRegistry = await UserRegistry.at(await contractsRegistry.getUserRegistryContract());
+
   const coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
   const priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
 
@@ -52,6 +56,11 @@ module.exports = async (deployer) => {
   ////////////////////////////////////////////////////////////
 
   console.log();
+
+  logTransaction(
+    await userRegistry.__UserRegistry_init(await contractsRegistry.USER_REGISTRY_NAME()),
+    "Init UserRegistry"
+  );
 
   logTransaction(await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES), "Init CoreProperties");
   logTransaction(await priceFeed.__PriceFeed_init(), "Init PriceFeed");

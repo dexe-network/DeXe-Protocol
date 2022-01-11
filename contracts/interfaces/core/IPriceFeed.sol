@@ -133,6 +133,15 @@ interface IPriceFeed {
         view
         returns (uint256);
 
+    /// @notice The function to get the price of outToken given the amount in USD
+    /// @param outToken the token to get the price of
+    /// @param amountInUSD the amount of USD given
+    /// @return received amount of outToken with the given USD
+    function getNormalizedPriceOutBase(address outToken, uint256 amountInUSD)
+        external
+        view
+        returns (uint256);
+
     /// @notice The function that performs an actual Uniswap swap (swapExactTokensForTokens),
     /// taking the amountIn inToken tokens from the msg.sender and sending not less than minAmountOut outTokens back.
     /// The approval of amountIn tokens has to be made to this address beforehand
@@ -198,6 +207,27 @@ interface IPriceFeed {
         address[] calldata optionalPath,
         uint256 maxAmountIn
     ) external returns (uint256);
+
+    /// @notice The function that returns the total number of supported base tokens
+    /// @return the number of supported base tokens
+    function totalBaseTokens() external view returns (uint256);
+
+    /// @notice The function that returns the total number of path tokens (tokens used in the pathfinder)
+    /// @return the number of path tokens
+    function totalPathTokens() external view returns (uint256);
+
+    /// @notice The paginated function to get addresses of supported base tokens
+    /// @param offset the starting index of the tokens array
+    /// @param limit the length of the array to observe
+    /// @return baseTokens requested base tokens array
+    function getBaseTokens(uint256 offset, uint256 limit)
+        external
+        view
+        returns (address[] memory baseTokens);
+
+    /// @notice The function to get the list of path tokens
+    /// @return the list of path tokens
+    function getPathTokens() external view returns (address[] memory);
 
     /// @notice This function checks if the provided token can be used as a base token
     /// @param token the token to be checked

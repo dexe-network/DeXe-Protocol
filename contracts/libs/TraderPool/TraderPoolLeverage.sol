@@ -21,6 +21,7 @@ library TraderPoolLeverage {
     ) internal view returns (uint256 totalInUSD, uint256 traderInUSD) {
         address trader = poolParameters.trader;
         address proposalPool = ITraderPool(address(this)).proposalPoolAddress();
+        uint256 totalEmission = ITraderPool(address(this)).totalEmission();
         uint256 traderBalance = IERC20(address(this)).balanceOf(trader);
 
         totalInUSD = poolParameters.getNormalizedPoolPriceInUSD(openPositions);
@@ -30,13 +31,15 @@ library TraderPoolLeverage {
             traderBalance += ITraderPoolProposal(proposalPool).totalLPBalances(trader);
         }
 
-        traderInUSD = totalInUSD.ratio(traderBalance, ITraderPool(address(this)).totalEmission());
+        if (totalEmission > 0) {
+            traderInUSD = totalInUSD.ratio(traderBalance, totalEmission);
+        }
     }
 
     function getMaxTraderLeverage(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions
-    ) external view returns (uint256 totalTokensUSD, uint256 maxTraderLeverageUSDTokens) {
+    ) public view returns (uint256 totalTokensUSD, uint256 maxTraderLeverageUSDTokens) {
         uint256 traderUSDTokens;
 
         (totalTokensUSD, traderUSDTokens) = _getNormalizedLeveragePoolPriceInUSD(
@@ -57,5 +60,25 @@ library TraderPoolLeverage {
         int256 boost = traderUSD * 2;
 
         maxTraderLeverageUSDTokens = uint256((numerator / int256(slope) + boost)) * 10**18;
+    }
+
+    function checkLeverage(
+        ITraderPool.PoolParameters storage poolParameters,
+        EnumerableSet.AddressSet storage openPositions,
+        uint256 amountInBaseToInvest
+    ) external view {
+        (uint256 totalPriceInUSD, uint256 maxTraderVolumeInUSD) = getMaxTraderLeverage(
+            poolParameters,
+            openPositions
+        );
+        uint256 addInUSD = ITraderPool(address(this)).priceFeed().getNormalizedPriceOutUSD(
+            poolParameters.baseToken,
+            amountInBaseToInvest
+        );
+
+        require(
+            addInUSD + totalPriceInUSD <= maxTraderVolumeInUSD,
+            "TP: exchange exceeds leverage"
+        );
     }
 }
