@@ -272,6 +272,7 @@ describe("TraderPool", () => {
         assert.equal((await traderPool.balanceOf(SECOND)).toFixed(), wei("1000"));
 
         const investorInfo = await traderPool.investorsInfo(SECOND);
+        const investorSecondInfo = (await traderPool.getUsersInfo(0, 2))[1];
 
         assert.equal(investorInfo.investedBase.toFixed(), wei("1000"));
         assert.equal(
@@ -280,6 +281,10 @@ describe("TraderPool", () => {
             .idiv(DEFAULT_CORE_PROPERTIES.commissionDurations[POOL_PARAMETERS.commissionPeriod])
             .plus(1)
         );
+        assert.equal(toBN(investorSecondInfo.poolLPBalance).toFixed(), wei("1000"));
+        assert.equal(toBN(investorSecondInfo.investedBase).toFixed(), wei("1000"));
+        assert.equal(toBN(investorSecondInfo.poolUSDShare).toFixed(), wei("1000"));
+        assert.equal(toBN(investorSecondInfo.poolBaseShare).toFixed(), wei("1000"));
       });
     });
 

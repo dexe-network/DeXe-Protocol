@@ -156,22 +156,35 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         external
         view
         override
-        returns (address[] memory pools, ITraderPool.PoolInfo[] memory poolInfos)
+        returns (
+            address[] memory pools,
+            ITraderPool.PoolInfo[] memory poolInfos,
+            ITraderPool.LeverageInfo[] memory leverageInfos
+        )
     {
         uint256 to = (offset + limit).min(_allPools[name].length()).max(offset);
 
         pools = new address[](to - offset);
         poolInfos = new ITraderPool.PoolInfo[](to - offset);
+        leverageInfos = new ITraderPool.LeverageInfo[](to - offset);
 
         for (uint256 i = offset; i < to; i++) {
             pools[i - offset] = _allPools[name].at(i);
+
             poolInfos[i - offset] = ITraderPool(pools[i - offset]).getPoolInfo();
+            leverageInfos[i - offset] = ITraderPool(pools[i - offset]).getLeverageInfo();
         }
     }
 
+    function isBasePool(address potentialPool) public view override returns (bool) {
+        return _allPools[BASIC_POOL_NAME].contains(potentialPool);
+    }
+
+    function isInvestPool(address potentialPool) public view override returns (bool) {
+        return _allPools[INVEST_POOL_NAME].contains(potentialPool);
+    }
+
     function isPool(address potentialPool) external view override returns (bool) {
-        return
-            _allPools[BASIC_POOL_NAME].contains(potentialPool) ||
-            _allPools[INVEST_POOL_NAME].contains(potentialPool);
+        return isBasePool(potentialPool) || isInvestPool(potentialPool);
     }
 }

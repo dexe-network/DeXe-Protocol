@@ -84,12 +84,30 @@ interface ITraderPoolRegistry {
     /// @param offset the the starting index of the pools array
     /// @param limit the length of the observed pools array
     /// @return pools the addresses of the pools
-    /// @return poolInfos the array of static infos per pool
+    /// @return poolInfos the array of static information per pool
+    /// @return leverageInfos the array of trader leverage information per pool
     function listPoolsWithInfo(
         string calldata name,
         uint256 offset,
         uint256 limit
-    ) external view returns (address[] memory pools, ITraderPool.PoolInfo[] memory poolInfos);
+    )
+        external
+        view
+        returns (
+            address[] memory pools,
+            ITraderPool.PoolInfo[] memory poolInfos,
+            ITraderPool.LeverageInfo[] memory leverageInfos
+        );
+
+    /// @notice The function to check if the given address is a valid BasicTraderPool
+    /// @param potentialPool the address to inspect
+    /// @return true if the address is a BasicTraderPool, false otherwise
+    function isBasePool(address potentialPool) external view returns (bool);
+
+    /// @notice The function to check if the given address is a valid InvestTraderPool
+    /// @param potentialPool the address to inspect
+    /// @return true if the address is an InvestTraderPool, false otherwise
+    function isInvestPool(address potentialPool) external view returns (bool);
 
     /// @notice The function to check if the given address is a valid TraderPool
     /// @param potentialPool the address to inspect

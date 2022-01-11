@@ -21,6 +21,7 @@ library TraderPoolLeverage {
     ) internal view returns (uint256 totalInUSD, uint256 traderInUSD) {
         address trader = poolParameters.trader;
         address proposalPool = ITraderPool(address(this)).proposalPoolAddress();
+        uint256 totalEmission = ITraderPool(address(this)).totalEmission();
         uint256 traderBalance = IERC20(address(this)).balanceOf(trader);
 
         totalInUSD = poolParameters.getNormalizedPoolPriceInUSD(openPositions);
@@ -30,7 +31,9 @@ library TraderPoolLeverage {
             traderBalance += ITraderPoolProposal(proposalPool).totalLPBalances(trader);
         }
 
-        traderInUSD = totalInUSD.ratio(traderBalance, ITraderPool(address(this)).totalEmission());
+        if (totalEmission > 0) {
+            traderInUSD = totalInUSD.ratio(traderBalance, totalEmission);
+        }
     }
 
     function getMaxTraderLeverage(

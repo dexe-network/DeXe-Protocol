@@ -10,6 +10,8 @@ import "../../interfaces/trader/ITraderPool.sol";
 import "../../interfaces/core/IPriceFeed.sol";
 import "../../interfaces/core/ICoreProperties.sol";
 
+import "../../trader/TraderPool.sol";
+
 import "./TraderPoolPrice.sol";
 import "./TraderPoolCommission.sol";
 import "./TraderPoolLeverage.sol";
@@ -76,27 +78,9 @@ library TraderPoolView {
         }
     }
 
-    function getLeverageInfo(
-        ITraderPool.PoolParameters storage poolParameters,
-        EnumerableSet.AddressSet storage openPositions
-    ) public view returns (ITraderPool.LeverageInfo memory leverageInfo) {
-        (leverageInfo.totalPoolUSD, leverageInfo.traderLeverageUSDTokens) = poolParameters
-            .getMaxTraderLeverage(openPositions);
-
-        if (leverageInfo.traderLeverageUSDTokens > leverageInfo.totalPoolUSD) {
-            leverageInfo.freeLeverageUSD =
-                leverageInfo.traderLeverageUSDTokens -
-                leverageInfo.totalPoolUSD;
-            leverageInfo.freeLeverageBase = ITraderPool(address(this))
-                .priceFeed()
-                .getNormalizedPriceOutBase(poolParameters.baseToken, leverageInfo.freeLeverageUSD);
-        }
-    }
-
     function getReinvestCommissions(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage investors,
-        mapping(address => ITraderPool.InvestorInfo) storage investorsInfo,
         uint256 openPositionsAmount,
         uint256 offset,
         uint256 limit
@@ -113,10 +97,10 @@ library TraderPoolView {
 
         for (uint256 i = offset; i < to; i++) {
             address investor = investors.at(i);
+            (, uint256 commissionUnlockEpoch) = TraderPool(address(this)).investorsInfo(investor);
 
-            if (nextCommissionEpoch > investorsInfo[investor].commissionUnlockEpoch) {
+            if (nextCommissionEpoch > commissionUnlockEpoch) {
                 (, uint256 baseCommission, ) = poolParameters.calculateCommissionOnReinvest(
-                    investorsInfo[investor],
                     investor,
                     totalSupply
                 );
@@ -131,7 +115,6 @@ library TraderPoolView {
     function getDivestAmountsAndCommissions(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions,
-        ITraderPool.InvestorInfo storage investorInfo,
         address investor,
         uint256 amountLP
     )
@@ -174,7 +157,6 @@ library TraderPoolView {
 
         if (investor != poolParameters.trader) {
             (uint256 baseCommission, ) = poolParameters.calculateCommissionOnDivest(
-                investorInfo,
                 investor,
                 receptions.baseAmount,
                 amountLP
@@ -205,11 +187,75 @@ library TraderPoolView {
                 : priceFeed.getNormalizedExtendedPriceIn(from, to, amount, optionalPath);
     }
 
+    function getLeverageInfo(
+        ITraderPool.PoolParameters storage poolParameters,
+        EnumerableSet.AddressSet storage openPositions
+    ) public view returns (ITraderPool.LeverageInfo memory leverageInfo) {
+        (leverageInfo.totalPoolUSD, leverageInfo.traderLeverageUSDTokens) = poolParameters
+            .getMaxTraderLeverage(openPositions);
+
+        if (leverageInfo.traderLeverageUSDTokens > leverageInfo.totalPoolUSD) {
+            leverageInfo.freeLeverageUSD =
+                leverageInfo.traderLeverageUSDTokens -
+                leverageInfo.totalPoolUSD;
+            leverageInfo.freeLeverageBase = ITraderPool(address(this))
+                .priceFeed()
+                .getNormalizedPriceOutBase(poolParameters.baseToken, leverageInfo.freeLeverageUSD);
+        }
+    }
+
+    function _getUserInfo(
+        ITraderPool.PoolParameters storage poolParameters,
+        address user,
+        uint256 totalPoolUSD,
+        uint256 totalSupply
+    ) internal view returns (ITraderPool.UserInfo memory userInfo) {
+        userInfo.poolLPBalance = IERC20(address(this)).balanceOf(user);
+        (userInfo.investedBase, ) = TraderPool(address(this)).investorsInfo(user);
+        userInfo.poolUSDShare = totalPoolUSD.ratio(userInfo.poolLPBalance, totalSupply);
+        userInfo.poolBaseShare = ITraderPool(address(this)).priceFeed().getNormalizedPriceOutBase(
+            poolParameters.baseToken,
+            userInfo.poolUSDShare
+        );
+    }
+
+    function getUsersInfo(
+        ITraderPool.PoolParameters storage poolParameters,
+        EnumerableSet.AddressSet storage openPositions,
+        EnumerableSet.AddressSet storage investors,
+        uint256 offset,
+        uint256 limit
+    ) external view returns (ITraderPool.UserInfo[] memory usersInfo) {
+        uint256 to = (offset + limit).min(investors.length()).max(offset);
+        (uint256 totalPoolUSD, ) = poolParameters.getMaxTraderLeverage(openPositions);
+        uint256 totalSupply = IERC20(address(this)).totalSupply();
+
+        usersInfo = new ITraderPool.UserInfo[](to - offset + 1);
+
+        usersInfo[0] = _getUserInfo(
+            poolParameters,
+            poolParameters.trader,
+            totalPoolUSD,
+            totalSupply
+        );
+
+        for (uint256 i = offset; i < to; i++) {
+            usersInfo[i - offset + 1] = _getUserInfo(
+                poolParameters,
+                investors.at(i),
+                totalPoolUSD,
+                totalSupply
+            );
+        }
+    }
+
     function getPoolInfo(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions
     ) external view returns (ITraderPool.PoolInfo memory poolInfo) {
         poolInfo.ticker = ERC20(address(this)).symbol();
+        poolInfo.name = ERC20(address(this)).name();
+
         poolInfo.parameters = poolParameters;
         poolInfo.openPositions = openPositions.values();
 
@@ -222,7 +268,13 @@ library TraderPoolView {
                 .getNormalizedBalance();
         }
 
-        poolInfo.totalPoolUSD = getLeverageInfo(poolParameters, openPositions).totalPoolUSD;
+        poolInfo.totalInvestors = ITraderPool(address(this)).totalInvestors();
+
+        (poolInfo.totalPoolUSD, ) = poolParameters.getMaxTraderLeverage(openPositions);
+        poolInfo.totalPoolBase = ITraderPool(address(this)).priceFeed().getNormalizedPriceOutBase(
+            poolParameters.baseToken,
+            poolInfo.totalPoolUSD
+        );
         poolInfo.lpEmission = ITraderPool(address(this)).totalEmission();
     }
 }

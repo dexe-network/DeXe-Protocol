@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../interfaces/trader/ITraderPool.sol";
 import "../../interfaces/core/ICoreProperties.sol";
 
+import "../../trader/TraderPool.sol";
+
 import "./TraderPoolPrice.sol";
 import "../../libs/DecimalsConverter.sol";
 import "../../libs/MathHelper.sol";
@@ -45,7 +47,6 @@ library TraderPoolCommission {
 
     function calculateCommissionOnReinvest(
         ITraderPool.PoolParameters storage poolParameters,
-        ITraderPool.InvestorInfo storage investorInfo,
         address investor,
         uint256 oldTotalSupply
     )
@@ -61,26 +62,24 @@ library TraderPoolCommission {
         uint256 baseTokenBalance = poolParameters.baseToken.getNormalizedBalance();
 
         investorBaseAmount = baseTokenBalance.ratio(investorBalance, oldTotalSupply);
+        (uint256 investedBase, ) = TraderPool(address(this)).investorsInfo(investor);
 
         (baseCommission, lpCommission) = _calculateInvestorCommission(
             poolParameters,
             investorBaseAmount,
             investorBalance,
-            investorInfo.investedBase
+            investedBase
         );
     }
 
     function calculateCommissionOnDivest(
         ITraderPool.PoolParameters storage poolParameters,
-        ITraderPool.InvestorInfo storage investorInfo,
         address investor,
         uint256 investorBaseAmount,
         uint256 amountLP
     ) external view returns (uint256 baseCommission, uint256 lpCommission) {
-        uint256 investedBase = investorInfo.investedBase.ratio(
-            amountLP,
-            IERC20(address(this)).balanceOf(investor)
-        );
+        (uint256 investedBase, ) = TraderPool(address(this)).investorsInfo(investor);
+        investedBase = investedBase.ratio(amountLP, IERC20(address(this)).balanceOf(investor));
 
         (baseCommission, lpCommission) = _calculateInvestorCommission(
             poolParameters,
