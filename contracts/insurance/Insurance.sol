@@ -152,6 +152,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         uint256[] memory amounts
     ) external override onlyOwner {
         require(_ongoingClaims.contains(url), "Insurance: invalid claim url");
+        require(users.length == amounts.length, "Insurance: length mismatch");
 
         uint256 totalToPay;
 

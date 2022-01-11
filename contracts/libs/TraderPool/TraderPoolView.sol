@@ -135,34 +135,36 @@ library TraderPoolView {
         receptions.givenAmounts = new uint256[](length);
         receptions.receivedAmounts = new uint256[](length);
 
-        receptions.baseAmount = baseToken
-            .balanceOf(address(this))
-            .ratio(amountLP, totalSupply)
-            .convertTo18(baseToken.decimals());
-
-        for (uint256 i = 0; i < length; i++) {
-            receptions.positions[i] = openPositions.at(i);
-            receptions.givenAmounts[i] = ERC20(receptions.positions[i])
+        if (totalSupply > 0) {
+            receptions.baseAmount = baseToken
                 .balanceOf(address(this))
                 .ratio(amountLP, totalSupply)
-                .convertTo18(ERC20(receptions.positions[i]).decimals());
+                .convertTo18(baseToken.decimals());
 
-            receptions.receivedAmounts[i] = priceFeed.getNormalizedPriceOut(
-                receptions.positions[i],
-                address(baseToken),
-                receptions.givenAmounts[i]
-            );
-            receptions.baseAmount += receptions.receivedAmounts[i];
-        }
+            for (uint256 i = 0; i < length; i++) {
+                receptions.positions[i] = openPositions.at(i);
+                receptions.givenAmounts[i] = ERC20(receptions.positions[i])
+                    .balanceOf(address(this))
+                    .ratio(amountLP, totalSupply)
+                    .convertTo18(ERC20(receptions.positions[i]).decimals());
 
-        if (investor != poolParameters.trader) {
-            (uint256 baseCommission, ) = poolParameters.calculateCommissionOnDivest(
-                investor,
-                receptions.baseAmount,
-                amountLP
-            );
+                receptions.receivedAmounts[i] = priceFeed.getNormalizedPriceOut(
+                    receptions.positions[i],
+                    address(baseToken),
+                    receptions.givenAmounts[i]
+                );
+                receptions.baseAmount += receptions.receivedAmounts[i];
+            }
 
-            commissions = _getTraderAndPlatformCommissions(poolParameters, baseCommission);
+            if (investor != poolParameters.trader) {
+                (uint256 baseCommission, ) = poolParameters.calculateCommissionOnDivest(
+                    investor,
+                    receptions.baseAmount,
+                    amountLP
+                );
+
+                commissions = _getTraderAndPlatformCommissions(poolParameters, baseCommission);
+            }
         }
     }
 
@@ -212,7 +214,9 @@ library TraderPoolView {
     ) internal view returns (ITraderPool.UserInfo memory userInfo) {
         userInfo.poolLPBalance = IERC20(address(this)).balanceOf(user);
         (userInfo.investedBase, ) = TraderPool(address(this)).investorsInfo(user);
-        userInfo.poolUSDShare = totalPoolUSD.ratio(userInfo.poolLPBalance, totalSupply);
+        userInfo.poolUSDShare = totalSupply > 0
+            ? totalPoolUSD.ratio(userInfo.poolLPBalance, totalSupply)
+            : 0;
         userInfo.poolBaseShare = ITraderPool(address(this)).priceFeed().getNormalizedPriceOutBase(
             poolParameters.baseToken,
             userInfo.poolUSDShare

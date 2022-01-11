@@ -61,15 +61,17 @@ library TraderPoolCommission {
         uint256 investorBalance = IERC20(address(this)).balanceOf(investor);
         uint256 baseTokenBalance = poolParameters.baseToken.getNormalizedBalance();
 
-        investorBaseAmount = baseTokenBalance.ratio(investorBalance, oldTotalSupply);
-        (uint256 investedBase, ) = TraderPool(address(this)).investorsInfo(investor);
+        if (oldTotalSupply > 0) {
+            investorBaseAmount = baseTokenBalance.ratio(investorBalance, oldTotalSupply);
+            (uint256 investedBase, ) = TraderPool(address(this)).investorsInfo(investor);
 
-        (baseCommission, lpCommission) = _calculateInvestorCommission(
-            poolParameters,
-            investorBaseAmount,
-            investorBalance,
-            investedBase
-        );
+            (baseCommission, lpCommission) = _calculateInvestorCommission(
+                poolParameters,
+                investorBaseAmount,
+                investorBalance,
+                investedBase
+            );
+        }
     }
 
     function calculateCommissionOnDivest(
@@ -78,15 +80,19 @@ library TraderPoolCommission {
         uint256 investorBaseAmount,
         uint256 amountLP
     ) external view returns (uint256 baseCommission, uint256 lpCommission) {
-        (uint256 investedBase, ) = TraderPool(address(this)).investorsInfo(investor);
-        investedBase = investedBase.ratio(amountLP, IERC20(address(this)).balanceOf(investor));
+        uint256 balance = IERC20(address(this)).balanceOf(investor);
 
-        (baseCommission, lpCommission) = _calculateInvestorCommission(
-            poolParameters,
-            investorBaseAmount,
-            amountLP,
-            investedBase
-        );
+        if (balance > 0) {
+            (uint256 investedBase, ) = TraderPool(address(this)).investorsInfo(investor);
+            investedBase = investedBase.ratio(amountLP, balance);
+
+            (baseCommission, lpCommission) = _calculateInvestorCommission(
+                poolParameters,
+                investorBaseAmount,
+                amountLP,
+                investedBase
+            );
+        }
     }
 
     function calculateDexeCommission(

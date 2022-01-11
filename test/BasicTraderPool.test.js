@@ -471,6 +471,17 @@ describe("BasicTraderPool", () => {
         assert.closeTo(proposalInfo.balancePosition.toNumber(), toBN(wei("300")).toNumber(), toBN(wei("1")).toNumber());
       });
 
+      it("should divest and then invest into the proposal", async () => {
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(baseTokens.MANA.address, wei("500"), [time.plus(10000), wei("5000"), wei("1.5")], 0);
+
+        await reinvestProposal(1, wei("500"), OWNER);
+
+        await invest(wei("1000"), SECOND);
+
+        await truffleAssert.reverts(investProposal(1, wei("100"), SECOND), "TPRP: investing more than trader");
+      });
+
       it("should calculate the commission correctly after the proposal investment", async () => {
         const time = toBN(await getCurrentBlockTime());
         await createProposal(

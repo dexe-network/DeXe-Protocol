@@ -100,21 +100,28 @@ library TraderPoolRiskyProposalView {
             return (0, 0);
         }
 
-        IPriceFeed priceFeed = ITraderPoolRiskyProposal(address(this)).priceFeed();
+        if (info.balancePosition + info.balanceBase > 0) {
+            IPriceFeed priceFeed = ITraderPoolRiskyProposal(address(this)).priceFeed();
 
-        uint256 tokensPrice = priceFeed.getNormalizedPriceOut(
-            info.token,
-            parentTraderPoolInfo.baseToken,
-            info.balancePosition
-        );
-        uint256 baseToExchange = baseInvestment.ratio(tokensPrice, tokensPrice + info.balanceBase);
+            uint256 tokensPrice = priceFeed.getNormalizedPriceOut(
+                info.token,
+                parentTraderPoolInfo.baseToken,
+                info.balancePosition
+            );
+            uint256 baseToExchange = baseInvestment.ratio(
+                tokensPrice,
+                tokensPrice + info.balanceBase
+            );
 
-        baseAmount = baseInvestment - baseToExchange;
-        positionAmount = priceFeed.getNormalizedPriceOut(
-            parentTraderPoolInfo.baseToken,
-            info.token,
-            baseToExchange
-        );
+            baseAmount = baseInvestment - baseToExchange;
+            positionAmount = priceFeed.getNormalizedPriceOut(
+                parentTraderPoolInfo.baseToken,
+                info.token,
+                baseToExchange
+            );
+        } else {
+            baseAmount = baseInvestment;
+        }
     }
 
     function getDivestAmounts(

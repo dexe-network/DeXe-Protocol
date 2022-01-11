@@ -622,7 +622,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     ) internal virtual override {
         require(amount > 0, "TP: 0 transfer");
 
-        if (from != address(0) && to != address(0)) {
+        if (from != address(0) && to != address(0) && from != to) {
             uint256 baseTransfer; // intended to be zero if sender is a trader
 
             if (!isTrader(from)) {
