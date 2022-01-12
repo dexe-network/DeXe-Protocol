@@ -471,7 +471,20 @@ describe("BasicTraderPool", () => {
         assert.closeTo(proposalInfo.balancePosition.toNumber(), toBN(wei("300")).toNumber(), toBN(wei("1")).toNumber());
       });
 
-      it("should divest and then invest into the proposal", async () => {
+      it("trader should divest and then invest into the proposal", async () => {
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(baseTokens.MANA.address, wei("500"), [time.plus(10000), wei("5000"), wei("1.5")], 0);
+
+        await reinvestProposal(1, wei("500"), OWNER);
+
+        await investProposal(1, wei("100"), OWNER);
+
+        assert.equal((await proposalPool.balanceOf(OWNER, 1)).toFixed(), wei("100"));
+        assert.equal((await proposalPool.totalLockedLP()).toFixed(), wei("100"));
+        assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("900"));
+      });
+
+      it("investor should divest and then invest into the proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
         await createProposal(baseTokens.MANA.address, wei("500"), [time.plus(10000), wei("5000"), wei("1.5")], 0);
 
