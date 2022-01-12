@@ -202,21 +202,24 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             require(userPercentage <= traderPercentage, "TPRP: investing more than trader");
         }
 
-        uint256 positionTokens = tokenPriceConverted.ratio(info.balancePosition, 10**18);
-        uint256 baseToExchange = baseInvestment.ratio(
-            positionTokens,
-            positionTokens + info.balanceBase
-        );
-
         _transferAndMintLP(proposalId, user, lpInvestment, baseInvestment);
-        _activePortfolio(
-            proposalId,
-            baseInvestment,
-            baseToExchange,
-            lpInvestment,
-            new address[](0),
-            minPositionOut
-        );
+
+        if (info.balancePosition + info.balanceBase > 0) {
+            uint256 positionTokens = tokenPriceConverted.ratio(info.balancePosition, 10**18);
+            uint256 baseToExchange = baseInvestment.ratio(
+                positionTokens,
+                positionTokens + info.balanceBase
+            );
+
+            _activePortfolio(
+                proposalId,
+                baseInvestment,
+                baseToExchange,
+                lpInvestment,
+                new address[](0),
+                minPositionOut
+            );
+        }
     }
 
     function _divestProposalInvestor(
