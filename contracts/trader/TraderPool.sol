@@ -63,6 +63,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     event Invest(address investor, uint256 amount, uint256 toMintLP);
     event InvestorRemoved(address investor);
     event Divest(address investor, uint256 amount, uint256 commission);
+    event MintLP(address trader, uint256 amount);
+    event BurnLP(address trader, uint256 amount);
 
     modifier onlyTraderAdmin() {
         _onlyTraderAdmin();
@@ -355,6 +357,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
                     info.investedBase = investorBaseAmount - baseCommission;
 
                     _burn(investor, lpCommission);
+                    emit BurnLP(investor, lpCommission);
 
                     allBaseCommission += baseCommission;
                     allLPCommission += lpCommission;
