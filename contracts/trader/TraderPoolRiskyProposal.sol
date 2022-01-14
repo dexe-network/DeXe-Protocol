@@ -23,9 +23,9 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
 
     mapping(uint256 => ProposalInfo) public proposalInfos; // proposal id => info
 
-    event ProposalInvest(uint256 index, address investor, uint256 amountLP, uint256 amountBase);
-    event ProposalDivest(uint256 index, address investor, uint256 amountLP, uint256 amountBase);
-    event ProposalExchange(
+    event ProposalInvested(uint256 index, address investor, uint256 amountLP, uint256 amountBase);
+    event ProposalDivested(uint256 index, address investor, uint256 amountLP, uint256 amountBase);
+    event ProposalExchanged(
         uint256 index,
         address fromToken,
         address toToken,
@@ -139,6 +139,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         );
 
         emit ProposalCreated(proposalId, token, proposalLimits);
+        emit ProposalInvested(proposalId, msg.sender, lpInvestment, baseInvestment);
     }
 
     function _activePortfolio(
@@ -237,6 +238,8 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
                 minPositionOut
             );
         }
+
+        emit ProposalInvested(proposalId, _msgSender(), lpInvestment, baseInvestment);
     }
 
     function _divestProposalInvestor(
@@ -320,7 +323,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         totalLockedLP -= lpToBurn;
         investedBase -= receivedBase.min(investedBase);
 
-        emit ProposalDivest(proposalId, user, lp2, receivedBase);
+        emit ProposalDivested(proposalId, user, lp2, receivedBase);
 
         return receivedBase;
     }
@@ -387,31 +390,41 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
 
         require(from == baseToken || from == positionToken, "TPRP: invalid from token");
 
+        uint256 amountOut;
+
         if (from == baseToken) {
             require(amountIn <= info.balanceBase, "TPRP: wrong base amount");
 
-            info.balancePosition += priceFeed.normalizedExchangeFromExact(
+            amountOut = priceFeed.normalizedExchangeFromExact(
                 baseToken,
                 positionToken,
                 amountIn,
                 optionalPath,
                 minAmountOut
             );
+            info.balancePosition += amountOut;
             info.balanceBase -= amountIn;
-            emit ProposalExchange(proposalId, baseToken, positionToken, amountIn, minAmountOut);
         } else {
             require(amountIn <= info.balancePosition, "TPRP: wrong position amount");
 
-            info.balanceBase += priceFeed.normalizedExchangeFromExact(
+            amountOut = priceFeed.normalizedExchangeFromExact(
                 positionToken,
                 baseToken,
                 amountIn,
                 optionalPath,
                 minAmountOut
             );
+            info.balanceBase += amountOut;
             info.balancePosition -= amountIn;
-            emit ProposalExchange(proposalId, positionToken, baseToken, amountIn, minAmountOut);
         }
+
+        emit ProposalExchanged(
+            proposalId,
+            from,
+            from == baseToken ? positionToken : baseToken,
+            amountIn,
+            amountOut
+        );
     }
 
     function getExchangeToExactAmount(
@@ -438,31 +451,40 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
 
         require(from == baseToken || from == positionToken, "TPRP: invalid from token");
 
+        uint256 amountIn;
         if (from == baseToken) {
             require(maxAmountIn <= info.balanceBase, "TPRP: wrong base amount");
 
-            info.balanceBase -= priceFeed.normalizedExchangeToExact(
+            amountIn = priceFeed.normalizedExchangeToExact(
                 baseToken,
                 positionToken,
                 amountOut,
                 optionalPath,
                 maxAmountIn
             );
+            info.balanceBase -= amountIn;
             info.balancePosition += amountOut;
-            emit ProposalExchange(proposalId, baseToken, positionToken, amountOut, maxAmountIn);
         } else {
             require(maxAmountIn <= info.balancePosition, "TPRP: wrong position amount");
 
-            info.balancePosition -= priceFeed.normalizedExchangeToExact(
+            amountIn = priceFeed.normalizedExchangeToExact(
                 positionToken,
                 baseToken,
                 amountOut,
                 optionalPath,
                 maxAmountIn
             );
+            info.balancePosition -= amountIn;
             info.balanceBase += amountOut;
-            emit ProposalExchange(proposalId, positionToken, baseToken, amountOut, maxAmountIn);
         }
+
+        emit ProposalExchanged(
+            proposalId,
+            from,
+            from == baseToken ? positionToken : baseToken,
+            amountIn,
+            amountOut
+        );
     }
 
     function _getInvestmentPercentage(

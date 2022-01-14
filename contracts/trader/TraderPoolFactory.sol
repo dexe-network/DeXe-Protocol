@@ -134,7 +134,7 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         _injectDependencies(poolProxy);
         emit Deployed(
             _msgSender(),
-            _traderPoolRegistry.INVEST_PROPOSAL_NAME(),
+            _traderPoolRegistry.INVEST_POOL_NAME(),
             poolProxy,
             symbol,
             poolParameters.baseToken,
