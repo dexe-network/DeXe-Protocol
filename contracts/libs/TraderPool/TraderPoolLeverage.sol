@@ -67,6 +67,10 @@ library TraderPoolLeverage {
         EnumerableSet.AddressSet storage openPositions,
         uint256 amountInBaseToInvest
     ) external view {
+        if (msg.sender == poolParameters.trader) {
+            return;
+        }
+
         (uint256 totalPriceInUSD, uint256 maxTraderVolumeInUSD) = getMaxTraderLeverage(
             poolParameters,
             openPositions

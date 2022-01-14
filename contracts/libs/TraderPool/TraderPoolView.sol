@@ -81,11 +81,10 @@ library TraderPoolView {
     function getReinvestCommissions(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage investors,
-        uint256 openPositionsAmount,
         uint256 offset,
         uint256 limit
     ) external view returns (ITraderPool.Commissions memory commissions) {
-        if (openPositionsAmount != 0) {
+        if (ITraderPool(address(this)).totalOpenPositions() != 0) {
             return ITraderPool.Commissions(0, 0, 0);
         }
 
