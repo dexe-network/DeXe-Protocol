@@ -13,8 +13,16 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
     ITraderPoolRiskyProposal internal _traderPoolProposal;
 
     modifier onlyProposalPool() {
-        require(_msgSender() == address(_traderPoolProposal), "BTP: not a proposal");
+        _onlyProposalPool();
         _;
+    }
+
+    function _onlyProposalPool() internal view {
+        require(msg.sender == address(_traderPoolProposal), "BTP: not a proposal");
+    }
+
+    function _isSupportedBaseToken(address token) internal view {
+        require(priceFeed.isSupportedBaseToken(token), "BTP: invalid exchange");
     }
 
     function __BasicTraderPool_init(
@@ -51,7 +59,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256 minAmountOut,
         address[] calldata optionalPath
     ) public override onlyTraderAdmin {
-        require(priceFeed.isSupportedBaseToken(to), "BTP: invalid exchange");
+        _isSupportedBaseToken(to);
 
         super.exchangeFromExact(from, to, amountIn, minAmountOut, optionalPath);
     }
@@ -63,7 +71,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256 maxAmountIn,
         address[] calldata optionalPath
     ) public override onlyTraderAdmin {
-        require(priceFeed.isSupportedBaseToken(to), "BTP: invalid exchange");
+        _isSupportedBaseToken(to);
 
         super.exchangeToExact(from, to, amountOut, maxAmountIn, optionalPath);
     }
@@ -89,7 +97,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
             optionalPath
         );
 
-        _burn(_msgSender(), lpAmount);
+        _burn(msg.sender, lpAmount);
     }
 
     function investProposal(
@@ -100,10 +108,10 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
     ) external override {
         uint256 baseAmount = _divestPositions(lpAmount, minDivestOut);
 
-        _traderPoolProposal.invest(proposalId, _msgSender(), lpAmount, baseAmount, minProposalOut);
+        _traderPoolProposal.invest(proposalId, msg.sender, lpAmount, baseAmount, minProposalOut);
 
-        _updateFromData(_msgSender(), lpAmount);
-        _burn(_msgSender(), lpAmount);
+        _updateFromData(msg.sender, lpAmount);
+        _burn(msg.sender, lpAmount);
     }
 
     function reinvestProposal(
@@ -114,7 +122,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
     ) external override {
         uint256 receivedBase = _traderPoolProposal.divest(
             proposalId,
-            _msgSender(),
+            msg.sender,
             lp2Amount,
             minProposalOut
         );
@@ -126,19 +134,19 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256[] calldata minInvestsOut,
         uint256[] calldata minProposalsOut
     ) external override {
-        uint256 receivedBase = _traderPoolProposal.divestAll(_msgSender(), minProposalsOut);
+        uint256 receivedBase = _traderPoolProposal.divestAll(msg.sender, minProposalsOut);
 
         _invest(address(_traderPoolProposal), receivedBase, minInvestsOut);
     }
 
     function checkRemoveInvestor(address user) external override onlyProposalPool {
-        if (user != poolParameters.trader) {
+        if (!isTrader(user)) {
             _checkRemoveInvestor(user, 0);
         }
     }
 
     function checkNewInvestor(address user) external override onlyProposalPool {
-        if (user != poolParameters.trader) {
+        if (!isTrader(user)) {
             _checkNewInvestor(user);
         }
     }
