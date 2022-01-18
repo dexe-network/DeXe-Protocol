@@ -24,6 +24,12 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     mapping(uint256 => ProposalInfo) public proposalInfos; // proposal id => info
     mapping(address => mapping(uint256 => RewardInfo)) public rewardInfos;
 
+    event ProposalInvested(uint256 index, address investor, uint256 amountLP, uint256 amountBase);
+    event ProposalDivested(uint256 index, address investor, uint256 amount);
+    event ProposalCreated(uint256 index, ITraderPoolInvestProposal.ProposalLimits proposalLimits);
+    event ProposalWithdrawn(uint256 index, uint256 amount, address investor);
+    event ProposalSupplied(uint256 index, uint256 amount, address investor);
+
     function __TraderPoolInvestProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         public
         initializer
@@ -97,6 +103,9 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         proposalInfos[proposalId].investedLP = lpInvestment;
         proposalInfos[proposalId].investedBase = baseInvestment;
         proposalInfos[proposalId].newInvestedBase = baseInvestment;
+
+        emit ProposalCreated(proposalId, proposalLimits);
+        emit ProposalInvested(proposalId, msg.sender, lpInvestment, baseInvestment);
     }
 
     function _updateRewards(uint256 proposalId, address user) internal {
@@ -136,6 +145,8 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         info.investedLP += lpInvestment;
         info.investedBase += baseInvestment;
         info.newInvestedBase += baseInvestment;
+
+        emit ProposalInvested(proposalId, user, lpInvestment, baseInvestment);
     }
 
     function getRewards(uint256[] calldata proposalIds, address user)
@@ -191,7 +202,11 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         onlyParentTraderPool
         returns (uint256)
     {
-        return _divestProposal(proposalId, user);
+        uint256 amount = _divestProposal(proposalId, user);
+
+        emit ProposalDivested(proposalId, user, amount);
+
+        return amount;
     }
 
     function divestAll(address user) external override onlyParentTraderPool returns (uint256) {
@@ -219,6 +234,8 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             _parentTraderPoolInfo.trader,
             amount.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
         );
+
+        emit ProposalWithdrawn(proposalId, amount, msg.sender);
     }
 
     function supply(uint256 proposalId, uint256 amount) external override {
@@ -235,12 +252,18 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         );
 
         _updateCumulativeSum(proposalId, amount);
+
+        emit ProposalSupplied(proposalId, amount, msg.sender);
     }
 
     function convertToDividends(uint256 proposalId) external override onlyTraderAdmin {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
         _updateCumulativeSum(proposalId, proposalInfos[proposalId].newInvestedBase);
+
+        emit ProposalWithdrawn(proposalId, proposalInfos[proposalId].newInvestedBase, msg.sender);
+        emit ProposalSupplied(proposalId, proposalInfos[proposalId].newInvestedBase, msg.sender);
+
         delete proposalInfos[proposalId].newInvestedBase;
     }
 

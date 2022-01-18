@@ -37,6 +37,10 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
 
     uint256 public totalPool; // tokens only from pools
 
+    event Deposited(uint256 amount, address investor);
+    event Withdrawn(uint256 amount, address investor);
+    event Paidout(uint256 amount, address investor);
+
     modifier onlyTraderPool() {
         require(_traderPoolRegistry.isPool(_msgSender()), "Insurance: Not a trader pool");
         _;
@@ -77,6 +81,8 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         _depositOnBlocks[_msgSender()][block.number] += deposit;
 
         _dexe.transferFrom(_msgSender(), address(this), deposit);
+
+        emit Deposited(deposit, _msgSender());
     }
 
     function getReceivedInsurance(uint256 deposit) external view override returns (uint256) {
@@ -92,6 +98,8 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         userStakes[_msgSender()] -= amountToWithdraw;
 
         _dexe.transfer(_msgSender(), amountToWithdraw);
+
+        emit Withdrawn(amountToWithdraw, _msgSender());
     }
 
     function proposeClaim(string calldata url) external override onlyOncePerDay(_msgSender()) {
@@ -209,6 +217,8 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         _dexe.transfer(user, payout);
 
         userStakes[user] -= userStakePayout;
+
+        emit Paidout(payout, user);
 
         return payout;
     }
