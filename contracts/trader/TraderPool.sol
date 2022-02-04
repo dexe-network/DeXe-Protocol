@@ -54,7 +54,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     event Exchanged(address fromToken, address toToken, uint256 fromVolume, uint256 toVolume);
     event PositionClosed(address position);
     event InvestorAdded(address investor);
-    event Invest(address investor, uint256 amount, uint256 toMintLP);
     event Invested(address investor, uint256 amount, uint256 toMintLP); // check
     event InvestorRemoved(address investor);
     event Divested(address investor, uint256 amount, uint256 commission);
