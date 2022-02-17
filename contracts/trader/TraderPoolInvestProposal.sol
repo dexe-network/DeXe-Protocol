@@ -100,7 +100,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         _transferAndMintLP(proposalId, _parentTraderPoolInfo.trader, lpInvestment, baseInvestment);
 
         proposalInfos[proposalId].descriptionURL = descriptionURL;
-        proposalInfos[proposalId].investedLP = lpInvestment;
+        proposalInfos[proposalId].lpLocked = lpInvestment;
         proposalInfos[proposalId].investedBase = baseInvestment;
         proposalInfos[proposalId].newInvestedBase = baseInvestment;
 
@@ -135,14 +135,14 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         );
         require(
             info.proposalLimits.investLPLimit == 0 ||
-                info.investedLP + lpInvestment <= info.proposalLimits.investLPLimit,
+                info.lpLocked + lpInvestment <= info.proposalLimits.investLPLimit,
             "TPIP: proposal is overinvested"
         );
 
         _updateRewards(proposalId, user);
         _transferAndMintLP(proposalId, user, lpInvestment, baseInvestment);
 
-        info.investedLP += lpInvestment;
+        info.lpLocked += lpInvestment;
         info.investedBase += baseInvestment;
         info.newInvestedBase += baseInvestment;
 
@@ -169,6 +169,8 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         _updateFromData(user, proposalId, claimed);
 
         delete rewardInfos[user][proposalId].rewardStored;
+
+        proposalInfos[proposalId].lpLocked -= claimed.min(proposalInfos[proposalId].lpLocked);
 
         totalLockedLP -= claimed.min(totalLockedLP);
         investedBase -= claimed.min(investedBase);

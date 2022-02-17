@@ -22,14 +22,14 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
     /// @param descriptionURL the IPFS URL of the proposal's description
     /// @param proposalLimits the limits of this proposal
     /// @param cumulativeSum the helper value needed to calculate the investors' rewards
-    /// @param investedLP the total amount of currently invested LP tokens
+    /// @param lpLocked the amount of LP tokens that are locked in this proposal
     /// @param investedBase the total amount of currently invested base tokens (this should never decrease because we don't burn LP)
     /// @param newInvestedBase the total amount of newly invested base tokens that the trader can withdraw
     struct ProposalInfo {
         string descriptionURL;
         ProposalLimits proposalLimits;
         uint256 cumulativeSum; // with PRECISION
-        uint256 investedLP;
+        uint256 lpLocked;
         uint256 investedBase;
         uint256 newInvestedBase;
     }
@@ -46,12 +46,12 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
     /// currently active investor's proposals
     /// @param proposalId the id of the proposal
     /// @param lp2Balance investor's balance of proposal's LP tokens
-    /// @param lpInvested the amount of invested pool's LP tokens
+    /// @param lpLocked the investor's amount of locked LP tokens
     /// @param reward the currently available reward in LP tokens
     struct ActiveInvestmentInfo {
         uint256 proposalId;
         uint256 lp2Balance;
-        uint256 lpInvested;
+        uint256 lpLocked;
         uint256 reward;
     }
 

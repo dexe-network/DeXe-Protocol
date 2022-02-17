@@ -34,6 +34,10 @@ interface ITraderPoolProposal {
     /// @return the amount of invested base tokens
     function investedBase() external view returns (uint256);
 
+    /// @notice The function that returns base token address of the parent pool
+    /// @return base token address
+    function getBaseToken() external view returns (address);
+
     /// @notice The function that returns the amount of currently invested base tokens into all proposals in USD
     /// @return the amount of invested base tokens in USD equivalent
     function getInvestedBaseInUSD() external view returns (uint256);

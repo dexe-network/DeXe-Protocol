@@ -514,11 +514,7 @@ describe("InvestTraderPool", () => {
           toBN(wei("50")).toNumber(),
           toBN(wei("1")).toNumber()
         );
-        assert.closeTo(
-          toBN(proposalInfo.lpInvested).toNumber(),
-          toBN(wei("450")).toNumber(),
-          toBN(wei("1")).toNumber()
-        );
+        assert.closeTo(toBN(proposalInfo.lpLocked).toNumber(), toBN(wei("450")).toNumber(), toBN(wei("1")).toNumber());
 
         await truffleAssert.reverts(claimProposal(1, SECOND), "TPIP: nothing to claim");
       });
@@ -536,7 +532,7 @@ describe("InvestTraderPool", () => {
           toBN(wei("5000")).toNumber(),
           toBN(wei("1")).toNumber()
         );
-        assert.equal(toBN(proposalInfo.lpInvested).toFixed(), "0");
+        assert.equal(toBN(proposalInfo.lpLocked).toFixed(), "0");
       });
 
       it("should claim the deposit twice", async () => {

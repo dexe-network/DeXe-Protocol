@@ -59,7 +59,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         external
         view
         override
-        returns (ProposalInfo[] memory proposals)
+        returns (ProposalInfoExtended[] memory proposals)
     {
         return TraderPoolRiskyProposalView.getProposalInfos(proposalInfos, offset, limit);
     }
@@ -152,7 +152,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     ) internal {
         ProposalInfo storage info = proposalInfos[proposalId];
 
-        info.investedLP += lpInvestment;
+        info.lpLocked += lpInvestment;
         info.balanceBase += baseInvestment - baseToExchange;
         info.balancePosition += priceFeed.normalizedExchangeFromExact(
             _parentTraderPoolInfo.baseToken,
@@ -195,7 +195,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         );
         require(
             info.proposalLimits.investLPLimit == 0 ||
-                info.investedLP + lpInvestment <= info.proposalLimits.investLPLimit,
+                info.lpLocked + lpInvestment <= info.proposalLimits.investLPLimit,
             "TPRP: proposal is overinvested"
         );
 
@@ -319,6 +319,8 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
                 minPositionOut
             );
         }
+
+        proposalInfos[proposalId].lpLocked -= lpToBurn;
 
         totalLockedLP -= lpToBurn;
         investedBase -= receivedBase.min(investedBase);

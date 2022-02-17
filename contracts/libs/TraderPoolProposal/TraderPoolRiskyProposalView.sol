@@ -24,15 +24,30 @@ library TraderPoolRiskyProposalView {
         mapping(uint256 => ITraderPoolRiskyProposal.ProposalInfo) storage proposalInfos,
         uint256 offset,
         uint256 limit
-    ) external view returns (ITraderPoolRiskyProposal.ProposalInfo[] memory proposals) {
+    ) external view returns (ITraderPoolRiskyProposal.ProposalInfoExtended[] memory proposals) {
         uint256 to = (offset + limit)
             .min(TraderPoolRiskyProposal(address(this)).proposalsTotalNum())
             .max(offset);
 
-        proposals = new ITraderPoolRiskyProposal.ProposalInfo[](to - offset);
+        proposals = new ITraderPoolRiskyProposal.ProposalInfoExtended[](to - offset);
+
+        IPriceFeed priceFeed = ITraderPoolRiskyProposal(address(this)).priceFeed();
+        address baseToken = ITraderPoolRiskyProposal(address(this)).getBaseToken();
 
         for (uint256 i = offset; i < to; i++) {
-            proposals[i - offset] = proposalInfos[i];
+            proposals[i - offset].proposalInfo = proposalInfos[i];
+
+            proposals[i - offset].totalProposalBase =
+                proposals[i - offset].proposalInfo.balanceBase +
+                priceFeed.getNormalizedPriceOut(
+                    proposals[i - offset].proposalInfo.token,
+                    baseToken,
+                    proposals[i - offset].proposalInfo.balancePosition
+                );
+            proposals[i - offset].totalProposalUSD = priceFeed.getNormalizedPriceOutUSD(
+                baseToken,
+                proposals[i - offset].totalProposalBase
+            );
         }
     }
 

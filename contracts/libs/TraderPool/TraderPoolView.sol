@@ -192,13 +192,15 @@ library TraderPoolView {
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions
     ) public view returns (ITraderPool.LeverageInfo memory leverageInfo) {
-        (leverageInfo.totalPoolUSD, leverageInfo.traderLeverageUSDTokens) = poolParameters
-            .getMaxTraderLeverage(openPositions);
+        (
+            leverageInfo.totalPoolUSDWithProposals,
+            leverageInfo.traderLeverageUSDTokens
+        ) = poolParameters.getMaxTraderLeverage(openPositions);
 
-        if (leverageInfo.traderLeverageUSDTokens > leverageInfo.totalPoolUSD) {
+        if (leverageInfo.traderLeverageUSDTokens > leverageInfo.totalPoolUSDWithProposals) {
             leverageInfo.freeLeverageUSD =
                 leverageInfo.traderLeverageUSDTokens -
-                leverageInfo.totalPoolUSD;
+                leverageInfo.totalPoolUSDWithProposals;
             leverageInfo.freeLeverageBase = ITraderPool(address(this))
                 .priceFeed()
                 .getNormalizedPriceOutBase(poolParameters.baseToken, leverageInfo.freeLeverageUSD);
@@ -206,20 +208,18 @@ library TraderPoolView {
     }
 
     function _getUserInfo(
-        ITraderPool.PoolParameters storage poolParameters,
         address user,
+        uint256 totalPoolBase,
         uint256 totalPoolUSD,
         uint256 totalSupply
     ) internal view returns (ITraderPool.UserInfo memory userInfo) {
         userInfo.poolLPBalance = IERC20(address(this)).balanceOf(user);
         (userInfo.investedBase, ) = TraderPool(address(this)).investorsInfo(user);
-        userInfo.poolUSDShare = totalSupply > 0
-            ? totalPoolUSD.ratio(userInfo.poolLPBalance, totalSupply)
-            : 0;
-        userInfo.poolBaseShare = ITraderPool(address(this)).priceFeed().getNormalizedPriceOutBase(
-            poolParameters.baseToken,
-            userInfo.poolUSDShare
-        );
+
+        if (totalSupply > 0) {
+            userInfo.poolUSDShare = totalPoolUSD.ratio(userInfo.poolLPBalance, totalSupply);
+            userInfo.poolBaseShare = totalPoolBase.ratio(userInfo.poolLPBalance, totalSupply);
+        }
     }
 
     function getUsersInfo(
@@ -230,22 +230,23 @@ library TraderPoolView {
         uint256 limit
     ) external view returns (ITraderPool.UserInfo[] memory usersInfo) {
         uint256 to = (offset + limit).min(investors.length()).max(offset);
-        (uint256 totalPoolUSD, ) = poolParameters.getMaxTraderLeverage(openPositions);
+        (uint256 totalPoolBase, uint256 totalPoolUSD) = poolParameters
+            .getNormalizedExtendedPoolPrice(openPositions);
         uint256 totalSupply = IERC20(address(this)).totalSupply();
 
         usersInfo = new ITraderPool.UserInfo[](to - offset + 1);
 
         usersInfo[0] = _getUserInfo(
-            poolParameters,
             poolParameters.trader,
+            totalPoolBase,
             totalPoolUSD,
             totalSupply
         );
 
         for (uint256 i = offset; i < to; i++) {
             usersInfo[i - offset + 1] = _getUserInfo(
-                poolParameters,
                 investors.at(i),
+                totalPoolBase,
                 totalPoolUSD,
                 totalSupply
             );
@@ -275,6 +276,10 @@ library TraderPoolView {
 
         (poolInfo.totalPoolBase, poolInfo.totalPoolUSD) = poolParameters
             .getNormalizedExtendedPoolPrice(openPositions);
-        poolInfo.lpEmission = ITraderPool(address(this)).totalEmission();
+
+        poolInfo.lpSupply = ERC20(address(this)).totalSupply();
+        poolInfo.lpLockedInProposals =
+            ITraderPool(address(this)).totalEmission() -
+            poolInfo.lpSupply;
     }
 }

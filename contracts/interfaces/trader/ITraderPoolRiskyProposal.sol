@@ -20,32 +20,42 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     }
 
     /// @notice The struct that holds the information of this proposal
-    /// @param token the address of the propoasal token
-    /// @param tokenDecimals the decimals of the propoasal token
+    /// @param token the address of the proposal token
+    /// @param tokenDecimals the decimals of the proposal token
     /// @param proposalLimits the investment limits of this proposal
-    /// @param investedLP the amount of invested LP tokens into this proposal
+    /// @param lpLocked the amount of LP tokens that are locked in this proposal
     /// @param balanceBase the base token balance of this proposal (normalized)
     /// @param balancePosition the position token balance of this propoasl (normalized)
     struct ProposalInfo {
         address token;
         uint256 tokenDecimals;
         ProposalLimits proposalLimits;
-        uint256 investedLP;
+        uint256 lpLocked;
         uint256 balanceBase;
         uint256 balancePosition;
+    }
+
+    /// @notice The struct that holds extra information about this proposal
+    /// @param proposalInfo the information about this proposal
+    /// @param totalProposalUSD the equivalent USD TVL in this proposal
+    /// @param totalProposalBase the equivalent base TVL in this proposal
+    struct ProposalInfoExtended {
+        ProposalInfo proposalInfo;
+        uint256 totalProposalUSD;
+        uint256 totalProposalBase;
     }
 
     /// @notice The struct that is used in the "TraderPoolRiskyProposalView" contract and stores information about the investor's
     /// active investments
     /// @param proposalId the id of the proposal
     /// @param lp2Balance the investor's balance of proposal's LP tokens
-    /// @param lpInvested the amount of invested LP tokens by the investor
+    /// @param lpLocked the investor's amount of locked LP tokens
     /// @param baseShare the amount of investor's base token in this proposal
     /// @param positionShare the amount of investor's position token in this proposal
     struct ActiveInvestmentInfo {
         uint256 proposalId;
         uint256 lp2Balance;
-        uint256 lpInvested;
+        uint256 lpLocked;
         uint256 baseShare;
         uint256 positionShare;
     }
@@ -76,7 +86,7 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     function getProposalInfos(uint256 offset, uint256 limit)
         external
         view
-        returns (ProposalInfo[] memory proposals);
+        returns (ProposalInfoExtended[] memory proposals);
 
     /// @notice The function to get the information about the active proposals of this user
     /// @param user the user to observe

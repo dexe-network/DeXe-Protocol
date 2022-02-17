@@ -398,14 +398,18 @@ describe("TraderPool", () => {
       it("should calculate trader's commission", async () => {
         let leverage = await traderPool.getLeverageInfo();
 
-        assert.equal(toBN(leverage.totalPoolUSD).toFixed(), wei("2000"));
+        assert.equal(toBN(leverage.totalPoolUSDWithProposals).toFixed(), wei("2000"));
         assert.equal(toBN(leverage.traderLeverageUSDTokens).toFixed(), wei("2400"));
 
         await exchangeFromExact(baseTokens.WETH.address, baseTokens.MANA.address, wei("1000"));
 
         leverage = await traderPool.getLeverageInfo();
 
-        assert.closeTo(toBN(leverage.totalPoolUSD).toNumber(), toBN(wei("2000")).toNumber(), toBN(wei("1")).toNumber());
+        assert.closeTo(
+          toBN(leverage.totalPoolUSDWithProposals).toNumber(),
+          toBN(wei("2000")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
         assert.closeTo(
           toBN(leverage.traderLeverageUSDTokens).toNumber(),
           toBN(wei("2400")).toNumber(),
@@ -419,7 +423,11 @@ describe("TraderPool", () => {
 
         leverage = await traderPool.getLeverageInfo();
 
-        assert.closeTo(toBN(leverage.totalPoolUSD).toNumber(), toBN(wei("3006")).toNumber(), toBN(wei("1")).toNumber());
+        assert.closeTo(
+          toBN(leverage.totalPoolUSDWithProposals).toNumber(),
+          toBN(wei("3006")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
         assert.closeTo(
           toBN(leverage.traderLeverageUSDTokens).toNumber(),
           toBN(wei("3607")).toNumber(),

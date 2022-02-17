@@ -67,12 +67,12 @@ interface ITraderPool {
     }
 
     /// @notice The struct that is returned from the TraderPoolView contract and stores information about the trader leverage
-    /// @param totalPoolUSD the total USD value of the pool
+    /// @param totalPoolUSDWithProposals the total USD value of the pool + proposal pools
     /// @param traderLeverageUSDTokens the maximal amount of USD that the trader is allowed to own
     /// @param freeLeverageUSD the amount of USD that could be invested into the pool
     /// @param freeLeverageBase the amount of base tokens that could be invested into the pool (basically converted freeLeverageUSD)
     struct LeverageInfo {
-        uint256 totalPoolUSD;
+        uint256 totalPoolUSDWithProposals;
         uint256 traderLeverageUSDTokens;
         uint256 freeLeverageUSD;
         uint256 freeLeverageBase;
@@ -81,7 +81,7 @@ interface ITraderPool {
     /// @notice The struct that is returned from the TraderPoolView contract and stores information about the investor
     /// @param poolLPBalance the LP token balance of this used excluding proposals balance. The same as calling .balanceOf() function
     /// @param investedBase the amount of base tokens invested into the pool (after commission calculation this might increase)
-    /// @param poolUSDShare the amount of USD that represent the user's pool share
+    /// @param poolUSDShare the equivalent amount of USD that represent the user's pool share
     /// @param poolUSDShare the equivalent amount of base tokens that represent the user's pool share
     struct UserInfo {
         uint256 poolLPBalance;
@@ -98,7 +98,8 @@ interface ITraderPool {
     /// @param baseAndPositionBalances the array of balances. [0] is the balance of base tokens (array is normalized)
     /// @param totalPoolUSD is the current USD TVL in this pool
     /// @param totalPoolBase is the current base token TVL in this pool
-    /// @param lpEmission is the current number of LP tokens
+    /// @param lpSupply is the current number of LP tokens (without proposals)
+    /// @param lpLockedInProposals is the current number of LP tokens that are locked in proposals
     struct PoolInfo {
         string ticker;
         string name;
@@ -108,7 +109,8 @@ interface ITraderPool {
         uint256 totalInvestors;
         uint256 totalPoolUSD;
         uint256 totalPoolBase;
-        uint256 lpEmission;
+        uint256 lpSupply;
+        uint256 lpLockedInProposals;
     }
 
     /// @notice The function that returns a PriceFeed contract
