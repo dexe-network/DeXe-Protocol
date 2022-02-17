@@ -31,7 +31,8 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         string symbol,
         address basicToken,
         address proposalContract,
-        string name
+        string name,
+        string descriptionURL
     );
 
     function __TraderPoolFactory_init() external initializer {
@@ -99,7 +100,8 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
             symbol,
             poolParameters.baseToken,
             proposalProxy,
-            name
+            name,
+            poolParameters.descriptionURL
         );
     }
 
@@ -139,7 +141,8 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
             symbol,
             poolParameters.baseToken,
             proposalProxy,
-            name
+            name,
+            poolParameters.descriptionURL
         );
     }
 
