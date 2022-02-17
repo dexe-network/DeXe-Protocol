@@ -52,16 +52,15 @@ library TraderPoolPrice {
         }
     }
 
-    function getNormalizedPoolPriceInUSD(
+    function getNormalizedExtendedPoolPrice(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions
-    ) external view returns (uint256) {
-        (uint256 totalBase, , , ) = getNormalizedPoolPrice(poolParameters, openPositions);
+    ) external view returns (uint256 totalBase, uint256 totalUSD) {
+        (totalBase, , , ) = getNormalizedPoolPrice(poolParameters, openPositions);
 
-        return
-            ITraderPool(address(this)).priceFeed().getNormalizedPriceOutUSD(
-                poolParameters.baseToken,
-                totalBase
-            );
+        totalUSD = ITraderPool(address(this)).priceFeed().getNormalizedPriceOutUSD(
+            poolParameters.baseToken,
+            totalBase
+        );
     }
 }

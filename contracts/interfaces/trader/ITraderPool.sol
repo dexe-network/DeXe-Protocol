@@ -97,6 +97,7 @@ interface ITraderPool {
     /// @param openPositions the array of open positions addresses
     /// @param baseAndPositionBalances the array of balances. [0] is the balance of base tokens (array is normalized)
     /// @param totalPoolUSD is the current USD TVL in this pool
+    /// @param totalPoolBase is the current base token TVL in this pool
     /// @param lpEmission is the current number of LP tokens
     struct PoolInfo {
         string ticker;

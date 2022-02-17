@@ -24,7 +24,7 @@ library TraderPoolLeverage {
         uint256 totalEmission = ITraderPool(address(this)).totalEmission();
         uint256 traderBalance = IERC20(address(this)).balanceOf(trader);
 
-        totalInUSD = poolParameters.getNormalizedPoolPriceInUSD(openPositions);
+        (, totalInUSD) = poolParameters.getNormalizedExtendedPoolPrice(openPositions);
 
         if (proposalPool != address(0)) {
             totalInUSD += ITraderPoolProposal(proposalPool).getInvestedBaseInUSD();

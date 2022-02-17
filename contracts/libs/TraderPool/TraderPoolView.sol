@@ -273,11 +273,8 @@ library TraderPoolView {
 
         poolInfo.totalInvestors = ITraderPool(address(this)).totalInvestors();
 
-        (poolInfo.totalPoolUSD, ) = poolParameters.getMaxTraderLeverage(openPositions);
-        poolInfo.totalPoolBase = ITraderPool(address(this)).priceFeed().getNormalizedPriceOutBase(
-            poolParameters.baseToken,
-            poolInfo.totalPoolUSD
-        );
+        (poolInfo.totalPoolBase, poolInfo.totalPoolUSD) = poolParameters
+            .getNormalizedExtendedPoolPrice(openPositions);
         poolInfo.lpEmission = ITraderPool(address(this)).totalEmission();
     }
 }
