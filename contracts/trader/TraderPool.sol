@@ -59,6 +59,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     event Divested(address investor, uint256 amount, uint256 commission);
     event TraderCommissionMinted(address trader, uint256 amount);
     event TraderCommissionPaid(address investor, uint256 amount);
+    event DescriptionURLChanged(string descriptionURL);
 
     modifier onlyTraderAdmin() {
         _onlyTraderAdmin();
@@ -153,6 +154,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _poolParameters.privatePool = privatePool;
         _poolParameters.totalLPEmission = totalLPEmission;
         _poolParameters.minimalInvestment = minimalInvestment;
+
+        emit DescriptionURLChanged(descriptionURL);
     }
 
     function totalOpenPositions() external view override returns (uint256) {
