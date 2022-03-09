@@ -12,7 +12,7 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// @notice The struct that stores certain proposal limits
     /// @param timestampLimit the timestamp after which the investment into this proposal closes
     /// @param investLPLimit the maximal number of invested LP tokens after which the investment into the proposal closes
-    /// @param maxTokenPriceLimit the maximal price of the proposal token after which the investment into the proposal closes
+    /// @param maxTokenPriceLimit the maximal price of the proposal token to a base token after which the investment into the proposal closes
     struct ProposalLimits {
         uint256 timestampLimit;
         uint256 investLPLimit;
