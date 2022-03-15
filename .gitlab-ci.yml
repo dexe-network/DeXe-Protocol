@@ -7,7 +7,7 @@ cache:
 
 pipeline:
   tags:
-    - runner
+    - dexe
   script:
       - npm install
       - npm run test

@@ -93,4 +93,18 @@ module.exports = async (deployer) => {
     await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_REGISTRY_NAME()),
     "Inject TraderPoolRegistry"
   );
+
+  ////////////////////////////////////////////////////////////
+
+  console.table([
+    { "Proxy Contract": "ContractsRegistry", Address: contractsRegistry.address },
+    { "Proxy Contract": "UserRegistry", Address: userRegistry.address },
+    { "Proxy Contract": "CoreProperties", Address: coreProperties.address },
+    { "Proxy Contract": "PriceFeed", Address: priceFeed.address },
+    { "Proxy Contract": "Insurance", Address: insurance.address },
+    { "Proxy Contract": "TraderPoolFactory", Address: traderPoolFactory.address },
+    { "Proxy Contract": "TraderPoolRegistry", Address: traderPoolRegistry.address },
+  ]);
+
+  console.log();
 };
