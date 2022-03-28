@@ -493,6 +493,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         if (fromExact) {
             amountGot = _normalizedExchangeFromExact(from, to, amount, optionalPath, amountBound);
+
             emit Exchanged(from, to, amount, amountGot);
         } else {
             amountGot = priceFeed.normalizedExchangeToExact(
@@ -502,11 +503,13 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
                 optionalPath,
                 amountBound
             );
+
             emit Exchanged(from, to, amountGot, amount);
         }
 
         if (_thisBalance(from) == 0 && from != _poolParameters.baseToken) {
             _openPositions.remove(from);
+
             emit PositionClosed(from);
         }
     }
@@ -620,6 +623,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         if (lpAmount == balanceOf(investor)) {
             _investors.remove(investor);
             investorsInfo[investor].commissionUnlockEpoch = 0;
+
             emit InvestorRemoved(investor);
         }
     }

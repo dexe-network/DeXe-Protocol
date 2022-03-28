@@ -93,6 +93,7 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         );
 
         _injectDependencies(poolProxy);
+
         emit Deployed(
             _msgSender(),
             _traderPoolRegistry.BASIC_POOL_NAME(),
@@ -134,6 +135,7 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         );
 
         _injectDependencies(poolProxy);
+
         emit Deployed(
             _msgSender(),
             _traderPoolRegistry.INVEST_POOL_NAME(),
