@@ -167,7 +167,11 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         external
         view
         override
-        returns (uint256 baseAmount, uint256 positionAmount)
+        returns (
+            uint256 baseAmount,
+            uint256 positionAmount,
+            uint256 lp2Amount
+        )
     {
         return
             _parentTraderPoolInfo.getInvestTokens(

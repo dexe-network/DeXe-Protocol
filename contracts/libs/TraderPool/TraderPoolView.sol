@@ -55,12 +55,17 @@ library TraderPoolView {
             uint256[] memory positionPricesInBase
         ) = poolParameters.getNormalizedPoolPrice(openPositions);
 
+        receptions.lpAmount = amountInBaseToInvest;
         receptions.positions = positionTokens;
         receptions.givenAmounts = new uint256[](positionTokens.length);
         receptions.receivedAmounts = new uint256[](positionTokens.length);
 
         if (totalBase > 0) {
             receptions.baseAmount = currentBaseAmount.ratio(amountInBaseToInvest, totalBase);
+            receptions.lpAmount = receptions.lpAmount.ratio(
+                IERC20(address(this)).totalSupply(),
+                totalBase
+            );
         }
 
         IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();

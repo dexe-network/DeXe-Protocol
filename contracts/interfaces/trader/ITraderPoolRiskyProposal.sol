@@ -138,7 +138,11 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     function getInvestTokens(uint256 proposalId, uint256 baseInvestment)
         external
         view
-        returns (uint256 baseAmount, uint256 positionAmount);
+        returns (
+            uint256 baseAmount,
+            uint256 positionAmount,
+            uint256 lp2Amount
+        );
 
     /// @notice The function to invest into the proposal
     /// @param proposalId the id of the proposal to invest in

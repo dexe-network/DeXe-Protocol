@@ -56,11 +56,13 @@ interface ITraderPool {
 
     /// @notice The struct that is returned from the TraderPoolView contract to see the received amounts
     /// @param baseAmount total received base amount
+    /// @param lpAmount total received LP amount (zero in getDivestAmountsAndCommissions())
     /// @param positions the addresses of positions tokens from which the "receivedAmounts" are calculated
     /// @param givenAmounts the amounts (either in base tokens or in position tokens) given
     /// @param receivedAmounts the amounts (either in base tokens or in position tokens) received
     struct Receptions {
         uint256 baseAmount;
+        uint256 lpAmount;
         address[] positions;
         uint256[] givenAmounts;
         uint256[] receivedAmounts; // should be used as minAmountOut
