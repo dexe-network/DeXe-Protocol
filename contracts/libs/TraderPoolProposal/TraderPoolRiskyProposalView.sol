@@ -110,23 +110,32 @@ library TraderPoolRiskyProposalView {
         ITraderPoolRiskyProposal.ProposalInfo storage info,
         uint256 proposalId,
         uint256 baseInvestment
-    ) external view returns (uint256 baseAmount, uint256 positionAmount) {
+    )
+        external
+        view
+        returns (
+            uint256 baseAmount,
+            uint256 positionAmount,
+            uint256 lp2Amount
+        )
+    {
         if (proposalId > TraderPoolRiskyProposal(address(this)).proposalsTotalNum()) {
-            return (0, 0);
+            return (0, 0, 0);
         }
 
-        if (info.balancePosition + info.balanceBase > 0) {
-            IPriceFeed priceFeed = ITraderPoolRiskyProposal(address(this)).priceFeed();
+        IPriceFeed priceFeed = ITraderPoolRiskyProposal(address(this)).priceFeed();
+        uint256 tokensPrice = priceFeed.getNormalizedPriceOut(
+            info.token,
+            parentTraderPoolInfo.baseToken,
+            info.balancePosition
+        );
+        uint256 totalBase = tokensPrice + info.balanceBase;
 
-            uint256 tokensPrice = priceFeed.getNormalizedPriceOut(
-                info.token,
-                parentTraderPoolInfo.baseToken,
-                info.balancePosition
-            );
-            uint256 baseToExchange = baseInvestment.ratio(
-                tokensPrice,
-                tokensPrice + info.balanceBase
-            );
+        lp2Amount = baseInvestment;
+        baseAmount = baseInvestment;
+
+        if (totalBase > 0) {
+            uint256 baseToExchange = baseInvestment.ratio(tokensPrice, totalBase);
 
             baseAmount = baseInvestment - baseToExchange;
             positionAmount = priceFeed.getNormalizedPriceOut(
@@ -134,8 +143,10 @@ library TraderPoolRiskyProposalView {
                 info.token,
                 baseToExchange
             );
-        } else {
-            baseAmount = baseInvestment;
+            lp2Amount = lp2Amount.ratio(
+                TraderPoolRiskyProposal(address(this)).totalSupply(proposalId),
+                totalBase
+            );
         }
     }
 
