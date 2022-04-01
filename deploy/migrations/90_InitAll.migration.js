@@ -1,5 +1,5 @@
 const { toBN } = require("../../scripts/helpers/utils");
-const { logTransaction } = require("../runners/logger.js");
+const { logTransaction, logContracts } = require("../runners/logger.js");
 
 const Proxy = artifacts.require("TransparentUpgradeableProxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -96,15 +96,13 @@ module.exports = async (deployer) => {
 
   ////////////////////////////////////////////////////////////
 
-  console.table([
-    { "Proxy Contract": "ContractsRegistry", Address: contractsRegistry.address },
-    { "Proxy Contract": "UserRegistry", Address: userRegistry.address },
-    { "Proxy Contract": "CoreProperties", Address: coreProperties.address },
-    { "Proxy Contract": "PriceFeed", Address: priceFeed.address },
-    { "Proxy Contract": "Insurance", Address: insurance.address },
-    { "Proxy Contract": "TraderPoolFactory", Address: traderPoolFactory.address },
-    { "Proxy Contract": "TraderPoolRegistry", Address: traderPoolRegistry.address },
-  ]);
-
-  console.log();
+  logContracts(
+    ["ContractsRegistry", contractsRegistry.address],
+    ["UserRegistry", userRegistry.address],
+    ["CoreProperties", coreProperties.address],
+    ["PriceFeed", priceFeed.address],
+    ["Insurance", insurance.address],
+    ["TraderPoolFactory", traderPoolFactory.address],
+    ["TraderPoolRegistry", traderPoolRegistry.address]
+  );
 };
