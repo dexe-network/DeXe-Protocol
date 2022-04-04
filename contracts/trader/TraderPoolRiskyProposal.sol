@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "../interfaces/trader/ITraderPoolRiskyProposal.sol";
 import "../interfaces/trader/IBasicTraderPool.sol";
 
+import "../libs/PriceFeed/PriceFeedLocal.sol";
 import "../libs/TraderPoolProposal/TraderPoolRiskyProposalView.sol";
 
 import "../core/Globals.sol";
@@ -20,6 +21,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     using Math for uint256;
     using Address for address;
     using TraderPoolRiskyProposalView for ParentTraderPoolInfo;
+    using PriceFeedLocal for IPriceFeed;
 
     mapping(uint256 => ProposalInfo) public proposalInfos; // proposal id => info
 
@@ -121,8 +123,8 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         address baseToken = _parentTraderPoolInfo.baseToken;
         address trader = _parentTraderPoolInfo.trader;
 
-        _checkPriceFeedAllowance(baseToken);
-        _checkPriceFeedAllowance(token);
+        priceFeed.checkAllowance(baseToken);
+        priceFeed.checkAllowance(token);
 
         proposalInfos[proposalId].token = token;
         proposalInfos[proposalId].tokenDecimals = ERC20(token).decimals();
@@ -154,7 +156,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
 
         info.lpLocked += lpInvestment;
         info.balanceBase += baseInvestment - baseToExchange;
-        info.balancePosition += priceFeed.normalizedExchangeFromExact(
+        info.balancePosition += priceFeed.normExchangeFromExact(
             _parentTraderPoolInfo.baseToken,
             info.token,
             baseToExchange,
@@ -203,7 +205,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             "TPRP: proposal is overinvested"
         );
 
-        uint256 tokenPriceConverted = priceFeed.getNormalizedPriceOut(
+        uint256 tokenPriceConverted = priceFeed.getNormPriceOut(
             info.token,
             _parentTraderPoolInfo.baseToken,
             10**18
@@ -259,7 +261,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
 
         receivedBase =
             baseShare +
-            priceFeed.normalizedExchangeFromExact(
+            priceFeed.normExchangeFromExact(
                 proposalInfos[proposalId].token,
                 _parentTraderPoolInfo.baseToken,
                 positionShare,
@@ -401,7 +403,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         if (from == baseToken) {
             require(amountIn <= info.balanceBase, "TPRP: wrong base amount");
 
-            amountOut = priceFeed.normalizedExchangeFromExact(
+            amountOut = priceFeed.normExchangeFromExact(
                 baseToken,
                 positionToken,
                 amountIn,
@@ -413,7 +415,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         } else {
             require(amountIn <= info.balancePosition, "TPRP: wrong position amount");
 
-            amountOut = priceFeed.normalizedExchangeFromExact(
+            amountOut = priceFeed.normExchangeFromExact(
                 positionToken,
                 baseToken,
                 amountIn,
@@ -458,10 +460,11 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         require(from == baseToken || from == positionToken, "TPRP: invalid from token");
 
         uint256 amountIn;
+
         if (from == baseToken) {
             require(maxAmountIn <= info.balanceBase, "TPRP: wrong base amount");
 
-            amountIn = priceFeed.normalizedExchangeToExact(
+            amountIn = priceFeed.normExchangeToExact(
                 baseToken,
                 positionToken,
                 amountOut,
@@ -473,7 +476,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         } else {
             require(maxAmountIn <= info.balancePosition, "TPRP: wrong position amount");
 
-            amountIn = priceFeed.normalizedExchangeToExact(
+            amountIn = priceFeed.normExchangeToExact(
                 positionToken,
                 baseToken,
                 amountOut,
@@ -508,17 +511,11 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     function _baseInProposal(uint256 proposalId) internal view override returns (uint256) {
         return
             proposalInfos[proposalId].balanceBase +
-            priceFeed.getNormalizedPriceOut(
+            priceFeed.getNormPriceOut(
                 proposalInfos[proposalId].token,
                 _parentTraderPoolInfo.baseToken,
                 proposalInfos[proposalId].balancePosition
             );
-    }
-
-    function _checkPriceFeedAllowance(address token) internal {
-        if (IERC20(token).allowance(address(this), address(priceFeed)) == 0) {
-            IERC20(token).safeApprove(address(priceFeed), MAX_UINT);
-        }
     }
 
     function _updateFrom(
