@@ -41,15 +41,12 @@ abstract contract TraderPoolProposal is
     mapping(address => uint256) public override totalLPBalances; // user => LP invested
 
     modifier onlyParentTraderPool() {
-        require(_msgSender() == _parentTraderPoolInfo.parentPoolAddress, "TPP: not a ParentPool");
+        _onlyParentTraderPool();
         _;
     }
 
     modifier onlyTraderAdmin() {
-        require(
-            TraderPool(_parentTraderPoolInfo.parentPoolAddress).isTraderAdmin(_msgSender()),
-            "TPP: not a trader admin"
-        );
+        _onlyTraderAdmin();
         _;
     }
 
@@ -81,6 +78,17 @@ abstract contract TraderPoolProposal is
 
     function getTotalActiveInvestments(address user) external view override returns (uint256) {
         return _activeInvestments[user].length();
+    }
+
+    function _onlyParentTraderPool() internal view {
+        require(_msgSender() == _parentTraderPoolInfo.parentPoolAddress, "TPP: not a ParentPool");
+    }
+
+    function _onlyTraderAdmin() internal view {
+        require(
+            TraderPool(_parentTraderPoolInfo.parentPoolAddress).isTraderAdmin(_msgSender()),
+            "TPP: not a trader admin"
+        );
     }
 
     function _baseInProposal(uint256 proposalId) internal view virtual returns (uint256);

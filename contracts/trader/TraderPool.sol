@@ -13,6 +13,7 @@ import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/insurance/IInsurance.sol";
 
+import "../libs/PriceFeed/PriceFeedLocal.sol";
 import "../libs/TraderPool/TraderPoolPrice.sol";
 import "../libs/TraderPool/TraderPoolLeverage.sol";
 import "../libs/TraderPool/TraderPoolCommission.sol";
@@ -34,6 +35,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     using TraderPoolCommission for PoolParameters;
     using TraderPoolView for PoolParameters;
     using MathHelper for uint256;
+    using PriceFeedLocal for IPriceFeed;
 
     IERC20 internal _dexeToken;
     IPriceFeed public override priceFeed;
@@ -243,7 +245,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 toMintLP = _transferBaseAndMintLP(baseHolder, totalBase, amountInBaseToInvest);
 
         for (uint256 i = 0; i < positionTokens.length; i++) {
-            _normalizedExchangeFromExact(
+            priceFeed.normExchangeFromExact(
                 baseToken,
                 positionTokens[i],
                 positionPricesInBase[i].ratio(amountInBaseToInvest, totalBase),
@@ -308,7 +310,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         (uint256 dexeLPCommission, uint256 dexeBaseCommission) = TraderPoolCommission
             .calculateDexeCommission(baseToDistribute, lpToDistribute, dexePercentage);
-        uint256 dexeCommission = _normalizedExchangeFromExact(
+        uint256 dexeCommission = priceFeed.normExchangeFromExact(
             _poolParameters.baseToken,
             address(_dexeToken),
             dexeBaseCommission,
@@ -392,7 +394,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         for (uint256 i = 0; i < length; i++) {
             address positionToken = _openPositions.at(i);
 
-            investorBaseAmount += _normalizedExchangeFromExact(
+            investorBaseAmount += priceFeed.normExchangeFromExact(
                 positionToken,
                 baseToken,
                 _normalizedBalance(positionToken).ratio(amountLP, totalSupply),
@@ -482,32 +484,32 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             "TP: invalid exchange address"
         );
 
-        _checkPriceFeedAllowance(from);
-        _checkPriceFeedAllowance(to);
+        priceFeed.checkAllowance(from);
+        priceFeed.checkAllowance(to);
 
-        if (from == _poolParameters.baseToken || to != _poolParameters.baseToken) {
+        if (to != _poolParameters.baseToken) {
             _openPositions.add(to);
         }
 
         uint256 amountGot;
 
         if (fromExact) {
-            amountGot = _normalizedExchangeFromExact(from, to, amount, optionalPath, amountBound);
-
-            emit Exchanged(from, to, amount, amountGot);
-        } else {
-            amountGot = priceFeed.normalizedExchangeToExact(
+            amountGot = priceFeed.normExchangeFromExact(
                 from,
                 to,
                 amount,
                 optionalPath,
                 amountBound
             );
+        } else {
+            amountGot = priceFeed.normExchangeToExact(from, to, amount, optionalPath, amountBound);
 
-            emit Exchanged(from, to, amountGot, amount);
+            (amount, amountGot) = (amountGot, amount);
         }
 
-        if (_thisBalance(from) == 0 && from != _poolParameters.baseToken) {
+        emit Exchanged(from, to, amount, amountGot);
+
+        if (from != _poolParameters.baseToken && _thisBalance(from) == 0) {
             _openPositions.remove(from);
 
             emit PositionClosed(from);
@@ -582,31 +584,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         return token.getNormalizedBalance();
     }
 
-    function _normalizedExchangeFromExact(
-        address inToken,
-        address outToken,
-        uint256 amountIn,
-        address[] memory optionalPath,
-        uint256 minAmountOut
-    ) internal returns (uint256) {
-        return
-            priceFeed.normalizedExchangeFromExact(
-                inToken,
-                outToken,
-                amountIn,
-                optionalPath,
-                minAmountOut
-            );
-    }
-
     function _thisBalance(address token) internal view returns (uint256) {
         return IERC20(token).balanceOf(address(this));
-    }
-
-    function _checkPriceFeedAllowance(address token) internal {
-        if (IERC20(token).allowance(address(this), address(priceFeed)) == 0) {
-            IERC20(token).safeApprove(address(priceFeed), MAX_UINT);
-        }
     }
 
     function _updateFromData(address investor, uint256 lpAmount)
