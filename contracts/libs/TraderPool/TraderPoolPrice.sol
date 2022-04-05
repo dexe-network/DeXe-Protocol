@@ -8,15 +8,13 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "../../interfaces/trader/ITraderPool.sol";
 import "../../interfaces/core/IPriceFeed.sol";
 
+import "../../libs/TokenBalance.sol";
 import "../../libs/DecimalsConverter.sol";
 
 library TraderPoolPrice {
     using EnumerableSet for EnumerableSet.AddressSet;
     using DecimalsConverter for uint256;
-
-    function getNormalizedBalance(address token) public view returns (uint256) {
-        return IERC20(token).balanceOf(address(this)).convertTo18(ERC20(token).decimals());
-    }
+    using TokenBalance for address;
 
     function getNormalizedPoolPrice(
         ITraderPool.PoolParameters storage poolParameters,
@@ -34,7 +32,7 @@ library TraderPoolPrice {
         uint256 length = openPositions.length();
 
         IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
-        totalPriceInBase = currentBaseAmount = getNormalizedBalance(poolParameters.baseToken);
+        totalPriceInBase = currentBaseAmount = poolParameters.baseToken.normThisBalance();
 
         positionTokens = new address[](length);
         positionPricesInBase = new uint256[](length);
@@ -45,7 +43,7 @@ library TraderPoolPrice {
             positionPricesInBase[i] = priceFeed.getNormalizedPriceOut(
                 positionTokens[i],
                 poolParameters.baseToken,
-                getNormalizedBalance(positionTokens[i])
+                positionTokens[i].normThisBalance()
             );
 
             totalPriceInBase += positionPricesInBase[i];

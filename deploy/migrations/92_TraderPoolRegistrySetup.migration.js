@@ -19,7 +19,7 @@ const InvestPoolProposal = artifacts.require("TraderPoolInvestProposal");
 
 async function linkPools(deployer) {
   await deployer.deploy(TraderPoolPriceLib);
-  await deployer.link(TraderPoolPriceLib, TraderPoolCommissionLib, TraderPoolLeverageLib);
+  await deployer.link(TraderPoolPriceLib, TraderPoolLeverageLib);
 
   await deployer.deploy(TraderPoolCommissionLib);
   await deployer.deploy(TraderPoolLeverageLib);
