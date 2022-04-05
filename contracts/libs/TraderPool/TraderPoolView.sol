@@ -17,6 +17,7 @@ import "./TraderPoolCommission.sol";
 import "./TraderPoolLeverage.sol";
 import "../../libs/MathHelper.sol";
 import "../../libs/DecimalsConverter.sol";
+import "../../libs/TokenBalance.sol";
 
 library TraderPoolView {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -27,6 +28,7 @@ library TraderPoolView {
     using DecimalsConverter for uint256;
     using MathHelper for uint256;
     using Math for uint256;
+    using TokenBalance for address;
 
     function _getTraderAndPlatformCommissions(
         ITraderPool.PoolParameters storage poolParameters,
@@ -269,12 +271,10 @@ library TraderPoolView {
         poolInfo.openPositions = openPositions.values();
 
         poolInfo.baseAndPositionBalances = new uint256[](poolInfo.openPositions.length + 1);
-        poolInfo.baseAndPositionBalances[0] = poolInfo.parameters.baseToken.getNormalizedBalance();
+        poolInfo.baseAndPositionBalances[0] = poolInfo.parameters.baseToken.normThisBalance();
 
         for (uint256 i = 0; i < poolInfo.openPositions.length; i++) {
-            poolInfo.baseAndPositionBalances[i + 1] = poolInfo
-                .openPositions[i]
-                .getNormalizedBalance();
+            poolInfo.baseAndPositionBalances[i + 1] = poolInfo.openPositions[i].normThisBalance();
         }
 
         poolInfo.totalInvestors = ITraderPool(address(this)).totalInvestors();

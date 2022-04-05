@@ -18,6 +18,7 @@ import "../libs/TraderPool/TraderPoolPrice.sol";
 import "../libs/TraderPool/TraderPoolLeverage.sol";
 import "../libs/TraderPool/TraderPoolCommission.sol";
 import "../libs/TraderPool/TraderPoolView.sol";
+import "../libs/TokenBalance.sol";
 import "../libs/DecimalsConverter.sol";
 import "../libs/MathHelper.sol";
 
@@ -36,6 +37,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     using TraderPoolView for PoolParameters;
     using MathHelper for uint256;
     using PriceFeedLocal for IPriceFeed;
+    using TokenBalance for address;
 
     IERC20 internal _dexeToken;
     IPriceFeed public override priceFeed;
@@ -79,6 +81,27 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     function _onlyTrader() internal view {
         require(isTrader(msg.sender), "TP: not a trader");
+    }
+
+    modifier checkUserBalance(uint256 amountLP) {
+        _checkUserBalance(amountLP);
+        _;
+    }
+
+    function _checkUserBalance(uint256 amountLP) internal view {
+        require(
+            amountLP <= balanceOf(msg.sender) - _investsInBlocks[msg.sender][block.number],
+            "TP: wrong amount"
+        );
+    }
+
+    modifier checkThisBalance(uint256 amount, address token) {
+        _checkThisBalance(amount, token);
+        _;
+    }
+
+    function _checkThisBalance(uint256 amount, address token) internal view {
+        require(amount <= token.normThisBalance(), "TP: invalid exchange amount");
     }
 
     function isPrivateInvestor(address who) public view override returns (bool) {
@@ -272,29 +295,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         emit Invested(msg.sender, amountInBaseToInvest, toMintLP);
     }
 
-    function _sendDexeCommission(
-        uint256 dexeCommission,
-        uint256[] memory poolPercentages,
-        address[3] memory commissionReceivers
-    ) internal {
-        uint256[] memory receivedCommissions = new uint256[](3);
-        uint256 dexeDecimals = ERC20(address(_dexeToken)).decimals();
-
-        for (uint256 i = 0; i < commissionReceivers.length; i++) {
-            receivedCommissions[i] = dexeCommission.percentage(poolPercentages[i]);
-            _dexeToken.safeTransfer(
-                commissionReceivers[i],
-                receivedCommissions[i].convertFrom18(dexeDecimals)
-            );
-        }
-
-        uint256 insurance = uint256(ICoreProperties.CommissionTypes.INSURANCE);
-
-        IInsurance(commissionReceivers[insurance]).receiveDexeFromPools(
-            receivedCommissions[insurance]
-        );
-    }
-
     function _distributeCommission(
         uint256 baseToDistribute,
         uint256 lpToDistribute,
@@ -319,7 +319,12 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         );
 
         _mint(_poolParameters.trader, lpToDistribute - dexeLPCommission);
-        _sendDexeCommission(dexeCommission, poolPercentages, commissionReceivers);
+        TraderPoolCommission.sendDexeCommission(
+            _dexeToken,
+            dexeCommission,
+            poolPercentages,
+            commissionReceivers
+        );
 
         emit TraderCommissionMinted(_poolParameters.trader, lpToDistribute - dexeLPCommission);
     }
@@ -333,6 +338,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         return _poolParameters.getReinvestCommissions(_investors, offset, limit);
     }
 
+    function getNextCommissionEpoch() public view returns (uint256) {
+        return _poolParameters.nextCommissionEpoch();
+    }
+
     function reinvestCommission(
         uint256 offset,
         uint256 limit,
@@ -343,7 +352,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 to = (offset + limit).min(_investors.length()).max(offset);
         uint256 totalSupply = totalSupply();
 
-        uint256 nextCommissionEpoch = _nextCommissionEpoch();
+        uint256 nextCommissionEpoch = getNextCommissionEpoch();
         uint256 allBaseCommission;
         uint256 allLPCommission;
 
@@ -378,18 +387,14 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     function _divestPositions(uint256 amountLP, uint256[] calldata minPositionsOut)
         internal
+        checkUserBalance(amountLP)
         returns (uint256 investorBaseAmount)
     {
-        require(
-            amountLP <= balanceOf(msg.sender) - _investsInBlocks[msg.sender][block.number],
-            "TP: wrong amount"
-        );
-
         address baseToken = _poolParameters.baseToken;
         uint256 totalSupply = totalSupply();
         uint256 length = _openPositions.length();
 
-        investorBaseAmount = _normalizedBalance(baseToken).ratio(amountLP, totalSupply);
+        investorBaseAmount = baseToken.normThisBalance().ratio(amountLP, totalSupply);
 
         for (uint256 i = 0; i < length; i++) {
             address positionToken = _openPositions.at(i);
@@ -397,7 +402,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             investorBaseAmount += priceFeed.normExchangeFromExact(
                 positionToken,
                 baseToken,
-                _normalizedBalance(positionToken).ratio(amountLP, totalSupply),
+                positionToken.normThisBalance().ratio(amountLP, totalSupply),
                 new address[](0),
                 minPositionsOut[i]
             );
@@ -429,14 +434,9 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         return baseCommission;
     }
 
-    function _divestTrader(uint256 amountLP) internal {
-        require(
-            amountLP <= balanceOf(msg.sender) - _investsInBlocks[msg.sender][block.number],
-            "TP: wrong amount"
-        );
-
+    function _divestTrader(uint256 amountLP) internal checkUserBalance(amountLP) {
         IERC20 baseToken = IERC20(_poolParameters.baseToken);
-        uint256 traderBaseAmount = _thisBalance(address(baseToken)).ratio(amountLP, totalSupply());
+        uint256 traderBaseAmount = address(baseToken).thisBalance().ratio(amountLP, totalSupply());
 
         _burn(msg.sender, amountLP);
         baseToken.safeTransfer(msg.sender, traderBaseAmount);
@@ -509,7 +509,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         emit Exchanged(from, to, amount, amountGot);
 
-        if (from != _poolParameters.baseToken && _thisBalance(from) == 0) {
+        if (from != _poolParameters.baseToken && from.thisBalance() == 0) {
             _openPositions.remove(from);
 
             emit PositionClosed(from);
@@ -549,9 +549,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 amountIn,
         uint256 minAmountOut,
         address[] calldata optionalPath
-    ) public virtual override onlyTraderAdmin {
-        require(amountIn <= _normalizedBalance(from), "TP: invalid exchange amount");
-
+    ) public virtual override onlyTraderAdmin checkThisBalance(amountIn, from) {
         _exchange(from, to, amountIn, minAmountOut, optionalPath, true);
     }
 
@@ -570,22 +568,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 amountOut,
         uint256 maxAmountIn,
         address[] calldata optionalPath
-    ) public virtual override onlyTraderAdmin {
-        require(maxAmountIn <= _normalizedBalance(from), "TP: invalid exchange amount");
-
+    ) public virtual override onlyTraderAdmin checkThisBalance(maxAmountIn, from) {
         _exchange(from, to, amountOut, maxAmountIn, optionalPath, false);
-    }
-
-    function _nextCommissionEpoch() internal view returns (uint256) {
-        return _poolParameters.nextCommissionEpoch();
-    }
-
-    function _normalizedBalance(address token) internal view returns (uint256) {
-        return token.getNormalizedBalance();
-    }
-
-    function _thisBalance(address token) internal view returns (uint256) {
-        return IERC20(token).balanceOf(address(this));
     }
 
     function _updateFromData(address investor, uint256 lpAmount)
@@ -615,7 +599,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         if (!_investors.contains(investor)) {
             _investors.add(investor);
-            investorsInfo[investor].commissionUnlockEpoch = _nextCommissionEpoch();
+            investorsInfo[investor].commissionUnlockEpoch = getNextCommissionEpoch();
 
             require(
                 _investors.length() <= coreProperties.getMaximumPoolInvestors(),
