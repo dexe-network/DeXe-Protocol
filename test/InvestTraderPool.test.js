@@ -251,7 +251,7 @@ describe("InvestTraderPool", () => {
   }
 
   async function convertToDividends(proposalId) {
-    await proposalPool.convertToDividends(proposalId);
+    await proposalPool.convertInvestedBaseToDividends(proposalId);
   }
 
   async function withdrawProposal(proposalId, amount) {
@@ -262,8 +262,8 @@ describe("InvestTraderPool", () => {
     await proposalPool.claim(proposalId, { from: account });
   }
 
-  async function supplyProposal(proposalId, amount) {
-    await proposalPool.supply(proposalId, amount);
+  async function supplyProposal(proposalId, amounts, tokens) {
+    await proposalPool.supply(proposalId, amounts, tokens);
   }
 
   async function reinvestAllProposals(account) {
@@ -463,8 +463,8 @@ describe("InvestTraderPool", () => {
         await invest(wei("1000"), SECOND);
         await investProposal(1, wei("500"), SECOND);
 
-        let info = await proposalPool.proposalInfos(1);
-        assert.closeTo(info.newInvestedBase.toNumber(), toBN(wei("600")).toNumber(), toBN(wei("1")).toNumber());
+        let info = (await proposalPool.getProposalInfos(0, 1))[0];
+        assert.closeTo(toBN(info.newInvestedBase).toNumber(), toBN(wei("600")).toNumber(), toBN(wei("1")).toNumber());
 
         assert.equal((await tokens.WETH.balanceOf(OWNER)).toFixed(), wei("998999000"));
 
@@ -472,8 +472,8 @@ describe("InvestTraderPool", () => {
 
         assert.equal((await tokens.WETH.balanceOf(OWNER)).toFixed(), wei("998999600"));
 
-        info = await proposalPool.proposalInfos(1);
-        assert.closeTo(info.newInvestedBase.toNumber(), toBN(wei("0")).toNumber(), toBN(wei("1")).toNumber());
+        info = (await proposalPool.getProposalInfos(0, 1))[0];
+        assert.closeTo(toBN(info.newInvestedBase).toNumber(), toBN(wei("0")).toNumber(), toBN(wei("1")).toNumber());
       });
     });
 
@@ -500,7 +500,7 @@ describe("InvestTraderPool", () => {
         await withdrawProposal(1, wei("600"));
 
         await tokens.WETH.approve(proposalPool.address, wei("60"));
-        await supplyProposal(1, wei("60"));
+        await supplyProposal(1, [wei("60")], [tokens.WETH.address]);
 
         assert.equal((await tokens.WETH.balanceOf(SECOND)).toFixed(), "0");
 
@@ -511,16 +511,22 @@ describe("InvestTraderPool", () => {
         assert.closeTo(
           (await tokens.WETH.balanceOf(SECOND)).toNumber(),
           toBN(wei("50")).toNumber(),
-          toBN(wei("1")).toNumber()
+          toBN(wei("0.01")).toNumber()
         );
-        assert.closeTo(toBN(proposalInfo.lpLocked).toNumber(), toBN(wei("450")).toNumber(), toBN(wei("1")).toNumber());
+        assert.equal(toBN(proposalInfo.lpLocked).toFixed(), wei("500"));
 
-        await truffleAssert.reverts(claimProposal(1, SECOND), "TPIP: nothing to claim");
+        await claimProposal(1, SECOND);
+
+        assert.closeTo(
+          (await tokens.WETH.balanceOf(SECOND)).toNumber(),
+          toBN(wei("50")).toNumber(),
+          toBN(wei("0.01")).toNumber()
+        );
       });
 
       it("should claim huge deposit successfully", async () => {
         await tokens.WETH.approve(proposalPool.address, wei("6000"));
-        await supplyProposal(1, wei("6000"));
+        await supplyProposal(1, [wei("6000")], [tokens.WETH.address]);
 
         await claimProposal(1, SECOND);
 
@@ -531,7 +537,7 @@ describe("InvestTraderPool", () => {
           toBN(wei("5000")).toNumber(),
           toBN(wei("1")).toNumber()
         );
-        assert.equal(toBN(proposalInfo.lpLocked).toFixed(), "0");
+        assert.equal(toBN(proposalInfo.lpLocked).toFixed(), wei("500"));
       });
 
       it("should claim the deposit twice", async () => {
@@ -539,7 +545,7 @@ describe("InvestTraderPool", () => {
 
         await tokens.WETH.approve(proposalPool.address, wei("1000"));
 
-        await supplyProposal(1, wei("600"));
+        await supplyProposal(1, [wei("600")], [tokens.WETH.address]);
         await claimProposal(1, SECOND);
 
         assert.closeTo(
@@ -548,7 +554,7 @@ describe("InvestTraderPool", () => {
           toBN(wei("1")).toNumber()
         );
 
-        await supplyProposal(1, wei("400"));
+        await supplyProposal(1, [wei("400")], [tokens.WETH.address]);
         await claimProposal(1, SECOND);
 
         assert.closeTo(
@@ -604,7 +610,7 @@ describe("InvestTraderPool", () => {
           toBN(wei("1")).toNumber()
         );
 
-        await truffleAssert.reverts(reinvestProposal(1, SECOND), "TPIP: nothing to claim");
+        await truffleAssert.reverts(reinvestProposal(1, SECOND), "TPIP: no base to divest");
       });
 
       it("should reinvest all proposals", async () => {
@@ -650,7 +656,7 @@ describe("InvestTraderPool", () => {
           toBN(wei("1")).toNumber()
         );
 
-        await truffleAssert.reverts(reinvestAllProposals(SECOND), "TPIP: nothing to claim");
+        await truffleAssert.reverts(reinvestAllProposals(SECOND), "TPIP: no base to divest");
       });
     });
   });

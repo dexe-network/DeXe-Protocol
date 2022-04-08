@@ -35,7 +35,7 @@ library TraderPoolRiskyProposalView {
         address baseToken = ITraderPoolRiskyProposal(address(this)).getBaseToken();
 
         for (uint256 i = offset; i < to; i++) {
-            proposals[i - offset].proposalInfo = proposalInfos[i];
+            proposals[i - offset].proposalInfo = proposalInfos[i + 1];
 
             proposals[i - offset].totalProposalBase =
                 proposals[i - offset].proposalInfo.balanceBase +
@@ -47,6 +47,9 @@ library TraderPoolRiskyProposalView {
             proposals[i - offset].totalProposalUSD = priceFeed.getNormalizedPriceOutUSD(
                 baseToken,
                 proposals[i - offset].totalProposalBase
+            );
+            proposals[i - offset].lp2Supply = TraderPoolRiskyProposal(address(this)).totalSupply(
+                i + 1
             );
         }
     }

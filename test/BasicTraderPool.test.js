@@ -372,10 +372,14 @@ describe("BasicTraderPool", () => {
         );
         assert.equal((await baseTokens.WETH.balanceOf(proposalPool.address)).toFixed(), wei("250"));
 
-        const proposalInfo = await proposalPool.proposalInfos(1);
+        const proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
 
-        assert.equal(proposalInfo.balanceBase.toFixed(), wei("250"));
-        assert.closeTo(proposalInfo.balancePosition.toNumber(), toBN(wei("250")).toNumber(), toBN(wei("1")).toNumber());
+        assert.equal(toBN(proposalInfo.balanceBase).toFixed(), wei("250"));
+        assert.closeTo(
+          toBN(proposalInfo.balancePosition).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
       });
 
       it("should create two proposals", async () => {
@@ -417,10 +421,10 @@ describe("BasicTraderPool", () => {
         assert.equal((await proposalPool.totalLockedLP()).toFixed(), wei("600"));
         assert.equal((await traderPool.balanceOf(SECOND)).toFixed(), wei("900"));
 
-        const proposalInfo = await proposalPool.proposalInfos(1);
+        const proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
 
-        assert.equal(proposalInfo.balanceBase.toFixed(), wei("600"));
-        assert.equal(proposalInfo.balancePosition.toFixed(), "0");
+        assert.equal(toBN(proposalInfo.balanceBase).toFixed(), wei("600"));
+        assert.equal(toBN(proposalInfo.balancePosition).toFixed(), "0");
       });
 
       it("should invest into proposal 2", async () => {
@@ -440,10 +444,18 @@ describe("BasicTraderPool", () => {
           PRECISION.times(50)
         );
 
-        let proposalInfo = await proposalPool.proposalInfos(1);
+        let proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
 
-        assert.closeTo(proposalInfo.balanceBase.toNumber(), toBN(wei("250")).toNumber(), toBN(wei("1")).toNumber());
-        assert.closeTo(proposalInfo.balancePosition.toNumber(), toBN(wei("250")).toNumber(), toBN(wei("1")).toNumber());
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          toBN(proposalInfo.balancePosition).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
 
         await uniswapV2Router.setReserve(baseTokens.MANA.address, toBN(wei("1000000")));
         await uniswapV2Router.setReserve(baseTokens.WETH.address, toBN(wei("1000000")));
@@ -464,10 +476,18 @@ describe("BasicTraderPool", () => {
         assert.equal((await proposalPool.totalLockedLP()).toFixed(), wei("600"));
         assert.equal((await traderPool.balanceOf(SECOND)).toFixed(), wei("900"));
 
-        proposalInfo = await proposalPool.proposalInfos(1);
+        proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
 
-        assert.closeTo(proposalInfo.balanceBase.toNumber(), toBN(wei("300")).toNumber(), toBN(wei("1")).toNumber());
-        assert.closeTo(proposalInfo.balancePosition.toNumber(), toBN(wei("300")).toNumber(), toBN(wei("1")).toNumber());
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("300")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          toBN(proposalInfo.balancePosition).toNumber(),
+          toBN(wei("300")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
       });
 
       it("trader should divest and then invest into the proposal", async () => {
@@ -642,10 +662,18 @@ describe("BasicTraderPool", () => {
           toBN(wei("1")).toNumber()
         );
 
-        let proposalInfo = await proposalPool.proposalInfos(1);
+        let proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
 
-        assert.closeTo(proposalInfo.balanceBase.toNumber(), toBN(wei("300")).toNumber(), toBN(wei("1")).toNumber());
-        assert.closeTo(proposalInfo.balancePosition.toNumber(), toBN(wei("300")).toNumber(), toBN(wei("1")).toNumber());
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("300")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          toBN(proposalInfo.balancePosition).toNumber(),
+          toBN(wei("300")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
 
         const balance = await proposalPool.balanceOf(SECOND, 1);
         await reinvestProposal(1, balance, SECOND);
@@ -657,10 +685,18 @@ describe("BasicTraderPool", () => {
           toBN(wei("1")).toNumber()
         );
 
-        proposalInfo = await proposalPool.proposalInfos(1);
+        proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
 
-        assert.closeTo(proposalInfo.balanceBase.toNumber(), toBN(wei("250")).toNumber(), toBN(wei("1")).toNumber());
-        assert.closeTo(proposalInfo.balancePosition.toNumber(), toBN(wei("250")).toNumber(), toBN(wei("1")).toNumber());
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          toBN(proposalInfo.balancePosition).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
       });
 
       it("should divest from all proposals", async () => {
@@ -693,15 +729,31 @@ describe("BasicTraderPool", () => {
           toBN(wei("1")).toNumber()
         );
 
-        let proposalInfo = await proposalPool.proposalInfos(1);
+        let proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
 
-        assert.closeTo(proposalInfo.balanceBase.toNumber(), toBN(wei("450")).toNumber(), toBN(wei("1")).toNumber());
-        assert.closeTo(proposalInfo.balancePosition.toNumber(), toBN(wei("450")).toNumber(), toBN(wei("1")).toNumber());
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("450")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          toBN(proposalInfo.balancePosition).toNumber(),
+          toBN(wei("450")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
 
-        proposalInfo = await proposalPool.proposalInfos(2);
+        proposalInfo = (await proposalPool.getProposalInfos(1, 1))[0].proposalInfo;
 
-        assert.closeTo(proposalInfo.balanceBase.toNumber(), toBN(wei("175")).toNumber(), toBN(wei("1")).toNumber());
-        assert.closeTo(proposalInfo.balancePosition.toNumber(), toBN(wei("525")).toNumber(), toBN(wei("1")).toNumber());
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("175")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          toBN(proposalInfo.balancePosition).toNumber(),
+          toBN(wei("525")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
 
         await reinvestAllProposals("0.99", SECOND);
 
@@ -717,15 +769,31 @@ describe("BasicTraderPool", () => {
           toBN(wei("1")).toNumber()
         );
 
-        proposalInfo = await proposalPool.proposalInfos(1);
+        proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
 
-        assert.closeTo(proposalInfo.balanceBase.toNumber(), toBN(wei("250")).toNumber(), toBN(wei("1")).toNumber());
-        assert.closeTo(proposalInfo.balancePosition.toNumber(), toBN(wei("250")).toNumber(), toBN(wei("1")).toNumber());
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          toBN(proposalInfo.balancePosition).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
 
-        proposalInfo = await proposalPool.proposalInfos(2);
+        proposalInfo = (await proposalPool.getProposalInfos(1, 1))[0].proposalInfo;
 
-        assert.closeTo(proposalInfo.balanceBase.toNumber(), toBN(wei("100")).toNumber(), toBN(wei("1")).toNumber());
-        assert.closeTo(proposalInfo.balancePosition.toNumber(), toBN(wei("300")).toNumber(), toBN(wei("1")).toNumber());
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("100")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          toBN(proposalInfo.balancePosition).toNumber(),
+          toBN(wei("300")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
       });
     });
 
@@ -740,17 +808,29 @@ describe("BasicTraderPool", () => {
         const time = toBN(await getCurrentBlockTime());
         await createProposal(baseTokens.MANA.address, wei("500"), [time.plus(100000), wei("10000"), wei("2")], 0);
 
-        let proposalInfo = await proposalPool.proposalInfos(1);
+        let proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
 
-        assert.closeTo(proposalInfo.balanceBase.toNumber(), toBN(wei("500")).toNumber(), toBN(wei("1")).toNumber());
-        assert.equal(proposalInfo.balancePosition.toFixed(), "0");
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("500")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.equal(toBN(proposalInfo.balancePosition).toFixed(), "0");
 
         await exchangeFromExactProposal(1, baseTokens.WETH.address, wei("250"));
 
-        proposalInfo = await proposalPool.proposalInfos(1);
+        proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
 
-        assert.closeTo(proposalInfo.balanceBase.toNumber(), toBN(wei("250")).toNumber(), toBN(wei("1")).toNumber());
-        assert.closeTo(proposalInfo.balancePosition.toNumber(), toBN(wei("250")).toNumber(), toBN(wei("1")).toNumber());
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          toBN(proposalInfo.balancePosition).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
       });
 
       it("should exchange from proposal", async () => {
@@ -762,14 +842,16 @@ describe("BasicTraderPool", () => {
           PRECISION.times(80)
         );
 
-        let proposalInfo = await proposalPool.proposalInfos(1);
-
         await exchangeFromExactProposal(1, baseTokens.MANA.address, wei("400"));
 
-        proposalInfo = await proposalPool.proposalInfos(1);
+        let proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
 
-        assert.closeTo(proposalInfo.balanceBase.toNumber(), toBN(wei("500")).toNumber(), toBN(wei("1")).toNumber());
-        assert.equal(proposalInfo.balancePosition.toFixed(), "0");
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("500")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.equal(toBN(proposalInfo.balancePosition).toFixed(), "0");
       });
     });
   });
