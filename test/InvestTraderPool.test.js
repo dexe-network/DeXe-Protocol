@@ -477,6 +477,25 @@ describe("InvestTraderPool", () => {
       });
     });
 
+    describe("supplyProposal", () => {
+      beforeEach("setup", async () => {
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await invest(wei("1000"), OWNER);
+
+        const time = toBN(await getCurrentBlockTime());
+
+        await createProposal(wei("100"), [time.plus(10000000), wei("10000")]);
+      });
+
+      it("should supply into the proposal", async () => {
+        await tokens.WETH.approve(proposalPool.address, wei("100"));
+        await supplyProposal(1, [wei("50")], [tokens.WETH.address]);
+
+        await tokens.MANA.approve(proposalPool.address, wei("100"));
+        await supplyProposal(1, [wei("50"), wei("100")], [tokens.WETH.address, tokens.MANA.address]);
+      });
+    });
+
     describe("claimProposal", () => {
       beforeEach("setup", async () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"));
@@ -563,6 +582,35 @@ describe("InvestTraderPool", () => {
           toBN(wei("1")).toNumber()
         );
       });
+
+      it("should claim all the supplied tokens", async () => {
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await invest(wei("1000"), OWNER);
+
+        await tokens.WETH.approve(proposalPool.address, wei("50"));
+        await tokens.MANA.approve(proposalPool.address, wei("100"));
+
+        await supplyProposal(1, [wei("50"), wei("100")], [tokens.WETH.address, tokens.MANA.address]);
+
+        await tokens.WETH.mint(THIRD, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"), { from: THIRD });
+
+        await invest(wei("1000"), THIRD);
+        await investProposal(1, wei("500"), THIRD);
+
+        await claimProposal(1, SECOND);
+
+        assert.closeTo(
+          (await tokens.WETH.balanceOf(SECOND)).toNumber(),
+          toBN(wei("41.666")).toNumber(),
+          toBN(wei("0.001")).toNumber()
+        );
+        assert.closeTo(
+          (await tokens.MANA.balanceOf(SECOND)).toNumber(),
+          toBN(wei("83.333")).toNumber(),
+          toBN(wei("0.001")).toNumber()
+        );
+      });
     });
 
     describe("reinvestProposal", () => {
@@ -611,6 +659,34 @@ describe("InvestTraderPool", () => {
         );
 
         await truffleAssert.reverts(reinvestProposal(1, SECOND), "TPIP: no base to divest");
+      });
+
+      it("should reinvest proposal with extra rewards", async () => {
+        assert.closeTo(
+          (await traderPool.balanceOf(SECOND)).toNumber(),
+          toBN(wei("500")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+
+        await tokens.WETH.approve(proposalPool.address, wei("100"));
+        await tokens.MANA.approve(proposalPool.address, wei("500"));
+
+        await supplyProposal(1, [wei("100"), wei("500")], [tokens.WETH.address, tokens.MANA.address]);
+
+        await convertToDividends(1);
+        await reinvestProposal(1, SECOND);
+
+        assert.closeTo(
+          (await traderPool.balanceOf(SECOND)).toNumber(),
+          toBN(wei("1083.333")).toNumber(),
+          toBN(wei("0.1")).toNumber()
+        );
+
+        assert.closeTo(
+          (await tokens.MANA.balanceOf(SECOND)).toNumber(),
+          toBN(wei("416.666")).toNumber(),
+          toBN(wei("0.1")).toNumber()
+        );
       });
 
       it("should reinvest all proposals", async () => {

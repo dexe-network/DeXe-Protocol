@@ -33,15 +33,16 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
         uint256 newInvestedBase;
     }
 
-    /// @param cumulativeSum the helper value needed to calculate the investors' rewards
+    /// @param cumulativeSums the helper values per rewarded token needed to calculate the investors' rewards
+    /// @param rewardToken the set of rewarded token addresses
     struct RewardInfo {
         mapping(address => uint256) cumulativeSums; // with PRECISION
         EnumerableSet.AddressSet rewardTokens;
     }
 
-    /// @notice The struct that stores the info about a single investor
-    /// @param rewardsStored the amount of base tokens the investor earned
-    /// @param cumulativeSumStored the helper variable needed to calculate investor's rewards
+    /// @notice The struct that stores the reward info about a single investor
+    /// @param rewardsStored the amount of tokens the investor earned per rewarded token
+    /// @param cumulativeSumsStored the helper variable needed to calculate investor's rewards per rewarded tokens
     struct UserRewardInfo {
         mapping(address => uint256) rewardsStored;
         mapping(address => uint256) cumulativeSumsStored; // with PRECISION
@@ -52,13 +53,16 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
     /// @param proposalId the id of the proposal
     /// @param lp2Balance investor's balance of proposal's LP tokens
     /// @param lpLocked the investor's amount of locked LP tokens
-    /// @param reward the currently available reward in base tokens
     struct ActiveInvestmentInfo {
         uint256 proposalId;
         uint256 lp2Balance;
         uint256 lpLocked;
     }
 
+    /// @notice The struct that stores information about values of corresponding token addresses, used in the
+    /// TraderPoolInvestProposalView contract
+    /// @param amounts the amounts of underlying tokens
+    /// @param tokens the correspoding token addresses
     struct Reception {
         uint256[] amounts;
         address[] tokens;
@@ -66,7 +70,8 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
 
     /// @notice The struct that is used by the TraderPoolInvestProposalView contract. It stores the information
     /// about the rewards
-    /// @param receivedBaseAmounts the array of received base tokens per proposals
+    /// @param baseAmount the amount of base tokens received to be reinvested back in the parent pool
+    /// @param rewards the array of amounts and addresses of rewarded tokens
     struct Receptions {
         uint256 baseAmount;
         Reception[] rewards;

@@ -155,7 +155,11 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             );
     }
 
-    function _payout(uint256[] memory claimed, address[] memory addresses) internal {
+    function _payout(
+        address user,
+        uint256[] memory claimed,
+        address[] memory addresses
+    ) internal {
         for (uint256 i = 0; i < addresses.length; i++) {
             address token = addresses[i];
 
@@ -163,10 +167,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
                 continue;
             }
 
-            IERC20(token).safeTransfer(
-                _msgSender(),
-                claimed[i].convertFrom18(ERC20(token).decimals())
-            );
+            IERC20(token).safeTransfer(user, claimed[i].convertFrom18(ERC20(token).decimals()));
         }
     }
 
@@ -263,7 +264,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
                 totalLockedLP -= claimed[0].min(totalLockedLP); // intentional base from LP subtraction
             }
 
-            _payout(claimed, addresses);
+            _payout(user, claimed, addresses);
         }
 
         require(claimedBase > 0, "TPIP: no base to divest");
@@ -280,7 +281,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
                 user
             );
 
-            _payout(claimed, tokens);
+            _payout(user, claimed, tokens);
         }
     }
 
