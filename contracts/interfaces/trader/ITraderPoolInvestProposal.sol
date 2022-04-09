@@ -2,11 +2,12 @@
 pragma solidity ^0.8.4;
 
 import "./ITraderPoolProposal.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
  * This is the proposal the trader is able to create for the TraderInvestPool. The proposal itself is a subpool where investors
  * can send funds to. These funds become fully controlled by the trader himself and might be withdrawn for any purposes.
- * Anyone can supply funds to this kind of proposal and the funds will be distributed propostionaly between all the proposal
+ * Anyone can supply funds to this kind of proposal and the funds will be distributed proportionally between all the proposal
  * investors
  */
 interface ITraderPoolInvestProposal is ITraderPoolProposal {
@@ -21,25 +22,30 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
     /// @notice The struct that stores information about the proposal
     /// @param descriptionURL the IPFS URL of the proposal's description
     /// @param proposalLimits the limits of this proposal
-    /// @param cumulativeSum the helper value needed to calculate the investors' rewards
     /// @param lpLocked the amount of LP tokens that are locked in this proposal
     /// @param investedBase the total amount of currently invested base tokens (this should never decrease because we don't burn LP)
     /// @param newInvestedBase the total amount of newly invested base tokens that the trader can withdraw
     struct ProposalInfo {
         string descriptionURL;
         ProposalLimits proposalLimits;
-        uint256 cumulativeSum; // with PRECISION
         uint256 lpLocked;
         uint256 investedBase;
         uint256 newInvestedBase;
     }
 
-    /// @notice The struct that stores the info about a signle investor
-    /// @param rewardsStored the amount of base tokens the investor earned
-    /// @param cumulativeSumStored the helper variable needed to calculate investor's rewards
+    /// @param cumulativeSums the helper values per rewarded token needed to calculate the investors' rewards
+    /// @param rewardToken the set of rewarded token addresses
     struct RewardInfo {
-        uint256 rewardStored;
-        uint256 cumulativeSumStored; // with PRECISION
+        mapping(address => uint256) cumulativeSums; // with PRECISION
+        EnumerableSet.AddressSet rewardTokens;
+    }
+
+    /// @notice The struct that stores the reward info about a single investor
+    /// @param rewardsStored the amount of tokens the investor earned per rewarded token
+    /// @param cumulativeSumsStored the helper variable needed to calculate investor's rewards per rewarded tokens
+    struct UserRewardInfo {
+        mapping(address => uint256) rewardsStored;
+        mapping(address => uint256) cumulativeSumsStored; // with PRECISION
     }
 
     /// @notice The struct that is used by the TraderPoolInvestProposalView contract. It stores the information about
@@ -47,21 +53,28 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
     /// @param proposalId the id of the proposal
     /// @param lp2Balance investor's balance of proposal's LP tokens
     /// @param lpLocked the investor's amount of locked LP tokens
-    /// @param reward the currently available reward in LP tokens
     struct ActiveInvestmentInfo {
         uint256 proposalId;
         uint256 lp2Balance;
         uint256 lpLocked;
-        uint256 reward;
+    }
+
+    /// @notice The struct that stores information about values of corresponding token addresses, used in the
+    /// TraderPoolInvestProposalView contract
+    /// @param amounts the amounts of underlying tokens
+    /// @param tokens the correspoding token addresses
+    struct Reception {
+        uint256[] amounts;
+        address[] tokens;
     }
 
     /// @notice The struct that is used by the TraderPoolInvestProposalView contract. It stores the information
     /// about the rewards
-    /// @param baseAmount the total amount of base tokens available as rewards
-    /// @param receivedBaseAmounts the array of received base tokens per proposals
+    /// @param baseAmount the amount of base tokens received to be reinvested back in the parent pool
+    /// @param rewards the array of amounts and addresses of rewarded tokens
     struct Receptions {
         uint256 baseAmount;
-        uint256[] receivedBaseAmounts; // should be used as minAmountOut
+        Reception[] rewards;
     }
 
     /// @notice The function to change the proposal limits
@@ -149,10 +162,15 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
 
     /// @notice The function to convert newly invested funds to the rewards
     /// @param proposalId the id of the proposal
-    function convertToDividends(uint256 proposalId) external;
+    function convertInvestedBaseToDividends(uint256 proposalId) external;
 
     /// @notice The function to supply reward to the investors
     /// @param proposalId the id of the proposal to supply the funds to
-    /// @param amount the amount of base tokens to be supplied (normalized)
-    function supply(uint256 proposalId, uint256 amount) external;
+    /// @param amounts the amounts of tokens to be supplied (normalized)
+    /// @param addresses the addresses of tokens to be supplied
+    function supply(
+        uint256 proposalId,
+        uint256[] calldata amounts,
+        address[] calldata addresses
+    ) external;
 }

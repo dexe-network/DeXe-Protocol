@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "./ITraderPoolInvestorsHook.sol";
 import "./ITraderPoolInvestProposal.sol";
 import "./ITraderPool.sol";
 
@@ -9,7 +10,7 @@ import "./ITraderPool.sol";
  * it inherits the functionality of the TraderPool yet differs in the proposals implementation. Investors can fund the
  * investment proposals and the trader will be able to do whetever he wants to do with the received funds
  */
-interface IInvestTraderPool {
+interface IInvestTraderPool is ITraderPoolInvestorsHook {
     /// @notice This function creates an investment proposal that users will be able to invest in
     /// @param descriptionURL the IPFS URL of the description document
     /// @param lpAmount the amount of LP tokens the trader will invest rightaway
@@ -40,14 +41,4 @@ interface IInvestTraderPool {
     /// @notice This function invests all the profit from all proposals the msg.sender has into this pool
     /// @param minPositionsOut this amounts of position tokens received on investment
     function reinvestAllProposals(uint256[] calldata minPositionsOut) external;
-
-    /// @notice The callback function that is called from _beforeTokenTransfer hook in the proposal contract.
-    /// Needed to maintain the total investors amount
-    /// @param user the transferrer of the funds
-    function checkRemoveInvestor(address user) external;
-
-    /// @notice The callback function that is called from _beforeTokenTransfer hook in the proposal contract.
-    /// Needed to maintain the total investors amount
-    /// @param user the receiver of the funds
-    function checkNewInvestor(address user) external;
 }

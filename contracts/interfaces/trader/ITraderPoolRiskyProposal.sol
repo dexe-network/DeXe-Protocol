@@ -43,6 +43,7 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
         ProposalInfo proposalInfo;
         uint256 totalProposalUSD;
         uint256 totalProposalBase;
+        uint256 lp2Supply;
     }
 
     /// @notice The struct that is used in the "TraderPoolRiskyProposalView" contract and stores information about the investor's

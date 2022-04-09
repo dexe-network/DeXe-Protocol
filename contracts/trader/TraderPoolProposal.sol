@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/trader/ITraderPoolProposal.sol";
+import "../interfaces/trader/ITraderPoolInvestorsHook.sol";
 
 import "../libs/MathHelper.sol";
 import "../libs/DecimalsConverter.sol";
@@ -123,17 +124,55 @@ abstract contract TraderPoolProposal is
         _mint(to, proposalId, toMint, "");
     }
 
+    function _updateFromData(
+        address user,
+        uint256 proposalId,
+        uint256 amount
+    ) internal returns (uint256 lpTransfer) {
+        uint256 lpBalance = _lpBalances[user][proposalId];
+        lpTransfer = lpBalance.ratio(amount, balanceOf(user, proposalId)).min(lpBalance);
+
+        _lpBalances[user][proposalId] -= lpTransfer;
+        totalLPBalances[user] -= lpTransfer;
+    }
+
     function _updateFrom(
         address user,
         uint256 proposalId,
         uint256 amount
-    ) internal virtual returns (uint256 lpTransfer);
+    ) internal virtual returns (uint256 lpTransfer) {
+        if (balanceOf(user, proposalId) == amount) {
+            _activeInvestments[user].remove(proposalId);
+
+            if (_activeInvestments[user].length() == 0) {
+                ITraderPoolInvestorsHook(_parentTraderPoolInfo.parentPoolAddress)
+                    .checkRemoveInvestor(user);
+            }
+        }
+
+        return _updateFromData(user, proposalId, amount);
+    }
+
+    function _updateToData(
+        address user,
+        uint256 proposalId,
+        uint256 lpAmount
+    ) internal {
+        _activeInvestments[user].add(proposalId);
+
+        _lpBalances[user][proposalId] += lpAmount;
+        totalLPBalances[user] += lpAmount;
+    }
 
     function _updateTo(
         address user,
         uint256 proposalId,
         uint256 lpAmount
-    ) internal virtual;
+    ) internal virtual {
+        ITraderPoolInvestorsHook(_parentTraderPoolInfo.parentPoolAddress).checkNewInvestor(user);
+
+        _updateToData(user, proposalId, lpAmount);
+    }
 
     function _beforeTokenTransfer(
         address operator,

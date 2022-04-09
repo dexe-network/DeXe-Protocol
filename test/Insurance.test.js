@@ -104,15 +104,15 @@ describe("Insurance", async () => {
 
     insuranceFactor = await coreProperties.getInsuranceFactor();
 
-    await dexe.mint(POOL, toBN(1000000).multipliedBy(toBN(10).pow(decimal)));
-    await dexe.mint(SECOND, toBN(1000).multipliedBy(toBN(10).pow(decimal)));
+    await dexe.mint(POOL, toBN(1000000).times(toBN(10).pow(decimal)));
+    await dexe.mint(SECOND, toBN(1000).times(toBN(10).pow(decimal)));
 
-    await dexe.approve(insurance.address, toBN(1000).multipliedBy(toBN(10).pow(decimal)), { from: SECOND });
+    await dexe.approve(insurance.address, toBN(1000).times(toBN(10).pow(decimal)), { from: SECOND });
   });
 
   describe("buyInsurance", async () => {
     it("should buy insurance", async () => {
-      const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
+      const deposit = toBN(10).times(toBN(10).pow(decimal));
       await insurance.buyInsurance(deposit, { from: SECOND });
 
       const depositInfo = await insurance.getInsurance(SECOND);
@@ -122,7 +122,7 @@ describe("Insurance", async () => {
     });
 
     it("should buyInsurance twice", async () => {
-      const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
+      const deposit = toBN(10).times(toBN(10).pow(decimal));
       await insurance.buyInsurance(deposit, { from: SECOND });
 
       let depositInfo = await insurance.getInsurance(SECOND);
@@ -134,8 +134,8 @@ describe("Insurance", async () => {
 
       depositInfo = await insurance.getInsurance(SECOND);
 
-      assert.equal(deposit.multipliedBy(2).toString(), depositInfo[0].toString());
-      assert.equal(insuranceFactor * deposit.multipliedBy(2), depositInfo[1].toString());
+      assert.equal(deposit.times(2).toString(), depositInfo[0].toString());
+      assert.equal(insuranceFactor * deposit.times(2), depositInfo[1].toString());
     });
 
     it("should revert, when try to stake less then 10", async () => {
@@ -149,7 +149,7 @@ describe("Insurance", async () => {
 
   describe("withdraw", async () => {
     it("should withdraw all deposit", async () => {
-      const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
+      const deposit = toBN(10).times(toBN(10).pow(decimal));
       const balance = await dexe.balanceOf(SECOND);
       await insurance.buyInsurance(deposit, { from: SECOND });
 
@@ -163,8 +163,8 @@ describe("Insurance", async () => {
     });
 
     it("should withdraw twice", async () => {
-      const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
-      const withdraw = toBN(2).multipliedBy(toBN(10).pow(decimal));
+      const deposit = toBN(10).times(toBN(10).pow(decimal));
+      const withdraw = toBN(2).times(toBN(10).pow(decimal));
       const balance = await dexe.balanceOf(SECOND);
       await insurance.buyInsurance(deposit, { from: SECOND });
 
@@ -186,12 +186,12 @@ describe("Insurance", async () => {
     });
 
     it("should revert when try to withdraw more than deposit", async () => {
-      const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
+      const deposit = toBN(10).times(toBN(10).pow(decimal));
 
       await insurance.buyInsurance(deposit, { from: SECOND });
 
       await truffleAssert.reverts(
-        insurance.withdraw(deposit.multipliedBy(2), { from: SECOND }),
+        insurance.withdraw(deposit.times(2), { from: SECOND }),
         "Insurance: out of available amount"
       );
     });
@@ -199,7 +199,7 @@ describe("Insurance", async () => {
 
   describe("proposeClaim", async () => {
     it("should propose claim", async () => {
-      const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
+      const deposit = toBN(10).times(toBN(10).pow(decimal));
       const url = "url";
 
       await setTime((await timestamp()) + SECONDS_IN_DAY);
@@ -216,7 +216,7 @@ describe("Insurance", async () => {
     });
 
     it("should propse two urls", async () => {
-      const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
+      const deposit = toBN(10).times(toBN(10).pow(decimal));
       const url1 = "url1";
       const url2 = "url2";
 
@@ -246,7 +246,7 @@ describe("Insurance", async () => {
     });
 
     it("should revert when try to add same urls", async () => {
-      const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
+      const deposit = toBN(10).times(toBN(10).pow(decimal));
       const url = "url";
 
       await setTime((await timestamp()) + SECONDS_IN_DAY);
@@ -274,7 +274,7 @@ describe("Insurance", async () => {
     });
 
     it("should revert when try to propose finished claim", async () => {
-      const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
+      const deposit = toBN(10).times(toBN(10).pow(decimal));
       const url = "url";
 
       await insurance.buyInsurance(deposit, { from: SECOND });
@@ -296,7 +296,7 @@ describe("Insurance", async () => {
   describe("listOngoingClaims", async () => {
     const len = 10;
     beforeEach("make ongoing claim", async () => {
-      const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
+      const deposit = toBN(10).times(toBN(10).pow(decimal));
       const url = "url";
       await insurance.buyInsurance(deposit, { from: SECOND });
 
@@ -347,7 +347,7 @@ describe("Insurance", async () => {
     });
 
     beforeEach("make ongoing claim", async () => {
-      const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
+      const deposit = toBN(10).times(toBN(10).pow(decimal));
 
       await dexe.mint(ALICE, deposit);
       await dexe.mint(RON, deposit);
@@ -369,7 +369,7 @@ describe("Insurance", async () => {
     });
 
     it("should accept claim", async () => {
-      await dexe.transfer(insurance.address, toBN(1000000).multipliedBy(toBN(10).pow(decimal)), { from: POOL });
+      await dexe.transfer(insurance.address, toBN(1000000).times(toBN(10).pow(decimal)), { from: POOL });
       await insurance.receiveDexeFromPools(1000000, { from: POOL });
       const amount = 100;
       const users = [ALICE, RON, BOB];
@@ -427,7 +427,7 @@ describe("Insurance", async () => {
     });
 
     it("should accept claim when user's amounts is [66, 33, 1]", async () => {
-      await dexe.transfer(insurance.address, toBN(1000000).multipliedBy(toBN(10).pow(decimal)), { from: POOL });
+      await dexe.transfer(insurance.address, toBN(1000000).times(toBN(10).pow(decimal)), { from: POOL });
       await insurance.receiveDexeFromPools(1000000, { from: POOL });
 
       const users = [ALICE, RON, BOB];
@@ -534,7 +534,7 @@ describe("Insurance", async () => {
     });
 
     beforeEach("make ongoing claim", async () => {
-      const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
+      const deposit = toBN(10).times(toBN(10).pow(decimal));
 
       await dexe.mint(ALICE, deposit);
       await dexe.mint(RON, deposit);
@@ -585,7 +585,7 @@ describe("Insurance", async () => {
     });
 
     beforeEach("make finished claims", async () => {
-      const deposit = toBN(10).multipliedBy(toBN(10).pow(decimal));
+      const deposit = toBN(10).times(toBN(10).pow(decimal));
 
       await dexe.mint(ALICE, deposit);
       await dexe.mint(RON, deposit);
@@ -605,7 +605,7 @@ describe("Insurance", async () => {
         await insurance.proposeClaim(baseURL + i, { from: SECOND });
       }
 
-      await dexe.transfer(insurance.address, toBN(1000000).multipliedBy(toBN(10).pow(decimal)), { from: POOL });
+      await dexe.transfer(insurance.address, toBN(1000000).times(toBN(10).pow(decimal)), { from: POOL });
       await insurance.receiveDexeFromPools(1000000, { from: POOL });
       const amount = 100;
       const users = [ALICE, RON, BOB];

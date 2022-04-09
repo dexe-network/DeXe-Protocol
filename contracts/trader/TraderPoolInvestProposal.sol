@@ -15,20 +15,23 @@ import "./TraderPoolProposal.sol";
 
 contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolProposal {
     using EnumerableSet for EnumerableSet.UintSet;
+    using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
     using DecimalsConverter for uint256;
     using MathHelper for uint256;
     using Math for uint256;
     using TraderPoolInvestProposalView for ParentTraderPoolInfo;
 
-    mapping(uint256 => ProposalInfo) public proposalInfos; // proposal id => info
-    mapping(address => mapping(uint256 => RewardInfo)) public rewardInfos;
+    mapping(uint256 => ProposalInfo) internal _proposalInfos; // proposal id => info
+    mapping(uint256 => RewardInfo) internal _rewardInfos; // proposal id => reward info
+
+    mapping(address => mapping(uint256 => UserRewardInfo)) internal _userRewardInfos; // user => proposal id => user reward info
 
     event ProposalInvested(uint256 index, address investor, uint256 amountLP, uint256 amountBase);
     event ProposalDivested(uint256 index, address investor, uint256 amount);
     event ProposalCreated(uint256 index, ITraderPoolInvestProposal.ProposalLimits proposalLimits);
     event ProposalWithdrawn(uint256 index, uint256 amount, address investor);
-    event ProposalSupplied(uint256 index, uint256 amount, address investor);
+    event ProposalSupplied(uint256 index, uint256 amount, address token, address investor);
 
     function __TraderPoolInvestProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         public
@@ -44,7 +47,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
-        proposalInfos[proposalId].proposalLimits = proposalLimits;
+        _proposalInfos[proposalId].proposalLimits = proposalLimits;
     }
 
     function getProposalInfos(uint256 offset, uint256 limit)
@@ -53,7 +56,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         override
         returns (ProposalInfo[] memory proposals)
     {
-        return TraderPoolInvestProposalView.getProposalInfos(proposalInfos, offset, limit);
+        return TraderPoolInvestProposalView.getProposalInfos(_proposalInfos, offset, limit);
     }
 
     function getActiveInvestmentsInfo(
@@ -64,9 +67,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         return
             TraderPoolInvestProposalView.getActiveInvestmentsInfo(
                 _activeInvestments[user],
-                proposalInfos,
                 _lpBalances,
-                rewardInfos,
                 user,
                 offset,
                 limit
@@ -74,7 +75,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     }
 
     function _baseInProposal(uint256 proposalId) internal view override returns (uint256) {
-        return proposalInfos[proposalId].investedBase;
+        return _proposalInfos[proposalId].investedBase;
     }
 
     function create(
@@ -95,27 +96,17 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
         proposalId = ++proposalsTotalNum;
 
-        proposalInfos[proposalId].proposalLimits = proposalLimits;
+        _proposalInfos[proposalId].proposalLimits = proposalLimits;
 
         _transferAndMintLP(proposalId, _parentTraderPoolInfo.trader, lpInvestment, baseInvestment);
 
-        proposalInfos[proposalId].descriptionURL = descriptionURL;
-        proposalInfos[proposalId].lpLocked = lpInvestment;
-        proposalInfos[proposalId].investedBase = baseInvestment;
-        proposalInfos[proposalId].newInvestedBase = baseInvestment;
+        _proposalInfos[proposalId].descriptionURL = descriptionURL;
+        _proposalInfos[proposalId].lpLocked = lpInvestment;
+        _proposalInfos[proposalId].investedBase = baseInvestment;
+        _proposalInfos[proposalId].newInvestedBase = baseInvestment;
 
         emit ProposalCreated(proposalId, proposalLimits);
-        emit ProposalInvested(proposalId, msg.sender, lpInvestment, baseInvestment);
-    }
-
-    function _updateRewards(uint256 proposalId, address user) internal {
-        RewardInfo storage rewardInfo = rewardInfos[user][proposalId];
-        uint256 cumulativeSum = proposalInfos[proposalId].cumulativeSum;
-
-        rewardInfo.rewardStored +=
-            ((cumulativeSum - rewardInfo.cumulativeSumStored) * balanceOf(user, proposalId)) /
-            PRECISION;
-        rewardInfo.cumulativeSumStored = cumulativeSum;
+        emit ProposalInvested(proposalId, _msgSender(), lpInvestment, baseInvestment);
     }
 
     function invest(
@@ -126,7 +117,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     ) external override onlyParentTraderPool {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
-        ProposalInfo storage info = proposalInfos[proposalId];
+        ProposalInfo storage info = _proposalInfos[proposalId];
 
         require(
             info.proposalLimits.timestampLimit == 0 ||
@@ -156,45 +147,141 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         returns (Receptions memory receptions)
     {
         return
-            TraderPoolInvestProposalView.getRewards(proposalInfos, rewardInfos, proposalIds, user);
+            TraderPoolInvestProposalView.getRewards(
+                _rewardInfos,
+                _userRewardInfos,
+                proposalIds,
+                user
+            );
     }
 
-    function _claimProposal(uint256 proposalId, address user) internal returns (uint256 claimed) {
+    function _payout(
+        address user,
+        uint256[] memory claimed,
+        address[] memory addresses
+    ) internal {
+        for (uint256 i = 0; i < addresses.length; i++) {
+            address token = addresses[i];
+
+            if (token == address(0)) {
+                continue;
+            }
+
+            IERC20(token).safeTransfer(user, claimed[i].convertFrom18(ERC20(token).decimals()));
+        }
+    }
+
+    function _updateCumulativeSum(
+        uint256 proposalId,
+        uint256 amount,
+        address token
+    ) internal {
+        RewardInfo storage rewardInfo = _rewardInfos[proposalId];
+
+        rewardInfo.rewardTokens.add(token);
+        rewardInfo.cumulativeSums[token] += (amount * PRECISION) / totalSupply(proposalId);
+    }
+
+    function _updateRewards(uint256 proposalId, address user) internal {
+        UserRewardInfo storage userRewardInfo = _userRewardInfos[user][proposalId];
+        RewardInfo storage rewardInfo = _rewardInfos[proposalId];
+
+        uint256 length = rewardInfo.rewardTokens.length();
+
+        for (uint256 i = 0; i < length; i++) {
+            address token = rewardInfo.rewardTokens.at(i);
+            uint256 cumulativeSum = rewardInfo.cumulativeSums[token];
+
+            userRewardInfo.rewardsStored[token] +=
+                ((cumulativeSum - userRewardInfo.cumulativeSumsStored[token]) *
+                    balanceOf(user, proposalId)) /
+                PRECISION;
+            userRewardInfo.cumulativeSumsStored[token] = cumulativeSum;
+        }
+    }
+
+    function _calculateRewards(uint256 proposalId, address user)
+        internal
+        returns (uint256[] memory claimed, address[] memory addresses)
+    {
         _updateRewards(proposalId, user);
 
-        claimed = rewardInfos[user][proposalId].rewardStored;
+        RewardInfo storage rewardInfo = _rewardInfos[proposalId];
+        uint256 length = rewardInfo.rewardTokens.length();
 
-        require(claimed > 0, "TPIP: nothing to claim");
+        claimed = new uint256[](length);
+        addresses = new address[](length);
 
-        _updateFromData(user, proposalId, claimed);
+        address baseToken = _parentTraderPoolInfo.baseToken;
+        uint256 baseIndex;
 
-        delete rewardInfos[user][proposalId].rewardStored;
+        for (uint256 i = 0; i < length; i++) {
+            address token = rewardInfo.rewardTokens.at(i);
 
-        proposalInfos[proposalId].lpLocked -= claimed.min(proposalInfos[proposalId].lpLocked);
+            claimed[i] = _userRewardInfos[user][proposalId].rewardsStored[token];
+            addresses[i] = token;
 
-        totalLockedLP -= claimed.min(totalLockedLP);
-        investedBase -= claimed.min(investedBase);
+            delete _userRewardInfos[user][proposalId].rewardsStored[token];
+
+            if (token == baseToken) {
+                baseIndex = i;
+            }
+        }
+
+        if (length > 0) {
+            /// @dev make the base token first (if not found, do nothing)
+            (claimed[0], claimed[baseIndex]) = (claimed[baseIndex], claimed[0]);
+            (addresses[0], addresses[baseIndex]) = (addresses[baseIndex], addresses[0]);
+        }
     }
 
-    function _payout(uint256 amount) internal {
-        IERC20(_parentTraderPoolInfo.baseToken).safeTransfer(
-            _msgSender(),
-            amount.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
-        );
+    function _divestProposals(uint256[] memory proposalIds, address user)
+        internal
+        returns (uint256 claimedBase)
+    {
+        address baseToken = _parentTraderPoolInfo.baseToken;
+
+        for (uint256 i = 0; i < proposalIds.length; i++) {
+            uint256 proposalId = proposalIds[i];
+
+            require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
+
+            (uint256[] memory claimed, address[] memory addresses) = _calculateRewards(
+                proposalId,
+                user
+            );
+
+            if (addresses[0] == baseToken) {
+                claimedBase += claimed[0];
+                addresses[0] = address(0);
+
+                _proposalInfos[proposalId].lpLocked -= claimed[0].min(
+                    _proposalInfos[proposalId].lpLocked
+                );
+
+                _updateFromData(user, proposalId, claimed[0]);
+                investedBase -= claimed[0].min(investedBase);
+                totalLockedLP -= claimed[0].min(totalLockedLP); // intentional base from LP subtraction
+            }
+
+            _payout(user, claimed, addresses);
+        }
+
+        require(claimedBase > 0, "TPIP: no base to divest");
     }
 
-    function _divestProposal(uint256 proposalId, address user) internal returns (uint256) {
-        require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
+    function _claimProposals(uint256[] memory proposalIds, address user) internal {
+        for (uint256 i = 0; i < proposalIds.length; i++) {
+            uint256 proposalId = proposalIds[i];
 
-        return _claimProposal(proposalId, user);
-    }
+            require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
-    function _divestAllProposals(address user) internal returns (uint256 totalReceivedBase) {
-        uint256 length = _activeInvestments[user].length();
+            (uint256[] memory claimed, address[] memory tokens) = _calculateRewards(
+                proposalId,
+                user
+            );
 
-        while (length > 0) {
-            uint256 proposalId = _activeInvestments[user].at(--length);
-            totalReceivedBase += _claimProposal(proposalId, user);
+            _payout(user, claimed, tokens);
         }
     }
 
@@ -202,87 +289,92 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         external
         override
         onlyParentTraderPool
-        returns (uint256)
+        returns (uint256 baseAmount)
     {
-        uint256 amount = _divestProposal(proposalId, user);
+        uint256[] memory proposals = new uint256[](1);
+        proposals[0] = proposalId;
 
-        emit ProposalDivested(proposalId, user, amount);
+        baseAmount = _divestProposals(proposals, user);
 
-        return amount;
+        emit ProposalDivested(proposalId, user, baseAmount);
     }
 
     function divestAll(address user) external override onlyParentTraderPool returns (uint256) {
-        return _divestAllProposals(user);
+        return _divestProposals(_activeInvestments[user].values(), user);
     }
 
     function claim(uint256 proposalId) external override {
-        _payout(_divestProposal(proposalId, _msgSender()));
+        uint256[] memory proposals = new uint256[](1);
+        proposals[0] = proposalId;
+
+        _claimProposals(proposals, _msgSender());
     }
 
     function claimAll() external override {
-        _payout(_divestAllProposals(_msgSender()));
+        _claimProposals(_activeInvestments[_msgSender()].values(), _msgSender());
     }
 
     function withdraw(uint256 proposalId, uint256 amount) external override onlyTraderAdmin {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
         require(
-            amount <= proposalInfos[proposalId].newInvestedBase,
+            amount <= _proposalInfos[proposalId].newInvestedBase,
             "TPIP: withdrawing more than balance"
         );
 
-        proposalInfos[proposalId].newInvestedBase -= amount;
+        _proposalInfos[proposalId].newInvestedBase -= amount;
 
         IERC20(_parentTraderPoolInfo.baseToken).safeTransfer(
             _parentTraderPoolInfo.trader,
             amount.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
         );
 
-        emit ProposalWithdrawn(proposalId, amount, msg.sender);
+        emit ProposalWithdrawn(proposalId, amount, _msgSender());
     }
 
-    function supply(uint256 proposalId, uint256 amount) external override {
+    function supply(
+        uint256 proposalId,
+        uint256[] calldata amounts,
+        address[] calldata addresses
+    ) external override onlyTraderAdmin {
+        require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
+        require(addresses.length == amounts.length, "TPIP: length mismatch");
+
+        for (uint256 i = 0; i < addresses.length; i++) {
+            address token = addresses[i];
+            uint256 actualAmount = amounts[i].convertFrom18(ERC20(token).decimals());
+
+            require(actualAmount > 0, "TPIP: amount is 0");
+
+            IERC20(token).safeTransferFrom(_msgSender(), address(this), actualAmount);
+
+            _updateCumulativeSum(proposalId, amounts[i], token);
+
+            emit ProposalSupplied(proposalId, amounts[i], token, _msgSender());
+        }
+    }
+
+    function convertInvestedBaseToDividends(uint256 proposalId) external override onlyTraderAdmin {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
-        uint256 actualAmount = amount.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals);
-
-        require(actualAmount > 0, "TPIP: amount is 0");
-
-        IERC20(_parentTraderPoolInfo.baseToken).safeTransferFrom(
-            _msgSender(),
-            address(this),
-            actualAmount
+        _updateCumulativeSum(
+            proposalId,
+            _proposalInfos[proposalId].newInvestedBase,
+            _parentTraderPoolInfo.baseToken
         );
 
-        _updateCumulativeSum(proposalId, amount);
+        emit ProposalWithdrawn(
+            proposalId,
+            _proposalInfos[proposalId].newInvestedBase,
+            _msgSender()
+        );
+        emit ProposalSupplied(
+            proposalId,
+            _proposalInfos[proposalId].newInvestedBase,
+            _parentTraderPoolInfo.baseToken,
+            _msgSender()
+        );
 
-        emit ProposalSupplied(proposalId, amount, msg.sender);
-    }
-
-    function convertToDividends(uint256 proposalId) external override onlyTraderAdmin {
-        require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
-
-        _updateCumulativeSum(proposalId, proposalInfos[proposalId].newInvestedBase);
-
-        emit ProposalWithdrawn(proposalId, proposalInfos[proposalId].newInvestedBase, msg.sender);
-        emit ProposalSupplied(proposalId, proposalInfos[proposalId].newInvestedBase, msg.sender);
-
-        delete proposalInfos[proposalId].newInvestedBase;
-    }
-
-    function _updateCumulativeSum(uint256 proposalId, uint256 amount) internal {
-        proposalInfos[proposalId].cumulativeSum += (amount * PRECISION) / totalSupply(proposalId);
-    }
-
-    function _updateFromData(
-        address user,
-        uint256 proposalId,
-        uint256 amount
-    ) internal returns (uint256 lpTransfer) {
-        uint256 lpBalance = _lpBalances[user][proposalId];
-        lpTransfer = lpBalance.ratio(amount, balanceOf(user, proposalId)).min(lpBalance);
-
-        _lpBalances[user][proposalId] -= lpTransfer;
-        totalLPBalances[user] -= lpTransfer;
+        delete _proposalInfos[proposalId].newInvestedBase;
     }
 
     function _updateFrom(
@@ -290,19 +382,9 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         uint256 proposalId,
         uint256 amount
     ) internal override returns (uint256 lpTransfer) {
-        if (balanceOf(user, proposalId) == amount) {
-            _activeInvestments[user].remove(proposalId);
-
-            if (_activeInvestments[user].length() == 0) {
-                IInvestTraderPool(_parentTraderPoolInfo.parentPoolAddress).checkRemoveInvestor(
-                    user
-                );
-            }
-        }
-
         _updateRewards(proposalId, user);
 
-        return _updateFromData(user, proposalId, amount);
+        return super._updateFrom(user, proposalId, amount);
     }
 
     function _updateTo(
@@ -310,11 +392,8 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         uint256 proposalId,
         uint256 lpAmount
     ) internal override {
-        IInvestTraderPool(_parentTraderPoolInfo.parentPoolAddress).checkNewInvestor(user);
-
         _updateRewards(proposalId, user);
 
-        _lpBalances[user][proposalId] += lpAmount;
-        totalLPBalances[user] += lpAmount;
+        super._updateTo(user, proposalId, lpAmount);
     }
 }

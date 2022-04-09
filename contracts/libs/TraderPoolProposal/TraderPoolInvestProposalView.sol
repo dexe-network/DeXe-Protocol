@@ -14,6 +14,7 @@ import "../../trader/TraderPoolInvestProposal.sol";
 
 library TraderPoolInvestProposalView {
     using EnumerableSet for EnumerableSet.UintSet;
+    using EnumerableSet for EnumerableSet.AddressSet;
     using DecimalsConverter for uint256;
     using MathHelper for uint256;
     using Math for uint256;
@@ -31,16 +32,13 @@ library TraderPoolInvestProposalView {
         proposals = new ITraderPoolInvestProposal.ProposalInfo[](to - offset);
 
         for (uint256 i = offset; i < to; i++) {
-            proposals[i - offset] = proposalInfos[i];
+            proposals[i - offset] = proposalInfos[i + 1];
         }
     }
 
     function getActiveInvestmentsInfo(
         EnumerableSet.UintSet storage activeInvestments,
-        mapping(uint256 => ITraderPoolInvestProposal.ProposalInfo) storage proposalInfos,
         mapping(address => mapping(uint256 => uint256)) storage lpBalances,
-        mapping(address => mapping(uint256 => ITraderPoolInvestProposal.RewardInfo))
-            storage rewardInfos,
         address user,
         uint256 offset,
         uint256 limit
@@ -50,33 +48,26 @@ library TraderPoolInvestProposalView {
 
         for (uint256 i = offset; i < to; i++) {
             uint256 proposalId = activeInvestments.at(i);
-            uint256 balance = TraderPoolInvestProposal(address(this)).balanceOf(user, proposalId);
-
-            TraderPoolInvestProposal.RewardInfo storage rewardInfo = rewardInfos[user][proposalId];
-
-            uint256 reward = rewardInfo.rewardStored +
-                ((proposalInfos[proposalId].cumulativeSum - rewardInfo.cumulativeSumStored) *
-                    balance) /
-                PRECISION;
 
             investments[i - offset] = ITraderPoolInvestProposal.ActiveInvestmentInfo(
                 proposalId,
-                balance,
-                lpBalances[user][proposalId],
-                reward
+                TraderPoolInvestProposal(address(this)).balanceOf(user, proposalId),
+                lpBalances[user][proposalId]
             );
         }
     }
 
     function getRewards(
-        mapping(uint256 => ITraderPoolInvestProposal.ProposalInfo) storage proposalInfos,
-        mapping(address => mapping(uint256 => ITraderPoolInvestProposal.RewardInfo))
-            storage rewardInfos,
+        mapping(uint256 => ITraderPoolInvestProposal.RewardInfo) storage rewardInfos,
+        mapping(address => mapping(uint256 => ITraderPoolInvestProposal.UserRewardInfo))
+            storage userRewardInfos,
         uint256[] calldata proposalIds,
         address user
     ) external view returns (ITraderPoolInvestProposal.Receptions memory receptions) {
         uint256 proposalsTotalNum = TraderPoolInvestProposal(address(this)).proposalsTotalNum();
-        receptions.receivedBaseAmounts = new uint256[](proposalIds.length);
+        receptions.rewards = new TraderPoolInvestProposal.Reception[](proposalIds.length);
+
+        address baseToken = ITraderPoolInvestProposal(address(this)).getBaseToken();
 
         for (uint256 i = 0; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
@@ -85,14 +76,29 @@ library TraderPoolInvestProposalView {
                 continue;
             }
 
-            TraderPoolInvestProposal.RewardInfo storage rewardInfo = rewardInfos[user][proposalId];
+            TraderPoolInvestProposal.UserRewardInfo storage userRewardInfo = userRewardInfos[user][
+                proposalId
+            ];
+            TraderPoolInvestProposal.RewardInfo storage rewardInfo = rewardInfos[proposalId];
 
-            receptions.receivedBaseAmounts[i] =
-                rewardInfo.rewardStored +
-                ((proposalInfos[proposalId].cumulativeSum - rewardInfo.cumulativeSumStored) *
-                    TraderPoolInvestProposal(address(this)).balanceOf(user, proposalId)) /
-                PRECISION;
-            receptions.baseAmount += receptions.receivedBaseAmounts[i];
+            uint256 balance = TraderPoolInvestProposal(address(this)).balanceOf(user, proposalId);
+
+            receptions.rewards[i].tokens = rewardInfo.rewardTokens.values();
+            receptions.rewards[i].amounts = new uint256[](receptions.rewards[i].tokens.length);
+
+            for (uint256 j = 0; j < receptions.rewards[i].tokens.length; j++) {
+                address token = receptions.rewards[i].tokens[j];
+
+                receptions.rewards[i].amounts[j] =
+                    userRewardInfo.rewardsStored[token] +
+                    ((rewardInfo.cumulativeSums[token] -
+                        userRewardInfo.cumulativeSumsStored[token]) * balance) /
+                    PRECISION;
+
+                if (token == baseToken) {
+                    receptions.baseAmount += receptions.rewards[i].amounts[j];
+                }
+            }
         }
     }
 }
