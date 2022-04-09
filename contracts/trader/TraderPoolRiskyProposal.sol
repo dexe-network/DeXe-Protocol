@@ -517,36 +517,4 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
                 _proposalInfos[proposalId].balancePosition
             );
     }
-
-    function _updateFrom(
-        address user,
-        uint256 proposalId,
-        uint256 amount
-    ) internal override returns (uint256 lpTransfer) {
-        lpTransfer = _lpBalances[user][proposalId].ratio(amount, balanceOf(user, proposalId));
-
-        _lpBalances[user][proposalId] -= lpTransfer;
-        totalLPBalances[user] -= lpTransfer;
-
-        if (balanceOf(user, proposalId) == amount) {
-            _activeInvestments[user].remove(proposalId);
-
-            if (_activeInvestments[user].length() == 0) {
-                IBasicTraderPool(_parentTraderPoolInfo.parentPoolAddress).checkRemoveInvestor(
-                    user
-                );
-            }
-        }
-    }
-
-    function _updateTo(
-        address user,
-        uint256 proposalId,
-        uint256 lpAmount
-    ) internal override {
-        IBasicTraderPool(_parentTraderPoolInfo.parentPoolAddress).checkNewInvestor(user);
-
-        _lpBalances[user][proposalId] += lpAmount;
-        totalLPBalances[user] += lpAmount;
-    }
 }

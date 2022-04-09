@@ -377,36 +377,14 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         delete _proposalInfos[proposalId].newInvestedBase;
     }
 
-    function _updateFromData(
-        address user,
-        uint256 proposalId,
-        uint256 amount
-    ) internal returns (uint256 lpTransfer) {
-        uint256 lpBalance = _lpBalances[user][proposalId];
-        lpTransfer = lpBalance.ratio(amount, balanceOf(user, proposalId)).min(lpBalance);
-
-        _lpBalances[user][proposalId] -= lpTransfer;
-        totalLPBalances[user] -= lpTransfer;
-    }
-
     function _updateFrom(
         address user,
         uint256 proposalId,
         uint256 amount
     ) internal override returns (uint256 lpTransfer) {
-        if (balanceOf(user, proposalId) == amount) {
-            _activeInvestments[user].remove(proposalId);
-
-            if (_activeInvestments[user].length() == 0) {
-                IInvestTraderPool(_parentTraderPoolInfo.parentPoolAddress).checkRemoveInvestor(
-                    user
-                );
-            }
-        }
-
         _updateRewards(proposalId, user);
 
-        return _updateFromData(user, proposalId, amount);
+        return super._updateFrom(user, proposalId, amount);
     }
 
     function _updateTo(
@@ -414,11 +392,8 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         uint256 proposalId,
         uint256 lpAmount
     ) internal override {
-        IInvestTraderPool(_parentTraderPoolInfo.parentPoolAddress).checkNewInvestor(user);
-
         _updateRewards(proposalId, user);
 
-        _lpBalances[user][proposalId] += lpAmount;
-        totalLPBalances[user] += lpAmount;
+        super._updateTo(user, proposalId, lpAmount);
     }
 }
