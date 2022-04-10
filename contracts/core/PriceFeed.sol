@@ -189,15 +189,6 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             ).convertTo18(ERC20(inToken).decimals());
     }
 
-    function getNormalizedPriceOutDEXE(address inToken, uint256 amountIn)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        return getNormalizedPriceOut(inToken, _dexeAddress, amountIn);
-    }
-
     function getNormalizedPriceOutUSD(address inToken, uint256 amountIn)
         external
         view
@@ -207,13 +198,31 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         return getNormalizedPriceOut(inToken, _usdAddress, amountIn);
     }
 
-    function getNormalizedPriceOutBase(address outToken, uint256 amountInUSD)
+    function getNormalizedPriceInUSD(address inToken, uint256 amountOut)
         external
         view
         override
         returns (uint256)
     {
-        return getNormalizedPriceOut(_usdAddress, outToken, amountInUSD);
+        return getNormalizedPriceIn(inToken, _usdAddress, amountOut);
+    }
+
+    function getNormalizedPriceOutDEXE(address inToken, uint256 amountIn)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return getNormalizedPriceOut(inToken, _dexeAddress, amountIn);
+    }
+
+    function getNormalizedPriceInDEXE(address inToken, uint256 amountOut)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return getNormalizedPriceIn(inToken, _dexeAddress, amountOut);
     }
 
     function _savePath(

@@ -115,15 +115,6 @@ interface IPriceFeed {
         address[] memory optionalPath
     ) external view returns (uint256);
 
-    /// @notice The same as "getPriceOut" with "outToken" being DEXE token
-    /// @param inToken the token to be exchanged from
-    /// @param amountIn the amount of inToken to exchange (with 18 decimals)
-    /// @return received amount of DEXE tokens after the swap (with 18 decimals)
-    function getNormalizedPriceOutDEXE(address inToken, uint256 amountIn)
-        external
-        view
-        returns (uint256);
-
     /// @notice The same as "getPriceOut" with "outToken" being native USD token
     /// @param inToken the token to be exchanged from
     /// @param amountIn the amount of inToken to exchange (with 18 decimals)
@@ -133,11 +124,29 @@ interface IPriceFeed {
         view
         returns (uint256);
 
-    /// @notice The function to get the price of outToken given the amount in USD
-    /// @param outToken the token to get the price of
-    /// @param amountInUSD the amount of USD given
-    /// @return received amount of outToken with the given USD
-    function getNormalizedPriceOutBase(address outToken, uint256 amountInUSD)
+    /// @notice The same as "getPriceIn" with "outToken" being USD token
+    /// @param inToken the token to get the price of
+    /// @param amountOut the amount of USD to be received (with 18 decimals)
+    /// @return received amount of inToken to receive given USD (with 18 decimals)
+    function getNormalizedPriceInUSD(address inToken, uint256 amountOut)
+        external
+        view
+        returns (uint256);
+
+    /// @notice The same as "getPriceOut" with "outToken" being DEXE token
+    /// @param inToken the token to be exchanged from
+    /// @param amountIn the amount of inToken to exchange (with 18 decimals)
+    /// @return received amount of DEXE tokens after the swap (with 18 decimals)
+    function getNormalizedPriceOutDEXE(address inToken, uint256 amountIn)
+        external
+        view
+        returns (uint256);
+
+    /// @notice The same as "getPriceIn" with "outToken" being DEXE token
+    /// @param inToken the token to get the price of
+    /// @param amountOut the amount of DEXE to be received (with 18 decimals)
+    /// @return received amount of inToken to receive given DEXE (with 18 decimals)
+    function getNormalizedPriceInDEXE(address inToken, uint256 amountOut)
         external
         view
         returns (uint256);

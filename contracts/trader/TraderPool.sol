@@ -260,7 +260,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             ,
             address[] memory positionTokens,
             uint256[] memory positionPricesInBase
-        ) = _poolParameters.getNormalizedPoolPrice(_openPositions);
+        ) = _poolParameters.getNormalizedPoolPriceAndPositions(_openPositions);
 
         address baseToken = _poolParameters.baseToken;
 

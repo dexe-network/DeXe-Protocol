@@ -55,7 +55,7 @@ library TraderPoolView {
             uint256 currentBaseAmount,
             address[] memory positionTokens,
             uint256[] memory positionPricesInBase
-        ) = poolParameters.getNormalizedPoolPrice(openPositions);
+        ) = poolParameters.getNormalizedPoolPriceAndPositions(openPositions);
 
         receptions.lpAmount = amountInBaseToInvest;
         receptions.positions = positionTokens;
@@ -210,7 +210,7 @@ library TraderPoolView {
                 leverageInfo.totalPoolUSDWithProposals;
             leverageInfo.freeLeverageBase = ITraderPool(address(this))
                 .priceFeed()
-                .getNormalizedPriceOutBase(poolParameters.baseToken, leverageInfo.freeLeverageUSD);
+                .getNormalizedPriceInUSD(poolParameters.baseToken, leverageInfo.freeLeverageUSD);
         }
     }
 
@@ -238,7 +238,7 @@ library TraderPoolView {
     ) external view returns (ITraderPool.UserInfo[] memory usersInfo) {
         uint256 to = (offset + limit).min(investors.length()).max(offset);
         (uint256 totalPoolBase, uint256 totalPoolUSD) = poolParameters
-            .getNormalizedExtendedPoolPrice(openPositions);
+            .getNormalizedPoolPriceAndUSD(openPositions);
         uint256 totalSupply = IERC20(address(this)).totalSupply();
 
         usersInfo = new ITraderPool.UserInfo[](to - offset + 1);
@@ -280,7 +280,7 @@ library TraderPoolView {
         poolInfo.totalInvestors = ITraderPool(address(this)).totalInvestors();
 
         (poolInfo.totalPoolBase, poolInfo.totalPoolUSD) = poolParameters
-            .getNormalizedExtendedPoolPrice(openPositions);
+            .getNormalizedPoolPriceAndUSD(openPositions);
 
         poolInfo.lpSupply = ERC20(address(this)).totalSupply();
         poolInfo.lpLockedInProposals =

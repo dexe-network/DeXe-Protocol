@@ -16,7 +16,7 @@ library TraderPoolPrice {
     using DecimalsConverter for uint256;
     using TokenBalance for address;
 
-    function getNormalizedPoolPrice(
+    function getNormalizedPoolPriceAndPositions(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions
     )
@@ -50,11 +50,11 @@ library TraderPoolPrice {
         }
     }
 
-    function getNormalizedExtendedPoolPrice(
+    function getNormalizedPoolPriceAndUSD(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage openPositions
     ) external view returns (uint256 totalBase, uint256 totalUSD) {
-        (totalBase, , , ) = getNormalizedPoolPrice(poolParameters, openPositions);
+        (totalBase, , , ) = getNormalizedPoolPriceAndPositions(poolParameters, openPositions);
 
         totalUSD = ITraderPool(address(this)).priceFeed().getNormalizedPriceOutUSD(
             poolParameters.baseToken,

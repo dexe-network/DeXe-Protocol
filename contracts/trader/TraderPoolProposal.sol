@@ -46,9 +46,20 @@ abstract contract TraderPoolProposal is
         _;
     }
 
+    function _onlyParentTraderPool() internal view {
+        require(_msgSender() == _parentTraderPoolInfo.parentPoolAddress, "TPP: not a ParentPool");
+    }
+
     modifier onlyTraderAdmin() {
         _onlyTraderAdmin();
         _;
+    }
+
+    function _onlyTraderAdmin() internal view {
+        require(
+            TraderPool(_parentTraderPoolInfo.parentPoolAddress).isTraderAdmin(_msgSender()),
+            "TPP: not a trader admin"
+        );
     }
 
     function __TraderPoolProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
@@ -79,17 +90,6 @@ abstract contract TraderPoolProposal is
 
     function getTotalActiveInvestments(address user) external view override returns (uint256) {
         return _activeInvestments[user].length();
-    }
-
-    function _onlyParentTraderPool() internal view {
-        require(_msgSender() == _parentTraderPoolInfo.parentPoolAddress, "TPP: not a ParentPool");
-    }
-
-    function _onlyTraderAdmin() internal view {
-        require(
-            TraderPool(_parentTraderPoolInfo.parentPoolAddress).isTraderAdmin(_msgSender()),
-            "TPP: not a trader admin"
-        );
     }
 
     function _baseInProposal(uint256 proposalId) internal view virtual returns (uint256);
