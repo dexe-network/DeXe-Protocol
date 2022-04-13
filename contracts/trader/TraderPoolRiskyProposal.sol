@@ -87,7 +87,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 baseInvestment,
         uint256 instantTradePercentage,
         address[] calldata optionalPath
-    ) external view override returns (uint256) {
+    ) external view override returns (uint256 positionTokens, address[] memory path) {
         return
             _parentTraderPoolInfo.getCreationTokens(
                 token,
@@ -362,7 +362,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 amount,
         address[] calldata optionalPath,
         bool fromExact
-    ) internal view returns (uint256) {
+    ) internal view returns (uint256, address[] memory) {
         return
             _parentTraderPoolInfo.getExchangeAmount(
                 _proposalInfos[proposalId].token,
@@ -379,7 +379,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         address from,
         uint256 amountIn,
         address[] calldata optionalPath
-    ) external view override returns (uint256 minAmountOut) {
+    ) external view override returns (uint256 minAmountOut, address[] memory path) {
         return _getExchangeAmount(proposalId, from, amountIn, optionalPath, true);
     }
 
@@ -440,7 +440,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         address from,
         uint256 amountOut,
         address[] calldata optionalPath
-    ) external view override returns (uint256 maxAmountIn) {
+    ) external view override returns (uint256 maxAmountIn, address[] memory path) {
         return _getExchangeAmount(proposalId, from, amountOut, optionalPath, true);
     }
 

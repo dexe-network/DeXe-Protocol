@@ -40,7 +40,7 @@ library TraderPoolPrice {
         for (uint256 i = 0; i < length; i++) {
             positionTokens[i] = openPositions.at(i);
 
-            positionPricesInBase[i] = priceFeed.getNormalizedPriceOut(
+            (positionPricesInBase[i], ) = priceFeed.getNormalizedPriceOut(
                 positionTokens[i],
                 poolParameters.baseToken,
                 positionTokens[i].normThisBalance()
@@ -56,7 +56,7 @@ library TraderPoolPrice {
     ) external view returns (uint256 totalBase, uint256 totalUSD) {
         (totalBase, , , ) = getNormalizedPoolPriceAndPositions(poolParameters, openPositions);
 
-        totalUSD = ITraderPool(address(this)).priceFeed().getNormalizedPriceOutUSD(
+        (totalUSD, ) = ITraderPool(address(this)).priceFeed().getNormalizedPriceOutUSD(
             poolParameters.baseToken,
             totalBase
         );

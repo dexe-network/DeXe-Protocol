@@ -522,7 +522,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 amount,
         address[] calldata optionalPath,
         bool fromExact
-    ) internal view returns (uint256) {
+    ) internal view returns (uint256, address[] memory) {
         return
             _poolParameters.getExchangeAmount(
                 _openPositions,
@@ -539,7 +539,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         address to,
         uint256 amountIn,
         address[] calldata optionalPath
-    ) external view override returns (uint256 minAmountOut) {
+    ) external view override returns (uint256 minAmountOut, address[] memory path) {
         return _getExchangeAmount(from, to, amountIn, optionalPath, true);
     }
 
@@ -558,7 +558,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         address to,
         uint256 amountOut,
         address[] calldata optionalPath
-    ) external view override returns (uint256 maxAmountIn) {
+    ) external view override returns (uint256 maxAmountIn, address[] memory path) {
         return _getExchangeAmount(from, to, amountOut, optionalPath, false);
     }
 

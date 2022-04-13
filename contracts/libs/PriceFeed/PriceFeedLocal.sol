@@ -22,8 +22,8 @@ library PriceFeedLocal {
         address inToken,
         address outToken,
         uint256 amountIn
-    ) internal view returns (uint256) {
-        return priceFeed.getNormalizedPriceOut(inToken, outToken, amountIn);
+    ) internal view returns (uint256 amountOut) {
+        (amountOut, ) = priceFeed.getNormalizedPriceOut(inToken, outToken, amountIn);
     }
 
     function getNormPriceIn(
@@ -31,8 +31,8 @@ library PriceFeedLocal {
         address inToken,
         address outToken,
         uint256 amountOut
-    ) internal view returns (uint256) {
-        return priceFeed.getNormalizedPriceIn(inToken, outToken, amountOut);
+    ) internal view returns (uint256 amountIn) {
+        (amountIn, ) = priceFeed.getNormalizedPriceIn(inToken, outToken, amountOut);
     }
 
     function normExchangeFromExact(

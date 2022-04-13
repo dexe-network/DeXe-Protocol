@@ -88,9 +88,9 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address outToken,
         uint256 amountIn,
         address[] memory optionalPath
-    ) public view virtual override returns (uint256) {
+    ) public view virtual override returns (uint256 amountOut, address[] memory path) {
         if (inToken == outToken) {
-            return amountIn;
+            return (amountIn, new address[](0));
         }
 
         if (optionalPath.length == 0) {
@@ -104,7 +104,10 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             optionalPath
         );
 
-        return foundPath.amounts.length > 0 ? foundPath.amounts[foundPath.amounts.length - 1] : 0;
+        return
+            foundPath.amounts.length > 0
+                ? (foundPath.amounts[foundPath.amounts.length - 1], foundPath.path)
+                : (0, new address[](0));
     }
 
     function getExtendedPriceIn(
@@ -112,9 +115,9 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address outToken,
         uint256 amountOut,
         address[] memory optionalPath
-    ) public view virtual override returns (uint256) {
+    ) public view virtual override returns (uint256 amountIn, address[] memory path) {
         if (inToken == outToken) {
-            return amountOut;
+            return (amountOut, new address[](0));
         }
 
         if (optionalPath.length == 0) {
@@ -128,7 +131,10 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             optionalPath
         );
 
-        return foundPath.amounts.length > 0 ? foundPath.amounts[0] : 0;
+        return
+            foundPath.amounts.length > 0
+                ? (foundPath.amounts[0], foundPath.path)
+                : (0, new address[](0));
     }
 
     function getNormalizedExtendedPriceOut(
@@ -136,14 +142,15 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address outToken,
         uint256 amountIn,
         address[] memory optionalPath
-    ) public view virtual override returns (uint256) {
-        return
-            getExtendedPriceOut(
-                inToken,
-                outToken,
-                amountIn.convertFrom18(ERC20(inToken).decimals()),
-                optionalPath
-            ).convertTo18(ERC20(outToken).decimals());
+    ) public view virtual override returns (uint256 amountOut, address[] memory path) {
+        (amountOut, path) = getExtendedPriceOut(
+            inToken,
+            outToken,
+            amountIn.convertFrom18(ERC20(inToken).decimals()),
+            optionalPath
+        );
+
+        amountOut = amountOut.convertTo18(ERC20(outToken).decimals());
     }
 
     function getNormalizedExtendedPriceIn(
@@ -151,49 +158,50 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address outToken,
         uint256 amountOut,
         address[] memory optionalPath
-    ) public view virtual override returns (uint256) {
-        return
-            getExtendedPriceIn(
-                inToken,
-                outToken,
-                amountOut.convertFrom18(ERC20(outToken).decimals()),
-                optionalPath
-            ).convertTo18(ERC20(inToken).decimals());
+    ) public view virtual override returns (uint256 amountIn, address[] memory path) {
+        (amountIn, path) = getExtendedPriceIn(
+            inToken,
+            outToken,
+            amountOut.convertFrom18(ERC20(outToken).decimals()),
+            optionalPath
+        );
+
+        amountIn = amountIn.convertTo18(ERC20(inToken).decimals());
     }
 
     function getNormalizedPriceOut(
         address inToken,
         address outToken,
         uint256 amountIn
-    ) public view virtual override returns (uint256) {
+    ) public view virtual override returns (uint256 amountOut, address[] memory path) {
         return
-            getExtendedPriceOut(
+            getNormalizedExtendedPriceOut(
                 inToken,
                 outToken,
-                amountIn.convertFrom18(ERC20(inToken).decimals()),
+                amountIn,
                 _savedPaths[_msgSender()][inToken][outToken]
-            ).convertTo18(ERC20(outToken).decimals());
+            );
     }
 
     function getNormalizedPriceIn(
         address inToken,
         address outToken,
         uint256 amountOut
-    ) public view virtual override returns (uint256) {
+    ) public view virtual override returns (uint256 amountIn, address[] memory path) {
         return
-            getExtendedPriceIn(
+            getNormalizedExtendedPriceIn(
                 inToken,
                 outToken,
-                amountOut.convertFrom18(ERC20(outToken).decimals()),
+                amountOut,
                 _savedPaths[_msgSender()][inToken][outToken]
-            ).convertTo18(ERC20(inToken).decimals());
+            );
     }
 
     function getNormalizedPriceOutUSD(address inToken, uint256 amountIn)
         external
         view
         override
-        returns (uint256)
+        returns (uint256 amountOut, address[] memory path)
     {
         return getNormalizedPriceOut(inToken, _usdAddress, amountIn);
     }
@@ -202,7 +210,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         external
         view
         override
-        returns (uint256)
+        returns (uint256 amountIn, address[] memory path)
     {
         return getNormalizedPriceIn(inToken, _usdAddress, amountOut);
     }
@@ -211,7 +219,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         external
         view
         override
-        returns (uint256)
+        returns (uint256 amountOut, address[] memory path)
     {
         return getNormalizedPriceOut(inToken, _dexeAddress, amountIn);
     }
@@ -220,7 +228,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         external
         view
         override
-        returns (uint256)
+        returns (uint256 amountIn, address[] memory path)
     {
         return getNormalizedPriceIn(inToken, _dexeAddress, amountOut);
     }
@@ -228,12 +236,12 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     function _savePath(
         address inToken,
         address outToken,
-        address[] memory path,
-        bool save
+        address[] memory path
     ) internal {
-        require(path.length > 0, "PriceFeed: unreacheable asset");
-
-        if (save) {
+        if (
+            keccak256(abi.encode(path)) !=
+            keccak256(abi.encode(_savedPaths[_msgSender()][inToken][outToken]))
+        ) {
             _savedPaths[_msgSender()][inToken][outToken] = path;
             _savedPaths[_msgSender()][outToken][inToken] = path.reverse();
         }
@@ -251,7 +259,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address inToken,
         address outToken,
         uint256 amountIn,
-        address[] calldata optionalPath,
+        address[] memory optionalPath,
         uint256 minAmountOut
     ) public virtual override returns (uint256) {
         if (amountIn == 0) {
@@ -262,6 +270,10 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             return amountIn;
         }
 
+        if (optionalPath.length == 0) {
+            optionalPath = _savedPaths[_msgSender()][inToken][outToken];
+        }
+
         FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceOut(
             inToken,
             outToken,
@@ -269,7 +281,12 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             optionalPath
         );
 
-        _savePath(inToken, outToken, foundPath.path, foundPath.withSavedPath);
+        require(foundPath.path.length > 0, "PriceFeed: unreachable asset");
+
+        if (foundPath.withProvidedPath) {
+            _savePath(inToken, outToken, foundPath.path);
+        }
+
         _grabTokens(inToken, amountIn);
 
         uint256[] memory outs = uniswapV2Router.swapExactTokensForTokens(
@@ -287,7 +304,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address inToken,
         address outToken,
         uint256 amountOut,
-        address[] calldata optionalPath,
+        address[] memory optionalPath,
         uint256 maxAmountIn
     ) public virtual override returns (uint256) {
         if (amountOut == 0) {
@@ -298,6 +315,10 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             return amountOut;
         }
 
+        if (optionalPath.length == 0) {
+            optionalPath = _savedPaths[_msgSender()][inToken][outToken];
+        }
+
         FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceIn(
             inToken,
             outToken,
@@ -305,7 +326,12 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             optionalPath
         );
 
-        _savePath(inToken, outToken, foundPath.path, foundPath.withSavedPath);
+        require(foundPath.path.length > 0, "PriceFeed: unreachable asset");
+
+        if (foundPath.withProvidedPath) {
+            _savePath(inToken, outToken, foundPath.path);
+        }
+
         _grabTokens(inToken, maxAmountIn);
 
         uint256[] memory ins = uniswapV2Router.swapTokensForExactTokens(
@@ -384,6 +410,14 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
 
     function getPathTokens() external view override returns (address[] memory) {
         return _pathTokens.values();
+    }
+
+    function getSavedPaths(
+        address pool,
+        address from,
+        address to
+    ) external view override returns (address[] memory) {
+        return _savedPaths[pool][from][to];
     }
 
     function isSupportedBaseToken(address token) external view override returns (bool) {

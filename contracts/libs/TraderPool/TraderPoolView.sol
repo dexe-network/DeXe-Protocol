@@ -15,9 +15,10 @@ import "../../trader/TraderPool.sol";
 import "./TraderPoolPrice.sol";
 import "./TraderPoolCommission.sol";
 import "./TraderPoolLeverage.sol";
-import "../../libs/MathHelper.sol";
-import "../../libs/DecimalsConverter.sol";
-import "../../libs/TokenBalance.sol";
+import "../MathHelper.sol";
+import "../DecimalsConverter.sol";
+import "../TokenBalance.sol";
+import "../PriceFeed/PriceFeedLocal.sol";
 
 library TraderPoolView {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -29,6 +30,7 @@ library TraderPoolView {
     using MathHelper for uint256;
     using Math for uint256;
     using TokenBalance for address;
+    using PriceFeedLocal for IPriceFeed;
 
     function _getTraderAndPlatformCommissions(
         ITraderPool.PoolParameters storage poolParameters,
@@ -40,7 +42,7 @@ library TraderPoolView {
 
         commissions.dexeBaseCommission = baseCommission.percentage(dexePercentage);
         commissions.traderBaseCommission = baseCommission - commissions.dexeBaseCommission;
-        commissions.dexeDexeCommission = ITraderPool(address(this))
+        (commissions.dexeDexeCommission, ) = ITraderPool(address(this))
             .priceFeed()
             .getNormalizedPriceOutDEXE(poolParameters.baseToken, commissions.dexeBaseCommission);
     }
@@ -77,7 +79,7 @@ library TraderPoolView {
                 amountInBaseToInvest,
                 totalBase
             );
-            receptions.receivedAmounts[i] = priceFeed.getNormalizedPriceOut(
+            receptions.receivedAmounts[i] = priceFeed.getNormPriceOut(
                 poolParameters.baseToken,
                 positionTokens[i],
                 receptions.givenAmounts[i]
@@ -154,7 +156,7 @@ library TraderPoolView {
                     .ratio(amountLP, totalSupply)
                     .convertTo18(ERC20(receptions.positions[i]).decimals());
 
-                receptions.receivedAmounts[i] = priceFeed.getNormalizedPriceOut(
+                receptions.receivedAmounts[i] = priceFeed.getNormPriceOut(
                     receptions.positions[i],
                     address(baseToken),
                     receptions.givenAmounts[i]
@@ -182,9 +184,9 @@ library TraderPoolView {
         uint256 amount,
         address[] calldata optionalPath,
         bool fromExact
-    ) external view returns (uint256) {
+    ) external view returns (uint256, address[] memory) {
         if (from == to || (from != poolParameters.baseToken && !openPositions.contains(from))) {
-            return 0;
+            return (0, new address[](0));
         }
 
         IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
@@ -208,7 +210,7 @@ library TraderPoolView {
             leverageInfo.freeLeverageUSD =
                 leverageInfo.traderLeverageUSDTokens -
                 leverageInfo.totalPoolUSDWithProposals;
-            leverageInfo.freeLeverageBase = ITraderPool(address(this))
+            (leverageInfo.freeLeverageBase, ) = ITraderPool(address(this))
                 .priceFeed()
                 .getNormalizedPriceInUSD(poolParameters.baseToken, leverageInfo.freeLeverageUSD);
         }
@@ -282,7 +284,7 @@ library TraderPoolView {
         (poolInfo.totalPoolBase, poolInfo.totalPoolUSD) = poolParameters
             .getNormalizedPoolPriceAndUSD(openPositions);
 
-        poolInfo.lpSupply = ERC20(address(this)).totalSupply();
+        poolInfo.lpSupply = IERC20(address(this)).totalSupply();
         poolInfo.lpLockedInProposals =
             ITraderPool(address(this)).totalEmission() -
             poolInfo.lpSupply;

@@ -222,12 +222,12 @@ describe("InvestTraderPool", () => {
   }
 
   async function exchangeFromExact(from, to, amount) {
-    const exchange = await traderPool.getExchangeFromExactAmount(from, to, amount, []);
+    const exchange = (await traderPool.getExchangeFromExactAmount(from, to, amount, []))[0];
     await traderPool.exchangeFromExact(from, to, amount, exchange, []);
   }
 
   async function exchangeToExact(from, to, amount) {
-    const exchange = await traderPool.getExchangeToExactAmount(from, to, amount, []);
+    const exchange = (await traderPool.getExchangeToExactAmount(from, to, amount, []))[0];
     await traderPool.exchangeToExact(from, to, amount, exchange, []);
   }
 

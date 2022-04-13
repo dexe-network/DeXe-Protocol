@@ -75,7 +75,7 @@ library TraderPoolLeverage {
             poolParameters,
             openPositions
         );
-        uint256 addInUSD = ITraderPool(address(this)).priceFeed().getNormalizedPriceOutUSD(
+        (uint256 addInUSD, ) = ITraderPool(address(this)).priceFeed().getNormalizedPriceOutUSD(
             poolParameters.baseToken,
             amountInBaseToInvest
         );

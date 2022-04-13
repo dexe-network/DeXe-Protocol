@@ -14,9 +14,9 @@ contract PriceFeedMock is PriceFeed {
         address outToken,
         uint256 amountIn,
         address[] memory optionalPath
-    ) public view override returns (uint256) {
+    ) public view override returns (uint256, address[] memory) {
         if (amountIn == 0) {
-            return 0;
+            return (0, new address[](0));
         }
 
         address[] memory path = new address[](2);
@@ -26,7 +26,7 @@ contract PriceFeedMock is PriceFeed {
 
         uint256[] memory outs = uniswapV2Router.getAmountsOut(amountIn, path);
 
-        return outs[outs.length - 1];
+        return (outs[outs.length - 1], path);
     }
 
     function getExtendedPriceIn(
@@ -34,9 +34,9 @@ contract PriceFeedMock is PriceFeed {
         address outToken,
         uint256 amountOut,
         address[] memory optionalPath
-    ) public view override returns (uint256) {
+    ) public view override returns (uint256, address[] memory) {
         if (amountOut == 0) {
-            return 0;
+            return (0, new address[](0));
         }
 
         address[] memory path = new address[](2);
@@ -46,14 +46,14 @@ contract PriceFeedMock is PriceFeed {
 
         uint256[] memory ins = uniswapV2Router.getAmountsIn(amountOut, path);
 
-        return ins[0];
+        return (ins[0], path);
     }
 
     function exchangeFromExact(
         address inToken,
         address outToken,
         uint256 amountIn,
-        address[] calldata optionalPath,
+        address[] memory optionalPath,
         uint256 minAmountOut
     ) public override returns (uint256) {
         if (amountIn == 0) {
@@ -82,7 +82,7 @@ contract PriceFeedMock is PriceFeed {
         address inToken,
         address outToken,
         uint256 amountOut,
-        address[] calldata optionalPath,
+        address[] memory optionalPath,
         uint256 maxAmountIn
     ) public override returns (uint256) {
         if (amountOut == 0) {
