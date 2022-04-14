@@ -210,12 +210,12 @@ describe("TraderPool", () => {
   }
 
   async function exchangeFromExact(from, to, amount) {
-    const exchange = await traderPool.getExchangeFromExactAmount(from, to, amount, []);
+    const exchange = (await traderPool.getExchangeFromExactAmount(from, to, amount, []))[0];
     await traderPool.exchangeFromExact(from, to, amount, exchange, []);
   }
 
   async function exchangeToExact(from, to, amount) {
-    const exchange = await traderPool.getExchangeToExactAmount(from, to, amount, []);
+    const exchange = (await traderPool.getExchangeToExactAmount(from, to, amount, []))[0];
     await traderPool.exchangeToExact(from, to, amount, exchange, []);
   }
 
@@ -296,12 +296,9 @@ describe("TraderPool", () => {
       it("should exchange from exact tokens", async () => {
         await uniswapV2Router.setReserve(tokens.WBTC.address, wei("500000", 8));
 
-        const exchange = await traderPool.getExchangeFromExactAmount(
-          tokens.WETH.address,
-          tokens.WBTC.address,
-          wei("500"),
-          []
-        );
+        const exchange = (
+          await traderPool.getExchangeFromExactAmount(tokens.WETH.address, tokens.WBTC.address, wei("500"), [])
+        ).minAmountOut;
 
         assert.equal(exchange.toFixed(), wei("250"));
 
@@ -316,12 +313,9 @@ describe("TraderPool", () => {
       it("should exchange to exact tokens", async () => {
         await uniswapV2Router.setReserve(tokens.WBTC.address, wei("500000", 8));
 
-        const exchange = await traderPool.getExchangeToExactAmount(
-          tokens.WETH.address,
-          tokens.WBTC.address,
-          wei("250"),
-          []
-        );
+        const exchange = (
+          await traderPool.getExchangeToExactAmount(tokens.WETH.address, tokens.WBTC.address, wei("250"), [])
+        ).maxAmountIn;
 
         assert.equal(exchange.toFixed(), wei("500"));
 
@@ -389,12 +383,17 @@ describe("TraderPool", () => {
         assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("900"));
         assert.equal((await tokens.MANA.balanceOf(traderPool.address)).toFixed(), wei("100"));
 
-        const price = await priceFeed.getExtendedPriceOut(tokens.WETH.address, tokens.MANA.address, wei("500"), []);
+        const price = (
+          await priceFeed.getExtendedPriceOut(tokens.WETH.address, tokens.MANA.address, wei("500"), [])
+        )[0];
 
         await exchangeFromExact(tokens.WETH.address, tokens.MANA.address, wei("500"));
 
         assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("400"));
-        assert.equal((await tokens.MANA.balanceOf(traderPool.address)).toFixed(), toBN(wei("100")).plus(price));
+        assert.equal(
+          (await tokens.MANA.balanceOf(traderPool.address)).toFixed(),
+          toBN(wei("100")).plus(price).toFixed()
+        );
       });
 
       it("should close a position", async () => {
@@ -408,7 +407,7 @@ describe("TraderPool", () => {
       it("should reopen a position", async () => {
         assert.equal((await traderPool.openPositions()).length, 1);
 
-        const price = await priceFeed.getExtendedPriceOut(tokens.MANA.address, tokens.WBTC.address, wei("50"), []);
+        const price = (await priceFeed.getExtendedPriceOut(tokens.MANA.address, tokens.WBTC.address, wei("50"), []))[0];
 
         await exchangeFromExact(tokens.MANA.address, tokens.WBTC.address, wei("50"));
 
@@ -780,7 +779,9 @@ describe("TraderPool", () => {
         assert.equal(wbtcBalance.toFixed(), wei("600", 8));
         assert.equal(manaBalance.toFixed(), wei("400"));
 
-        const manaPrice = await priceFeed.getExtendedPriceOut(tokens.MANA.address, tokens.WBTC.address, wei("400"), []);
+        const manaPrice = (
+          await priceFeed.getExtendedPriceOut(tokens.MANA.address, tokens.WBTC.address, wei("400"), [])
+        )[0];
         const wbtcPrice = await tokens.WBTC.balanceOf(traderPool.address);
         const totalPrice = manaPrice.plus(wbtcPrice);
 
@@ -789,7 +790,7 @@ describe("TraderPool", () => {
 
         const wbtc = wbtcBalance.plus(proportionWBTC).plus(1);
         const mana = manaBalance.plus(
-          await priceFeed.getExtendedPriceOut(tokens.WBTC.address, tokens.MANA.address, proportionMANA, [])
+          (await priceFeed.getExtendedPriceOut(tokens.WBTC.address, tokens.MANA.address, proportionMANA, []))[0]
         );
 
         await tokens.WBTC.mint(SECOND, wei("1000", 8));

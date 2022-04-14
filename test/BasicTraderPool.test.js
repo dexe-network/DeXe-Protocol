@@ -218,18 +218,20 @@ describe("BasicTraderPool", () => {
   }
 
   async function exchangeFromExact(from, to, amount) {
-    const exchange = await traderPool.getExchangeFromExactAmount(from, to, amount, []);
+    const exchange = (await traderPool.getExchangeFromExactAmount(from, to, amount, []))[0];
     await traderPool.exchangeFromExact(from, to, amount, exchange, []);
   }
 
   async function exchangeToExact(from, to, amount) {
-    const exchange = await traderPool.getExchangeToExactAmount(from, to, amount, []);
+    const exchange = (await traderPool.getExchangeToExactAmount(from, to, amount, []))[0];
     await traderPool.exchangeToExact(from, to, amount, exchange, []);
   }
 
   async function createProposal(token, value, limits, percentage) {
     const divests = await traderPool.getDivestAmountsAndCommissions(OWNER, value);
-    const creationTokens = await proposalPool.getCreationTokens(token, divests.receptions.baseAmount, percentage, []);
+    const creationTokens = (
+      await proposalPool.getCreationTokens(token, divests.receptions.baseAmount, percentage, [])
+    )[0];
 
     await traderPool.createProposal(
       token,
@@ -252,12 +254,12 @@ describe("BasicTraderPool", () => {
   }
 
   async function exchangeFromExactProposal(proposalId, from, amount) {
-    const amountOut = await proposalPool.getExchangeFromExactAmount(proposalId, from, amount, []);
+    const amountOut = (await proposalPool.getExchangeFromExactAmount(proposalId, from, amount, []))[0];
     await proposalPool.exchangeFromExact(proposalId, from, amount, amountOut, []);
   }
 
   async function exchangeToExactProposal(proposalId, from, amount) {
-    const amountOut = await proposalPool.getExchangeToExactAmount(proposalId, from, amount, []);
+    const amountOut = (await proposalPool.getExchangeToExactAmount(proposalId, from, amount, []))[0];
     await proposalPool.exchangeToExact(proposalId, from, amount, amountOut, []);
   }
 

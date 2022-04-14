@@ -10,16 +10,16 @@ interface IPriceFeed {
     /// @notice A struct this is returned from the UniswapV2PathFinder library when an optimal* path is found
     /// @param path the optimal* path itself
     /// @param amounts either the "amounts out" or "amounts in" required
-    /// @param withSavedPath a bool flag saying if the path is found via the specified path
+    /// @param withProvidedPath a bool flag saying if the path is found via the specified path
     struct FoundPath {
         address[] path;
         uint256[] amounts;
-        bool withSavedPath;
+        bool withProvidedPath;
     }
 
     /// @notice This function sets path tokens that will be used in the pathfinder
     /// @param pathTokens the array of tokens to be added into the path finder
-    function setPathTokens(address[] calldata pathTokens) external;
+    function addPathTokens(address[] calldata pathTokens) external;
 
     /// @notice This function removes path tokens from the pathfinder
     /// @param pathTokens the array of tokens to be removed from the pathfinder
@@ -40,13 +40,14 @@ interface IPriceFeed {
     /// @param outToken the received token
     /// @param amountIn the amount of inToken to be excanged (in inToken decimals)
     /// @param optionalPath the optional path between inToken and outToken that will be used in the pathfinder
-    /// @return received amount of outToken after the swap (in outToken decimals)
+    /// @return amountOut amount of outToken after the swap (in outToken decimals)
+    /// @return path the tokens path that will be used during the swap
     function getExtendedPriceOut(
         address inToken,
         address outToken,
         uint256 amountIn,
         address[] memory optionalPath
-    ) external view returns (uint256);
+    ) external view returns (uint256 amountOut, address[] memory path);
 
     /// @notice This function tries to find the optimal exchange rate (the price) between "inToken" and "outToken" using
     /// custom pathfinder, saved paths and optional specified path. The optimality is reached when the amount of
@@ -55,37 +56,40 @@ interface IPriceFeed {
     /// @param outToken the received token
     /// @param amountOut the amount of outToken to be received (in inToken decimals)
     /// @param optionalPath the optional path between inToken and outToken that will be used in the pathfinder
-    /// @return required amount of inToken to execute a swap (in outToken decimals)
+    /// @return amountIn amount of inToken to execute a swap (in outToken decimals)
+    /// @return path the tokens path that will be used during the swap
     function getExtendedPriceIn(
         address inToken,
         address outToken,
         uint256 amountOut,
         address[] memory optionalPath
-    ) external view returns (uint256);
+    ) external view returns (uint256 amountIn, address[] memory path);
 
     /// @notice Shares the same functionality as "getExtendedPriceOut" function with automatical usage of saved paths.
     /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
     /// @param inToken the token to exchange from
     /// @param outToken the token to exchange to
     /// @param amountIn the amount of inToken to be exchanged (with 18 decimals)
-    /// @return the received amount of outToken after the swap (with 18 decimals)
+    /// @return amountOut the received amount of outToken after the swap (with 18 decimals)
+    /// @return path the tokens path that will be used during the swap
     function getNormalizedPriceOut(
         address inToken,
         address outToken,
         uint256 amountIn
-    ) external view returns (uint256);
+    ) external view returns (uint256 amountOut, address[] memory path);
 
     /// @notice Shares the same functionality as "getExtendedPriceIn" function with automatical usage of saved paths.
     /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
     /// @param inToken the token to exchange from
     /// @param outToken the token to exchange to
     /// @param amountOut the amount of outToken to be received (with 18 decimals)
-    /// @return the required amount of inToken to execute the swap (with 18 decimals)
+    /// @return amountIn required amount of inToken to execute the swap (with 18 decimals)
+    /// @return path the tokens path that will be used during the swap
     function getNormalizedPriceIn(
         address inToken,
         address outToken,
         uint256 amountOut
-    ) external view returns (uint256);
+    ) external view returns (uint256 amountIn, address[] memory path);
 
     /// @notice Shares the same functionality as "getExtendedPriceOut" function.
     /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
@@ -93,13 +97,14 @@ interface IPriceFeed {
     /// @param outToken the token to exchange to
     /// @param amountIn the amount of inToken to be exchanged (with 18 decimals)
     /// @param optionalPath the optional path between inToken and outToken that will be used in the pathfinder
-    /// @return the received amount of outToken after the swap (with 18 decimals)
+    /// @return amountOut the received amount of outToken after the swap (with 18 decimals)
+    /// @return path the tokens path that will be used during the swap
     function getNormalizedExtendedPriceOut(
         address inToken,
         address outToken,
         uint256 amountIn,
         address[] memory optionalPath
-    ) external view returns (uint256);
+    ) external view returns (uint256 amountOut, address[] memory path);
 
     /// @notice Shares the same functionality as "getExtendedPriceIn" function.
     /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
@@ -107,49 +112,54 @@ interface IPriceFeed {
     /// @param outToken the token to exchange to
     /// @param amountOut the amount of outToken to be received (with 18 decimals)
     /// @param optionalPath the optional path between inToken and outToken that will be used in the pathfinder
-    /// @return the required amount of inToken to execute the swap (with 18 decimals)
+    /// @return amountIn the required amount of inToken to execute the swap (with 18 decimals)
+    /// @return path the tokens path that will be used during the swap
     function getNormalizedExtendedPriceIn(
         address inToken,
         address outToken,
         uint256 amountOut,
         address[] memory optionalPath
-    ) external view returns (uint256);
+    ) external view returns (uint256 amountIn, address[] memory path);
 
     /// @notice The same as "getPriceOut" with "outToken" being native USD token
     /// @param inToken the token to be exchanged from
     /// @param amountIn the amount of inToken to exchange (with 18 decimals)
-    /// @return received amount of native USD tokens after the swap (with 18 decimals)
+    /// @return amountOut the received amount of native USD tokens after the swap (with 18 decimals)
+    /// @return path the tokens path that will be used during the swap
     function getNormalizedPriceOutUSD(address inToken, uint256 amountIn)
         external
         view
-        returns (uint256);
+        returns (uint256 amountOut, address[] memory path);
 
     /// @notice The same as "getPriceIn" with "outToken" being USD token
     /// @param inToken the token to get the price of
     /// @param amountOut the amount of USD to be received (with 18 decimals)
-    /// @return received amount of inToken to receive given USD (with 18 decimals)
+    /// @return amountIn the required amount of inToken to execute the swap (with 18 decimals)
+    /// @return path the tokens path that will be used during the swap
     function getNormalizedPriceInUSD(address inToken, uint256 amountOut)
         external
         view
-        returns (uint256);
+        returns (uint256 amountIn, address[] memory path);
 
     /// @notice The same as "getPriceOut" with "outToken" being DEXE token
     /// @param inToken the token to be exchanged from
     /// @param amountIn the amount of inToken to exchange (with 18 decimals)
-    /// @return received amount of DEXE tokens after the swap (with 18 decimals)
+    /// @return amountOut the received amount of DEXE tokens after the swap (with 18 decimals)
+    /// @return path the tokens path that will be used during the swap
     function getNormalizedPriceOutDEXE(address inToken, uint256 amountIn)
         external
         view
-        returns (uint256);
+        returns (uint256 amountOut, address[] memory path);
 
     /// @notice The same as "getPriceIn" with "outToken" being DEXE token
     /// @param inToken the token to get the price of
     /// @param amountOut the amount of DEXE to be received (with 18 decimals)
-    /// @return received amount of inToken to receive given DEXE (with 18 decimals)
+    /// @return amountIn the required amount of inToken to execute the swap (with 18 decimals)
+    /// @return path the tokens path that will be used during the swap
     function getNormalizedPriceInDEXE(address inToken, uint256 amountOut)
         external
         view
-        returns (uint256);
+        returns (uint256 amountIn, address[] memory path);
 
     /// @notice The function that performs an actual Uniswap swap (swapExactTokensForTokens),
     /// taking the amountIn inToken tokens from the msg.sender and sending not less than minAmountOut outTokens back.
@@ -237,6 +247,17 @@ interface IPriceFeed {
     /// @notice The function to get the list of path tokens
     /// @return the list of path tokens
     function getPathTokens() external view returns (address[] memory);
+
+    /// @notice The function to get the list of saved tokens of the pool
+    /// @param pool the address the path is saved for
+    /// @param from the from token (path beginning)
+    /// @param to the to token (path ending)
+    /// @return the array of addresses representing the inclusive path between tokens
+    function getSavedPaths(
+        address pool,
+        address from,
+        address to
+    ) external view returns (address[] memory);
 
     /// @notice This function checks if the provided token can be used as a base token
     /// @param token the token to be checked

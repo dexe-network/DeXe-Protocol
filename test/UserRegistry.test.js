@@ -81,4 +81,14 @@ describe("UserRegistry", () => {
       assert.isTrue(await userRegistry.agreed(OWNER));
     });
   });
+
+  describe("Profile", () => {
+    it("should set new profile URL", async () => {
+      assert.equal((await userRegistry.userInfos(OWNER)).profileURL, "");
+
+      await userRegistry.changeProfile("example.com");
+
+      assert.equal((await userRegistry.userInfos(OWNER)).profileURL, "example.com");
+    });
+  });
 });

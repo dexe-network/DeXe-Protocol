@@ -5,21 +5,22 @@ import "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "../interfaces/trader/ITraderPoolFactory.sol";
-import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/trader/ITraderPool.sol";
+import "../interfaces/core/IContractsRegistry.sol";
+
+import "../proxy/contracts-registry/AbstractDependant.sol";
 
 import "../trader/BasicTraderPool.sol";
 import "../trader/InvestTraderPool.sol";
 import "../trader/TraderPoolRiskyProposal.sol";
 import "../trader/TraderPoolInvestProposal.sol";
 import "../trader/TraderPoolRegistry.sol";
-import "../helpers/AbstractDependant.sol";
 import "../core/CoreProperties.sol";
 import "../core/Globals.sol";
 import "../core/PriceFeed.sol";
 
 contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDependant {
-    IContractsRegistry internal _contractsRegistry;
+    address internal _contractsRegistry;
     TraderPoolRegistry internal _traderPoolRegistry;
     PriceFeed internal _priceFeed;
     CoreProperties internal _coreProperties;
@@ -39,14 +40,14 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         __Ownable_init();
     }
 
-    function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
+    function setDependencies(address contractsRegistry) external override dependant {
         _contractsRegistry = contractsRegistry;
 
-        _traderPoolRegistry = TraderPoolRegistry(
-            contractsRegistry.getTraderPoolRegistryContract()
-        );
-        _priceFeed = PriceFeed(contractsRegistry.getPriceFeedContract());
-        _coreProperties = CoreProperties(contractsRegistry.getCorePropertiesContract());
+        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
+
+        _traderPoolRegistry = TraderPoolRegistry(registry.getTraderPoolRegistryContract());
+        _priceFeed = PriceFeed(registry.getPriceFeedContract());
+        _coreProperties = CoreProperties(registry.getCorePropertiesContract());
     }
 
     function _deploy(string memory name) internal returns (address proxy) {

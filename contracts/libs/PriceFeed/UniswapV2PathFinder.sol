@@ -47,7 +47,7 @@ library UniswapV2PathFinder {
         uint256 amount,
         function(uint256, address[] memory) external view returns (uint256[] memory) priceFunction,
         function(uint256[] memory, uint256[] memory) internal pure returns (bool) compare,
-        address[] calldata savedPath
+        address[] calldata providedPath
     ) internal view returns (IPriceFeed.FoundPath memory foundPath) {
         if (amount == 0) {
             return IPriceFeed.FoundPath(new address[](0), new uint256[](0), true);
@@ -61,38 +61,36 @@ library UniswapV2PathFinder {
             foundPath.amounts = priceFunction(amount, foundPath.path);
         }
 
-        address[] memory path3 = new address[](3);
-        path3[0] = inToken;
-        path3[2] = outToken;
-
-        uint256[] memory tmpOuts;
         uint256 length = pathTokens.length();
 
         for (uint256 i = 0; i < length; i++) {
+            address[] memory path3 = new address[](3);
+            path3[0] = inToken;
             path3[1] = pathTokens.at(i);
+            path3[2] = outToken;
 
             if (_uniswapPairsExist(path3)) {
-                tmpOuts = priceFunction(amount, path3);
+                uint256[] memory tmpValues = priceFunction(amount, path3);
 
-                if (foundPath.amounts.length == 0 || compare(tmpOuts, foundPath.amounts)) {
-                    foundPath.amounts = tmpOuts;
+                if (foundPath.path.length == 0 || compare(tmpValues, foundPath.amounts)) {
+                    foundPath.amounts = tmpValues;
                     foundPath.path = path3;
                 }
             }
         }
 
         if (
-            savedPath.length >= 3 &&
-            savedPath[0] == inToken &&
-            savedPath[savedPath.length - 1] == outToken &&
-            _uniswapPairsExist(savedPath)
+            providedPath.length >= 3 &&
+            providedPath[0] == inToken &&
+            providedPath[providedPath.length - 1] == outToken &&
+            _uniswapPairsExist(providedPath)
         ) {
-            tmpOuts = priceFunction(amount, savedPath);
+            uint256[] memory tmpValues = priceFunction(amount, providedPath);
 
-            if (foundPath.amounts.length == 0 || compare(tmpOuts, foundPath.amounts)) {
-                foundPath.amounts = tmpOuts;
-                foundPath.path = savedPath;
-                foundPath.withSavedPath = true;
+            if (foundPath.path.length == 0 || compare(tmpValues, foundPath.amounts)) {
+                foundPath.amounts = tmpValues;
+                foundPath.path = providedPath;
+                foundPath.withProvidedPath = true;
             }
         }
     }
@@ -102,7 +100,7 @@ library UniswapV2PathFinder {
         address inToken,
         address outToken,
         uint256 amountIn,
-        address[] calldata savedPath
+        address[] calldata providedPath
     ) external view returns (IPriceFeed.FoundPath memory foundPath) {
         return
             _getPathWithPrice(
@@ -112,7 +110,7 @@ library UniswapV2PathFinder {
                 amountIn,
                 PriceFeed(address(this)).uniswapV2Router().getAmountsOut,
                 _uniswapMore,
-                savedPath
+                providedPath
             );
     }
 
@@ -121,7 +119,7 @@ library UniswapV2PathFinder {
         address inToken,
         address outToken,
         uint256 amountOut,
-        address[] calldata savedPath
+        address[] calldata providedPath
     ) external view returns (IPriceFeed.FoundPath memory foundPath) {
         return
             _getPathWithPrice(
@@ -131,7 +129,7 @@ library UniswapV2PathFinder {
                 amountOut,
                 PriceFeed(address(this)).uniswapV2Router().getAmountsIn,
                 _uniswapLess,
-                savedPath
+                providedPath
             );
     }
 }

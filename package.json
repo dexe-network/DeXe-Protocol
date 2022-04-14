@@ -5,6 +5,7 @@
   "scripts": {
     "install": "npx husky install",
     "compile": "npx hardhat compile --force",
+    "coverage": "npx hardhat coverage",
     "test": "npx hardhat test",
     "test-all": "npm run deploy-dev && npm run test",
     "private-network": "npx hardhat node",
@@ -32,12 +33,12 @@
     "hardhat-gas-reporter": "^1.0.4"
   },
   "devDependencies": {
+    "@metamask/eth-sig-util": "^4.0.0",
     "@nomiclabs/hardhat-etherscan": "^2.1.6",
     "@nomiclabs/hardhat-truffle5": "^2.0.1",
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@truffle/deployer": "3.2.56",
     "@truffle/reporters": "1.1.2",
-    "@metamask/eth-sig-util": "^4.0.0",
     "chai": "^4.3.4",
     "hardhat-contract-sizer": "^2.1.1",
     "hardhat-gas-reporter": "^1.0.4",
@@ -47,6 +48,7 @@
     "prettier-plugin-solidity": "^1.0.0-beta.18",
     "solhint": "^3.3.6",
     "solhint-plugin-prettier": "^0.0.5",
+    "solidity-coverage": "^0.7.20",
     "truffle-assertions": "^0.9.2",
     "web3": "^1.5.2"
   }

@@ -253,12 +253,13 @@ interface ITraderPool {
     /// @param amountIn the amount of from tokens to be exchanged
     /// @param optionalPath optional path between from and to tokens used by the pathfinder
     /// @return minAmountOut the amount of to tokens received after the swap
+    /// @return path the tokens path that will be used during the swap
     function getExchangeFromExactAmount(
         address from,
         address to,
         uint256 amountIn,
         address[] calldata optionalPath
-    ) external view returns (uint256 minAmountOut);
+    ) external view returns (uint256 minAmountOut, address[] memory path);
 
     /// @notice The function to exchange exact amount of from tokens to the to tokens (aka swapExactTokensForTokens)
     /// @param from the tokens to exchange from
@@ -280,12 +281,13 @@ interface ITraderPool {
     /// @param amountOut the amount of to tokens to be received
     /// @param optionalPath optional path between from and to tokens used by the pathfinder
     /// @return maxAmountIn the amount of from tokens required for the swap
+    /// @return path the tokens path that will be used during the swap
     function getExchangeToExactAmount(
         address from,
         address to,
         uint256 amountOut,
         address[] calldata optionalPath
-    ) external view returns (uint256 maxAmountIn);
+    ) external view returns (uint256 maxAmountIn, address[] memory path);
 
     /// @notice The function to exchange from tokens to the exact amount of to tokens (aka swapTokensForExactTokens)
     /// @param from the tokens to exchange from

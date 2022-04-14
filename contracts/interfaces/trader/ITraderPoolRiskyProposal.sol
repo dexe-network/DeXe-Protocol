@@ -105,12 +105,14 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// @param baseInvestment the amount of base tokens invested rightaway
     /// @param instantTradePercentage the percentage of tokens that will be traded instantly to a "token"
     /// @param optionalPath the optional path between base token and position token that will be used by the pathfinder
+    /// @return positionTokens the amount of position tokens received upon creation
+    /// @return path the tokens path that will be used during the swap
     function getCreationTokens(
         address token,
         uint256 baseInvestment,
         uint256 instantTradePercentage,
         address[] calldata optionalPath
-    ) external view returns (uint256);
+    ) external view returns (uint256 positionTokens, address[] memory path);
 
     /// @notice The function to create a proposal
     /// @param token the proposal token (the one that the trades are only allowed to)
@@ -132,10 +134,11 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     ) external returns (uint256 proposalId);
 
     /// @notice The function to get the amount of base tokens and position tokens received on this proposal investment
-    /// @param proposalId the id of the propoasl to invest in
+    /// @param proposalId the id of the proposal to invest in
     /// @param baseInvestment the amount of base tokens to be invested (normalized)
     /// @return baseAmount the received amount of base tokens (normalized)
     /// @return positionAmount the received amount of position tokens (normalized)
+    /// @return lp2Amount the amount of LP2 tokens received
     function getInvestTokens(uint256 proposalId, uint256 baseInvestment)
         external
         view
@@ -195,12 +198,13 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// @param amountIn the amount of from tokens to be exchanged
     /// @param optionalPath optional path between from and to tokens used by the pathfinder
     /// @return minAmountOut the amount of to tokens received after the swap
+    /// @return path the tokens path that will be used during the swap
     function getExchangeFromExactAmount(
         uint256 proposalId,
         address from,
         uint256 amountIn,
         address[] calldata optionalPath
-    ) external view returns (uint256 minAmountOut);
+    ) external view returns (uint256 minAmountOut, address[] memory path);
 
     /// @notice The function to exchange exact amount of from tokens to the to tokens (aka swapExactTokensForTokens)
     /// @param proposalId the id of the proposal where the swap will be executed
@@ -222,12 +226,13 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// @param amountOut the amount of to tokens to be received
     /// @param optionalPath optional path between from and to tokens used by the pathfinder
     /// @return maxAmountIn the amount of from tokens required for the swap
+    /// @return path the tokens path that will be used during the swap
     function getExchangeToExactAmount(
         uint256 proposalId,
         address from,
         uint256 amountOut,
         address[] calldata optionalPath
-    ) external view returns (uint256 maxAmountIn);
+    ) external view returns (uint256 maxAmountIn, address[] memory path);
 
     /// @notice The function to exchange from tokens to the exact amount of to tokens (aka swapTokensForExactTokens)
     /// @param proposalId the id of the proposal where the swap will be executed

@@ -12,6 +12,7 @@ module.exports = async (deployer) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
   const uniswapV2PathFinderLib = await UniswapV2PathFinderLib.new();
+
   await PriceFeed.link(uniswapV2PathFinderLib);
 
   const coreProperties = await deployer.deploy(CoreProperties);

@@ -3,6 +3,7 @@ require("@nomiclabs/hardhat-truffle5");
 require("@nomiclabs/hardhat-etherscan");
 require("hardhat-contract-sizer");
 require("hardhat-gas-reporter");
+require("solidity-coverage");
 
 const dotenv = require("dotenv");
 dotenv.config();
@@ -58,7 +59,7 @@ module.exports = {
     alphaSort: false,
     disambiguatePaths: false,
     runOnCompile: true,
-    strict: true,
+    strict: false,
   },
   gasReporter: {
     currency: "USD",

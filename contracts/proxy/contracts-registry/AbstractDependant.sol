@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "../interfaces/core/IContractsRegistry.sol";
-
 abstract contract AbstractDependant {
     /// @dev keccak256(AbstractDependant.setInjector(address)) - 1
     bytes32 private constant _INJECTOR_SLOT =
@@ -14,8 +12,9 @@ abstract contract AbstractDependant {
         _setInjector(msg.sender);
     }
 
-    /// @dev has to apply dependant() modifier
-    function setDependencies(IContractsRegistry) external virtual;
+    /// @notice has decendant has to apply dependant() modifier
+    /// The provided address is a registry to pull dependencies from
+    function setDependencies(address contractsRegistry) external virtual;
 
     function setInjector(address _injector) external {
         _checkInjector();

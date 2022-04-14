@@ -3,11 +3,11 @@ const { logTransaction } = require("../runners/logger.js");
 const Proxy = artifacts.require("TransparentUpgradeableProxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 
-const PriceFeed = artifacts.require("PriceFeedMock");
+const PriceFeed = artifacts.require("PriceFeed");
 
 async function configurePriceFeedTokens(priceFeed, baseAddresses, pathAddresses) {
   logTransaction(await priceFeed.addSupportedBaseTokens(baseAddresses), "Add supported base tokens");
-  logTransaction(await priceFeed.setPathTokens(pathAddresses), "Add supported path tokens");
+  logTransaction(await priceFeed.addPathTokens(pathAddresses), "Add supported path tokens");
 }
 
 module.exports = async (deployer) => {

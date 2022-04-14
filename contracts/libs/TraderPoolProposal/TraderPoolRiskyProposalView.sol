@@ -8,8 +8,9 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "../../interfaces/trader/ITraderPoolRiskyProposal.sol";
 import "../../interfaces/core/IPriceFeed.sol";
 
-import "../../libs/MathHelper.sol";
-import "../../libs/DecimalsConverter.sol";
+import "../MathHelper.sol";
+import "../DecimalsConverter.sol";
+import "../PriceFeed/PriceFeedLocal.sol";
 
 import "../../trader/TraderPoolRiskyProposal.sol";
 
@@ -19,6 +20,7 @@ library TraderPoolRiskyProposalView {
     using MathHelper for uint256;
     using Math for uint256;
     using Address for address;
+    using PriceFeedLocal for IPriceFeed;
 
     function getProposalInfos(
         mapping(uint256 => ITraderPoolRiskyProposal.ProposalInfo) storage proposalInfos,
@@ -39,12 +41,12 @@ library TraderPoolRiskyProposalView {
 
             proposals[i - offset].totalProposalBase =
                 proposals[i - offset].proposalInfo.balanceBase +
-                priceFeed.getNormalizedPriceOut(
+                priceFeed.getNormPriceOut(
                     proposals[i - offset].proposalInfo.token,
                     baseToken,
                     proposals[i - offset].proposalInfo.balancePosition
                 );
-            proposals[i - offset].totalProposalUSD = priceFeed.getNormalizedPriceOutUSD(
+            (proposals[i - offset].totalProposalUSD, ) = priceFeed.getNormalizedPriceOutUSD(
                 baseToken,
                 proposals[i - offset].totalProposalBase
             );
@@ -92,11 +94,11 @@ library TraderPoolRiskyProposalView {
         address token,
         uint256 baseToExchange,
         address[] calldata optionalPath
-    ) external view returns (uint256) {
+    ) external view returns (uint256, address[] memory) {
         address baseToken = parentTraderPoolInfo.baseToken;
 
         if (!token.isContract() || token == baseToken) {
-            return 0;
+            return (0, new address[](0));
         }
 
         return
@@ -127,7 +129,7 @@ library TraderPoolRiskyProposalView {
         }
 
         IPriceFeed priceFeed = ITraderPoolRiskyProposal(address(this)).priceFeed();
-        uint256 tokensPrice = priceFeed.getNormalizedPriceOut(
+        uint256 tokensPrice = priceFeed.getNormPriceOut(
             info.token,
             parentTraderPoolInfo.baseToken,
             info.balancePosition
@@ -141,7 +143,7 @@ library TraderPoolRiskyProposalView {
             uint256 baseToExchange = baseInvestment.ratio(tokensPrice, totalBase);
 
             baseAmount = baseInvestment - baseToExchange;
-            positionAmount = priceFeed.getNormalizedPriceOut(
+            positionAmount = priceFeed.getNormPriceOut(
                 parentTraderPoolInfo.baseToken,
                 info.token,
                 baseToExchange
@@ -186,7 +188,7 @@ library TraderPoolRiskyProposalView {
                     propSupply
                 );
 
-                receptions.receivedAmounts[i] = priceFeed.getNormalizedPriceOut(
+                receptions.receivedAmounts[i] = priceFeed.getNormPriceOut(
                     proposalInfos[proposalId].token,
                     parentTraderPoolInfo.baseToken,
                     receptions.givenAmounts[i]
@@ -204,16 +206,16 @@ library TraderPoolRiskyProposalView {
         uint256 amount,
         address[] calldata optionalPath,
         bool fromExact
-    ) external view returns (uint256) {
+    ) external view returns (uint256, address[] memory) {
         if (proposalId > TraderPoolRiskyProposal(address(this)).proposalsTotalNum()) {
-            return 0;
+            return (0, new address[](0));
         }
 
         address baseToken = parentTraderPoolInfo.baseToken;
         address to;
 
         if (from != baseToken && from != positionToken) {
-            return 0;
+            return (0, new address[](0));
         }
 
         if (from == baseToken) {

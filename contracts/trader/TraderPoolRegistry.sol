@@ -6,11 +6,11 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
-import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/trader/ITraderPoolRegistry.sol";
+import "../interfaces/core/IContractsRegistry.sol";
 
-import "../helpers/AbstractDependant.sol";
-import "../helpers/ProxyBeacon.sol";
+import "../proxy/contracts-registry/AbstractDependant.sol";
+import "../proxy/ProxyBeacon.sol";
 
 contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -22,7 +22,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
     string public constant RISKY_PROPOSAL_NAME = "RISKY_POOL_PROPOSAL";
     string public constant INVEST_PROPOSAL_NAME = "INVEST_POOL_PROPOSAL";
 
-    IContractsRegistry internal _contractsRegistry;
+    address internal _contractsRegistry;
     address internal _traderPoolFactory;
 
     mapping(string => ProxyBeacon) private _beacons;
@@ -44,9 +44,12 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         _beacons[INVEST_PROPOSAL_NAME] = new ProxyBeacon();
     }
 
-    function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
+    function setDependencies(address contractsRegistry) external override dependant {
         _contractsRegistry = contractsRegistry;
-        _traderPoolFactory = contractsRegistry.getTraderPoolFactoryContract();
+
+        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
+
+        _traderPoolFactory = registry.getTraderPoolFactoryContract();
     }
 
     function injectDependenciesToExistingPools(
@@ -59,7 +62,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractDependant, OwnableUp
         uint256 to = (offset + limit).min(pools.length()).max(offset);
         require(to - offset > 0, "TraderPoolRegistry: No pools to inject");
 
-        IContractsRegistry contractsRegistry = _contractsRegistry;
+        address contractsRegistry = _contractsRegistry;
 
         for (uint256 i = offset; i < to; i++) {
             AbstractDependant dependant = AbstractDependant(pools.at(i));

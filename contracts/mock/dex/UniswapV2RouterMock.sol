@@ -9,6 +9,23 @@ contract UniswapV2RouterMock {
 
     mapping(address => uint256) public reserves;
 
+    mapping(address => mapping(address => uint256)) public bonuses;
+
+    mapping(address => mapping(address => address)) public pairs;
+
+    function enablePair(address tokenA, address tokenB) external {
+        pairs[tokenA][tokenB] = address(1);
+        pairs[tokenB][tokenA] = address(1);
+    }
+
+    function setBonuses(
+        address tokenA,
+        address tokenB,
+        uint256 amount
+    ) external {
+        bonuses[tokenA][tokenB] = amount;
+    }
+
     function setReserve(address token, uint256 amount) external {
         uint256 balance = IERC20(token).balanceOf(address(this));
 
@@ -26,6 +43,8 @@ contract UniswapV2RouterMock {
         view
         returns (uint256 reserveA, uint256 reserveB)
     {
+        require(tokenA != tokenB, "UniswapV2Library: IDENTICAL_ADDRESSES");
+
         return (reserves[tokenA], reserves[tokenB]);
     }
 
@@ -53,7 +72,9 @@ contract UniswapV2RouterMock {
 
         for (uint256 i; i < path.length - 1; i++) {
             (uint256 reserveIn, uint256 reserveOut) = _getReserves(path[i], path[i + 1]);
-            amounts[i + 1] = _getAmountOut(amounts[i], reserveIn, reserveOut);
+            amounts[i + 1] =
+                _getAmountOut(amounts[i], reserveIn, reserveOut) +
+                bonuses[path[i]][path[i + 1]];
         }
     }
 
@@ -81,8 +102,14 @@ contract UniswapV2RouterMock {
 
         for (uint256 i = path.length - 1; i > 0; i--) {
             (uint256 reserveIn, uint256 reserveOut) = _getReserves(path[i - 1], path[i]);
-            amounts[i - 1] = _getAmountIn(amounts[i], reserveIn, reserveOut);
+            amounts[i - 1] =
+                _getAmountIn(amounts[i], reserveIn, reserveOut) -
+                bonuses[path[i]][path[i - 1]];
         }
+    }
+
+    function getPair(address tokenA, address tokenB) external view returns (address) {
+        return pairs[tokenA][tokenB];
     }
 
     function _swap(

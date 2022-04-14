@@ -10,8 +10,10 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "../interfaces/trader/ITraderPool.sol";
 import "../interfaces/core/IPriceFeed.sol";
-import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/insurance/IInsurance.sol";
+import "../interfaces/core/IContractsRegistry.sol";
+
+import "../proxy/contracts-registry/AbstractDependant.sol";
 
 import "../libs/PriceFeed/PriceFeedLocal.sol";
 import "../libs/TraderPool/TraderPoolPrice.sol";
@@ -22,7 +24,6 @@ import "../libs/TokenBalance.sol";
 import "../libs/DecimalsConverter.sol";
 import "../libs/MathHelper.sol";
 
-import "../helpers/AbstractDependant.sol";
 import "../core/Globals.sol";
 
 abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant {
@@ -127,15 +128,12 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _traderAdmins[poolParameters.trader] = true;
     }
 
-    function setDependencies(IContractsRegistry contractsRegistry)
-        public
-        virtual
-        override
-        dependant
-    {
-        _dexeToken = IERC20(contractsRegistry.getDEXEContract());
-        priceFeed = IPriceFeed(contractsRegistry.getPriceFeedContract());
-        coreProperties = ICoreProperties(contractsRegistry.getCorePropertiesContract());
+    function setDependencies(address contractsRegistry) public virtual override dependant {
+        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
+
+        _dexeToken = IERC20(registry.getDEXEContract());
+        priceFeed = IPriceFeed(registry.getPriceFeedContract());
+        coreProperties = ICoreProperties(registry.getCorePropertiesContract());
     }
 
     function modifyAdmins(address[] calldata admins, bool add) external override onlyTraderAdmin {
@@ -522,7 +520,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 amount,
         address[] calldata optionalPath,
         bool fromExact
-    ) internal view returns (uint256) {
+    ) internal view returns (uint256, address[] memory) {
         return
             _poolParameters.getExchangeAmount(
                 _openPositions,
@@ -539,7 +537,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         address to,
         uint256 amountIn,
         address[] calldata optionalPath
-    ) external view override returns (uint256 minAmountOut) {
+    ) external view override returns (uint256 minAmountOut, address[] memory path) {
         return _getExchangeAmount(from, to, amountIn, optionalPath, true);
     }
 
@@ -558,7 +556,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         address to,
         uint256 amountOut,
         address[] calldata optionalPath
-    ) external view override returns (uint256 maxAmountIn) {
+    ) external view override returns (uint256 maxAmountIn, address[] memory path) {
         return _getExchangeAmount(from, to, amountOut, optionalPath, false);
     }
 
