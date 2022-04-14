@@ -7,7 +7,7 @@ const PriceFeed = artifacts.require("PriceFeed");
 
 async function configurePriceFeedTokens(priceFeed, baseAddresses, pathAddresses) {
   logTransaction(await priceFeed.addSupportedBaseTokens(baseAddresses), "Add supported base tokens");
-  logTransaction(await priceFeed.setPathTokens(pathAddresses), "Add supported path tokens");
+  logTransaction(await priceFeed.addPathTokens(pathAddresses), "Add supported path tokens");
 }
 
 module.exports = async (deployer) => {

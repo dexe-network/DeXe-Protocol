@@ -67,7 +67,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     }
 
     /// @notice this function sets path tokens that are used throughout the platform to calculate prices
-    function setPathTokens(address[] calldata pathTokens) external override onlyOwner {
+    function addPathTokens(address[] calldata pathTokens) external override onlyOwner {
         _insertInto(_pathTokens, pathTokens);
     }
 

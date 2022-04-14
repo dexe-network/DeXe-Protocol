@@ -128,33 +128,29 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         override
         onlyOwner
     {
-        _upgradeContract(name, newImplementation, "");
+        _upgradeContract(name, newImplementation, bytes(""));
     }
 
     /// @notice can only call functions that have no parameters
     function upgradeContractAndCall(
         string calldata name,
         address newImplementation,
-        string calldata functionSignature
+        bytes memory data
     ) external override onlyOwner {
-        _upgradeContract(name, newImplementation, functionSignature);
+        _upgradeContract(name, newImplementation, data);
     }
 
     function _upgradeContract(
         string calldata name,
         address newImplementation,
-        string memory functionSignature
+        bytes memory data
     ) internal {
         address contractToUpgrade = _contracts[name];
 
         require(contractToUpgrade != address(0), "ContractsRegistry: This mapping doesn't exist");
         require(_isProxy[contractToUpgrade], "ContractsRegistry: Not a proxy contract");
 
-        _proxyUpgrader.upgrade(
-            contractToUpgrade,
-            newImplementation,
-            abi.encodeWithSignature(functionSignature)
-        );
+        _proxyUpgrader.upgrade(contractToUpgrade, newImplementation, data);
     }
 
     function addContract(string calldata name, address contractAddress)
@@ -195,7 +191,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableUpgradeable {
         _isProxy[contractAddress] = true;
     }
 
-    function deleteContract(string calldata name) external override onlyOwner {
+    function removeContract(string calldata name) external override onlyOwner {
         require(_contracts[name] != address(0), "ContractsRegistry: This mapping doesn't exist");
 
         delete _isProxy[_contracts[name]];

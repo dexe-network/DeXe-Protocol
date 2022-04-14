@@ -19,7 +19,7 @@ interface IPriceFeed {
 
     /// @notice This function sets path tokens that will be used in the pathfinder
     /// @param pathTokens the array of tokens to be added into the path finder
-    function setPathTokens(address[] calldata pathTokens) external;
+    function addPathTokens(address[] calldata pathTokens) external;
 
     /// @notice This function removes path tokens from the pathfinder
     /// @param pathTokens the array of tokens to be removed from the pathfinder

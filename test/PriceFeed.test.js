@@ -58,6 +58,38 @@ describe("PriceFeed", () => {
     await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
   });
 
+  describe("path tokens & base tokens", () => {
+    it("should set and return path tokens", async () => {
+      await priceFeed.addPathTokens([USD.address, DEXE.address, USD.address]);
+
+      assert.equal((await priceFeed.totalPathTokens()).toFixed(), "2");
+      assert.deepEqual(await priceFeed.getPathTokens(), [USD.address, DEXE.address]);
+    });
+
+    it("should set and return base tokens", async () => {
+      await priceFeed.addSupportedBaseTokens([USD.address, DEXE.address, DEXE.address]);
+
+      assert.equal((await priceFeed.totalBaseTokens()).toFixed(), "2");
+      assert.deepEqual(await priceFeed.getBaseTokens(0, 10), [USD.address, DEXE.address]);
+    });
+
+    it("should set and remove path tokens", async () => {
+      await priceFeed.addPathTokens([USD.address, DEXE.address]);
+      await priceFeed.removePathTokens([USD.address]);
+
+      assert.equal((await priceFeed.totalPathTokens()).toFixed(), "1");
+      assert.deepEqual(await priceFeed.getPathTokens(), [DEXE.address]);
+    });
+
+    it("should set and remove base tokens", async () => {
+      await priceFeed.addSupportedBaseTokens([USD.address, DEXE.address]);
+      await priceFeed.removeSupportedBaseTokens([USD.address]);
+
+      assert.equal((await priceFeed.totalBaseTokens()).toFixed(), "1");
+      assert.deepEqual(await priceFeed.getBaseTokens(0, 10), [DEXE.address]);
+    });
+  });
+
   describe("getPriceOut", () => {
     beforeEach("setup", async () => {
       await DEXE.mint(OWNER, wei(tokensToMint));
@@ -90,7 +122,7 @@ describe("PriceFeed", () => {
       await uniswapV2Router.enablePair(DEXE.address, MANA.address);
       await uniswapV2Router.enablePair(MANA.address, USD.address);
 
-      await priceFeed.setPathTokens([MANA.address]);
+      await priceFeed.addPathTokens([MANA.address]);
 
       const pricesInfo = await priceFeed.getExtendedPriceOut(DEXE.address, USD.address, wei("1000"), []);
 
@@ -119,7 +151,7 @@ describe("PriceFeed", () => {
 
       await uniswapV2Router.setBonuses(DEXE.address, MANA.address, wei("2000"));
 
-      await priceFeed.setPathTokens([MANA.address, WBTC.address]);
+      await priceFeed.addPathTokens([MANA.address, WBTC.address]);
 
       const pricesInfo = await priceFeed.getExtendedPriceOut(DEXE.address, USD.address, wei("2000"), []);
 
@@ -144,7 +176,7 @@ describe("PriceFeed", () => {
       await uniswapV2Router.enablePair(MANA.address, WBTC.address);
       await uniswapV2Router.enablePair(WBTC.address, USD.address);
 
-      await priceFeed.setPathTokens([MANA.address, WBTC.address]);
+      await priceFeed.addPathTokens([MANA.address, WBTC.address]);
 
       const pricesInfo = await priceFeed.getExtendedPriceOut(DEXE.address, USD.address, wei("500"), [
         DEXE.address,
@@ -159,7 +191,73 @@ describe("PriceFeed", () => {
   });
 
   describe("getPriceIn", () => {
-    // TODO
+    beforeEach("setup", async () => {
+      await DEXE.mint(OWNER, wei(tokensToMint));
+      await USD.mint(OWNER, wei(tokensToMint));
+
+      await DEXE.approve(uniswapV2Router.address, wei(reserveTokens));
+      await uniswapV2Router.setReserve(DEXE.address, wei(reserveTokens));
+
+      await USD.approve(uniswapV2Router.address, wei(reserveTokens));
+      await uniswapV2Router.setReserve(USD.address, wei(reserveTokens.idiv(2)));
+    });
+
+    it("should get direct price and path", async () => {
+      await uniswapV2Router.enablePair(DEXE.address, USD.address);
+
+      const pricesInfo = await priceFeed.getExtendedPriceIn(DEXE.address, USD.address, wei("500"), []);
+
+      assert.equal(pricesInfo.amountIn.toFixed(), wei("1000"));
+      assert.deepEqual(pricesInfo.path, [DEXE.address, USD.address]);
+    });
+
+    it("should get correct price and path with one extra token", async () => {
+      const MANA = await ERC20Mock.new("MANA", "MANA", 18);
+
+      await MANA.mint(OWNER, wei(tokensToMint));
+
+      await MANA.approve(uniswapV2Router.address, wei(reserveTokens));
+      await uniswapV2Router.setReserve(MANA.address, wei(reserveTokens));
+
+      await uniswapV2Router.enablePair(DEXE.address, MANA.address);
+      await uniswapV2Router.enablePair(MANA.address, USD.address);
+
+      await priceFeed.addPathTokens([MANA.address]);
+
+      const pricesInfo = await priceFeed.getExtendedPriceIn(DEXE.address, USD.address, wei("500"), []);
+
+      assert.equal(pricesInfo.amountIn.toFixed(), wei("1000"));
+      assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, USD.address]);
+    });
+
+    it("should get the best price", async () => {
+      const MANA = await ERC20Mock.new("MANA", "MANA", 18);
+      const WBTC = await ERC20Mock.new("WBTC", "WBTC", 8);
+
+      await MANA.mint(OWNER, wei(tokensToMint));
+      await WBTC.mint(OWNER, wei(tokensToMint, 8));
+
+      await MANA.approve(uniswapV2Router.address, wei(reserveTokens));
+      await uniswapV2Router.setReserve(MANA.address, wei(reserveTokens));
+
+      await WBTC.approve(uniswapV2Router.address, wei(reserveTokens, 8));
+      await uniswapV2Router.setReserve(WBTC.address, wei(reserveTokens, 8));
+
+      await uniswapV2Router.enablePair(DEXE.address, MANA.address);
+      await uniswapV2Router.enablePair(MANA.address, USD.address);
+
+      await uniswapV2Router.enablePair(DEXE.address, WBTC.address);
+      await uniswapV2Router.enablePair(WBTC.address, USD.address);
+
+      await uniswapV2Router.setBonuses(MANA.address, DEXE.address, wei("2000"));
+
+      await priceFeed.addPathTokens([MANA.address, WBTC.address]);
+
+      const pricesInfo = await priceFeed.getExtendedPriceIn(DEXE.address, USD.address, wei("2000"), []);
+
+      assert.equal(pricesInfo.amountIn.toFixed(), wei("2000"));
+      assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, USD.address]);
+    });
   });
 
   describe("saved path", () => {
@@ -192,7 +290,7 @@ describe("PriceFeed", () => {
       await uniswapV2Router.enablePair(MANA.address, WBTC.address);
       await uniswapV2Router.enablePair(WBTC.address, USD.address);
 
-      await priceFeed.setPathTokens([MANA.address, WBTC.address]);
+      await priceFeed.addPathTokens([MANA.address, WBTC.address]);
     });
 
     it("should save the path correctly", async () => {
@@ -219,14 +317,22 @@ describe("PriceFeed", () => {
         USD.address,
       ]);
 
+      assert.deepEqual(await priceFeed.getSavedPaths(OWNER, USD.address, DEXE.address), [
+        USD.address,
+        WBTC.address,
+        MANA.address,
+        DEXE.address,
+      ]);
+
       pricesInfo = await priceFeed.getNormalizedPriceOut(DEXE.address, USD.address, wei("500"));
 
       assert.closeTo(pricesInfo.amountOut.toNumber(), toBN(wei("250")).toNumber(), toBN(wei("1")).toNumber());
       assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, WBTC.address, USD.address]);
     });
 
-    it("should save the path correctly 2", async () => {
+    it("should reuse the saved path", async () => {
       await DEXE.approve(priceFeed.address, wei("3000"));
+      await USD.approve(priceFeed.address, wei("1000"));
 
       await truffleAssert.reverts(
         priceFeed.exchangeFromExact(DEXE.address, USD.address, wei("1000"), [], 0),
@@ -242,7 +348,7 @@ describe("PriceFeed", () => {
       );
 
       await truffleAssert.passes(
-        priceFeed.exchangeFromExact(DEXE.address, USD.address, wei("1000"), [], 0),
+        priceFeed.exchangeToExact(USD.address, DEXE.address, wei("500"), [], wei("1000")),
         "Assets is reachable"
       );
 
@@ -251,6 +357,87 @@ describe("PriceFeed", () => {
         MANA.address,
         WBTC.address,
         USD.address,
+      ]);
+
+      assert.deepEqual(await priceFeed.getSavedPaths(OWNER, USD.address, DEXE.address), [
+        USD.address,
+        WBTC.address,
+        MANA.address,
+        DEXE.address,
+      ]);
+    });
+
+    it("should save the path correctly 2", async () => {
+      assert.deepEqual(await priceFeed.getSavedPaths(OWNER, DEXE.address, USD.address), []);
+
+      let pricesInfo = await priceFeed.getNormalizedPriceIn(DEXE.address, USD.address, wei("1000"));
+
+      assert.equal(pricesInfo.amountIn.toFixed(), "0");
+
+      await DEXE.approve(priceFeed.address, wei("1000"));
+
+      await priceFeed.exchangeToExact(
+        DEXE.address,
+        USD.address,
+        wei("500"),
+        [DEXE.address, MANA.address, WBTC.address, USD.address],
+        wei("1000")
+      );
+
+      assert.deepEqual(await priceFeed.getSavedPaths(OWNER, DEXE.address, USD.address), [
+        DEXE.address,
+        MANA.address,
+        WBTC.address,
+        USD.address,
+      ]);
+
+      assert.deepEqual(await priceFeed.getSavedPaths(OWNER, USD.address, DEXE.address), [
+        USD.address,
+        WBTC.address,
+        MANA.address,
+        DEXE.address,
+      ]);
+
+      pricesInfo = await priceFeed.getNormalizedPriceIn(DEXE.address, USD.address, wei("500"));
+
+      assert.closeTo(pricesInfo.amountIn.toNumber(), toBN(wei("1000")).toNumber(), toBN(wei("10")).toNumber());
+      assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, WBTC.address, USD.address]);
+    });
+
+    it("should reuse the saved path 2", async () => {
+      await DEXE.approve(priceFeed.address, wei("3000"));
+      await USD.approve(priceFeed.address, wei("1000"));
+
+      await truffleAssert.reverts(
+        priceFeed.exchangeToExact(DEXE.address, USD.address, wei("500"), [], 0),
+        "PriceFeed: unreachable asset"
+      );
+
+      await priceFeed.exchangeToExact(
+        DEXE.address,
+        USD.address,
+        wei("500"),
+        [DEXE.address, MANA.address, WBTC.address, USD.address],
+        wei("1000")
+      );
+
+      await truffleAssert.passes(
+        priceFeed.exchangeFromExact(USD.address, DEXE.address, wei("500"), [], 0),
+        "Assets is reachable"
+      );
+
+      assert.deepEqual(await priceFeed.getSavedPaths(OWNER, DEXE.address, USD.address), [
+        DEXE.address,
+        MANA.address,
+        WBTC.address,
+        USD.address,
+      ]);
+
+      assert.deepEqual(await priceFeed.getSavedPaths(OWNER, USD.address, DEXE.address), [
+        USD.address,
+        WBTC.address,
+        MANA.address,
+        DEXE.address,
       ]);
     });
   });

@@ -84,15 +84,14 @@ interface IContractsRegistry {
     /// @param newImplementation the new implementation address
     function upgradeContract(string calldata name, address newImplementation) external;
 
-    /// @notice The function to upgrade the implemetation of the existing proxy contract with a function call
+    /// @notice The function to upgrade the implementation of the existing proxy contract with a function call
     /// @param name the name of the proxy to be upgraded
-    /// @param newImplementation the new implmenetation address
-    /// @param functionSignature the signature of the function to be called. \
-    /// Only the functions with no parameters are supported. Ex: "upgradeV3()"
+    /// @param newImplementation the new implementation address
+    /// @param data the extra data that is passed to the proxy should be ABI encoded
     function upgradeContractAndCall(
         string calldata name,
         address newImplementation,
-        string calldata functionSignature
+        bytes calldata data
     ) external;
 
     /// @notice The function to add new (non-proxy) contract to the registry
@@ -113,5 +112,5 @@ interface IContractsRegistry {
 
     /// @notice The function to delete the existing contract from the registry
     /// @param name the name of the contract to be deleted
-    function deleteContract(string calldata name) external;
+    function removeContract(string calldata name) external;
 }
