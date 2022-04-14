@@ -6,14 +6,14 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../interfaces/insurance/IInsurance.sol";
-import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/trader/ITraderPoolRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
+import "../interfaces/core/IContractsRegistry.sol";
+
+import "../proxy/contracts-registry/AbstractDependant.sol";
 
 import "../libs/StringSet.sol";
 import "../libs/MathHelper.sol";
-
-import "../helpers/AbstractDependant.sol";
 
 import "../core/Globals.sol";
 
@@ -59,12 +59,12 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         __Ownable_init();
     }
 
-    function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
-        _traderPoolRegistry = ITraderPoolRegistry(
-            contractsRegistry.getTraderPoolRegistryContract()
-        );
-        _dexe = ERC20(contractsRegistry.getDEXEContract());
-        _coreProperties = ICoreProperties(contractsRegistry.getCorePropertiesContract());
+    function setDependencies(address contractsRegistry) external override dependant {
+        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
+
+        _traderPoolRegistry = ITraderPoolRegistry(registry.getTraderPoolRegistryContract());
+        _dexe = ERC20(registry.getDEXEContract());
+        _coreProperties = ICoreProperties(registry.getCorePropertiesContract());
     }
 
     function receiveDexeFromPools(uint256 amount) external override onlyTraderPool {

@@ -10,11 +10,13 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/trader/ITraderPoolProposal.sol";
 import "../interfaces/trader/ITraderPoolInvestorsHook.sol";
+import "../interfaces/core/IContractsRegistry.sol";
+
+import "../proxy/contracts-registry/AbstractDependant.sol";
 
 import "../libs/MathHelper.sol";
 import "../libs/DecimalsConverter.sol";
 
-import "../helpers/AbstractDependant.sol";
 import "./TraderPool.sol";
 
 abstract contract TraderPoolProposal is
@@ -76,8 +78,10 @@ abstract contract TraderPoolProposal is
         );
     }
 
-    function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
-        priceFeed = IPriceFeed(contractsRegistry.getPriceFeedContract());
+    function setDependencies(address contractsRegistry) external override dependant {
+        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
+
+        priceFeed = IPriceFeed(registry.getPriceFeedContract());
     }
 
     function getBaseToken() external view override returns (address) {

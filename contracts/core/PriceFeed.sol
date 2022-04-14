@@ -14,11 +14,12 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
+import "../proxy/contracts-registry/AbstractDependant.sol";
+
 import "../libs/PriceFeed/UniswapV2PathFinder.sol";
 import "../libs/DecimalsConverter.sol";
 import "../libs/ArrayHelper.sol";
 
-import "../helpers/AbstractDependant.sol";
 import "../core/Globals.sol";
 
 contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
@@ -43,11 +44,13 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         __Ownable_init();
     }
 
-    function setDependencies(IContractsRegistry contractsRegistry) external override dependant {
-        uniswapFactory = IUniswapV2Factory(contractsRegistry.getUniswapV2FactoryContract());
-        uniswapV2Router = IUniswapV2Router02(contractsRegistry.getUniswapV2RouterContract());
-        _usdAddress = contractsRegistry.getUSDContract();
-        _dexeAddress = contractsRegistry.getDEXEContract();
+    function setDependencies(address contractsRegistry) public virtual override dependant {
+        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
+
+        uniswapFactory = IUniswapV2Factory(registry.getUniswapV2FactoryContract());
+        uniswapV2Router = IUniswapV2Router02(registry.getUniswapV2RouterContract());
+        _usdAddress = registry.getUSDContract();
+        _dexeAddress = registry.getDEXEContract();
     }
 
     function _insertInto(EnumerableSet.AddressSet storage addressSet, address[] calldata array)

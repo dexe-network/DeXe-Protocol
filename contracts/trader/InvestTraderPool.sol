@@ -52,7 +52,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         IERC20(_poolParameters.baseToken).safeApprove(traderPoolProposal, MAX_UINT);
     }
 
-    function setDependencies(IContractsRegistry contractsRegistry) public override dependant {
+    function setDependencies(address contractsRegistry) public override dependant {
         super.setDependencies(contractsRegistry);
 
         AbstractDependant(address(_traderPoolProposal)).setDependencies(contractsRegistry);

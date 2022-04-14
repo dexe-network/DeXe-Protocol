@@ -6,7 +6,8 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "../helpers/AbstractDependant.sol";
+import "../proxy/contracts-registry/AbstractDependant.sol";
+
 import "./Globals.sol";
 
 contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependant {
@@ -22,15 +23,12 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         coreParameters = _coreParameters;
     }
 
-    function setDependencies(IContractsRegistry contractsRegistry)
-        public
-        virtual
-        override
-        dependant
-    {
-        _insuranceAddress = contractsRegistry.getInsuranceContract();
-        _treasuryAddress = contractsRegistry.getTreasuryContract();
-        _dividendsAddress = contractsRegistry.getDividendsContract();
+    function setDependencies(address contractsRegistry) public virtual override dependant {
+        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
+
+        _insuranceAddress = registry.getInsuranceContract();
+        _treasuryAddress = registry.getTreasuryContract();
+        _dividendsAddress = registry.getDividendsContract();
     }
 
     function setCoreParameters(CoreParameters calldata _coreParameters)
