@@ -201,8 +201,8 @@ describe("TraderPoolFactory", () => {
       let event = tx.receipt.logs[0];
 
       assert.equal("Deployed", event.event);
-      assert.equal(OWNER, event.args.user);
-      assert.equal("BASIC_POOL", event.args.poolName);
+      assert.equal(OWNER, event.args.trader);
+      assert.equal("BASIC_POOL", event.args.poolType);
     });
 
     it("should deploy pool and check TraderPoolRegistry", async () => {
@@ -246,8 +246,8 @@ describe("TraderPoolFactory", () => {
       let event = tx.receipt.logs[0];
 
       assert.equal("Deployed", event.event);
-      assert.equal(OWNER, event.args.user);
-      assert.equal("INVEST_POOL", event.args.poolName);
+      assert.equal(OWNER, event.args.trader);
+      assert.equal("INVEST_POOL", event.args.poolType);
     });
 
     it("should deploy pool and check TraderPoolRegistry", async () => {

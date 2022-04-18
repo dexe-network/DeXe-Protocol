@@ -26,13 +26,13 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
     CoreProperties internal _coreProperties;
 
     event Deployed(
-        address user,
-        string poolName,
-        address at,
+        string poolType,
         string symbol,
-        address basicToken,
-        address proposalContract,
         string name,
+        address at,
+        address proposalContract,
+        address trader,
+        address basicToken,
         string descriptionURL
     );
 
@@ -96,13 +96,13 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         _injectDependencies(poolProxy);
 
         emit Deployed(
-            _msgSender(),
             _traderPoolRegistry.BASIC_POOL_NAME(),
-            poolProxy,
             symbol,
-            poolParameters.baseToken,
-            proposalProxy,
             name,
+            poolProxy,
+            proposalProxy,
+            poolParameters.trader,
+            poolParameters.baseToken,
             poolParameters.descriptionURL
         );
     }
@@ -138,13 +138,13 @@ contract TraderPoolFactory is ITraderPoolFactory, OwnableUpgradeable, AbstractDe
         _injectDependencies(poolProxy);
 
         emit Deployed(
-            _msgSender(),
             _traderPoolRegistry.INVEST_POOL_NAME(),
-            poolProxy,
             symbol,
-            poolParameters.baseToken,
-            proposalProxy,
             name,
+            poolProxy,
+            proposalProxy,
+            poolParameters.trader,
+            poolParameters.baseToken,
             poolParameters.descriptionURL
         );
     }
