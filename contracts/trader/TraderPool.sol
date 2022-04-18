@@ -65,6 +65,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     event TraderCommissionMinted(address trader, uint256 amount);
     event TraderCommissionPaid(address investor, uint256 amount);
     event DescriptionURLChanged(string descriptionURL);
+    event ModifiedAdmins(address[] admins, bool add);
 
     modifier onlyTraderAdmin() {
         _onlyTraderAdmin();
@@ -142,6 +143,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
 
         _traderAdmins[_poolParameters.trader] = true;
+
+        emit ModifiedAdmins(admins, add);
     }
 
     function modifyPrivateInvestors(address[] calldata privateInvestors, bool add)
