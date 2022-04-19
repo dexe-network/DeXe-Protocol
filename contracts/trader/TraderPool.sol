@@ -577,14 +577,22 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         internal
         returns (uint256 baseTransfer)
     {
-        InvestorInfo storage info = investorsInfo[investor];
+        if (!isTrader(investor)) {
+            InvestorInfo storage info = investorsInfo[investor];
 
-        baseTransfer = info.investedBase.ratio(lpAmount, balanceOf(investor));
-        info.investedBase -= baseTransfer;
+            baseTransfer = info.investedBase.ratio(lpAmount, balanceOf(investor));
+            info.investedBase -= baseTransfer;
+        }
+    }
+
+    function _updateToData(address investor, uint256 baseAmount) internal {
+        if (!isTrader(investor)) {
+            investorsInfo[investor].investedBase += baseAmount;
+        }
     }
 
     function _checkRemoveInvestor(address investor, uint256 lpAmount) internal {
-        if (lpAmount == balanceOf(investor)) {
+        if (!isTrader(investor) && lpAmount == balanceOf(investor)) {
             _investors.remove(investor);
             investorsInfo[investor].commissionUnlockEpoch = 0;
 
@@ -598,7 +606,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             "TP: private pool"
         );
 
-        if (!_investors.contains(investor)) {
+        if (!isTrader(investor) && !_investors.contains(investor)) {
             _investors.add(investor);
             investorsInfo[investor].commissionUnlockEpoch = getNextCommissionEpoch();
 
@@ -615,17 +623,13 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         internal
         returns (uint256 baseTransfer)
     {
-        if (!isTrader(investor)) {
-            _checkRemoveInvestor(investor, lpAmount);
-            return _updateFromData(investor, lpAmount);
-        }
+        _checkRemoveInvestor(investor, lpAmount);
+        return _updateFromData(investor, lpAmount);
     }
 
     function _updateTo(address investor, uint256 baseAmount) internal {
-        if (!isTrader(investor)) {
-            _checkNewInvestor(investor);
-            investorsInfo[investor].investedBase += baseAmount;
-        }
+        _checkNewInvestor(investor);
+        _updateToData(investor, baseAmount);
     }
 
     /// @notice if trader transfers tokens to an investor, we will count them as "earned" and add to the commission calculation

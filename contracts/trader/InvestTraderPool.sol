@@ -157,14 +157,10 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
     }
 
     function checkRemoveInvestor(address user) external override onlyProposalPool {
-        if (!isTrader(user)) {
-            _checkRemoveInvestor(user, 0);
-        }
+        _checkRemoveInvestor(user, 0);
     }
 
     function checkNewInvestor(address user) external override onlyProposalPool {
-        if (!isTrader(user)) {
-            _checkNewInvestor(user);
-        }
+        _checkNewInvestor(user);
     }
 }

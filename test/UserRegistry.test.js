@@ -1,4 +1,4 @@
-const ethSigUtil = require("eth-sig-util");
+const ethSigUtil = require("@metamask/eth-sig-util");
 const { assert } = require("chai");
 const { accounts } = require("../scripts/helpers/utils");
 
@@ -67,7 +67,11 @@ describe("UserRegistry", () => {
       message: message,
     };
 
-    return ethSigUtil.signTypedMessage(privateKey, { data });
+    return ethSigUtil.signTypedData({
+      privateKey,
+      data: data,
+      version: "V4",
+    });
   }
 
   describe("Privacy Policy signature", () => {
