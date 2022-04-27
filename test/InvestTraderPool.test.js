@@ -316,6 +316,16 @@ describe("InvestTraderPool", () => {
         await truffleAssert.reverts(invest(wei("100"), SECOND), "ITP: investment delay");
       });
 
+      it("should invest rightaway if delay is not set", async () => {
+        await coreProperties.setDelayForRiskyPool(0);
+
+        await tokens.WETH.approve(traderPool.address, wei("100"));
+
+        await invest(wei("100"), OWNER);
+
+        await truffleAssert.passes(invest(wei("100"), SECOND), "Invested");
+      });
+
       it("should invest after delay", async () => {
         await tokens.WETH.approve(traderPool.address, wei("100"));
 

@@ -34,7 +34,7 @@ const DEFAULT_CORE_PROPERTIES = {
   ],
   minTraderCommission: PRECISION.times(20).toFixed(),
   maxTraderCommissions: [PRECISION.times(30).toFixed(), PRECISION.times(50).toFixed(), PRECISION.times(70).toFixed()],
-  delayForRiskyPool: SECONDS_IN_DAY * 20,
+  delayForRiskyPool: 0,
   insuranceFactor: 10,
   maxInsurancePoolShare: 3,
   minInsuranceDeposit: DECIMAL.times(10).toFixed(),

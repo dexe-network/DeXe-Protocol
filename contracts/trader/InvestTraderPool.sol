@@ -66,18 +66,28 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         return totalSupply() + _traderPoolProposal.totalLockedLP();
     }
 
+    function getInvestDelayEnd() public view override returns (uint256) {
+        uint256 delay = coreProperties.getDelayForRiskyPool();
+
+        return delay != 0 ? (_firstExchange != 0 ? _firstExchange + delay : MAX_UINT) : 0;
+    }
+
     function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut)
         public
         override
     {
         require(
-            isTraderAdmin(msg.sender) ||
-                (_firstExchange != 0 &&
-                    _firstExchange + coreProperties.getDelayForRiskyPool() <= block.timestamp),
+            isTraderAdmin(msg.sender) || getInvestDelayEnd() <= block.timestamp,
             "ITP: investment delay"
         );
 
         super.invest(amountInBaseToInvest, minPositionsOut);
+    }
+
+    function _setFirstExchangeTime() internal {
+        if (_firstExchange == 0) {
+            _firstExchange = block.timestamp;
+        }
     }
 
     function exchangeFromExact(
@@ -87,9 +97,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         uint256 minAmountOut,
         address[] calldata optionalPath
     ) public override onlyTraderAdmin {
-        if (_firstExchange == 0) {
-            _firstExchange = block.timestamp;
-        }
+        _setFirstExchangeTime();
 
         super.exchangeFromExact(from, to, amountIn, minAmountOut, optionalPath);
     }
@@ -101,9 +109,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         uint256 maxAmountIn,
         address[] calldata optionalPath
     ) public override onlyTraderAdmin {
-        if (_firstExchange == 0) {
-            _firstExchange = block.timestamp;
-        }
+        _setFirstExchangeTime();
 
         super.exchangeToExact(from, to, amountOut, maxAmountIn, optionalPath);
     }
@@ -127,9 +133,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         uint256[] calldata minPositionsOut
     ) external override {
         require(
-            isTraderAdmin(msg.sender) ||
-                (_firstExchange != 0 &&
-                    _firstExchange + coreProperties.getDelayForRiskyPool() <= block.timestamp),
+            isTraderAdmin(msg.sender) || getInvestDelayEnd() <= block.timestamp,
             "ITP: investment delay"
         );
 

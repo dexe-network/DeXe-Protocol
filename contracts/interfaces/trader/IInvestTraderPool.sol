@@ -11,6 +11,11 @@ import "./ITraderPool.sol";
  * investment proposals and the trader will be able to do whetever he wants to do with the received funds
  */
 interface IInvestTraderPool is ITraderPoolInvestorsHook {
+    /// @notice This function returns a timestamp after which investors can start investing into the pool.
+    /// The delay starts after opening the first position. Needed to minimize scam
+    /// @return the timestamp after which the investment is allowed
+    function getInvestDelayEnd() external view returns (uint256);
+
     /// @notice This function creates an investment proposal that users will be able to invest in
     /// @param descriptionURL the IPFS URL of the description document
     /// @param lpAmount the amount of LP tokens the trader will invest rightaway
