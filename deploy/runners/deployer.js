@@ -21,6 +21,9 @@ class Deployer {
       this.reporter.setMigration({ dryRun: false });
       this.reporter.setDeployer(this.deployer);
 
+      this.reporter.listen();
+      this.deployer.start();
+
       this.reporter.preMigrate({
         isFirst: true,
         file: "Contracts:",
@@ -28,9 +31,6 @@ class Deployer {
         networkId: chainId,
         blockLimit: (await web3.eth.getBlock("latest")).gasLimit,
       });
-
-      this.reporter.listen();
-      this.deployer.start();
     } catch (e) {
       console.log(e);
     }
@@ -38,9 +38,18 @@ class Deployer {
 
   async link(Library, ...Contracts) {
     try {
-      const library = await Library.deployed();
+      const library = Library.contractName ? await Library.deployed() : Library;
 
-      Contracts.forEach(async (Contract) => await Contract.link(library));
+      for (const Contract of Contracts) {
+        this.reporter.linking({
+          libraryName: Library.contractName,
+          libraryAddress: Library.address,
+          contractName: Contract.contractName,
+          contractAddress: Contract.contractAddress,
+        });
+
+        await Contract.link(library);
+      }
     } catch (e) {
       console.log(e);
     }
@@ -60,10 +69,11 @@ class Deployer {
 
   async finishMigration() {
     try {
-      this.deployer.finish();
       this.reporter.postMigrate({
         isLast: true,
       });
+
+      this.deployer.finish();
     } catch (e) {
       console.log(e);
     }
