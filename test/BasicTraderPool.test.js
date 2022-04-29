@@ -319,6 +319,17 @@ describe("BasicTraderPool", () => {
 
         const time = toBN(await getCurrentBlockTime());
 
+        const divests = await traderPool.getDivestAmountsAndCommissions(OWNER, wei("100"));
+        const creationTokens = await proposalPool.getCreationTokens(
+          tokens.MANA.address,
+          divests.receptions.baseAmount,
+          0,
+          []
+        );
+
+        assert.equal(toBN(creationTokens.positionTokens).toFixed(), "0");
+        assert.equal(toBN(creationTokens.positionTokenPrice).toFixed(), wei("1"));
+
         await createProposal(tokens.MANA.address, wei("100"), [time.plus(100000), wei("10000"), wei("2")], 0);
 
         assert.equal((await proposalPool.balanceOf(OWNER, 1)).toFixed(), wei("100"));
@@ -468,6 +479,14 @@ describe("BasicTraderPool", () => {
         assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("750"));
         assert.equal((await tokens.MANA.balanceOf(traderPool.address)).toFixed(), wei("750"));
 
+        const limitsTrader = (await proposalPool.getUserInvestmentsLimits(OWNER, [1])).map((el) => el.toFixed());
+
+        assert.deepEqual(limitsTrader, [toBN(2).pow(256).minus(1).toFixed()]);
+
+        const limitsInvestor = (await proposalPool.getUserInvestmentsLimits(SECOND, [1])).map((el) => el.toFixed());
+
+        assert.deepEqual(limitsInvestor, [wei("500")]);
+
         await investProposal(1, wei("100"), SECOND);
 
         assert.closeTo(
@@ -512,6 +531,9 @@ describe("BasicTraderPool", () => {
         await reinvestProposal(1, wei("500"), OWNER);
 
         await invest(wei("1000"), SECOND);
+
+        const limitsInvestor = (await proposalPool.getUserInvestmentsLimits(SECOND, [1])).map((el) => el.toFixed());
+        assert.deepEqual(limitsInvestor, ["0"]);
 
         await truffleAssert.reverts(investProposal(1, wei("100"), SECOND), "TPRP: investing more than trader");
       });

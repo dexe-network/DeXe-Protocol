@@ -50,7 +50,7 @@ library TraderPoolLeverage {
             .coreProperties()
             .getTraderLeverageParams();
 
-        int256 traderUSD = int256(traderUSDTokens / 10**18);
+        int256 traderUSD = int256(traderUSDTokens / DECIMALS);
         int256 multiplier = traderUSD / int256(threshold);
 
         int256 numerator = int256(threshold) +
@@ -59,7 +59,7 @@ library TraderPoolLeverage {
 
         int256 boost = traderUSD * 2;
 
-        maxTraderLeverageUSDTokens = uint256((numerator / int256(slope) + boost)) * 10**18;
+        maxTraderLeverageUSDTokens = uint256((numerator / int256(slope) + boost)) * DECIMALS;
     }
 
     function checkLeverage(
