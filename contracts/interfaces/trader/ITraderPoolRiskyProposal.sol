@@ -5,14 +5,15 @@ import "./ITraderPoolProposal.sol";
 
 /**
  * This is the proposal the trader is able to create for the BasicTraderPool. This proposal is basically a simplified
- * version of a BasicTraderPool where a trader is only able to trade to a predefined token. The proposal itself incapsulates
+ * version of a BasicTraderPool where a trader is only able to trade to a predefined token. The proposal itself encapsulates
  * investors and shares the profit only with the ones who invested into it
  */
 interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// @notice The struct that stores certain proposal limits
     /// @param timestampLimit the timestamp after which the investment into this proposal closes
     /// @param investLPLimit the maximal number of invested LP tokens after which the investment into the proposal closes
-    /// @param maxTokenPriceLimit the maximal price of the proposal token to a base token after which the investment into the proposal closes
+    /// @param maxTokenPriceLimit the maximal price of the proposal token to the base token after which the investment into the proposal closes
+    /// basically, if priceIn(base, token, 1) > maxTokenPriceLimit, the proposal closes for the investment
     struct ProposalLimits {
         uint256 timestampLimit;
         uint256 investLPLimit;
@@ -100,19 +101,47 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
         uint256 limit
     ) external view returns (ActiveInvestmentInfo[] memory investments);
 
+    /// @notice The function that returns the maximum allowed LP investment for the user
+    /// @param user the user to get the investment limit for
+    /// @param proposalIds the ids of the proposals to investigate the limits for
+    /// @return lps the array of numbers representing the maximum allowed investment in LP tokens
+    function getUserInvestmentsLimits(address user, uint256[] calldata proposalIds)
+        external
+        view
+        returns (uint256[] memory lps);
+
+    /// @notice The function that returns the percentage of invested LPs agains the user's LP balance
+    /// @param proposalId the proposal the user invested in
+    /// @param user the proposal's investor to calculate percentage for
+    /// @param toBeInvested LP amount the user is willing to invest
+    /// @return the percentage of invested LPs + toBeInvested against the user's balance
+    function getInvestmentPercentage(
+        uint256 proposalId,
+        address user,
+        uint256 toBeInvested
+    ) external view returns (uint256);
+
     /// @notice The function to get the amount of position token on proposal creation
     /// @param token the proposal token
     /// @param baseInvestment the amount of base tokens invested rightaway
     /// @param instantTradePercentage the percentage of tokens that will be traded instantly to a "token"
     /// @param optionalPath the optional path between base token and position token that will be used by the pathfinder
     /// @return positionTokens the amount of position tokens received upon creation
+    /// @return positionTokenPrice the price of 1 proposal token to the base token
     /// @return path the tokens path that will be used during the swap
     function getCreationTokens(
         address token,
         uint256 baseInvestment,
         uint256 instantTradePercentage,
         address[] calldata optionalPath
-    ) external view returns (uint256 positionTokens, address[] memory path);
+    )
+        external
+        view
+        returns (
+            uint256 positionTokens,
+            uint256 positionTokenPrice,
+            address[] memory path
+        );
 
     /// @notice The function to create a proposal
     /// @param token the proposal token (the one that the trades are only allowed to)

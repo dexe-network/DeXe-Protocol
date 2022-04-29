@@ -82,12 +82,30 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             );
     }
 
+    function getUserInvestmentsLimits(address user, uint256[] calldata proposalIds)
+        external
+        view
+        override
+        returns (uint256[] memory lps)
+    {
+        return _parentTraderPoolInfo.getUserInvestmentsLimits(_lpBalances, user, proposalIds);
+    }
+
     function getCreationTokens(
         address token,
         uint256 baseInvestment,
         uint256 instantTradePercentage,
         address[] calldata optionalPath
-    ) external view override returns (uint256 positionTokens, address[] memory path) {
+    )
+        external
+        view
+        override
+        returns (
+            uint256 positionTokens,
+            uint256 positionTokenPrice,
+            address[] memory path
+        )
+    {
         return
             _parentTraderPoolInfo.getCreationTokens(
                 token,
@@ -183,6 +201,17 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             );
     }
 
+    function getInvestmentPercentage(
+        uint256 proposalId,
+        address user,
+        uint256 toBeInvested
+    ) public view override returns (uint256) {
+        uint256 lpBalance = totalLPBalances[user] +
+            IERC20(_parentTraderPoolInfo.parentPoolAddress).balanceOf(user);
+
+        return (_lpBalances[user][proposalId] + toBeInvested).ratio(PERCENTAGE_100, lpBalance);
+    }
+
     function invest(
         uint256 proposalId,
         address user,
@@ -204,24 +233,18 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
                 info.lpLocked + lpInvestment <= info.proposalLimits.investLPLimit,
             "TPRP: proposal is overinvested"
         );
-
-        uint256 tokenPriceConverted = priceFeed.getNormPriceOut(
-            info.token,
-            _parentTraderPoolInfo.baseToken,
-            10**18
-        );
-
         require(
             info.proposalLimits.maxTokenPriceLimit == 0 ||
-                tokenPriceConverted <= info.proposalLimits.maxTokenPriceLimit,
+                priceFeed.getNormPriceIn(_parentTraderPoolInfo.baseToken, info.token, DECIMALS) <=
+                info.proposalLimits.maxTokenPriceLimit,
             "TPRP: token price too high"
         );
 
         address trader = _parentTraderPoolInfo.trader;
 
         if (user != trader) {
-            uint256 traderPercentage = _getInvestmentPercentage(proposalId, trader, 0);
-            uint256 userPercentage = _getInvestmentPercentage(proposalId, user, lpInvestment);
+            uint256 traderPercentage = getInvestmentPercentage(proposalId, trader, 0);
+            uint256 userPercentage = getInvestmentPercentage(proposalId, user, lpInvestment);
 
             require(userPercentage <= traderPercentage, "TPRP: investing more than trader");
         }
@@ -229,7 +252,11 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         _transferAndMintLP(proposalId, user, lpInvestment, baseInvestment);
 
         if (info.balancePosition + info.balanceBase > 0) {
-            uint256 positionTokens = tokenPriceConverted.ratio(info.balancePosition, 10**18);
+            uint256 positionTokens = priceFeed.getNormPriceOut(
+                info.token,
+                _parentTraderPoolInfo.baseToken,
+                info.balancePosition
+            );
             uint256 baseToExchange = baseInvestment.ratio(
                 positionTokens,
                 positionTokens + info.balanceBase
@@ -494,18 +521,6 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             amountIn,
             amountOut
         );
-    }
-
-    function _getInvestmentPercentage(
-        uint256 proposalId,
-        address user,
-        uint256 toBeInvested
-    ) internal view returns (uint256) {
-        uint256 traderLPBalance = totalLPBalances[user] +
-            IERC20(_parentTraderPoolInfo.parentPoolAddress).balanceOf(user);
-
-        return
-            (_lpBalances[user][proposalId] + toBeInvested).ratio(PERCENTAGE_100, traderLPBalance);
     }
 
     function _baseInProposal(uint256 proposalId) internal view override returns (uint256) {

@@ -89,25 +89,70 @@ library TraderPoolRiskyProposalView {
         }
     }
 
+    function getUserInvestmentsLimits(
+        ITraderPoolRiskyProposal.ParentTraderPoolInfo storage parentTraderPoolInfo,
+        mapping(address => mapping(uint256 => uint256)) storage lpBalances,
+        address user,
+        uint256[] calldata proposalIds
+    ) external view returns (uint256[] memory lps) {
+        lps = new uint256[](proposalIds.length);
+
+        ITraderPoolRiskyProposal proposal = ITraderPoolRiskyProposal(address(this));
+        address trader = parentTraderPoolInfo.trader;
+
+        uint256 lpBalance = proposal.totalLPBalances(user) +
+            IERC20(parentTraderPoolInfo.parentPoolAddress).balanceOf(user);
+
+        for (uint256 i = 0; i < proposalIds.length; i++) {
+            if (user != trader) {
+                uint256 proposalId = proposalIds[i];
+
+                uint256 maxPercentage = proposal.getInvestmentPercentage(proposalId, trader, 0);
+                uint256 maxInvestment = lpBalance.percentage(maxPercentage);
+
+                lps[i] = maxInvestment > lpBalances[user][proposalId]
+                    ? maxInvestment - lpBalances[user][proposalId]
+                    : 0;
+            } else {
+                lps[i] = MAX_UINT;
+            }
+        }
+    }
+
     function getCreationTokens(
         ITraderPoolRiskyProposal.ParentTraderPoolInfo storage parentTraderPoolInfo,
         address token,
         uint256 baseToExchange,
         address[] calldata optionalPath
-    ) external view returns (uint256, address[] memory) {
+    )
+        external
+        view
+        returns (
+            uint256 positionTokens,
+            uint256 positionTokenPrice,
+            address[] memory path
+        )
+    {
         address baseToken = parentTraderPoolInfo.baseToken;
 
         if (!token.isContract() || token == baseToken) {
-            return (0, new address[](0));
+            return (0, 0, new address[](0));
         }
 
-        return
-            ITraderPoolRiskyProposal(address(this)).priceFeed().getNormalizedExtendedPriceOut(
-                baseToken,
-                token,
-                baseToExchange,
-                optionalPath
-            );
+        IPriceFeed priceFeed = ITraderPoolRiskyProposal(address(this)).priceFeed();
+
+        (positionTokens, path) = priceFeed.getNormalizedExtendedPriceOut(
+            baseToken,
+            token,
+            baseToExchange,
+            optionalPath
+        );
+        (positionTokenPrice, ) = priceFeed.getNormalizedExtendedPriceIn(
+            baseToken,
+            token,
+            DECIMALS,
+            optionalPath
+        );
     }
 
     function getInvestTokens(
