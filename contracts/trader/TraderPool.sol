@@ -127,6 +127,9 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         _poolParameters = poolParameters;
         _traderAdmins[poolParameters.trader] = true;
+        address[] memory admins = new address[](1);
+        admins[0] = poolParameters.trader;
+        emit ModifiedAdmins(admins, true);
     }
 
     function setDependencies(address contractsRegistry) public virtual override dependant {
