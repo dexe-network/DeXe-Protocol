@@ -100,6 +100,12 @@ describe("TraderPool", () => {
       await tokens[tokenNames[i]].approve(uniswapV2Router.address, reserveTokens.times(decimalWei));
       await uniswapV2Router.setReserve(tokens[tokenNames[i]].address, reserveTokens.times(decimalWei));
     }
+
+    for (let i = 0; i < tokenNames.length; i++) {
+      for (let j = i + 1; j < tokenNames.length; j++) {
+        await uniswapV2Router.enablePair(tokens[tokenNames[i]].address, tokens[tokenNames[j]].address);
+      }
+    }
   }
 
   before("setup", async () => {

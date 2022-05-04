@@ -44,6 +44,10 @@ contract UniswapV2RouterMock {
         returns (uint256 reserveA, uint256 reserveB)
     {
         require(tokenA != tokenB, "UniswapV2Library: IDENTICAL_ADDRESSES");
+        require(
+            pairs[tokenA][tokenB] != address(0) || pairs[tokenB][tokenA] != address(0),
+            "UniswapV2Library: PAIR_DOES_NOT_EXIST"
+        );
 
         return (reserves[tokenA], reserves[tokenB]);
     }

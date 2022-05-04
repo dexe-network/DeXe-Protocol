@@ -10,20 +10,6 @@ import "../../core/PriceFeed.sol";
 library UniswapV2PathFinder {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    function _uniswapPairExists(address token0, address token1) internal view returns (bool) {
-        return PriceFeed(address(this)).uniswapFactory().getPair(token0, token1) != address(0);
-    }
-
-    function _uniswapPairsExist(address[] memory path) internal view returns (bool) {
-        for (uint256 i = 1; i < path.length; i++) {
-            if (!_uniswapPairExists(path[i - 1], path[i])) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     function _uniswapLess(uint256[] memory first, uint256[] memory second)
         internal
         pure
@@ -53,13 +39,14 @@ library UniswapV2PathFinder {
             return IPriceFeed.FoundPath(new address[](0), new uint256[](0), true);
         }
 
-        if (_uniswapPairExists(inToken, outToken)) {
-            foundPath.path = new address[](2);
-            foundPath.path[0] = inToken;
-            foundPath.path[1] = outToken;
+        address[] memory path2 = new address[](2);
+        path2[0] = inToken;
+        path2[1] = outToken;
 
-            foundPath.amounts = priceFunction(amount, foundPath.path);
-        }
+        try priceFunction(amount, path2) returns (uint256[] memory amounts) {
+            foundPath.amounts = amounts;
+            foundPath.path = path2;
+        } catch {}
 
         uint256 length = pathTokens.length();
 
@@ -69,29 +56,26 @@ library UniswapV2PathFinder {
             path3[1] = pathTokens.at(i);
             path3[2] = outToken;
 
-            if (_uniswapPairsExist(path3)) {
-                uint256[] memory tmpValues = priceFunction(amount, path3);
-
-                if (foundPath.path.length == 0 || compare(tmpValues, foundPath.amounts)) {
-                    foundPath.amounts = tmpValues;
+            try priceFunction(amount, path3) returns (uint256[] memory amounts) {
+                if (foundPath.path.length == 0 || compare(amounts, foundPath.amounts)) {
+                    foundPath.amounts = amounts;
                     foundPath.path = path3;
                 }
-            }
+            } catch {}
         }
 
         if (
             providedPath.length >= 3 &&
             providedPath[0] == inToken &&
-            providedPath[providedPath.length - 1] == outToken &&
-            _uniswapPairsExist(providedPath)
+            providedPath[providedPath.length - 1] == outToken
         ) {
-            uint256[] memory tmpValues = priceFunction(amount, providedPath);
-
-            if (foundPath.path.length == 0 || compare(tmpValues, foundPath.amounts)) {
-                foundPath.amounts = tmpValues;
-                foundPath.path = providedPath;
-                foundPath.withProvidedPath = true;
-            }
+            try priceFunction(amount, providedPath) returns (uint256[] memory amounts) {
+                if (foundPath.path.length == 0 || compare(amounts, foundPath.amounts)) {
+                    foundPath.amounts = amounts;
+                    foundPath.path = providedPath;
+                    foundPath.withProvidedPath = true;
+                }
+            } catch {}
         }
     }
 
