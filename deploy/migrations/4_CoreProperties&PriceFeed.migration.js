@@ -11,9 +11,9 @@ const PriceFeed = artifacts.require("PriceFeed");
 module.exports = async (deployer) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
-  const uniswapV2PathFinderLib = await UniswapV2PathFinderLib.new();
+  await deployer.deploy(UniswapV2PathFinderLib);
 
-  await PriceFeed.link(uniswapV2PathFinderLib);
+  await deployer.link(UniswapV2PathFinderLib, PriceFeed);
 
   const coreProperties = await deployer.deploy(CoreProperties);
   const priceFeed = await deployer.deploy(PriceFeed);
