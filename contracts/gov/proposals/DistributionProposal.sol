@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "../../interfaces/gov/IGovVote.sol";
 import "../../interfaces/gov/proposals/IDistributionProposal.sol";
 
+import "../../libs/DecimalsConverter.sol";
+
 contract DistributionProposal is IDistributionProposal, Ownable {
     using SafeERC20 for IERC20;
+    using DecimalsConverter for uint256;
 
     address public govAddress;
     uint256 public proposalId;
@@ -16,13 +20,12 @@ contract DistributionProposal is IDistributionProposal, Ownable {
     address public rewardAddress;
     uint256 public rewardAmount;
 
-    /// @dev Started whe proposal is executed, open `claim` process
     bool public distributionStarted;
 
-    /// @dev If address claimed, return `true`
-    mapping(address => bool) public isAddressClaimed;
+    /// @dev If claimed, return `true`
+    mapping(address => bool) public claimed;
 
-    event DistributionStarted(bool status);
+    event DistributionStarted();
     event Claimed(address voter, uint256 amount);
 
     modifier onlyGov() {
@@ -56,32 +59,33 @@ contract DistributionProposal is IDistributionProposal, Ownable {
 
         distributionStarted = true;
 
-        emit DistributionStarted(true);
+        emit DistributionStarted();
     }
 
     function claim(address voter) external override {
         require(distributionStarted, "DP: distribution isn't start yet");
-        require(!isAddressClaimed[voter], "DP: already claimed");
+        require(!claimed[voter], "DP: already claimed");
 
         uint256 reward = getPotentialReward(voter);
 
         require(reward != 0, "DP: nothing to claim");
 
-        isAddressClaimed[voter] = true;
+        claimed[voter] = true;
 
-        IERC20(rewardAddress).safeTransfer(voter, reward);
+        IERC20(rewardAddress).safeTransfer(
+            voter,
+            reward.convertFrom18(ERC20(rewardAddress).decimals())
+        );
 
         emit Claimed(voter, reward);
     }
 
     function getPotentialReward(address voter) public view override returns (uint256) {
-        IGovVote gov = IGovVote(govAddress);
-        (uint256 totalVoteWeight, uint256 voteWeight, ) = gov.getVotedAmount(proposalId, voter);
+        (uint256 totalVoteWeight, uint256 voteWeight, , ) = IGovVote(govAddress).getVoteAmounts(
+            proposalId,
+            voter
+        );
 
-        if (totalVoteWeight == 0) {
-            return 0;
-        }
-
-        return (rewardAmount * voteWeight) / totalVoteWeight;
+        return totalVoteWeight == 0 ? 0 : (rewardAmount * voteWeight) / totalVoteWeight;
     }
 }

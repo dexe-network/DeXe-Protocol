@@ -8,6 +8,8 @@ interface IERC721Power is IERC721Enumerable {
         uint64 lastUpdate;
         uint256 currentPower;
         uint256 currentCollateral;
+        uint256 maxPower;
+        uint256 requiredCollateral;
     }
 
     /**
@@ -27,7 +29,7 @@ interface IERC721Power is IERC721Enumerable {
      * @param _maxPower Decimals.
      * @param tokenId Nft number.
      */
-    function setMaxPower(uint256 _maxPower, uint256 tokenId) external;
+    function setNftMaxPower(uint256 _maxPower, uint256 tokenId) external;
 
     /**
      * @notice Set collateral token address.
@@ -39,14 +41,14 @@ interface IERC721Power is IERC721Enumerable {
      * @notice Set required collateral amount for all nfts.
      * @param amount Wei.
      */
-    function setRequiredCollateralAmount(uint256 amount) external;
+    function setRequiredCollateral(uint256 amount) external;
 
     /**
      * @notice Set required collateral amount for certain nft.
      * @param amount Wei.
      * @param tokenId Nft number.
      */
-    function setRequiredCollateralAmount(uint256 amount, uint256 tokenId) external;
+    function setNftRequiredCollateral(uint256 amount, uint256 tokenId) external;
 
     /**
      * @notice Mint new nft.
@@ -54,12 +56,6 @@ interface IERC721Power is IERC721Enumerable {
      * @param tokenId Nft number.
      */
     function safeMint(address to, uint256 tokenId) external;
-
-    /**
-     * @notice Set base URI.
-     * @param _baseUri String.
-     */
-    function setBaseUri(string memory _baseUri) external;
 
     /**
      * @notice Add collateral amount to certain nft.
@@ -91,14 +87,5 @@ interface IERC721Power is IERC721Enumerable {
      * @notice Return required collateral amount for nft.
      * @param tokenId Nft number.
      */
-    function getRequiredCollateralAmountForNft(uint256 tokenId) external view returns (uint256);
-
-    function getNftInfo(uint256 tokenId)
-        external
-        view
-        returns (
-            uint64,
-            uint256,
-            uint256
-        );
+    function getRequiredCollateralForNft(uint256 tokenId) external view returns (uint256);
 }

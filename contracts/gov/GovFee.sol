@@ -17,8 +17,8 @@ abstract contract GovFee is IGovFee, OwnableUpgradeable, GovVote {
 
     uint256 public feePercentage;
 
-    /// @dev Last `withdraw()` for specific token address. Zero address - native token
-    mapping(address => uint64) public lastUpdate;
+    /// @dev zero address - native token
+    mapping(address => uint64) public lastUpdate; // token address => last update
 
     event FeeWithdrawn(address token, uint256 amount, uint256 fee);
 

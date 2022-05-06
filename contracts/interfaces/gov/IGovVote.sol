@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
 interface IGovVote {
     enum ProposalState {
         Voting,
@@ -10,6 +12,12 @@ interface IGovVote {
         Succeeded,
         Executed,
         Undefined
+    }
+
+    struct VoteInfo {
+        uint256 totalVoted;
+        uint256 tokensVoted;
+        EnumerableSet.UintSet nftsVoted;
     }
 
     /**
@@ -36,7 +44,7 @@ interface IGovVote {
      * @param proposalId Proposal ID
      * @param nftIds NFTs that the user votes with
      */
-    function voteNfts(uint256 proposalId, uint256[] memory nftIds) external;
+    function voteNfts(uint256 proposalId, uint256[] calldata nftIds) external;
 
     /**
      * @notice NFTs voting
@@ -46,7 +54,7 @@ interface IGovVote {
      */
     function voteDelegatedNfts(
         uint256 proposalId,
-        uint256[] memory nftIds,
+        uint256[] calldata nftIds,
         address holder
     ) external;
 
@@ -67,12 +75,12 @@ interface IGovVote {
      * @notice Unlock NFTs in ended proposals
      * @param proposalId Proposal ID
      * @param user Voter address
-     * @param _nftIds NFTs to unlock
+     * @param nftIds NFTs to unlock
      */
     function unlockNfts(
         uint256 proposalId,
         address user,
-        uint256[] memory _nftIds
+        uint256[] calldata nftIds
     ) external;
 
     /**
@@ -80,6 +88,21 @@ interface IGovVote {
      * @param proposalId Proposal ID
      */
     function moveProposalToValidators(uint256 proposalId) external;
+
+    /**
+     * @param proposalId Proposal ID
+     * @param voter Voter address
+     * @return Total voted amount in proposal, total voted amount by address, voted tokens amount
+     */
+    function getVoteAmounts(uint256 proposalId, address voter)
+        external
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256,
+            uint256[] memory
+        );
 
     /**
      * @param proposalId Proposal ID
@@ -93,18 +116,4 @@ interface IGovVote {
      * 6 -`Undefined`, nonexistent proposal
      */
     function getProposalState(uint256 proposalId) external view returns (ProposalState);
-
-    /**
-     * @param proposalId Proposal ID
-     * @param voter Voter address
-     * @return Total voted amount in proposal, total voted amount by address, voted tokens amount
-     */
-    function getVotedAmount(uint256 proposalId, address voter)
-        external
-        view
-        returns (
-            uint256,
-            uint256,
-            uint256
-        );
 }

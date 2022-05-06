@@ -14,7 +14,8 @@ abstract contract GovCreator is IGovCreator {
     IGovUserKeeper public govUserKeeper;
 
     uint256 private _latestProposalId;
-    mapping(uint256 => Proposal) public proposals;
+
+    mapping(uint256 => Proposal) public proposals; // proposalId => info
 
     event ProposalCreated(uint256 id);
 

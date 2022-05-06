@@ -13,7 +13,6 @@ import "../../core/Globals.sol";
 contract Validators is IValidators, OwnableUpgradeable {
     using Math for uint256;
 
-    /// @dev deployed `ValidatorsToken` contract
     ValidatorsToken public validatorsTokenContract;
 
     /// @dev Base internal proposal settings
@@ -21,11 +20,11 @@ contract Validators is IValidators, OwnableUpgradeable {
 
     uint256 private _latestInternalProposalId;
 
-    mapping(uint256 => InternalProposal) public internalProposals;
-    mapping(uint256 => ExternalProposal) public externalProposals;
+    mapping(uint256 => InternalProposal) public internalProposals; // proposalId => info
+    mapping(uint256 => ExternalProposal) public externalProposals; // proposalId => info
 
-    mapping(uint256 => mapping(address => uint256)) public addressVotedInternal;
-    mapping(uint256 => mapping(address => uint256)) public addressVotedExternal;
+    mapping(uint256 => mapping(address => uint256)) public addressVotedInternal; // proposalId => user => voted amount
+    mapping(uint256 => mapping(address => uint256)) public addressVotedExternal; // proposalId => user => voted amount
 
     /// @dev Access only for addresses that have validator tokens
     modifier onlyValidatorHolder() {
@@ -94,7 +93,7 @@ contract Validators is IValidators, OwnableUpgradeable {
         uint64 duration,
         uint128 quorum
     ) external override onlyOwner {
-        require(!_isProposalExist(proposalId, false), "Validators: proposal already exist");
+        require(!_proposalExists(proposalId, false), "Validators: proposal already exist");
 
         externalProposals[proposalId] = ExternalProposal({
             core: ProposalCore({
@@ -112,7 +111,7 @@ contract Validators is IValidators, OwnableUpgradeable {
         uint256 amount,
         bool isInternal
     ) external override {
-        require(_isProposalExist(proposalId, isInternal), "Validators: proposal is not exist");
+        require(_proposalExists(proposalId, isInternal), "Validators: proposal is not exist");
 
         ProposalCore storage core = isInternal
             ? internalProposals[proposalId].core
@@ -141,7 +140,7 @@ contract Validators is IValidators, OwnableUpgradeable {
     }
 
     function execute(uint256 proposalId) external override {
-        require(_isProposalExist(proposalId, true), "Validators: proposal is not exist");
+        require(_proposalExists(proposalId, true), "Validators: proposal is not exist");
 
         InternalProposal storage proposal = internalProposals[proposalId];
 
@@ -153,20 +152,20 @@ contract Validators is IValidators, OwnableUpgradeable {
         proposal.core.executed = true;
 
         ProposalType proposalType = proposal.proposalType;
+        uint256 proposalValue = proposal.newValue;
 
         if (proposalType == ProposalType.ChangeInternalDuration) {
-            internalProposalSettings.duration = uint64(proposal.newValue);
+            internalProposalSettings.duration = uint64(proposalValue);
         } else if (proposalType == ProposalType.ChangeInternalQuorum) {
-            internalProposalSettings.quorum = uint128(proposal.newValue);
+            internalProposalSettings.quorum = uint128(proposalValue);
         } else if (proposalType == ProposalType.ChangeBalance) {
             address user = proposal.userAddress;
-            uint256 newBalance = proposal.newValue;
             uint256 balance = validatorsTokenContract.balanceOf(user);
 
-            if (balance < newBalance) {
-                validatorsTokenContract.mint(user, newBalance - balance);
+            if (balance < proposalValue) {
+                validatorsTokenContract.mint(user, proposalValue - balance);
             } else {
-                validatorsTokenContract.burn(user, balance - newBalance);
+                validatorsTokenContract.burn(user, balance - proposalValue);
             }
         }
     }
@@ -177,7 +176,7 @@ contract Validators is IValidators, OwnableUpgradeable {
         override
         returns (ProposalState)
     {
-        if (!_isProposalExist(proposalId, isInternal)) {
+        if (!_proposalExists(proposalId, isInternal)) {
             return ProposalState.Undefined;
         }
 
@@ -209,7 +208,7 @@ contract Validators is IValidators, OwnableUpgradeable {
         override
         returns (bool)
     {
-        if (!_isProposalExist(proposalId, isInternal)) {
+        if (!_proposalExists(proposalId, isInternal)) {
             return false;
         }
 
@@ -226,7 +225,7 @@ contract Validators is IValidators, OwnableUpgradeable {
         return currentQuorum >= core.quorum;
     }
 
-    function _isProposalExist(uint256 proposalId, bool isInternal) private view returns (bool) {
+    function _proposalExists(uint256 proposalId, bool isInternal) private view returns (bool) {
         return
             isInternal
                 ? internalProposals[proposalId].core.voteEnd != 0

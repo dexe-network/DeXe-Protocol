@@ -9,6 +9,11 @@ interface IDistributionProposal {
     function setProposalId(uint256 proposalId) external;
 
     /**
+     * @notice Executed by `Gov` contract, open 'claim'
+     */
+    function execute() external;
+
+    /**
      * @notice Distribute rewards
      * @param voter Voter address
      */
@@ -19,9 +24,4 @@ interface IDistributionProposal {
      * @param voter Voter address
      */
     function getPotentialReward(address voter) external view returns (uint256);
-
-    /**
-     * @notice Executed by `Gov` contract, open 'claim'
-     */
-    function execute() external;
 }

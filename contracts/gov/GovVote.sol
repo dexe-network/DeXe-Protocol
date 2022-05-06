@@ -24,15 +24,10 @@ abstract contract GovVote is IGovVote, GovCreator {
 
     uint256 public votesLimit;
 
-    mapping(uint256 => uint256) private _totalVotedInProposal;
+    mapping(uint256 => uint256) private _totalVotedInProposal; // proposalId => total voted
+    mapping(uint256 => mapping(address => VoteInfo)) private _voteInfos; // proposalId => voter => info
 
-    mapping(uint256 => mapping(address => uint256)) private _totalVoted;
-    mapping(uint256 => mapping(address => uint256)) private _tokensVoted;
-
-    mapping(uint256 => mapping(address => EnumerableSet.UintSet)) private _nftsVoted;
-
-    /// @dev When address voted in proposal, add proposal ID to set
-    mapping(address => EnumerableSet.UintSet) private _votedInProposals;
+    mapping(address => EnumerableSet.UintSet) private _votedInProposals; // voter => active proposal ids
 
     function __GovVote_init(
         address govSettingAddress,
@@ -64,7 +59,7 @@ abstract contract GovVote is IGovVote, GovCreator {
         );
     }
 
-    function voteNfts(uint256 proposalId, uint256[] memory nftIds) external override {
+    function voteNfts(uint256 proposalId, uint256[] calldata nftIds) external override {
         _voteNfts(proposalId, nftIds.transform(), msg.sender);
     }
 
@@ -92,7 +87,7 @@ abstract contract GovVote is IGovVote, GovCreator {
             _beforeUnlock(proposalIds[i]);
 
             _govUserKeeper.unlockTokens(user, proposalIds[i]);
-            _govUserKeeper.unlockNfts(user, _nftsVoted[proposalIds[i]][user].values());
+            _govUserKeeper.unlockNfts(user, _voteInfos[proposalIds[i]][user].nftsVoted.values());
 
             _votedInProposals[user].remove(proposalIds[i]);
         }
@@ -101,12 +96,15 @@ abstract contract GovVote is IGovVote, GovCreator {
     function unlockNfts(
         uint256 proposalId,
         address user,
-        uint256[] memory nftIds
+        uint256[] calldata nftIds
     ) external override {
         _beforeUnlock(proposalId);
 
         for (uint256 i; i < nftIds.length; i++) {
-            require(_nftsVoted[proposalId][user].contains(nftIds[i]), "GovV: NFT is not voting");
+            require(
+                _voteInfos[proposalId][user].nftsVoted.contains(nftIds[i]),
+                "GovV: NFT is not voting"
+            );
         }
 
         govUserKeeper.unlockNfts(user, nftIds);
@@ -125,25 +123,27 @@ abstract contract GovVote is IGovVote, GovCreator {
         );
     }
 
-    function getProposalState(uint256 proposalId) external view override returns (ProposalState) {
-        return _getProposalState(proposals[proposalId].core);
-    }
-
-    function getVotedAmount(uint256 proposalId, address voter)
+    function getVoteAmounts(uint256 proposalId, address voter)
         external
         view
         override
         returns (
             uint256,
             uint256,
-            uint256
+            uint256,
+            uint256[] memory
         )
     {
         return (
             _totalVotedInProposal[proposalId],
-            _totalVoted[proposalId][voter],
-            _tokensVoted[proposalId][voter]
+            _voteInfos[proposalId][voter].totalVoted,
+            _voteInfos[proposalId][voter].tokensVoted,
+            _voteInfos[proposalId][voter].nftsVoted.values()
         );
+    }
+
+    function getProposalState(uint256 proposalId) external view override returns (ProposalState) {
+        return _getProposalState(proposals[proposalId].core);
     }
 
     function _getProposalState(ProposalCore storage core) internal view returns (ProposalState) {
@@ -209,9 +209,9 @@ abstract contract GovVote is IGovVote, GovCreator {
     ) private {
         ProposalCore storage core = _beforeVote(proposalId, voter);
 
-        (uint256 tokenBalance, ) = govUserKeeper.tokenBalanceOf(voter);
+        uint256 tokenBalance = govUserKeeper.tokenBalance(voter);
 
-        uint256 voted = _tokensVoted[proposalId][voter];
+        uint256 voted = _voteInfos[proposalId][voter].tokensVoted;
         uint256 voteAmount = amount.min(tokenBalance - voted);
 
         require(voteAmount > 0, "GovV: vote amount is zero");
@@ -219,8 +219,8 @@ abstract contract GovVote is IGovVote, GovCreator {
         govUserKeeper.lockTokens(voter, voteAmount, proposalId);
 
         _totalVotedInProposal[proposalId] += voteAmount;
-        _totalVoted[proposalId][voter] += voteAmount;
-        _tokensVoted[proposalId][voter] = voted + voteAmount;
+        _voteInfos[proposalId][voter].totalVoted += voteAmount;
+        _voteInfos[proposalId][voter].tokensVoted = voted + voteAmount;
 
         core.votesFor += voteAmount;
     }
@@ -232,19 +232,17 @@ abstract contract GovVote is IGovVote, GovCreator {
     ) private {
         ProposalCore storage core = _beforeVote(proposalId, voter);
 
-        ShrinkableArray.UintArray memory _nftsToVote = ShrinkableArray.createBlank(nftIds.length);
-
+        ShrinkableArray.UintArray memory _nftsToVote = ShrinkableArray.create(nftIds.length);
         uint256 length;
 
         for (uint256 i; i < nftIds.length; i++) {
-            if (!_nftsVoted[proposalId][voter].contains(nftIds.values[i])) {
-                require(
-                    i == 0 || nftIds.values[i] > nftIds.values[i - 1],
-                    "GovV: wrong NFT order"
-                );
-
-                _nftsToVote.values[length++] = nftIds.values[i];
+            if (_voteInfos[proposalId][voter].nftsVoted.contains(nftIds.values[i])) {
+                continue;
             }
+
+            require(i == 0 || nftIds.values[i] > nftIds.values[i - 1], "GovV: wrong NFT order");
+
+            _nftsToVote.values[length++] = nftIds.values[i];
         }
 
         _nftsToVote = govUserKeeper.lockNfts(voter, _nftsToVote.crop(length));
@@ -257,11 +255,11 @@ abstract contract GovVote is IGovVote, GovCreator {
         require(voteAmount > 0, "GovV: vote amount is zero");
 
         for (uint256 i; i < _nftsToVote.length; i++) {
-            _nftsVoted[proposalId][voter].add(_nftsToVote.values[i]);
+            _voteInfos[proposalId][voter].nftsVoted.add(_nftsToVote.values[i]);
         }
 
         _totalVotedInProposal[proposalId] += voteAmount;
-        _totalVoted[proposalId][voter] += voteAmount;
+        _voteInfos[proposalId][voter].totalVoted += voteAmount;
 
         core.votesFor += voteAmount;
     }

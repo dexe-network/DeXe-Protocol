@@ -30,4 +30,8 @@ library DecimalsConverter {
     {
         return convert(amount, 18, destinationDecimals);
     }
+
+    function round(uint256 amount, uint256 decimals) internal pure returns (uint256) {
+        return convertTo18(convertFrom18(amount, decimals), decimals);
+    }
 }

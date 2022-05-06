@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
@@ -10,9 +11,11 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "../interfaces/gov/IGovUserKeeper.sol";
-import "../interfaces/gov/ERC721/IERC721Power.sol";
 
 import "../libs/ShrinkableArray.sol";
+import "../libs/DecimalsConverter.sol";
+
+import "./ERC721/ERC721Power.sol";
 
 contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgradeable {
     using SafeERC20 for IERC20;
@@ -20,29 +23,30 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     using ShrinkableArray for ShrinkableArray.UintArray;
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
+    using DecimalsConverter for uint256;
 
     address public tokenAddress;
     address public nftAddress;
 
     NFTInfo private _nftInfo;
 
-    mapping(address => mapping(uint256 => uint256)) private _proposalIdToIndex;
-    mapping(address => mapping(uint256 => uint256)) private _indexToProposalId;
+    mapping(address => mapping(uint256 => uint256)) private _proposalIdToIndex; // user => proposalId => index in `_lockedAmounts`
+    mapping(address => mapping(uint256 => uint256)) private _indexToProposalId; // user => index in `_lockedAmounts` => proposalId
 
-    mapping(address => uint256) internal _tokenBalance;
-    mapping(address => uint256) private _tokenLocked;
-    mapping(address => uint256[]) private _lockedAmounts;
+    mapping(address => uint256) public override tokenBalance; // user => token balance
+    mapping(address => uint256) private _tokenLocked; // user => maximum locked amount
+    mapping(address => uint256[]) private _lockedAmounts; // user => array of locked amounts where indices are based on `_proposalIdToIndex`
 
-    mapping(address => EnumerableSet.UintSet) private _nftBalance;
-    mapping(address => EnumerableSet.UintSet) private _nftLocked;
-    mapping(uint256 => uint256) private _nftLockedNums;
+    mapping(address => EnumerableSet.UintSet) private _nftBalance; // user => nft balance
+    mapping(address => EnumerableSet.UintSet) private _nftLocked; // user => locked nfts
+    mapping(uint256 => uint256) private _nftLockedNums; // tokenId => locked num
 
-    ///@dev (`holder` => (`spender` => `amount`))
-    mapping(address => mapping(address => uint256)) public override delegatedTokens;
-    mapping(address => mapping(address => EnumerableSet.UintSet)) private _delegatedNfts;
+    mapping(address => mapping(address => uint256)) public override delegatedTokens; // holder => spender => amount
+    mapping(address => mapping(address => EnumerableSet.UintSet)) private _delegatedNfts; // holder => spender => tokenIds
 
     uint256 private _latestPowerSnapshotId;
-    mapping(uint256 => NFTSnapshot) public nftSnapshot;
+
+    mapping(uint256 => NFTSnapshot) public nftSnapshot; // snapshot id => snapshot info
 
     event TokensAdded(address account, uint256 amount);
     event TokensDelegated(address holder, address spender, uint256 amount);
@@ -99,9 +103,13 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function depositTokens(address holder, uint256 amount) external override withSupportedToken {
-        IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), amount);
+        IERC20(tokenAddress).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount.convertFrom18(ERC20(tokenAddress).decimals())
+        );
 
-        _tokenBalance[holder] += amount;
+        tokenBalance[holder] += amount;
 
         emit TokensAdded(holder, amount);
     }
@@ -113,7 +121,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function withdrawTokens(uint256 amount) external override withSupportedToken {
-        uint256 balance = _tokenBalance[msg.sender];
+        uint256 balance = tokenBalance[msg.sender];
         (uint256 lockedAmount, uint256 newLockedAmount) = _getTokenLockedAmount(msg.sender);
 
         if (lockedAmount != newLockedAmount) {
@@ -124,9 +132,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         require(amount > 0, "GovT: nothing to withdraw");
 
-        _tokenBalance[msg.sender] = balance - amount;
+        tokenBalance[msg.sender] = balance - amount;
 
-        IERC20(tokenAddress).safeTransfer(msg.sender, amount);
+        IERC20(tokenAddress).safeTransfer(
+            msg.sender,
+            amount.convertFrom18(ERC20(tokenAddress).decimals())
+        );
 
         emit TokensWithdrawn(msg.sender, amount);
     }
@@ -147,23 +158,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         emit NftsAdded(holder, nftIds);
     }
 
-    function withdrawNfts(uint256[] calldata nftIds) external override withSupportedNft {
-        IERC721 nft = IERC721(nftAddress);
-
-        for (uint256 i; i < nftIds.length; i++) {
-            if (
-                !_nftBalance[msg.sender].contains(nftIds[i]) ||
-                _nftLocked[msg.sender].contains(nftIds[i])
-            ) continue;
-
-            _nftBalance[msg.sender].remove(nftIds[i]);
-
-            nft.safeTransferFrom(address(this), msg.sender, nftIds[i]);
-        }
-
-        emit NftsWithdrawn(msg.sender);
-    }
-
     function delegateNfts(
         address spender,
         uint256[] calldata nftIds,
@@ -178,6 +172,25 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
 
         emit NftsDelegated(msg.sender, spender, nftIds, delegationStatus);
+    }
+
+    function withdrawNfts(uint256[] calldata nftIds) external override withSupportedNft {
+        IERC721 nft = IERC721(nftAddress);
+
+        for (uint256 i; i < nftIds.length; i++) {
+            if (
+                !_nftBalance[msg.sender].contains(nftIds[i]) ||
+                _nftLocked[msg.sender].contains(nftIds[i])
+            ) {
+                continue;
+            }
+
+            _nftBalance[msg.sender].remove(nftIds[i]);
+
+            nft.safeTransferFrom(address(this), msg.sender, nftIds[i]);
+        }
+
+        emit NftsWithdrawn(msg.sender);
     }
 
     function getNftContractInfo()
@@ -202,7 +215,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function tokenBalanceOf(address user) external view override returns (uint256, uint256) {
         (, uint256 _newLockedAmount) = _getTokenLockedAmount(user);
 
-        return (_tokenBalance[user], _newLockedAmount);
+        return (tokenBalance[user], _newLockedAmount);
     }
 
     function nftBalanceCountOf(address user) external view override returns (uint256, uint256) {
@@ -265,8 +278,13 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     function getTotalVoteWeight() external view override returns (uint256) {
         return
-            (tokenAddress != address(0) ? IERC20(tokenAddress).totalSupply() : 0) +
-            _nftInfo.totalPowerInTokens;
+            (
+                tokenAddress != address(0)
+                    ? IERC20(tokenAddress).totalSupply().convertTo18(
+                        ERC20(tokenAddress).decimals()
+                    )
+                    : 0
+            ) + _nftInfo.totalPowerInTokens;
     }
 
     function getNftsPowerInTokens(ShrinkableArray.UintArray calldata nftIds, uint256 snapshotId)
@@ -299,7 +317,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 nftsPower;
 
         for (uint256 i; i < nftIds.length; i++) {
-            (, , uint256 collateralAmount) = IERC721Power(_nftAddress).getNftInfo(
+            (, , uint256 collateralAmount, , ) = ERC721Power(_nftAddress).nftInfos(
                 nftIds.values[i]
             );
 
@@ -326,7 +344,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address holder,
         ShrinkableArray.UintArray calldata nftIds
     ) external view override returns (ShrinkableArray.UintArray memory) {
-        ShrinkableArray.UintArray memory validNfts = ShrinkableArray.createBlank(nftIds.length);
+        ShrinkableArray.UintArray memory validNfts = ShrinkableArray.create(nftIds.length);
         uint256 length;
 
         for (uint256 i; i < nftIds.length; i++) {
@@ -440,7 +458,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         onlyOwner
         returns (ShrinkableArray.UintArray memory)
     {
-        ShrinkableArray.UintArray memory locked = ShrinkableArray.createBlank(nftIds.length);
+        ShrinkableArray.UintArray memory locked = ShrinkableArray.create(nftIds.length);
         uint256 length;
 
         for (uint256 i; i < nftIds.length; i++) {
@@ -482,7 +500,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 requiredTokens,
         uint256 requiredNfts
     ) external view override returns (bool) {
-        return (_tokenBalance[user] >= requiredTokens ||
+        return (tokenBalance[user] >= requiredTokens ||
             _nftBalance[user].length() >= requiredNfts);
     }
 

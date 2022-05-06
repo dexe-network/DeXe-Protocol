@@ -17,7 +17,7 @@ library ShrinkableArray {
     /**
      * @dev Create blank `ShrinkableArray` - empty array with original length
      */
-    function createBlank(uint256 length) internal pure returns (UintArray memory) {
+    function create(uint256 length) internal pure returns (UintArray memory) {
         return UintArray(new uint256[](length), length);
     }
 

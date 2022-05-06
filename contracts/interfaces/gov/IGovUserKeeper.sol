@@ -21,6 +21,10 @@ interface IGovUserKeeper {
         uint256 totalSupply;
     }
 
+    function tokenBalance(address user) external view returns (uint256);
+
+    function delegatedTokens(address holder, address spender) external view returns (uint256);
+
     /**
      * @notice Add tokens to the `holder` balance
      * @param holder Holder
@@ -49,12 +53,6 @@ interface IGovUserKeeper {
     function depositNfts(address holder, uint256[] calldata nftIds) external;
 
     /**
-     * @notice Withdraw NFTs from balance
-     * @param nftIds NFT Ids
-     */
-    function withdrawNfts(uint256[] calldata nftIds) external;
-
-    /**
      * @notice Delegate (approve) NFTs from `msg.sender` to `spender`
      * @param spender Spender
      * @param nftIds NFTs. Array [1, 34, ...]
@@ -67,11 +65,42 @@ interface IGovUserKeeper {
     ) external;
 
     /**
+     * @notice Withdraw NFTs from balance
+     * @param nftIds NFT Ids
+     */
+    function withdrawNfts(uint256[] calldata nftIds) external;
+
+    /**
+     * @return bool `true` if NFT contract support `Power` interface
+     * @return bool `true` if NFT contract support `Enumerable` interface
+     * @return uint256 Total power of all NFTs in tokens
+     * @return uint256 Total supply if NFT contract isn't support `Power` and `Enumerable` interface
+     */
+    function getNftContractInfo()
+        external
+        view
+        returns (
+            bool,
+            bool,
+            uint256,
+            uint256
+        );
+
+    /**
      * @param user Holder address
      * @return uint256 Actual token balance. Wei
      * @return uint256 Actual locked amount. Wei
      */
     function tokenBalanceOf(address user) external view returns (uint256, uint256);
+
+    /**
+     * @param user Holder address
+     * @return uint256 Actual NFTs count on balance
+     * @return uint256 Actual locked NFTs count on balance
+     */
+    function nftBalanceCountOf(address user) external view returns (uint256, uint256);
+
+    function delegatedNftsCountOf(address holder, address spender) external view returns (uint256);
 
     /**
      * @param user Holder address
@@ -113,31 +142,6 @@ interface IGovUserKeeper {
     ) external view returns (uint256[] memory);
 
     /**
-     * @param user Holder address
-     * @return uint256 Actual NFTs count on balance
-     * @return uint256 Actual locked NFTs count on balance
-     */
-    function nftBalanceCountOf(address user) external view returns (uint256, uint256);
-
-    function delegatedNftsCountOf(address holder, address spender) external view returns (uint256);
-
-    /**
-     * @return bool `true` if NFT contract support `Power` interface
-     * @return bool `true` if NFT contract support `Enumerable` interface
-     * @return uint256 Total power of all NFTs in tokens
-     * @return uint256 Total supply if NFT contract isn't support `Power` and `Enumerable` interface
-     */
-    function getNftContractInfo()
-        external
-        view
-        returns (
-            bool,
-            bool,
-            uint256,
-            uint256
-        );
-
-    /**
      * @return uint256 Total vote amount for each proposal
      * @dev Participates in the quorum calculation
      */
@@ -163,7 +167,7 @@ interface IGovUserKeeper {
     function filterNftsAvailableForDelegator(
         address delegate,
         address holder,
-        ShrinkableArray.UintArray memory nftIds
+        ShrinkableArray.UintArray calldata nftIds
     ) external view returns (ShrinkableArray.UintArray memory);
 
     /**
@@ -218,6 +222,4 @@ interface IGovUserKeeper {
         uint256 requiredTokens,
         uint256 requiredNfts
     ) external view returns (bool);
-
-    function delegatedTokens(address holder, address spender) external view returns (uint256);
 }

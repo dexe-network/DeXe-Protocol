@@ -13,8 +13,8 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
 
     uint256 private _latestSettingsId;
 
-    mapping(uint256 => ProposalSettings) public settings;
-    mapping(address => uint256) public executorToSettings;
+    mapping(uint256 => ProposalSettings) public settings; // settingsId => info
+    mapping(address => uint256) public executorToSettings; // executor => seetingsId
 
     function __GovSettings_init(
         ProposalSettings calldata internalProposalSetting,
@@ -77,7 +77,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         }
     }
 
-    function _validateProposalSettings(ProposalSettings memory _settings) private pure {
+    function _validateProposalSettings(ProposalSettings calldata _settings) private pure {
         require(_settings.duration > 0, "GovSettings: invalid vote duration value");
         require(_settings.quorum <= PERCENTAGE_100, "GovSettings: invalid quorum value");
         require(

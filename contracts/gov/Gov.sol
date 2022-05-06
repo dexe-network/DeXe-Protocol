@@ -11,7 +11,7 @@ import "./GovFee.sol";
 contract Gov is IGov, GovFee, ERC721HolderUpgradeable, ERC1155HolderUpgradeable {
     event ProposalExecuted(uint256 proposalId);
 
-    function initialize(
+    function __Gov_init(
         address govSettingAddress,
         address govUserKeeperAddress,
         address validatorsAddress,
