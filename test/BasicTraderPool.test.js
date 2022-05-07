@@ -213,6 +213,7 @@ describe("BasicTraderPool", () => {
 
     return [traderPool, proposal];
   }
+
   async function invest(amount, account) {
     const receptions = await traderPool.getInvestTokens(amount);
     await traderPool.invest(amount, receptions.receivedAmounts, { from: account });

@@ -30,14 +30,13 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     NFTInfo private _nftInfo;
 
-    mapping(address => mapping(uint256 => uint256)) private _proposalIdToIndex; // user => proposalId => index in `_lockedAmounts`
-    mapping(address => mapping(uint256 => uint256)) private _indexToProposalId; // user => index in `_lockedAmounts` => proposalId
-
     mapping(address => uint256) public override tokenBalance; // user => token balance
-    mapping(address => uint256) private _tokenLocked; // user => maximum locked amount
-    mapping(address => uint256[]) private _lockedAmounts; // user => array of locked amounts where indices are based on `_proposalIdToIndex`
-
     mapping(address => EnumerableSet.UintSet) private _nftBalance; // user => nft balance
+
+    mapping(address => uint256) private _maxTokensLocked; // user => maximum locked amount
+    mapping(address => mapping(uint256 => uint256)) private _lockedInProposals; // user => proposal id => locked amount
+    mapping(address => EnumerableSet.UintSet) private _lockedProposals; // user => array of proposal ids
+
     mapping(address => EnumerableSet.UintSet) private _nftLocked; // user => locked nfts
     mapping(uint256 => uint256) private _nftLockedNums; // tokenId => locked num
 
@@ -122,12 +121,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     function withdrawTokens(uint256 amount) external override withSupportedToken {
         uint256 balance = tokenBalance[msg.sender];
-        (uint256 lockedAmount, uint256 newLockedAmount) = _getTokenLockedAmount(msg.sender);
+        uint256 newLockedAmount = _getNewTokenLockedAmount(msg.sender);
 
-        if (lockedAmount != newLockedAmount) {
-            _tokenLocked[msg.sender] = newLockedAmount;
-        }
-
+        _maxTokensLocked[msg.sender] = newLockedAmount;
         amount = amount.min(balance - newLockedAmount);
 
         require(amount > 0, "GovT: nothing to withdraw");
@@ -213,9 +209,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function tokenBalanceOf(address user) external view override returns (uint256, uint256) {
-        (, uint256 _newLockedAmount) = _getTokenLockedAmount(user);
-
-        return (tokenBalance[user], _newLockedAmount);
+        return (tokenBalance[user], _getNewTokenLockedAmount(user));
     }
 
     function nftBalanceCountOf(address user) external view override returns (uint256, uint256) {
@@ -397,59 +391,25 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 amount,
         uint256 proposalId
     ) external onlyOwner {
-        uint256 length = _lockedAmounts[voter].length;
+        uint256 newLockedAmount = _lockedInProposals[voter][proposalId] + amount;
 
-        if (length == 0) {
-            _lockedAmounts[voter].push(0);
-            length++;
-        }
+        _lockedInProposals[voter][proposalId] = newLockedAmount;
+        _lockedProposals[voter].add(proposalId);
 
-        uint256 index = _proposalIdToIndex[voter][proposalId];
-        uint256 newLockedAmount;
-
-        if (index == 0) {
-            newLockedAmount = amount;
-
-            _lockedAmounts[voter].push(newLockedAmount);
-            _proposalIdToIndex[voter][proposalId] = length;
-            _indexToProposalId[voter][length] = proposalId;
-        } else {
-            newLockedAmount = _lockedAmounts[voter][index] + amount;
-
-            _lockedAmounts[voter][index] = newLockedAmount;
-        }
-
-        if (newLockedAmount > _tokenLocked[voter]) {
-            _tokenLocked[voter] = newLockedAmount;
+        if (newLockedAmount > _maxTokensLocked[voter]) {
+            _maxTokensLocked[voter] = newLockedAmount;
 
             emit TokensLocked(voter, newLockedAmount);
         }
     }
 
     function unlockTokens(address voter, uint256 proposalId) external override onlyOwner {
-        uint256 locked = _tokenLocked[voter];
-        uint256 length = _lockedAmounts[voter].length;
-        uint256 index = _proposalIdToIndex[voter][proposalId];
-
-        if (locked == 0 || index == 0 || length <= 1) {
+        if (_maxTokensLocked[voter] == 0) {
             return;
         }
 
-        uint256 lastIndex = length - 1;
-
-        if (index != lastIndex) {
-            // Swap last value to current index
-            _lockedAmounts[voter][index] = _lockedAmounts[voter][lastIndex];
-            // Make the current index corresponds to the last proposal ID
-            _indexToProposalId[voter][index] = _indexToProposalId[voter][lastIndex];
-            // Make the last proposal id point to the current index
-            _proposalIdToIndex[voter][_indexToProposalId[voter][lastIndex]] = index;
-        }
-
-        delete _indexToProposalId[voter][lastIndex];
-        delete _proposalIdToIndex[voter][proposalId];
-
-        _lockedAmounts[voter].pop();
+        delete _lockedInProposals[voter][proposalId];
+        _lockedProposals[voter].remove(proposalId);
     }
 
     function lockNfts(address voter, ShrinkableArray.UintArray calldata nftIds)
@@ -504,24 +464,28 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             _nftBalance[user].length() >= requiredNfts);
     }
 
-    function _getTokenLockedAmount(address voter) private view returns (uint256, uint256) {
-        uint256 lockedAmount = _tokenLocked[voter];
-        uint256 length = _lockedAmounts[voter].length;
+    function _getNewTokenLockedAmount(address voter) private view returns (uint256) {
+        EnumerableSet.UintSet storage lockedProposals = _lockedProposals[voter];
 
-        if (lockedAmount == 0 || length <= 1) {
-            return (0, 0);
+        uint256 lockedAmount = _maxTokensLocked[voter];
+        uint256 length = lockedProposals.length();
+
+        if (lockedAmount == 0) {
+            return 0;
         }
 
         uint256 newLockedAmount;
 
-        for (uint256 i = length - 1; i > 0; i--) {
-            newLockedAmount = newLockedAmount.max(_lockedAmounts[voter][i]);
+        for (uint256 i = length; i > 0; i--) {
+            newLockedAmount = newLockedAmount.max(
+                _lockedInProposals[voter][lockedProposals.at(i - 1)]
+            );
 
             if (newLockedAmount == lockedAmount) {
-                return (lockedAmount, lockedAmount);
+                break;
             }
         }
 
-        return (lockedAmount, newLockedAmount);
+        return newLockedAmount;
     }
 }
