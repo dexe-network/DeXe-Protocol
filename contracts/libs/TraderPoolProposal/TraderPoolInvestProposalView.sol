@@ -91,9 +91,8 @@ library TraderPoolInvestProposalView {
 
                 receptions.rewards[i].amounts[j] =
                     userRewardInfo.rewardsStored[token] +
-                    ((rewardInfo.cumulativeSums[token] -
-                        userRewardInfo.cumulativeSumsStored[token]) * balance) /
-                    PRECISION;
+                    (rewardInfo.cumulativeSums[token] - userRewardInfo.cumulativeSumsStored[token])
+                        .ratio(balance, PRECISION);
 
                 if (token == baseToken) {
                     receptions.baseAmount += receptions.rewards[i].amounts[j];

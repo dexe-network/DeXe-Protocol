@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../../interfaces/gov/ERC721/IERC721Power.sol";
 
+import "../../libs/MathHelper.sol";
 import "../../libs/DecimalsConverter.sol";
 
 import "../../core/Globals.sol";
@@ -16,6 +17,7 @@ import "../../core/Globals.sol";
 contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     using SafeERC20 for IERC20;
     using Math for uint256;
+    using MathHelper for uint256;
     using DecimalsConverter for uint256;
 
     uint64 public powerCalcStartTimestamp;
@@ -204,8 +206,10 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
 
         // Calculate the minimum possible power based on the collateral of the nft
         uint256 maxNftPower = getMaxPowerForNft(tokenId);
-        uint256 minNftPower = (currentCollateral * maxNftPower) /
-            getRequiredCollateralForNft(tokenId);
+        uint256 minNftPower = maxNftPower.ratio(
+            currentCollateral,
+            getRequiredCollateralForNft(tokenId)
+        );
         minNftPower = maxNftPower.min(minNftPower);
 
         // Get last update and current power. Or set them to default if it is first iteration.
@@ -217,15 +221,12 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
             currentPower = maxNftPower;
         }
 
+        nftInfos[tokenId].lastUpdate = uint64(block.timestamp);
+
         // Calculate reduction amount
         uint256 powerReductionPercent = reductionPercent * (block.timestamp - lastUpdate);
-        uint256 powerReduction = currentPower.min(
-            (maxNftPower * powerReductionPercent) / PERCENTAGE_100
-        );
-
+        uint256 powerReduction = currentPower.min(maxNftPower.percentage(powerReductionPercent));
         uint256 newPotentialPower = currentPower - powerReduction;
-
-        nftInfos[tokenId].lastUpdate = uint64(block.timestamp);
 
         if (minNftPower <= newPotentialPower) {
             nftInfos[tokenId].currentPower = newPotentialPower;

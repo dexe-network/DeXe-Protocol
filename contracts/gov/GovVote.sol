@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "../interfaces/gov/validators/IValidators.sol";
 import "../interfaces/gov/IGovVote.sol";
 
+import "../libs/MathHelper.sol";
 import "../libs/ShrinkableArray.sol";
 
 import "./GovCreator.sol";
@@ -15,6 +16,7 @@ import "../core/Globals.sol";
 
 abstract contract GovVote is IGovVote, GovCreator {
     using Math for uint256;
+    using MathHelper for uint256;
     using ShrinkableArray for ShrinkableArray.UintArray;
     using ShrinkableArray for uint256[];
     using EnumerableSet for EnumerableSet.UintSet;
@@ -199,7 +201,7 @@ abstract contract GovVote is IGovVote, GovCreator {
         return
             totalVoteWeight == 0
                 ? false
-                : ((core.votesFor * PERCENTAGE_100) / totalVoteWeight) >= core.settings.quorum;
+                : PERCENTAGE_100.ratio(core.votesFor, totalVoteWeight) >= core.settings.quorum;
     }
 
     function _voteTokens(

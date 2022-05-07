@@ -8,10 +8,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "../../interfaces/gov/IGovVote.sol";
 import "../../interfaces/gov/proposals/IDistributionProposal.sol";
 
+import "../../libs/MathHelper.sol";
 import "../../libs/DecimalsConverter.sol";
 
 contract DistributionProposal is IDistributionProposal, Ownable {
     using SafeERC20 for IERC20;
+    using MathHelper for uint256;
     using DecimalsConverter for uint256;
 
     address public govAddress;
@@ -86,6 +88,6 @@ contract DistributionProposal is IDistributionProposal, Ownable {
             voter
         );
 
-        return totalVoteWeight == 0 ? 0 : (rewardAmount * voteWeight) / totalVoteWeight;
+        return totalVoteWeight == 0 ? 0 : rewardAmount.ratio(voteWeight, totalVoteWeight);
     }
 }

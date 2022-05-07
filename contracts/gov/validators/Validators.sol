@@ -8,10 +8,12 @@ import "../../interfaces/gov/validators/IValidators.sol";
 
 import "./ValidatorsToken.sol";
 
+import "../../libs/MathHelper.sol";
 import "../../core/Globals.sol";
 
 contract Validators is IValidators, OwnableUpgradeable {
     using Math for uint256;
+    using MathHelper for uint256;
 
     ValidatorsToken public validatorsTokenContract;
 
@@ -220,7 +222,7 @@ contract Validators is IValidators, OwnableUpgradeable {
 
     function _isQuorumReached(ProposalCore storage core) private view returns (bool) {
         uint256 totalSupply = validatorsTokenContract.totalSupplyAt(core.snapshotId);
-        uint256 currentQuorum = (core.votesFor * PERCENTAGE_100) / totalSupply;
+        uint256 currentQuorum = PERCENTAGE_100.ratio(core.votesFor, totalSupply);
 
         return currentQuorum >= core.quorum;
     }

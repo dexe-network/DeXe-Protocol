@@ -12,6 +12,7 @@ abstract contract GovFee is IGovFee, OwnableUpgradeable, GovVote {
     using SafeERC20 for IERC20;
     using Math for uint256;
     using Math for uint64;
+    using MathHelper for uint256;
 
     uint64 private _deployedAt;
 
@@ -55,8 +56,8 @@ abstract contract GovFee is IGovFee, OwnableUpgradeable, GovVote {
             balance = address(this).balance;
         }
 
-        uint256 fee = (feePercentage * (block.timestamp - _lastUpdate)) / (1 days * 365);
-        toWithdraw = balance.min((fee * balance) / PERCENTAGE_100);
+        uint256 fee = feePercentage.ratio(block.timestamp - _lastUpdate, 1 days * 365);
+        toWithdraw = balance.min(balance.percentage(fee));
 
         require(toWithdraw > 0, "GFee: nothing to withdraw");
 

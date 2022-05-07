@@ -29,8 +29,7 @@ library TraderPoolCommission {
             baseCommission = (investorBaseAmount - investedBaseAmount).percentage(
                 poolParameters.commissionPercentage
             );
-
-            lpCommission = (investorLPAmount * baseCommission) / investorBaseAmount;
+            lpCommission = investorLPAmount.ratio(baseCommission, investorBaseAmount);
         }
     }
 

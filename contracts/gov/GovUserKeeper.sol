@@ -12,6 +12,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "../interfaces/gov/IGovUserKeeper.sol";
 
+import "../libs/MathHelper.sol";
 import "../libs/ShrinkableArray.sol";
 import "../libs/DecimalsConverter.sol";
 
@@ -20,6 +21,7 @@ import "./ERC721/ERC721Power.sol";
 contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgradeable {
     using SafeERC20 for IERC20;
     using Math for uint256;
+    using MathHelper for uint256;
     using ShrinkableArray for ShrinkableArray.UintArray;
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -305,7 +307,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             return
                 totalSupply == 0
                     ? 0
-                    : ((_nftInfo.totalPowerInTokens * nftIds.length) / totalSupply);
+                    : nftIds.length.ratio(_nftInfo.totalPowerInTokens, totalSupply);
         }
 
         uint256 nftsPower;
@@ -324,9 +326,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             uint256 totalPowerInTokens = _nftInfo.totalPowerInTokens;
 
             for (uint256 i; i < nftIds.length; i++) {
-                nftsPower +=
-                    (totalPowerInTokens * nftSnapshot[snapshotId].nftPower[nftIds.values[i]]) /
-                    totalNftsPower;
+                nftsPower += totalPowerInTokens.ratio(
+                    nftSnapshot[snapshotId].nftPower[nftIds.values[i]],
+                    totalNftsPower
+                );
             }
         }
 
