@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "../interfaces/gov/validators/IValidators.sol";
+import "../interfaces/gov/validators/IGovValidators.sol";
 import "../interfaces/gov/IGovVote.sol";
 
 import "../libs/MathHelper.sol";
@@ -22,7 +22,7 @@ abstract contract GovVote is IGovVote, GovCreator {
     using EnumerableSet for EnumerableSet.UintSet;
 
     /// @dev `Validators` contract address
-    IValidators public validators;
+    IGovValidators public validators;
 
     uint256 public votesLimit;
 
@@ -41,7 +41,7 @@ abstract contract GovVote is IGovVote, GovCreator {
 
         require(_votesLimit > 0);
 
-        validators = IValidators(validatorsAddress);
+        validators = IGovValidators(validatorsAddress);
         votesLimit = _votesLimit;
     }
 
@@ -162,24 +162,24 @@ abstract contract GovVote is IGovVote, GovCreator {
         if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
             if (_quorumReached(core)) {
                 if (address(validators) != address(0)) {
-                    IValidators.ProposalState status = validators.getProposalState(
+                    IGovValidators.ProposalState status = validators.getProposalState(
                         core.proposalId,
                         false
                     );
 
-                    if (status == IValidators.ProposalState.Undefined) {
+                    if (status == IGovValidators.ProposalState.Undefined) {
                         return ProposalState.WaitingForVotingTransfer;
                     }
 
-                    if (status == IValidators.ProposalState.Voting) {
+                    if (status == IGovValidators.ProposalState.Voting) {
                         return ProposalState.ValidatorVoting;
                     }
 
-                    if (status == IValidators.ProposalState.Succeeded) {
+                    if (status == IGovValidators.ProposalState.Succeeded) {
                         return ProposalState.Succeeded;
                     }
 
-                    if (status == IValidators.ProposalState.Defeated) {
+                    if (status == IGovValidators.ProposalState.Defeated) {
                         return ProposalState.Defeated;
                     }
                 } else {

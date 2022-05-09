@@ -18,7 +18,6 @@ library TraderPoolInvestProposalView {
     using DecimalsConverter for uint256;
     using MathHelper for uint256;
     using Math for uint256;
-    using Address for address;
 
     function getProposalInfos(
         mapping(uint256 => ITraderPoolInvestProposal.ProposalInfo) storage proposalInfos,
@@ -65,7 +64,7 @@ library TraderPoolInvestProposalView {
         address user
     ) external view returns (ITraderPoolInvestProposal.Receptions memory receptions) {
         uint256 proposalsTotalNum = TraderPoolInvestProposal(address(this)).proposalsTotalNum();
-        receptions.rewards = new TraderPoolInvestProposal.Reception[](proposalIds.length);
+        receptions.rewards = new ITraderPoolInvestProposal.Reception[](proposalIds.length);
 
         address baseToken = ITraderPoolInvestProposal(address(this)).getBaseToken();
 
@@ -76,10 +75,10 @@ library TraderPoolInvestProposalView {
                 continue;
             }
 
-            TraderPoolInvestProposal.UserRewardInfo storage userRewardInfo = userRewardInfos[user][
-                proposalId
-            ];
-            TraderPoolInvestProposal.RewardInfo storage rewardInfo = rewardInfos[proposalId];
+            ITraderPoolInvestProposal.UserRewardInfo storage userRewardInfo = userRewardInfos[
+                user
+            ][proposalId];
+            ITraderPoolInvestProposal.RewardInfo storage rewardInfo = rewardInfos[proposalId];
 
             uint256 balance = TraderPoolInvestProposal(address(this)).balanceOf(user, proposalId);
 

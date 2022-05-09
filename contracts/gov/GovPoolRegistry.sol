@@ -14,16 +14,17 @@ contract GovPoolRegistry is IGovPoolRegistry, AbstractPoolContractsRegistry, Abs
     using EnumerableSet for EnumerableSet.AddressSet;
     using Math for uint256;
 
-    string public constant GOV_NAME = "GOV_POOL";
+    string public constant GOV_POOL_NAME = "GOV_POOL";
     string public constant SETTINGS_NAME = "SETTINGS";
+    string public constant VALIDATORS_NAME = "VALIDATORS";
     string public constant USER_KEEPER_NAME = "USER_KEEPER";
 
-    address internal _traderPoolFactory;
+    address internal _poolFactory;
 
     mapping(address => mapping(string => EnumerableSet.AddressSet)) internal _ownerPools; // pool owner => name => pool
 
-    modifier onlyTraderPoolFactory() {
-        require(_traderPoolFactory == _msgSender(), "GovPoolRegistry: Caller is not a factory");
+    modifier onlyPoolFactory() {
+        require(_poolFactory == _msgSender(), "GovPoolRegistry: Caller is not a factory");
         _;
     }
 
@@ -32,14 +33,14 @@ contract GovPoolRegistry is IGovPoolRegistry, AbstractPoolContractsRegistry, Abs
 
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
-        _traderPoolFactory = registry.getTraderPoolFactoryContract();
+        _poolFactory = registry.getPoolFactoryContract();
     }
 
     function addPool(
         address user,
         string calldata name,
         address poolAddress
-    ) external override onlyTraderPoolFactory {
+    ) external override onlyPoolFactory {
         _addPool(name, poolAddress);
 
         _ownerPools[user][name].add(poolAddress);

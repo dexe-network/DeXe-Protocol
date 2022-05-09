@@ -3,9 +3,9 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Snapshot.sol";
 
-import "../../interfaces/gov/validators/IValidatorsToken.sol";
+import "../../interfaces/gov/validators/IGovValidatorsToken.sol";
 
-contract ValidatorsToken is IValidatorsToken, ERC20Snapshot {
+contract GovValidatorsToken is IGovValidatorsToken, ERC20Snapshot {
     address public immutable validator;
 
     modifier onlyValidator() {

@@ -4,18 +4,18 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "../../interfaces/gov/validators/IValidators.sol";
+import "../../interfaces/gov/validators/IGovValidators.sol";
 
-import "./ValidatorsToken.sol";
+import "./GovValidatorsToken.sol";
 
 import "../../libs/MathHelper.sol";
 import "../../core/Globals.sol";
 
-contract Validators is IValidators, OwnableUpgradeable {
+contract GovValidators is IGovValidators, OwnableUpgradeable {
     using Math for uint256;
     using MathHelper for uint256;
 
-    ValidatorsToken public validatorsTokenContract;
+    GovValidatorsToken public govValidatorsToken;
 
     /// @dev Base internal proposal settings
     InternalProposalSettings public internalProposalSettings;
@@ -31,13 +31,13 @@ contract Validators is IValidators, OwnableUpgradeable {
     /// @dev Access only for addresses that have validator tokens
     modifier onlyValidatorHolder() {
         require(
-            validatorsTokenContract.balanceOf(msg.sender) > 0,
+            govValidatorsToken.balanceOf(msg.sender) > 0,
             "Validators: caller is not the validator"
         );
         _;
     }
 
-    function __Validators_init(
+    function __GovValidators_init(
         string calldata name,
         string calldata symbol,
         uint64 duration,
@@ -52,9 +52,9 @@ contract Validators is IValidators, OwnableUpgradeable {
         require(duration > 0, "Validators: duration is zero");
         require(quorum <= PERCENTAGE_100, "Validators: invalid quorum value");
 
-        ValidatorsToken _validatorsTokenContract = new ValidatorsToken(name, symbol);
+        GovValidatorsToken _validatorsTokenContract = new GovValidatorsToken(name, symbol);
 
-        validatorsTokenContract = _validatorsTokenContract;
+        govValidatorsToken = _validatorsTokenContract;
         internalProposalSettings.duration = duration;
         internalProposalSettings.quorum = quorum;
 
@@ -83,7 +83,7 @@ contract Validators is IValidators, OwnableUpgradeable {
                 executed: false,
                 quorum: internalProposalSettings.quorum,
                 votesFor: 0,
-                snapshotId: validatorsTokenContract.snapshot()
+                snapshotId: govValidatorsToken.snapshot()
             }),
             newValue: newValue,
             userAddress: user
@@ -103,7 +103,7 @@ contract Validators is IValidators, OwnableUpgradeable {
                 executed: false,
                 quorum: quorum,
                 votesFor: 0,
-                snapshotId: validatorsTokenContract.snapshot()
+                snapshotId: govValidatorsToken.snapshot()
             })
         });
     }
@@ -124,7 +124,7 @@ contract Validators is IValidators, OwnableUpgradeable {
             "Validators: only by `Voting` state"
         );
 
-        uint256 balanceAt = validatorsTokenContract.balanceOfAt(msg.sender, core.snapshotId);
+        uint256 balanceAt = govValidatorsToken.balanceOfAt(msg.sender, core.snapshotId);
         uint256 voted = isInternal
             ? addressVotedInternal[proposalId][msg.sender]
             : addressVotedExternal[proposalId][msg.sender];
@@ -162,12 +162,12 @@ contract Validators is IValidators, OwnableUpgradeable {
             internalProposalSettings.quorum = uint128(proposalValue);
         } else if (proposalType == ProposalType.ChangeBalance) {
             address user = proposal.userAddress;
-            uint256 balance = validatorsTokenContract.balanceOf(user);
+            uint256 balance = govValidatorsToken.balanceOf(user);
 
             if (balance < proposalValue) {
-                validatorsTokenContract.mint(user, proposalValue - balance);
+                govValidatorsToken.mint(user, proposalValue - balance);
             } else {
-                validatorsTokenContract.burn(user, balance - proposalValue);
+                govValidatorsToken.burn(user, balance - proposalValue);
             }
         }
     }
@@ -221,7 +221,7 @@ contract Validators is IValidators, OwnableUpgradeable {
     }
 
     function _isQuorumReached(ProposalCore storage core) private view returns (bool) {
-        uint256 totalSupply = validatorsTokenContract.totalSupplyAt(core.snapshotId);
+        uint256 totalSupply = govValidatorsToken.totalSupplyAt(core.snapshotId);
         uint256 currentQuorum = PERCENTAGE_100.ratio(core.votesFor, totalSupply);
 
         return currentQuorum >= core.quorum;

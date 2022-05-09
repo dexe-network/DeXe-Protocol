@@ -9,7 +9,7 @@ import "../../core/Globals.sol";
 
 contract GovSettings is IGovSettings, OwnableUpgradeable {
     uint256 private constant _INTERNAL_SETTINGS_ID = 1;
-    uint256 private constant _UNTYPED_SETTINGS_ID = 2;
+    uint256 private constant _DEFAULT_SETTINGS_ID = 2;
 
     uint256 private _latestSettingsId;
 
@@ -18,15 +18,15 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
 
     function __GovSettings_init(
         ProposalSettings calldata internalProposalSetting,
-        ProposalSettings calldata untypedProposalSetting
+        ProposalSettings calldata defaultProposalSetting
     ) external initializer {
         __Ownable_init();
 
         _validateProposalSettings(internalProposalSetting);
-        _validateProposalSettings(untypedProposalSetting);
+        _validateProposalSettings(defaultProposalSetting);
 
         settings[_INTERNAL_SETTINGS_ID] = internalProposalSetting;
-        settings[_UNTYPED_SETTINGS_ID] = untypedProposalSetting;
+        settings[_DEFAULT_SETTINGS_ID] = defaultProposalSetting;
 
         executorToSettings[address(this)] = _INTERNAL_SETTINGS_ID;
 
@@ -127,6 +127,6 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
             return settings[settingsId];
         }
 
-        return settings[_UNTYPED_SETTINGS_ID];
+        return settings[_DEFAULT_SETTINGS_ID];
     }
 }

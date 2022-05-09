@@ -1,23 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "../gov/settings/IGovSettings.sol";
 import "../core/ICoreProperties.sol";
 
 /**
- * This is the Factory contract for the trader pools. Anyone can create a pool for themselves to become a trader.
- * There are 2 pools available: BasicTraderPool and InvestTraderPool. The latter is much more risky than the former
+ * This is the Factory contract for the trader and gov pools. Anyone can create a pool for themselves to become a trader
+ * or a governance owner. There are 3 pools available: BasicTraderPool, InvestTraderPool and GovPool
  */
-interface ITraderPoolFactory {
-    /// @notice The parameters the trader can specify on the pool's creation
+interface IPoolFactory {
+    /// @notice The parameters one can specify on the trader pool's creation
     /// @param descriptionURL the IPFS URL of the pool description
     /// @param trader the trader of the pool
     /// @param privatePool the publicity of the pool
-    /// @param totalLPEmission maximal* emmission of LP tokens that can be invested
+    /// @param totalLPEmission maximal* emission of LP tokens that can be invested
     /// @param baseToken the address of the base token of the pool
     /// @param minimalInvestment the minimal allowed investment into the pool
     /// @param commissionPeriod the duration of the commission period
     /// @param commissionPercentage trader's commission percentage (including DEXE commission)
-    struct PoolDeployParameters {
+    struct TraderPoolDeployParameters {
         string descriptionURL;
         address trader;
         bool privatePool;
@@ -28,6 +29,38 @@ interface ITraderPoolFactory {
         uint256 commissionPercentage;
     }
 
+    struct SettingsDeployParams {
+        IGovSettings.ProposalSettings internalProposalSetting;
+        IGovSettings.ProposalSettings defaultProposalSetting;
+    }
+
+    struct ValidatorsDeployParams {
+        string name;
+        string symbol;
+        uint64 duration;
+        uint128 quorum;
+        address[] validators;
+        uint256[] balances;
+    }
+
+    struct UserKeeperDeployParams {
+        address tokenAddress;
+        address nftAddress;
+        uint256 totalPowerInTokens;
+        uint256 nftsTotalSupply;
+    }
+
+    struct GovPoolDeployParams {
+        SettingsDeployParams seetingsParams;
+        ValidatorsDeployParams validatorsParams;
+        UserKeeperDeployParams userKeeperParams;
+        address owner;
+        uint256 votesLimit;
+        uint256 feePercentage;
+    }
+
+    function deployGovPool(GovPoolDeployParams calldata parameters) external;
+
     /// @notice The function to deploy basic pools
     /// @param name the ERC20 name of the pool
     /// @param symbol the ERC20 symbol of the pool
@@ -35,7 +68,7 @@ interface ITraderPoolFactory {
     function deployBasicPool(
         string calldata name,
         string calldata symbol,
-        PoolDeployParameters calldata poolDeployParameters
+        TraderPoolDeployParameters calldata poolDeployParameters
     ) external;
 
     /// @notice The function to deploy invest pools
@@ -45,6 +78,6 @@ interface ITraderPoolFactory {
     function deployInvestPool(
         string calldata name,
         string calldata symbol,
-        PoolDeployParameters calldata poolDeployParameters
+        TraderPoolDeployParameters calldata poolDeployParameters
     ) external;
 }

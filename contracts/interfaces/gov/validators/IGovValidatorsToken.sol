@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface IValidatorsToken is IERC20 {
+interface IGovValidatorsToken is IERC20 {
     /**
      * @notice Mint new tokens, available only from `Validators` contract
      * @param account Address

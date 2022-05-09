@@ -23,12 +23,12 @@ contract TraderPoolRegistry is
     string public constant RISKY_PROPOSAL_NAME = "RISKY_POOL_PROPOSAL";
     string public constant INVEST_PROPOSAL_NAME = "INVEST_POOL_PROPOSAL";
 
-    address internal _traderPoolFactory;
+    address internal _poolFactory;
 
     mapping(address => mapping(string => EnumerableSet.AddressSet)) internal _traderPools; // trader => name => pool
 
-    modifier onlyTraderPoolFactory() {
-        require(_traderPoolFactory == _msgSender(), "TraderPoolRegistry: Caller is not a factory");
+    modifier onlyPoolFactory() {
+        require(_poolFactory == _msgSender(), "TraderPoolRegistry: Caller is not a factory");
         _;
     }
 
@@ -37,14 +37,14 @@ contract TraderPoolRegistry is
 
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
-        _traderPoolFactory = registry.getTraderPoolFactoryContract();
+        _poolFactory = registry.getPoolFactoryContract();
     }
 
     function addPool(
         address user,
         string calldata name,
         address poolAddress
-    ) external override onlyTraderPoolFactory {
+    ) external override onlyPoolFactory {
         _addPool(name, poolAddress);
 
         _traderPools[user][name].add(poolAddress);

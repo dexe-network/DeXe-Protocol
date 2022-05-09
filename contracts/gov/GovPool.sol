@@ -4,14 +4,14 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 
-import "../interfaces/gov/IGov.sol";
+import "../interfaces/gov/IGovPool.sol";
 
 import "./GovFee.sol";
 
-contract Gov is IGov, GovFee, ERC721HolderUpgradeable, ERC1155HolderUpgradeable {
+contract GovPool is IGovPool, GovFee, ERC721HolderUpgradeable, ERC1155HolderUpgradeable {
     event ProposalExecuted(uint256 proposalId);
 
-    function __Gov_init(
+    function __GovPool_init(
         address govSettingAddress,
         address govUserKeeperAddress,
         address validatorsAddress,
