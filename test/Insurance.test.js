@@ -81,7 +81,7 @@ describe("Insurance", async () => {
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), dexe.address);
-    await contractsRegistry.addContract(await contractsRegistry.TRADER_POOL_FACTORY_NAME(), SECOND);
+    await contractsRegistry.addContract(await contractsRegistry.POOL_FACTORY_NAME(), SECOND);
 
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
@@ -90,7 +90,7 @@ describe("Insurance", async () => {
     const coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     insurance = await Insurance.at(await contractsRegistry.getInsuranceContract());
 
-    await traderPoolRegistry.__TraderPoolRegistry_init();
+    await traderPoolRegistry.__PoolContractsRegistry_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
     await insurance.__Insurance_init();
 

@@ -19,7 +19,8 @@ interface ITraderPoolRegistry {
         address poolAddress
     ) external;
 
-    /// @notice The function that counts the pools by their type
+    /// @notice The function that counts trader's pools by their type
+    /// @param user the owner of the pool
     /// @param name the type of the pool
     /// @return the total number of pools with the specified type
     function countTraderPools(address user, string calldata name) external view returns (uint256);

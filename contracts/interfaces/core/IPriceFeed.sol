@@ -2,8 +2,8 @@
 pragma solidity ^0.8.4;
 
 /**
- * This is the price feed contract which is used to fetch the spot prices from the UniswapV2 propotol + execute swaps
- * on its pairs. The propotol does not require price oracles to be secure and reliable. There also is a pathfinder
+ * This is the price feed contract which is used to fetch the spot prices from the UniswapV2 protocol + execute swaps
+ * on its pairs. The protocol does not require price oracles to be secure and reliable. There also is a pathfinder
  * built into the contract to find the optimal* path between the pairs
  */
 interface IPriceFeed {
@@ -38,7 +38,7 @@ interface IPriceFeed {
     /// outTokens is maximal
     /// @param inToken the token to exchange from
     /// @param outToken the received token
-    /// @param amountIn the amount of inToken to be excanged (in inToken decimals)
+    /// @param amountIn the amount of inToken to be exchanged (in inToken decimals)
     /// @param optionalPath the optional path between inToken and outToken that will be used in the pathfinder
     /// @return amountOut amount of outToken after the swap (in outToken decimals)
     /// @return path the tokens path that will be used during the swap
@@ -65,7 +65,7 @@ interface IPriceFeed {
         address[] memory optionalPath
     ) external view returns (uint256 amountIn, address[] memory path);
 
-    /// @notice Shares the same functionality as "getExtendedPriceOut" function with automatical usage of saved paths.
+    /// @notice Shares the same functionality as "getExtendedPriceOut" function with automatic usage of saved paths.
     /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
     /// @param inToken the token to exchange from
     /// @param outToken the token to exchange to
@@ -78,7 +78,7 @@ interface IPriceFeed {
         uint256 amountIn
     ) external view returns (uint256 amountOut, address[] memory path);
 
-    /// @notice Shares the same functionality as "getExtendedPriceIn" function with automatical usage of saved paths.
+    /// @notice Shares the same functionality as "getExtendedPriceIn" function with automatic usage of saved paths.
     /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
     /// @param inToken the token to exchange from
     /// @param outToken the token to exchange to

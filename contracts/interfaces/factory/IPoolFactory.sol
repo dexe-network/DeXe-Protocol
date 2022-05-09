@@ -9,26 +9,6 @@ import "../core/ICoreProperties.sol";
  * or a governance owner. There are 3 pools available: BasicTraderPool, InvestTraderPool and GovPool
  */
 interface IPoolFactory {
-    /// @notice The parameters one can specify on the trader pool's creation
-    /// @param descriptionURL the IPFS URL of the pool description
-    /// @param trader the trader of the pool
-    /// @param privatePool the publicity of the pool
-    /// @param totalLPEmission maximal* emission of LP tokens that can be invested
-    /// @param baseToken the address of the base token of the pool
-    /// @param minimalInvestment the minimal allowed investment into the pool
-    /// @param commissionPeriod the duration of the commission period
-    /// @param commissionPercentage trader's commission percentage (including DEXE commission)
-    struct TraderPoolDeployParameters {
-        string descriptionURL;
-        address trader;
-        bool privatePool;
-        uint256 totalLPEmission; // zero means unlimited
-        address baseToken;
-        uint256 minimalInvestment; // zero means any value
-        ICoreProperties.CommissionPeriod commissionPeriod;
-        uint256 commissionPercentage;
-    }
-
     struct SettingsDeployParams {
         IGovSettings.ProposalSettings internalProposalSetting;
         IGovSettings.ProposalSettings defaultProposalSetting;
@@ -59,25 +39,47 @@ interface IPoolFactory {
         uint256 feePercentage;
     }
 
+    /// @notice The parameters one can specify on the trader pool's creation
+    /// @param descriptionURL the IPFS URL of the pool description
+    /// @param trader the trader of the pool
+    /// @param privatePool the publicity of the pool
+    /// @param totalLPEmission maximal* emission of LP tokens that can be invested
+    /// @param baseToken the address of the base token of the pool
+    /// @param minimalInvestment the minimal allowed investment into the pool
+    /// @param commissionPeriod the duration of the commission period
+    /// @param commissionPercentage trader's commission percentage (including DEXE commission)
+    struct TraderPoolDeployParameters {
+        string descriptionURL;
+        address trader;
+        bool privatePool;
+        uint256 totalLPEmission; // zero means unlimited
+        address baseToken;
+        uint256 minimalInvestment; // zero means any value
+        ICoreProperties.CommissionPeriod commissionPeriod;
+        uint256 commissionPercentage;
+    }
+
+    /// @notice The function to deploy gov pools
+    /// @param parameters the pool deploy parameters
     function deployGovPool(GovPoolDeployParams calldata parameters) external;
 
     /// @notice The function to deploy basic pools
     /// @param name the ERC20 name of the pool
     /// @param symbol the ERC20 symbol of the pool
-    /// @param poolDeployParameters the parameters of the pool
+    /// @param parameters the pool deploy parameters
     function deployBasicPool(
         string calldata name,
         string calldata symbol,
-        TraderPoolDeployParameters calldata poolDeployParameters
+        TraderPoolDeployParameters calldata parameters
     ) external;
 
     /// @notice The function to deploy invest pools
     /// @param name the ERC20 name of the pool
     /// @param symbol the ERC20 symbol of the pool
-    /// @param poolDeployParameters the parameters of the pool
+    /// @param parameters the pool deploy parameters
     function deployInvestPool(
         string calldata name,
         string calldata symbol,
-        TraderPoolDeployParameters calldata poolDeployParameters
+        TraderPoolDeployParameters calldata parameters
     ) external;
 }
