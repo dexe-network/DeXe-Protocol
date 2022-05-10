@@ -93,10 +93,6 @@ library TraderPoolView {
         uint256 offset,
         uint256 limit
     ) external view returns (ITraderPool.Commissions memory commissions) {
-        if (ITraderPool(address(this)).totalOpenPositions() != 0) {
-            return ITraderPool.Commissions(0, 0, 0);
-        }
-
         uint256 to = (offset + limit).min(investors.length()).max(offset);
         uint256 totalSupply = IERC20(address(this)).totalSupply();
 

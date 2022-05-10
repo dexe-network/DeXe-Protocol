@@ -214,10 +214,6 @@ contract PoolFactory is IPoolFactory, AbstractDependant {
 
         require(parameters.trader != address(0), "PoolFactory: invalid trader address");
         require(
-            _priceFeed.isSupportedBaseToken(parameters.baseToken),
-            "PoolFactory: Unsupported token"
-        );
-        require(
             parameters.commissionPercentage >= general &&
                 parameters.commissionPercentage <= byPeriod[uint256(parameters.commissionPeriod)],
             "PoolFactory: Incorrect percentage"

@@ -59,8 +59,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     event Exchanged(address fromToken, address toToken, uint256 fromVolume, uint256 toVolume);
     event PositionClosed(address position);
     event InvestorAdded(address investor);
-    event Invested(address investor, uint256 amount, uint256 toMintLP); // check
     event InvestorRemoved(address investor);
+    event Invested(address investor, uint256 amount, uint256 toMintLP);
     event Divested(address investor, uint256 amount, uint256 commission);
     event TraderCommissionMinted(address trader, uint256 amount);
     event TraderCommissionPaid(address investor, uint256 amount);
@@ -182,10 +182,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _poolParameters.minimalInvestment = minimalInvestment;
 
         emit DescriptionURLChanged(descriptionURL);
-    }
-
-    function totalOpenPositions() external view override returns (uint256) {
-        return _openPositions.length();
     }
 
     function totalInvestors() external view override returns (uint256) {
@@ -375,10 +371,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
                     _burn(investor, lpCommission);
 
-                    emit TraderCommissionPaid(investor, lpCommission);
-
                     allBaseCommission += baseCommission;
                     allLPCommission += lpCommission;
+
+                    emit TraderCommissionPaid(investor, lpCommission);
                 }
             }
         }

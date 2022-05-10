@@ -333,23 +333,5 @@ describe("PoolFactory", () => {
         "PoolFactory: Incorrect percentage"
       );
     });
-
-    it("should revert when try to deploy with not base token", async () => {
-      POOL_PARAMETERS = {
-        descriptionURL: "placeholder.com",
-        trader: OWNER,
-        privatePool: false,
-        totalLPEmission: 0,
-        baseToken: THIRD,
-        minimalInvestment: 0,
-        commissionPeriod: ComissionPeriods.PERIOD_3,
-        commissionPercentage: toBN(50).times(PRECISION).toFixed(),
-      };
-
-      await truffleAssert.reverts(
-        poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
-        "PoolFactory: Unsupported token"
-      );
-    });
   });
 });
