@@ -76,10 +76,20 @@ interface IGovVote {
     /// @param proposalId Proposal ID
     function moveProposalToValidators(uint256 proposalId) external;
 
+    /// @notice The function to get voter's general vote info
     /// @param proposalId Proposal ID
     /// @param voter Voter address
-    /// @return Total voted amount in proposal, total voted amount by address, voted tokens amount
-    function getVoteAmounts(uint256 proposalId, address voter)
+    /// @return Total voted amount in proposal, total voted amount by the voter
+    function getTotalVotes(uint256 proposalId, address voter)
+        external
+        view
+        returns (uint256, uint256);
+
+    /// @notice The function to get voter's vote info with tokens and NFT information
+    /// @param proposalId Proposal ID
+    /// @param voter Voter address
+    /// @return Total voted amount in proposal, total voted amount by address, voted tokens amount, voted NFTs
+    function getVoteInfo(uint256 proposalId, address voter)
         external
         view
         returns (

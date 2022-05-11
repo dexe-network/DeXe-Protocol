@@ -83,13 +83,13 @@ abstract contract GovVote is IGovVote, GovCreator {
     }
 
     function unlockInProposals(uint256[] memory proposalIds, address user) public override {
-        IGovUserKeeper _govUserKeeper = govUserKeeper;
+        IGovUserKeeper userKeeper = govUserKeeper;
 
         for (uint256 i; i < proposalIds.length; i++) {
             _beforeUnlock(proposalIds[i]);
 
-            _govUserKeeper.unlockTokens(user, proposalIds[i]);
-            _govUserKeeper.unlockNfts(user, _voteInfos[proposalIds[i]][user].nftsVoted.values());
+            userKeeper.unlockTokens(user, proposalIds[i]);
+            userKeeper.unlockNfts(user, _voteInfos[proposalIds[i]][user].nftsVoted.values());
 
             _votedInProposals[user].remove(proposalIds[i]);
         }
@@ -125,7 +125,16 @@ abstract contract GovVote is IGovVote, GovCreator {
         );
     }
 
-    function getVoteAmounts(uint256 proposalId, address voter)
+    function getTotalVotes(uint256 proposalId, address voter)
+        external
+        view
+        override
+        returns (uint256, uint256)
+    {
+        return (_totalVotedInProposal[proposalId], _voteInfos[proposalId][voter].totalVoted);
+    }
+
+    function getVoteInfo(uint256 proposalId, address voter)
         external
         view
         override
@@ -210,15 +219,16 @@ abstract contract GovVote is IGovVote, GovCreator {
         address voter
     ) private {
         ProposalCore storage core = _beforeVote(proposalId, voter);
+        IGovUserKeeper userKeeper = govUserKeeper;
 
-        uint256 tokenBalance = govUserKeeper.tokenBalance(voter);
+        uint256 tokenBalance = userKeeper.tokenBalance(voter);
 
         uint256 voted = _voteInfos[proposalId][voter].tokensVoted;
         uint256 voteAmount = amount.min(tokenBalance - voted);
 
         require(voteAmount > 0, "GovV: vote amount is zero");
 
-        govUserKeeper.lockTokens(voter, voteAmount, proposalId);
+        userKeeper.lockTokens(voter, voteAmount, proposalId);
 
         _totalVotedInProposal[proposalId] += voteAmount;
         _voteInfos[proposalId][voter].totalVoted += voteAmount;
@@ -247,12 +257,10 @@ abstract contract GovVote is IGovVote, GovCreator {
             _nftsToVote.values[length++] = nftIds.values[i];
         }
 
-        _nftsToVote = govUserKeeper.lockNfts(voter, _nftsToVote.crop(length));
+        IGovUserKeeper userKeeper = govUserKeeper;
 
-        uint256 voteAmount = govUserKeeper.getNftsPowerInTokens(
-            _nftsToVote,
-            core.nftPowerSnapshotId
-        );
+        _nftsToVote = userKeeper.lockNfts(voter, _nftsToVote.crop(length));
+        uint256 voteAmount = userKeeper.getNftsPowerInTokens(_nftsToVote, core.nftPowerSnapshotId);
 
         require(voteAmount > 0, "GovV: vote amount is zero");
 
@@ -273,7 +281,7 @@ abstract contract GovVote is IGovVote, GovCreator {
         _votedInProposals[voter].add(proposalId);
         ProposalCore storage core = proposals[proposalId].core;
 
-        require(_votedInProposals[voter].length() < votesLimit, "GovV: vote limit reached");
+        require(_votedInProposals[voter].length() <= votesLimit, "GovV: vote limit reached");
         require(_getProposalState(core) == ProposalState.Voting, "GovV: vote unavailable");
         require(
             govUserKeeper.canUserParticipate(

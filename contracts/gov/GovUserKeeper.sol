@@ -60,12 +60,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     event NftsLocked(address account, uint256[] ids, uint256 length);
 
     modifier withSupportedToken() {
-        require(tokenAddress != address(0), "GovT: token is not supported");
+        require(tokenAddress != address(0), "GovUK: token is not supported");
         _;
     }
 
     modifier withSupportedNft() {
-        require(nftAddress != address(0), "GovT: nft is not supported");
+        require(nftAddress != address(0), "GovUK: nft is not supported");
         _;
     }
 
@@ -78,13 +78,13 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         __Ownable_init();
         __ERC721Holder_init();
 
-        require(_tokenAddress != address(0) || _nftAddress != address(0), "GovT: zero addresses");
+        require(_tokenAddress != address(0) || _nftAddress != address(0), "GovUK: zero addresses");
 
         tokenAddress = _tokenAddress;
         nftAddress = _nftAddress;
 
         if (_nftAddress != address(0)) {
-            require(totalPowerInTokens > 0, "GovT: the equivalent is zero");
+            require(totalPowerInTokens > 0, "GovUK: the equivalent is zero");
 
             _nftInfo.totalPowerInTokens = totalPowerInTokens;
 
@@ -96,7 +96,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             ) {
                 _nftInfo.isSupportTotalSupply = true;
             } else {
-                require(nftsTotalSupply > 0, "GovT: total supply is zero");
+                require(nftsTotalSupply > 0, "GovUK: total supply is zero");
 
                 _nftInfo.totalSupply = nftsTotalSupply;
             }
@@ -104,10 +104,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function depositTokens(address holder, uint256 amount) external override withSupportedToken {
-        IERC20(tokenAddress).safeTransferFrom(
+        address token = tokenAddress;
+
+        IERC20(token).safeTransferFrom(
             msg.sender,
             address(this),
-            amount.convertFrom18(ERC20(tokenAddress).decimals())
+            amount.convertFrom18(ERC20(token).decimals())
         );
 
         tokenBalance[holder] += amount;
@@ -122,20 +124,18 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function withdrawTokens(uint256 amount) external override withSupportedToken {
+        address token = tokenAddress;
         uint256 balance = tokenBalance[msg.sender];
         uint256 newLockedAmount = _getNewTokenLockedAmount(msg.sender);
 
         _maxTokensLocked[msg.sender] = newLockedAmount;
         amount = amount.min(balance - newLockedAmount);
 
-        require(amount > 0, "GovT: nothing to withdraw");
+        require(amount > 0, "GovUK: nothing to withdraw");
 
         tokenBalance[msg.sender] = balance - amount;
 
-        IERC20(tokenAddress).safeTransfer(
-            msg.sender,
-            amount.convertFrom18(ERC20(tokenAddress).decimals())
-        );
+        IERC20(token).safeTransfer(msg.sender, amount.convertFrom18(ERC20(token).decimals()));
 
         emit TokensWithdrawn(msg.sender, amount);
     }
@@ -273,12 +273,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function getTotalVoteWeight() external view override returns (uint256) {
+        address token = tokenAddress;
+
         return
             (
-                tokenAddress != address(0)
-                    ? IERC20(tokenAddress).totalSupply().convertTo18(
-                        ERC20(tokenAddress).decimals()
-                    )
+                token != address(0)
+                    ? IERC20(token).totalSupply().convertTo18(ERC20(token).decimals())
                     : 0
             ) + _nftInfo.totalPowerInTokens;
     }
@@ -368,7 +368,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         uint256 currentPowerSnapshotId = ++_latestPowerSnapshotId;
 
-        if (!isSupportPower && isSupportTotalSupply) {
+        if (!isSupportPower) {
             nftSnapshot[currentPowerSnapshotId].totalSupply = supply;
 
             return currentPowerSnapshotId;

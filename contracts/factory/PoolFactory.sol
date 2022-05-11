@@ -23,7 +23,6 @@ import "../trader/TraderPoolInvestProposal.sol";
 import "../trader/TraderPoolRegistry.sol";
 
 import "../core/CoreProperties.sol";
-import "../core/PriceFeed.sol";
 
 import "../core/Globals.sol";
 
@@ -33,7 +32,6 @@ contract PoolFactory is IPoolFactory, AbstractDependant {
     TraderPoolRegistry internal _traderPoolRegistry;
     GovPoolRegistry internal _govPoolRegistry;
 
-    PriceFeed internal _priceFeed;
     CoreProperties internal _coreProperties;
 
     event TraderPoolDeployed(
@@ -54,7 +52,6 @@ contract PoolFactory is IPoolFactory, AbstractDependant {
 
         _traderPoolRegistry = TraderPoolRegistry(registry.getTraderPoolRegistryContract());
         _govPoolRegistry = GovPoolRegistry(registry.getGovPoolRegistryContract());
-        _priceFeed = PriceFeed(registry.getPriceFeedContract());
         _coreProperties = CoreProperties(registry.getCorePropertiesContract());
     }
 
