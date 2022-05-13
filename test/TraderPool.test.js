@@ -157,7 +157,7 @@ describe("TraderPool", () => {
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
-    await contractsRegistry.addContract(await contractsRegistry.TRADER_POOL_FACTORY_NAME(), FACTORY);
+    await contractsRegistry.addContract(await contractsRegistry.POOL_FACTORY_NAME(), FACTORY);
 
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
@@ -171,7 +171,7 @@ describe("TraderPool", () => {
     await insurance.__Insurance_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
     await priceFeed.__PriceFeed_init();
-    await traderPoolRegistry.__TraderPoolRegistry_init();
+    await traderPoolRegistry.__PoolContractsRegistry_init();
 
     await contractsRegistry.injectDependencies(await contractsRegistry.INSURANCE_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());

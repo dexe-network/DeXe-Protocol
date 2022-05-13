@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "../../interfaces/insurance/IInsurance.sol";
 import "../../interfaces/trader/ITraderPool.sol";
 import "../../interfaces/core/ICoreProperties.sol";
 
@@ -29,8 +30,7 @@ library TraderPoolCommission {
             baseCommission = (investorBaseAmount - investedBaseAmount).percentage(
                 poolParameters.commissionPercentage
             );
-
-            lpCommission = (investorLPAmount * baseCommission) / investorBaseAmount;
+            lpCommission = investorLPAmount.ratio(baseCommission, investorBaseAmount);
         }
     }
 

@@ -12,12 +12,16 @@ interface IContractsRegistry {
     function getUserRegistryContract() external view returns (address);
 
     /// @notice Used in dependency injection mechanism
-    /// @return TraderPoolFactory contract address
-    function getTraderPoolFactoryContract() external view returns (address);
+    /// @return PoolFactory contract address
+    function getPoolFactoryContract() external view returns (address);
 
     /// @notice Used in dependency injection mechanism
     /// @return TraderPoolRegistry contract address
     function getTraderPoolRegistryContract() external view returns (address);
+
+    /// @notice Used in dependency injection mechanism
+    /// @return GovPoolRegistry contract address
+    function getGovPoolRegistryContract() external view returns (address);
 
     /// @notice Used in dependency injection mechanism
     /// @return DEXE token contract address

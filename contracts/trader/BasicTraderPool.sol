@@ -22,7 +22,10 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
     }
 
     function _isSupportedBaseToken(address token) internal view {
-        require(priceFeed.isSupportedBaseToken(token), "BTP: invalid exchange");
+        require(
+            token == _poolParameters.baseToken || priceFeed.isSupportedBaseToken(token),
+            "BTP: invalid exchange"
+        );
     }
 
     function __BasicTraderPool_init(

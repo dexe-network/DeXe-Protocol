@@ -11,7 +11,7 @@ ERC20Mock.numberFormat = "BigNumber";
 
 describe("TraderPoolRegistry", () => {
   let OWNER;
-  let SECOND;
+  let FACTORY;
   let THIRD;
 
   let token;
@@ -19,7 +19,7 @@ describe("TraderPoolRegistry", () => {
 
   before("setup", async () => {
     OWNER = await accounts(0);
-    SECOND = await accounts(1);
+    FACTORY = await accounts(1);
     THIRD = await accounts(2);
   });
 
@@ -30,7 +30,7 @@ describe("TraderPoolRegistry", () => {
 
     await contractsRegistry.__ContractsRegistry_init();
 
-    await contractsRegistry.addContract(await contractsRegistry.TRADER_POOL_FACTORY_NAME(), SECOND);
+    await contractsRegistry.addContract(await contractsRegistry.POOL_FACTORY_NAME(), FACTORY);
 
     await contractsRegistry.addProxyContract(
       await contractsRegistry.TRADER_POOL_REGISTRY_NAME(),
@@ -39,7 +39,7 @@ describe("TraderPoolRegistry", () => {
 
     traderPoolRegistry = await TraderPoolRegistry.at(await contractsRegistry.getTraderPoolRegistryContract());
 
-    await traderPoolRegistry.__TraderPoolRegistry_init();
+    await traderPoolRegistry.__PoolContractsRegistry_init();
 
     await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_REGISTRY_NAME());
   });
@@ -68,8 +68,8 @@ describe("TraderPoolRegistry", () => {
     });
 
     it("should successfully add new pools", async () => {
-      await traderPoolRegistry.addPool(OWNER, BASIC_NAME, POOL_1, { from: SECOND });
-      await traderPoolRegistry.addPool(OWNER, BASIC_NAME, POOL_2, { from: SECOND });
+      await traderPoolRegistry.addPool(OWNER, BASIC_NAME, POOL_1, { from: FACTORY });
+      await traderPoolRegistry.addPool(OWNER, BASIC_NAME, POOL_2, { from: FACTORY });
 
       assert.equal((await traderPoolRegistry.countPools(BASIC_NAME)).toFixed(), "2");
       assert.equal((await traderPoolRegistry.countPools(INVEST_NAME)).toFixed(), "0");
@@ -82,8 +82,8 @@ describe("TraderPoolRegistry", () => {
     });
 
     it("should list added pools", async () => {
-      await traderPoolRegistry.addPool(OWNER, BASIC_NAME, POOL_1, { from: SECOND });
-      await traderPoolRegistry.addPool(OWNER, BASIC_NAME, POOL_2, { from: SECOND });
+      await traderPoolRegistry.addPool(OWNER, BASIC_NAME, POOL_1, { from: FACTORY });
+      await traderPoolRegistry.addPool(OWNER, BASIC_NAME, POOL_2, { from: FACTORY });
 
       assert.deepEqual(await traderPoolRegistry.listPools(BASIC_NAME, 0, 2), [POOL_1, POOL_2]);
       assert.deepEqual(await traderPoolRegistry.listPools(BASIC_NAME, 0, 10), [POOL_1, POOL_2]);

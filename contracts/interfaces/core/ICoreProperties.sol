@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 /**
- * This is the central contract of the propotol which stores the parameters that may be modified by the DAO.
+ * This is the central contract of the protocol which stores the parameters that may be modified by the DAO.
  * These are commissions percentages, trader leverage formula parameters, insurance parameters and pools parameters
  */
 interface ICoreProperties {
@@ -32,9 +32,9 @@ interface ICoreProperties {
     /// @param minTraderCommission the minimal trader's commission the trader can specify
     /// @param maxTraderCommissions the maximal trader's commission the trader can specify based on the chosen commission period
     /// @param delayForRiskyPool the investment delay after the first exchange in the risky pool in seconds
-    /// @param insuranceFactor the deposit insurance multiplier. Means how many insurance tokens is recived per deposited token
+    /// @param insuranceFactor the deposit insurance multiplier. Means how many insurance tokens is received per deposited token
     /// @param maxInsurancePoolShare the maximal share of the pool which can be used to pay out the insurance. 3 = 1/3 of the pool
-    /// @param minInsuranceDeposit the minumal required deposit in DEXE tokens to receive an insurance
+    /// @param minInsuranceDeposit the minimal required deposit in DEXE tokens to receive an insurance
     struct CoreParameters {
         uint256 maxPoolInvestors;
         uint256 maxOpenPositions;

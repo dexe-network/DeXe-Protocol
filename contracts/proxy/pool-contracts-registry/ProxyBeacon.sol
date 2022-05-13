@@ -26,7 +26,7 @@ contract ProxyBeacon is IBeacon {
     }
 
     function upgrade(address newImplementation) external onlyOwner {
-        require(newImplementation.isContract(), "ProxyBeacon: not a contract");
+        require(newImplementation.isContract(), "ProxyBeacon: Not a contract");
 
         _implementation = newImplementation;
 

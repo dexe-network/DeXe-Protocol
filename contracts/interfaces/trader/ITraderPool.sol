@@ -160,10 +160,6 @@ interface ITraderPool {
         uint256 minimalInvestment
     ) external;
 
-    /// @notice The function to get the total number of opened positions right now
-    /// @return the number of opened positions
-    function totalOpenPositions() external view returns (uint256);
-
     /// @notice The function to get the total number of investors
     /// @return the total number of investors
     function totalInvestors() external view returns (uint256);

@@ -179,7 +179,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         RewardInfo storage rewardInfo = _rewardInfos[proposalId];
 
         rewardInfo.rewardTokens.add(token);
-        rewardInfo.cumulativeSums[token] += (amount * PRECISION) / totalSupply(proposalId);
+        rewardInfo.cumulativeSums[token] += PRECISION.ratio(amount, totalSupply(proposalId));
     }
 
     function _updateRewards(uint256 proposalId, address user) internal {

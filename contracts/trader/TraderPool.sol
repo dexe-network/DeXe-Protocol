@@ -44,7 +44,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     IPriceFeed public override priceFeed;
     ICoreProperties public override coreProperties;
 
-    mapping(address => bool) internal _traderAdmins;
+    EnumerableSet.AddressSet internal _traderAdmins;
 
     PoolParameters internal _poolParameters;
 
@@ -59,13 +59,14 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     event Exchanged(address fromToken, address toToken, uint256 fromVolume, uint256 toVolume);
     event PositionClosed(address position);
     event InvestorAdded(address investor);
-    event Invested(address investor, uint256 amount, uint256 toMintLP); // check
     event InvestorRemoved(address investor);
+    event Invested(address investor, uint256 amount, uint256 toMintLP);
     event Divested(address investor, uint256 amount, uint256 commission);
     event TraderCommissionMinted(address trader, uint256 amount);
     event TraderCommissionPaid(address investor, uint256 amount);
     event DescriptionURLChanged(string descriptionURL);
     event ModifiedAdmins(address[] admins, bool add);
+    event ModifiedPrivateInvestors(address[] privateInvestors, bool add);
 
     modifier onlyTraderAdmin() {
         _onlyTraderAdmin();
@@ -111,7 +112,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     }
 
     function isTraderAdmin(address who) public view override returns (bool) {
-        return _traderAdmins[who];
+        return _traderAdmins.contains(who);
     }
 
     function isTrader(address who) public view override returns (bool) {
@@ -126,7 +127,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         __ERC20_init(name, symbol);
 
         _poolParameters = poolParameters;
-        _traderAdmins[poolParameters.trader] = true;
+        _traderAdmins.add(poolParameters.trader);
     }
 
     function setDependencies(address contractsRegistry) public virtual override dependant {
@@ -139,10 +140,14 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     function modifyAdmins(address[] calldata admins, bool add) external override onlyTraderAdmin {
         for (uint256 i = 0; i < admins.length; i++) {
-            _traderAdmins[admins[i]] = add;
+            if (add) {
+                _traderAdmins.add(admins[i]);
+            } else {
+                _traderAdmins.remove(admins[i]);
+            }
         }
 
-        _traderAdmins[_poolParameters.trader] = true;
+        _traderAdmins.add(_poolParameters.trader);
 
         emit ModifiedAdmins(admins, add);
     }
@@ -153,12 +158,14 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         onlyTraderAdmin
     {
         for (uint256 i = 0; i < privateInvestors.length; i++) {
-            _privateInvestors.add(privateInvestors[i]);
-
-            if (!add && balanceOf(privateInvestors[i]) == 0) {
+            if (add) {
+                _privateInvestors.add(privateInvestors[i]);
+            } else if (balanceOf(privateInvestors[i]) == 0) {
                 _privateInvestors.remove(privateInvestors[i]);
             }
         }
+
+        emit ModifiedPrivateInvestors(privateInvestors, add);
     }
 
     function changePoolParameters(
@@ -182,10 +189,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _poolParameters.minimalInvestment = minimalInvestment;
 
         emit DescriptionURLChanged(descriptionURL);
-    }
-
-    function totalOpenPositions() external view override returns (uint256) {
-        return _openPositions.length();
     }
 
     function totalInvestors() external view override returns (uint256) {
@@ -375,10 +378,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
                     _burn(investor, lpCommission);
 
-                    emit TraderCommissionPaid(investor, lpCommission);
-
                     allBaseCommission += baseCommission;
                     allLPCommission += lpCommission;
+
+                    emit TraderCommissionPaid(investor, lpCommission);
                 }
             }
         }
