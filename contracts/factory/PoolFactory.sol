@@ -42,6 +42,7 @@ contract PoolFactory is IPoolFactory, AbstractDependant {
         address proposalContract,
         address trader,
         address basicToken,
+        uint256 commission,
         string descriptionURL
     );
 
@@ -109,6 +110,9 @@ contract PoolFactory is IPoolFactory, AbstractDependant {
             parameters.feePercentage
         );
 
+        GovSettings(settingsProxy).transferOwnership(poolProxy);
+        GovUserKeeper(userKeeperProxy).transferOwnership(poolProxy);
+        GovValidators(validatorsProxy).transferOwnership(poolProxy);
         GovPool(payable(poolProxy)).transferOwnership(parameters.owner);
 
         _govPoolRegistry.addPool(parameters.owner, poolType, poolProxy);
@@ -155,6 +159,7 @@ contract PoolFactory is IPoolFactory, AbstractDependant {
             proposalProxy,
             poolParameters.trader,
             poolParameters.baseToken,
+            poolParameters.commissionPercentage,
             poolParameters.descriptionURL
         );
     }
@@ -200,6 +205,7 @@ contract PoolFactory is IPoolFactory, AbstractDependant {
             proposalProxy,
             poolParameters.trader,
             poolParameters.baseToken,
+            poolParameters.commissionPercentage,
             poolParameters.descriptionURL
         );
     }

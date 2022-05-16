@@ -159,7 +159,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         );
 
         emit ProposalCreated(proposalId, token, proposalLimits);
-        emit ProposalInvested(proposalId, msg.sender, lpInvestment, baseInvestment);
+        emit ProposalInvested(proposalId, trader, lpInvestment, baseInvestment);
     }
 
     function _activePortfolio(
@@ -272,7 +272,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             );
         }
 
-        emit ProposalInvested(proposalId, _msgSender(), lpInvestment, baseInvestment);
+        emit ProposalInvested(proposalId, user, lpInvestment, baseInvestment);
     }
 
     function _divestProposalInvestor(
