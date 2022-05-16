@@ -96,9 +96,11 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
         proposalId = ++proposalsTotalNum;
 
+        address trader = _parentTraderPoolInfo.trader;
+
         _proposalInfos[proposalId].proposalLimits = proposalLimits;
 
-        _transferAndMintLP(proposalId, _parentTraderPoolInfo.trader, lpInvestment, baseInvestment);
+        _transferAndMintLP(proposalId, trader, lpInvestment, baseInvestment);
 
         _proposalInfos[proposalId].descriptionURL = descriptionURL;
         _proposalInfos[proposalId].lpLocked = lpInvestment;
@@ -106,7 +108,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         _proposalInfos[proposalId].newInvestedBase = baseInvestment;
 
         emit ProposalCreated(proposalId, proposalLimits);
-        emit ProposalInvested(proposalId, _msgSender(), lpInvestment, baseInvestment);
+        emit ProposalInvested(proposalId, trader, lpInvestment, baseInvestment);
     }
 
     function invest(
