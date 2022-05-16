@@ -196,10 +196,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         view
         override
         returns (
-            bool,
-            bool,
-            uint256,
-            uint256
+            bool supportPower,
+            bool supportTotalSupply,
+            uint256 totalPowerInTokens,
+            uint256 totalSupply
         )
     {
         return (

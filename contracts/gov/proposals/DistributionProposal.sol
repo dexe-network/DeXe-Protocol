@@ -65,7 +65,7 @@ contract DistributionProposal is IDistributionProposal, Ownable {
     }
 
     function claim(address voter) external override {
-        require(distributionStarted, "DP: distribution isn't start yet");
+        require(distributionStarted, "DP: distribution hasn't started yet");
         require(!claimed[voter], "DP: already claimed");
 
         uint256 reward = getPotentialReward(voter);
