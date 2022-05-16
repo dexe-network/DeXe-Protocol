@@ -42,7 +42,8 @@ contract PoolFactory is IPoolFactory, AbstractDependant {
         address proposalContract,
         address trader,
         address basicToken,
-        string descriptionURL
+        string descriptionURL,
+        uint256 commission
     );
 
     function setDependencies(address contractsRegistry) external override dependant {
@@ -155,7 +156,8 @@ contract PoolFactory is IPoolFactory, AbstractDependant {
             proposalProxy,
             poolParameters.trader,
             poolParameters.baseToken,
-            poolParameters.descriptionURL
+            poolParameters.descriptionURL,
+            poolParameters.commissionPercentage
         );
     }
 
@@ -200,7 +202,8 @@ contract PoolFactory is IPoolFactory, AbstractDependant {
             proposalProxy,
             poolParameters.trader,
             poolParameters.baseToken,
-            poolParameters.descriptionURL
+            poolParameters.descriptionURL,
+            poolParameters.commissionPercentage
         );
     }
 

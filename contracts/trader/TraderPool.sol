@@ -60,8 +60,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     event PositionClosed(address position);
     event InvestorAdded(address investor);
     event InvestorRemoved(address investor);
-    event Invested(address investor, uint256 amount, uint256 toMintLP);
-    event Divested(address investor, uint256 amount, uint256 commission);
+    event Invested(uint256 amount, uint256 toMintLP);
+    event Divested(uint256 amount, uint256 commission);
     event TraderCommissionMinted(address trader, uint256 amount);
     event TraderCommissionPaid(address investor, uint256 amount);
     event DescriptionURLChanged(string descriptionURL);
@@ -296,7 +296,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         uint256 toMintLP = _invest(msg.sender, amountInBaseToInvest, minPositionsOut);
 
-        emit Invested(msg.sender, amountInBaseToInvest, toMintLP);
+        emit Invested(amountInBaseToInvest, toMintLP);
     }
 
     function _distributeCommission(
@@ -471,7 +471,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             baseCommission = _divestInvestor(amountLP, minPositionsOut, minDexeCommissionOut);
         }
 
-        emit Divested(msg.sender, amountLP, baseCommission);
+        emit Divested(amountLP, baseCommission);
     }
 
     function _exchange(

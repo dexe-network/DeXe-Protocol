@@ -30,8 +30,8 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     event ProposalInvested(uint256 index, address investor, uint256 amountLP, uint256 amountBase);
     event ProposalDivested(uint256 index, address investor, uint256 amount);
     event ProposalCreated(uint256 index, ITraderPoolInvestProposal.ProposalLimits proposalLimits);
-    event ProposalWithdrawn(uint256 index, uint256 amount, address investor);
-    event ProposalSupplied(uint256 index, uint256 amount, address token, address investor);
+    event ProposalWithdrawn(uint256 index, uint256 amount);
+    event ProposalSupplied(uint256 index, uint256 amount, address token);
 
     function __TraderPoolInvestProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         public
@@ -328,7 +328,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             amount.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
         );
 
-        emit ProposalWithdrawn(proposalId, amount, _msgSender());
+        emit ProposalWithdrawn(proposalId, amount);
     }
 
     function supply(
@@ -349,7 +349,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
             _updateCumulativeSum(proposalId, amounts[i], token);
 
-            emit ProposalSupplied(proposalId, amounts[i], token, _msgSender());
+            emit ProposalSupplied(proposalId, amounts[i], token);
         }
     }
 
@@ -362,16 +362,11 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             _parentTraderPoolInfo.baseToken
         );
 
-        emit ProposalWithdrawn(
-            proposalId,
-            _proposalInfos[proposalId].newInvestedBase,
-            _msgSender()
-        );
+        emit ProposalWithdrawn(proposalId, _proposalInfos[proposalId].newInvestedBase);
         emit ProposalSupplied(
             proposalId,
             _proposalInfos[proposalId].newInvestedBase,
-            _parentTraderPoolInfo.baseToken,
-            _msgSender()
+            _parentTraderPoolInfo.baseToken
         );
 
         delete _proposalInfos[proposalId].newInvestedBase;
