@@ -103,7 +103,7 @@ describe("ERC721Power", () => {
 
       await truffleAssert.reverts(nft.setNftMaxPower("0", "1"), "NftToken: max power can't be zero (2)");
     });
-    await ERC20Mock.new("Mock", "Mock", 18);
+
     it("should revert if try to set max power for nft after calculation start", async () => {
       await setTime(startTime + 999);
 

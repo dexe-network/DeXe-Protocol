@@ -77,9 +77,9 @@ describe("GovSettings", () => {
     });
   });
 
-  describe("addTypes()", async () => {
-    it("should add two type", async () => {
-      const newType1 = {
+  describe("addSettings()", async () => {
+    it("should add two settings", async () => {
+      const newSettings1 = {
         earlyCompletion: false,
         duration: 50,
         durationValidators: 100,
@@ -89,7 +89,7 @@ describe("GovSettings", () => {
         minNftBalance: 4,
       };
 
-      const newType2 = {
+      const newSettings2 = {
         earlyCompletion: true,
         duration: 150,
         durationValidators: 120,
@@ -99,26 +99,26 @@ describe("GovSettings", () => {
         minNftBalance: 4,
       };
 
-      await settings.addSettings([newType1, newType2]);
+      await settings.addSettings([newSettings1, newSettings2]);
 
-      const type1 = await settings.settings(3);
-      const type2 = await settings.settings(4);
+      const settings1 = await settings.settings(3);
+      const settings2 = await settings.settings(4);
 
-      assert.equal(type1.earlyCompletion, newType1.earlyCompletion);
-      assert.equal(type1.duration.toString(), newType1.duration);
-      assert.equal(type1.durationValidators, newType1.durationValidators);
-      assert.equal(type1.quorum.toString(), toBN(newType1.quorum));
-      assert.equal(type1.quorumValidators.toString(), toBN(newType1.quorumValidators));
-      assert.equal(type1.minTokenBalance, newType1.minTokenBalance);
-      assert.equal(type1.minNftBalance, newType1.minNftBalance);
+      assert.equal(settings1.earlyCompletion, newSettings1.earlyCompletion);
+      assert.equal(settings1.duration.toString(), newSettings1.duration);
+      assert.equal(settings1.durationValidators, newSettings1.durationValidators);
+      assert.equal(settings1.quorum.toString(), toBN(newSettings1.quorum));
+      assert.equal(settings1.quorumValidators.toString(), toBN(newSettings1.quorumValidators));
+      assert.equal(settings1.minTokenBalance, newSettings1.minTokenBalance);
+      assert.equal(settings1.minNftBalance, newSettings1.minNftBalance);
 
-      assert.equal(type2.earlyCompletion, newType2.earlyCompletion);
-      assert.equal(type2.duration.toString(), newType2.duration);
-      assert.equal(type2.durationValidators, newType2.durationValidators);
-      assert.equal(type2.quorum.toString(), toBN(newType2.quorum));
-      assert.equal(type2.quorumValidators.toString(), toBN(newType2.quorumValidators));
-      assert.equal(type2.minTokenBalance, newType2.minTokenBalance);
-      assert.equal(type2.minNftBalance, newType2.minNftBalance);
+      assert.equal(settings2.earlyCompletion, newSettings2.earlyCompletion);
+      assert.equal(settings2.duration.toString(), newSettings2.duration);
+      assert.equal(settings2.durationValidators, newSettings2.durationValidators);
+      assert.equal(settings2.quorum.toString(), toBN(newSettings2.quorum));
+      assert.equal(settings2.quorumValidators.toString(), toBN(newSettings2.quorumValidators));
+      assert.equal(settings2.minTokenBalance, newSettings2.minTokenBalance);
+      assert.equal(settings2.minNftBalance, newSettings2.minNftBalance);
     });
   });
 
@@ -183,9 +183,9 @@ describe("GovSettings", () => {
     });
   });
 
-  describe("editTypes()", async () => {
+  describe("editSettings()", async () => {
     it("should edit existed settings", async () => {
-      const newType1 = {
+      const newSettings1 = {
         earlyCompletion: false,
         duration: 50,
         durationValidators: 100,
@@ -195,31 +195,31 @@ describe("GovSettings", () => {
         minNftBalance: 4,
       };
 
-      await settings.editSettings([1, 2], [newType1, newType1]);
+      await settings.editSettings([1, 2], [newSettings1, newSettings1]);
 
       const internalSettings = await settings.settings(1);
 
       assert.isFalse(internalSettings.earlyCompletion);
-      assert.equal(internalSettings.duration, newType1.duration);
-      assert.equal(internalSettings.durationValidators, newType1.durationValidators);
-      assert.equal(internalSettings.quorum.toFixed(), newType1.quorum);
-      assert.equal(internalSettings.quorumValidators.toFixed(), newType1.quorumValidators);
-      assert.equal(internalSettings.minTokenBalance.toFixed(), newType1.minTokenBalance);
-      assert.equal(internalSettings.minNftBalance, newType1.minNftBalance);
+      assert.equal(internalSettings.duration, newSettings1.duration);
+      assert.equal(internalSettings.durationValidators, newSettings1.durationValidators);
+      assert.equal(internalSettings.quorum.toFixed(), newSettings1.quorum);
+      assert.equal(internalSettings.quorumValidators.toFixed(), newSettings1.quorumValidators);
+      assert.equal(internalSettings.minTokenBalance.toFixed(), newSettings1.minTokenBalance);
+      assert.equal(internalSettings.minNftBalance, newSettings1.minNftBalance);
 
       const defaultSettings = await settings.settings(2);
 
       assert.isFalse(defaultSettings.earlyCompletion);
-      assert.equal(defaultSettings.duration, newType1.duration);
-      assert.equal(defaultSettings.durationValidators, newType1.durationValidators);
-      assert.equal(defaultSettings.quorum.toFixed(), newType1.quorum);
-      assert.equal(defaultSettings.quorumValidators.toFixed(), newType1.quorumValidators);
-      assert.equal(defaultSettings.minTokenBalance.toFixed(), newType1.minTokenBalance);
-      assert.equal(defaultSettings.minNftBalance, newType1.minNftBalance);
+      assert.equal(defaultSettings.duration, newSettings1.duration);
+      assert.equal(defaultSettings.durationValidators, newSettings1.durationValidators);
+      assert.equal(defaultSettings.quorum.toFixed(), newSettings1.quorum);
+      assert.equal(defaultSettings.quorumValidators.toFixed(), newSettings1.quorumValidators);
+      assert.equal(defaultSettings.minTokenBalance.toFixed(), newSettings1.minTokenBalance);
+      assert.equal(defaultSettings.minNftBalance, newSettings1.minNftBalance);
     });
 
     it("should skip editing nonexistent settings", async () => {
-      const newType1 = {
+      const newSettings1 = {
         earlyCompletion: false,
         duration: 50,
         durationValidators: 100,
@@ -229,16 +229,16 @@ describe("GovSettings", () => {
         minNftBalance: 4,
       };
 
-      await settings.editSettings([1, 4], [newType1, newType1]);
+      await settings.editSettings([1, 4], [newSettings1, newSettings1]);
 
       const internalSettings = await settings.settings(1);
       assert.isFalse(internalSettings.earlyCompletion);
-      assert.equal(internalSettings.duration, newType1.duration);
-      assert.equal(internalSettings.durationValidators, newType1.durationValidators);
-      assert.equal(internalSettings.quorum.toFixed(), newType1.quorum);
-      assert.equal(internalSettings.quorumValidators.toFixed(), newType1.quorumValidators);
-      assert.equal(internalSettings.minTokenBalance.toFixed(), newType1.minTokenBalance);
-      assert.equal(internalSettings.minNftBalance, newType1.minNftBalance);
+      assert.equal(internalSettings.duration, newSettings1.duration);
+      assert.equal(internalSettings.durationValidators, newSettings1.durationValidators);
+      assert.equal(internalSettings.quorum.toFixed(), newSettings1.quorum);
+      assert.equal(internalSettings.quorumValidators.toFixed(), newSettings1.quorumValidators);
+      assert.equal(internalSettings.minTokenBalance.toFixed(), newSettings1.minTokenBalance);
+      assert.equal(internalSettings.minNftBalance, newSettings1.minNftBalance);
 
       const newSettings = await settings.settings(4);
       assert.isFalse(newSettings.earlyCompletion);
@@ -259,7 +259,7 @@ describe("GovSettings", () => {
       assert.equal(await settings.executorToSettings(EXECUTOR2), 2);
     });
 
-    it("should skip adding executor to internal type", async () => {
+    it("should skip adding executor to internal settings", async () => {
       await settings.changeExecutors([EXECUTOR1, EXECUTOR2], [2, 1]);
 
       assert.equal(await settings.executorToSettings(EXECUTOR1), 2);
@@ -275,8 +275,8 @@ describe("GovSettings", () => {
   });
 
   describe("executorInfo()", async () => {
-    it("should return info about typed executor", async () => {
-      const newType1 = {
+    it("should return info about executor", async () => {
+      const newSettings1 = {
         earlyCompletion: false,
         duration: 50,
         durationValidators: 100,
@@ -286,7 +286,7 @@ describe("GovSettings", () => {
         minNftBalance: 4,
       };
 
-      await settings.addSettings([newType1]);
+      await settings.addSettings([newSettings1]);
       await settings.changeExecutors([EXECUTOR1], [3]);
 
       const executorInfo = await settings.executorInfo(EXECUTOR1);
@@ -312,7 +312,7 @@ describe("GovSettings", () => {
 
   describe("getSettings()", async () => {
     it("should return setting for executor", async () => {
-      const newType1 = {
+      const newSettings1 = {
         earlyCompletion: false,
         duration: 50,
         durationValidators: 100,
@@ -322,7 +322,7 @@ describe("GovSettings", () => {
         minNftBalance: 4,
       };
 
-      await settings.addSettings([newType1]);
+      await settings.addSettings([newSettings1]);
       await settings.changeExecutors([EXECUTOR1], [3]);
 
       const executorSettings = await settings.getSettings(EXECUTOR1);
