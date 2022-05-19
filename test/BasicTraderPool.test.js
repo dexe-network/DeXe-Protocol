@@ -85,6 +85,7 @@ describe("BasicTraderPool", () => {
 
     let tokenNames = ["USD", "DEXE", "WETH", "USDT", "MANA", "WBTC"];
     let decimals = [18, 18, 18, 6, 18, 8];
+    let support = [true, true, true, false, true, false];
 
     for (let i = 0; i < tokenNames.length; i++) {
       if (tokenNames[i] == "USD") {
@@ -99,7 +100,9 @@ describe("BasicTraderPool", () => {
 
       await tokens[tokenNames[i]].mint(OWNER, tokensToMint.times(decimalWei));
 
-      await priceFeed.addSupportedBaseTokens([tokens[tokenNames[i]].address]);
+      if (support[i]) {
+        await coreProperties.addWhitelistTokens([tokens[tokenNames[i]].address]);
+      }
 
       await tokens[tokenNames[i]].approve(uniswapV2Router.address, reserveTokens.times(decimalWei));
       await uniswapV2Router.setReserve(tokens[tokenNames[i]].address, reserveTokens.times(decimalWei));
@@ -311,6 +314,21 @@ describe("BasicTraderPool", () => {
       };
 
       [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);
+    });
+
+    describe("exchange", () => {
+      beforeEach("setup", async () => {
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+
+        await invest(wei("1000"), OWNER);
+      });
+
+      it("should not exchange not whitelisted token", async () => {
+        await truffleAssert.reverts(
+          exchangeFromExact(tokens.WETH.address, tokens.WBTC.address, wei("500")),
+          "BTP: invalid exchange"
+        );
+      });
     });
 
     describe("createProposal", () => {

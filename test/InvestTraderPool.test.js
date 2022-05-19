@@ -101,7 +101,7 @@ describe("InvestTraderPool", () => {
       await tokens[tokenNames[i]].mint(OWNER, tokensToMint.times(decimalWei));
 
       if (support[i]) {
-        await priceFeed.addSupportedBaseTokens([tokens[tokenNames[i]].address]);
+        await coreProperties.addWhitelistTokens([tokens[tokenNames[i]].address]);
       }
 
       await tokens[tokenNames[i]].approve(uniswapV2Router.address, reserveTokens.times(decimalWei));

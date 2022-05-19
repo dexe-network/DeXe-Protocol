@@ -172,6 +172,10 @@ interface ITraderPool {
     /// @return the actual LP tokens emission
     function totalEmission() external view returns (uint256);
 
+    /// @notice The function that returns the filtered open positions list (filtered against the blacklist)
+    /// @return the array of open positions
+    function positions() external view returns (address[] memory);
+
     /// @notice The function that returns the information about the investors
     /// @param offset the starting index of the investors array
     /// @param limit the length of the observed array

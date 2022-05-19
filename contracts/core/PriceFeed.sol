@@ -3,7 +3,6 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -19,16 +18,17 @@ import "../proxy/contracts-registry/AbstractDependant.sol";
 import "../libs/PriceFeed/UniswapV2PathFinder.sol";
 import "../libs/DecimalsConverter.sol";
 import "../libs/ArrayHelper.sol";
+import "../libs/AddressSetHelper.sol";
 
 import "../core/Globals.sol";
 
 contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     using EnumerableSet for EnumerableSet.AddressSet;
+    using AddressSetHelper for EnumerableSet.AddressSet;
     using DecimalsConverter for uint256;
     using SafeERC20 for IERC20;
     using ArrayHelper for address[];
     using UniswapV2PathFinder for EnumerableSet.AddressSet;
-    using Math for uint256;
 
     IUniswapV2Factory public uniswapFactory;
     IUniswapV2Router02 public uniswapV2Router;
@@ -36,7 +36,6 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     address internal _dexeAddress;
 
     EnumerableSet.AddressSet internal _pathTokens;
-    EnumerableSet.AddressSet internal _supportedBaseTokens;
 
     mapping(address => mapping(address => mapping(address => address[]))) internal _savedPaths; // pool => token from => token to => path
 
@@ -53,37 +52,13 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         _dexeAddress = registry.getDEXEContract();
     }
 
-    function _insertInto(EnumerableSet.AddressSet storage addressSet, address[] calldata array)
-        private
-    {
-        for (uint256 i = 0; i < array.length; i++) {
-            addressSet.add(array[i]);
-        }
-    }
-
-    function _removeFrom(EnumerableSet.AddressSet storage addressSet, address[] calldata array)
-        private
-    {
-        for (uint256 i = 0; i < array.length; i++) {
-            addressSet.remove(array[i]);
-        }
-    }
-
     /// @notice this function sets path tokens that are used throughout the platform to calculate prices
     function addPathTokens(address[] calldata pathTokens) external override onlyOwner {
-        _insertInto(_pathTokens, pathTokens);
+        _pathTokens.add(pathTokens);
     }
 
     function removePathTokens(address[] calldata pathTokens) external override onlyOwner {
-        _removeFrom(_pathTokens, pathTokens);
-    }
-
-    function addSupportedBaseTokens(address[] calldata baseTokens) external override onlyOwner {
-        _insertInto(_supportedBaseTokens, baseTokens);
-    }
-
-    function removeSupportedBaseTokens(address[] calldata baseTokens) external override onlyOwner {
-        _removeFrom(_supportedBaseTokens, baseTokens);
+        _pathTokens.remove(pathTokens);
     }
 
     function getExtendedPriceOut(
@@ -388,27 +363,8 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             ).convertTo18(inDecimals);
     }
 
-    function totalBaseTokens() external view override returns (uint256) {
-        return _supportedBaseTokens.length();
-    }
-
     function totalPathTokens() external view override returns (uint256) {
         return _pathTokens.length();
-    }
-
-    function getBaseTokens(uint256 offset, uint256 limit)
-        external
-        view
-        override
-        returns (address[] memory baseTokens)
-    {
-        uint256 to = (offset + limit).min(_supportedBaseTokens.length()).max(offset);
-
-        baseTokens = new address[](to - offset);
-
-        for (uint256 i = offset; i < to; i++) {
-            baseTokens[i - offset] = _supportedBaseTokens.at(i);
-        }
     }
 
     function getPathTokens() external view override returns (address[] memory) {
@@ -421,10 +377,6 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address to
     ) external view override returns (address[] memory) {
         return _savedPaths[pool][from][to];
-    }
-
-    function isSupportedBaseToken(address token) external view override returns (bool) {
-        return _supportedBaseTokens.contains(token);
     }
 
     function isSupportedPathToken(address token) external view override returns (bool) {

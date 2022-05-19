@@ -2,20 +2,31 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
 import "../proxy/contracts-registry/AbstractDependant.sol";
 
+import "../libs/AddressSetHelper.sol";
+
 import "./Globals.sol";
 
 contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependant {
+    using EnumerableSet for EnumerableSet.AddressSet;
+    using AddressSetHelper for EnumerableSet.AddressSet;
+    using Math for uint256;
+
     CoreParameters public coreParameters;
 
     address internal _insuranceAddress;
     address internal _treasuryAddress;
     address internal _dividendsAddress;
+
+    EnumerableSet.AddressSet internal _whitelistTokens;
+    EnumerableSet.AddressSet internal _blacklistTokens;
 
     function __CoreProperties_init(CoreParameters calldata _coreParameters) external initializer {
         __Ownable_init();
@@ -37,6 +48,22 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         onlyOwner
     {
         coreParameters = _coreParameters;
+    }
+
+    function addWhitelistTokens(address[] calldata tokens) external override onlyOwner {
+        _whitelistTokens.add(tokens);
+    }
+
+    function removeWhitelistTokens(address[] calldata tokens) external override onlyOwner {
+        _whitelistTokens.remove(tokens);
+    }
+
+    function addBlacklistTokens(address[] calldata tokens) external override onlyOwner {
+        _blacklistTokens.add(tokens);
+    }
+
+    function removeBlacklistTokens(address[] calldata tokens) external override onlyOwner {
+        _blacklistTokens.remove(tokens);
     }
 
     function setMaximumPoolInvestors(uint256 count) external override onlyOwner {
@@ -92,6 +119,77 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         coreParameters.insuranceFactor = insuranceFactor;
         coreParameters.maxInsurancePoolShare = maxInsurancePoolShare;
         coreParameters.minInsuranceDeposit = minInsuranceDeposit;
+    }
+
+    function totalWhitelistTokens() external view override returns (uint256) {
+        return _whitelistTokens.length();
+    }
+
+    function totalBlacklistTokens() external view override returns (uint256) {
+        return _blacklistTokens.length();
+    }
+
+    function getWhitelistTokens(uint256 offset, uint256 limit)
+        external
+        view
+        override
+        returns (address[] memory tokens)
+    {
+        uint256 to = (offset + limit).min(_whitelistTokens.length()).max(offset);
+
+        tokens = new address[](to - offset);
+
+        for (uint256 i = offset; i < to; i++) {
+            tokens[i - offset] = _whitelistTokens.at(i);
+        }
+    }
+
+    function getBlacklistTokens(uint256 offset, uint256 limit)
+        external
+        view
+        override
+        returns (address[] memory tokens)
+    {
+        uint256 to = (offset + limit).min(_blacklistTokens.length()).max(offset);
+
+        tokens = new address[](to - offset);
+
+        for (uint256 i = offset; i < to; i++) {
+            tokens[i - offset] = _blacklistTokens.at(i);
+        }
+    }
+
+    function isWhitelistedToken(address token) external view override returns (bool) {
+        return _whitelistTokens.contains(token);
+    }
+
+    function isBlacklistedToken(address token) external view override returns (bool) {
+        return _blacklistTokens.contains(token);
+    }
+
+    function getFilteredPositions(address[] memory positions)
+        external
+        view
+        override
+        returns (address[] memory filteredPositions)
+    {
+        uint256 newLength = positions.length;
+
+        for (uint256 i = positions.length; i > 0; i--) {
+            if (_blacklistTokens.contains(positions[i - 1])) {
+                if (i == newLength) {
+                    --newLength;
+                } else {
+                    positions[i - 1] = positions[--newLength];
+                }
+            }
+        }
+
+        filteredPositions = new address[](newLength);
+
+        for (uint256 i = 0; i < newLength; i++) {
+            filteredPositions[i] = positions[i];
+        }
     }
 
     function getMaximumPoolInvestors() external view override returns (uint256) {

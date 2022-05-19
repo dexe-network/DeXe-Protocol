@@ -217,6 +217,10 @@ contract PoolFactory is IPoolFactory, AbstractDependant {
 
         require(parameters.trader != address(0), "PoolFactory: invalid trader address");
         require(
+            !_coreProperties.isBlacklistedToken(parameters.baseToken),
+            "PoolFactory: token is blacklisted"
+        );
+        require(
             parameters.commissionPercentage >= general &&
                 parameters.commissionPercentage <= byPeriod[uint256(parameters.commissionPeriod)],
             "PoolFactory: Incorrect percentage"

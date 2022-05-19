@@ -58,19 +58,12 @@ describe("PriceFeed", () => {
     await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
   });
 
-  describe("path tokens & base tokens", () => {
+  describe("path tokens", () => {
     it("should set and return path tokens", async () => {
       await priceFeed.addPathTokens([USD.address, DEXE.address, USD.address]);
 
       assert.equal((await priceFeed.totalPathTokens()).toFixed(), "2");
       assert.deepEqual(await priceFeed.getPathTokens(), [USD.address, DEXE.address]);
-    });
-
-    it("should set and return base tokens", async () => {
-      await priceFeed.addSupportedBaseTokens([USD.address, DEXE.address, DEXE.address]);
-
-      assert.equal((await priceFeed.totalBaseTokens()).toFixed(), "2");
-      assert.deepEqual(await priceFeed.getBaseTokens(0, 10), [USD.address, DEXE.address]);
     });
 
     it("should set and remove path tokens", async () => {
@@ -79,14 +72,6 @@ describe("PriceFeed", () => {
 
       assert.equal((await priceFeed.totalPathTokens()).toFixed(), "1");
       assert.deepEqual(await priceFeed.getPathTokens(), [DEXE.address]);
-    });
-
-    it("should set and remove base tokens", async () => {
-      await priceFeed.addSupportedBaseTokens([USD.address, DEXE.address]);
-      await priceFeed.removeSupportedBaseTokens([USD.address]);
-
-      assert.equal((await priceFeed.totalBaseTokens()).toFixed(), "1");
-      assert.deepEqual(await priceFeed.getBaseTokens(0, 10), [DEXE.address]);
     });
   });
 

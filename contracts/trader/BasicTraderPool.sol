@@ -21,9 +21,9 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         require(msg.sender == address(_traderPoolProposal), "BTP: not a proposal");
     }
 
-    function _isSupportedBaseToken(address token) internal view {
+    function _canTrade(address token) internal view {
         require(
-            token == _poolParameters.baseToken || priceFeed.isSupportedBaseToken(token),
+            token == _poolParameters.baseToken || coreProperties.isWhitelistedToken(token),
             "BTP: invalid exchange"
         );
     }
@@ -62,7 +62,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256 minAmountOut,
         address[] calldata optionalPath
     ) public override onlyTraderAdmin {
-        _isSupportedBaseToken(to);
+        _canTrade(to);
 
         super.exchangeFromExact(from, to, amountIn, minAmountOut, optionalPath);
     }
@@ -74,7 +74,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256 maxAmountIn,
         address[] calldata optionalPath
     ) public override onlyTraderAdmin {
-        _isSupportedBaseToken(to);
+        _canTrade(to);
 
         super.exchangeToExact(from, to, amountOut, maxAmountIn, optionalPath);
     }
