@@ -15,6 +15,7 @@ const PoolProposal = artifacts.require("TraderPoolRiskyProposal");
 const PoolProposalLib = artifacts.require("TraderPoolRiskyProposalView");
 const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
 const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
+const TraderPoolExchangeLib = artifacts.require("TraderPoolExchange");
 const TraderPoolPriceLib = artifacts.require("TraderPoolPrice");
 const TraderPoolViewLib = artifacts.require("TraderPoolView");
 
@@ -32,6 +33,11 @@ const SECONDS_IN_DAY = 86400;
 const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
 const PRECISION = toBN(10).pow(25);
 const DECIMAL = toBN(10).pow(18);
+
+const ExchangeType = {
+  FROM_EXACT: 0,
+  TO_EXACT: 1,
+};
 
 const ComissionPeriods = {
   PERIOD_1: 0,
@@ -134,10 +140,12 @@ describe("BasicTraderPool", () => {
     await TraderPoolViewLib.link(traderPoolLeverageLib);
 
     const traderPoolViewLib = await TraderPoolViewLib.new();
+    const traderPoolExchangeLib = await TraderPoolExchangeLib.new();
 
     await BasicTraderPool.link(traderPoolCommissionLib);
     await BasicTraderPool.link(traderPoolLeverageLib);
     await BasicTraderPool.link(traderPoolPriceLib);
+    await BasicTraderPool.link(traderPoolExchangeLib);
     await BasicTraderPool.link(traderPoolViewLib);
 
     const poolProposalLib = await PoolProposalLib.new();
@@ -228,13 +236,13 @@ describe("BasicTraderPool", () => {
   }
 
   async function exchangeFromExact(from, to, amount) {
-    const exchange = (await traderPool.getExchangeFromExactAmount(from, to, amount, []))[0];
-    await traderPool.exchangeFromExact(from, to, amount, exchange, []);
+    const exchange = (await traderPool.getExchangeAmount(from, to, amount, [], ExchangeType.FROM_EXACT))[0];
+    await traderPool.exchange(from, to, amount, exchange, [], ExchangeType.FROM_EXACT);
   }
 
   async function exchangeToExact(from, to, amount) {
-    const exchange = (await traderPool.getExchangeToExactAmount(from, to, amount, []))[0];
-    await traderPool.exchangeToExact(from, to, amount, exchange, []);
+    const exchange = (await traderPool.getExchangeAmount(from, to, amount, [], ExchangeType.TO_EXACT))[0];
+    await traderPool.exchange(from, to, amount, exchange, [], ExchangeType.TO_EXACT);
   }
 
   async function createProposal(token, value, limits, percentage) {
@@ -264,13 +272,13 @@ describe("BasicTraderPool", () => {
   }
 
   async function exchangeFromExactProposal(proposalId, from, amount) {
-    const amountOut = (await proposalPool.getExchangeFromExactAmount(proposalId, from, amount, []))[0];
-    await proposalPool.exchangeFromExact(proposalId, from, amount, amountOut, []);
+    const amountOut = (await proposalPool.getExchangeAmount(proposalId, from, amount, [], ExchangeType.FROM_EXACT))[0];
+    await proposalPool.exchange(proposalId, from, amount, amountOut, [], ExchangeType.FROM_EXACT);
   }
 
   async function exchangeToExactProposal(proposalId, from, amount) {
-    const amountOut = (await proposalPool.getExchangeToExactAmount(proposalId, from, amount, []))[0];
-    await proposalPool.exchangeToExact(proposalId, from, amount, amountOut, []);
+    const amountOut = (await proposalPool.getExchangeAmount(proposalId, from, amount, [], ExchangeType.TO_EXACT))[0];
+    await proposalPool.exchange(proposalId, from, amount, amountOut, [], ExchangeType.TO_EXACT);
   }
 
   async function reinvestProposal(propoaslId, amount, account) {
@@ -327,6 +335,32 @@ describe("BasicTraderPool", () => {
         await truffleAssert.reverts(
           exchangeFromExact(tokens.WETH.address, tokens.WBTC.address, wei("500")),
           "BTP: invalid exchange"
+        );
+      });
+
+      it("should be called only by an admin", async () => {
+        const exchange = (
+          await traderPool.getExchangeAmount(
+            tokens.WETH.address,
+            tokens.WBTC.address,
+            wei("500"),
+            [],
+            ExchangeType.FROM_EXACT
+          )
+        )[0];
+        await coreProperties.addWhitelistTokens([tokens.WBTC.address]);
+
+        await truffleAssert.reverts(
+          traderPool.exchange(
+            tokens.WETH.address,
+            tokens.WBTC.address,
+            wei("500"),
+            exchange,
+            [],
+            ExchangeType.FROM_EXACT,
+            { from: SECOND }
+          ),
+          "TP: not an admin"
         );
       });
     });
@@ -861,7 +895,7 @@ describe("BasicTraderPool", () => {
         await invest(wei("1000"), OWNER);
       });
 
-      it("should exchange in proposal", async () => {
+      it("should exchange from exact in proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
         await createProposal(tokens.MANA.address, wei("500"), [time.plus(100000), wei("10000"), wei("2")], 0);
 
@@ -890,7 +924,7 @@ describe("BasicTraderPool", () => {
         );
       });
 
-      it("should exchange from proposal", async () => {
+      it("should exchange from exact from proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
         await createProposal(
           tokens.MANA.address,
@@ -900,6 +934,61 @@ describe("BasicTraderPool", () => {
         );
 
         await exchangeFromExactProposal(1, tokens.MANA.address, wei("400"));
+
+        let proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
+
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("500")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.equal(toBN(proposalInfo.balancePosition).toFixed(), "0");
+      });
+
+      it("should exchange to exact in proposal", async () => {
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(tokens.MANA.address, wei("500"), [time.plus(100000), wei("10000"), wei("2")], 0);
+
+        let proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
+
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("500")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.equal(toBN(proposalInfo.balancePosition).toFixed(), "0");
+
+        await exchangeToExactProposal(1, tokens.WETH.address, wei("250"));
+
+        proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
+
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          toBN(proposalInfo.balancePosition).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+      });
+
+      it("should exchange to exact from proposal", async () => {
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(
+          tokens.MANA.address,
+          wei("500"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          PRECISION.times(80)
+        );
+
+        await tokens.MANA.approve(uniswapV2Router.address, wei("1000000"));
+
+        await uniswapV2Router.setReserve(tokens.MANA.address, wei("1000000"));
+        await uniswapV2Router.setReserve(tokens.WETH.address, wei("1000000"));
+
+        await exchangeToExactProposal(1, tokens.MANA.address, wei("400"));
 
         let proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
 

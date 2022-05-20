@@ -27,7 +27,7 @@ library TraderPoolPrice {
         )
     {
         IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
-        address[] memory openPositions = ITraderPool(address(this)).positions();
+        address[] memory openPositions = ITraderPool(address(this)).openPositions();
         totalPriceInBase = currentBaseAmount = poolParameters.baseToken.normThisBalance();
 
         positionTokens = new address[](openPositions.length);

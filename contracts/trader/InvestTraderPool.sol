@@ -90,28 +90,17 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         }
     }
 
-    function exchangeFromExact(
+    function exchange(
         address from,
         address to,
-        uint256 amountIn,
-        uint256 minAmountOut,
-        address[] calldata optionalPath
-    ) public override onlyTraderAdmin {
+        uint256 amount,
+        uint256 amountBound,
+        address[] calldata optionalPath,
+        ExchangeType exType
+    ) public override {
         _setFirstExchangeTime();
 
-        super.exchangeFromExact(from, to, amountIn, minAmountOut, optionalPath);
-    }
-
-    function exchangeToExact(
-        address from,
-        address to,
-        uint256 amountOut,
-        uint256 maxAmountIn,
-        address[] calldata optionalPath
-    ) public override onlyTraderAdmin {
-        _setFirstExchangeTime();
-
-        super.exchangeToExact(from, to, amountOut, maxAmountIn, optionalPath);
+        super.exchange(from, to, amount, amountBound, optionalPath, exType);
     }
 
     function createProposal(

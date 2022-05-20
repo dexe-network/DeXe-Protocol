@@ -15,6 +15,7 @@ const PoolProposal = artifacts.require("TraderPoolInvestProposal");
 const PoolProposalLib = artifacts.require("TraderPoolInvestProposalView");
 const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
 const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
+const TraderPoolExchangeLib = artifacts.require("TraderPoolExchange");
 const TraderPoolPriceLib = artifacts.require("TraderPoolPrice");
 const TraderPoolViewLib = artifacts.require("TraderPoolView");
 
@@ -32,6 +33,11 @@ const SECONDS_IN_DAY = 86400;
 const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
 const PRECISION = toBN(10).pow(25);
 const DECIMAL = toBN(10).pow(18);
+
+const ExchangeType = {
+  FROM_EXACT: 0,
+  TO_EXACT: 1,
+};
 
 const ComissionPeriods = {
   PERIOD_1: 0,
@@ -134,10 +140,12 @@ describe("InvestTraderPool", () => {
     await TraderPoolViewLib.link(traderPoolLeverageLib);
 
     const traderPoolViewLib = await TraderPoolViewLib.new();
+    const traderPoolExchangeLib = await TraderPoolExchangeLib.new();
 
     await InvestTraderPool.link(traderPoolCommissionLib);
     await InvestTraderPool.link(traderPoolLeverageLib);
     await InvestTraderPool.link(traderPoolPriceLib);
+    await InvestTraderPool.link(traderPoolExchangeLib);
     await InvestTraderPool.link(traderPoolViewLib);
 
     const poolProposalLib = await PoolProposalLib.new();
@@ -228,13 +236,13 @@ describe("InvestTraderPool", () => {
   }
 
   async function exchangeFromExact(from, to, amount) {
-    const exchange = (await traderPool.getExchangeFromExactAmount(from, to, amount, []))[0];
-    await traderPool.exchangeFromExact(from, to, amount, exchange, []);
+    const exchange = (await traderPool.getExchangeAmount(from, to, amount, [], ExchangeType.FROM_EXACT))[0];
+    await traderPool.exchange(from, to, amount, exchange, [], ExchangeType.FROM_EXACT);
   }
 
   async function exchangeToExact(from, to, amount) {
-    const exchange = (await traderPool.getExchangeToExactAmount(from, to, amount, []))[0];
-    await traderPool.exchangeToExact(from, to, amount, exchange, []);
+    const exchange = (await traderPool.getExchangeAmount(from, to, amount, [], ExchangeType.TO_EXACT))[0];
+    await traderPool.exchange(from, to, amount, exchange, [], ExchangeType.TO_EXACT);
   }
 
   async function createProposal(value, limits) {

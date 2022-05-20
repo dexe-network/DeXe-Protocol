@@ -11,6 +11,7 @@ const GovPoolRegistry = artifacts.require("GovPoolRegistry");
 const TraderPoolMock = artifacts.require("TraderPoolMock");
 const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
 const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
+const TraderPoolExchangeLib = artifacts.require("TraderPoolExchange");
 const TraderPoolPriceLib = artifacts.require("TraderPoolPrice");
 const TraderPoolViewLib = artifacts.require("TraderPoolView");
 const InvestTraderPool = artifacts.require("InvestTraderPool");
@@ -97,15 +98,18 @@ describe("PoolFactory", () => {
     await TraderPoolViewLib.link(traderPoolLeverageLib);
 
     const traderPoolViewLib = await TraderPoolViewLib.new();
+    const traderPoolExchangeLib = await TraderPoolExchangeLib.new();
 
     await InvestTraderPool.link(traderPoolCommissionLib);
     await InvestTraderPool.link(traderPoolLeverageLib);
     await InvestTraderPool.link(traderPoolPriceLib);
+    await InvestTraderPool.link(traderPoolExchangeLib);
     await InvestTraderPool.link(traderPoolViewLib);
 
     await BasicTraderPool.link(traderPoolCommissionLib);
     await BasicTraderPool.link(traderPoolLeverageLib);
     await BasicTraderPool.link(traderPoolPriceLib);
+    await BasicTraderPool.link(traderPoolExchangeLib);
     await BasicTraderPool.link(traderPoolViewLib);
 
     const riskyPoolProposalLib = await RiskyPoolProposalLib.new();

@@ -14,6 +14,14 @@ import "../core/ICoreProperties.sol";
  * Proposals, Commissions horizon and simplified onchain PathFinder that protect the user funds
  */
 interface ITraderPool {
+    /// @notice The enum of exchange types
+    /// @param FROM_EXACT the type corresponding to the exchangeFromExact function
+    /// @param TO_EXACT the type corresponding to the exchangeToExact function
+    enum ExchangeType {
+        FROM_EXACT,
+        TO_EXACT
+    }
+
     /// @notice The struct that holds the parameters of this pool
     /// @param descriptionURL the IPFS URL of the description
     /// @param trader the address of trader of this pool
@@ -174,7 +182,7 @@ interface ITraderPool {
 
     /// @notice The function that returns the filtered open positions list (filtered against the blacklist)
     /// @return the array of open positions
-    function positions() external view returns (address[] memory);
+    function openPositions() external view returns (address[] memory);
 
     /// @notice The function that returns the information about the investors
     /// @param offset the starting index of the investors array
@@ -247,59 +255,35 @@ interface ITraderPool {
         uint256 minDexeCommissionOut
     ) external;
 
-    /// @notice The function to get the amount of to tokens received after the swap
-    /// @param from the token to exchange from
-    /// @param to the token to exchange to
-    /// @param amountIn the amount of from tokens to be exchanged
-    /// @param optionalPath optional path between from and to tokens used by the pathfinder
-    /// @return minAmountOut the amount of to tokens received after the swap
-    /// @return path the tokens path that will be used during the swap
-    function getExchangeFromExactAmount(
-        address from,
-        address to,
-        uint256 amountIn,
-        address[] calldata optionalPath
-    ) external view returns (uint256 minAmountOut, address[] memory path);
-
-    /// @notice The function to exchange exact amount of from tokens to the to tokens (aka swapExactTokensForTokens)
+    /// @notice The function to exchange tokens for tokens
     /// @param from the tokens to exchange from
     /// @param to the token to exchange to
-    /// @param amountIn the amount of from tokens to exchange (normalized)
-    /// @param minAmountOut the minimal amount of to tokens received after the swap
+    /// @param amount the amount of tokens to be exchanged (normalized). If fromExact, this should equal amountIn, else amountOut
+    /// @param amountBound this should be minAmountOut if fromExact, else maxAmountIn
     /// @param optionalPath the optional path between from and to tokens used by the pathfinder
-    function exchangeFromExact(
+    /// @param exType exchange type. Can be exchangeFromExact or exchangeToExact
+    function exchange(
         address from,
         address to,
-        uint256 amountIn,
-        uint256 minAmountOut,
-        address[] calldata optionalPath
+        uint256 amount,
+        uint256 amountBound,
+        address[] calldata optionalPath,
+        ExchangeType exType
     ) external;
 
-    /// @notice The function to get the amount of from tokens required for the swap
+    /// @notice The function to get token prices required for the slippage
     /// @param from the token to exchange from
     /// @param to the token to exchange to
-    /// @param amountOut the amount of to tokens to be received
+    /// @param amount the amount of tokens to be exchanged. If fromExact, this should be amountIn, else amountOut
     /// @param optionalPath optional path between from and to tokens used by the pathfinder
-    /// @return maxAmountIn the amount of from tokens required for the swap
+    /// @param exType exchange type. Can be exchangeFromExact or exchangeToExact
+    /// @return amount the minAmountOut if fromExact, else maxAmountIn
     /// @return path the tokens path that will be used during the swap
-    function getExchangeToExactAmount(
+    function getExchangeAmount(
         address from,
         address to,
-        uint256 amountOut,
-        address[] calldata optionalPath
-    ) external view returns (uint256 maxAmountIn, address[] memory path);
-
-    /// @notice The function to exchange from tokens to the exact amount of to tokens (aka swapTokensForExactTokens)
-    /// @param from the tokens to exchange from
-    /// @param to the token to exchange to
-    /// @param amountOut the amount of to tokens received after the swap (normalized)
-    /// @param maxAmountIn the maximal amount of from tokens needed for the swap
-    /// @param optionalPath the optional path between from and to tokens used by the pathfinder
-    function exchangeToExact(
-        address from,
-        address to,
-        uint256 amountOut,
-        uint256 maxAmountIn,
-        address[] calldata optionalPath
-    ) external;
+        uint256 amount,
+        address[] calldata optionalPath,
+        ExchangeType exType
+    ) external view returns (uint256, address[] memory);
 }

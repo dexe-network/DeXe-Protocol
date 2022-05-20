@@ -8,6 +8,7 @@ const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
 const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
 const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
 const TraderPoolPriceLib = artifacts.require("TraderPoolPrice");
+const TraderPoolExchangeLib = artifacts.require("TraderPoolExchange");
 const TraderPoolViewLib = artifacts.require("TraderPoolView");
 const InvestPoolProposalLib = artifacts.require("TraderPoolInvestProposalView");
 const RiskyPoolProposalLib = artifacts.require("TraderPoolRiskyProposalView");
@@ -28,11 +29,13 @@ async function linkPools(deployer) {
   await deployer.link(TraderPoolPriceLib, TraderPoolViewLib);
   await deployer.link(TraderPoolLeverageLib, TraderPoolViewLib);
 
+  await deployer.deploy(TraderPoolExchangeLib);
   await deployer.deploy(TraderPoolViewLib);
 
   await deployer.link(TraderPoolPriceLib, BasicTraderPool, InvestTraderPool);
   await deployer.link(TraderPoolCommissionLib, BasicTraderPool, InvestTraderPool);
   await deployer.link(TraderPoolLeverageLib, BasicTraderPool, InvestTraderPool);
+  await deployer.link(TraderPoolExchangeLib, BasicTraderPool, InvestTraderPool);
   await deployer.link(TraderPoolViewLib, BasicTraderPool, InvestTraderPool);
 }
 

@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../../interfaces/trader/ITraderPool.sol";
 import "../../interfaces/core/IPriceFeed.sol";
-import "../../interfaces/core/ICoreProperties.sol";
 
 import "../../trader/TraderPool.sol";
 
@@ -129,7 +128,7 @@ library TraderPoolView {
     {
         ERC20 baseToken = ERC20(poolParameters.baseToken);
         IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
-        address[] memory openPositions = ITraderPool(address(this)).positions();
+        address[] memory openPositions = ITraderPool(address(this)).openPositions();
 
         uint256 totalSupply = IERC20(address(this)).totalSupply();
 
@@ -168,32 +167,6 @@ library TraderPoolView {
                 commissions = _getTraderAndPlatformCommissions(poolParameters, baseCommission);
             }
         }
-    }
-
-    function getExchangeAmount(
-        ITraderPool.PoolParameters storage poolParameters,
-        EnumerableSet.AddressSet storage openPositions,
-        address from,
-        address to,
-        uint256 amount,
-        address[] calldata optionalPath,
-        bool fromExact
-    ) external view returns (uint256, address[] memory) {
-        IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
-        ICoreProperties coreProperties = ITraderPool(address(this)).coreProperties();
-
-        if (coreProperties.isBlacklistedToken(from) || coreProperties.isBlacklistedToken(to)) {
-            return (0, new address[](0));
-        }
-
-        if (from == to || (from != poolParameters.baseToken && !openPositions.contains(from))) {
-            return (0, new address[](0));
-        }
-
-        return
-            fromExact
-                ? priceFeed.getNormalizedExtendedPriceOut(from, to, amount, optionalPath)
-                : priceFeed.getNormalizedExtendedPriceIn(from, to, amount, optionalPath);
     }
 
     function getLeverageInfo(ITraderPool.PoolParameters storage poolParameters)
@@ -270,7 +243,7 @@ library TraderPoolView {
         poolInfo.name = ERC20(address(this)).name();
 
         poolInfo.parameters = poolParameters;
-        poolInfo.openPositions = ITraderPool(address(this)).positions();
+        poolInfo.openPositions = ITraderPool(address(this)).openPositions();
 
         poolInfo.baseAndPositionBalances = new uint256[](poolInfo.openPositions.length + 1);
         poolInfo.baseAndPositionBalances[0] = poolInfo.parameters.baseToken.normThisBalance();
