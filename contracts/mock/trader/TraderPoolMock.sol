@@ -16,7 +16,7 @@ contract TraderPoolMock is TraderPool {
     }
 
     function getMaxTraderLeverage() public view returns (uint256 maxTraderLeverage) {
-        (, maxTraderLeverage) = _poolParameters.getMaxTraderLeverage(_openPositions);
+        (, maxTraderLeverage) = _poolParameters.getMaxTraderLeverage();
     }
 
     function proposalPoolAddress() external pure override returns (address) {
@@ -25,9 +25,5 @@ contract TraderPoolMock is TraderPool {
 
     function totalEmission() public view override returns (uint256) {
         return totalSupply();
-    }
-
-    function openPositions() external view returns (address[] memory) {
-        return _openPositions.values();
     }
 }

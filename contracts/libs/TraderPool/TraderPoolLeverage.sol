@@ -16,15 +16,14 @@ library TraderPoolLeverage {
     using TraderPoolPrice for ITraderPool.PoolParameters;
 
     function _getNormalizedLeveragePoolPriceInUSD(
-        ITraderPool.PoolParameters storage poolParameters,
-        EnumerableSet.AddressSet storage openPositions
+        ITraderPool.PoolParameters storage poolParameters
     ) internal view returns (uint256 totalInUSD, uint256 traderInUSD) {
         address trader = poolParameters.trader;
         address proposalPool = ITraderPool(address(this)).proposalPoolAddress();
         uint256 totalEmission = ITraderPool(address(this)).totalEmission();
         uint256 traderBalance = IERC20(address(this)).balanceOf(trader);
 
-        (, totalInUSD) = poolParameters.getNormalizedPoolPriceAndUSD(openPositions);
+        (, totalInUSD) = poolParameters.getNormalizedPoolPriceAndUSD();
 
         if (proposalPool != address(0)) {
             totalInUSD += ITraderPoolProposal(proposalPool).getInvestedBaseInUSD();
@@ -36,16 +35,14 @@ library TraderPoolLeverage {
         }
     }
 
-    function getMaxTraderLeverage(
-        ITraderPool.PoolParameters storage poolParameters,
-        EnumerableSet.AddressSet storage openPositions
-    ) public view returns (uint256 totalTokensUSD, uint256 maxTraderLeverageUSDTokens) {
+    function getMaxTraderLeverage(ITraderPool.PoolParameters storage poolParameters)
+        public
+        view
+        returns (uint256 totalTokensUSD, uint256 maxTraderLeverageUSDTokens)
+    {
         uint256 traderUSDTokens;
 
-        (totalTokensUSD, traderUSDTokens) = _getNormalizedLeveragePoolPriceInUSD(
-            poolParameters,
-            openPositions
-        );
+        (totalTokensUSD, traderUSDTokens) = _getNormalizedLeveragePoolPriceInUSD(poolParameters);
         (uint256 threshold, uint256 slope) = ITraderPool(address(this))
             .coreProperties()
             .getTraderLeverageParams();
@@ -64,7 +61,6 @@ library TraderPoolLeverage {
 
     function checkLeverage(
         ITraderPool.PoolParameters storage poolParameters,
-        EnumerableSet.AddressSet storage openPositions,
         uint256 amountInBaseToInvest
     ) external view {
         if (msg.sender == poolParameters.trader) {
@@ -72,8 +68,7 @@ library TraderPoolLeverage {
         }
 
         (uint256 totalPriceInUSD, uint256 maxTraderVolumeInUSD) = getMaxTraderLeverage(
-            poolParameters,
-            openPositions
+            poolParameters
         );
         (uint256 addInUSD, ) = ITraderPool(address(this)).priceFeed().getNormalizedPriceOutUSD(
             poolParameters.baseToken,

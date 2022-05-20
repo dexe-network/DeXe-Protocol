@@ -383,13 +383,76 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         }
     }
 
-    function _getExchangeAmount(
+    function exchange(
+        uint256 proposalId,
+        address from,
+        uint256 amount,
+        uint256 amountBound,
+        address[] calldata optionalPath,
+        ExchangeType exType
+    ) external override onlyTraderAdmin {
+        require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
+
+        ProposalInfo storage info = _proposalInfos[proposalId];
+
+        address baseToken = _parentTraderPoolInfo.baseToken;
+        address positionToken = info.token;
+        address to;
+
+        require(from == baseToken || from == positionToken, "TPRP: invalid from token");
+
+        if (from == baseToken) {
+            to = positionToken;
+        } else {
+            to = baseToken;
+        }
+
+        uint256 amountGot;
+
+        if (exType == ITraderPoolRiskyProposal.ExchangeType.FROM_EXACT) {
+            if (from == baseToken) {
+                require(amount <= info.balanceBase, "TPRP: wrong base amount");
+            } else {
+                require(amount <= info.balancePosition, "TPRP: wrong position amount");
+            }
+
+            amountGot = priceFeed.normExchangeFromExact(
+                from,
+                to,
+                amount,
+                optionalPath,
+                amountBound
+            );
+        } else {
+            if (from == baseToken) {
+                require(amountBound <= info.balanceBase, "TPRP: wrong base amount");
+            } else {
+                require(amountBound <= info.balancePosition, "TPRP: wrong position amount");
+            }
+
+            amountGot = priceFeed.normExchangeToExact(from, to, amount, optionalPath, amountBound);
+
+            (amount, amountGot) = (amountGot, amount);
+        }
+
+        if (from == baseToken) {
+            info.balanceBase -= amount;
+            info.balancePosition += amountGot;
+        } else {
+            info.balanceBase += amountGot;
+            info.balancePosition -= amount;
+        }
+
+        emit ProposalExchanged(proposalId, from, to, amount, amountGot);
+    }
+
+    function getExchangeAmount(
         uint256 proposalId,
         address from,
         uint256 amount,
         address[] calldata optionalPath,
-        bool fromExact
-    ) internal view returns (uint256, address[] memory) {
+        ExchangeType exType
+    ) external view override returns (uint256, address[] memory) {
         return
             _parentTraderPoolInfo.getExchangeAmount(
                 _proposalInfos[proposalId].token,
@@ -397,130 +460,8 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
                 from,
                 amount,
                 optionalPath,
-                fromExact
+                exType
             );
-    }
-
-    function getExchangeFromExactAmount(
-        uint256 proposalId,
-        address from,
-        uint256 amountIn,
-        address[] calldata optionalPath
-    ) external view override returns (uint256 minAmountOut, address[] memory path) {
-        return _getExchangeAmount(proposalId, from, amountIn, optionalPath, true);
-    }
-
-    function exchangeFromExact(
-        uint256 proposalId,
-        address from,
-        uint256 amountIn,
-        uint256 minAmountOut,
-        address[] calldata optionalPath
-    ) external override onlyTraderAdmin {
-        require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
-
-        ProposalInfo storage info = _proposalInfos[proposalId];
-        address baseToken = _parentTraderPoolInfo.baseToken;
-        address positionToken = info.token;
-
-        require(from == baseToken || from == positionToken, "TPRP: invalid from token");
-
-        uint256 amountOut;
-
-        if (from == baseToken) {
-            require(amountIn <= info.balanceBase, "TPRP: wrong base amount");
-
-            amountOut = priceFeed.normExchangeFromExact(
-                baseToken,
-                positionToken,
-                amountIn,
-                optionalPath,
-                minAmountOut
-            );
-            info.balancePosition += amountOut;
-            info.balanceBase -= amountIn;
-        } else {
-            require(amountIn <= info.balancePosition, "TPRP: wrong position amount");
-
-            amountOut = priceFeed.normExchangeFromExact(
-                positionToken,
-                baseToken,
-                amountIn,
-                optionalPath,
-                minAmountOut
-            );
-            info.balanceBase += amountOut;
-            info.balancePosition -= amountIn;
-        }
-
-        emit ProposalExchanged(
-            proposalId,
-            from,
-            from == baseToken ? positionToken : baseToken,
-            amountIn,
-            amountOut
-        );
-    }
-
-    function getExchangeToExactAmount(
-        uint256 proposalId,
-        address from,
-        uint256 amountOut,
-        address[] calldata optionalPath
-    ) external view override returns (uint256 maxAmountIn, address[] memory path) {
-        return _getExchangeAmount(proposalId, from, amountOut, optionalPath, true);
-    }
-
-    function exchangeToExact(
-        uint256 proposalId,
-        address from,
-        uint256 amountOut,
-        uint256 maxAmountIn,
-        address[] calldata optionalPath
-    ) external override onlyTraderAdmin {
-        require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
-
-        ProposalInfo storage info = _proposalInfos[proposalId];
-        address baseToken = _parentTraderPoolInfo.baseToken;
-        address positionToken = info.token;
-
-        require(from == baseToken || from == positionToken, "TPRP: invalid from token");
-
-        uint256 amountIn;
-
-        if (from == baseToken) {
-            require(maxAmountIn <= info.balanceBase, "TPRP: wrong base amount");
-
-            amountIn = priceFeed.normExchangeToExact(
-                baseToken,
-                positionToken,
-                amountOut,
-                optionalPath,
-                maxAmountIn
-            );
-            info.balanceBase -= amountIn;
-            info.balancePosition += amountOut;
-        } else {
-            require(maxAmountIn <= info.balancePosition, "TPRP: wrong position amount");
-
-            amountIn = priceFeed.normExchangeToExact(
-                positionToken,
-                baseToken,
-                amountOut,
-                optionalPath,
-                maxAmountIn
-            );
-            info.balancePosition -= amountIn;
-            info.balanceBase += amountOut;
-        }
-
-        emit ProposalExchanged(
-            proposalId,
-            from,
-            from == baseToken ? positionToken : baseToken,
-            amountIn,
-            amountOut
-        );
     }
 
     function _baseInProposal(uint256 proposalId) internal view override returns (uint256) {

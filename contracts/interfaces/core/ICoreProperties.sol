@@ -56,6 +56,24 @@ interface ICoreProperties {
     /// @param _coreParameters the parameters
     function setCoreParameters(CoreParameters calldata _coreParameters) external;
 
+    /// @notice This function adds new tokens that will be made available for the BaseTraderPool trading
+    /// @param tokens the array of tokens to be whitelisted
+    function addWhitelistTokens(address[] calldata tokens) external;
+
+    /// @notice This function removes tokens from the whitelist, disabling BasicTraderPool trading of these tokens
+    /// @param tokens basetokens to be removed
+    function removeWhitelistTokens(address[] calldata tokens) external;
+
+    /// @notice This function adds tokens to the blacklist, automatically updating pools positions and disabling
+    /// all of the pools of trading these tokens. DAO might permanently ban malicious tokens this way
+    /// @param tokens the tokens to be added to the blacklist
+    function addBlacklistTokens(address[] calldata tokens) external;
+
+    /// @notice The function that removes tokens from the blacklist, automatically updating pools positions
+    /// and enabling trading of these tokens
+    /// @param tokens the tokens to be removed from the blacklist
+    function removeBlacklistTokens(address[] calldata tokens) external;
+
     /// @notice The function to set the maximum pool investors
     /// @param count new maximum pool investors
     function setMaximumPoolInvestors(uint256 count) external;
@@ -106,6 +124,50 @@ interface ICoreProperties {
         uint256 maxInsurancePoolShare,
         uint256 minInsuranceDeposit
     ) external;
+
+    /// @notice The function that returns the total number of whitelisted tokens
+    /// @return the number of whitelisted tokens
+    function totalWhitelistTokens() external view returns (uint256);
+
+    /// @notice The function that returns the total number of blacklisted tokens
+    /// @return the number of blacklisted tokens
+    function totalBlacklistTokens() external view returns (uint256);
+
+    /// @notice The paginated function to get addresses of whitelisted tokens
+    /// @param offset the starting index of the tokens array
+    /// @param limit the length of the array to observe
+    /// @return tokens requested whitelist array
+    function getWhitelistTokens(uint256 offset, uint256 limit)
+        external
+        view
+        returns (address[] memory tokens);
+
+    /// @notice The paginated function to get addresses of blacklisted tokens
+    /// @param offset the starting index of the tokens array
+    /// @param limit the length of the array to observe
+    /// @return tokens requested blacklist array
+    function getBlacklistTokens(uint256 offset, uint256 limit)
+        external
+        view
+        returns (address[] memory tokens);
+
+    /// @notice This function checks if the provided token can be opened in the BasicTraderPool
+    /// @param token the token to be checked
+    /// @return true if the token can be traded as the position, false otherwise
+    function isWhitelistedToken(address token) external view returns (bool);
+
+    /// @notice This function checks if the provided token is blacklisted
+    /// @param token the token to be checked
+    /// @return true if the token is blacklisted, false otherwise
+    function isBlacklistedToken(address token) external view returns (bool);
+
+    /// @notice The helper function that filters the provided positions tokens according to the blacklist
+    /// @param positions the addresses of tokens
+    /// @return filteredPositions the array of tokens without the ones in the blacklist
+    function getFilteredPositions(address[] memory positions)
+        external
+        view
+        returns (address[] memory filteredPositions);
 
     /// @notice The function to fetch the maximum pool investors
     /// @return maximum pool investors

@@ -13,6 +13,7 @@ const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
 const TraderPoolMock = artifacts.require("TraderPoolMock");
 const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
 const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
+const TraderPoolExchangeLib = artifacts.require("TraderPoolExchange");
 const TraderPoolPriceLib = artifacts.require("TraderPoolPrice");
 const TraderPoolViewLib = artifacts.require("TraderPoolView");
 
@@ -29,6 +30,11 @@ const SECONDS_IN_DAY = 86400;
 const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
 const PRECISION = toBN(10).pow(25);
 const DECIMAL = toBN(10).pow(18);
+
+const ExchangeType = {
+  FROM_EXACT: 0,
+  TO_EXACT: 1,
+};
 
 const ComissionPeriods = {
   PERIOD_1: 0,
@@ -95,7 +101,7 @@ describe("TraderPool", () => {
 
       await tokens[tokenNames[i]].mint(OWNER, tokensToMint.times(decimalWei));
 
-      await priceFeed.addSupportedBaseTokens([tokens[tokenNames[i]].address]);
+      await coreProperties.addWhitelistTokens([tokens[tokenNames[i]].address]);
 
       await tokens[tokenNames[i]].approve(uniswapV2Router.address, reserveTokens.times(decimalWei));
       await uniswapV2Router.setReserve(tokens[tokenNames[i]].address, reserveTokens.times(decimalWei));
@@ -127,10 +133,12 @@ describe("TraderPool", () => {
     await TraderPoolViewLib.link(traderPoolLeverageLib);
 
     const traderPoolViewLib = await TraderPoolViewLib.new();
+    const traderPoolExchangeLib = await TraderPoolExchangeLib.new();
 
     await TraderPoolMock.link(traderPoolCommissionLib);
     await TraderPoolMock.link(traderPoolLeverageLib);
     await TraderPoolMock.link(traderPoolPriceLib);
+    await TraderPoolMock.link(traderPoolExchangeLib);
     await TraderPoolMock.link(traderPoolViewLib);
   });
 
@@ -216,13 +224,13 @@ describe("TraderPool", () => {
   }
 
   async function exchangeFromExact(from, to, amount) {
-    const exchange = (await traderPool.getExchangeFromExactAmount(from, to, amount, []))[0];
-    await traderPool.exchangeFromExact(from, to, amount, exchange, []);
+    const exchange = (await traderPool.getExchangeAmount(from, to, amount, [], ExchangeType.FROM_EXACT))[0];
+    await traderPool.exchange(from, to, amount, exchange, [], ExchangeType.FROM_EXACT);
   }
 
   async function exchangeToExact(from, to, amount) {
-    const exchange = (await traderPool.getExchangeToExactAmount(from, to, amount, []))[0];
-    await traderPool.exchangeToExact(from, to, amount, exchange, []);
+    const exchange = (await traderPool.getExchangeAmount(from, to, amount, [], ExchangeType.TO_EXACT))[0];
+    await traderPool.exchange(from, to, amount, exchange, [], ExchangeType.TO_EXACT);
   }
 
   describe("First TraderPool", () => {
@@ -303,14 +311,27 @@ describe("TraderPool", () => {
         await uniswapV2Router.setReserve(tokens.WBTC.address, wei("500000", 8));
 
         const exchange = (
-          await traderPool.getExchangeFromExactAmount(tokens.WETH.address, tokens.WBTC.address, wei("500"), [])
-        ).minAmountOut;
+          await traderPool.getExchangeAmount(
+            tokens.WETH.address,
+            tokens.WBTC.address,
+            wei("500"),
+            [],
+            ExchangeType.FROM_EXACT
+          )
+        )[0];
 
         assert.equal(exchange.toFixed(), wei("250"));
 
         assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("1000"));
 
-        await traderPool.exchangeFromExact(tokens.WETH.address, tokens.WBTC.address, wei("500"), exchange, []);
+        await traderPool.exchange(
+          tokens.WETH.address,
+          tokens.WBTC.address,
+          wei("500"),
+          exchange,
+          [],
+          ExchangeType.FROM_EXACT
+        );
 
         assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("500"));
         assert.equal((await tokens.WBTC.balanceOf(traderPool.address)).toFixed(), wei("250", 8));
@@ -320,17 +341,62 @@ describe("TraderPool", () => {
         await uniswapV2Router.setReserve(tokens.WBTC.address, wei("500000", 8));
 
         const exchange = (
-          await traderPool.getExchangeToExactAmount(tokens.WETH.address, tokens.WBTC.address, wei("250"), [])
-        ).maxAmountIn;
+          await traderPool.getExchangeAmount(
+            tokens.WETH.address,
+            tokens.WBTC.address,
+            wei("250"),
+            [],
+            ExchangeType.TO_EXACT
+          )
+        )[0];
 
         assert.equal(exchange.toFixed(), wei("500"));
 
         assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("1000"));
 
-        await traderPool.exchangeToExact(tokens.WETH.address, tokens.WBTC.address, wei("250"), exchange, []);
+        await traderPool.exchange(
+          tokens.WETH.address,
+          tokens.WBTC.address,
+          wei("250"),
+          exchange,
+          [],
+          ExchangeType.TO_EXACT
+        );
 
         assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("500"));
         assert.equal((await tokens.WBTC.balanceOf(traderPool.address)).toFixed(), wei("250", 8));
+      });
+
+      it("should not exchange blacklisted tokens", async () => {
+        await coreProperties.addBlacklistTokens([tokens.WBTC.address]);
+
+        const exchange = (
+          await traderPool.getExchangeAmount(
+            tokens.WETH.address,
+            tokens.WBTC.address,
+            wei("500"),
+            [],
+            ExchangeType.TO_EXACT
+          )
+        )[0];
+
+        assert.equal(exchange.toFixed(), "0");
+
+        await truffleAssert.reverts(
+          exchangeToExact(tokens.WETH.address, tokens.WBTC.address, wei("500")),
+          "TP: blacklisted token"
+        );
+      });
+
+      it("should not exchange these tokens", async () => {
+        await truffleAssert.reverts(
+          exchangeFromExact(tokens.WETH.address, tokens.WETH.address, wei("500")),
+          "TP: ambiguous exchange"
+        );
+        await truffleAssert.reverts(
+          exchangeToExact(tokens.WBTC.address, tokens.WETH.address, wei("500")),
+          "TP: invalid exchange address"
+        );
       });
     });
 
@@ -400,6 +466,30 @@ describe("TraderPool", () => {
           (await tokens.MANA.balanceOf(traderPool.address)).toFixed(),
           toBN(wei("100")).plus(price).toFixed()
         );
+      });
+
+      it("should open a position, then position gets blacklisted", async () => {
+        await tokens.MANA.approve(uniswapV2Router.address, wei("1000000"));
+
+        await uniswapV2Router.setReserve(tokens.MANA.address, wei("1000000"));
+        await uniswapV2Router.setReserve(tokens.WETH.address, wei("1000000"));
+
+        let info = await traderPool.getPoolInfo();
+
+        assert.deepEqual(info.openPositions, [tokens.MANA.address]);
+        assert.equal(toBN(info.totalPoolBase).toFixed(), wei("1000"));
+        assert.equal(toBN(info.totalPoolUSD).toFixed(), wei("1000"));
+
+        await coreProperties.addBlacklistTokens([tokens.MANA.address]);
+
+        info = await traderPool.getPoolInfo();
+
+        assert.deepEqual(info.openPositions, []);
+        assert.equal(toBN(info.totalPoolBase).toFixed(), wei("900"));
+        assert.equal(toBN(info.totalPoolUSD).toFixed(), wei("900"));
+
+        assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("900"));
+        assert.equal((await tokens.MANA.balanceOf(traderPool.address)).toFixed(), wei("100"));
       });
 
       it("should close a position", async () => {
@@ -492,6 +582,25 @@ describe("TraderPool", () => {
         );
 
         await truffleAssert.reverts(reinvestCommission(0, 5), "TP: no commission available");
+      });
+
+      it("should allow commission calculation if the positions are blacklisted", async () => {
+        await exchangeFromExact(tokens.WETH.address, tokens.MANA.address, wei("1000"));
+
+        await tokens.MANA.approve(uniswapV2Router.address, wei("2000000"));
+
+        await uniswapV2Router.setReserve(tokens.MANA.address, wei("500000"));
+        await uniswapV2Router.setReserve(tokens.WETH.address, wei("1000000"));
+
+        await exchangeFromExact(tokens.MANA.address, tokens.WETH.address, wei("900"));
+
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_MONTH);
+
+        await truffleAssert.reverts(reinvestCommission(0, 5), "TP: positions are open");
+
+        await coreProperties.addBlacklistTokens([tokens.MANA.address]);
+
+        await truffleAssert.passes(reinvestCommission(0, 5), "Calculates the commission");
       });
 
       it("there shouldn't be any commission 1", async () => {
@@ -629,6 +738,29 @@ describe("TraderPool", () => {
           toBN(wei("0.000001")).toNumber()
         );
         assert.equal((await tokens.WETH.balanceOf(SECOND)).toFixed(), wei("1250"));
+        assert.equal((await traderPool.investorsInfo(SECOND)).investedBase.toFixed(), "0");
+      });
+
+      it("should divest investor with blacklist commission", async () => {
+        await exchangeFromExact(tokens.WETH.address, tokens.MANA.address, wei("1000"));
+
+        await uniswapV2Router.setReserve(tokens.MANA.address, wei("500000"));
+        await uniswapV2Router.setReserve(tokens.WETH.address, wei("1000000"));
+
+        const balance = await traderPool.balanceOf(OWNER);
+
+        await exchangeToExact(tokens.MANA.address, tokens.WETH.address, wei("1500"));
+
+        await coreProperties.addBlacklistTokens([tokens.MANA.address]);
+
+        await divest(wei("1000"), SECOND);
+
+        assert.closeTo(
+          (await traderPool.balanceOf(OWNER)).toNumber(),
+          balance.plus(wei("70")).toNumber(),
+          toBN(wei("0.000001")).toNumber()
+        );
+        assert.equal((await tokens.WETH.balanceOf(SECOND)).toFixed(), wei("1125"));
         assert.equal((await traderPool.investorsInfo(SECOND)).investedBase.toFixed(), "0");
       });
 

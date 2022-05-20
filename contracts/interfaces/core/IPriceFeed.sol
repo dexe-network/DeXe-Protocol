@@ -25,14 +25,6 @@ interface IPriceFeed {
     /// @param pathTokens the array of tokens to be removed from the pathfinder
     function removePathTokens(address[] calldata pathTokens) external;
 
-    /// @notice This function adds new tokens that will be made available for the TraderPool basetokens usage
-    /// @param baseTokens the array of tokens to be whitelisted
-    function addSupportedBaseTokens(address[] calldata baseTokens) external;
-
-    /// @notice This function removes tokens from the basetokens list, it does nothing with already created pools
-    /// @param baseTokens basetokens to be removed
-    function removeSupportedBaseTokens(address[] calldata baseTokens) external;
-
     /// @notice This function tries to find the optimal exchange rate (the price) between "inToken" and "outToken" using
     /// custom pathfinder, saved paths and optional specified path. The optimality is reached when the amount of
     /// outTokens is maximal
@@ -227,22 +219,9 @@ interface IPriceFeed {
         uint256 maxAmountIn
     ) external returns (uint256);
 
-    /// @notice The function that returns the total number of supported base tokens
-    /// @return the number of supported base tokens
-    function totalBaseTokens() external view returns (uint256);
-
     /// @notice The function that returns the total number of path tokens (tokens used in the pathfinder)
     /// @return the number of path tokens
     function totalPathTokens() external view returns (uint256);
-
-    /// @notice The paginated function to get addresses of supported base tokens
-    /// @param offset the starting index of the tokens array
-    /// @param limit the length of the array to observe
-    /// @return baseTokens requested base tokens array
-    function getBaseTokens(uint256 offset, uint256 limit)
-        external
-        view
-        returns (address[] memory baseTokens);
 
     /// @notice The function to get the list of path tokens
     /// @return the list of path tokens
@@ -258,11 +237,6 @@ interface IPriceFeed {
         address from,
         address to
     ) external view returns (address[] memory);
-
-    /// @notice This function checks if the provided token can be used as a base token
-    /// @param token the token to be checked
-    /// @return true if the token can be used as a base token, false otherwise
-    function isSupportedBaseToken(address token) external view returns (bool);
 
     /// @notice This function checks if the provided token is used by the pathfinder
     /// @param token the token to be checked

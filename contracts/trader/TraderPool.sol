@@ -19,6 +19,7 @@ import "../libs/PriceFeed/PriceFeedLocal.sol";
 import "../libs/TraderPool/TraderPoolPrice.sol";
 import "../libs/TraderPool/TraderPoolLeverage.sol";
 import "../libs/TraderPool/TraderPoolCommission.sol";
+import "../libs/TraderPool/TraderPoolExchange.sol";
 import "../libs/TraderPool/TraderPoolView.sol";
 import "../libs/TokenBalance.sol";
 import "../libs/DecimalsConverter.sol";
@@ -35,6 +36,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     using TraderPoolPrice for address;
     using TraderPoolLeverage for PoolParameters;
     using TraderPoolCommission for PoolParameters;
+    using TraderPoolExchange for PoolParameters;
     using TraderPoolView for PoolParameters;
     using MathHelper for uint256;
     using PriceFeedLocal for IPriceFeed;
@@ -50,14 +52,12 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     EnumerableSet.AddressSet internal _privateInvestors;
     EnumerableSet.AddressSet internal _investors;
-    EnumerableSet.AddressSet internal _openPositions;
+    EnumerableSet.AddressSet internal _positions;
 
     mapping(address => mapping(uint256 => uint256)) internal _investsInBlocks; // user => block => LP amount
 
     mapping(address => InvestorInfo) public investorsInfo;
 
-    event Exchanged(address fromToken, address toToken, uint256 fromVolume, uint256 toVolume);
-    event PositionClosed(address position);
     event InvestorAdded(address investor);
     event InvestorRemoved(address investor);
     event Invested(address investor, uint256 amount, uint256 toMintLP);
@@ -86,25 +86,11 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         require(isTrader(msg.sender), "TP: not a trader");
     }
 
-    modifier checkUserBalance(uint256 amountLP) {
-        _checkUserBalance(amountLP);
-        _;
-    }
-
     function _checkUserBalance(uint256 amountLP) internal view {
         require(
             amountLP <= balanceOf(msg.sender) - _investsInBlocks[msg.sender][block.number],
             "TP: wrong amount"
         );
-    }
-
-    modifier checkThisBalance(uint256 amount, address token) {
-        _checkThisBalance(amount, token);
-        _;
-    }
-
-    function _checkThisBalance(uint256 amount, address token) internal view {
-        require(amount <= token.normThisBalance(), "TP: invalid exchange amount");
     }
 
     function isPrivateInvestor(address who) public view override returns (bool) {
@@ -199,17 +185,21 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     function totalEmission() public view virtual override returns (uint256);
 
+    function openPositions() public view returns (address[] memory) {
+        return coreProperties.getFilteredPositions(_positions.values());
+    }
+
     function getUsersInfo(uint256 offset, uint256 limit)
         external
         view
         override
         returns (UserInfo[] memory usersInfo)
     {
-        return _poolParameters.getUsersInfo(_openPositions, _investors, offset, limit);
+        return _poolParameters.getUsersInfo(_investors, offset, limit);
     }
 
     function getPoolInfo() external view override returns (PoolInfo memory poolInfo) {
-        return _poolParameters.getPoolInfo(_openPositions);
+        return _poolParameters.getPoolInfo();
     }
 
     function _transferBaseAndMintLP(
@@ -242,7 +232,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     }
 
     function getLeverageInfo() external view override returns (LeverageInfo memory leverageInfo) {
-        return _poolParameters.getLeverageInfo(_openPositions);
+        return _poolParameters.getLeverageInfo();
     }
 
     function getInvestTokens(uint256 amountInBaseToInvest)
@@ -251,7 +241,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         override
         returns (Receptions memory receptions)
     {
-        return _poolParameters.getInvestTokens(_openPositions, amountInBaseToInvest);
+        return _poolParameters.getInvestTokens(amountInBaseToInvest);
     }
 
     function _invest(
@@ -264,11 +254,11 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             ,
             address[] memory positionTokens,
             uint256[] memory positionPricesInBase
-        ) = _poolParameters.getNormalizedPoolPriceAndPositions(_openPositions);
+        ) = _poolParameters.getNormalizedPoolPriceAndPositions();
 
         address baseToken = _poolParameters.baseToken;
 
-        _poolParameters.checkLeverage(_openPositions, amountInBaseToInvest);
+        _poolParameters.checkLeverage(amountInBaseToInvest);
         uint256 toMintLP = _transferBaseAndMintLP(baseHolder, totalBase, amountInBaseToInvest);
 
         for (uint256 i = 0; i < positionTokens.length; i++) {
@@ -351,7 +341,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 limit,
         uint256 minDexeCommissionOut
     ) external virtual override onlyTraderAdmin {
-        require(_openPositions.length() == 0, "TP: positions are open");
+        require(openPositions().length == 0, "TP: positions are open");
 
         uint256 to = (offset + limit).min(_investors.length()).max(offset);
         uint256 totalSupply = totalSupply();
@@ -391,17 +381,18 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     function _divestPositions(uint256 amountLP, uint256[] calldata minPositionsOut)
         internal
-        checkUserBalance(amountLP)
         returns (uint256 investorBaseAmount)
     {
+        _checkUserBalance(amountLP);
+
+        address[] memory _openPositions = openPositions();
         address baseToken = _poolParameters.baseToken;
         uint256 totalSupply = totalSupply();
-        uint256 length = _openPositions.length();
 
         investorBaseAmount = baseToken.normThisBalance().ratio(amountLP, totalSupply);
 
-        for (uint256 i = 0; i < length; i++) {
-            address positionToken = _openPositions.at(i);
+        for (uint256 i = 0; i < _openPositions.length; i++) {
+            address positionToken = _openPositions[i];
 
             investorBaseAmount += priceFeed.normExchangeFromExact(
                 positionToken,
@@ -438,7 +429,9 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         return baseCommission;
     }
 
-    function _divestTrader(uint256 amountLP) internal checkUserBalance(amountLP) {
+    function _divestTrader(uint256 amountLP) internal {
+        _checkUserBalance(amountLP);
+
         IERC20 baseToken = IERC20(_poolParameters.baseToken);
         uint256 traderBaseAmount = address(baseToken).thisBalance().ratio(amountLP, totalSupply());
 
@@ -452,7 +445,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         override
         returns (Receptions memory receptions, Commissions memory commissions)
     {
-        return _poolParameters.getDivestAmountsAndCommissions(_openPositions, user, amountLP);
+        return _poolParameters.getDivestAmountsAndCommissions(user, amountLP);
     }
 
     function divest(
@@ -461,7 +454,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 minDexeCommissionOut
     ) public virtual override {
         bool senderTrader = isTrader(msg.sender);
-        require(!senderTrader || _openPositions.length() == 0, "TP: can't divest");
+        require(!senderTrader || openPositions().length == 0, "TP: can't divest");
 
         uint256 baseCommission;
 
@@ -474,106 +467,26 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         emit Divested(msg.sender, amountLP, baseCommission);
     }
 
-    function _exchange(
+    function exchange(
         address from,
         address to,
         uint256 amount,
         uint256 amountBound,
         address[] calldata optionalPath,
-        bool fromExact
-    ) internal {
-        require(from != to, "TP: ambiguous exchange");
-        require(
-            from == _poolParameters.baseToken || _openPositions.contains(from),
-            "TP: invalid exchange address"
-        );
-
-        priceFeed.checkAllowance(from);
-        priceFeed.checkAllowance(to);
-
-        if (to != _poolParameters.baseToken) {
-            _openPositions.add(to);
-        }
-
-        uint256 amountGot;
-
-        if (fromExact) {
-            amountGot = priceFeed.normExchangeFromExact(
-                from,
-                to,
-                amount,
-                optionalPath,
-                amountBound
-            );
-        } else {
-            amountGot = priceFeed.normExchangeToExact(from, to, amount, optionalPath, amountBound);
-
-            (amount, amountGot) = (amountGot, amount);
-        }
-
-        emit Exchanged(from, to, amount, amountGot);
-
-        if (from != _poolParameters.baseToken && from.thisBalance() == 0) {
-            _openPositions.remove(from);
-
-            emit PositionClosed(from);
-        }
+        ExchangeType exType
+    ) public virtual override onlyTraderAdmin {
+        _poolParameters.exchange(_positions, from, to, amount, amountBound, optionalPath, exType);
     }
 
-    function _getExchangeAmount(
+    function getExchangeAmount(
         address from,
         address to,
         uint256 amount,
         address[] calldata optionalPath,
-        bool fromExact
-    ) internal view returns (uint256, address[] memory) {
+        ExchangeType exType
+    ) external view override returns (uint256, address[] memory) {
         return
-            _poolParameters.getExchangeAmount(
-                _openPositions,
-                from,
-                to,
-                amount,
-                optionalPath,
-                fromExact
-            );
-    }
-
-    function getExchangeFromExactAmount(
-        address from,
-        address to,
-        uint256 amountIn,
-        address[] calldata optionalPath
-    ) external view override returns (uint256 minAmountOut, address[] memory path) {
-        return _getExchangeAmount(from, to, amountIn, optionalPath, true);
-    }
-
-    function exchangeFromExact(
-        address from,
-        address to,
-        uint256 amountIn,
-        uint256 minAmountOut,
-        address[] calldata optionalPath
-    ) public virtual override onlyTraderAdmin checkThisBalance(amountIn, from) {
-        _exchange(from, to, amountIn, minAmountOut, optionalPath, true);
-    }
-
-    function getExchangeToExactAmount(
-        address from,
-        address to,
-        uint256 amountOut,
-        address[] calldata optionalPath
-    ) external view override returns (uint256 maxAmountIn, address[] memory path) {
-        return _getExchangeAmount(from, to, amountOut, optionalPath, false);
-    }
-
-    function exchangeToExact(
-        address from,
-        address to,
-        uint256 amountOut,
-        uint256 maxAmountIn,
-        address[] calldata optionalPath
-    ) public virtual override onlyTraderAdmin checkThisBalance(maxAmountIn, from) {
-        _exchange(from, to, amountOut, maxAmountIn, optionalPath, false);
+            _poolParameters.getExchangeAmount(_positions, from, to, amount, optionalPath, exType);
     }
 
     function _updateFromData(address investor, uint256 lpAmount)

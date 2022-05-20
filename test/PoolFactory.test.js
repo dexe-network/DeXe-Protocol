@@ -11,6 +11,7 @@ const GovPoolRegistry = artifacts.require("GovPoolRegistry");
 const TraderPoolMock = artifacts.require("TraderPoolMock");
 const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
 const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
+const TraderPoolExchangeLib = artifacts.require("TraderPoolExchange");
 const TraderPoolPriceLib = artifacts.require("TraderPoolPrice");
 const TraderPoolViewLib = artifacts.require("TraderPoolView");
 const InvestTraderPool = artifacts.require("InvestTraderPool");
@@ -76,6 +77,7 @@ describe("PoolFactory", () => {
   let traderPoolRegistry;
   let govPoolRegistry;
   let poolFactory;
+  let coreProperties;
 
   let testCoin;
 
@@ -96,15 +98,18 @@ describe("PoolFactory", () => {
     await TraderPoolViewLib.link(traderPoolLeverageLib);
 
     const traderPoolViewLib = await TraderPoolViewLib.new();
+    const traderPoolExchangeLib = await TraderPoolExchangeLib.new();
 
     await InvestTraderPool.link(traderPoolCommissionLib);
     await InvestTraderPool.link(traderPoolLeverageLib);
     await InvestTraderPool.link(traderPoolPriceLib);
+    await InvestTraderPool.link(traderPoolExchangeLib);
     await InvestTraderPool.link(traderPoolViewLib);
 
     await BasicTraderPool.link(traderPoolCommissionLib);
     await BasicTraderPool.link(traderPoolLeverageLib);
     await BasicTraderPool.link(traderPoolPriceLib);
+    await BasicTraderPool.link(traderPoolExchangeLib);
     await BasicTraderPool.link(traderPoolViewLib);
 
     const riskyPoolProposalLib = await RiskyPoolProposalLib.new();
@@ -123,7 +128,7 @@ describe("PoolFactory", () => {
 
     const contractsRegistry = await ContractsRegistry.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
-    const _coreProperties = await CoreProperties.new(DEFAULT_CORE_PROPERTIES);
+    const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeed.new();
     const _traderPoolRegistry = await TraderPoolRegistry.new();
     const _govPoolRegistry = await GovPoolRegistry.new();
@@ -148,7 +153,7 @@ describe("PoolFactory", () => {
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
 
-    const coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
+    coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     traderPoolRegistry = await TraderPoolRegistry.at(await contractsRegistry.getTraderPoolRegistryContract());
     govPoolRegistry = await GovPoolRegistry.at(await contractsRegistry.getGovPoolRegistryContract());
     poolFactory = await PoolFactory.at(await contractsRegistry.getPoolFactoryContract());
@@ -184,24 +189,19 @@ describe("PoolFactory", () => {
     ];
 
     await traderPoolRegistry.setNewImplementations(poolNames, poolAddrs);
-    await priceFeed.addSupportedBaseTokens([testCoin.address]);
   });
 
   describe("deployBasicPool", async () => {
-    let POOL_PARAMETERS;
-
-    beforeEach("Pool parameters", async () => {
-      POOL_PARAMETERS = {
-        descriptionURL: "placeholder.com",
-        trader: OWNER,
-        privatePool: false,
-        totalLPEmission: 0,
-        baseToken: testCoin.address,
-        minimalInvestment: 0,
-        commissionPeriod: ComissionPeriods.PERIOD_1,
-        commissionPercentage: toBN(30).times(PRECISION).toFixed(),
-      };
-    });
+    let POOL_PARAMETERS = {
+      descriptionURL: "placeholder.com",
+      trader: OWNER,
+      privatePool: false,
+      totalLPEmission: 0,
+      baseToken: testCoin.address,
+      minimalInvestment: 0,
+      commissionPeriod: ComissionPeriods.PERIOD_1,
+      commissionPercentage: toBN(30).times(PRECISION).toFixed(),
+    };
 
     it("should deploy basic pool and check event", async () => {
       let tx = await poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS);
@@ -233,20 +233,16 @@ describe("PoolFactory", () => {
   });
 
   describe("deployInvestPool", async () => {
-    let POOL_PARAMETERS = {};
-
-    beforeEach("Pool parameters", async () => {
-      POOL_PARAMETERS = {
-        descriptionURL: "placeholder.com",
-        trader: OWNER,
-        privatePool: false,
-        totalLPEmission: 0,
-        baseToken: testCoin.address,
-        minimalInvestment: 0,
-        commissionPeriod: ComissionPeriods.PERIOD_1,
-        commissionPercentage: toBN(30).times(PRECISION).toFixed(),
-      };
-    });
+    let POOL_PARAMETERS = {
+      descriptionURL: "placeholder.com",
+      trader: OWNER,
+      privatePool: false,
+      totalLPEmission: 0,
+      baseToken: testCoin.address,
+      minimalInvestment: 0,
+      commissionPeriod: ComissionPeriods.PERIOD_1,
+      commissionPercentage: toBN(30).times(PRECISION).toFixed(),
+    };
 
     it("should deploy invest pool and check events", async () => {
       let tx = await poolFactory.deployInvestPool("Invest", "IP", POOL_PARAMETERS);
@@ -331,6 +327,26 @@ describe("PoolFactory", () => {
       await truffleAssert.reverts(
         poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
         "PoolFactory: Incorrect percentage"
+      );
+    });
+
+    it("should not deploy pool with blacklisted base token", async () => {
+      let POOL_PARAMETERS = {
+        descriptionURL: "placeholder.com",
+        trader: OWNER,
+        privatePool: false,
+        totalLPEmission: 0,
+        baseToken: testCoin.address,
+        minimalInvestment: 0,
+        commissionPeriod: ComissionPeriods.PERIOD_1,
+        commissionPercentage: toBN(30).times(PRECISION).toFixed(),
+      };
+
+      await coreProperties.addBlacklistTokens([testCoin.address]);
+
+      await truffleAssert.reverts(
+        poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
+        "PoolFactory: token is blacklisted"
       );
     });
   });

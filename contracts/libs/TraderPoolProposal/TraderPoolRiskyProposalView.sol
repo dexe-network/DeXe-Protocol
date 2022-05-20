@@ -250,7 +250,7 @@ library TraderPoolRiskyProposalView {
         address from,
         uint256 amount,
         address[] calldata optionalPath,
-        bool fromExact
+        ITraderPoolRiskyProposal.ExchangeType exType
     ) external view returns (uint256, address[] memory) {
         if (proposalId > TraderPoolRiskyProposal(address(this)).proposalsTotalNum()) {
             return (0, new address[](0));
@@ -272,7 +272,7 @@ library TraderPoolRiskyProposalView {
         IPriceFeed priceFeed = ITraderPoolRiskyProposal(address(this)).priceFeed();
 
         return
-            fromExact
+            exType == ITraderPoolRiskyProposal.ExchangeType.FROM_EXACT
                 ? priceFeed.getNormalizedExtendedPriceOut(from, to, amount, optionalPath)
                 : priceFeed.getNormalizedExtendedPriceIn(from, to, amount, optionalPath);
     }
