@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.9;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.4;
 
 contract ExecutorMock {
     uint8 public counter;

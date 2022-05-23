@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.9;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -34,9 +34,9 @@ contract ExecutorTransferMock is ERC721Holder, ERC1155Holder {
 
     function setTransferAmount(
         uint256 _amount20,
-        uint256[] memory _ids1155,
-        uint256[] memory _amounts1155,
-        uint256[] memory _ids721
+        uint256[] calldata _ids1155,
+        uint256[] calldata _amounts1155,
+        uint256[] calldata _ids721
     ) external {
         ids721 = _ids721;
         amount20 = _amount20;
@@ -58,20 +58,20 @@ contract ExecutorTransferMock is ERC721Holder, ERC1155Holder {
         }
 
         address _mock721Address = mock721Address;
-        uint256 _l721 = ids721.length;
-        for (uint256 _i; _i < _l721; _i++) {
-            IERC721(_mock721Address).safeTransferFrom(_govAddress, address(this), ids721[_i]);
+        uint256 length721 = ids721.length;
+        for (uint256 i; i < length721; i++) {
+            IERC721(_mock721Address).safeTransferFrom(_govAddress, address(this), ids721[i]);
         }
 
         if (amounts1155.length > 0) {
             address _mock1155Address = mock1155Address;
-            uint256 _l1155 = amounts1155.length;
-            for (uint256 _i; _i < _l1155; _i++) {
+            uint256 length1155 = amounts1155.length;
+            for (uint256 i; i < length1155; i++) {
                 IERC1155(_mock1155Address).safeTransferFrom(
                     _govAddress,
                     address(this),
-                    ids1155[_i],
-                    amounts1155[_i],
+                    ids1155[i],
+                    amounts1155[i],
                     ""
                 );
             }
