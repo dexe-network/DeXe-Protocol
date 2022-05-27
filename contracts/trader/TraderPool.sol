@@ -199,7 +199,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     }
 
     function getPoolInfo() external view override returns (PoolInfo memory poolInfo) {
-        return _poolParameters.getPoolInfo();
+        return _poolParameters.getPoolInfo(_positions);
     }
 
     function _transferBaseAndMintLP(

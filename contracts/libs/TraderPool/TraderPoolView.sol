@@ -234,11 +234,10 @@ library TraderPoolView {
         }
     }
 
-    function getPoolInfo(ITraderPool.PoolParameters storage poolParameters)
-        external
-        view
-        returns (ITraderPool.PoolInfo memory poolInfo)
-    {
+    function getPoolInfo(
+        ITraderPool.PoolParameters storage poolParameters,
+        EnumerableSet.AddressSet storage positions
+    ) external view returns (ITraderPool.PoolInfo memory poolInfo) {
         poolInfo.ticker = ERC20(address(this)).symbol();
         poolInfo.name = ERC20(address(this)).name();
 
@@ -252,6 +251,7 @@ library TraderPoolView {
             poolInfo.baseAndPositionBalances[i + 1] = poolInfo.openPositions[i].normThisBalance();
         }
 
+        poolInfo.totalBlacklistedPositions = positions.length() - poolInfo.openPositions.length;
         poolInfo.totalInvestors = ITraderPool(address(this)).totalInvestors();
 
         (poolInfo.totalPoolBase, poolInfo.totalPoolUSD) = poolParameters
@@ -261,5 +261,15 @@ library TraderPoolView {
         poolInfo.lpLockedInProposals =
             ITraderPool(address(this)).totalEmission() -
             poolInfo.lpSupply;
+
+        poolInfo.traderLPBalance = IERC20(address(this)).balanceOf(poolParameters.trader);
+        poolInfo.traderUSD = poolInfo.totalPoolUSD.ratio(
+            poolInfo.traderLPBalance,
+            poolInfo.lpSupply
+        );
+        poolInfo.traderBase = poolInfo.totalPoolBase.ratio(
+            poolInfo.traderLPBalance,
+            poolInfo.lpSupply
+        );
     }
 }
