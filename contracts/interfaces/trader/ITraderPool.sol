@@ -103,24 +103,33 @@ interface ITraderPool {
     /// @notice The structure that is returned from the TraderPoolView contract and stores static information about the pool
     /// @param ticker the ERC20 symbol of this pool
     /// @param name the ERC20 name of this pool
-    /// @param parameters the active pool parametrs (that are set in the constructor)
+    /// @param parameters the active pool parameters (that are set in the constructor)
     /// @param openPositions the array of open positions addresses
     /// @param baseAndPositionBalances the array of balances. [0] is the balance of base tokens (array is normalized)
+    /// @param totalBlacklistedPositions is the number of blacklisted positions this pool has
+    /// @param totalInvestors is the number of investors this pools has (excluding trader)
     /// @param totalPoolUSD is the current USD TVL in this pool
     /// @param totalPoolBase is the current base token TVL in this pool
     /// @param lpSupply is the current number of LP tokens (without proposals)
     /// @param lpLockedInProposals is the current number of LP tokens that are locked in proposals
+    /// @param traderUSD is the equivalent amount of USD that represent the trader's pool share
+    /// @param traderBase is the equivalent amount of base tokens that represent the trader's pool share
+    /// @param traderLPBalance is the amount of LP tokens the trader has in the pool (excluding proposals)
     struct PoolInfo {
         string ticker;
         string name;
         PoolParameters parameters;
         address[] openPositions;
         uint256[] baseAndPositionBalances;
+        uint256 totalBlacklistedPositions;
         uint256 totalInvestors;
         uint256 totalPoolUSD;
         uint256 totalPoolBase;
         uint256 lpSupply;
         uint256 lpLockedInProposals;
+        uint256 traderUSD;
+        uint256 traderBase;
+        uint256 traderLPBalance;
     }
 
     /// @notice The function that returns a PriceFeed contract
