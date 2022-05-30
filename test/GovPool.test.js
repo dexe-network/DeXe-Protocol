@@ -408,10 +408,10 @@ describe("GovPool", () => {
         });
       });
 
-      describe.skip("moveProposalToValidators()", async () => {
+      describe("moveProposalToValidators()", async () => {
         let startTime;
         const NEW_SETTINGS = {
-          earlyCompletion: false,
+          earlyCompletion: true,
           duration: 70,
           durationValidators: 800,
           quorum: PRECISION.times("71").toFixed(),
@@ -422,18 +422,83 @@ describe("GovPool", () => {
 
         beforeEach("", async () => {
           startTime = await getCurrentBlockTime();
-          // await userKeeper.delegateTokens(SECOND, wei("1000"));
-          // await userKeeper.delegateTokens(THIRD, wei("1000"));
-          await govPool.createProposal([OWNER], [getBytesApprove(SECOND, 1)]);
-          // await govPool.voteTokens(3, wei("1000"));
-          // await govPool.voteDelegatedTokens(3, wei("1000"), OWNER, {from:SECOND});
-          // await govPool.voteDelegatedTokens(3, wei("1000"), OWNER, {from:THIRD});
+          await govPool.createProposal([settings.address], [getBytesEditSettings([3], [NEW_SETTINGS])]);
+
+          await token.mint(SECOND, wei("100000000000000000000"));
+          await token.mint(THIRD, wei("100000000000000000000"));
+
+          await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
+          await token.approve(userKeeper.address, wei("100000000000000000000"), { from: THIRD });
+
+          await userKeeper.depositTokens(OWNER, wei("1000"));
+          await userKeeper.depositTokens(SECOND, wei("100000000000000000000"), { from: SECOND });
+          await userKeeper.depositTokens(THIRD, wei("100000000000000000000"), { from: THIRD });
         });
 
-        it("should move two proposals to validators", async () => {
-          // console.log((await userKeeper.getTotalVoteWeight()).toString());
-          // console.log(await govPool.proposals(3));
+        it("should move proposal to validators", async () => {
+          await govPool.voteTokens(3, wei("1000"));
+          await govPool.voteTokens(3, wei("100000000000000000000"), { from: SECOND });
+          await govPool.voteTokens(3, wei("100000000000000000000"), { from: THIRD });
+
+          const proposal = await govPool.proposals(3);
           await govPool.moveProposalToValidators(3);
+          const afterMove = await validators.externalProposals(3);
+
+          assert.equal(proposal.executed, afterMove.executed);
+          assert.equal(proposal[0].quorumValidators, afterMove.quorum);
+        });
+
+        it("should revert when try move without vote", async () => {
+          // await govPool.createProposal([settings.address], [getBytesEditSettings([3],[NEW_SETTINGS])]);
+          await truffleAssert.reverts(govPool.moveProposalToValidators(3), "GovV: can't be moved");
+        });
+      });
+    });
+
+    describe("GovFee", async () => {
+      describe("withdrawFee (for token)", async () => {
+        let startTime;
+
+        it("should withdraw fee", async () => {
+          startTime = await getCurrentBlockTime();
+          await token.mint(govPool.address, wei("1000"));
+          let secondBalance = await token.balanceOf(SECOND);
+
+          await setTime(startTime + 1000);
+
+          await govPool.withdrawFee(token.address, SECOND);
+
+          assert.equal(
+            (await token.balanceOf(SECOND)).toFixed(),
+            secondBalance.plus(toBN("3247082699137493")).toFixed()
+          );
+        });
+
+        it("should revert when nothing to withdraw", async () => {
+          await truffleAssert.reverts(govPool.withdrawFee(token.address, SECOND), "GFee: nothing to withdraw");
+        });
+      });
+
+      describe("withdrawFee (for native)", () => {
+        let startTime;
+
+        it("should withdraw fee", async () => {
+          startTime = await getCurrentBlockTime();
+          await web3.eth.sendTransaction({ from: OWNER, to: govPool.address, value: wei("50") });
+          let secondBalance = await web3.eth.getBalance(SECOND);
+
+          await setTime(startTime + 1000);
+
+          await govPool.withdrawFee("0x0000000000000000000000000000000000000000", SECOND);
+
+          assert.equal(await web3.eth.getBalance(SECOND), toBN(secondBalance).plus(toBN("162354134956874")).toFixed());
+        });
+
+        it("should revert when nothing to withdraw", async () => {
+          await truffleAssert.reverts(
+            govPool.withdrawFee("0x0000000000000000000000000000000000000000", SECOND),
+            "GFee: nothing to withdraw"
+          );
         });
       });
     });
