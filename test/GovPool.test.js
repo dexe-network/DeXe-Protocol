@@ -2,7 +2,7 @@ const { assert, use } = require("chai");
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("./helpers/hardhatTimeTraveller");
-const { web3 } = require("hardhat");
+const { web3, artifacts } = require("hardhat");
 
 const GovPool = artifacts.require("GovPool");
 const GovValidators = artifacts.require("GovValidators");
@@ -10,6 +10,7 @@ const GovSettings = artifacts.require("GovSettings");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const ExecutorTransferMock = artifacts.require("ExecutorTransferMock");
 
 GovPool.numberFormat = "BigNumber";
 GovValidators.numberFormat = "BigNumber";
@@ -38,6 +39,56 @@ const DEFAULT_SETTINGS = {
   quorumValidators: PRECISION.times("100").toFixed(),
   minTokenBalance: wei("20"),
   minNftBalance: 3,
+};
+
+const getBytesExecute = () => {
+  return web3.eth.abi.encodeFunctionSignature("execute()");
+};
+
+const getBytesAddSettings = (settings) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      name: "addSettings",
+      type: "function",
+      inputs: [
+        {
+          components: [
+            {
+              type: "bool",
+              name: "earlyCompletion",
+            },
+            {
+              type: "uint64",
+              name: "duration",
+            },
+            {
+              type: "uint64",
+              name: "durationValidators",
+            },
+            {
+              type: "uint128",
+              name: "quorum",
+            },
+            {
+              type: "uint128",
+              name: "quorumValidators",
+            },
+            {
+              type: "uint256",
+              name: "minTokenBalance",
+            },
+            {
+              type: "uint256",
+              name: "minNftBalance",
+            },
+          ],
+          type: "tuple[]",
+          name: "_var",
+        },
+      ],
+    },
+    [settings]
+  );
 };
 
 const getBytesApprove = (address, amount) => {
@@ -148,8 +199,8 @@ describe("GovPool", () => {
         "VT",
         600,
         PRECISION.times("51").toFixed(),
-        [OWNER],
-        [wei("100")]
+        [OWNER, SECOND],
+        [wei("100"), wei("1000000000000")]
       );
       await userKeeper.__GovUserKeeper_init(token.address, nft.address, wei("33000"), 33);
       await govPool.__GovPool_init(settings.address, userKeeper.address, validators.address, 100, PRECISION.times(10));
@@ -409,7 +460,6 @@ describe("GovPool", () => {
       });
 
       describe("moveProposalToValidators()", async () => {
-        let startTime;
         const NEW_SETTINGS = {
           earlyCompletion: true,
           duration: 70,
@@ -449,7 +499,6 @@ describe("GovPool", () => {
         });
 
         it("should revert when try move without vote", async () => {
-          // await govPool.createProposal([settings.address], [getBytesEditSettings([3],[NEW_SETTINGS])]);
           await truffleAssert.reverts(govPool.moveProposalToValidators(3), "GovV: can't be moved");
         });
       });
@@ -499,6 +548,83 @@ describe("GovPool", () => {
             govPool.withdrawFee("0x0000000000000000000000000000000000000000", SECOND),
             "GFee: nothing to withdraw"
           );
+        });
+      });
+    });
+
+    describe("GovPool", async () => {
+      describe("execute()", async () => {
+        const NEW_SETTINGS = {
+          earlyCompletion: true,
+          duration: 1,
+          durationValidators: 1,
+          quorum: 1,
+          quorumValidators: 1,
+          minTokenBalance: 1,
+          minNftBalance: 1,
+        };
+
+        beforeEach(async () => {
+          await token.mint(SECOND, wei("100000000000000000000"));
+          await token.mint(THIRD, wei("100000000000000000000"));
+
+          await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
+          await token.approve(userKeeper.address, wei("100000000000000000000"), { from: THIRD });
+
+          await userKeeper.depositTokens(OWNER, wei("1000"));
+          await userKeeper.depositTokens(SECOND, wei("100000000000000000000"), { from: SECOND });
+          await userKeeper.depositTokens(THIRD, wei("100000000000000000000"), { from: THIRD });
+        });
+
+        it("should add new settings", async () => {
+          const bytes = getBytesAddSettings([NEW_SETTINGS]);
+          await govPool.createProposal([settings.address], [bytes]);
+          await govPool.voteTokens(1, wei("1000"));
+          await govPool.voteTokens(1, wei("100000000000000000000"), { from: SECOND });
+          await govPool.voteTokens(1, wei("100000000000000000000"), { from: THIRD });
+
+          await govPool.moveProposalToValidators(1);
+          await validators.vote(1, wei("100"), false, { from: OWNER });
+          await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+          await govPool.execute(1);
+
+          const addedSettings = await settings.settings(3);
+          assert.equal(addedSettings.earlyCompletion, true);
+          assert.equal(addedSettings.duration, 1);
+          assert.equal(addedSettings.durationValidators, 1);
+          assert.equal(addedSettings.quorum, 1);
+          assert.equal(addedSettings.quorumValidators, 1);
+          assert.equal(addedSettings.minTokenBalance, 1);
+          assert.equal(addedSettings.minNftBalance, 1);
+          assert.equal((await govPool.proposals(1)).executed, true);
+        });
+
+        it("should get revert from proposal call", async () => {
+          let startTime = await getCurrentBlockTime();
+          const executorTransfer = await ExecutorTransferMock.new(
+            govPool.address,
+            token.address,
+            nft.address,
+            nft.address
+          );
+          await executorTransfer.setTransferAmount(wei("99"), [], [], []);
+
+          await token.transfer(govPool.address, wei("100"));
+
+          const bytesExecute = getBytesExecute(web3);
+
+          await govPool.createProposal([executorTransfer.address], [bytesExecute]);
+          await govPool.voteTokens(1, wei("1000"));
+          await govPool.voteTokens(1, wei("100000000000000000000"), { from: SECOND });
+          await govPool.voteTokens(1, wei("100000000000000000000"), { from: THIRD });
+
+          await setTime(startTime + 999);
+          await govPool.moveProposalToValidators(1);
+          await validators.vote(1, wei("100"), false, { from: OWNER });
+          await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+          await truffleAssert.reverts(govPool.execute(1), "ERC20: transfer amount exceeds allowance");
         });
       });
     });
