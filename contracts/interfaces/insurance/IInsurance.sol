@@ -27,6 +27,16 @@ interface IInsurance {
         ClaimStatus status;
     }
 
+    /// @notice The struct that holds information about the user
+    /// @param stake the amount of tokens the user staked (bought the insurance for)
+    /// @param lastDepositTimestamp the timestamp of user's last deposit
+    /// @param lastProposalTimestamp the timestamp of user's last proposal creation
+    struct UserInfo {
+        uint256 stake;
+        uint256 lastDepositTimestamp;
+        uint256 lastProposalTimestamp;
+    }
+
     /// @notice The "callback" function that is called from the TraderPools when the commission is sent to the insurance
     /// @param amount the received amount of DEXE tokens
     function receiveDexeFromPools(uint256 amount) external;

@@ -114,11 +114,15 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
     function setInsuranceParameters(
         uint256 insuranceFactor,
         uint256 maxInsurancePoolShare,
-        uint256 minInsuranceDeposit
+        uint256 minInsuranceDeposit,
+        uint256 minInsuranceProposalAmount,
+        uint256 insuranceWithdrawalLock
     ) external override onlyOwner {
         coreParameters.insuranceFactor = insuranceFactor;
         coreParameters.maxInsurancePoolShare = maxInsurancePoolShare;
         coreParameters.minInsuranceDeposit = minInsuranceDeposit;
+        coreParameters.minInsuranceProposalAmount = minInsuranceProposalAmount;
+        coreParameters.insuranceWithdrawalLock = insuranceWithdrawalLock;
     }
 
     function totalWhitelistTokens() external view override returns (uint256) {
@@ -252,6 +256,14 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
 
     function getMinInsuranceDeposit() external view override returns (uint256) {
         return coreParameters.minInsuranceDeposit;
+    }
+
+    function getMinInsuranceProposalAmount() external view override returns (uint256) {
+        return coreParameters.minInsuranceProposalAmount;
+    }
+
+    function getInsuranceWithdrawalLock() external view override returns (uint256) {
+        return coreParameters.insuranceWithdrawalLock;
     }
 
     function getCommissionEpoch(uint256 timestamp, CommissionPeriod commissionPeriod)

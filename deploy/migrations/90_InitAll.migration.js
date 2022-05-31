@@ -39,6 +39,8 @@ const DEFAULT_CORE_PROPERTIES = {
   insuranceFactor: 10,
   maxInsurancePoolShare: 3,
   minInsuranceDeposit: DECIMAL.times(10).toFixed(),
+  minInsuranceProposalAmount: DECIMAL.times(100).toFixed(),
+  insuranceWithdrawalLock: SECONDS_IN_DAY,
 };
 
 module.exports = async (deployer) => {
