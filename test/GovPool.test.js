@@ -224,6 +224,31 @@ describe("GovPool", () => {
           assert.equal(await govPool.govSetting(), settings.address);
           assert.equal(await govPool.govUserKeeper(), userKeeper.address);
         });
+
+        it("should revert when try to set zero addresses", async () => {
+          govPool = await GovPool.new();
+
+          await truffleAssert.reverts(
+            govPool.__GovPool_init(
+              "0x0000000000000000000000000000000000000000",
+              userKeeper.address,
+              validators.address,
+              100,
+              PRECISION.times(10)
+            ),
+            "GovC: address is zero (1)"
+          );
+          await truffleAssert.reverts(
+            govPool.__GovPool_init(
+              settings.address,
+              "0x0000000000000000000000000000000000000000",
+              validators.address,
+              100,
+              PRECISION.times(10)
+            ),
+            "GovC: address is zero (2)"
+          );
+        });
       });
 
       describe("createProposal()", async () => {
@@ -304,6 +329,20 @@ describe("GovPool", () => {
 
         await govPool.createProposal([SECOND], [getBytesApprove(SECOND, 1)]);
         await govPool.createProposal([THIRD], [getBytesApprove(SECOND, 1)]);
+      });
+
+      describe("init()", async () => {
+        it("should correctly set parameters", async () => {
+          assert.equal(await govPool.votesLimit(), 100);
+          assert.equal(await govPool.validators(), validators.address);
+        });
+
+        it("should revert when try to set votesLimit = 0", async () => {
+          govPool = await GovPool.new();
+          await truffleAssert.reverts(
+            govPool.__GovPool_init(settings.address, userKeeper.address, validators.address, 0, PRECISION.times(10))
+          );
+        });
       });
 
       describe("voteTokens()", async () => {
@@ -505,6 +544,26 @@ describe("GovPool", () => {
     });
 
     describe("GovFee", async () => {
+      describe("init", async () => {
+        it("should correctly set fee", async () => {
+          assert.equal((await govPool.feePercentage()).toFixed(), PRECISION.times(10).toFixed());
+        });
+
+        it("should revert when try set fee percentege more than 100%", async () => {
+          govPool = await GovPool.new();
+          await truffleAssert.reverts(
+            govPool.__GovPool_init(
+              settings.address,
+              userKeeper.address,
+              validators.address,
+              100,
+              PRECISION.times(1000)
+            ),
+            "GovFee: `_feePercentage` can't be more than 100%"
+          );
+        });
+      });
+
       describe("withdrawFee (for token)", async () => {
         let startTime;
 
