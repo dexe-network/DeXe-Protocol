@@ -254,6 +254,12 @@ describe("TraderPool", () => {
       traderPool = await deployPool(POOL_PARAMETERS);
     });
 
+    describe("getters", () => {
+      it("getPoolInfo should not revert", async () => {
+        await truffleAssert.passes(traderPool.getPoolInfo(), "pass");
+      });
+    });
+
     describe("invest", () => {
       it("should invest", async () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"));

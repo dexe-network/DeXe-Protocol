@@ -262,14 +262,16 @@ library TraderPoolView {
             ITraderPool(address(this)).totalEmission() -
             poolInfo.lpSupply;
 
-        poolInfo.traderLPBalance = IERC20(address(this)).balanceOf(poolParameters.trader);
-        poolInfo.traderUSD = poolInfo.totalPoolUSD.ratio(
-            poolInfo.traderLPBalance,
-            poolInfo.lpSupply
-        );
-        poolInfo.traderBase = poolInfo.totalPoolBase.ratio(
-            poolInfo.traderLPBalance,
-            poolInfo.lpSupply
-        );
+        if (poolInfo.lpSupply > 0) {
+            poolInfo.traderLPBalance = IERC20(address(this)).balanceOf(poolParameters.trader);
+            poolInfo.traderUSD = poolInfo.totalPoolUSD.ratio(
+                poolInfo.traderLPBalance,
+                poolInfo.lpSupply
+            );
+            poolInfo.traderBase = poolInfo.totalPoolBase.ratio(
+                poolInfo.traderLPBalance,
+                poolInfo.lpSupply
+            );
+        }
     }
 }
