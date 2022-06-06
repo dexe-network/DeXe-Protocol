@@ -1,8 +1,6 @@
-const { assert, use } = require("chai");
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("./helpers/hardhatTimeTraveller");
-const { web3, artifacts } = require("hardhat");
 
 const GovPool = artifacts.require("GovPool");
 const GovValidators = artifacts.require("GovValidators");
@@ -165,7 +163,7 @@ describe("GovPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
-  let FOUTH;
+  let FOURTH;
 
   let settings;
   let validators;
@@ -178,7 +176,7 @@ describe("GovPool", () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
     THIRD = await accounts(2);
-    FOUTH = await accounts(3);
+    FOURTH = await accounts(3);
   });
 
   beforeEach("setup", async () => {
@@ -187,6 +185,62 @@ describe("GovPool", () => {
     validators = await GovValidators.new();
     userKeeper = await GovUserKeeper.new();
     govPool = await GovPool.new();
+  });
+
+  describe("Empty pool", async () => {
+    describe("GovCreator", () => {
+      describe("init", () => {
+        it("should revert when try to set zero addresses", async () => {
+          await truffleAssert.reverts(
+            govPool.__GovPool_init(
+              "0x0000000000000000000000000000000000000000",
+              userKeeper.address,
+              validators.address,
+              100,
+              PRECISION.times(10)
+            ),
+            "GovC: address is zero (1)"
+          );
+          await truffleAssert.reverts(
+            govPool.__GovPool_init(
+              settings.address,
+              "0x0000000000000000000000000000000000000000",
+              validators.address,
+              100,
+              PRECISION.times(10)
+            ),
+            "GovC: address is zero (2)"
+          );
+        });
+      });
+    });
+
+    describe("GovVote", async () => {
+      describe("init()", async () => {
+        it("should revert when try to set votesLimit = 0", async () => {
+          await truffleAssert.reverts(
+            govPool.__GovPool_init(settings.address, userKeeper.address, validators.address, 0, PRECISION.times(10))
+          );
+        });
+      });
+    });
+
+    describe("GovFee", async () => {
+      describe("init", async () => {
+        it("should revert when try set fee percentege more than 100%", async () => {
+          await truffleAssert.reverts(
+            govPool.__GovPool_init(
+              settings.address,
+              userKeeper.address,
+              validators.address,
+              100,
+              PRECISION.times(1000)
+            ),
+            "GovFee: `_feePercentage` can't be more than 100%"
+          );
+        });
+      });
+    });
   });
 
   describe("Fullfat GovPool", () => {
@@ -219,35 +273,10 @@ describe("GovPool", () => {
     });
 
     describe("GovCreator", () => {
-      describe("init", () => {
+      describe("init()", async () => {
         it("should correctly set all parameters", async () => {
           assert.equal(await govPool.govSetting(), settings.address);
           assert.equal(await govPool.govUserKeeper(), userKeeper.address);
-        });
-
-        it("should revert when try to set zero addresses", async () => {
-          govPool = await GovPool.new();
-
-          await truffleAssert.reverts(
-            govPool.__GovPool_init(
-              "0x0000000000000000000000000000000000000000",
-              userKeeper.address,
-              validators.address,
-              100,
-              PRECISION.times(10)
-            ),
-            "GovC: address is zero (1)"
-          );
-          await truffleAssert.reverts(
-            govPool.__GovPool_init(
-              settings.address,
-              "0x0000000000000000000000000000000000000000",
-              validators.address,
-              100,
-              PRECISION.times(10)
-            ),
-            "GovC: address is zero (2)"
-          );
         });
       });
 
@@ -336,13 +365,6 @@ describe("GovPool", () => {
           assert.equal(await govPool.votesLimit(), 100);
           assert.equal(await govPool.validators(), validators.address);
         });
-
-        it("should revert when try to set votesLimit = 0", async () => {
-          govPool = await GovPool.new();
-          await truffleAssert.reverts(
-            govPool.__GovPool_init(settings.address, userKeeper.address, validators.address, 0, PRECISION.times(10))
-          );
-        });
       });
 
       describe("voteTokens()", async () => {
@@ -403,7 +425,7 @@ describe("GovPool", () => {
 
         it("should revert when spend undelegated tokens", async () => {
           await truffleAssert.reverts(
-            govPool.voteDelegatedTokens(1, 1, OWNER, { from: FOUTH }),
+            govPool.voteDelegatedTokens(1, 1, OWNER, { from: FOURTH }),
             "GovV: vote amount is zero"
           );
         });
@@ -462,7 +484,7 @@ describe("GovPool", () => {
 
         it("should revert when spend undelegated tokens", async () => {
           await truffleAssert.reverts(
-            govPool.voteDelegatedTokens(1, 1, OWNER, { from: FOUTH }),
+            govPool.voteDelegatedTokens(1, 1, OWNER, { from: FOURTH }),
             "GovV: vote amount is zero"
           );
         });
@@ -544,23 +566,9 @@ describe("GovPool", () => {
     });
 
     describe("GovFee", async () => {
-      describe("init", async () => {
+      describe("init()", async () => {
         it("should correctly set fee", async () => {
           assert.equal((await govPool.feePercentage()).toFixed(), PRECISION.times(10).toFixed());
-        });
-
-        it("should revert when try set fee percentege more than 100%", async () => {
-          govPool = await GovPool.new();
-          await truffleAssert.reverts(
-            govPool.__GovPool_init(
-              settings.address,
-              userKeeper.address,
-              validators.address,
-              100,
-              PRECISION.times(1000)
-            ),
-            "GovFee: `_feePercentage` can't be more than 100%"
-          );
         });
       });
 

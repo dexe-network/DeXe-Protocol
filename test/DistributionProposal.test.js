@@ -1,8 +1,6 @@
-const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("./helpers/hardhatTimeTraveller");
-const truffleAssertions = require("truffle-assertions");
 
 const GovPool = artifacts.require("GovPool");
 const DistributionProposal = artifacts.require("DistributionProposal");
@@ -204,7 +202,7 @@ describe("DistributionProposal", () => {
       await setTime(startTime + 1700);
       await govPool.execute(1);
 
-      await truffleAssertions.reverts(proposal.claim(OWNER), "DP: nothing to claim");
+      await truffleAssert.reverts(proposal.claim(OWNER), "DP: nothing to claim");
     });
 
     it("should revert if distribution isn't start yet", async () => {
