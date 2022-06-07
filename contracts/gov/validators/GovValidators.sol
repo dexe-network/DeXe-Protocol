@@ -113,7 +113,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         uint256 amount,
         bool isInternal
     ) external override {
-        require(_proposalExists(proposalId, isInternal), "Validators: proposal is not exist");
+        require(_proposalExists(proposalId, isInternal), "Validators: proposal does not exist");
 
         ProposalCore storage core = isInternal
             ? internalProposals[proposalId].core
@@ -142,7 +142,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     }
 
     function execute(uint256 proposalId) external override {
-        require(_proposalExists(proposalId, true), "Validators: proposal is not exist");
+        require(_proposalExists(proposalId, true), "Validators: proposal does not exist");
 
         InternalProposal storage proposal = internalProposals[proposalId];
 
