@@ -246,9 +246,20 @@ interface ICoreProperties {
     /// @return the duration of insurance lock
     function getInsuranceWithdrawalLock() external view returns (uint256);
 
-    /// @notice The function to current commission epoch based on the timestamp and period
+    /// @notice The function to get current commission epoch based on the timestamp and period
+    /// @param timestamp the timestamp (should not be less than the initial timestamp)
+    /// @param commissionPeriod the enum of commission durations
     /// @return the number of the epoch
-    function getCommissionEpoch(uint256 timestamp, CommissionPeriod commissionPeriod)
+    function getCommissionEpochByTimestamp(uint256 timestamp, CommissionPeriod commissionPeriod)
+        external
+        view
+        returns (uint256);
+
+    /// @notice The funcition to get the end timestamp of the provided commission epoch
+    /// @param epoch the commission epoch to get the end timestamp for
+    /// @param commissionPeriod the enum of commission durations
+    /// @return the end timestamp of the provided commission epoch
+    function getCommissionTimestampByEpoch(uint256 epoch, CommissionPeriod commissionPeriod)
         external
         view
         returns (uint256);

@@ -40,7 +40,7 @@ library TraderPoolCommission {
         returns (uint256)
     {
         return
-            ITraderPool(address(this)).coreProperties().getCommissionEpoch(
+            ITraderPool(address(this)).coreProperties().getCommissionEpochByTimestamp(
                 block.timestamp,
                 poolParameters.commissionPeriod
             );

@@ -5,7 +5,7 @@ import "../core/IPriceFeed.sol";
 
 /**
  * This this the abstract TraderPoolProposal contract. This contract has 2 implementations:
- * TraderPoolRiskyProposal and TraderPoolInvestProposal. Each of these contracts goes as a suplementary contract
+ * TraderPoolRiskyProposal and TraderPoolInvestProposal. Each of these contracts goes as a supplementary contract
  * for TraderPool contracts. Traders are able to create special proposals that act as subpools where investors can invest to.
  * Each subpool has its own LP token that represents the pool's share
  */

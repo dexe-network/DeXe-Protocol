@@ -266,7 +266,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         return coreParameters.insuranceWithdrawalLock;
     }
 
-    function getCommissionEpoch(uint256 timestamp, CommissionPeriod commissionPeriod)
+    function getCommissionEpochByTimestamp(uint256 timestamp, CommissionPeriod commissionPeriod)
         external
         view
         override
@@ -276,5 +276,14 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
             (timestamp - getCommissionInitTimestamp()) /
             getCommissionDuration(commissionPeriod) +
             1;
+    }
+
+    function getCommissionTimestampByEpoch(uint256 epoch, CommissionPeriod commissionPeriod)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return getCommissionInitTimestamp() + epoch * getCommissionDuration(commissionPeriod);
     }
 }

@@ -9,7 +9,7 @@ import "../core/ICoreProperties.sol";
 /**
  * The TraderPool contract is a central business logic contract the DEXE platform is built around. The TraderPool represents
  * a collective pool where investors share its funds and the ownership. The share is represented with the LP tokens and the
- * income is made through the trader's activity. The pool itself is tidely integrated with the UniswapV2 protocol and the trader
+ * income is made through the trader's activity. The pool itself is tidily integrated with the UniswapV2 protocol and the trader
  * is allowed to trade with the tokens in this pool. Several safety mechanisms are implemented here: Active Portfolio, Trader Leverage,
  * Proposals, Commissions horizon and simplified onchain PathFinder that protect the user funds
  */
@@ -89,11 +89,13 @@ interface ITraderPool {
     }
 
     /// @notice The struct that is returned from the TraderPoolView contract and stores information about the investor
+    /// @param commissionUnlockTimestamp the timestamp after which the trader will be allowed to take the commission from this user
     /// @param poolLPBalance the LP token balance of this used excluding proposals balance. The same as calling .balanceOf() function
     /// @param investedBase the amount of base tokens invested into the pool (after commission calculation this might increase)
     /// @param poolUSDShare the equivalent amount of USD that represent the user's pool share
     /// @param poolUSDShare the equivalent amount of base tokens that represent the user's pool share
     struct UserInfo {
+        uint256 commissionUnlockTimestamp;
         uint256 poolLPBalance;
         uint256 investedBase;
         uint256 poolUSDShare;
@@ -140,7 +142,7 @@ interface ITraderPool {
     /// @return the core properties contract
     function coreProperties() external view returns (ICoreProperties);
 
-    /// @notice The function that checks whther the specified address is a private investor
+    /// @notice The function that checks whether the specified address is a private investor
     /// @param who the address to check
     /// @return true if the pool is private and who is a private investor, false otherwise
     function isPrivateInvestor(address who) external view returns (bool);
@@ -157,7 +159,7 @@ interface ITraderPool {
 
     /// @notice The function to modify trader admins. Trader admins are eligible for executing swaps
     /// @param admins the array of addresses to grant or revoke an admin rights
-    /// @param add if true the admins will be added, if fasle the admins will be removed
+    /// @param add if true the admins will be added, if false the admins will be removed
     function modifyAdmins(address[] calldata admins, bool add) external;
 
     /// @notice The function to modify private investors
@@ -202,7 +204,7 @@ interface ITraderPool {
         view
         returns (UserInfo[] memory usersInfo);
 
-    /// @notice The funciton to get the static pool information
+    /// @notice The function to get the static pool information
     /// @return poolInfo the static info of the pool
     function getPoolInfo() external view returns (PoolInfo memory poolInfo);
 

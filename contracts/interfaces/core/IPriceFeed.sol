@@ -178,7 +178,7 @@ interface IPriceFeed {
     /// @param outToken the token to be exchanged to
     /// @param amountOut the amount of outToken tokens to be received
     /// @param optionalPath the optional path that will be considered by the pathfinder to find the best route
-    /// @param maxAmountIn the maximal amount of inTokens that have to be taked to execute the swap.
+    /// @param maxAmountIn the maximal amount of inTokens that have to be taken to execute the swap.
     /// basically this is a sandwich attack protection mechanism
     /// @return the amount of inTokens taken from the msg.sender
     function exchangeToExact(

@@ -34,7 +34,7 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// @param proposalLimits the investment limits of this proposal
     /// @param lpLocked the amount of LP tokens that are locked in this proposal
     /// @param balanceBase the base token balance of this proposal (normalized)
-    /// @param balancePosition the position token balance of this propoasl (normalized)
+    /// @param balancePosition the position token balance of this proposal (normalized)
     struct ProposalInfo {
         address token;
         uint256 tokenDecimals;

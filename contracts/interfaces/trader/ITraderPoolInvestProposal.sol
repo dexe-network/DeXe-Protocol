@@ -70,10 +70,14 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
 
     /// @notice The struct that is used by the TraderPoolInvestProposalView contract. It stores the information
     /// about the rewards
-    /// @param baseAmount the amount of base tokens received to be reinvested back in the parent pool
-    /// @param rewards the array of amounts and addresses of rewarded tokens
+    /// @param totalBaseAmount is the overall value of reward tokens in usd (might not be correct due to limitations of pathfinder)
+    /// @param totalBaseAmount is the overall value of reward tokens in base token (might not be correct due to limitations of pathfinder)
+    /// @param baseAmountFromRewards the amount of base tokens that can be reinvested into the parent pool
+    /// @param rewards the array of amounts and addresses of rewarded tokens (containts base tokens)
     struct Receptions {
-        uint256 baseAmount;
+        uint256 totalUsdAmount;
+        uint256 totalBaseAmount;
+        uint256 baseAmountFromRewards;
         Reception[] rewards;
     }
 

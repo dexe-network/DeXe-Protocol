@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../../interfaces/trader/ITraderPoolInvestProposal.sol";
 import "../../interfaces/core/IPriceFeed.sol";
 
+import "../PriceFeed/PriceFeedLocal.sol";
 import "../../libs/MathHelper.sol";
 import "../../libs/DecimalsConverter.sol";
 
@@ -18,6 +19,7 @@ library TraderPoolInvestProposalView {
     using DecimalsConverter for uint256;
     using MathHelper for uint256;
     using Math for uint256;
+    using PriceFeedLocal for IPriceFeed;
 
     function getProposalInfos(
         mapping(uint256 => ITraderPoolInvestProposal.ProposalInfo) storage proposalInfos,
@@ -63,9 +65,10 @@ library TraderPoolInvestProposalView {
         uint256[] calldata proposalIds,
         address user
     ) external view returns (ITraderPoolInvestProposal.Receptions memory receptions) {
-        uint256 proposalsTotalNum = TraderPoolInvestProposal(address(this)).proposalsTotalNum();
         receptions.rewards = new ITraderPoolInvestProposal.Reception[](proposalIds.length);
 
+        IPriceFeed priceFeed = ITraderPoolInvestProposal(address(this)).priceFeed();
+        uint256 proposalsTotalNum = TraderPoolInvestProposal(address(this)).proposalsTotalNum();
         address baseToken = ITraderPoolInvestProposal(address(this)).getBaseToken();
 
         for (uint256 i = 0; i < proposalIds.length; i++) {
@@ -94,9 +97,21 @@ library TraderPoolInvestProposalView {
                         .ratio(balance, PRECISION);
 
                 if (token == baseToken) {
-                    receptions.baseAmount += receptions.rewards[i].amounts[j];
+                    receptions.totalBaseAmount += receptions.rewards[i].amounts[j];
+                    receptions.baseAmountFromRewards += receptions.rewards[i].amounts[j];
+                } else {
+                    receptions.totalBaseAmount += priceFeed.getNormPriceOut(
+                        token,
+                        baseToken,
+                        receptions.rewards[i].amounts[j]
+                    );
                 }
             }
+
+            (receptions.totalUsdAmount, ) = priceFeed.getNormalizedPriceOutUSD(
+                baseToken,
+                receptions.totalBaseAmount
+            );
         }
     }
 }

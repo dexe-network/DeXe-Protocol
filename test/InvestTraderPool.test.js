@@ -261,7 +261,7 @@ describe("InvestTraderPool", () => {
 
   async function reinvestProposal(propoaslId, account) {
     const divests = await proposalPool.getRewards([propoaslId], account);
-    const invests = await traderPool.getInvestTokens(divests.baseAmount);
+    const invests = await traderPool.getInvestTokens(divests.baseAmountFromRewards);
 
     await traderPool.reinvestProposal(propoaslId, invests.receivedAmounts, { from: account });
   }
@@ -289,7 +289,7 @@ describe("InvestTraderPool", () => {
     const proposals = activeProposals.map((prop) => prop.proposalId);
 
     const divests = await proposalPool.getRewards(proposals, account);
-    const invests = await traderPool.getInvestTokens(divests.baseAmount);
+    const invests = await traderPool.getInvestTokens(divests.baseAmountFromRewards);
 
     await traderPool.reinvestAllProposals(invests.receivedAmounts, { from: account });
   }
