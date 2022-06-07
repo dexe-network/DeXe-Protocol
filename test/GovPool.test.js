@@ -187,7 +187,7 @@ describe("GovPool", () => {
     govPool = await GovPool.new();
   });
 
-  describe("Empty pool", async () => {
+  describe("Empty pool", () => {
     describe("GovCreator", () => {
       describe("init", () => {
         it("should revert when try to set zero addresses", async () => {
@@ -215,8 +215,8 @@ describe("GovPool", () => {
       });
     });
 
-    describe("GovVote", async () => {
-      describe("init()", async () => {
+    describe("GovVote", () => {
+      describe("init()", () => {
         it("should revert when try to set votesLimit = 0", async () => {
           await truffleAssert.reverts(
             govPool.__GovPool_init(settings.address, userKeeper.address, validators.address, 0, PRECISION.times(10))
@@ -225,8 +225,8 @@ describe("GovPool", () => {
       });
     });
 
-    describe("GovFee", async () => {
-      describe("init", async () => {
+    describe("GovFee", () => {
+      describe("init", () => {
         it("should revert when try set fee percentege more than 100%", async () => {
           await truffleAssert.reverts(
             govPool.__GovPool_init(
@@ -273,14 +273,14 @@ describe("GovPool", () => {
     });
 
     describe("GovCreator", () => {
-      describe("init()", async () => {
+      describe("init()", () => {
         it("should correctly set all parameters", async () => {
           assert.equal(await govPool.govSetting(), settings.address);
           assert.equal(await govPool.govUserKeeper(), userKeeper.address);
         });
       });
 
-      describe("createProposal()", async () => {
+      describe("createProposal()", () => {
         beforeEach("", async () => {
           await userKeeper.depositTokens(OWNER, 1);
           await userKeeper.depositNfts(OWNER, [1]);
@@ -328,7 +328,7 @@ describe("GovPool", () => {
         });
       });
 
-      describe("getProposalInfo()", async () => {
+      describe("getProposalInfo()", () => {
         beforeEach("", async () => {
           await userKeeper.depositTokens(OWNER, 1);
           await userKeeper.depositNfts(OWNER, [1]);
@@ -351,7 +351,7 @@ describe("GovPool", () => {
       });
     });
 
-    describe("GovVote", async () => {
+    describe("GovVote", () => {
       beforeEach("", async () => {
         await userKeeper.depositTokens(OWNER, wei("1000"));
         await userKeeper.depositNfts(OWNER, [1, 2, 3, 4]);
@@ -360,14 +360,14 @@ describe("GovPool", () => {
         await govPool.createProposal([THIRD], [getBytesApprove(SECOND, 1)]);
       });
 
-      describe("init()", async () => {
+      describe("init()", () => {
         it("should correctly set parameters", async () => {
           assert.equal(await govPool.votesLimit(), 100);
           assert.equal(await govPool.validators(), validators.address);
         });
       });
 
-      describe("voteTokens()", async () => {
+      describe("voteTokens()", () => {
         it("should vote for two proposals", async () => {
           await govPool.voteTokens(1, wei("100"));
           await govPool.voteTokens(2, wei("50"));
@@ -389,7 +389,7 @@ describe("GovPool", () => {
         });
       });
 
-      describe("voteDelegatedTokens()", async () => {
+      describe("voteDelegatedTokens()", () => {
         beforeEach("", async () => {
           await userKeeper.delegateTokens(SECOND, wei("1000"));
           await userKeeper.delegateTokens(THIRD, wei("1000"));
@@ -431,7 +431,7 @@ describe("GovPool", () => {
         });
       });
 
-      describe("voteNfts()", async () => {
+      describe("voteNfts()", () => {
         const SINGLE_NFT_COST = toBN("3666666666666666666666");
         it("should vote for two proposals", async () => {
           await govPool.voteNfts(1, [1]);
@@ -454,7 +454,7 @@ describe("GovPool", () => {
         });
       });
 
-      describe("voteDelegatedNfts()", async () => {
+      describe("voteDelegatedNfts()", () => {
         const SINGLE_NFT_COST = toBN("3666666666666666666666");
         beforeEach("", async () => {
           await userKeeper.delegateNfts(SECOND, [1], [true]);
@@ -490,7 +490,7 @@ describe("GovPool", () => {
         });
       });
 
-      describe("unlockInProposals(), unlock(), unlockNfts()", async () => {
+      describe("unlockInProposals(), unlock(), unlockNfts()", () => {
         let startTime;
         beforeEach("", async () => {
           startTime = await getCurrentBlockTime();
@@ -520,7 +520,7 @@ describe("GovPool", () => {
         });
       });
 
-      describe("moveProposalToValidators()", async () => {
+      describe("moveProposalToValidators()", () => {
         const NEW_SETTINGS = {
           earlyCompletion: true,
           duration: 70,
@@ -565,14 +565,14 @@ describe("GovPool", () => {
       });
     });
 
-    describe("GovFee", async () => {
-      describe("init()", async () => {
+    describe("GovFee", () => {
+      describe("init()", () => {
         it("should correctly set fee", async () => {
           assert.equal((await govPool.feePercentage()).toFixed(), PRECISION.times(10).toFixed());
         });
       });
 
-      describe("withdrawFee (for token)", async () => {
+      describe("withdrawFee (for token)", () => {
         let startTime;
 
         it("should withdraw fee", async () => {
@@ -619,8 +619,8 @@ describe("GovPool", () => {
       });
     });
 
-    describe("GovPool", async () => {
-      describe("execute()", async () => {
+    describe("GovPool", () => {
+      describe("execute()", () => {
         const NEW_SETTINGS = {
           earlyCompletion: true,
           duration: 1,

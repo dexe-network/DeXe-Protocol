@@ -69,7 +69,7 @@ describe("ERC721Power", () => {
     });
   });
 
-  describe("setMaxPower()", async () => {
+  describe("setMaxPower()", () => {
     it("should correctly set max power", async () => {
       await setTime(startTime + 100);
 
@@ -90,7 +90,7 @@ describe("ERC721Power", () => {
     });
   });
 
-  describe("setNftMaxPower()", async () => {
+  describe("setNftMaxPower()", () => {
     it("should correctly set max power", async () => {
       await setTime(startTime + 100);
 
@@ -135,7 +135,7 @@ describe("ERC721Power", () => {
     });
   });
 
-  describe("setNftRequiredCollateral()", async () => {
+  describe("setNftRequiredCollateral()", () => {
     it("should correctly set required collateral amount for nft", async () => {
       await setTime(startTime + 100);
 
@@ -159,7 +159,7 @@ describe("ERC721Power", () => {
     });
   });
 
-  describe("safeMint()", async () => {
+  describe("safeMint()", () => {
     it("should correctly mint mock20s and increase total power", async () => {
       await setTime(startTime + 100);
       await nft.setMaxPower("100");
@@ -183,14 +183,14 @@ describe("ERC721Power", () => {
     });
   });
 
-  describe("setBaseUri()", async () => {
+  describe("setBaseUri()", () => {
     it("should correctly set base uri", async () => {
       await nft.setBaseUri("placeholder");
       assert.equal(await nft.baseURI(), "placeholder");
     });
   });
 
-  describe("recalculateNftPower()", async () => {
+  describe("recalculateNftPower()", () => {
     beforeEach(async () => {
       await nft.setCollateralToken(token.address);
 
@@ -222,7 +222,7 @@ describe("ERC721Power", () => {
     });
   });
 
-  describe("addCollateral()", async () => {
+  describe("addCollateral()", () => {
     beforeEach(async () => {
       await nft.setCollateralToken(token.address);
 
@@ -259,7 +259,7 @@ describe("ERC721Power", () => {
     });
   });
 
-  describe("removeCollateral()", async () => {
+  describe("removeCollateral()", () => {
     beforeEach(async () => {
       await nft.setCollateralToken(token.address);
 
@@ -296,7 +296,7 @@ describe("ERC721Power", () => {
     });
   });
 
-  describe("withdrawStuckERC20()", async () => {
+  describe("withdrawStuckERC20()", () => {
     beforeEach(async () => {
       await nft.setCollateralToken(token.address);
 

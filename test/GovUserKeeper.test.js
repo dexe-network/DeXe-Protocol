@@ -66,7 +66,7 @@ describe("GovUserKeeper", () => {
       });
     });
 
-    describe("depositTokens()", async () => {
+    describe("depositTokens()", () => {
       it("should correctly add tokens to balance", async () => {
         await token.approve(userKeeper.address, wei("1000"));
 
@@ -121,7 +121,7 @@ describe("GovUserKeeper", () => {
       });
     });
 
-    describe("delegateTokens()", async () => {
+    describe("delegateTokens()", () => {
       it("should correctly delegate tokens, add delegators and spenders", async () => {
         await userKeeper.delegateTokens(SECOND, wei("333"));
         await userKeeper.delegateTokens(THIRD, wei("444"));
@@ -137,7 +137,7 @@ describe("GovUserKeeper", () => {
       });
     });
 
-    describe("delegateNfts()", async () => {
+    describe("delegateNfts()", () => {
       it("should correctly delegate nfts and add new nfts", async () => {
         await userKeeper.delegateNfts(SECOND, [1, 3], [true, true]);
         await userKeeper.delegateNfts(THIRD, [2, 4], [true, true]);
@@ -178,7 +178,7 @@ describe("GovUserKeeper", () => {
       });
     });
 
-    describe("nftBalanceOf()", async () => {
+    describe("nftBalanceOf()", () => {
       it("should correctly return paginated NFTs", async () => {
         await userKeeper.depositNfts(SECOND, [1, 2, 3, 4, 5]);
 
@@ -212,7 +212,7 @@ describe("GovUserKeeper", () => {
       });
     });
 
-    describe("lockTokens(), unlockTokens()", async () => {
+    describe("lockTokens(), unlockTokens()", () => {
       it("should lock tokens from to addresses", async () => {
         await userKeeper.lockTokens(SECOND, wei("10"), 1);
         await userKeeper.lockTokens(SECOND, wei("5"), 1);
@@ -229,7 +229,7 @@ describe("GovUserKeeper", () => {
       });
     });
 
-    describe("withdrawTokens(), tokens", async () => {
+    describe("withdrawTokens(), tokens", () => {
       let startTime;
 
       beforeEach(async () => {
@@ -315,7 +315,7 @@ describe("GovUserKeeper", () => {
       });
     });
 
-    describe("lockNfts(), unlockNfts()", async () => {
+    describe("lockNfts(), unlockNfts()", () => {
       beforeEach("", async () => {
         await userKeeper.depositNfts(SECOND, [1, 2]);
         await userKeeper.depositNfts(THIRD, [3]);
@@ -367,7 +367,7 @@ describe("GovUserKeeper", () => {
       });
     });
 
-    describe("withdrawNfts()", async () => {
+    describe("withdrawNfts()", () => {
       beforeEach(async () => {
         startTime = await getCurrentBlockTime();
         await userKeeper.depositNfts(SECOND, [1, 2]);
@@ -403,7 +403,7 @@ describe("GovUserKeeper", () => {
       });
     });
 
-    describe("check snapshot", async () => {
+    describe("check snapshot", () => {
       let startTime;
       beforeEach("setup", async () => {
         startTime = await getCurrentBlockTime();
@@ -434,7 +434,7 @@ describe("GovUserKeeper", () => {
     });
   });
 
-  describe("No NFT GovUserKeeper", async () => {
+  describe("No NFT GovUserKeeper", () => {
     beforeEach("", async () => {
       await userKeeper.__GovUserKeeper_init(
         token.address,
@@ -455,7 +455,7 @@ describe("GovUserKeeper", () => {
     });
   });
 
-  describe("nft with power", async () => {
+  describe("nft with power", () => {
     let startTime;
     beforeEach("", async () => {
       await token.mint(OWNER, wei("900"));
@@ -475,7 +475,7 @@ describe("GovUserKeeper", () => {
 
       await userKeeper.__GovUserKeeper_init(token.address, nft.address, wei("33000"), 33);
     });
-    describe("snapshot()", async () => {
+    describe("snapshot()", () => {
       beforeEach("", async () => {
         await userKeeper.depositNfts(SECOND, [1]);
       });

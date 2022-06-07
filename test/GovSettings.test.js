@@ -77,7 +77,7 @@ describe("GovSettings", () => {
     });
   });
 
-  describe("addSettings()", async () => {
+  describe("addSettings()", () => {
     it("should add two settings", async () => {
       const newSettings1 = {
         earlyCompletion: false,
@@ -122,7 +122,7 @@ describe("GovSettings", () => {
     });
   });
 
-  describe("_validateProposalSettings", async () => {
+  describe("_validateProposalSettings", () => {
     it("should revert if invalid vote duration value", async () => {
       const newSettings = {
         earlyCompletion: false,
@@ -183,7 +183,7 @@ describe("GovSettings", () => {
     });
   });
 
-  describe("editSettings()", async () => {
+  describe("editSettings()", () => {
     it("should edit existed settings", async () => {
       const newSettings1 = {
         earlyCompletion: false,
@@ -251,7 +251,7 @@ describe("GovSettings", () => {
     });
   });
 
-  describe("changeExecutors()", async () => {
+  describe("changeExecutors()", () => {
     it("should add two executors", async () => {
       await settings.changeExecutors([EXECUTOR1, EXECUTOR2], [2, 2]);
 
@@ -274,7 +274,7 @@ describe("GovSettings", () => {
     });
   });
 
-  describe("executorInfo()", async () => {
+  describe("executorInfo()", () => {
     it("should return info about executor", async () => {
       const newSettings1 = {
         earlyCompletion: false,
@@ -310,7 +310,7 @@ describe("GovSettings", () => {
     });
   });
 
-  describe("getSettings()", async () => {
+  describe("getSettings()", () => {
     it("should return setting for executor", async () => {
       const newSettings1 = {
         earlyCompletion: false,

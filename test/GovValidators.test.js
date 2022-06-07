@@ -68,7 +68,7 @@ describe("GovValidators", () => {
     });
   });
 
-  describe("constructor()", async () => {
+  describe("constructor()", () => {
     it("should setup constructor params", async () => {
       const internalProposalSettings = await validators.internalProposalSettings();
 
@@ -152,7 +152,7 @@ describe("GovValidators", () => {
     });
   });
 
-  describe("createInternalProposal()", async () => {
+  describe("createInternalProposal()", () => {
     it("should create internal proposals", async () => {
       let currentTime = await getCurrentBlockTime();
 
@@ -198,7 +198,7 @@ describe("GovValidators", () => {
     });
   });
 
-  describe("createExternalProposal()", async () => {
+  describe("createExternalProposal()", () => {
     it("should correctly create external proposals", async () => {
       let currentTime = await getCurrentBlockTime();
 
@@ -225,7 +225,7 @@ describe("GovValidators", () => {
     });
   });
 
-  describe("vote()", async () => {
+  describe("vote()", () => {
     it("should vote with existed balance, internal proposals", async () => {
       await validators.createInternalProposal(0, 100, OWNER, { from: SECOND });
 
@@ -336,7 +336,7 @@ describe("GovValidators", () => {
     });
   });
 
-  describe("getProposalState()", async () => {
+  describe("getProposalState()", () => {
     it("should correctly return `Voting` state and `Succeeded` state when quorum reached", async () => {
       await validators.createInternalProposal(0, 100, OWNER, { from: SECOND });
 
@@ -379,7 +379,7 @@ describe("GovValidators", () => {
     });
   });
 
-  describe("execute()", async () => {
+  describe("execute()", () => {
     it("should correctly execute `ChangeInternalDuration` proposal", async () => {
       await validators.createInternalProposal(0, 1500, OWNER, { from: SECOND });
       await validators.vote(1, wei("200"), true, { from: SECOND });
