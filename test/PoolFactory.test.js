@@ -1,13 +1,18 @@
 const { assert } = require("chai");
-const { toBN, accounts } = require("../scripts/helpers/utils");
+const { toBN, accounts, wei } = require("../scripts/helpers/utils");
 const truffleAssert = require("truffle-assertions");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const ERC721Mock = artifacts.require("ERC721Mock");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
 const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
 const GovPoolRegistry = artifacts.require("GovPoolRegistry");
+const GovPool = artifacts.require("GovPool");
+const GovUserKeeper = artifacts.require("GovUserKeeper");
+const GovSettings = artifacts.require("GovSettings");
+const GovValidators = artifacts.require("GovValidators");
 const TraderPoolMock = artifacts.require("TraderPoolMock");
 const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
 const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
@@ -25,10 +30,15 @@ const PoolFactory = artifacts.require("PoolFactory");
 
 ContractsRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
+ERC721Mock.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
 PriceFeed.numberFormat = "BigNumber";
 TraderPoolRegistry.numberFormat = "BigNumber";
 GovPoolRegistry.numberFormat = "BigNumber";
+GovPool.numberFormat = "BigNumber";
+GovUserKeeper.numberFormat = "BigNumber";
+GovSettings.numberFormat = "BigNumber";
+GovValidators.numberFormat = "BigNumber";
 TraderPoolMock.numberFormat = "BigNumber";
 InvestTraderPool.numberFormat = "BigNumber";
 BasicTraderPool.numberFormat = "BigNumber";
@@ -72,7 +82,6 @@ const DEFAULT_CORE_PROPERTIES = {
 
 describe("PoolFactory", () => {
   let OWNER;
-  let THIRD;
   let NOTHING;
 
   let DEXE;
@@ -81,11 +90,11 @@ describe("PoolFactory", () => {
   let poolFactory;
   let coreProperties;
 
-  let testCoin;
+  let testERC20;
+  let testERC721;
 
   before("setup", async () => {
     OWNER = await accounts(0);
-    THIRD = await accounts(2);
     NOTHING = await accounts(3);
 
     const traderPoolPriceLib = await TraderPoolPriceLib.new();
@@ -126,7 +135,8 @@ describe("PoolFactory", () => {
   });
 
   beforeEach("setup", async () => {
-    testCoin = await ERC20Mock.new("TestCoin", "TS", 18);
+    testERC20 = await ERC20Mock.new("TestERC20", "TS", 18);
+    testERC721 = await ERC721Mock.new("TestERC721", "TS");
 
     const contractsRegistry = await ContractsRegistry.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
@@ -176,21 +186,36 @@ describe("PoolFactory", () => {
     let riskyPoolProposal = await RiskyPoolProposal.new();
     let investPoolProposal = await InvestPoolProposal.new();
 
-    const poolNames = [
+    let govPool = await GovPool.new();
+    let govUserKeeper = await GovUserKeeper.new();
+    let govSettings = await GovSettings.new();
+    let govValidators = await GovValidators.new();
+
+    const traderPoolNames = [
       await traderPoolRegistry.INVEST_POOL_NAME(),
       await traderPoolRegistry.BASIC_POOL_NAME(),
       await traderPoolRegistry.RISKY_PROPOSAL_NAME(),
       await traderPoolRegistry.INVEST_PROPOSAL_NAME(),
     ];
 
-    const poolAddrs = [
+    const govPoolNames = [
+      await govPoolRegistry.GOV_POOL_NAME(),
+      await govPoolRegistry.USER_KEEPER_NAME(),
+      await govPoolRegistry.SETTINGS_NAME(),
+      await govPoolRegistry.VALIDATORS_NAME(),
+    ];
+
+    const traderPoolAddrs = [
       investTraderPool.address,
       basicTraderPool.address,
       riskyPoolProposal.address,
       investPoolProposal.address,
     ];
 
-    await traderPoolRegistry.setNewImplementations(poolNames, poolAddrs);
+    const govPoolAddrs = [govPool.address, govUserKeeper.address, govSettings.address, govValidators.address];
+
+    await traderPoolRegistry.setNewImplementations(traderPoolNames, traderPoolAddrs);
+    await govPoolRegistry.setNewImplementations(govPoolNames, govPoolAddrs);
   });
 
   describe("deployBasicPool", async () => {
@@ -199,7 +224,7 @@ describe("PoolFactory", () => {
       trader: OWNER,
       privatePool: false,
       totalLPEmission: 0,
-      baseToken: testCoin.address,
+      baseToken: testERC20.address,
       minimalInvestment: 0,
       commissionPeriod: ComissionPeriods.PERIOD_1,
       commissionPercentage: toBN(30).times(PRECISION).toFixed(),
@@ -240,7 +265,7 @@ describe("PoolFactory", () => {
       trader: OWNER,
       privatePool: false,
       totalLPEmission: 0,
-      baseToken: testCoin.address,
+      baseToken: testERC20.address,
       minimalInvestment: 0,
       commissionPeriod: ComissionPeriods.PERIOD_1,
       commissionPercentage: toBN(30).times(PRECISION).toFixed(),
@@ -276,7 +301,7 @@ describe("PoolFactory", () => {
   });
 
   describe("TraderPool validation", async () => {
-    let POOL_PARAMETERS = {};
+    let POOL_PARAMETERS;
 
     it("should revert when try to deploy with incorrect percentage for Period 1", async () => {
       POOL_PARAMETERS = {
@@ -284,7 +309,7 @@ describe("PoolFactory", () => {
         trader: OWNER,
         privatePool: false,
         totalLPEmission: 0,
-        baseToken: testCoin.address,
+        baseToken: testERC20.address,
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_1,
         commissionPercentage: toBN(50).times(PRECISION).toFixed(),
@@ -302,7 +327,7 @@ describe("PoolFactory", () => {
         trader: OWNER,
         privatePool: false,
         totalLPEmission: 0,
-        baseToken: testCoin.address,
+        baseToken: testERC20.address,
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_2,
         commissionPercentage: toBN(70).times(PRECISION).toFixed(),
@@ -320,7 +345,7 @@ describe("PoolFactory", () => {
         trader: OWNER,
         privatePool: false,
         totalLPEmission: 0,
-        baseToken: testCoin.address,
+        baseToken: testERC20.address,
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_3,
         commissionPercentage: toBN(100).times(PRECISION).toFixed(),
@@ -338,18 +363,75 @@ describe("PoolFactory", () => {
         trader: OWNER,
         privatePool: false,
         totalLPEmission: 0,
-        baseToken: testCoin.address,
+        baseToken: testERC20.address,
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_1,
         commissionPercentage: toBN(30).times(PRECISION).toFixed(),
       };
 
-      await coreProperties.addBlacklistTokens([testCoin.address]);
+      await coreProperties.addBlacklistTokens([testERC20.address]);
 
       await truffleAssert.reverts(
         poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
         "PoolFactory: token is blacklisted"
       );
+    });
+  });
+
+  describe("deployGovPool", () => {
+    let POOL_PARAMETERS;
+
+    it("should deploy gov pool", async () => {
+      POOL_PARAMETERS = {
+        seetingsParams: {
+          internalProposalSetting: {
+            earlyCompletion: true,
+            duration: 500,
+            durationValidators: 600,
+            quorum: PRECISION.times("51").toFixed(),
+            quorumValidators: PRECISION.times("61").toFixed(),
+            minTokenBalance: wei("10"),
+            minNftBalance: 2,
+          },
+          defaultProposalSetting: {
+            earlyCompletion: false,
+            duration: 700,
+            durationValidators: 800,
+            quorum: PRECISION.times("71").toFixed(),
+            quorumValidators: PRECISION.times("100").toFixed(),
+            minTokenBalance: wei("20"),
+            minNftBalance: 3,
+          },
+        },
+        validatorsParams: {
+          name: "Validator Token",
+          symbol: "VT",
+          duration: 500,
+          quorum: PRECISION.times("51").toFixed(),
+          validators: [OWNER],
+          balances: [wei("100")],
+        },
+        userKeeperParams: {
+          tokenAddress: testERC20.address,
+          nftAddress: testERC721.address,
+          totalPowerInTokens: wei("33000"),
+          nftsTotalSupply: 33,
+        },
+        owner: OWNER,
+        votesLimit: 10,
+        feePercentage: PRECISION.toFixed(),
+      };
+
+      await poolFactory.deployGovPool(POOL_PARAMETERS);
+
+      assert.equal((await govPoolRegistry.countPools(await govPoolRegistry.GOV_POOL_NAME())).toString(), "1");
+      assert.equal(
+        (await govPoolRegistry.countOwnerPools(OWNER, await govPoolRegistry.GOV_POOL_NAME())).toString(),
+        "1"
+      );
+
+      let govPool = await GovPool.at((await govPoolRegistry.listPools(await govPoolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+      assert.equal(await govPool.owner(), OWNER);
     });
   });
 });

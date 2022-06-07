@@ -61,7 +61,7 @@ interface ITraderPoolRegistry {
     /// @notice The function to check if the given address is a valid BasicTraderPool
     /// @param potentialPool the address to inspect
     /// @return true if the address is a BasicTraderPool, false otherwise
-    function isBasePool(address potentialPool) external view returns (bool);
+    function isBasicPool(address potentialPool) external view returns (bool);
 
     /// @notice The function to check if the given address is a valid InvestTraderPool
     /// @param potentialPool the address to inspect

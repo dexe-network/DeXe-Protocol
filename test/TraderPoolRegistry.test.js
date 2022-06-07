@@ -12,7 +12,6 @@ ERC20Mock.numberFormat = "BigNumber";
 describe("TraderPoolRegistry", () => {
   let OWNER;
   let FACTORY;
-  let THIRD;
 
   let token;
   let traderPoolRegistry;
@@ -20,7 +19,6 @@ describe("TraderPoolRegistry", () => {
   before("setup", async () => {
     OWNER = await accounts(0);
     FACTORY = await accounts(1);
-    THIRD = await accounts(2);
   });
 
   beforeEach("setup", async () => {
@@ -76,6 +74,9 @@ describe("TraderPoolRegistry", () => {
 
       assert.equal((await traderPoolRegistry.countTraderPools(OWNER, BASIC_NAME)).toFixed(), "2");
       assert.equal((await traderPoolRegistry.countTraderPools(OWNER, INVEST_NAME)).toFixed(), "0");
+
+      assert.isTrue(await traderPoolRegistry.isBasicPool(POOL_2));
+      assert.isFalse(await traderPoolRegistry.isInvestPool(POOL_1));
 
       assert.isFalse(await traderPoolRegistry.isPool(POOL_3));
       assert.isTrue(await traderPoolRegistry.isPool(POOL_2));

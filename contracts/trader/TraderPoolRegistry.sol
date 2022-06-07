@@ -102,7 +102,7 @@ contract TraderPoolRegistry is
         }
     }
 
-    function isBasePool(address potentialPool) public view override returns (bool) {
+    function isBasicPool(address potentialPool) public view override returns (bool) {
         return _pools[BASIC_POOL_NAME].contains(potentialPool);
     }
 
@@ -111,6 +111,6 @@ contract TraderPoolRegistry is
     }
 
     function isPool(address potentialPool) external view override returns (bool) {
-        return isBasePool(potentialPool) || isInvestPool(potentialPool);
+        return isBasicPool(potentialPool) || isInvestPool(potentialPool);
     }
 }
