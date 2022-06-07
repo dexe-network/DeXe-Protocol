@@ -16,6 +16,7 @@ GovSettings.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 ERC721EnumMock.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
+ExecutorTransferMock.numberFormat = "BigNumber";
 
 const PRECISION = toBN(10).pow(25);
 
@@ -226,7 +227,7 @@ describe("GovPool", () => {
     });
 
     describe("GovFee", () => {
-      describe("init", () => {
+      describe("init()", () => {
         it("should revert when try set fee percentege more than 100%", async () => {
           await truffleAssert.reverts(
             govPool.__GovPool_init(
@@ -352,7 +353,7 @@ describe("GovPool", () => {
     });
 
     describe("GovVote", () => {
-      beforeEach("", async () => {
+      beforeEach("setup", async () => {
         await userKeeper.depositTokens(OWNER, wei("1000"));
         await userKeeper.depositNfts(OWNER, [1, 2, 3, 4]);
 
@@ -390,7 +391,7 @@ describe("GovPool", () => {
       });
 
       describe("voteDelegatedTokens()", () => {
-        beforeEach("", async () => {
+        beforeEach("setup", async () => {
           await userKeeper.delegateTokens(SECOND, wei("1000"));
           await userKeeper.delegateTokens(THIRD, wei("1000"));
         });
@@ -433,6 +434,7 @@ describe("GovPool", () => {
 
       describe("voteNfts()", () => {
         const SINGLE_NFT_COST = toBN("3666666666666666666666");
+
         it("should vote for two proposals", async () => {
           await govPool.voteNfts(1, [1]);
           await govPool.voteNfts(2, [2, 3]);
@@ -456,7 +458,8 @@ describe("GovPool", () => {
 
       describe("voteDelegatedNfts()", () => {
         const SINGLE_NFT_COST = toBN("3666666666666666666666");
-        beforeEach("", async () => {
+
+        beforeEach("setup", async () => {
           await userKeeper.delegateNfts(SECOND, [1], [true]);
           await userKeeper.delegateNfts(THIRD, [2, 3], [true, true]);
         });
@@ -492,7 +495,8 @@ describe("GovPool", () => {
 
       describe("unlockInProposals(), unlock(), unlockNfts()", () => {
         let startTime;
-        beforeEach("", async () => {
+
+        beforeEach("setup", async () => {
           startTime = await getCurrentBlockTime();
           await govPool.voteTokens(1, wei("100"));
           await govPool.voteTokens(2, wei("50"));
@@ -531,7 +535,7 @@ describe("GovPool", () => {
           minNftBalance: 3,
         };
 
-        beforeEach("", async () => {
+        beforeEach("setup", async () => {
           startTime = await getCurrentBlockTime();
           await govPool.createProposal([settings.address], [getBytesEditSettings([3], [NEW_SETTINGS])]);
 
@@ -691,7 +695,7 @@ describe("GovPool", () => {
           await validators.vote(1, wei("100"), false, { from: OWNER });
           await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
-          await truffleAssert.reverts(govPool.execute(1), "ERC20: transfer amount exceeds allowance");
+          await truffleAssert.reverts(govPool.execute(1), "ERC20: insufficient allowance");
         });
       });
     });

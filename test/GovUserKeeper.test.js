@@ -183,6 +183,7 @@ describe("GovUserKeeper", () => {
         await userKeeper.depositNfts(SECOND, [1, 2, 3, 4, 5]);
 
         let balances = await userKeeper.nftBalanceOf(SECOND, 0, 5);
+
         assert.deepEqual(
           balances.map((e) => e.toFixed()),
           ["1", "2", "3", "4", "5"]
@@ -217,6 +218,7 @@ describe("GovUserKeeper", () => {
         await userKeeper.lockTokens(SECOND, wei("10"), 1);
         await userKeeper.lockTokens(SECOND, wei("5"), 1);
         await userKeeper.lockTokens(THIRD, wei("30"), 1);
+
         assert.equal((await userKeeper.tokenBalanceOf(SECOND))[1].toString(), wei("15"));
         assert.equal((await userKeeper.tokenBalanceOf(THIRD))[1].toString(), wei("30"));
       });
@@ -224,6 +226,7 @@ describe("GovUserKeeper", () => {
       it("should unlock", async () => {
         await userKeeper.lockTokens(SECOND, wei("10"), 1);
         assert.equal((await userKeeper.tokenBalanceOf(SECOND))[1].toString(), wei("10"));
+
         await userKeeper.unlockTokens(SECOND, 1);
         assert.equal((await userKeeper.tokenBalanceOf(SECOND))[1].toString(), wei("0"));
       });
@@ -234,6 +237,7 @@ describe("GovUserKeeper", () => {
 
       beforeEach(async () => {
         startTime = await getCurrentBlockTime();
+
         await token.mint(OWNER, wei("900"));
         await token.mint(SECOND, wei("900"));
         await token.approve(userKeeper.address, wei("900"));
@@ -289,6 +293,7 @@ describe("GovUserKeeper", () => {
         assert.equal((await token.balanceOf(THIRD)).toFixed(), wei("400"));
         assert.equal((await userKeeper.tokenBalanceOf(THIRD))[1].toFixed(), wei("500"));
       });
+
       it("should unlock tokens from few proposals", async () => {
         await userKeeper.lockTokens(THIRD, wei("100"), 1);
         await userKeeper.lockTokens(THIRD, wei("300"), 2);
@@ -316,10 +321,11 @@ describe("GovUserKeeper", () => {
     });
 
     describe("lockNfts(), unlockNfts()", () => {
-      beforeEach("", async () => {
+      beforeEach("setup", async () => {
         await userKeeper.depositNfts(SECOND, [1, 2]);
         await userKeeper.depositNfts(THIRD, [3]);
       });
+
       it("should lock nfts from to addresses", async () => {
         await userKeeper.lockNfts(SECOND, { values: [1], length: 1 });
         await userKeeper.lockNfts(SECOND, { values: [2], length: 1 });
@@ -368,8 +374,9 @@ describe("GovUserKeeper", () => {
     });
 
     describe("withdrawNfts()", () => {
-      beforeEach(async () => {
+      beforeEach("setup", async () => {
         startTime = await getCurrentBlockTime();
+
         await userKeeper.depositNfts(SECOND, [1, 2]);
         await userKeeper.depositNfts(THIRD, [3]);
       });
@@ -405,6 +412,7 @@ describe("GovUserKeeper", () => {
 
     describe("check snapshot", () => {
       let startTime;
+
       beforeEach("setup", async () => {
         startTime = await getCurrentBlockTime();
         await userKeeper.depositNfts(OWNER, [1]);
@@ -447,6 +455,7 @@ describe("GovUserKeeper", () => {
     it("should revert if nft is not supported", async () => {
       await truffleAssert.reverts(userKeeper.depositNfts(OWNER, [1]), "GovUK: nft is not supported");
     });
+
     it("should correctly calculate NFT weight if NFT contract is not added", async () => {
       expect((await userKeeper.getNftsPowerInTokens({ values: [0], length: 1 }, 0)).toFixed(), "0");
       expect((await userKeeper.getNftsPowerInTokens({ values: [1], length: 1 }, 0)).toFixed(), "0");
@@ -457,28 +466,39 @@ describe("GovUserKeeper", () => {
 
   describe("nft with power", () => {
     let startTime;
-    beforeEach("", async () => {
-      await token.mint(OWNER, wei("900"));
+
+    beforeEach("setup", async () => {
       startTime = await getCurrentBlockTime();
+
       nft = await ERC721Power.new("Power", "Power", startTime + 200);
+
+      await userKeeper.__GovUserKeeper_init(token.address, nft.address, wei("33000"), 33);
+
+      await token.mint(OWNER, wei("900"));
+      await token.approve(nft.address, wei("500"));
+
       await nft.setMaxPower("10000");
       await nft.setRequiredCollateral("500");
       await nft.setReductionPercent(PRECISION.times(toBN("0.01")));
+
       for (let i = 1; i <= 9; i++) {
-        if (i === 8) continue;
+        if (i === 8) {
+          continue;
+        }
+
         await nft.safeMint(OWNER, i);
         await nft.approve(userKeeper.address, i);
       }
-      await nft.setCollateralToken(token.address);
-      await token.approve(nft.address, wei("500"));
-      await nft.addCollateral(wei("500"), "9");
 
-      await userKeeper.__GovUserKeeper_init(token.address, nft.address, wei("33000"), 33);
+      await nft.setCollateralToken(token.address);
+      await nft.addCollateral(wei("500"), "9");
     });
+
     describe("snapshot()", () => {
-      beforeEach("", async () => {
+      beforeEach("setup", async () => {
         await userKeeper.depositNfts(SECOND, [1]);
       });
+
       it("should correctly calculate NFT power after snapshot", async () => {
         await setTime(startTime + 999);
         await userKeeper.createNftPowerSnapshot();

@@ -116,7 +116,6 @@ describe("DistributionProposal", () => {
   describe("setProposalId()", () => {
     it("should correctly set initial params", async () => {
       await proposal.setProposalId(111);
-
       assert.equal(await proposal.proposalId(), 111);
     });
 
@@ -132,6 +131,7 @@ describe("DistributionProposal", () => {
 
   describe("execute()", () => {
     let startTime;
+
     it("should correctly execute", async () => {
       startTime = await getCurrentBlockTime();
       await proposal.setProposalId(1);
@@ -156,7 +156,8 @@ describe("DistributionProposal", () => {
 
   describe("claim()", () => {
     let startTime;
-    beforeEach(async () => {
+
+    beforeEach("setup", async () => {
       startTime = await getCurrentBlockTime();
 
       await token.mint(proposal.address, wei("100000"));
