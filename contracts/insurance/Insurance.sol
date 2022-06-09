@@ -36,7 +36,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
 
     event Deposited(uint256 amount, address investor);
     event Withdrawn(uint256 amount, address investor);
-    event Paidout(uint256 amount, address investor);
+    event Paidout(uint256 amount, uint256 userStakePayout, address investor);
 
     modifier onlyTraderPool() {
         require(_traderPoolRegistry.isPool(_msgSender()), "Insurance: Not a trader pool");
@@ -222,7 +222,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
 
         userInfos[user].stake -= userStakePayout;
 
-        emit Paidout(payout, user);
+        emit Paidout(payout, userStakePayout, user);
 
         return payout;
     }
