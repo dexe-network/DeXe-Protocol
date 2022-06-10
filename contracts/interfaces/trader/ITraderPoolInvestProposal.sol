@@ -33,6 +33,14 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
         uint256 newInvestedBase;
     }
 
+    /// @notice The struct that holds extra information about this proposal
+    /// @param proposalInfo the information about this proposal
+    /// @param totalInvestors the number of investors currently in this proposal
+    struct ProposalInfoExtended {
+        ProposalInfo proposalInfo;
+        uint256 totalInvestors;
+    }
+
     /// @param cumulativeSums the helper values per rewarded token needed to calculate the investors' rewards
     /// @param rewardToken the set of rewarded token addresses
     struct RewardInfo {
@@ -94,7 +102,7 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
     function getProposalInfos(uint256 offset, uint256 limit)
         external
         view
-        returns (ProposalInfo[] memory proposals);
+        returns (ProposalInfoExtended[] memory proposals);
 
     /// @notice The function to get the information about the active proposals of this user
     /// @param user the user to observe

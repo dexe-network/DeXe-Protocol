@@ -63,7 +63,13 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         override
         returns (ProposalInfoExtended[] memory proposals)
     {
-        return TraderPoolRiskyProposalView.getProposalInfos(_proposalInfos, offset, limit);
+        return
+            TraderPoolRiskyProposalView.getProposalInfos(
+                _proposalInfos,
+                _investors,
+                offset,
+                limit
+            );
     }
 
     function getActiveInvestmentsInfo(

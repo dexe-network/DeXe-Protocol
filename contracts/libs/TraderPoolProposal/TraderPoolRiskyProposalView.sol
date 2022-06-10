@@ -16,6 +16,7 @@ import "../../trader/TraderPoolRiskyProposal.sol";
 
 library TraderPoolRiskyProposalView {
     using EnumerableSet for EnumerableSet.UintSet;
+    using EnumerableSet for EnumerableSet.AddressSet;
     using DecimalsConverter for uint256;
     using MathHelper for uint256;
     using Math for uint256;
@@ -24,6 +25,7 @@ library TraderPoolRiskyProposalView {
 
     function getProposalInfos(
         mapping(uint256 => ITraderPoolRiskyProposal.ProposalInfo) storage proposalInfos,
+        mapping(uint256 => EnumerableSet.AddressSet) storage investors,
         uint256 offset,
         uint256 limit
     ) external view returns (ITraderPoolRiskyProposal.ProposalInfoExtended[] memory proposals) {
@@ -52,6 +54,12 @@ library TraderPoolRiskyProposalView {
             );
             proposals[i - offset].lp2Supply = TraderPoolRiskyProposal(address(this)).totalSupply(
                 i + 1
+            );
+            proposals[i - offset].totalInvestors = investors[i + 1].length();
+            proposals[i - offset].positionTokenPrice = priceFeed.getNormPriceIn(
+                baseToken,
+                proposals[i - offset].proposalInfo.token,
+                DECIMALS
             );
         }
     }

@@ -650,7 +650,14 @@ describe("BasicTraderPool", () => {
         await uniswapV2Router.setReserve(tokens.WBTC.address, wei("1000000", 8));
 
         await invest(wei("1000"), SECOND);
+
+        let info = (await proposalPool.getProposalInfos(0, 1))[0];
+        assert.equal(toBN(info.totalInvestors).toFixed(), "0");
+
         await investProposal(1, wei("1000"), SECOND);
+
+        info = (await proposalPool.getProposalInfos(0, 1))[0];
+        assert.equal(toBN(info.totalInvestors).toFixed(), "1");
 
         assert.equal((await traderPool.balanceOf(SECOND)).toFixed(), "0");
         assert.equal((await traderPool.totalInvestors()).toFixed(), "1");
@@ -658,6 +665,9 @@ describe("BasicTraderPool", () => {
         assert.equal((await proposalPool.balanceOf(SECOND, 1)).toFixed(), wei("1000"));
 
         await proposalPool.safeTransferFrom(SECOND, OWNER, 1, wei("1000"), "0x", { from: SECOND });
+
+        info = (await proposalPool.getProposalInfos(0, 1))[0];
+        assert.equal(toBN(info.totalInvestors).toFixed(), "0");
 
         assert.equal((await traderPool.balanceOf(SECOND)).toFixed(), "0");
         assert.equal((await proposalPool.getTotalActiveInvestments(SECOND)).toFixed(), "0");

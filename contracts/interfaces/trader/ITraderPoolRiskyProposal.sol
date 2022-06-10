@@ -48,11 +48,15 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// @param proposalInfo the information about this proposal
     /// @param totalProposalUSD the equivalent USD TVL in this proposal
     /// @param totalProposalBase the equivalent base TVL in this proposal
+    /// @param totalInvestors the number of investors currently in this proposal
+    /// @param positionTokenPrice the exact price on 1 position token in base tokens
     struct ProposalInfoExtended {
         ProposalInfo proposalInfo;
         uint256 totalProposalUSD;
         uint256 totalProposalBase;
         uint256 lp2Supply;
+        uint256 totalInvestors;
+        uint256 positionTokenPrice;
     }
 
     /// @notice The struct that is used in the "TraderPoolRiskyProposalView" contract and stores information about the investor's

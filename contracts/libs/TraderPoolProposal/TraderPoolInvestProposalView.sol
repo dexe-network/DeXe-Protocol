@@ -23,17 +23,19 @@ library TraderPoolInvestProposalView {
 
     function getProposalInfos(
         mapping(uint256 => ITraderPoolInvestProposal.ProposalInfo) storage proposalInfos,
+        mapping(uint256 => EnumerableSet.AddressSet) storage investors,
         uint256 offset,
         uint256 limit
-    ) external view returns (ITraderPoolInvestProposal.ProposalInfo[] memory proposals) {
+    ) external view returns (ITraderPoolInvestProposal.ProposalInfoExtended[] memory proposals) {
         uint256 to = (offset + limit)
             .min(TraderPoolInvestProposal(address(this)).proposalsTotalNum())
             .max(offset);
 
-        proposals = new ITraderPoolInvestProposal.ProposalInfo[](to - offset);
+        proposals = new ITraderPoolInvestProposal.ProposalInfoExtended[](to - offset);
 
         for (uint256 i = offset; i < to; i++) {
-            proposals[i - offset] = proposalInfos[i + 1];
+            proposals[i - offset].proposalInfo = proposalInfos[i + 1];
+            proposals[i - offset].totalInvestors = investors[i + 1].length();
         }
     }
 

@@ -54,9 +54,15 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         external
         view
         override
-        returns (ProposalInfo[] memory proposals)
+        returns (ProposalInfoExtended[] memory proposals)
     {
-        return TraderPoolInvestProposalView.getProposalInfos(_proposalInfos, offset, limit);
+        return
+            TraderPoolInvestProposalView.getProposalInfos(
+                _proposalInfos,
+                _investors,
+                offset,
+                limit
+            );
     }
 
     function getActiveInvestmentsInfo(

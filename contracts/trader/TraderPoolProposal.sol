@@ -25,6 +25,7 @@ abstract contract TraderPoolProposal is
     AbstractDependant
 {
     using EnumerableSet for EnumerableSet.UintSet;
+    using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
     using MathHelper for uint256;
     using DecimalsConverter for uint256;
@@ -38,6 +39,8 @@ abstract contract TraderPoolProposal is
 
     uint256 public override totalLockedLP;
     uint256 public override investedBase;
+
+    mapping(uint256 => EnumerableSet.AddressSet) internal _investors; // proposal id => investors
 
     mapping(address => EnumerableSet.UintSet) internal _activeInvestments; // user => proposals
     mapping(address => mapping(uint256 => uint256)) internal _lpBalances; // user => proposal id => LP invested
@@ -123,11 +126,7 @@ abstract contract TraderPoolProposal is
         totalLockedLP += lpInvestment;
         investedBase += baseInvestment;
 
-        _activeInvestments[to].add(proposalId);
-
-        _lpBalances[to][proposalId] += lpInvestment;
-        totalLPBalances[to] += lpInvestment;
-
+        _updateTo(to, proposalId, lpInvestment);
         _mint(to, proposalId, toMint, "");
     }
 
@@ -143,23 +142,6 @@ abstract contract TraderPoolProposal is
         totalLPBalances[user] -= lpTransfer;
     }
 
-    function _updateFrom(
-        address user,
-        uint256 proposalId,
-        uint256 amount
-    ) internal virtual returns (uint256 lpTransfer) {
-        if (balanceOf(user, proposalId) == amount) {
-            _activeInvestments[user].remove(proposalId);
-
-            if (_activeInvestments[user].length() == 0) {
-                ITraderPoolInvestorsHook(_parentTraderPoolInfo.parentPoolAddress)
-                    .checkRemoveInvestor(user);
-            }
-        }
-
-        return _updateFromData(user, proposalId, amount);
-    }
-
     function _updateToData(
         address user,
         uint256 proposalId,
@@ -171,13 +153,49 @@ abstract contract TraderPoolProposal is
         totalLPBalances[user] += lpAmount;
     }
 
+    function _checkRemoveInvestor(
+        address user,
+        uint256 proposalId,
+        uint256 amount
+    ) internal {
+        if (balanceOf(user, proposalId) == amount) {
+            _activeInvestments[user].remove(proposalId);
+
+            if (user != _parentTraderPoolInfo.trader) {
+                _investors[proposalId].remove(user);
+
+                if (_activeInvestments[user].length() == 0) {
+                    ITraderPoolInvestorsHook(_parentTraderPoolInfo.parentPoolAddress)
+                        .checkRemoveInvestor(user);
+                }
+            }
+        }
+    }
+
+    function _checkNewInvestor(address user, uint256 proposalId) internal {
+        if (user != _parentTraderPoolInfo.trader) {
+            _investors[proposalId].add(user);
+            ITraderPoolInvestorsHook(_parentTraderPoolInfo.parentPoolAddress).checkNewInvestor(
+                user
+            );
+        }
+    }
+
+    function _updateFrom(
+        address user,
+        uint256 proposalId,
+        uint256 amount
+    ) internal virtual returns (uint256 lpTransfer) {
+        _checkRemoveInvestor(user, proposalId, amount);
+        return _updateFromData(user, proposalId, amount);
+    }
+
     function _updateTo(
         address user,
         uint256 proposalId,
         uint256 lpAmount
     ) internal virtual {
-        ITraderPoolInvestorsHook(_parentTraderPoolInfo.parentPoolAddress).checkNewInvestor(user);
-
+        _checkNewInvestor(user, proposalId);
         _updateToData(user, proposalId, lpAmount);
     }
 

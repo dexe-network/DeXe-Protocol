@@ -490,7 +490,12 @@ describe("InvestTraderPool", () => {
         await investProposal(1, wei("500"), SECOND);
 
         let info = (await proposalPool.getProposalInfos(0, 1))[0];
-        assert.closeTo(toBN(info.newInvestedBase).toNumber(), toBN(wei("600")).toNumber(), toBN(wei("1")).toNumber());
+        assert.equal(toBN(info.totalInvestors).toFixed(), "1");
+        assert.closeTo(
+          toBN(info.proposalInfo.newInvestedBase).toNumber(),
+          toBN(wei("600")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
 
         assert.equal((await tokens.WETH.balanceOf(OWNER)).toFixed(), wei("998999000"));
 
@@ -499,7 +504,13 @@ describe("InvestTraderPool", () => {
         assert.equal((await tokens.WETH.balanceOf(OWNER)).toFixed(), wei("998999600"));
 
         info = (await proposalPool.getProposalInfos(0, 1))[0];
-        assert.closeTo(toBN(info.newInvestedBase).toNumber(), toBN(wei("0")).toNumber(), toBN(wei("1")).toNumber());
+
+        assert.equal(toBN(info.totalInvestors).toFixed(), "1");
+        assert.closeTo(
+          toBN(info.proposalInfo.newInvestedBase).toNumber(),
+          toBN(wei("0")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
       });
     });
 
