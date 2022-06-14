@@ -60,10 +60,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     event InvestorAdded(address investor);
     event InvestorRemoved(address investor);
-    event Invested(address investor, uint256 amount, uint256 toMintLP);
-    event Divested(address investor, uint256 amount, uint256 commission);
-    event TraderCommissionMinted(address trader, uint256 amount);
-    event TraderCommissionPaid(address investor, uint256 amount);
+    event Invested(address investor, uint256 investedBase, uint256 receivedLP);
+    event Divested(address investor, uint256 divestedLP, uint256 receivedBase);
+    event TraderCommissionMinted(address trader, uint256 lpMinted);
+    event TraderCommissionPaid(address investor, uint256 lpPaid);
     event DescriptionURLChanged(string descriptionURL);
     event ModifiedAdmins(address[] admins, bool add);
     event ModifiedPrivateInvestors(address[] privateInvestors, bool add);
@@ -408,7 +408,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 amountLP,
         uint256[] calldata minPositionsOut,
         uint256 minDexeCommissionOut
-    ) internal returns (uint256) {
+    ) internal returns (uint256 receivedBase) {
         uint256 investorBaseAmount = _divestPositions(amountLP, minPositionsOut);
 
         (uint256 baseCommission, uint256 lpCommission) = _poolParameters
@@ -417,26 +417,26 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _updateFrom(msg.sender, amountLP);
         _burn(msg.sender, amountLP);
 
+        receivedBase = investorBaseAmount - baseCommission;
+
         IERC20(_poolParameters.baseToken).safeTransfer(
             msg.sender,
-            (investorBaseAmount - baseCommission).convertFrom18(_poolParameters.baseTokenDecimals)
+            (receivedBase).convertFrom18(_poolParameters.baseTokenDecimals)
         );
 
         if (baseCommission > 0) {
             _distributeCommission(baseCommission, lpCommission, minDexeCommissionOut);
         }
-
-        return baseCommission;
     }
 
-    function _divestTrader(uint256 amountLP) internal {
+    function _divestTrader(uint256 amountLP) internal returns (uint256 receivedBase) {
         _checkUserBalance(amountLP);
 
         IERC20 baseToken = IERC20(_poolParameters.baseToken);
-        uint256 traderBaseAmount = address(baseToken).thisBalance().ratio(amountLP, totalSupply());
+        receivedBase = address(baseToken).thisBalance().ratio(amountLP, totalSupply());
 
         _burn(msg.sender, amountLP);
-        baseToken.safeTransfer(msg.sender, traderBaseAmount);
+        baseToken.safeTransfer(msg.sender, receivedBase);
     }
 
     function getDivestAmountsAndCommissions(address user, uint256 amountLP)
@@ -456,15 +456,15 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         bool senderTrader = isTrader(msg.sender);
         require(!senderTrader || openPositions().length == 0, "TP: can't divest");
 
-        uint256 baseCommission;
+        uint256 receivedBase;
 
         if (senderTrader) {
-            _divestTrader(amountLP);
+            receivedBase = _divestTrader(amountLP);
         } else {
-            baseCommission = _divestInvestor(amountLP, minPositionsOut, minDexeCommissionOut);
+            receivedBase = _divestInvestor(amountLP, minPositionsOut, minDexeCommissionOut);
         }
 
-        emit Divested(msg.sender, amountLP, baseCommission);
+        emit Divested(msg.sender, amountLP, receivedBase);
     }
 
     function exchange(
