@@ -15,19 +15,12 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
 
     uint256 internal _firstExchange;
 
-    event ProposalCreated(
-        uint256 index,
-        address token,
-        ITraderPoolInvestProposal.ProposalLimits proposalLimits
-    );
-    event ProposalInvest(uint256 index, address investor, uint256 amountLP, uint256 amountBase);
-    event ProposalDivest(uint256 index, address investor, uint256 amount, uint256 commission);
-    event ProposalExchange(
-        uint256 index,
-        address fromToken,
-        address toToken,
-        uint256 fromVolume,
-        uint256 toVolume
+    event ProposalDivested(
+        uint256 proposalId,
+        address user,
+        uint256 divestedLP2,
+        uint256 receivedLP,
+        uint256 receivedBase
     );
 
     modifier onlyProposalPool() {
@@ -140,13 +133,14 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
     {
         uint256 receivedBase = _traderPoolProposal.divest(proposalId, msg.sender);
 
-        _invest(address(_traderPoolProposal), receivedBase, minPositionsOut);
-    }
+        uint256 lpMinted = _investPositions(
+            address(_traderPoolProposal),
+            receivedBase,
+            minPositionsOut
+        );
+        _updateToData(msg.sender, receivedBase);
 
-    function reinvestAllProposals(uint256[] calldata minPositionsOut) external override {
-        uint256 receivedBase = _traderPoolProposal.divestAll(msg.sender);
-
-        _invest(address(_traderPoolProposal), receivedBase, minPositionsOut);
+        emit ProposalDivested(proposalId, msg.sender, 0, lpMinted, receivedBase);
     }
 
     function checkRemoveInvestor(address user) external override onlyProposalPool {

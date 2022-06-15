@@ -66,8 +66,9 @@ library TraderPoolRiskyProposalView {
 
     function getActiveInvestmentsInfo(
         EnumerableSet.UintSet storage activeInvestments,
-        mapping(uint256 => ITraderPoolRiskyProposal.ProposalInfo) storage proposalInfos,
+        mapping(address => mapping(uint256 => uint256)) storage baseBalances,
         mapping(address => mapping(uint256 => uint256)) storage lpBalances,
+        mapping(uint256 => ITraderPoolRiskyProposal.ProposalInfo) storage proposalInfos,
         address user,
         uint256 offset,
         uint256 limit
@@ -81,18 +82,13 @@ library TraderPoolRiskyProposalView {
             uint256 balance = TraderPoolRiskyProposal(address(this)).balanceOf(user, proposalId);
             uint256 supply = TraderPoolRiskyProposal(address(this)).totalSupply(proposalId);
 
-            uint256 baseShare = proposalInfos[proposalId].balanceBase.ratio(balance, supply);
-            uint256 positionShare = proposalInfos[proposalId].balancePosition.ratio(
-                balance,
-                supply
-            );
-
             investments[i - offset] = ITraderPoolRiskyProposal.ActiveInvestmentInfo(
                 proposalId,
                 balance,
+                baseBalances[user][proposalId],
                 lpBalances[user][proposalId],
-                baseShare,
-                positionShare
+                proposalInfos[proposalId].balanceBase.ratio(balance, supply),
+                proposalInfos[proposalId].balancePosition.ratio(balance, supply)
             );
         }
     }
@@ -236,17 +232,15 @@ library TraderPoolRiskyProposalView {
                     lp2s[i],
                     propSupply
                 );
-                receptions.baseAmount += proposalInfos[proposalId].balanceBase.ratio(
-                    lp2s[i],
-                    propSupply
-                );
-
                 receptions.receivedAmounts[i] = priceFeed.getNormPriceOut(
                     proposalInfos[proposalId].token,
                     parentTraderPoolInfo.baseToken,
                     receptions.givenAmounts[i]
                 );
-                receptions.baseAmount += receptions.receivedAmounts[i];
+
+                receptions.baseAmount +=
+                    proposalInfos[proposalId].balanceBase.ratio(lp2s[i], propSupply) +
+                    receptions.receivedAmounts[i];
             }
         }
     }

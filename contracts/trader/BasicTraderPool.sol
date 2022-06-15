@@ -12,6 +12,14 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
 
     ITraderPoolRiskyProposal internal _traderPoolProposal;
 
+    event ProposalDivested(
+        uint256 proposalId,
+        address user,
+        uint256 divestedLP2,
+        uint256 receivedLP,
+        uint256 receivedBase
+    );
+
     modifier onlyProposalPool() {
         _onlyProposalPool();
         _;
@@ -119,16 +127,14 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
             minProposalOut
         );
 
-        _invest(address(_traderPoolProposal), receivedBase, minPositionsOut);
-    }
+        uint256 lpMinted = _investPositions(
+            address(_traderPoolProposal),
+            receivedBase,
+            minPositionsOut
+        );
+        _updateToData(msg.sender, receivedBase);
 
-    function reinvestAllProposals(
-        uint256[] calldata minInvestsOut,
-        uint256[] calldata minProposalsOut
-    ) external override {
-        uint256 receivedBase = _traderPoolProposal.divestAll(msg.sender, minProposalsOut);
-
-        _invest(address(_traderPoolProposal), receivedBase, minInvestsOut);
+        emit ProposalDivested(proposalId, msg.sender, lp2Amount, lpMinted, receivedBase);
     }
 
     function checkRemoveInvestor(address user) external override onlyProposalPool {

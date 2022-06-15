@@ -43,8 +43,24 @@ abstract contract TraderPoolProposal is
     mapping(uint256 => EnumerableSet.AddressSet) internal _investors; // proposal id => investors
 
     mapping(address => EnumerableSet.UintSet) internal _activeInvestments; // user => proposals
+    mapping(address => mapping(uint256 => uint256)) internal _baseBalances; // user => proposal id => base invested
     mapping(address => mapping(uint256 => uint256)) internal _lpBalances; // user => proposal id => LP invested
     mapping(address => uint256) public override totalLPBalances; // user => LP invested
+
+    event ProposalInvested(
+        uint256 proposalId,
+        address user,
+        uint256 investedLP,
+        uint256 investedBase,
+        uint256 receivedLP2
+    );
+    event ProposalDivested(
+        uint256 proposalId,
+        address user,
+        uint256 divestedLP2,
+        uint256 receivedLP,
+        uint256 receivedBase
+    );
 
     modifier onlyParentTraderPool() {
         _onlyParentTraderPool();
@@ -126,18 +142,22 @@ abstract contract TraderPoolProposal is
         totalLockedLP += lpInvestment;
         investedBase += baseInvestment;
 
-        _updateTo(to, proposalId, lpInvestment);
         _mint(to, proposalId, toMint, "");
+        _updateTo(to, proposalId, toMint, lpInvestment, baseInvestment);
     }
 
     function _updateFromData(
         address user,
         uint256 proposalId,
-        uint256 amount
-    ) internal returns (uint256 lpTransfer) {
+        uint256 lp2Amount
+    ) internal returns (uint256 lpTransfer, uint256 baseTransfer) {
+        uint256 baseBalance = _baseBalances[user][proposalId];
         uint256 lpBalance = _lpBalances[user][proposalId];
-        lpTransfer = lpBalance.ratio(amount, balanceOf(user, proposalId)).min(lpBalance);
 
+        baseTransfer = baseBalance.ratio(lp2Amount, balanceOf(user, proposalId)).min(baseBalance);
+        lpTransfer = lpBalance.ratio(lp2Amount, balanceOf(user, proposalId)).min(lpBalance);
+
+        _baseBalances[user][proposalId] -= baseTransfer;
         _lpBalances[user][proposalId] -= lpTransfer;
         totalLPBalances[user] -= lpTransfer;
     }
@@ -145,10 +165,12 @@ abstract contract TraderPoolProposal is
     function _updateToData(
         address user,
         uint256 proposalId,
-        uint256 lpAmount
+        uint256 lpAmount,
+        uint256 baseAmount
     ) internal {
         _activeInvestments[user].add(proposalId);
 
+        _baseBalances[user][proposalId] += baseAmount;
         _lpBalances[user][proposalId] += lpAmount;
         totalLPBalances[user] += lpAmount;
     }
@@ -156,9 +178,9 @@ abstract contract TraderPoolProposal is
     function _checkRemoveInvestor(
         address user,
         uint256 proposalId,
-        uint256 amount
+        uint256 lp2Amount
     ) internal {
-        if (balanceOf(user, proposalId) == amount) {
+        if (balanceOf(user, proposalId) == lp2Amount) {
             _activeInvestments[user].remove(proposalId);
 
             if (user != _parentTraderPoolInfo.trader) {
@@ -184,19 +206,28 @@ abstract contract TraderPoolProposal is
     function _updateFrom(
         address user,
         uint256 proposalId,
-        uint256 amount
-    ) internal virtual returns (uint256 lpTransfer) {
-        _checkRemoveInvestor(user, proposalId, amount);
-        return _updateFromData(user, proposalId, amount);
+        uint256 lp2Amount,
+        bool isTransfer
+    ) internal virtual returns (uint256 lpTransfer, uint256 baseTransfer) {
+        _checkRemoveInvestor(user, proposalId, lp2Amount);
+        (lpTransfer, baseTransfer) = _updateFromData(user, proposalId, lp2Amount);
+
+        if (isTransfer) {
+            emit ProposalDivested(proposalId, user, lp2Amount, lpTransfer, baseTransfer);
+        }
     }
 
     function _updateTo(
         address user,
         uint256 proposalId,
-        uint256 lpAmount
+        uint256 lp2Amount,
+        uint256 lpAmount,
+        uint256 baseAmount
     ) internal virtual {
         _checkNewInvestor(user, proposalId);
-        _updateToData(user, proposalId, lpAmount);
+        _updateToData(user, proposalId, lpAmount, baseAmount);
+
+        emit ProposalInvested(proposalId, user, lpAmount, baseAmount, lp2Amount);
     }
 
     function _beforeTokenTransfer(
@@ -213,8 +244,13 @@ abstract contract TraderPoolProposal is
             require(amounts[i] > 0, "TPP: 0 transfer");
 
             if (from != address(0) && to != address(0) && to != from) {
-                uint256 lpTransfer = _updateFrom(from, ids[i], amounts[i]);
-                _updateTo(to, ids[i], lpTransfer);
+                (uint256 lpTransfer, uint256 baseTransfer) = _updateFrom(
+                    from,
+                    ids[i],
+                    amounts[i],
+                    true
+                );
+                _updateTo(to, ids[i], amounts[i], lpTransfer, baseTransfer);
             }
         }
     }

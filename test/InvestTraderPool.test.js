@@ -282,18 +282,6 @@ describe("InvestTraderPool", () => {
     await proposalPool.supply(proposalId, amounts, tokens);
   }
 
-  async function reinvestAllProposals(account) {
-    const length = await proposalPool.getTotalActiveInvestments(account);
-    const activeProposals = await proposalPool.getActiveInvestmentsInfo(account, 0, length);
-
-    const proposals = activeProposals.map((prop) => prop.proposalId);
-
-    const divests = await proposalPool.getRewards(proposals, account);
-    const invests = await traderPool.getInvestTokens(divests.baseAmountFromRewards);
-
-    await traderPool.reinvestAllProposals(invests.receivedAmounts, { from: account });
-  }
-
   describe("Default Pool", () => {
     let POOL_PARAMETERS = {};
 
@@ -569,7 +557,12 @@ describe("InvestTraderPool", () => {
           toBN(wei("50")).toNumber(),
           toBN(wei("0.01")).toNumber()
         );
-        assert.equal(toBN(proposalInfo.lpLocked).toFixed(), wei("500"));
+        assert.equal(toBN(proposalInfo.lpInvested).toFixed(), wei("500"));
+        assert.closeTo(
+          toBN(proposalInfo.baseInvested).toNumber(),
+          toBN(wei("500")).toNumber(),
+          toBN(wei("0.1")).toNumber()
+        );
 
         await claimProposal(1, SECOND);
 
@@ -593,7 +586,7 @@ describe("InvestTraderPool", () => {
           toBN(wei("5000")).toNumber(),
           toBN(wei("1")).toNumber()
         );
-        assert.equal(toBN(proposalInfo.lpLocked).toFixed(), wei("500"));
+        assert.equal(toBN(proposalInfo.lpInvested).toFixed(), wei("500"));
       });
 
       it("should claim the deposit twice", async () => {
@@ -767,7 +760,7 @@ describe("InvestTraderPool", () => {
         );
       });
 
-      it("should reinvest all proposals", async () => {
+      it("should sequentially reinvest all proposals", async () => {
         const time = toBN(await getCurrentBlockTime());
 
         await createProposal(wei("200"), [time.plus(10000000), wei("5000")]);
@@ -792,7 +785,8 @@ describe("InvestTraderPool", () => {
           toBN(wei("1")).toNumber()
         );
 
-        await reinvestAllProposals(SECOND);
+        await reinvestProposal(1, SECOND);
+        await reinvestProposal(2, SECOND);
 
         assert.closeTo(
           (await traderPool.balanceOf(SECOND)).toNumber(),
@@ -810,7 +804,7 @@ describe("InvestTraderPool", () => {
           toBN(wei("1")).toNumber()
         );
 
-        await truffleAssert.reverts(reinvestAllProposals(SECOND), "TPIP: no base to divest");
+        await truffleAssert.reverts(reinvestProposal(1, SECOND), "TPIP: no base to divest");
       });
     });
 
@@ -838,7 +832,7 @@ describe("InvestTraderPool", () => {
 
         let infoSecond = (await proposalPool.getActiveInvestmentsInfo(SECOND, 0, 1))[0];
 
-        assert.equal(toBN(infoSecond.lpLocked).toFixed(), wei("500"));
+        assert.equal(toBN(infoSecond.lpInvested).toFixed(), wei("500"));
 
         await proposalPool.safeTransferFrom(SECOND, THIRD, 1, wei("250"), [], { from: SECOND });
 
@@ -847,8 +841,12 @@ describe("InvestTraderPool", () => {
 
         assert.equal((await traderPool.totalInvestors()).toFixed(), "2");
 
-        assert.closeTo(toBN(infoSecond.lpLocked).toNumber(), toBN(wei("250")).toNumber(), toBN(wei("0.1")).toNumber());
-        assert.closeTo(toBN(infoThird.lpLocked).toNumber(), toBN(wei("250")).toNumber(), toBN(wei("0.1")).toNumber());
+        assert.closeTo(
+          toBN(infoSecond.lpInvested).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("0.1")).toNumber()
+        );
+        assert.closeTo(toBN(infoThird.lpInvested).toNumber(), toBN(wei("250")).toNumber(), toBN(wei("0.1")).toNumber());
       });
 
       it("should not share rewards after transfer", async () => {

@@ -60,11 +60,13 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
     /// currently active investor's proposals
     /// @param proposalId the id of the proposal
     /// @param lp2Balance investor's balance of proposal's LP tokens
-    /// @param lpLocked the investor's amount of locked LP tokens
+    /// @param baseInvested the amount of invested base tokens by investor
+    /// @param lpInvested the amount of invested LP tokens by investor
     struct ActiveInvestmentInfo {
         uint256 proposalId;
         uint256 lp2Balance;
-        uint256 lpLocked;
+        uint256 baseInvested;
+        uint256 lpInvested;
     }
 
     /// @notice The struct that stores information about values of corresponding token addresses, used in the
@@ -155,17 +157,9 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
     /// @return the received amount of base tokens
     function divest(uint256 proposalId, address user) external returns (uint256);
 
-    /// @notice The function to divest profit from all the active proposals into the main pool
-    /// @param user the user who divests
-    /// @return the amount of base tokens received
-    function divestAll(address user) external returns (uint256);
-
     /// @notice The function used to claim the proposal's profit to the msg.sender wallet
     /// @param proposalId the id of the proposal
     function claim(uint256 proposalId) external;
-
-    /// @notice The function to claim all the active proposals' profit to the msg.sender wallet
-    function claimAll() external;
 
     /// @notice The trader function to withdraw the invested funds to his wallet
     /// @param proposalId The id of the proposal to withdraw the funds from

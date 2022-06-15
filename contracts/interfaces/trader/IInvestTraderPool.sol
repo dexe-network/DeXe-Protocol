@@ -42,8 +42,4 @@ interface IInvestTraderPool is ITraderPoolInvestorsHook {
     /// @param proposalId the id of the proposal to take the profit from
     /// @param minPositionsOut the amounts of position tokens received on investment
     function reinvestProposal(uint256 proposalId, uint256[] calldata minPositionsOut) external;
-
-    /// @notice This function invests all the profit from all proposals the msg.sender has into this pool
-    /// @param minPositionsOut this amounts of position tokens received on investment
-    function reinvestAllProposals(uint256[] calldata minPositionsOut) external;
 }

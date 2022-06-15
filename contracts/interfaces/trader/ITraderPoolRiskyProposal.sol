@@ -63,13 +63,15 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// active investments
     /// @param proposalId the id of the proposal
     /// @param lp2Balance the investor's balance of proposal's LP tokens
-    /// @param lpLocked the investor's amount of locked LP tokens
+    /// @param baseInvested the amount of invested base tokens by investor
+    /// @param lpInvested the amount of invested LP tokens by investor
     /// @param baseShare the amount of investor's base token in this proposal
     /// @param positionShare the amount of investor's position token in this proposal
     struct ActiveInvestmentInfo {
         uint256 proposalId;
         uint256 lp2Balance;
-        uint256 lpLocked;
+        uint256 baseInvested;
+        uint256 lpInvested;
         uint256 baseShare;
         uint256 positionShare;
     }
@@ -224,14 +226,6 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
         uint256 lp2,
         uint256 minPositionOut
     ) external returns (uint256);
-
-    /// @notice The function to divest (reinvest) tokens from all the active proposals
-    /// @param user the investor (or trader) who is divesting
-    /// @param minPositionsOut the minimal amounts of base tokens received from the proposals (call getDivestAmounts())
-    /// @return received amount of base tokens
-    function divestAll(address user, uint256[] calldata minPositionsOut)
-        external
-        returns (uint256);
 
     /// @notice The function to exchange tokens for tokens in the specified proposal
     /// @param proposalId the proposal to exchange tokens in

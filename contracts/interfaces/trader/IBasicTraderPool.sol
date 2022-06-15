@@ -57,12 +57,4 @@ interface IBasicTraderPool is ITraderPoolInvestorsHook {
         uint256[] calldata minInvestsOut,
         uint256 minProposalOut
     ) external;
-
-    /// @notice This function divests all users' proposals with maximum available LP2 amounts
-    /// @param minInvestsOut the minimal amounts of main pool positions tokens to be received
-    /// @param minProposalsOut the minimal amounts of base tokens received from proposals positions
-    function reinvestAllProposals(
-        uint256[] calldata minInvestsOut,
-        uint256[] calldata minProposalsOut
-    ) external;
 }

@@ -41,6 +41,7 @@ library TraderPoolInvestProposalView {
 
     function getActiveInvestmentsInfo(
         EnumerableSet.UintSet storage activeInvestments,
+        mapping(address => mapping(uint256 => uint256)) storage baseBalances,
         mapping(address => mapping(uint256 => uint256)) storage lpBalances,
         address user,
         uint256 offset,
@@ -55,6 +56,7 @@ library TraderPoolInvestProposalView {
             investments[i - offset] = ITraderPoolInvestProposal.ActiveInvestmentInfo(
                 proposalId,
                 TraderPoolInvestProposal(address(this)).balanceOf(user, proposalId),
+                baseBalances[user][proposalId],
                 lpBalances[user][proposalId]
             );
         }

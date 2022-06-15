@@ -292,21 +292,6 @@ describe("BasicTraderPool", () => {
     });
   }
 
-  async function reinvestAllProposals(slippage, account) {
-    const length = await proposalPool.getTotalActiveInvestments(account);
-    const activeProposals = await proposalPool.getActiveInvestmentsInfo(account, 0, length);
-
-    const proposals = activeProposals.map((prop) => prop.proposalId);
-    const amounts = activeProposals.map((prop) => prop.lp2Balance);
-
-    const divests = await proposalPool.getDivestAmounts(proposals, amounts);
-    const invests = await traderPool.getInvestTokens(divests.baseAmount);
-
-    const slippageAmounts = divests.receivedAmounts.map((amount) => toBN(amount).times(slippage).dp(0).toFixed());
-
-    await traderPool.reinvestAllProposals(invests.receivedAmounts, slippageAmounts, { from: account });
-  }
-
   describe("Default Pool", () => {
     let POOL_PARAMETERS;
 
@@ -724,13 +709,15 @@ describe("BasicTraderPool", () => {
 
         let info = (await proposalPool.getActiveInvestmentsInfo(OWNER, 0, 1))[0];
 
-        assert.equal(toBN(info.lpLocked).toFixed(), wei("500"));
+        assert.equal(toBN(info.lpInvested).toFixed(), wei("500"));
+        assert.equal(toBN(info.baseInvested).toFixed(), wei("500"));
 
         await reinvestProposal(1, wei("250"), OWNER);
 
         info = (await proposalPool.getActiveInvestmentsInfo(OWNER, 0, 1))[0];
 
-        assert.equal(toBN(info.lpLocked).toFixed(), wei("250"));
+        assert.equal(toBN(info.lpInvested).toFixed(), wei("250"));
+        assert.equal(toBN(info.baseInvested).toFixed(), wei("250"));
 
         assert.equal((await proposalPool.balanceOf(OWNER, 1)).toFixed(), wei("250"));
         assert.equal((await proposalPool.totalLockedLP()).toFixed(), wei("250"));
@@ -802,7 +789,7 @@ describe("BasicTraderPool", () => {
         );
       });
 
-      it("should divest from all proposals", async () => {
+      it("should divest sequentially from all proposals", async () => {
         await exchangeFromExact(tokens.WETH.address, tokens.MANA.address, wei("500"));
 
         await invest(wei("1000"), SECOND);
@@ -858,7 +845,8 @@ describe("BasicTraderPool", () => {
           toBN(wei("1")).toNumber()
         );
 
-        await reinvestAllProposals("0.99", SECOND);
+        await reinvestProposal(1, await proposalPool.balanceOf(SECOND, 1), SECOND);
+        await reinvestProposal(2, await proposalPool.balanceOf(SECOND, 2), SECOND);
 
         assert.closeTo(
           (await proposalPool.totalLockedLP()).toNumber(),
@@ -1034,7 +1022,8 @@ describe("BasicTraderPool", () => {
 
         let infoSecond = (await proposalPool.getActiveInvestmentsInfo(SECOND, 0, 1))[0];
 
-        assert.equal(toBN(infoSecond.lpLocked).toFixed(), wei("500"));
+        assert.equal(toBN(infoSecond.lpInvested).toFixed(), wei("500"));
+        assert.equal(toBN(infoSecond.baseInvested).toFixed(), wei("500"));
 
         await proposalPool.safeTransferFrom(SECOND, THIRD, 1, wei("250"), [], { from: SECOND });
 
@@ -1043,8 +1032,23 @@ describe("BasicTraderPool", () => {
 
         assert.equal((await traderPool.totalInvestors()).toFixed(), "2");
 
-        assert.closeTo(toBN(infoSecond.lpLocked).toNumber(), toBN(wei("250")).toNumber(), toBN(wei("0.1")).toNumber());
-        assert.closeTo(toBN(infoThird.lpLocked).toNumber(), toBN(wei("250")).toNumber(), toBN(wei("0.1")).toNumber());
+        assert.closeTo(
+          toBN(infoSecond.lpInvested).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("0.1")).toNumber()
+        );
+        assert.closeTo(toBN(infoThird.lpInvested).toNumber(), toBN(wei("250")).toNumber(), toBN(wei("0.1")).toNumber());
+
+        assert.closeTo(
+          toBN(infoSecond.baseInvested).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("0.1")).toNumber()
+        );
+        assert.closeTo(
+          toBN(infoThird.baseInvested).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("0.1")).toNumber()
+        );
       });
 
       it("should add new and remove old investor", async () => {
@@ -1052,7 +1056,7 @@ describe("BasicTraderPool", () => {
 
         const infoSecond = (await proposalPool.getActiveInvestmentsInfo(SECOND, 0, 1))[0];
 
-        assert.equal(toBN(infoSecond.lpLocked).toFixed(), wei("500"));
+        assert.equal(toBN(infoSecond.lpInvested).toFixed(), wei("500"));
 
         await proposalPool.safeTransferFrom(SECOND, THIRD, 1, (await proposalPool.balanceOf(SECOND, 1)).toFixed(), [], {
           from: SECOND,
@@ -1062,7 +1066,7 @@ describe("BasicTraderPool", () => {
 
         assert.equal((await traderPool.totalInvestors()).toFixed(), "1");
 
-        assert.equal(toBN(infoThird.lpLocked).toFixed(), wei("500"));
+        assert.equal(toBN(infoThird.lpInvested).toFixed(), wei("500"));
       });
     });
   });
