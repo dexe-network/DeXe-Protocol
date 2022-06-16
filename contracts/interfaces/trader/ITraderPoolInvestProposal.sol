@@ -157,10 +157,6 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
     /// @return the received amount of base tokens
     function divest(uint256 proposalId, address user) external returns (uint256);
 
-    /// @notice The function used to claim the proposal's profit to the msg.sender wallet
-    /// @param proposalId the id of the proposal
-    function claim(uint256 proposalId) external;
-
     /// @notice The trader function to withdraw the invested funds to his wallet
     /// @param proposalId The id of the proposal to withdraw the funds from
     /// @param amount the amount of base tokens to withdraw (normalized)

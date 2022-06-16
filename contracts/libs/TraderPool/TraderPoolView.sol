@@ -202,12 +202,14 @@ library TraderPoolView {
         (userInfo.investedBase, userInfo.commissionUnlockTimestamp) = TraderPool(address(this))
             .investorsInfo(user);
 
-        if (userInfo.commissionUnlockTimestamp > 0) {
-            userInfo.commissionUnlockTimestamp = coreProperties.getCommissionTimestampByEpoch(
-                userInfo.commissionUnlockTimestamp,
-                commissionPeriod
-            );
-        }
+        userInfo.commissionUnlockTimestamp = userInfo.commissionUnlockTimestamp == 0
+            ? coreProperties.getCommissionEpochByTimestamp(block.timestamp, commissionPeriod)
+            : userInfo.commissionUnlockTimestamp;
+
+        userInfo.commissionUnlockTimestamp = coreProperties.getCommissionTimestampByEpoch(
+            userInfo.commissionUnlockTimestamp,
+            commissionPeriod
+        );
 
         if (totalSupply > 0) {
             userInfo.poolUSDShare = totalPoolUSD.ratio(userInfo.poolLPBalance, totalSupply);

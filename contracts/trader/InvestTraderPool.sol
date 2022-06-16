@@ -133,6 +133,10 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
     {
         uint256 receivedBase = _traderPoolProposal.divest(proposalId, msg.sender);
 
+        if (receivedBase == 0) {
+            return;
+        }
+
         uint256 lpMinted = _investPositions(
             address(_traderPoolProposal),
             receivedBase,

@@ -209,7 +209,11 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
     function _calculateRewards(uint256 proposalId, address user)
         internal
-        returns (uint256[] memory claimed, address[] memory addresses)
+        returns (
+            uint256 totalClaimed,
+            uint256[] memory claimed,
+            address[] memory addresses
+        )
     {
         _updateRewards(proposalId, user);
 
@@ -227,6 +231,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
             claimed[i] = _userRewardInfos[user][proposalId].rewardsStored[token];
             addresses[i] = token;
+            totalClaimed += claimed[i];
 
             delete _userRewardInfos[user][proposalId].rewardsStored[token];
 
@@ -250,13 +255,16 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
-        (uint256[] memory claimed, address[] memory addresses) = _calculateRewards(
-            proposalId,
-            user
-        );
+        (
+            uint256 totalClaimed,
+            uint256[] memory claimed,
+            address[] memory addresses
+        ) = _calculateRewards(proposalId, user);
+
+        require(totalClaimed > 0, "TPIP: nothing to divest");
 
         if (addresses[0] == _parentTraderPoolInfo.baseToken) {
-            claimedBase += claimed[0];
+            claimedBase = claimed[0];
             addresses[0] = address(0);
 
             _proposalInfos[proposalId].lpLocked -= claimed[0].min(
@@ -268,20 +276,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             totalLockedLP -= claimed[0].min(totalLockedLP); // intentional base from LP subtraction
         }
 
-        require(claimedBase > 0, "TPIP: no base to divest");
-
         _payout(user, claimed, addresses);
-    }
-
-    function claim(uint256 proposalId) external override {
-        require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
-
-        (uint256[] memory claimed, address[] memory tokens) = _calculateRewards(
-            proposalId,
-            _msgSender()
-        );
-
-        _payout(_msgSender(), claimed, tokens);
     }
 
     function withdraw(uint256 proposalId, uint256 amount) external override onlyTraderAdmin {
@@ -298,7 +293,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             amount.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
         );
 
-        emit ProposalWithdrawn(proposalId, amount, _msgSender());
+        emit ProposalWithdrawn(proposalId, amount, msg.sender);
     }
 
     function supply(
@@ -315,11 +310,11 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
             require(actualAmount > 0, "TPIP: amount is 0");
 
-            IERC20(token).safeTransferFrom(_msgSender(), address(this), actualAmount);
+            IERC20(token).safeTransferFrom(msg.sender, address(this), actualAmount);
 
             _updateCumulativeSum(proposalId, amounts[i], token);
 
-            emit ProposalSupplied(proposalId, amounts[i], token, _msgSender());
+            emit ProposalSupplied(proposalId, amounts[i], token, msg.sender);
         }
     }
 
@@ -332,16 +327,12 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             _parentTraderPoolInfo.baseToken
         );
 
-        emit ProposalWithdrawn(
-            proposalId,
-            _proposalInfos[proposalId].newInvestedBase,
-            _msgSender()
-        );
+        emit ProposalWithdrawn(proposalId, _proposalInfos[proposalId].newInvestedBase, msg.sender);
         emit ProposalSupplied(
             proposalId,
             _proposalInfos[proposalId].newInvestedBase,
             _parentTraderPoolInfo.baseToken,
-            _msgSender()
+            msg.sender
         );
 
         delete _proposalInfos[proposalId].newInvestedBase;
