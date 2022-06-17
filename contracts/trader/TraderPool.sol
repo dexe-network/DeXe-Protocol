@@ -480,49 +480,49 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             _poolParameters.getExchangeAmount(_positions, from, to, amount, optionalPath, exType);
     }
 
-    function _updateFromData(address investor, uint256 lpAmount)
+    function _updateFromData(address user, uint256 lpAmount)
         internal
         returns (uint256 baseTransfer)
     {
-        if (!isTrader(investor)) {
-            InvestorInfo storage info = investorsInfo[investor];
+        if (!isTrader(user)) {
+            InvestorInfo storage info = investorsInfo[user];
 
-            baseTransfer = info.investedBase.ratio(lpAmount, balanceOf(investor));
+            baseTransfer = info.investedBase.ratio(lpAmount, balanceOf(user));
             info.investedBase -= baseTransfer;
         }
     }
 
-    function _updateToData(address investor, uint256 baseAmount) internal {
-        if (!isTrader(investor)) {
-            investorsInfo[investor].investedBase += baseAmount;
+    function _updateToData(address user, uint256 baseAmount) internal {
+        if (!isTrader(user)) {
+            investorsInfo[user].investedBase += baseAmount;
         }
     }
 
-    function _checkRemoveInvestor(address investor, uint256 lpAmount) internal {
-        if (!isTrader(investor) && lpAmount == balanceOf(investor)) {
-            _investors.remove(investor);
-            investorsInfo[investor].commissionUnlockEpoch = 0;
+    function _checkRemoveInvestor(address user, uint256 lpAmount) internal {
+        if (!isTrader(user) && lpAmount == balanceOf(user)) {
+            _investors.remove(user);
+            investorsInfo[user].commissionUnlockEpoch = 0;
 
-            emit InvestorRemoved(investor);
+            emit InvestorRemoved(user);
         }
     }
 
-    function _checkNewInvestor(address investor) internal {
+    function _checkNewInvestor(address user) internal {
         require(
-            !_poolParameters.privatePool || isTraderAdmin(investor) || isPrivateInvestor(investor),
+            !_poolParameters.privatePool || isTraderAdmin(user) || isPrivateInvestor(user),
             "TP: private pool"
         );
 
-        if (!isTrader(investor) && !_investors.contains(investor)) {
-            _investors.add(investor);
-            investorsInfo[investor].commissionUnlockEpoch = getNextCommissionEpoch();
+        if (!isTrader(user) && !_investors.contains(user)) {
+            _investors.add(user);
+            investorsInfo[user].commissionUnlockEpoch = getNextCommissionEpoch();
 
             require(
                 _investors.length() <= coreProperties.getMaximumPoolInvestors(),
                 "TP: max investors"
             );
 
-            emit InvestorAdded(investor);
+            emit InvestorAdded(user);
         }
     }
 

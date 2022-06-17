@@ -47,6 +47,8 @@ abstract contract TraderPoolProposal is
     mapping(address => mapping(uint256 => uint256)) internal _lpBalances; // user => proposal id => LP invested
     mapping(address => uint256) public override totalLPBalances; // user => LP invested
 
+    event ProposalInvestorAdded(uint256 proposalId, address investor);
+    event ProposalInvestorRemoved(uint256 proposalId, address investor);
     event ProposalInvested(
         uint256 proposalId,
         address user,
@@ -190,16 +192,20 @@ abstract contract TraderPoolProposal is
                     ITraderPoolInvestorsHook(_parentTraderPoolInfo.parentPoolAddress)
                         .checkRemoveInvestor(user);
                 }
+
+                emit ProposalInvestorRemoved(proposalId, user);
             }
         }
     }
 
     function _checkNewInvestor(address user, uint256 proposalId) internal {
-        if (user != _parentTraderPoolInfo.trader) {
+        if (user != _parentTraderPoolInfo.trader && !_investors[proposalId].contains(user)) {
             _investors[proposalId].add(user);
             ITraderPoolInvestorsHook(_parentTraderPoolInfo.parentPoolAddress).checkNewInvestor(
                 user
             );
+
+            emit ProposalInvestorAdded(proposalId, user);
         }
     }
 
