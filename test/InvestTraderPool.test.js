@@ -445,6 +445,12 @@ describe("InvestTraderPool", () => {
         await reinvestCommission(0, 5);
 
         assert.equal(toBN(commissions.traderBaseCommission).toFixed(), wei("52.5"));
+        assert.equal(toBN(commissions.traderLPCommission).toFixed(), wei("35"));
+        assert.closeTo(
+          toBN(commissions.traderUSDCommission).toNumber(),
+          toBN(wei("52.5525")).toNumber(),
+          toBN(wei("0.001")).toNumber()
+        );
         assert.closeTo(
           (await traderPool.balanceOf(OWNER)).toNumber(),
           toBN(wei("535")).toNumber(),

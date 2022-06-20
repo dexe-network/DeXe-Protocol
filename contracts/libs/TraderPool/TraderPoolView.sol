@@ -33,17 +33,31 @@ library TraderPoolView {
 
     function _getTraderAndPlatformCommissions(
         ITraderPool.PoolParameters storage poolParameters,
-        uint256 baseCommission
+        uint256 baseCommission,
+        uint256 lpCommission
     ) internal view returns (ITraderPool.Commissions memory commissions) {
+        IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
         (uint256 dexePercentage, , ) = ITraderPool(address(this))
             .coreProperties()
             .getDEXECommissionPercentages();
 
+        (uint256 usdCommission, ) = priceFeed.getNormalizedPriceOutUSD(
+            poolParameters.baseToken,
+            baseCommission
+        );
+
         commissions.dexeBaseCommission = baseCommission.percentage(dexePercentage);
+        commissions.dexeLPCommission = lpCommission.percentage(dexePercentage);
+        commissions.dexeUSDCommission = usdCommission.percentage(dexePercentage);
+
         commissions.traderBaseCommission = baseCommission - commissions.dexeBaseCommission;
-        (commissions.dexeDexeCommission, ) = ITraderPool(address(this))
-            .priceFeed()
-            .getNormalizedPriceOutDEXE(poolParameters.baseToken, commissions.dexeBaseCommission);
+        commissions.traderLPCommission = lpCommission - commissions.dexeLPCommission;
+        commissions.traderUSDCommission = usdCommission - commissions.dexeUSDCommission;
+
+        (commissions.dexeDexeCommission, ) = priceFeed.getNormalizedPriceOutDEXE(
+            poolParameters.baseToken,
+            commissions.dexeBaseCommission
+        );
     }
 
     function getInvestTokens(
@@ -96,22 +110,23 @@ library TraderPoolView {
 
         uint256 nextCommissionEpoch = poolParameters.nextCommissionEpoch();
         uint256 allBaseCommission;
+        uint256 allLPCommission;
 
         for (uint256 i = offset; i < to; i++) {
             address investor = investors.at(i);
             (, uint256 commissionUnlockEpoch) = TraderPool(address(this)).investorsInfo(investor);
 
             if (nextCommissionEpoch > commissionUnlockEpoch) {
-                (, uint256 baseCommission, ) = poolParameters.calculateCommissionOnReinvest(
-                    investor,
-                    totalSupply
-                );
+                (, uint256 baseCommission, uint256 lpCommission) = poolParameters
+                    .calculateCommissionOnReinvest(investor, totalSupply);
 
                 allBaseCommission += baseCommission;
+                allLPCommission += lpCommission;
             }
         }
 
-        return _getTraderAndPlatformCommissions(poolParameters, allBaseCommission);
+        return
+            _getTraderAndPlatformCommissions(poolParameters, allBaseCommission, allLPCommission);
     }
 
     function getDivestAmountsAndCommissions(
@@ -158,13 +173,14 @@ library TraderPoolView {
             }
 
             if (investor != poolParameters.trader) {
-                (uint256 baseCommission, ) = poolParameters.calculateCommissionOnDivest(
-                    investor,
-                    receptions.baseAmount,
-                    amountLP
-                );
+                (uint256 baseCommission, uint256 lpCommission) = poolParameters
+                    .calculateCommissionOnDivest(investor, receptions.baseAmount, amountLP);
 
-                commissions = _getTraderAndPlatformCommissions(poolParameters, baseCommission);
+                commissions = _getTraderAndPlatformCommissions(
+                    poolParameters,
+                    baseCommission,
+                    lpCommission
+                );
             }
         }
     }

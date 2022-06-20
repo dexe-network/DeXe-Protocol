@@ -54,11 +54,19 @@ interface ITraderPool {
 
     /// @notice The struct that is returned from the TraderPoolView contract to see the taken commissions
     /// @param traderBaseCommission the total trader's commission in base tokens (normalized)
+    /// @param traderLPCommission the equivalent trader's commission in LP tokens
+    /// @param traderUSDCommission the equivalent trader's commission in USD (normalized)
     /// @param dexeBaseCommission the total platform's commission in base tokens (normalized)
-    /// @param dexeDexeCommission the total platform's commission in DEXE tokens (normalized)
+    /// @param dexeLPCommission the equivalent platform's commission in LP tokens
+    /// @param dexeUSDCommission the equivalent platform's commission in USD (normalized)
+    /// @param dexeDexeCommission the equivalent platform's commission in DEXE tokens (normalized)
     struct Commissions {
         uint256 traderBaseCommission;
+        uint256 traderLPCommission;
+        uint256 traderUSDCommission;
         uint256 dexeBaseCommission;
+        uint256 dexeLPCommission;
+        uint256 dexeUSDCommission;
         uint256 dexeDexeCommission;
     }
 

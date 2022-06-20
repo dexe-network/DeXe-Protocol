@@ -581,7 +581,36 @@ describe("TraderPool", () => {
 
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("1000"));
 
+        const commission = await traderPool.getReinvestCommissions(0, 5);
         await reinvestCommission(0, 5);
+
+        assert.equal(toBN(commission.traderBaseCommission).toFixed(), wei("175"));
+        assert.closeTo(
+          toBN(commission.traderLPCommission).toNumber(),
+          toBN(wei("116.6666666")).toNumber(),
+          toBN(wei("0.000001")).toNumber()
+        );
+        assert.closeTo(
+          toBN(commission.traderUSDCommission).toNumber(),
+          toBN(wei("175.35")).toNumber(),
+          toBN(wei("0.001")).toNumber()
+        );
+        assert.equal(toBN(commission.dexeBaseCommission).toFixed(), wei("75"));
+        assert.closeTo(
+          toBN(commission.dexeLPCommission).toNumber(),
+          toBN(wei("50")).toNumber(),
+          toBN(wei("0.000001")).toNumber()
+        );
+        assert.closeTo(
+          toBN(commission.dexeUSDCommission).toNumber(),
+          toBN(wei("75.15")).toNumber(),
+          toBN(wei("0.001")).toNumber()
+        );
+        assert.closeTo(
+          toBN(commission.dexeDexeCommission).toNumber(),
+          toBN(wei("75.15")).toNumber(),
+          toBN(wei("0.001")).toNumber()
+        );
 
         assert.closeTo(
           (await traderPool.balanceOf(OWNER)).toNumber(),
