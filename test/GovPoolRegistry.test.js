@@ -64,25 +64,35 @@ describe("GovPoolRegistry", () => {
     });
 
     it("should successfully add new pools", async () => {
-      await govPoolRegistry.addPool(OWNER, GOV_NAME, POOL_1, { from: FACTORY });
-      await govPoolRegistry.addPool(OWNER, GOV_NAME, POOL_2, { from: FACTORY });
+      await govPoolRegistry.addPool(GOV_NAME, POOL_1, { from: FACTORY });
+      await govPoolRegistry.addPool(GOV_NAME, POOL_2, { from: FACTORY });
 
       assert.equal((await govPoolRegistry.countPools(GOV_NAME)).toFixed(), "2");
       assert.equal((await govPoolRegistry.countPools(USER_KEEPER_NAME)).toFixed(), "0");
+    });
+
+    it("should successfully associate owner pools", async () => {
+      await govPoolRegistry.associateUserWithPool(OWNER, GOV_NAME, POOL_1, { from: FACTORY });
+      await govPoolRegistry.associateUserWithPool(OWNER, GOV_NAME, POOL_2, { from: FACTORY });
 
       assert.equal((await govPoolRegistry.countOwnerPools(OWNER, GOV_NAME)).toFixed(), "2");
       assert.equal((await govPoolRegistry.countOwnerPools(OWNER, USER_KEEPER_NAME)).toFixed(), "0");
     });
 
     it("should list added pools", async () => {
-      await govPoolRegistry.addPool(OWNER, GOV_NAME, POOL_1, { from: FACTORY });
-      await govPoolRegistry.addPool(OWNER, GOV_NAME, POOL_2, { from: FACTORY });
+      await govPoolRegistry.addPool(GOV_NAME, POOL_1, { from: FACTORY });
+      await govPoolRegistry.addPool(GOV_NAME, POOL_2, { from: FACTORY });
 
       assert.deepEqual(await govPoolRegistry.listPools(GOV_NAME, 0, 2), [POOL_1, POOL_2]);
       assert.deepEqual(await govPoolRegistry.listPools(GOV_NAME, 0, 10), [POOL_1, POOL_2]);
       assert.deepEqual(await govPoolRegistry.listPools(GOV_NAME, 1, 1), [POOL_2]);
       assert.deepEqual(await govPoolRegistry.listPools(GOV_NAME, 2, 0), []);
       assert.deepEqual(await govPoolRegistry.listPools(USER_KEEPER_NAME, 0, 2), []);
+    });
+
+    it("should list associated pools", async () => {
+      await govPoolRegistry.associateUserWithPool(OWNER, GOV_NAME, POOL_1, { from: FACTORY });
+      await govPoolRegistry.associateUserWithPool(OWNER, GOV_NAME, POOL_2, { from: FACTORY });
 
       assert.deepEqual(await govPoolRegistry.listOwnerPools(OWNER, GOV_NAME, 0, 2), [POOL_1, POOL_2]);
       assert.deepEqual(await govPoolRegistry.listOwnerPools(OWNER, GOV_NAME, 0, 10), [POOL_1, POOL_2]);

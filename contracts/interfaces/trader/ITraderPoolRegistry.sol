@@ -9,11 +9,11 @@ import "./ITraderPool.sol";
  * implementation via the ProxyBeacon pattern
  */
 interface ITraderPoolRegistry {
-    /// @notice The function to add new pool to the registry (called by the PoolFactory)
+    /// @notice The function to associate an owner with the pool (called by the PoolFactory)
     /// @param user the trader of the pool
     /// @param name the type of the pool
     /// @param poolAddress the address of the new pool
-    function addPool(
+    function associateUserWithPool(
         address user,
         string calldata name,
         address poolAddress

@@ -98,7 +98,12 @@ describe("Insurance", async () => {
 
     decimal = await dexe.decimals();
 
-    await traderPoolRegistry.addPool(OWNER, await traderPoolRegistry.BASIC_POOL_NAME(), POOL, { from: SECOND });
+    await traderPoolRegistry.addPool(await traderPoolRegistry.BASIC_POOL_NAME(), POOL, {
+      from: SECOND,
+    });
+    await traderPoolRegistry.associateUserWithPool(OWNER, await traderPoolRegistry.BASIC_POOL_NAME(), POOL, {
+      from: SECOND,
+    });
 
     insuranceFactor = await coreProperties.getInsuranceFactor();
 

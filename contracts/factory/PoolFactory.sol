@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
-
 import "../interfaces/factory/IPoolFactory.sol";
 import "../interfaces/trader/ITraderPool.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "../proxy/pool-contracts-registry/AbstractPoolContractsRegistry.sol";
-import "../proxy/contracts-registry/AbstractDependant.sol";
+import "../proxy/pool-factory/AbstractPoolFactory.sol";
 
 import "../gov/GovPool.sol";
 import "../gov/GovUserKeeper.sol";
@@ -26,9 +23,7 @@ import "../core/CoreProperties.sol";
 
 import "../core/Globals.sol";
 
-contract PoolFactory is IPoolFactory, AbstractDependant {
-    address internal _contractsRegistry;
-
+contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     TraderPoolRegistry internal _traderPoolRegistry;
     GovPoolRegistry internal _govPoolRegistry;
 
@@ -46,25 +41,14 @@ contract PoolFactory is IPoolFactory, AbstractDependant {
         string descriptionURL
     );
 
-    function setDependencies(address contractsRegistry) external override dependant {
-        _contractsRegistry = contractsRegistry;
+    function setDependencies(address contractsRegistry) public override {
+        super.setDependencies(contractsRegistry);
 
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         _traderPoolRegistry = TraderPoolRegistry(registry.getTraderPoolRegistryContract());
         _govPoolRegistry = GovPoolRegistry(registry.getGovPoolRegistryContract());
         _coreProperties = CoreProperties(registry.getCorePropertiesContract());
-    }
-
-    function _deploy(address registry, string memory name) internal returns (address proxy) {
-        proxy = address(
-            new BeaconProxy(AbstractPoolContractsRegistry(registry).getProxyBeacon(name), "")
-        );
-    }
-
-    function _injectDependencies(address registry, address proxy) internal {
-        AbstractDependant(proxy).setDependencies(_contractsRegistry);
-        AbstractDependant(proxy).setInjector(registry);
     }
 
     function deployGovPool(GovPoolDeployParams calldata parameters) external override {
@@ -115,7 +99,9 @@ contract PoolFactory is IPoolFactory, AbstractDependant {
         GovValidators(validatorsProxy).transferOwnership(poolProxy);
         GovPool(payable(poolProxy)).transferOwnership(parameters.owner);
 
-        _govPoolRegistry.addPool(parameters.owner, poolType, poolProxy);
+        _register(address(_govPoolRegistry), poolType, poolProxy);
+
+        _govPoolRegistry.associateUserWithPool(parameters.owner, poolType, poolProxy);
     }
 
     function deployBasicPool(
@@ -148,8 +134,10 @@ contract PoolFactory is IPoolFactory, AbstractDependant {
             )
         );
 
-        _traderPoolRegistry.addPool(poolParameters.trader, poolType, poolProxy);
+        _register(address(_traderPoolRegistry), poolType, poolProxy);
         _injectDependencies(address(_traderPoolRegistry), poolProxy);
+
+        _traderPoolRegistry.associateUserWithPool(poolParameters.trader, poolType, poolProxy);
 
         emit TraderPoolDeployed(
             poolType,
@@ -194,8 +182,10 @@ contract PoolFactory is IPoolFactory, AbstractDependant {
             )
         );
 
-        _traderPoolRegistry.addPool(poolParameters.trader, poolType, poolProxy);
+        _register(address(_traderPoolRegistry), poolType, poolProxy);
         _injectDependencies(address(_traderPoolRegistry), poolProxy);
+
+        _traderPoolRegistry.associateUserWithPool(poolParameters.trader, poolType, poolProxy);
 
         emit TraderPoolDeployed(
             poolType,

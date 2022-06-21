@@ -198,7 +198,10 @@ describe("TraderPool", () => {
 
     await traderPool.__TraderPoolMock_init("Test pool", "TP", poolParameters);
 
-    await traderPoolRegistry.addPool(OWNER, NAME, traderPool.address, {
+    await traderPoolRegistry.addPool(NAME, traderPool.address, {
+      from: FACTORY,
+    });
+    await traderPoolRegistry.associateUserWithPool(OWNER, NAME, traderPool.address, {
       from: FACTORY,
     });
 

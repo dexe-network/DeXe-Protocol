@@ -10,11 +10,7 @@ import "../interfaces/core/IContractsRegistry.sol";
 import "../proxy/pool-contracts-registry/AbstractPoolContractsRegistry.sol";
 import "../proxy/contracts-registry/AbstractDependant.sol";
 
-contract TraderPoolRegistry is
-    ITraderPoolRegistry,
-    AbstractPoolContractsRegistry,
-    AbstractDependant
-{
+contract TraderPoolRegistry is ITraderPoolRegistry, AbstractPoolContractsRegistry {
     using EnumerableSet for EnumerableSet.AddressSet;
     using Math for uint256;
 
@@ -27,26 +23,21 @@ contract TraderPoolRegistry is
 
     mapping(address => mapping(string => EnumerableSet.AddressSet)) internal _traderPools; // trader => name => pool
 
-    modifier onlyPoolFactory() {
+    function _onlyPoolFactory() internal view override {
         require(_poolFactory == _msgSender(), "TraderPoolRegistry: Caller is not a factory");
-        _;
     }
 
-    function setDependencies(address contractsRegistry) external override dependant {
-        _contractsRegistry = contractsRegistry;
+    function setDependencies(address contractsRegistry) public override {
+        super.setDependencies(contractsRegistry);
 
-        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
-
-        _poolFactory = registry.getPoolFactoryContract();
+        _poolFactory = IContractsRegistry(contractsRegistry).getPoolFactoryContract();
     }
 
-    function addPool(
+    function associateUserWithPool(
         address user,
         string calldata name,
         address poolAddress
-    ) external override onlyPoolFactory {
-        _addPool(name, poolAddress);
-
+    ) external onlyPoolFactory {
         _traderPools[user][name].add(poolAddress);
     }
 

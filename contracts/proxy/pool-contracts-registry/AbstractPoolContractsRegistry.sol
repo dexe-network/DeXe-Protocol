@@ -9,7 +9,7 @@ import "../contracts-registry/AbstractDependant.sol";
 
 import "./ProxyBeacon.sol";
 
-abstract contract AbstractPoolContractsRegistry is OwnableUpgradeable {
+abstract contract AbstractPoolContractsRegistry is OwnableUpgradeable, AbstractDependant {
     using EnumerableSet for EnumerableSet.AddressSet;
     using Math for uint256;
 
@@ -18,8 +18,19 @@ abstract contract AbstractPoolContractsRegistry is OwnableUpgradeable {
     mapping(string => ProxyBeacon) private _beacons;
     mapping(string => EnumerableSet.AddressSet) internal _pools; // name => pool
 
+    modifier onlyPoolFactory() {
+        _onlyPoolFactory();
+        _;
+    }
+
+    function _onlyPoolFactory() internal view virtual;
+
     function __PoolContractsRegistry_init() external initializer {
         __Ownable_init();
+    }
+
+    function setDependencies(address contractsRegistry) public virtual override dependant {
+        _contractsRegistry = contractsRegistry;
     }
 
     function setNewImplementations(string[] calldata names, address[] calldata newImplementations)
@@ -72,7 +83,7 @@ abstract contract AbstractPoolContractsRegistry is OwnableUpgradeable {
         return address(_beacons[name]);
     }
 
-    function _addPool(string calldata name, address poolAddress) internal {
+    function addPool(string calldata name, address poolAddress) external onlyPoolFactory {
         _pools[name].add(poolAddress);
     }
 

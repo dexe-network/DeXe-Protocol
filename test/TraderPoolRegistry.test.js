@@ -66,14 +66,11 @@ describe("TraderPoolRegistry", () => {
     });
 
     it("should successfully add new pools", async () => {
-      await traderPoolRegistry.addPool(OWNER, BASIC_NAME, POOL_1, { from: FACTORY });
-      await traderPoolRegistry.addPool(OWNER, BASIC_NAME, POOL_2, { from: FACTORY });
+      await traderPoolRegistry.addPool(BASIC_NAME, POOL_1, { from: FACTORY });
+      await traderPoolRegistry.addPool(BASIC_NAME, POOL_2, { from: FACTORY });
 
       assert.equal((await traderPoolRegistry.countPools(BASIC_NAME)).toFixed(), "2");
       assert.equal((await traderPoolRegistry.countPools(INVEST_NAME)).toFixed(), "0");
-
-      assert.equal((await traderPoolRegistry.countTraderPools(OWNER, BASIC_NAME)).toFixed(), "2");
-      assert.equal((await traderPoolRegistry.countTraderPools(OWNER, INVEST_NAME)).toFixed(), "0");
 
       assert.isTrue(await traderPoolRegistry.isBasicPool(POOL_2));
       assert.isFalse(await traderPoolRegistry.isInvestPool(POOL_1));
@@ -82,15 +79,28 @@ describe("TraderPoolRegistry", () => {
       assert.isTrue(await traderPoolRegistry.isPool(POOL_2));
     });
 
+    it("should successfully associate new pools", async () => {
+      await traderPoolRegistry.associateUserWithPool(OWNER, BASIC_NAME, POOL_1, { from: FACTORY });
+      await traderPoolRegistry.associateUserWithPool(OWNER, BASIC_NAME, POOL_2, { from: FACTORY });
+
+      assert.equal((await traderPoolRegistry.countTraderPools(OWNER, BASIC_NAME)).toFixed(), "2");
+      assert.equal((await traderPoolRegistry.countTraderPools(OWNER, INVEST_NAME)).toFixed(), "0");
+    });
+
     it("should list added pools", async () => {
-      await traderPoolRegistry.addPool(OWNER, BASIC_NAME, POOL_1, { from: FACTORY });
-      await traderPoolRegistry.addPool(OWNER, BASIC_NAME, POOL_2, { from: FACTORY });
+      await traderPoolRegistry.addPool(BASIC_NAME, POOL_1, { from: FACTORY });
+      await traderPoolRegistry.addPool(BASIC_NAME, POOL_2, { from: FACTORY });
 
       assert.deepEqual(await traderPoolRegistry.listPools(BASIC_NAME, 0, 2), [POOL_1, POOL_2]);
       assert.deepEqual(await traderPoolRegistry.listPools(BASIC_NAME, 0, 10), [POOL_1, POOL_2]);
       assert.deepEqual(await traderPoolRegistry.listPools(BASIC_NAME, 1, 1), [POOL_2]);
       assert.deepEqual(await traderPoolRegistry.listPools(BASIC_NAME, 2, 0), []);
       assert.deepEqual(await traderPoolRegistry.listPools(INVEST_NAME, 0, 2), []);
+    });
+
+    it("should list associated pools", async () => {
+      await traderPoolRegistry.associateUserWithPool(OWNER, BASIC_NAME, POOL_1, { from: FACTORY });
+      await traderPoolRegistry.associateUserWithPool(OWNER, BASIC_NAME, POOL_2, { from: FACTORY });
 
       assert.deepEqual(await traderPoolRegistry.listTraderPools(OWNER, BASIC_NAME, 0, 2), [POOL_1, POOL_2]);
       assert.deepEqual(await traderPoolRegistry.listTraderPools(OWNER, BASIC_NAME, 0, 10), [POOL_1, POOL_2]);

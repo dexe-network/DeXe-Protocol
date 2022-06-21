@@ -218,7 +218,10 @@ describe("BasicTraderPool", () => {
     await traderPool.__BasicTraderPool_init("Test pool", "TP", poolParameters, proposal.address);
     await proposal.__TraderPoolRiskyProposal_init(parentPoolInfo);
 
-    await traderPoolRegistry.addPool(OWNER, POOL_NAME, traderPool.address, {
+    await traderPoolRegistry.addPool(POOL_NAME, traderPool.address, {
+      from: FACTORY,
+    });
+    await traderPoolRegistry.associateUserWithPool(OWNER, POOL_NAME, traderPool.address, {
       from: FACTORY,
     });
 
