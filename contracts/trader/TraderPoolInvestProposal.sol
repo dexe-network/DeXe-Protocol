@@ -9,6 +9,7 @@ import "../interfaces/trader/IInvestTraderPool.sol";
 
 import "../libs/TraderPoolProposal/TraderPoolInvestProposalView.sol";
 import "../libs/DecimalsConverter.sol";
+import "../libs/ArrayHelper.sol";
 
 import "../core/Globals.sol";
 import "./TraderPoolProposal.sol";
@@ -18,6 +19,8 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
     using DecimalsConverter for uint256;
+    using ArrayHelper for uint256;
+    using ArrayHelper for address;
     using MathHelper for uint256;
     using Math for uint256;
     using TraderPoolInvestProposalView for ParentTraderPoolInfo;
@@ -31,8 +34,9 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         uint256 proposalId,
         ITraderPoolInvestProposal.ProposalLimits proposalLimits
     );
-    event ProposalWithdrawn(uint256 proposalId, uint256 amount, address admin);
-    event ProposalSupplied(uint256 proposalId, uint256 amount, address token, address admin);
+    event ProposalWithdrawn(uint256 proposalId, uint256 amount);
+    event ProposalSupplied(uint256 proposalId, uint256[] amounts, address[] tokens);
+    event ProposalClaimed(uint256 proposalId, address user, uint256[] amounts, address[] tokens);
 
     function __TraderPoolInvestProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         public
@@ -263,6 +267,8 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
         require(totalClaimed > 0, "TPIP: nothing to divest");
 
+        emit ProposalClaimed(proposalId, user, claimed, addresses);
+
         if (addresses[0] == _parentTraderPoolInfo.baseToken) {
             claimedBase = claimed[0];
             addresses[0] = address(0);
@@ -293,7 +299,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             amount.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
         );
 
-        emit ProposalWithdrawn(proposalId, amount, msg.sender);
+        emit ProposalWithdrawn(proposalId, amount);
     }
 
     function supply(
@@ -313,27 +319,21 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             IERC20(token).safeTransferFrom(msg.sender, address(this), actualAmount);
 
             _updateCumulativeSum(proposalId, amounts[i], token);
-
-            emit ProposalSupplied(proposalId, amounts[i], token, msg.sender);
         }
+
+        emit ProposalSupplied(proposalId, amounts, addresses);
     }
 
     function convertInvestedBaseToDividends(uint256 proposalId) external override onlyTraderAdmin {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
-        _updateCumulativeSum(
-            proposalId,
-            _proposalInfos[proposalId].newInvestedBase,
-            _parentTraderPoolInfo.baseToken
-        );
+        uint256 newInvestedBase = _proposalInfos[proposalId].newInvestedBase;
+        address baseToken = _parentTraderPoolInfo.baseToken;
 
-        emit ProposalWithdrawn(proposalId, _proposalInfos[proposalId].newInvestedBase, msg.sender);
-        emit ProposalSupplied(
-            proposalId,
-            _proposalInfos[proposalId].newInvestedBase,
-            _parentTraderPoolInfo.baseToken,
-            msg.sender
-        );
+        _updateCumulativeSum(proposalId, newInvestedBase, baseToken);
+
+        emit ProposalWithdrawn(proposalId, newInvestedBase);
+        emit ProposalSupplied(proposalId, newInvestedBase.asArray(), baseToken.asArray());
 
         delete _proposalInfos[proposalId].newInvestedBase;
     }

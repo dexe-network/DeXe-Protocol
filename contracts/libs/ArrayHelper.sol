@@ -11,4 +11,14 @@ library ArrayHelper {
             reversed[arr.length - 1 - i] = arr[i];
         }
     }
+
+    function asArray(address elem) internal pure returns (address[] memory array) {
+        array = new address[](1);
+        array[0] = elem;
+    }
+
+    function asArray(uint256 elem) internal pure returns (uint256[] memory array) {
+        array = new uint256[](1);
+        array[0] = elem;
+    }
 }
