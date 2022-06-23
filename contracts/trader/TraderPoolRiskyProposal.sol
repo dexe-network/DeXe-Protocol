@@ -37,6 +37,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 fromVolume,
         uint256 toVolume
     );
+    event ProposalPositionClosed(uint256 proposalId, address positionToken);
 
     function __TraderPoolRiskyProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         public
@@ -408,15 +409,19 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             (amount, amountGot) = (amountGot, amount);
         }
 
+        emit ProposalExchanged(proposalId, from, to, amount, amountGot);
+
         if (from == baseToken) {
             info.balanceBase -= amount;
             info.balancePosition += amountGot;
         } else {
             info.balanceBase += amountGot;
             info.balancePosition -= amount;
-        }
 
-        emit ProposalExchanged(proposalId, from, to, amount, amountGot);
+            if (info.balancePosition == 0) {
+                emit ProposalPositionClosed(proposalId, from);
+            }
+        }
     }
 
     function getExchangeAmount(
