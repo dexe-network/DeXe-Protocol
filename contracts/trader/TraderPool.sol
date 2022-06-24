@@ -8,12 +8,13 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
+import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
+import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
+
 import "../interfaces/trader/ITraderPool.sol";
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/insurance/IInsurance.sol";
 import "../interfaces/core/IContractsRegistry.sol";
-
-import "../proxy/contracts-registry/AbstractDependant.sol";
 
 import "../libs/PriceFeed/PriceFeedLocal.sol";
 import "../libs/TraderPool/TraderPoolPrice.sol";
@@ -22,7 +23,6 @@ import "../libs/TraderPool/TraderPoolCommission.sol";
 import "../libs/TraderPool/TraderPoolExchange.sol";
 import "../libs/TraderPool/TraderPoolView.sol";
 import "../libs/TokenBalance.sol";
-import "../libs/DecimalsConverter.sol";
 import "../libs/MathHelper.sol";
 
 import "../core/Globals.sol";
@@ -216,7 +216,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         IERC20(_poolParameters.baseToken).safeTransferFrom(
             baseHolder,
             address(this),
-            amountInBaseToInvest.convertFrom18(_poolParameters.baseTokenDecimals)
+            amountInBaseToInvest.from18(_poolParameters.baseTokenDecimals)
         );
 
         uint256 toMintLP = amountInBaseToInvest;
@@ -426,7 +426,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         IERC20(_poolParameters.baseToken).safeTransfer(
             msg.sender,
-            (receivedBase).convertFrom18(_poolParameters.baseTokenDecimals)
+            receivedBase.from18(_poolParameters.baseTokenDecimals)
         );
 
         if (baseCommission > 0) {

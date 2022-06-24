@@ -26,8 +26,8 @@
   "dependencies": {
     "@openzeppelin/contracts": "4.5.0",
     "@openzeppelin/contracts-upgradeable": "4.5.0",
+    "@dlsl/dev-modules": "^1.3.0",
     "@uniswap/v2-periphery": "^1.1.0-beta.0",
-    "bignumber.js": "^9.0.1",
     "dotenv": "^10.0.0",
     "hardhat": "^2.6.4"
   },
@@ -38,6 +38,7 @@
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@truffle/deployer": "3.2.56",
     "@truffle/reporters": "1.1.2",
+    "bignumber.js": "^9.0.1",
     "chai": "^4.3.4",
     "hardhat-contract-sizer": "^2.1.1",
     "hardhat-gas-reporter": "^1.0.4",

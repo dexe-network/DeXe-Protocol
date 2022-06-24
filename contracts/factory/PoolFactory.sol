@@ -5,7 +5,7 @@ import "../interfaces/factory/IPoolFactory.sol";
 import "../interfaces/trader/ITraderPool.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "../proxy/pool-factory/AbstractPoolFactory.sol";
+import "@dlsl/dev-modules/pool-contracts-registry/pool-factory/AbstractPoolFactory.sol";
 
 import "../gov/GovPool.sol";
 import "../gov/GovUserKeeper.sol";

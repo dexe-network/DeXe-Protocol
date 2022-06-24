@@ -7,9 +7,10 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/trader/ITraderPoolInvestProposal.sol";
 import "../interfaces/trader/IInvestTraderPool.sol";
 
+import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
+import "@dlsl/dev-modules/libs/arrays/ArrayHelper.sol";
+
 import "../libs/TraderPoolProposal/TraderPoolInvestProposalView.sol";
-import "../libs/DecimalsConverter.sol";
-import "../libs/ArrayHelper.sol";
 
 import "../core/Globals.sol";
 import "./TraderPoolProposal.sol";
@@ -178,7 +179,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
                 continue;
             }
 
-            IERC20(token).safeTransfer(user, claimed[i].convertFrom18(ERC20(token).decimals()));
+            IERC20(token).safeTransfer(user, claimed[i].from18(ERC20(token).decimals()));
         }
     }
 
@@ -296,7 +297,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
         IERC20(_parentTraderPoolInfo.baseToken).safeTransfer(
             _parentTraderPoolInfo.trader,
-            amount.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
+            amount.from18(_parentTraderPoolInfo.baseTokenDecimals)
         );
 
         emit ProposalWithdrawn(proposalId, amount);
@@ -312,7 +313,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
         for (uint256 i = 0; i < addresses.length; i++) {
             address token = addresses[i];
-            uint256 actualAmount = amounts[i].convertFrom18(ERC20(token).decimals());
+            uint256 actualAmount = amounts[i].from18(ERC20(token).decimals());
 
             require(actualAmount > 0, "TPIP: amount is 0");
 

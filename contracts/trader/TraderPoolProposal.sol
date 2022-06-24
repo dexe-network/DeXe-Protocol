@@ -7,15 +7,15 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
+import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
+
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/trader/ITraderPoolProposal.sol";
 import "../interfaces/trader/ITraderPoolInvestorsHook.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "../proxy/contracts-registry/AbstractDependant.sol";
-
 import "../libs/MathHelper.sol";
-import "../libs/DecimalsConverter.sol";
 
 import "./TraderPool.sol";
 
@@ -131,7 +131,7 @@ abstract contract TraderPoolProposal is
         IERC20(_parentTraderPoolInfo.baseToken).safeTransferFrom(
             _parentTraderPoolInfo.parentPoolAddress,
             address(this),
-            baseInvestment.convertFrom18(_parentTraderPoolInfo.baseTokenDecimals)
+            baseInvestment.from18(_parentTraderPoolInfo.baseTokenDecimals)
         );
 
         uint256 baseInProposal = _baseInProposal(proposalId);

@@ -5,11 +5,12 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
+
 import "../../interfaces/gov/IGovVote.sol";
 import "../../interfaces/gov/proposals/IDistributionProposal.sol";
 
 import "../../libs/MathHelper.sol";
-import "../../libs/DecimalsConverter.sol";
 
 contract DistributionProposal is IDistributionProposal, Ownable {
     using SafeERC20 for IERC20;
@@ -74,10 +75,7 @@ contract DistributionProposal is IDistributionProposal, Ownable {
 
         claimed[voter] = true;
 
-        IERC20(rewardAddress).safeTransfer(
-            voter,
-            reward.convertFrom18(ERC20(rewardAddress).decimals())
-        );
+        IERC20(rewardAddress).safeTransfer(voter, reward.from18(ERC20(rewardAddress).decimals()));
 
         emit Claimed(voter, reward);
     }

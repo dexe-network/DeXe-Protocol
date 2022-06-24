@@ -4,14 +4,15 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+import "@dlsl/dev-modules/pool-contracts-registry/AbstractPoolContractsRegistry.sol";
+import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
+
 import "../interfaces/trader/ITraderPoolRegistry.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "../proxy/pool-contracts-registry/AbstractPoolContractsRegistry.sol";
-import "../proxy/contracts-registry/AbstractDependant.sol";
-
 contract TraderPoolRegistry is ITraderPoolRegistry, AbstractPoolContractsRegistry {
     using EnumerableSet for EnumerableSet.AddressSet;
+    using Paginator for EnumerableSet.AddressSet;
     using Math for uint256;
 
     string public constant BASIC_POOL_NAME = "BASIC_POOL";
@@ -56,13 +57,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractPoolContractsRegistr
         uint256 offset,
         uint256 limit
     ) external view override returns (address[] memory pools) {
-        uint256 to = (offset + limit).min(_traderPools[user][name].length()).max(offset);
-
-        pools = new address[](to - offset);
-
-        for (uint256 i = offset; i < to; i++) {
-            pools[i - offset] = _traderPools[user][name].at(i);
-        }
+        return _traderPools[user][name].part(offset, limit);
     }
 
     function listPoolsWithInfo(
@@ -79,17 +74,14 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractPoolContractsRegistr
             ITraderPool.LeverageInfo[] memory leverageInfos
         )
     {
-        uint256 to = (offset + limit).min(_pools[name].length()).max(offset);
+        pools = _pools[name].part(offset, limit);
 
-        pools = new address[](to - offset);
-        poolInfos = new ITraderPool.PoolInfo[](to - offset);
-        leverageInfos = new ITraderPool.LeverageInfo[](to - offset);
+        poolInfos = new ITraderPool.PoolInfo[](pools.length);
+        leverageInfos = new ITraderPool.LeverageInfo[](pools.length);
 
-        for (uint256 i = offset; i < to; i++) {
-            pools[i - offset] = _pools[name].at(i);
-
-            poolInfos[i - offset] = ITraderPool(pools[i - offset]).getPoolInfo();
-            leverageInfos[i - offset] = ITraderPool(pools[i - offset]).getLeverageInfo();
+        for (uint256 i = 0; i < pools.length; i++) {
+            poolInfos[i] = ITraderPool(pools[i]).getPoolInfo();
+            leverageInfos[i] = ITraderPool(pools[i]).getLeverageInfo();
         }
     }
 

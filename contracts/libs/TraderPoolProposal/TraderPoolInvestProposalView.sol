@@ -9,14 +9,12 @@ import "../../interfaces/core/IPriceFeed.sol";
 
 import "../PriceFeed/PriceFeedLocal.sol";
 import "../../libs/MathHelper.sol";
-import "../../libs/DecimalsConverter.sol";
 
 import "../../trader/TraderPoolInvestProposal.sol";
 
 library TraderPoolInvestProposalView {
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using DecimalsConverter for uint256;
     using MathHelper for uint256;
     using Math for uint256;
     using PriceFeedLocal for IPriceFeed;

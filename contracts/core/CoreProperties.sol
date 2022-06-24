@@ -5,10 +5,11 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
+import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
+
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/IContractsRegistry.sol";
-
-import "../proxy/contracts-registry/AbstractDependant.sol";
 
 import "../libs/AddressSetHelper.sol";
 
@@ -17,6 +18,7 @@ import "./Globals.sol";
 contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependant {
     using EnumerableSet for EnumerableSet.AddressSet;
     using AddressSetHelper for EnumerableSet.AddressSet;
+    using Paginator for EnumerableSet.AddressSet;
     using Math for uint256;
 
     CoreParameters public coreParameters;
@@ -139,13 +141,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         override
         returns (address[] memory tokens)
     {
-        uint256 to = (offset + limit).min(_whitelistTokens.length()).max(offset);
-
-        tokens = new address[](to - offset);
-
-        for (uint256 i = offset; i < to; i++) {
-            tokens[i - offset] = _whitelistTokens.at(i);
-        }
+        return _whitelistTokens.part(offset, limit);
     }
 
     function getBlacklistTokens(uint256 offset, uint256 limit)
@@ -154,13 +150,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         override
         returns (address[] memory tokens)
     {
-        uint256 to = (offset + limit).min(_blacklistTokens.length()).max(offset);
-
-        tokens = new address[](to - offset);
-
-        for (uint256 i = offset; i < to; i++) {
-            tokens[i - offset] = _blacklistTokens.at(i);
-        }
+        return _blacklistTokens.part(offset, limit);
     }
 
     function isWhitelistedToken(address token) external view override returns (bool) {

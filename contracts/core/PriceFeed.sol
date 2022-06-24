@@ -7,17 +7,17 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
+import "@dlsl/dev-modules/libs/arrays/ArrayHelper.sol";
+import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
+
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "../proxy/contracts-registry/AbstractDependant.sol";
-
 import "../libs/PriceFeed/UniswapV2PathFinder.sol";
-import "../libs/DecimalsConverter.sol";
-import "../libs/ArrayHelper.sol";
 import "../libs/AddressSetHelper.sol";
 
 import "../core/Globals.sol";
@@ -124,11 +124,11 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         (amountOut, path) = getExtendedPriceOut(
             inToken,
             outToken,
-            amountIn.convertFrom18(ERC20(inToken).decimals()),
+            amountIn.from18(ERC20(inToken).decimals()),
             optionalPath
         );
 
-        amountOut = amountOut.convertTo18(ERC20(outToken).decimals());
+        amountOut = amountOut.to18(ERC20(outToken).decimals());
     }
 
     function getNormalizedExtendedPriceIn(
@@ -140,11 +140,11 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         (amountIn, path) = getExtendedPriceIn(
             inToken,
             outToken,
-            amountOut.convertFrom18(ERC20(outToken).decimals()),
+            amountOut.from18(ERC20(outToken).decimals()),
             optionalPath
         );
 
-        amountIn = amountIn.convertTo18(ERC20(inToken).decimals());
+        amountIn = amountIn.to18(ERC20(inToken).decimals());
     }
 
     function getNormalizedPriceOut(
@@ -338,10 +338,10 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             exchangeFromExact(
                 inToken,
                 outToken,
-                amountIn.convertFrom18(ERC20(inToken).decimals()),
+                amountIn.from18(ERC20(inToken).decimals()),
                 optionalPath,
-                minAmountOut.convertFrom18(outDecimals)
-            ).convertTo18(outDecimals);
+                minAmountOut.from18(outDecimals)
+            ).to18(outDecimals);
     }
 
     function normalizedExchangeToExact(
@@ -357,10 +357,10 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             exchangeToExact(
                 inToken,
                 outToken,
-                amountOut.convertFrom18(ERC20(outToken).decimals()),
+                amountOut.from18(ERC20(outToken).decimals()),
                 optionalPath,
-                maxAmountIn.convertFrom18(inDecimals)
-            ).convertTo18(inDecimals);
+                maxAmountIn.from18(inDecimals)
+            ).to18(inDecimals);
     }
 
     function totalPathTokens() external view override returns (uint256) {

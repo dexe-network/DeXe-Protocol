@@ -5,12 +5,12 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
+
 import "../interfaces/insurance/IInsurance.sol";
 import "../interfaces/trader/ITraderPoolRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/IContractsRegistry.sol";
-
-import "../proxy/contracts-registry/AbstractDependant.sol";
 
 import "../libs/StringSet.sol";
 import "../libs/MathHelper.sol";
@@ -151,10 +151,8 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         info = new FinishedClaims[](to - offset);
 
         for (uint256 i = offset; i < to; i++) {
-            string memory value = _finishedClaims.at(i);
-
-            urls[i - offset] = value;
-            info[i - offset] = _finishedClaimsInfo[value];
+            urls[i - offset] = _finishedClaims.at(i);
+            info[i - offset] = _finishedClaimsInfo[urls[i - offset]];
         }
     }
 

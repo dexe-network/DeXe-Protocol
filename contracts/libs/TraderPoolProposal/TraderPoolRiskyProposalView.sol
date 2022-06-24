@@ -9,7 +9,6 @@ import "../../interfaces/trader/ITraderPoolRiskyProposal.sol";
 import "../../interfaces/core/IPriceFeed.sol";
 
 import "../MathHelper.sol";
-import "../DecimalsConverter.sol";
 import "../PriceFeed/PriceFeedLocal.sol";
 
 import "../../trader/TraderPoolRiskyProposal.sol";
@@ -17,7 +16,6 @@ import "../../trader/TraderPoolRiskyProposal.sol";
 library TraderPoolRiskyProposalView {
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using DecimalsConverter for uint256;
     using MathHelper for uint256;
     using Math for uint256;
     using Address for address;

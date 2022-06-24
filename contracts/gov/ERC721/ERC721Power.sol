@@ -7,10 +7,11 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
+
 import "../../interfaces/gov/ERC721/IERC721Power.sol";
 
 import "../../libs/MathHelper.sol";
-import "../../libs/DecimalsConverter.sol";
 
 import "../../core/Globals.sol";
 
@@ -144,7 +145,7 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         IERC20(collateralToken).safeTransferFrom(
             msg.sender,
             address(this),
-            amount.convertFrom18(ERC20(collateralToken).decimals())
+            amount.from18(ERC20(collateralToken).decimals())
         );
 
         uint256 currentCollateralAmount = nftInfos[tokenId].currentCollateral;
@@ -169,7 +170,7 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
 
         IERC20(collateralToken).safeTransfer(
             msg.sender,
-            amount.convertFrom18(ERC20(collateralToken).decimals())
+            amount.from18(ERC20(collateralToken).decimals())
         );
     }
 

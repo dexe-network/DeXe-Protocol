@@ -10,11 +10,13 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
+import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
+
 import "../interfaces/gov/IGovUserKeeper.sol";
 
 import "../libs/MathHelper.sol";
 import "../libs/ShrinkableArray.sol";
-import "../libs/DecimalsConverter.sol";
 
 import "./ERC721/ERC721Power.sol";
 
@@ -24,7 +26,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     using MathHelper for uint256;
     using ShrinkableArray for ShrinkableArray.UintArray;
     using EnumerableSet for EnumerableSet.UintSet;
-    using EnumerableSet for EnumerableSet.AddressSet;
+    using Paginator for EnumerableSet.UintSet;
     using DecimalsConverter for uint256;
 
     address public tokenAddress;
@@ -109,7 +111,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         IERC20(token).safeTransferFrom(
             msg.sender,
             address(this),
-            amount.convertFrom18(ERC20(token).decimals())
+            amount.from18(ERC20(token).decimals())
         );
 
         tokenBalance[holder] += amount;
@@ -135,7 +137,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         tokenBalance[msg.sender] = balance - amount;
 
-        IERC20(token).safeTransfer(msg.sender, amount.convertFrom18(ERC20(token).decimals()));
+        IERC20(token).safeTransfer(msg.sender, amount.from18(ERC20(token).decimals()));
 
         emit TokensWithdrawn(msg.sender, amount);
     }
@@ -232,13 +234,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 offset,
         uint256 limit
     ) external view override returns (uint256[] memory nftIds) {
-        uint256 to = (offset + limit).min(_nftBalance[user].length()).max(offset);
-
-        nftIds = new uint256[](to - offset);
-
-        for (uint256 i = offset; i < to; i++) {
-            nftIds[i - offset] = _nftBalance[user].at(i);
-        }
+        return _nftBalance[user].part(offset, limit);
     }
 
     function nftLockedBalanceOf(
@@ -246,14 +242,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 offset,
         uint256 limit
     ) external view override returns (uint256[] memory nftIds, uint256[] memory lockedAmounts) {
-        uint256 to = (offset + limit).min(_nftLocked[user].length()).max(offset);
+        nftIds = _nftLocked[user].part(offset, limit);
 
-        nftIds = new uint256[](to - offset);
-        lockedAmounts = new uint256[](to - offset);
+        lockedAmounts = new uint256[](nftIds.length);
 
-        for (uint256 i = offset; i < to; i++) {
-            nftIds[i - offset] = _nftLocked[user].at(i);
-            lockedAmounts[i - offset] = _nftLockedNums[nftIds[i - offset]];
+        for (uint256 i = 0; i < nftIds.length; i++) {
+            lockedAmounts[i] = _nftLockedNums[nftIds[i]];
         }
     }
 
@@ -263,24 +257,15 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 offset,
         uint256 limit
     ) external view override returns (uint256[] memory nftIds) {
-        uint256 to = (offset + limit).min(_delegatedNfts[holder][spender].length()).max(offset);
-
-        nftIds = new uint256[](to - offset);
-
-        for (uint256 i = offset; i < to; i++) {
-            nftIds[i - offset] = _delegatedNfts[holder][spender].at(i);
-        }
+        return _delegatedNfts[holder][spender].part(offset, limit);
     }
 
     function getTotalVoteWeight() external view override returns (uint256) {
         address token = tokenAddress;
 
         return
-            (
-                token != address(0)
-                    ? IERC20(token).totalSupply().convertTo18(ERC20(token).decimals())
-                    : 0
-            ) + _nftInfo.totalPowerInTokens;
+            (token != address(0) ? IERC20(token).totalSupply().to18(ERC20(token).decimals()) : 0) +
+            _nftInfo.totalPowerInTokens;
     }
 
     function getNftsPowerInTokens(ShrinkableArray.UintArray calldata nftIds, uint256 snapshotId)

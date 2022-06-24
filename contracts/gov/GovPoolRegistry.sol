@@ -4,14 +4,15 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+import "@dlsl/dev-modules/pool-contracts-registry/AbstractPoolContractsRegistry.sol";
+import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
+
 import "../interfaces/gov/IGovPoolRegistry.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "../proxy/pool-contracts-registry/AbstractPoolContractsRegistry.sol";
-import "../proxy/contracts-registry/AbstractDependant.sol";
-
 contract GovPoolRegistry is IGovPoolRegistry, AbstractPoolContractsRegistry {
     using EnumerableSet for EnumerableSet.AddressSet;
+    using Paginator for EnumerableSet.AddressSet;
     using Math for uint256;
 
     string public constant GOV_POOL_NAME = "GOV_POOL";
@@ -56,12 +57,6 @@ contract GovPoolRegistry is IGovPoolRegistry, AbstractPoolContractsRegistry {
         uint256 offset,
         uint256 limit
     ) external view override returns (address[] memory pools) {
-        uint256 to = (offset + limit).min(_ownerPools[user][name].length()).max(offset);
-
-        pools = new address[](to - offset);
-
-        for (uint256 i = offset; i < to; i++) {
-            pools[i - offset] = _ownerPools[user][name].at(i);
-        }
+        return _ownerPools[user][name].part(offset, limit);
     }
 }

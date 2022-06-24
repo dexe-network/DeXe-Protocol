@@ -9,11 +9,9 @@ import "../../interfaces/trader/ITraderPool.sol";
 import "../../interfaces/core/IPriceFeed.sol";
 
 import "../../libs/TokenBalance.sol";
-import "../../libs/DecimalsConverter.sol";
 
 library TraderPoolPrice {
     using EnumerableSet for EnumerableSet.AddressSet;
-    using DecimalsConverter for uint256;
     using TokenBalance for address;
 
     function getNormalizedPoolPriceAndPositions(ITraderPool.PoolParameters storage poolParameters)

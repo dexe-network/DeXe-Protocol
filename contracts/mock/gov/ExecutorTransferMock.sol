@@ -18,8 +18,6 @@ contract ExecutorTransferMock is ERC721Holder, ERC1155Holder {
     uint256[] public ids1155;
     uint256[] public amounts1155;
 
-    bool public isShouldRevert;
-
     constructor(
         address _govAddress,
         address _mock20Address,
@@ -44,13 +42,7 @@ contract ExecutorTransferMock is ERC721Holder, ERC1155Holder {
         amounts1155 = _amounts1155;
     }
 
-    function changeRevert() external {
-        isShouldRevert = !isShouldRevert;
-    }
-
     function execute() external {
-        require(!isShouldRevert, "Revert message");
-
         address _govAddress = govAddress;
 
         if (amount20 > 0) {
