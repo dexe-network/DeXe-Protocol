@@ -62,6 +62,12 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     event InvestorRemoved(address investor);
     event Invested(address user, uint256 investedBase, uint256 receivedLP);
     event Divested(address user, uint256 divestedLP, uint256 receivedBase);
+    event ActivePortfolioExchanged(
+        address fromToken,
+        address toToken,
+        uint256 fromVolume,
+        uint256 toVolume
+    );
     event TraderCommissionMinted(address trader, uint256 lpMinted);
     event TraderCommissionPaid(address investor, uint256 lpPaid);
     event DescriptionURLChanged(string descriptionURL);
@@ -260,13 +266,16 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         lpMinted = _transferBaseAndMintLP(baseHolder, totalBase, amountInBaseToInvest);
 
         for (uint256 i = 0; i < positionTokens.length; i++) {
-            priceFeed.normExchangeFromExact(
+            uint256 amount = positionPricesInBase[i].ratio(amountInBaseToInvest, totalBase);
+            uint256 amountGot = priceFeed.normExchangeFromExact(
                 baseToken,
                 positionTokens[i],
-                positionPricesInBase[i].ratio(amountInBaseToInvest, totalBase),
+                amount,
                 new address[](0),
                 minPositionsOut[i]
             );
+
+            emit ActivePortfolioExchanged(baseToken, positionTokens[i], amount, amountGot);
         }
     }
 
@@ -387,15 +396,18 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         investorBaseAmount = baseToken.normThisBalance().ratio(amountLP, totalSupply);
 
         for (uint256 i = 0; i < _openPositions.length; i++) {
-            address positionToken = _openPositions[i];
-
-            investorBaseAmount += priceFeed.normExchangeFromExact(
-                positionToken,
+            uint256 amount = _openPositions[i].normThisBalance().ratio(amountLP, totalSupply);
+            uint256 amountGot = priceFeed.normExchangeFromExact(
+                _openPositions[i],
                 baseToken,
-                positionToken.normThisBalance().ratio(amountLP, totalSupply),
+                amount,
                 new address[](0),
                 minPositionsOut[i]
             );
+
+            investorBaseAmount += amountGot;
+
+            emit ActivePortfolioExchanged(_openPositions[i], baseToken, amount, amountGot);
         }
     }
 

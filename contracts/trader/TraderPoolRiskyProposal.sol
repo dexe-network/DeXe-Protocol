@@ -37,6 +37,13 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 fromVolume,
         uint256 toVolume
     );
+    event ProposalActivePortfolioExchanged(
+        uint256 proposalId,
+        address fromToken,
+        address toToken,
+        uint256 fromVolume,
+        uint256 toVolume
+    );
     event ProposalPositionClosed(uint256 proposalId, address positionToken);
 
     function __TraderPoolRiskyProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
@@ -126,7 +133,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 lpInvestment,
         uint256 baseInvestment,
         uint256 instantTradePercentage,
-        uint256 minProposalOut,
+        uint256 minPositionOut,
         address[] calldata optionalPath
     ) external override onlyParentTraderPool returns (uint256 proposalId) {
         require(token.isContract(), "BTP: not a contract");
@@ -157,35 +164,48 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         emit ProposalCreated(proposalId, token, proposalLimits);
 
         _transferAndMintLP(proposalId, trader, lpInvestment, baseInvestment);
-        _activePortfolio(
+        _investActivePortfolio(
             proposalId,
             baseInvestment,
             baseInvestment.percentage(instantTradePercentage),
             lpInvestment,
             optionalPath,
-            minProposalOut
+            minPositionOut
         );
     }
 
-    function _activePortfolio(
+    function _investActivePortfolio(
         uint256 proposalId,
         uint256 baseInvestment,
         uint256 baseToExchange,
         uint256 lpInvestment,
         address[] memory optionalPath,
-        uint256 minProposalOut
+        uint256 minPositionOut
     ) internal {
         ProposalInfo storage info = _proposalInfos[proposalId];
 
         info.lpLocked += lpInvestment;
         info.balanceBase += baseInvestment - baseToExchange;
-        info.balancePosition += priceFeed.normExchangeFromExact(
-            _parentTraderPoolInfo.baseToken,
-            info.token,
-            baseToExchange,
-            optionalPath,
-            minProposalOut
-        );
+
+        if (baseToExchange > 0) {
+            uint256 amountGot = priceFeed.normExchangeFromExact(
+                _parentTraderPoolInfo.baseToken,
+                info.token,
+                baseToExchange,
+                optionalPath,
+                minPositionOut
+            );
+
+            info.balancePosition += amountGot;
+
+            emit ProposalActivePortfolioExchanged(
+                proposalId,
+                _parentTraderPoolInfo.baseToken,
+                info.token,
+                baseToExchange,
+                amountGot
+            );
+        }
     }
 
     function getInvestTokens(uint256 proposalId, uint256 baseInvestment)
@@ -267,7 +287,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
                 positionTokens + info.balanceBase
             );
 
-            _activePortfolio(
+            _investActivePortfolio(
                 proposalId,
                 baseInvestment,
                 baseToExchange,
@@ -278,58 +298,48 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         }
     }
 
-    function _divestProposalInvestor(
+    function _divestActivePortfolio(
         uint256 proposalId,
-        address investor,
         uint256 lp2,
         uint256 minPositionOut
     ) internal returns (uint256 receivedBase) {
+        ProposalInfo storage info = _proposalInfos[proposalId];
         uint256 supply = totalSupply(proposalId);
 
-        uint256 positionShare = _proposalInfos[proposalId].balancePosition.ratio(lp2, supply);
-        uint256 baseShare = _proposalInfos[proposalId].balanceBase.ratio(lp2, supply);
+        uint256 baseShare = receivedBase = info.balanceBase.ratio(lp2, supply);
+        uint256 positionShare = info.balancePosition.ratio(lp2, supply);
 
-        receivedBase =
-            baseShare +
-            priceFeed.normExchangeFromExact(
-                _proposalInfos[proposalId].token,
+        if (positionShare > 0) {
+            uint256 amountGot = priceFeed.normExchangeFromExact(
+                info.token,
                 _parentTraderPoolInfo.baseToken,
                 positionShare,
                 new address[](0),
                 minPositionOut
             );
 
-        (uint256 lpToBurn, uint256 baseToBurn) = _updateFrom(investor, proposalId, lp2, false);
-        _burn(investor, proposalId, lp2);
+            info.balancePosition -= positionShare;
+            receivedBase += amountGot;
 
-        _proposalInfos[proposalId].balanceBase -= baseShare;
-        _proposalInfos[proposalId].balancePosition -= positionShare;
-        _proposalInfos[proposalId].lpLocked -= lpToBurn;
+            emit ProposalActivePortfolioExchanged(
+                proposalId,
+                info.token,
+                _parentTraderPoolInfo.baseToken,
+                positionShare,
+                amountGot
+            );
+        }
 
-        totalLockedLP -= lpToBurn;
-        investedBase -= baseToBurn;
+        info.balanceBase -= baseShare;
     }
 
-    function _divestProposalTrader(
-        uint256 proposalId,
-        address trader,
-        uint256 lp2
-    ) internal returns (uint256 receivedBase) {
+    function _divestProposalTrader(uint256 proposalId, uint256 lp2) internal returns (uint256) {
         require(
             _proposalInfos[proposalId].balancePosition == 0,
             "TPRP: divesting with open position"
         );
 
-        receivedBase = _proposalInfos[proposalId].balanceBase.ratio(lp2, totalSupply(proposalId));
-
-        (uint256 lpToBurn, uint256 baseToBurn) = _updateFrom(trader, proposalId, lp2, false);
-        _burn(trader, proposalId, lp2);
-
-        _proposalInfos[proposalId].balanceBase -= receivedBase;
-        _proposalInfos[proposalId].lpLocked -= lpToBurn;
-
-        totalLockedLP -= lpToBurn;
-        investedBase -= baseToBurn;
+        return _divestActivePortfolio(proposalId, lp2, 0);
     }
 
     function getDivestAmounts(uint256[] calldata proposalIds, uint256[] calldata lp2s)
@@ -351,10 +361,18 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         require(balanceOf(user, proposalId) >= lp2, "TPRP: divesting more than balance");
 
         if (user == _parentTraderPoolInfo.trader) {
-            receivedBase = _divestProposalTrader(proposalId, user, lp2);
+            receivedBase = _divestProposalTrader(proposalId, lp2);
         } else {
-            receivedBase = _divestProposalInvestor(proposalId, user, lp2, minPositionOut);
+            receivedBase = _divestActivePortfolio(proposalId, lp2, minPositionOut);
         }
+
+        (uint256 lpToBurn, uint256 baseToBurn) = _updateFrom(user, proposalId, lp2, false);
+        _burn(user, proposalId, lp2);
+
+        _proposalInfos[proposalId].lpLocked -= lpToBurn;
+
+        totalLockedLP -= lpToBurn;
+        investedBase -= baseToBurn;
     }
 
     function exchange(
