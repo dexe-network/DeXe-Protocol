@@ -9,11 +9,19 @@ import "../core/ICoreProperties.sol";
 /**
  * The TraderPool contract is a central business logic contract the DEXE platform is built around. The TraderPool represents
  * a collective pool where investors share its funds and the ownership. The share is represented with the LP tokens and the
- * income is made through the trader's activity. The pool itself is tidely integrated with the UniswapV2 protocol and the trader
+ * income is made through the trader's activity. The pool itself is tidily integrated with the UniswapV2 protocol and the trader
  * is allowed to trade with the tokens in this pool. Several safety mechanisms are implemented here: Active Portfolio, Trader Leverage,
  * Proposals, Commissions horizon and simplified onchain PathFinder that protect the user funds
  */
 interface ITraderPool {
+    /// @notice The enum of exchange types
+    /// @param FROM_EXACT the type corresponding to the exchangeFromExact function
+    /// @param TO_EXACT the type corresponding to the exchangeToExact function
+    enum ExchangeType {
+        FROM_EXACT,
+        TO_EXACT
+    }
+
     /// @notice The struct that holds the parameters of this pool
     /// @param descriptionURL the IPFS URL of the description
     /// @param trader the address of trader of this pool
@@ -46,11 +54,19 @@ interface ITraderPool {
 
     /// @notice The struct that is returned from the TraderPoolView contract to see the taken commissions
     /// @param traderBaseCommission the total trader's commission in base tokens (normalized)
+    /// @param traderLPCommission the equivalent trader's commission in LP tokens
+    /// @param traderUSDCommission the equivalent trader's commission in USD (normalized)
     /// @param dexeBaseCommission the total platform's commission in base tokens (normalized)
-    /// @param dexeDexeCommission the total platform's commission in DEXE tokens (normalized)
+    /// @param dexeLPCommission the equivalent platform's commission in LP tokens
+    /// @param dexeUSDCommission the equivalent platform's commission in USD (normalized)
+    /// @param dexeDexeCommission the equivalent platform's commission in DEXE tokens (normalized)
     struct Commissions {
         uint256 traderBaseCommission;
+        uint256 traderLPCommission;
+        uint256 traderUSDCommission;
         uint256 dexeBaseCommission;
+        uint256 dexeLPCommission;
+        uint256 dexeUSDCommission;
         uint256 dexeDexeCommission;
     }
 
@@ -81,11 +97,13 @@ interface ITraderPool {
     }
 
     /// @notice The struct that is returned from the TraderPoolView contract and stores information about the investor
+    /// @param commissionUnlockTimestamp the timestamp after which the trader will be allowed to take the commission from this user
     /// @param poolLPBalance the LP token balance of this used excluding proposals balance. The same as calling .balanceOf() function
     /// @param investedBase the amount of base tokens invested into the pool (after commission calculation this might increase)
     /// @param poolUSDShare the equivalent amount of USD that represent the user's pool share
     /// @param poolUSDShare the equivalent amount of base tokens that represent the user's pool share
     struct UserInfo {
+        uint256 commissionUnlockTimestamp;
         uint256 poolLPBalance;
         uint256 investedBase;
         uint256 poolUSDShare;
@@ -95,24 +113,33 @@ interface ITraderPool {
     /// @notice The structure that is returned from the TraderPoolView contract and stores static information about the pool
     /// @param ticker the ERC20 symbol of this pool
     /// @param name the ERC20 name of this pool
-    /// @param parameters the active pool parametrs (that are set in the constructor)
+    /// @param parameters the active pool parameters (that are set in the constructor)
     /// @param openPositions the array of open positions addresses
     /// @param baseAndPositionBalances the array of balances. [0] is the balance of base tokens (array is normalized)
+    /// @param totalBlacklistedPositions is the number of blacklisted positions this pool has
+    /// @param totalInvestors is the number of investors this pools has (excluding trader)
     /// @param totalPoolUSD is the current USD TVL in this pool
     /// @param totalPoolBase is the current base token TVL in this pool
     /// @param lpSupply is the current number of LP tokens (without proposals)
     /// @param lpLockedInProposals is the current number of LP tokens that are locked in proposals
+    /// @param traderUSD is the equivalent amount of USD that represent the trader's pool share
+    /// @param traderBase is the equivalent amount of base tokens that represent the trader's pool share
+    /// @param traderLPBalance is the amount of LP tokens the trader has in the pool (excluding proposals)
     struct PoolInfo {
         string ticker;
         string name;
         PoolParameters parameters;
         address[] openPositions;
         uint256[] baseAndPositionBalances;
+        uint256 totalBlacklistedPositions;
         uint256 totalInvestors;
         uint256 totalPoolUSD;
         uint256 totalPoolBase;
         uint256 lpSupply;
         uint256 lpLockedInProposals;
+        uint256 traderUSD;
+        uint256 traderBase;
+        uint256 traderLPBalance;
     }
 
     /// @notice The function that returns a PriceFeed contract
@@ -123,7 +150,7 @@ interface ITraderPool {
     /// @return the core properties contract
     function coreProperties() external view returns (ICoreProperties);
 
-    /// @notice The function that checks whther the specified address is a private investor
+    /// @notice The function that checks whether the specified address is a private investor
     /// @param who the address to check
     /// @return true if the pool is private and who is a private investor, false otherwise
     function isPrivateInvestor(address who) external view returns (bool);
@@ -140,7 +167,7 @@ interface ITraderPool {
 
     /// @notice The function to modify trader admins. Trader admins are eligible for executing swaps
     /// @param admins the array of addresses to grant or revoke an admin rights
-    /// @param add if true the admins will be added, if fasle the admins will be removed
+    /// @param add if true the admins will be added, if false the admins will be removed
     function modifyAdmins(address[] calldata admins, bool add) external;
 
     /// @notice The function to modify private investors
@@ -160,10 +187,6 @@ interface ITraderPool {
         uint256 minimalInvestment
     ) external;
 
-    /// @notice The function to get the total number of opened positions right now
-    /// @return the number of opened positions
-    function totalOpenPositions() external view returns (uint256);
-
     /// @notice The function to get the total number of investors
     /// @return the total number of investors
     function totalInvestors() external view returns (uint256);
@@ -176,6 +199,10 @@ interface ITraderPool {
     /// @return the actual LP tokens emission
     function totalEmission() external view returns (uint256);
 
+    /// @notice The function that returns the filtered open positions list (filtered against the blacklist)
+    /// @return the array of open positions
+    function openPositions() external view returns (address[] memory);
+
     /// @notice The function that returns the information about the investors
     /// @param offset the starting index of the investors array
     /// @param limit the length of the observed array
@@ -185,7 +212,7 @@ interface ITraderPool {
         view
         returns (UserInfo[] memory usersInfo);
 
-    /// @notice The funciton to get the static pool information
+    /// @notice The function to get the static pool information
     /// @return poolInfo the static info of the pool
     function getPoolInfo() external view returns (PoolInfo memory poolInfo);
 
@@ -247,59 +274,35 @@ interface ITraderPool {
         uint256 minDexeCommissionOut
     ) external;
 
-    /// @notice The function to get the amount of to tokens received after the swap
-    /// @param from the token to exchange from
-    /// @param to the token to exchange to
-    /// @param amountIn the amount of from tokens to be exchanged
-    /// @param optionalPath optional path between from and to tokens used by the pathfinder
-    /// @return minAmountOut the amount of to tokens received after the swap
-    /// @return path the tokens path that will be used during the swap
-    function getExchangeFromExactAmount(
-        address from,
-        address to,
-        uint256 amountIn,
-        address[] calldata optionalPath
-    ) external view returns (uint256 minAmountOut, address[] memory path);
-
-    /// @notice The function to exchange exact amount of from tokens to the to tokens (aka swapExactTokensForTokens)
+    /// @notice The function to exchange tokens for tokens
     /// @param from the tokens to exchange from
     /// @param to the token to exchange to
-    /// @param amountIn the amount of from tokens to exchange (normalized)
-    /// @param minAmountOut the minimal amount of to tokens received after the swap
+    /// @param amount the amount of tokens to be exchanged (normalized). If fromExact, this should equal amountIn, else amountOut
+    /// @param amountBound this should be minAmountOut if fromExact, else maxAmountIn
     /// @param optionalPath the optional path between from and to tokens used by the pathfinder
-    function exchangeFromExact(
+    /// @param exType exchange type. Can be exchangeFromExact or exchangeToExact
+    function exchange(
         address from,
         address to,
-        uint256 amountIn,
-        uint256 minAmountOut,
-        address[] calldata optionalPath
+        uint256 amount,
+        uint256 amountBound,
+        address[] calldata optionalPath,
+        ExchangeType exType
     ) external;
 
-    /// @notice The function to get the amount of from tokens required for the swap
+    /// @notice The function to get token prices required for the slippage
     /// @param from the token to exchange from
     /// @param to the token to exchange to
-    /// @param amountOut the amount of to tokens to be received
+    /// @param amount the amount of tokens to be exchanged. If fromExact, this should be amountIn, else amountOut
     /// @param optionalPath optional path between from and to tokens used by the pathfinder
-    /// @return maxAmountIn the amount of from tokens required for the swap
+    /// @param exType exchange type. Can be exchangeFromExact or exchangeToExact
+    /// @return amount the minAmountOut if fromExact, else maxAmountIn
     /// @return path the tokens path that will be used during the swap
-    function getExchangeToExactAmount(
+    function getExchangeAmount(
         address from,
         address to,
-        uint256 amountOut,
-        address[] calldata optionalPath
-    ) external view returns (uint256 maxAmountIn, address[] memory path);
-
-    /// @notice The function to exchange from tokens to the exact amount of to tokens (aka swapTokensForExactTokens)
-    /// @param from the tokens to exchange from
-    /// @param to the token to exchange to
-    /// @param amountOut the amount of to tokens received after the swap (normalized)
-    /// @param maxAmountIn the maximal amount of from tokens needed for the swap
-    /// @param optionalPath the optional path between from and to tokens used by the pathfinder
-    function exchangeToExact(
-        address from,
-        address to,
-        uint256 amountOut,
-        uint256 maxAmountIn,
-        address[] calldata optionalPath
-    ) external;
+        uint256 amount,
+        address[] calldata optionalPath,
+        ExchangeType exType
+    ) external view returns (uint256, address[] memory);
 }

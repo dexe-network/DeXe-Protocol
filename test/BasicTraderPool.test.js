@@ -15,6 +15,7 @@ const PoolProposal = artifacts.require("TraderPoolRiskyProposal");
 const PoolProposalLib = artifacts.require("TraderPoolRiskyProposalView");
 const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
 const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
+const TraderPoolExchangeLib = artifacts.require("TraderPoolExchange");
 const TraderPoolPriceLib = artifacts.require("TraderPoolPrice");
 const TraderPoolViewLib = artifacts.require("TraderPoolView");
 
@@ -32,6 +33,11 @@ const SECONDS_IN_DAY = 86400;
 const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
 const PRECISION = toBN(10).pow(25);
 const DECIMAL = toBN(10).pow(18);
+
+const ExchangeType = {
+  FROM_EXACT: 0,
+  TO_EXACT: 1,
+};
 
 const ComissionPeriods = {
   PERIOD_1: 0,
@@ -58,6 +64,8 @@ const DEFAULT_CORE_PROPERTIES = {
   insuranceFactor: 10,
   maxInsurancePoolShare: 3,
   minInsuranceDeposit: DECIMAL.times(10).toFixed(),
+  minInsuranceProposalAmount: DECIMAL.times(100).toFixed(),
+  insuranceWithdrawalLock: SECONDS_IN_DAY,
 };
 
 describe("BasicTraderPool", () => {
@@ -85,6 +93,7 @@ describe("BasicTraderPool", () => {
 
     let tokenNames = ["USD", "DEXE", "WETH", "USDT", "MANA", "WBTC"];
     let decimals = [18, 18, 18, 6, 18, 8];
+    let support = [true, true, true, false, true, false];
 
     for (let i = 0; i < tokenNames.length; i++) {
       if (tokenNames[i] == "USD") {
@@ -99,7 +108,9 @@ describe("BasicTraderPool", () => {
 
       await tokens[tokenNames[i]].mint(OWNER, tokensToMint.times(decimalWei));
 
-      await priceFeed.addSupportedBaseTokens([tokens[tokenNames[i]].address]);
+      if (support[i]) {
+        await coreProperties.addWhitelistTokens([tokens[tokenNames[i]].address]);
+      }
 
       await tokens[tokenNames[i]].approve(uniswapV2Router.address, reserveTokens.times(decimalWei));
       await uniswapV2Router.setReserve(tokens[tokenNames[i]].address, reserveTokens.times(decimalWei));
@@ -131,10 +142,12 @@ describe("BasicTraderPool", () => {
     await TraderPoolViewLib.link(traderPoolLeverageLib);
 
     const traderPoolViewLib = await TraderPoolViewLib.new();
+    const traderPoolExchangeLib = await TraderPoolExchangeLib.new();
 
     await BasicTraderPool.link(traderPoolCommissionLib);
     await BasicTraderPool.link(traderPoolLeverageLib);
     await BasicTraderPool.link(traderPoolPriceLib);
+    await BasicTraderPool.link(traderPoolExchangeLib);
     await BasicTraderPool.link(traderPoolViewLib);
 
     const poolProposalLib = await PoolProposalLib.new();
@@ -165,7 +178,7 @@ describe("BasicTraderPool", () => {
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
-    await contractsRegistry.addContract(await contractsRegistry.TRADER_POOL_FACTORY_NAME(), FACTORY);
+    await contractsRegistry.addContract(await contractsRegistry.POOL_FACTORY_NAME(), FACTORY);
 
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
@@ -179,7 +192,7 @@ describe("BasicTraderPool", () => {
     await insurance.__Insurance_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
     await priceFeed.__PriceFeed_init();
-    await traderPoolRegistry.__TraderPoolRegistry_init();
+    await traderPoolRegistry.__PoolContractsRegistry_init();
 
     await contractsRegistry.injectDependencies(await contractsRegistry.INSURANCE_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
@@ -205,7 +218,10 @@ describe("BasicTraderPool", () => {
     await traderPool.__BasicTraderPool_init("Test pool", "TP", poolParameters, proposal.address);
     await proposal.__TraderPoolRiskyProposal_init(parentPoolInfo);
 
-    await traderPoolRegistry.addPool(OWNER, POOL_NAME, traderPool.address, {
+    await traderPoolRegistry.addPool(POOL_NAME, traderPool.address, {
+      from: FACTORY,
+    });
+    await traderPoolRegistry.associateUserWithPool(OWNER, POOL_NAME, traderPool.address, {
       from: FACTORY,
     });
 
@@ -213,6 +229,7 @@ describe("BasicTraderPool", () => {
 
     return [traderPool, proposal];
   }
+
   async function invest(amount, account) {
     const receptions = await traderPool.getInvestTokens(amount);
     await traderPool.invest(amount, receptions.receivedAmounts, { from: account });
@@ -224,13 +241,13 @@ describe("BasicTraderPool", () => {
   }
 
   async function exchangeFromExact(from, to, amount) {
-    const exchange = (await traderPool.getExchangeFromExactAmount(from, to, amount, []))[0];
-    await traderPool.exchangeFromExact(from, to, amount, exchange, []);
+    const exchange = (await traderPool.getExchangeAmount(from, to, amount, [], ExchangeType.FROM_EXACT))[0];
+    await traderPool.exchange(from, to, amount, exchange, [], ExchangeType.FROM_EXACT);
   }
 
   async function exchangeToExact(from, to, amount) {
-    const exchange = (await traderPool.getExchangeToExactAmount(from, to, amount, []))[0];
-    await traderPool.exchangeToExact(from, to, amount, exchange, []);
+    const exchange = (await traderPool.getExchangeAmount(from, to, amount, [], ExchangeType.TO_EXACT))[0];
+    await traderPool.exchange(from, to, amount, exchange, [], ExchangeType.TO_EXACT);
   }
 
   async function createProposal(token, value, limits, percentage) {
@@ -260,13 +277,13 @@ describe("BasicTraderPool", () => {
   }
 
   async function exchangeFromExactProposal(proposalId, from, amount) {
-    const amountOut = (await proposalPool.getExchangeFromExactAmount(proposalId, from, amount, []))[0];
-    await proposalPool.exchangeFromExact(proposalId, from, amount, amountOut, []);
+    const amountOut = (await proposalPool.getExchangeAmount(proposalId, from, amount, [], ExchangeType.FROM_EXACT))[0];
+    await proposalPool.exchange(proposalId, from, amount, amountOut, [], ExchangeType.FROM_EXACT);
   }
 
   async function exchangeToExactProposal(proposalId, from, amount) {
-    const amountOut = (await proposalPool.getExchangeToExactAmount(proposalId, from, amount, []))[0];
-    await proposalPool.exchangeToExact(proposalId, from, amount, amountOut, []);
+    const amountOut = (await proposalPool.getExchangeAmount(proposalId, from, amount, [], ExchangeType.TO_EXACT))[0];
+    await proposalPool.exchange(proposalId, from, amount, amountOut, [], ExchangeType.TO_EXACT);
   }
 
   async function reinvestProposal(propoaslId, amount, account) {
@@ -276,21 +293,6 @@ describe("BasicTraderPool", () => {
     await traderPool.reinvestProposal(propoaslId, amount, invests.receivedAmounts, divests.receivedAmounts[0], {
       from: account,
     });
-  }
-
-  async function reinvestAllProposals(slippage, account) {
-    const length = await proposalPool.getTotalActiveInvestments(account);
-    const activeProposals = await proposalPool.getActiveInvestmentsInfo(account, 0, length);
-
-    const proposals = activeProposals.map((prop) => prop.proposalId);
-    const amounts = activeProposals.map((prop) => prop.lp2Balance);
-
-    const divests = await proposalPool.getDivestAmounts(proposals, amounts);
-    const invests = await traderPool.getInvestTokens(divests.baseAmount);
-
-    const slippageAmounts = divests.receivedAmounts.map((amount) => toBN(amount).times(slippage).dp(0).toFixed());
-
-    await traderPool.reinvestAllProposals(invests.receivedAmounts, slippageAmounts, { from: account });
   }
 
   describe("Default Pool", () => {
@@ -310,6 +312,47 @@ describe("BasicTraderPool", () => {
       };
 
       [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);
+    });
+
+    describe("exchange", () => {
+      beforeEach("setup", async () => {
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+
+        await invest(wei("1000"), OWNER);
+      });
+
+      it("should not exchange not whitelisted token", async () => {
+        await truffleAssert.reverts(
+          exchangeFromExact(tokens.WETH.address, tokens.WBTC.address, wei("500")),
+          "BTP: invalid exchange"
+        );
+      });
+
+      it("should be called only by an admin", async () => {
+        const exchange = (
+          await traderPool.getExchangeAmount(
+            tokens.WETH.address,
+            tokens.WBTC.address,
+            wei("500"),
+            [],
+            ExchangeType.FROM_EXACT
+          )
+        )[0];
+        await coreProperties.addWhitelistTokens([tokens.WBTC.address]);
+
+        await truffleAssert.reverts(
+          traderPool.exchange(
+            tokens.WETH.address,
+            tokens.WBTC.address,
+            wei("500"),
+            exchange,
+            [],
+            ExchangeType.FROM_EXACT,
+            { from: SECOND }
+          ),
+          "TP: not an admin"
+        );
+      });
     });
 
     describe("createProposal", () => {
@@ -595,7 +638,14 @@ describe("BasicTraderPool", () => {
         await uniswapV2Router.setReserve(tokens.WBTC.address, wei("1000000", 8));
 
         await invest(wei("1000"), SECOND);
+
+        let info = (await proposalPool.getProposalInfos(0, 1))[0];
+        assert.equal(toBN(info.totalInvestors).toFixed(), "0");
+
         await investProposal(1, wei("1000"), SECOND);
+
+        info = (await proposalPool.getProposalInfos(0, 1))[0];
+        assert.equal(toBN(info.totalInvestors).toFixed(), "1");
 
         assert.equal((await traderPool.balanceOf(SECOND)).toFixed(), "0");
         assert.equal((await traderPool.totalInvestors()).toFixed(), "1");
@@ -603,6 +653,9 @@ describe("BasicTraderPool", () => {
         assert.equal((await proposalPool.balanceOf(SECOND, 1)).toFixed(), wei("1000"));
 
         await proposalPool.safeTransferFrom(SECOND, OWNER, 1, wei("1000"), "0x", { from: SECOND });
+
+        info = (await proposalPool.getProposalInfos(0, 1))[0];
+        assert.equal(toBN(info.totalInvestors).toFixed(), "0");
 
         assert.equal((await traderPool.balanceOf(SECOND)).toFixed(), "0");
         assert.equal((await proposalPool.getTotalActiveInvestments(SECOND)).toFixed(), "0");
@@ -659,13 +712,15 @@ describe("BasicTraderPool", () => {
 
         let info = (await proposalPool.getActiveInvestmentsInfo(OWNER, 0, 1))[0];
 
-        assert.equal(toBN(info.lpLocked).toFixed(), wei("500"));
+        assert.equal(toBN(info.lpInvested).toFixed(), wei("500"));
+        assert.equal(toBN(info.baseInvested).toFixed(), wei("500"));
 
         await reinvestProposal(1, wei("250"), OWNER);
 
         info = (await proposalPool.getActiveInvestmentsInfo(OWNER, 0, 1))[0];
 
-        assert.equal(toBN(info.lpLocked).toFixed(), wei("250"));
+        assert.equal(toBN(info.lpInvested).toFixed(), wei("250"));
+        assert.equal(toBN(info.baseInvested).toFixed(), wei("250"));
 
         assert.equal((await proposalPool.balanceOf(OWNER, 1)).toFixed(), wei("250"));
         assert.equal((await proposalPool.totalLockedLP()).toFixed(), wei("250"));
@@ -737,7 +792,7 @@ describe("BasicTraderPool", () => {
         );
       });
 
-      it("should divest from all proposals", async () => {
+      it("should divest sequentially from all proposals", async () => {
         await exchangeFromExact(tokens.WETH.address, tokens.MANA.address, wei("500"));
 
         await invest(wei("1000"), SECOND);
@@ -793,7 +848,8 @@ describe("BasicTraderPool", () => {
           toBN(wei("1")).toNumber()
         );
 
-        await reinvestAllProposals("0.99", SECOND);
+        await reinvestProposal(1, await proposalPool.balanceOf(SECOND, 1), SECOND);
+        await reinvestProposal(2, await proposalPool.balanceOf(SECOND, 2), SECOND);
 
         assert.closeTo(
           (await proposalPool.totalLockedLP()).toNumber(),
@@ -842,7 +898,7 @@ describe("BasicTraderPool", () => {
         await invest(wei("1000"), OWNER);
       });
 
-      it("should exchange in proposal", async () => {
+      it("should exchange from exact in proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
         await createProposal(tokens.MANA.address, wei("500"), [time.plus(100000), wei("10000"), wei("2")], 0);
 
@@ -871,7 +927,7 @@ describe("BasicTraderPool", () => {
         );
       });
 
-      it("should exchange from proposal", async () => {
+      it("should exchange from exact from proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
         await createProposal(
           tokens.MANA.address,
@@ -881,6 +937,61 @@ describe("BasicTraderPool", () => {
         );
 
         await exchangeFromExactProposal(1, tokens.MANA.address, wei("400"));
+
+        let proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
+
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("500")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.equal(toBN(proposalInfo.balancePosition).toFixed(), "0");
+      });
+
+      it("should exchange to exact in proposal", async () => {
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(tokens.MANA.address, wei("500"), [time.plus(100000), wei("10000"), wei("2")], 0);
+
+        let proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
+
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("500")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.equal(toBN(proposalInfo.balancePosition).toFixed(), "0");
+
+        await exchangeToExactProposal(1, tokens.WETH.address, wei("250"));
+
+        proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
+
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          toBN(proposalInfo.balancePosition).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+      });
+
+      it("should exchange to exact from proposal", async () => {
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(
+          tokens.MANA.address,
+          wei("500"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          PRECISION.times(80)
+        );
+
+        await tokens.MANA.approve(uniswapV2Router.address, wei("1000000"));
+
+        await uniswapV2Router.setReserve(tokens.MANA.address, wei("1000000"));
+        await uniswapV2Router.setReserve(tokens.WETH.address, wei("1000000"));
+
+        await exchangeToExactProposal(1, tokens.MANA.address, wei("400"));
 
         let proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
 
@@ -914,7 +1025,8 @@ describe("BasicTraderPool", () => {
 
         let infoSecond = (await proposalPool.getActiveInvestmentsInfo(SECOND, 0, 1))[0];
 
-        assert.equal(toBN(infoSecond.lpLocked).toFixed(), wei("500"));
+        assert.equal(toBN(infoSecond.lpInvested).toFixed(), wei("500"));
+        assert.equal(toBN(infoSecond.baseInvested).toFixed(), wei("500"));
 
         await proposalPool.safeTransferFrom(SECOND, THIRD, 1, wei("250"), [], { from: SECOND });
 
@@ -923,8 +1035,23 @@ describe("BasicTraderPool", () => {
 
         assert.equal((await traderPool.totalInvestors()).toFixed(), "2");
 
-        assert.closeTo(toBN(infoSecond.lpLocked).toNumber(), toBN(wei("250")).toNumber(), toBN(wei("0.1")).toNumber());
-        assert.closeTo(toBN(infoThird.lpLocked).toNumber(), toBN(wei("250")).toNumber(), toBN(wei("0.1")).toNumber());
+        assert.closeTo(
+          toBN(infoSecond.lpInvested).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("0.1")).toNumber()
+        );
+        assert.closeTo(toBN(infoThird.lpInvested).toNumber(), toBN(wei("250")).toNumber(), toBN(wei("0.1")).toNumber());
+
+        assert.closeTo(
+          toBN(infoSecond.baseInvested).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("0.1")).toNumber()
+        );
+        assert.closeTo(
+          toBN(infoThird.baseInvested).toNumber(),
+          toBN(wei("250")).toNumber(),
+          toBN(wei("0.1")).toNumber()
+        );
       });
 
       it("should add new and remove old investor", async () => {
@@ -932,7 +1059,7 @@ describe("BasicTraderPool", () => {
 
         const infoSecond = (await proposalPool.getActiveInvestmentsInfo(SECOND, 0, 1))[0];
 
-        assert.equal(toBN(infoSecond.lpLocked).toFixed(), wei("500"));
+        assert.equal(toBN(infoSecond.lpInvested).toFixed(), wei("500"));
 
         await proposalPool.safeTransferFrom(SECOND, THIRD, 1, (await proposalPool.balanceOf(SECOND, 1)).toFixed(), [], {
           from: SECOND,
@@ -942,7 +1069,7 @@ describe("BasicTraderPool", () => {
 
         assert.equal((await traderPool.totalInvestors()).toFixed(), "1");
 
-        assert.equal(toBN(infoThird.lpLocked).toFixed(), wei("500"));
+        assert.equal(toBN(infoThird.lpInvested).toFixed(), wei("500"));
       });
     });
   });

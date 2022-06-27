@@ -7,37 +7,39 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../../interfaces/trader/ITraderPoolInvestProposal.sol";
 import "../../interfaces/core/IPriceFeed.sol";
 
+import "../PriceFeed/PriceFeedLocal.sol";
 import "../../libs/MathHelper.sol";
-import "../../libs/DecimalsConverter.sol";
 
 import "../../trader/TraderPoolInvestProposal.sol";
 
 library TraderPoolInvestProposalView {
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using DecimalsConverter for uint256;
     using MathHelper for uint256;
     using Math for uint256;
-    using Address for address;
+    using PriceFeedLocal for IPriceFeed;
 
     function getProposalInfos(
         mapping(uint256 => ITraderPoolInvestProposal.ProposalInfo) storage proposalInfos,
+        mapping(uint256 => EnumerableSet.AddressSet) storage investors,
         uint256 offset,
         uint256 limit
-    ) external view returns (ITraderPoolInvestProposal.ProposalInfo[] memory proposals) {
+    ) external view returns (ITraderPoolInvestProposal.ProposalInfoExtended[] memory proposals) {
         uint256 to = (offset + limit)
             .min(TraderPoolInvestProposal(address(this)).proposalsTotalNum())
             .max(offset);
 
-        proposals = new ITraderPoolInvestProposal.ProposalInfo[](to - offset);
+        proposals = new ITraderPoolInvestProposal.ProposalInfoExtended[](to - offset);
 
         for (uint256 i = offset; i < to; i++) {
-            proposals[i - offset] = proposalInfos[i + 1];
+            proposals[i - offset].proposalInfo = proposalInfos[i + 1];
+            proposals[i - offset].totalInvestors = investors[i + 1].length();
         }
     }
 
     function getActiveInvestmentsInfo(
         EnumerableSet.UintSet storage activeInvestments,
+        mapping(address => mapping(uint256 => uint256)) storage baseBalances,
         mapping(address => mapping(uint256 => uint256)) storage lpBalances,
         address user,
         uint256 offset,
@@ -52,6 +54,7 @@ library TraderPoolInvestProposalView {
             investments[i - offset] = ITraderPoolInvestProposal.ActiveInvestmentInfo(
                 proposalId,
                 TraderPoolInvestProposal(address(this)).balanceOf(user, proposalId),
+                baseBalances[user][proposalId],
                 lpBalances[user][proposalId]
             );
         }
@@ -64,9 +67,10 @@ library TraderPoolInvestProposalView {
         uint256[] calldata proposalIds,
         address user
     ) external view returns (ITraderPoolInvestProposal.Receptions memory receptions) {
-        uint256 proposalsTotalNum = TraderPoolInvestProposal(address(this)).proposalsTotalNum();
-        receptions.rewards = new TraderPoolInvestProposal.Reception[](proposalIds.length);
+        receptions.rewards = new ITraderPoolInvestProposal.Reception[](proposalIds.length);
 
+        IPriceFeed priceFeed = ITraderPoolInvestProposal(address(this)).priceFeed();
+        uint256 proposalsTotalNum = TraderPoolInvestProposal(address(this)).proposalsTotalNum();
         address baseToken = ITraderPoolInvestProposal(address(this)).getBaseToken();
 
         for (uint256 i = 0; i < proposalIds.length; i++) {
@@ -76,10 +80,10 @@ library TraderPoolInvestProposalView {
                 continue;
             }
 
-            TraderPoolInvestProposal.UserRewardInfo storage userRewardInfo = userRewardInfos[user][
-                proposalId
-            ];
-            TraderPoolInvestProposal.RewardInfo storage rewardInfo = rewardInfos[proposalId];
+            ITraderPoolInvestProposal.UserRewardInfo storage userRewardInfo = userRewardInfos[
+                user
+            ][proposalId];
+            ITraderPoolInvestProposal.RewardInfo storage rewardInfo = rewardInfos[proposalId];
 
             uint256 balance = TraderPoolInvestProposal(address(this)).balanceOf(user, proposalId);
 
@@ -91,14 +95,25 @@ library TraderPoolInvestProposalView {
 
                 receptions.rewards[i].amounts[j] =
                     userRewardInfo.rewardsStored[token] +
-                    ((rewardInfo.cumulativeSums[token] -
-                        userRewardInfo.cumulativeSumsStored[token]) * balance) /
-                    PRECISION;
+                    (rewardInfo.cumulativeSums[token] - userRewardInfo.cumulativeSumsStored[token])
+                        .ratio(balance, PRECISION);
 
                 if (token == baseToken) {
-                    receptions.baseAmount += receptions.rewards[i].amounts[j];
+                    receptions.totalBaseAmount += receptions.rewards[i].amounts[j];
+                    receptions.baseAmountFromRewards += receptions.rewards[i].amounts[j];
+                } else {
+                    receptions.totalBaseAmount += priceFeed.getNormPriceOut(
+                        token,
+                        baseToken,
+                        receptions.rewards[i].amounts[j]
+                    );
                 }
             }
+
+            (receptions.totalUsdAmount, ) = priceFeed.getNormalizedPriceOutUSD(
+                baseToken,
+                receptions.totalBaseAmount
+            );
         }
     }
 }

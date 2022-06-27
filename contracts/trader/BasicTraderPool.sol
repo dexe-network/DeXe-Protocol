@@ -12,6 +12,14 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
 
     ITraderPoolRiskyProposal internal _traderPoolProposal;
 
+    event ProposalDivested(
+        uint256 proposalId,
+        address user,
+        uint256 divestedLP2,
+        uint256 receivedLP,
+        uint256 receivedBase
+    );
+
     modifier onlyProposalPool() {
         _onlyProposalPool();
         _;
@@ -21,8 +29,11 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         require(msg.sender == address(_traderPoolProposal), "BTP: not a proposal");
     }
 
-    function _isSupportedBaseToken(address token) internal view {
-        require(priceFeed.isSupportedBaseToken(token), "BTP: invalid exchange");
+    function _canTrade(address token) internal view {
+        require(
+            token == _poolParameters.baseToken || coreProperties.isWhitelistedToken(token),
+            "BTP: invalid exchange"
+        );
     }
 
     function __BasicTraderPool_init(
@@ -52,28 +63,17 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         return totalSupply() + _traderPoolProposal.totalLockedLP();
     }
 
-    function exchangeFromExact(
+    function exchange(
         address from,
         address to,
-        uint256 amountIn,
-        uint256 minAmountOut,
-        address[] calldata optionalPath
-    ) public override onlyTraderAdmin {
-        _isSupportedBaseToken(to);
+        uint256 amount,
+        uint256 amountBound,
+        address[] calldata optionalPath,
+        ExchangeType exType
+    ) public override {
+        _canTrade(to);
 
-        super.exchangeFromExact(from, to, amountIn, minAmountOut, optionalPath);
-    }
-
-    function exchangeToExact(
-        address from,
-        address to,
-        uint256 amountOut,
-        uint256 maxAmountIn,
-        address[] calldata optionalPath
-    ) public override onlyTraderAdmin {
-        _isSupportedBaseToken(to);
-
-        super.exchangeToExact(from, to, amountOut, maxAmountIn, optionalPath);
+        super.exchange(from, to, amount, amountBound, optionalPath, exType);
     }
 
     function createProposal(
@@ -127,16 +127,14 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
             minProposalOut
         );
 
-        _invest(address(_traderPoolProposal), receivedBase, minPositionsOut);
-    }
+        uint256 lpMinted = _investPositions(
+            address(_traderPoolProposal),
+            receivedBase,
+            minPositionsOut
+        );
+        _updateToData(msg.sender, receivedBase);
 
-    function reinvestAllProposals(
-        uint256[] calldata minInvestsOut,
-        uint256[] calldata minProposalsOut
-    ) external override {
-        uint256 receivedBase = _traderPoolProposal.divestAll(msg.sender, minProposalsOut);
-
-        _invest(address(_traderPoolProposal), receivedBase, minInvestsOut);
+        emit ProposalDivested(proposalId, msg.sender, lp2Amount, lpMinted, receivedBase);
     }
 
     function checkRemoveInvestor(address user) external override onlyProposalPool {

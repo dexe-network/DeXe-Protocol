@@ -11,8 +11,9 @@ const PriceFeed = artifacts.require("PriceFeed");
 
 const Insurance = artifacts.require("Insurance");
 
-const TraderPoolFactory = artifacts.require("TraderPoolFactory");
+const PoolFactory = artifacts.require("PoolFactory");
 const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
+const GovPoolRegistry = artifacts.require("GovPoolRegistry");
 
 const SECONDS_IN_DAY = 86400;
 const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
@@ -38,6 +39,8 @@ const DEFAULT_CORE_PROPERTIES = {
   insuranceFactor: 10,
   maxInsurancePoolShare: 3,
   minInsuranceDeposit: DECIMAL.times(10).toFixed(),
+  minInsuranceProposalAmount: DECIMAL.times(100).toFixed(),
+  insuranceWithdrawalLock: SECONDS_IN_DAY,
 };
 
 module.exports = async (deployer) => {
@@ -50,8 +53,9 @@ module.exports = async (deployer) => {
 
   const insurance = await Insurance.at(await contractsRegistry.getInsuranceContract());
 
-  const traderPoolFactory = await TraderPoolFactory.at(await contractsRegistry.getTraderPoolFactoryContract());
+  const poolFactory = await PoolFactory.at(await contractsRegistry.getPoolFactoryContract());
   const traderPoolRegistry = await TraderPoolRegistry.at(await contractsRegistry.getTraderPoolRegistryContract());
+  const govPoolRegistry = await GovPoolRegistry.at(await contractsRegistry.getGovPoolRegistryContract());
 
   ////////////////////////////////////////////////////////////
 
@@ -67,8 +71,8 @@ module.exports = async (deployer) => {
 
   logTransaction(await insurance.__Insurance_init(), "Init Insurance");
 
-  logTransaction(await traderPoolFactory.__TraderPoolFactory_init(), "Init TraderPoolFactory");
-  logTransaction(await traderPoolRegistry.__TraderPoolRegistry_init(), "Init TraderPoolRegistry");
+  logTransaction(await traderPoolRegistry.__PoolContractsRegistry_init(), "Init TraderPoolRegistry");
+  logTransaction(await govPoolRegistry.__PoolContractsRegistry_init(), "Init TraderPoolRegistry");
 
   ////////////////////////////////////////////////////////////
 
@@ -85,13 +89,18 @@ module.exports = async (deployer) => {
   );
 
   logTransaction(
-    await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_FACTORY_NAME()),
-    "Inject TraderPoolFactory"
+    await contractsRegistry.injectDependencies(await contractsRegistry.POOL_FACTORY_NAME()),
+    "Inject PoolFactory"
   );
 
   logTransaction(
     await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_REGISTRY_NAME()),
     "Inject TraderPoolRegistry"
+  );
+
+  logTransaction(
+    await contractsRegistry.injectDependencies(await contractsRegistry.GOV_POOL_REGISTRY_NAME()),
+    "Inject GovPoolRegistry"
   );
 
   ////////////////////////////////////////////////////////////
@@ -102,7 +111,8 @@ module.exports = async (deployer) => {
     ["CoreProperties", coreProperties.address],
     ["PriceFeed", priceFeed.address],
     ["Insurance", insurance.address],
-    ["TraderPoolFactory", traderPoolFactory.address],
-    ["TraderPoolRegistry", traderPoolRegistry.address]
+    ["PoolFactory", poolFactory.address],
+    ["TraderPoolRegistry", traderPoolRegistry.address],
+    ["GovPoolRegistry", govPoolRegistry.address]
   );
 };

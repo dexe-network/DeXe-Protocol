@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 /**
- * This is the central contract of the propotol which stores the parameters that may be modified by the DAO.
+ * This is the central contract of the protocol which stores the parameters that may be modified by the DAO.
  * These are commissions percentages, trader leverage formula parameters, insurance parameters and pools parameters
  */
 interface ICoreProperties {
@@ -32,9 +32,11 @@ interface ICoreProperties {
     /// @param minTraderCommission the minimal trader's commission the trader can specify
     /// @param maxTraderCommissions the maximal trader's commission the trader can specify based on the chosen commission period
     /// @param delayForRiskyPool the investment delay after the first exchange in the risky pool in seconds
-    /// @param insuranceFactor the deposit insurance multiplier. Means how many insurance tokens is recived per deposited token
+    /// @param insuranceFactor the deposit insurance multiplier. Means how many insurance tokens is received per deposited token
     /// @param maxInsurancePoolShare the maximal share of the pool which can be used to pay out the insurance. 3 = 1/3 of the pool
-    /// @param minInsuranceDeposit the minumal required deposit in DEXE tokens to receive an insurance
+    /// @param minInsuranceDeposit the minimal required deposit in DEXE tokens to receive an insurance
+    /// @param minInsuranceProposalAmount the minimal amount of DEXE to be on insurance deposit to propose claims
+    /// @param insuranceWithdrawalLock the time needed to wait to withdraw tokens from the insurance after the deposit
     struct CoreParameters {
         uint256 maxPoolInvestors;
         uint256 maxOpenPositions;
@@ -50,11 +52,31 @@ interface ICoreProperties {
         uint256 insuranceFactor;
         uint256 maxInsurancePoolShare;
         uint256 minInsuranceDeposit;
+        uint256 minInsuranceProposalAmount;
+        uint256 insuranceWithdrawalLock;
     }
 
     /// @notice The function to set CoreParameters
     /// @param _coreParameters the parameters
     function setCoreParameters(CoreParameters calldata _coreParameters) external;
+
+    /// @notice This function adds new tokens that will be made available for the BaseTraderPool trading
+    /// @param tokens the array of tokens to be whitelisted
+    function addWhitelistTokens(address[] calldata tokens) external;
+
+    /// @notice This function removes tokens from the whitelist, disabling BasicTraderPool trading of these tokens
+    /// @param tokens basetokens to be removed
+    function removeWhitelistTokens(address[] calldata tokens) external;
+
+    /// @notice This function adds tokens to the blacklist, automatically updating pools positions and disabling
+    /// all of the pools of trading these tokens. DAO might permanently ban malicious tokens this way
+    /// @param tokens the tokens to be added to the blacklist
+    function addBlacklistTokens(address[] calldata tokens) external;
+
+    /// @notice The function that removes tokens from the blacklist, automatically updating pools positions
+    /// and enabling trading of these tokens
+    /// @param tokens the tokens to be removed from the blacklist
+    function removeBlacklistTokens(address[] calldata tokens) external;
 
     /// @notice The function to set the maximum pool investors
     /// @param count new maximum pool investors
@@ -101,11 +123,59 @@ interface ICoreProperties {
     /// @param insuranceFactor the deposit tokens multiplier
     /// @param maxInsurancePoolShare the maximum share of the insurance pool to be paid in a single payout
     /// @param minInsuranceDeposit the minimum allowed deposit in DEXE tokens to receive an insurance
+    /// @param minInsuranceProposalAmount the minimal amount of DEXE to be on insurance deposit to propose claims
+    /// @param insuranceWithdrawalLock the time needed to wait to withdraw tokens from the insurance after the deposit
     function setInsuranceParameters(
         uint256 insuranceFactor,
         uint256 maxInsurancePoolShare,
-        uint256 minInsuranceDeposit
+        uint256 minInsuranceDeposit,
+        uint256 minInsuranceProposalAmount,
+        uint256 insuranceWithdrawalLock
     ) external;
+
+    /// @notice The function that returns the total number of whitelisted tokens
+    /// @return the number of whitelisted tokens
+    function totalWhitelistTokens() external view returns (uint256);
+
+    /// @notice The function that returns the total number of blacklisted tokens
+    /// @return the number of blacklisted tokens
+    function totalBlacklistTokens() external view returns (uint256);
+
+    /// @notice The paginated function to get addresses of whitelisted tokens
+    /// @param offset the starting index of the tokens array
+    /// @param limit the length of the array to observe
+    /// @return tokens requested whitelist array
+    function getWhitelistTokens(uint256 offset, uint256 limit)
+        external
+        view
+        returns (address[] memory tokens);
+
+    /// @notice The paginated function to get addresses of blacklisted tokens
+    /// @param offset the starting index of the tokens array
+    /// @param limit the length of the array to observe
+    /// @return tokens requested blacklist array
+    function getBlacklistTokens(uint256 offset, uint256 limit)
+        external
+        view
+        returns (address[] memory tokens);
+
+    /// @notice This function checks if the provided token can be opened in the BasicTraderPool
+    /// @param token the token to be checked
+    /// @return true if the token can be traded as the position, false otherwise
+    function isWhitelistedToken(address token) external view returns (bool);
+
+    /// @notice This function checks if the provided token is blacklisted
+    /// @param token the token to be checked
+    /// @return true if the token is blacklisted, false otherwise
+    function isBlacklistedToken(address token) external view returns (bool);
+
+    /// @notice The helper function that filters the provided positions tokens according to the blacklist
+    /// @param positions the addresses of tokens
+    /// @return filteredPositions the array of tokens without the ones in the blacklist
+    function getFilteredPositions(address[] memory positions)
+        external
+        view
+        returns (address[] memory filteredPositions);
 
     /// @notice The function to fetch the maximum pool investors
     /// @return maximum pool investors
@@ -168,9 +238,28 @@ interface ICoreProperties {
     /// @return the min allowed insurance deposit in DEXE tokens
     function getMinInsuranceDeposit() external view returns (uint256);
 
-    /// @notice The function to current commission epoch based on the timestamp and period
+    /// @notice The function to get the min amount of tokens required to be able to propose claims
+    /// @return the min amount of tokens required to propose claims
+    function getMinInsuranceProposalAmount() external view returns (uint256);
+
+    /// @notice The function to get insurance withdrawal lock duration
+    /// @return the duration of insurance lock
+    function getInsuranceWithdrawalLock() external view returns (uint256);
+
+    /// @notice The function to get current commission epoch based on the timestamp and period
+    /// @param timestamp the timestamp (should not be less than the initial timestamp)
+    /// @param commissionPeriod the enum of commission durations
     /// @return the number of the epoch
-    function getCommissionEpoch(uint256 timestamp, CommissionPeriod commissionPeriod)
+    function getCommissionEpochByTimestamp(uint256 timestamp, CommissionPeriod commissionPeriod)
+        external
+        view
+        returns (uint256);
+
+    /// @notice The funcition to get the end timestamp of the provided commission epoch
+    /// @param epoch the commission epoch to get the end timestamp for
+    /// @param commissionPeriod the enum of commission durations
+    /// @return the end timestamp of the provided commission epoch
+    function getCommissionTimestampByEpoch(uint256 epoch, CommissionPeriod commissionPeriod)
         external
         view
         returns (uint256);

@@ -1,4 +1,4 @@
-const { toBN, accounts } = require("../scripts/helpers/utils");
+const { toBN, accounts, wei } = require("../scripts/helpers/utils");
 const truffleAssert = require("truffle-assertions");
 const { setTime, getCurrentBlockTime } = require("./helpers/hardhatTimeTraveller");
 
@@ -38,6 +38,8 @@ const DEFAULT_CORE_PROPERTIES = {
   insuranceFactor: 10,
   maxInsurancePoolShare: 3,
   minInsuranceDeposit: DECIMAL.times(10).toFixed(),
+  minInsuranceProposalAmount: DECIMAL.times(100).toFixed(),
+  insuranceWithdrawalLock: SECONDS_IN_DAY,
 };
 
 describe("Insurance", async () => {
@@ -51,10 +53,6 @@ describe("Insurance", async () => {
   let insuranceFactor;
   let dexe;
   let decimal;
-
-  const timestamp = async () => {
-    return await getCurrentBlockTime();
-  };
 
   before("setup", async () => {
     OWNER = await accounts(0);
@@ -81,7 +79,7 @@ describe("Insurance", async () => {
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), dexe.address);
-    await contractsRegistry.addContract(await contractsRegistry.TRADER_POOL_FACTORY_NAME(), SECOND);
+    await contractsRegistry.addContract(await contractsRegistry.POOL_FACTORY_NAME(), SECOND);
 
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
@@ -90,7 +88,7 @@ describe("Insurance", async () => {
     const coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     insurance = await Insurance.at(await contractsRegistry.getInsuranceContract());
 
-    await traderPoolRegistry.__TraderPoolRegistry_init();
+    await traderPoolRegistry.__PoolContractsRegistry_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
     await insurance.__Insurance_init();
 
@@ -100,7 +98,12 @@ describe("Insurance", async () => {
 
     decimal = await dexe.decimals();
 
-    await traderPoolRegistry.addPool(OWNER, await traderPoolRegistry.BASIC_POOL_NAME(), POOL, { from: SECOND });
+    await traderPoolRegistry.addPool(await traderPoolRegistry.BASIC_POOL_NAME(), POOL, {
+      from: SECOND,
+    });
+    await traderPoolRegistry.associateUserWithPool(OWNER, await traderPoolRegistry.BASIC_POOL_NAME(), POOL, {
+      from: SECOND,
+    });
 
     insuranceFactor = await coreProperties.getInsuranceFactor();
 
@@ -111,8 +114,9 @@ describe("Insurance", async () => {
   });
 
   describe("buyInsurance", async () => {
+    const deposit = toBN(wei("10"));
+
     it("should buy insurance", async () => {
-      const deposit = toBN(10).times(toBN(10).pow(decimal));
       await insurance.buyInsurance(deposit, { from: SECOND });
 
       const depositInfo = await insurance.getInsurance(SECOND);
@@ -122,7 +126,6 @@ describe("Insurance", async () => {
     });
 
     it("should buyInsurance twice", async () => {
-      const deposit = toBN(10).times(toBN(10).pow(decimal));
       await insurance.buyInsurance(deposit, { from: SECOND });
 
       let depositInfo = await insurance.getInsurance(SECOND);
@@ -139,19 +142,19 @@ describe("Insurance", async () => {
     });
 
     it("should revert, when try to stake less then 10", async () => {
-      const deposit = 9;
-      await truffleAssert.reverts(
-        insurance.buyInsurance(deposit, { from: SECOND }),
-        "Insurance: deposit must be 10 or more"
-      );
+      await truffleAssert.reverts(insurance.buyInsurance("9", { from: SECOND }), "Insurance: deposit is less than min");
     });
   });
 
   describe("withdraw", async () => {
+    const deposit = toBN(wei("100"));
+
     it("should withdraw all deposit", async () => {
-      const deposit = toBN(10).times(toBN(10).pow(decimal));
       const balance = await dexe.balanceOf(SECOND);
+
       await insurance.buyInsurance(deposit, { from: SECOND });
+
+      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY + 10);
 
       await insurance.withdraw(deposit, { from: SECOND });
 
@@ -163,10 +166,12 @@ describe("Insurance", async () => {
     });
 
     it("should withdraw twice", async () => {
-      const deposit = toBN(10).times(toBN(10).pow(decimal));
-      const withdraw = toBN(2).times(toBN(10).pow(decimal));
+      const withdraw = toBN(wei("2"));
       const balance = await dexe.balanceOf(SECOND);
+
       await insurance.buyInsurance(deposit, { from: SECOND });
+
+      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY + 10);
 
       await insurance.withdraw(withdraw, { from: SECOND });
 
@@ -185,10 +190,16 @@ describe("Insurance", async () => {
       assert.equal(balance.toString(), (await dexe.balanceOf(SECOND)).toString());
     });
 
-    it("should revert when try to withdraw more than deposit", async () => {
-      const deposit = toBN(10).times(toBN(10).pow(decimal));
-
+    it("should revert if lock is not over", async () => {
       await insurance.buyInsurance(deposit, { from: SECOND });
+
+      await truffleAssert.reverts(insurance.withdraw(deposit, { from: SECOND }), "Insurance: lock is not over");
+    });
+
+    it("should revert when trying to withdraw more than deposit", async () => {
+      await insurance.buyInsurance(deposit, { from: SECOND });
+
+      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY + 10);
 
       await truffleAssert.reverts(
         insurance.withdraw(deposit.times(2), { from: SECOND }),
@@ -198,11 +209,21 @@ describe("Insurance", async () => {
   });
 
   describe("proposeClaim", async () => {
-    it("should propose claim", async () => {
-      const deposit = toBN(10).times(toBN(10).pow(decimal));
+    const deposit = toBN(wei("100"));
+
+    it("should not propose claim", async () => {
       const url = "url";
 
-      await setTime((await timestamp()) + SECONDS_IN_DAY);
+      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
+
+      await insurance.buyInsurance(wei("10"), { from: SECOND });
+      await truffleAssert.reverts(insurance.proposeClaim(url, { from: SECOND }), "Insurance: not enough deposit");
+    });
+
+    it("should propose claim", async () => {
+      const url = "url";
+
+      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
 
       await insurance.buyInsurance(deposit, { from: SECOND });
       await insurance.proposeClaim(url, { from: SECOND });
@@ -216,11 +237,10 @@ describe("Insurance", async () => {
     });
 
     it("should propse two urls", async () => {
-      const deposit = toBN(10).times(toBN(10).pow(decimal));
       const url1 = "url1";
       const url2 = "url2";
 
-      await setTime((await timestamp()) + SECONDS_IN_DAY);
+      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
 
       await insurance.buyInsurance(deposit, { from: SECOND });
       await insurance.proposeClaim(url1, { from: SECOND });
@@ -232,7 +252,7 @@ describe("Insurance", async () => {
       let finishedClaims = await insurance.listFinishedClaims(0, 100);
       assert.equal(0, finishedClaims[0].length);
 
-      await setTime((await timestamp()) + SECONDS_IN_DAY);
+      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
 
       await insurance.proposeClaim(url2, { from: SECOND });
 
@@ -246,10 +266,9 @@ describe("Insurance", async () => {
     });
 
     it("should revert when try to add same urls", async () => {
-      const deposit = toBN(10).times(toBN(10).pow(decimal));
       const url = "url";
 
-      await setTime((await timestamp()) + SECONDS_IN_DAY);
+      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
 
       await insurance.buyInsurance(deposit, { from: SECOND });
       await insurance.proposeClaim(url, { from: SECOND });
@@ -261,7 +280,7 @@ describe("Insurance", async () => {
       let finishedClaims = await insurance.listFinishedClaims(0, 100);
       assert.equal(0, finishedClaims[0].length);
 
-      await setTime((await timestamp()) + SECONDS_IN_DAY);
+      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
 
       await truffleAssert.reverts(insurance.proposeClaim(url, { from: SECOND }), "Insurance: Url is not unique");
 
@@ -274,17 +293,16 @@ describe("Insurance", async () => {
     });
 
     it("should revert when try to propose finished claim", async () => {
-      const deposit = toBN(10).times(toBN(10).pow(decimal));
       const url = "url";
 
       await insurance.buyInsurance(deposit, { from: SECOND });
 
-      await setTime((await timestamp()) + SECONDS_IN_DAY);
+      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
 
       await insurance.proposeClaim(url, { from: SECOND });
       await insurance.rejectClaim(url);
 
-      await setTime((await timestamp()) + SECONDS_IN_DAY);
+      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
 
       await truffleAssert.reverts(insurance.proposeClaim(url, { from: SECOND }), "Insurance: Url is not unique");
 
@@ -295,13 +313,15 @@ describe("Insurance", async () => {
 
   describe("listOngoingClaims", async () => {
     const len = 10;
+    const deposit = toBN(wei("100"));
+
     beforeEach("make ongoing claim", async () => {
-      const deposit = toBN(10).times(toBN(10).pow(decimal));
       const url = "url";
+
       await insurance.buyInsurance(deposit, { from: SECOND });
 
       for (i = 0; i < len; i++) {
-        await setTime((await timestamp()) + SECONDS_IN_DAY);
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
         await insurance.proposeClaim(url + i, { from: SECOND });
       }
     });
@@ -336,6 +356,7 @@ describe("Insurance", async () => {
 
   describe("acceptClaim", async () => {
     const baseURL = "url";
+    const deposit = toBN(wei("100"));
     let ALICE;
     let RON;
     let BOB;
@@ -347,8 +368,6 @@ describe("Insurance", async () => {
     });
 
     beforeEach("make ongoing claim", async () => {
-      const deposit = toBN(10).times(toBN(10).pow(decimal));
-
       await dexe.mint(ALICE, deposit);
       await dexe.mint(RON, deposit);
       await dexe.mint(BOB, deposit);
@@ -363,7 +382,7 @@ describe("Insurance", async () => {
       await insurance.buyInsurance(deposit, { from: BOB });
 
       for (i = 0; i < 10; i++) {
-        await setTime((await timestamp()) + SECONDS_IN_DAY);
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
         await insurance.proposeClaim(baseURL + i, { from: SECOND });
       }
     });
@@ -371,6 +390,7 @@ describe("Insurance", async () => {
     it("should accept claim", async () => {
       await dexe.transfer(insurance.address, toBN(1000000).times(toBN(10).pow(decimal)), { from: POOL });
       await insurance.receiveDexeFromPools(1000000, { from: POOL });
+
       const amount = 100;
       const users = [ALICE, RON, BOB];
       const amounts = [amount, amount, amount];
@@ -526,6 +546,7 @@ describe("Insurance", async () => {
 
   describe("rejectClaim", async () => {
     const baseURL = "url";
+    const deposit = toBN(wei("100"));
 
     before("set accounts", async () => {
       ALICE = await accounts(7);
@@ -534,8 +555,6 @@ describe("Insurance", async () => {
     });
 
     beforeEach("make ongoing claim", async () => {
-      const deposit = toBN(10).times(toBN(10).pow(decimal));
-
       await dexe.mint(ALICE, deposit);
       await dexe.mint(RON, deposit);
       await dexe.mint(BOB, deposit);
@@ -550,7 +569,7 @@ describe("Insurance", async () => {
       await insurance.buyInsurance(deposit, { from: BOB });
 
       for (i = 0; i < 10; i++) {
-        await setTime((await timestamp()) + SECONDS_IN_DAY);
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
         await insurance.proposeClaim(baseURL + i, { from: SECOND });
       }
     });
@@ -574,6 +593,7 @@ describe("Insurance", async () => {
   describe("listFinishedClaims", async () => {
     const len = 10;
     const baseURL = "url";
+    const deposit = toBN(wei("100"));
     let ALICE;
     let RON;
     let BOB;
@@ -585,8 +605,6 @@ describe("Insurance", async () => {
     });
 
     beforeEach("make finished claims", async () => {
-      const deposit = toBN(10).times(toBN(10).pow(decimal));
-
       await dexe.mint(ALICE, deposit);
       await dexe.mint(RON, deposit);
       await dexe.mint(BOB, deposit);
@@ -601,7 +619,7 @@ describe("Insurance", async () => {
       await insurance.buyInsurance(deposit, { from: BOB });
 
       for (i = 0; i < len; i++) {
-        await setTime((await timestamp()) + SECONDS_IN_DAY);
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
         await insurance.proposeClaim(baseURL + i, { from: SECOND });
       }
 

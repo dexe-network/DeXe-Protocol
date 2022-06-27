@@ -9,6 +9,14 @@ import "./ITraderPoolProposal.sol";
  * investors and shares the profit only with the ones who invested into it
  */
 interface ITraderPoolRiskyProposal is ITraderPoolProposal {
+    /// @notice The enum of exchange types
+    /// @param FROM_EXACT the type corresponding to the exchangeFromExact function
+    /// @param TO_EXACT the type corresponding to the exchangeToExact function
+    enum ExchangeType {
+        FROM_EXACT,
+        TO_EXACT
+    }
+
     /// @notice The struct that stores certain proposal limits
     /// @param timestampLimit the timestamp after which the investment into this proposal closes
     /// @param investLPLimit the maximal number of invested LP tokens after which the investment into the proposal closes
@@ -26,7 +34,7 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// @param proposalLimits the investment limits of this proposal
     /// @param lpLocked the amount of LP tokens that are locked in this proposal
     /// @param balanceBase the base token balance of this proposal (normalized)
-    /// @param balancePosition the position token balance of this propoasl (normalized)
+    /// @param balancePosition the position token balance of this proposal (normalized)
     struct ProposalInfo {
         address token;
         uint256 tokenDecimals;
@@ -40,24 +48,30 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// @param proposalInfo the information about this proposal
     /// @param totalProposalUSD the equivalent USD TVL in this proposal
     /// @param totalProposalBase the equivalent base TVL in this proposal
+    /// @param totalInvestors the number of investors currently in this proposal
+    /// @param positionTokenPrice the exact price on 1 position token in base tokens
     struct ProposalInfoExtended {
         ProposalInfo proposalInfo;
         uint256 totalProposalUSD;
         uint256 totalProposalBase;
         uint256 lp2Supply;
+        uint256 totalInvestors;
+        uint256 positionTokenPrice;
     }
 
     /// @notice The struct that is used in the "TraderPoolRiskyProposalView" contract and stores information about the investor's
     /// active investments
     /// @param proposalId the id of the proposal
     /// @param lp2Balance the investor's balance of proposal's LP tokens
-    /// @param lpLocked the investor's amount of locked LP tokens
+    /// @param baseInvested the amount of invested base tokens by investor
+    /// @param lpInvested the amount of invested LP tokens by investor
     /// @param baseShare the amount of investor's base token in this proposal
     /// @param positionShare the amount of investor's position token in this proposal
     struct ActiveInvestmentInfo {
         uint256 proposalId;
         uint256 lp2Balance;
-        uint256 lpLocked;
+        uint256 baseInvested;
+        uint256 lpInvested;
         uint256 baseShare;
         uint256 positionShare;
     }
@@ -213,67 +227,34 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
         uint256 minPositionOut
     ) external returns (uint256);
 
-    /// @notice The function to divest (reinvest) tokens from all the active proposals
-    /// @param user the investor (or trader) who is divesting
-    /// @param minPositionsOut the minimal amounts of base tokens received from the proposals (call getDivestAmounts())
-    /// @return received amount of base tokens
-    function divestAll(address user, uint256[] calldata minPositionsOut)
-        external
-        returns (uint256);
-
-    /// @notice The function to get the amount of to tokens received after the swap
-    /// @param proposalId the id of the proposal where the swap will be executed
-    /// @param from the token to exchange from
-    /// @param amountIn the amount of from tokens to be exchanged
-    /// @param optionalPath optional path between from and to tokens used by the pathfinder
-    /// @return minAmountOut the amount of to tokens received after the swap
-    /// @return path the tokens path that will be used during the swap
-    function getExchangeFromExactAmount(
-        uint256 proposalId,
-        address from,
-        uint256 amountIn,
-        address[] calldata optionalPath
-    ) external view returns (uint256 minAmountOut, address[] memory path);
-
-    /// @notice The function to exchange exact amount of from tokens to the to tokens (aka swapExactTokensForTokens)
-    /// @param proposalId the id of the proposal where the swap will be executed
+    /// @notice The function to exchange tokens for tokens in the specified proposal
+    /// @param proposalId the proposal to exchange tokens in
     /// @param from the tokens to exchange from
-    /// @param amountIn the amount of from tokens to exchange (normalized)
-    /// @param minAmountOut the minimal amount of to tokens received after the swap
+    /// @param amount the amount of tokens to be exchanged (normalized). If fromExact, this should equal amountIn, else amountOut
+    /// @param amountBound this should be minAmountOut if fromExact, else maxAmountIn
     /// @param optionalPath the optional path between from and to tokens used by the pathfinder
-    function exchangeFromExact(
+    /// @param exType exchange type. Can be exchangeFromExact or exchangeToExact
+    function exchange(
         uint256 proposalId,
         address from,
-        uint256 amountIn,
-        uint256 minAmountOut,
-        address[] calldata optionalPath
+        uint256 amount,
+        uint256 amountBound,
+        address[] calldata optionalPath,
+        ExchangeType exType
     ) external;
 
-    /// @notice The function to get the amount of from tokens required for the swap
-    /// @param proposalId the id of the proposal where the swap will be executed
+    /// @notice The function to get token prices required for the slippage in the specified proposal
+    /// @param proposalId the id of the proposal to get the prices in
     /// @param from the token to exchange from
-    /// @param amountOut the amount of to tokens to be received
+    /// @param amount the amount of tokens to be exchanged. If fromExact, this should be amountIn, else amountOut
     /// @param optionalPath optional path between from and to tokens used by the pathfinder
-    /// @return maxAmountIn the amount of from tokens required for the swap
-    /// @return path the tokens path that will be used during the swap
-    function getExchangeToExactAmount(
+    /// @return amount the minAmountOut if fromExact, else maxAmountIn
+    /// @param exType exchange type. Can be exchangeFromExact or exchangeToExact
+    function getExchangeAmount(
         uint256 proposalId,
         address from,
-        uint256 amountOut,
-        address[] calldata optionalPath
-    ) external view returns (uint256 maxAmountIn, address[] memory path);
-
-    /// @notice The function to exchange from tokens to the exact amount of to tokens (aka swapTokensForExactTokens)
-    /// @param proposalId the id of the proposal where the swap will be executed
-    /// @param from the tokens to exchange from
-    /// @param amountOut the amount of to tokens received after the swap (normalized)
-    /// @param maxAmountIn the maximal amount of from tokens needed for the swap
-    /// @param optionalPath the optional path between from and to tokens used by the pathfinder
-    function exchangeToExact(
-        uint256 proposalId,
-        address from,
-        uint256 amountOut,
-        uint256 maxAmountIn,
-        address[] calldata optionalPath
-    ) external;
+        uint256 amount,
+        address[] calldata optionalPath,
+        ExchangeType exType
+    ) external view returns (uint256, address[] memory);
 }

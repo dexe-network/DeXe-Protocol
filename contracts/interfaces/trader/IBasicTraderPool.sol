@@ -13,7 +13,7 @@ import "./ITraderPool.sol";
  * through internal withdrawal and deposit process
  */
 interface IBasicTraderPool is ITraderPoolInvestorsHook {
-    /// @notice This function is used to create risky proposals (basicaly subpools) and allow investors to invest into it.
+    /// @notice This function is used to create risky proposals (basically subpools) and allow investors to invest into it.
     /// The proposals follow pretty much the same rules as the main pool except that the trade can happen with a specified token only.
     /// Investors can't fund the proposal more than the trader percentage wise
     /// @param token the token the proposal will be opened to
@@ -56,13 +56,5 @@ interface IBasicTraderPool is ITraderPoolInvestorsHook {
         uint256 lp2Amount,
         uint256[] calldata minInvestsOut,
         uint256 minProposalOut
-    ) external;
-
-    /// @notice This function divests all users' proposals with maximum available LP2 amounts
-    /// @param minInvestsOut the minimal amounts of main pool positions tokens to be recieved
-    /// @param minProposalsOut the minimal amounts of base tokens received from proposals positions
-    function reinvestAllProposals(
-        uint256[] calldata minInvestsOut,
-        uint256[] calldata minProposalsOut
     ) external;
 }

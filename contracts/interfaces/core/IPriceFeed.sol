@@ -2,8 +2,8 @@
 pragma solidity ^0.8.4;
 
 /**
- * This is the price feed contract which is used to fetch the spot prices from the UniswapV2 propotol + execute swaps
- * on its pairs. The propotol does not require price oracles to be secure and reliable. There also is a pathfinder
+ * This is the price feed contract which is used to fetch the spot prices from the UniswapV2 protocol + execute swaps
+ * on its pairs. The protocol does not require price oracles to be secure and reliable. There also is a pathfinder
  * built into the contract to find the optimal* path between the pairs
  */
 interface IPriceFeed {
@@ -25,20 +25,12 @@ interface IPriceFeed {
     /// @param pathTokens the array of tokens to be removed from the pathfinder
     function removePathTokens(address[] calldata pathTokens) external;
 
-    /// @notice This function adds new tokens that will be made available for the TraderPool basetokens usage
-    /// @param baseTokens the array of tokens to be whitelisted
-    function addSupportedBaseTokens(address[] calldata baseTokens) external;
-
-    /// @notice This function removes tokens from the basetokens list, it does nothing with already created pools
-    /// @param baseTokens basetokens to be removed
-    function removeSupportedBaseTokens(address[] calldata baseTokens) external;
-
     /// @notice This function tries to find the optimal exchange rate (the price) between "inToken" and "outToken" using
     /// custom pathfinder, saved paths and optional specified path. The optimality is reached when the amount of
     /// outTokens is maximal
     /// @param inToken the token to exchange from
     /// @param outToken the received token
-    /// @param amountIn the amount of inToken to be excanged (in inToken decimals)
+    /// @param amountIn the amount of inToken to be exchanged (in inToken decimals)
     /// @param optionalPath the optional path between inToken and outToken that will be used in the pathfinder
     /// @return amountOut amount of outToken after the swap (in outToken decimals)
     /// @return path the tokens path that will be used during the swap
@@ -65,7 +57,7 @@ interface IPriceFeed {
         address[] memory optionalPath
     ) external view returns (uint256 amountIn, address[] memory path);
 
-    /// @notice Shares the same functionality as "getExtendedPriceOut" function with automatical usage of saved paths.
+    /// @notice Shares the same functionality as "getExtendedPriceOut" function with automatic usage of saved paths.
     /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
     /// @param inToken the token to exchange from
     /// @param outToken the token to exchange to
@@ -78,7 +70,7 @@ interface IPriceFeed {
         uint256 amountIn
     ) external view returns (uint256 amountOut, address[] memory path);
 
-    /// @notice Shares the same functionality as "getExtendedPriceIn" function with automatical usage of saved paths.
+    /// @notice Shares the same functionality as "getExtendedPriceIn" function with automatic usage of saved paths.
     /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
     /// @param inToken the token to exchange from
     /// @param outToken the token to exchange to
@@ -186,7 +178,7 @@ interface IPriceFeed {
     /// @param outToken the token to be exchanged to
     /// @param amountOut the amount of outToken tokens to be received
     /// @param optionalPath the optional path that will be considered by the pathfinder to find the best route
-    /// @param maxAmountIn the maximal amount of inTokens that have to be taked to execute the swap.
+    /// @param maxAmountIn the maximal amount of inTokens that have to be taken to execute the swap.
     /// basically this is a sandwich attack protection mechanism
     /// @return the amount of inTokens taken from the msg.sender
     function exchangeToExact(
@@ -227,22 +219,9 @@ interface IPriceFeed {
         uint256 maxAmountIn
     ) external returns (uint256);
 
-    /// @notice The function that returns the total number of supported base tokens
-    /// @return the number of supported base tokens
-    function totalBaseTokens() external view returns (uint256);
-
     /// @notice The function that returns the total number of path tokens (tokens used in the pathfinder)
     /// @return the number of path tokens
     function totalPathTokens() external view returns (uint256);
-
-    /// @notice The paginated function to get addresses of supported base tokens
-    /// @param offset the starting index of the tokens array
-    /// @param limit the length of the array to observe
-    /// @return baseTokens requested base tokens array
-    function getBaseTokens(uint256 offset, uint256 limit)
-        external
-        view
-        returns (address[] memory baseTokens);
 
     /// @notice The function to get the list of path tokens
     /// @return the list of path tokens
@@ -258,11 +237,6 @@ interface IPriceFeed {
         address from,
         address to
     ) external view returns (address[] memory);
-
-    /// @notice This function checks if the provided token can be used as a base token
-    /// @param token the token to be checked
-    /// @return true if the token can be used as a base token, false otherwise
-    function isSupportedBaseToken(address token) external view returns (bool);
 
     /// @notice This function checks if the provided token is used by the pathfinder
     /// @param token the token to be checked

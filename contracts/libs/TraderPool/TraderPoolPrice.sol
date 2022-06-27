@@ -9,17 +9,12 @@ import "../../interfaces/trader/ITraderPool.sol";
 import "../../interfaces/core/IPriceFeed.sol";
 
 import "../../libs/TokenBalance.sol";
-import "../../libs/DecimalsConverter.sol";
 
 library TraderPoolPrice {
     using EnumerableSet for EnumerableSet.AddressSet;
-    using DecimalsConverter for uint256;
     using TokenBalance for address;
 
-    function getNormalizedPoolPriceAndPositions(
-        ITraderPool.PoolParameters storage poolParameters,
-        EnumerableSet.AddressSet storage openPositions
-    )
+    function getNormalizedPoolPriceAndPositions(ITraderPool.PoolParameters storage poolParameters)
         public
         view
         returns (
@@ -29,16 +24,15 @@ library TraderPoolPrice {
             uint256[] memory positionPricesInBase
         )
     {
-        uint256 length = openPositions.length();
-
         IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
+        address[] memory openPositions = ITraderPool(address(this)).openPositions();
         totalPriceInBase = currentBaseAmount = poolParameters.baseToken.normThisBalance();
 
-        positionTokens = new address[](length);
-        positionPricesInBase = new uint256[](length);
+        positionTokens = new address[](openPositions.length);
+        positionPricesInBase = new uint256[](openPositions.length);
 
-        for (uint256 i = 0; i < length; i++) {
-            positionTokens[i] = openPositions.at(i);
+        for (uint256 i = 0; i < openPositions.length; i++) {
+            positionTokens[i] = openPositions[i];
 
             (positionPricesInBase[i], ) = priceFeed.getNormalizedPriceOut(
                 positionTokens[i],
@@ -50,11 +44,12 @@ library TraderPoolPrice {
         }
     }
 
-    function getNormalizedPoolPriceAndUSD(
-        ITraderPool.PoolParameters storage poolParameters,
-        EnumerableSet.AddressSet storage openPositions
-    ) external view returns (uint256 totalBase, uint256 totalUSD) {
-        (totalBase, , , ) = getNormalizedPoolPriceAndPositions(poolParameters, openPositions);
+    function getNormalizedPoolPriceAndUSD(ITraderPool.PoolParameters storage poolParameters)
+        external
+        view
+        returns (uint256 totalBase, uint256 totalUSD)
+    {
+        (totalBase, , , ) = getNormalizedPoolPriceAndPositions(poolParameters);
 
         (totalUSD, ) = ITraderPool(address(this)).priceFeed().getNormalizedPriceOutUSD(
             poolParameters.baseToken,

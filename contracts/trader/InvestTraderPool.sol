@@ -15,19 +15,12 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
 
     uint256 internal _firstExchange;
 
-    event ProposalCreated(
-        uint256 index,
-        address token,
-        ITraderPoolInvestProposal.ProposalLimits proposalLimits
-    );
-    event ProposalInvest(uint256 index, address investor, uint256 amountLP, uint256 amountBase);
-    event ProposalDivest(uint256 index, address investor, uint256 amount, uint256 commission);
-    event ProposalExchange(
-        uint256 index,
-        address fromToken,
-        address toToken,
-        uint256 fromVolume,
-        uint256 toVolume
+    event ProposalDivested(
+        uint256 proposalId,
+        address user,
+        uint256 divestedLP2,
+        uint256 receivedLP,
+        uint256 receivedBase
     );
 
     modifier onlyProposalPool() {
@@ -90,28 +83,17 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         }
     }
 
-    function exchangeFromExact(
+    function exchange(
         address from,
         address to,
-        uint256 amountIn,
-        uint256 minAmountOut,
-        address[] calldata optionalPath
-    ) public override onlyTraderAdmin {
+        uint256 amount,
+        uint256 amountBound,
+        address[] calldata optionalPath,
+        ExchangeType exType
+    ) public override {
         _setFirstExchangeTime();
 
-        super.exchangeFromExact(from, to, amountIn, minAmountOut, optionalPath);
-    }
-
-    function exchangeToExact(
-        address from,
-        address to,
-        uint256 amountOut,
-        uint256 maxAmountIn,
-        address[] calldata optionalPath
-    ) public override onlyTraderAdmin {
-        _setFirstExchangeTime();
-
-        super.exchangeToExact(from, to, amountOut, maxAmountIn, optionalPath);
+        super.exchange(from, to, amount, amountBound, optionalPath, exType);
     }
 
     function createProposal(
@@ -151,13 +133,18 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
     {
         uint256 receivedBase = _traderPoolProposal.divest(proposalId, msg.sender);
 
-        _invest(address(_traderPoolProposal), receivedBase, minPositionsOut);
-    }
+        if (receivedBase == 0) {
+            return;
+        }
 
-    function reinvestAllProposals(uint256[] calldata minPositionsOut) external override {
-        uint256 receivedBase = _traderPoolProposal.divestAll(msg.sender);
+        uint256 lpMinted = _investPositions(
+            address(_traderPoolProposal),
+            receivedBase,
+            minPositionsOut
+        );
+        _updateToData(msg.sender, receivedBase);
 
-        _invest(address(_traderPoolProposal), receivedBase, minPositionsOut);
+        emit ProposalDivested(proposalId, msg.sender, 0, lpMinted, receivedBase);
     }
 
     function checkRemoveInvestor(address user) external override onlyProposalPool {

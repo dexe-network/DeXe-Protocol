@@ -9,14 +9,13 @@ import "../../interfaces/trader/ITraderPoolRiskyProposal.sol";
 import "../../interfaces/core/IPriceFeed.sol";
 
 import "../MathHelper.sol";
-import "../DecimalsConverter.sol";
 import "../PriceFeed/PriceFeedLocal.sol";
 
 import "../../trader/TraderPoolRiskyProposal.sol";
 
 library TraderPoolRiskyProposalView {
     using EnumerableSet for EnumerableSet.UintSet;
-    using DecimalsConverter for uint256;
+    using EnumerableSet for EnumerableSet.AddressSet;
     using MathHelper for uint256;
     using Math for uint256;
     using Address for address;
@@ -24,6 +23,7 @@ library TraderPoolRiskyProposalView {
 
     function getProposalInfos(
         mapping(uint256 => ITraderPoolRiskyProposal.ProposalInfo) storage proposalInfos,
+        mapping(uint256 => EnumerableSet.AddressSet) storage investors,
         uint256 offset,
         uint256 limit
     ) external view returns (ITraderPoolRiskyProposal.ProposalInfoExtended[] memory proposals) {
@@ -53,13 +53,20 @@ library TraderPoolRiskyProposalView {
             proposals[i - offset].lp2Supply = TraderPoolRiskyProposal(address(this)).totalSupply(
                 i + 1
             );
+            proposals[i - offset].totalInvestors = investors[i + 1].length();
+            proposals[i - offset].positionTokenPrice = priceFeed.getNormPriceIn(
+                baseToken,
+                proposals[i - offset].proposalInfo.token,
+                DECIMALS
+            );
         }
     }
 
     function getActiveInvestmentsInfo(
         EnumerableSet.UintSet storage activeInvestments,
-        mapping(uint256 => ITraderPoolRiskyProposal.ProposalInfo) storage proposalInfos,
+        mapping(address => mapping(uint256 => uint256)) storage baseBalances,
         mapping(address => mapping(uint256 => uint256)) storage lpBalances,
+        mapping(uint256 => ITraderPoolRiskyProposal.ProposalInfo) storage proposalInfos,
         address user,
         uint256 offset,
         uint256 limit
@@ -73,18 +80,13 @@ library TraderPoolRiskyProposalView {
             uint256 balance = TraderPoolRiskyProposal(address(this)).balanceOf(user, proposalId);
             uint256 supply = TraderPoolRiskyProposal(address(this)).totalSupply(proposalId);
 
-            uint256 baseShare = proposalInfos[proposalId].balanceBase.ratio(balance, supply);
-            uint256 positionShare = proposalInfos[proposalId].balancePosition.ratio(
-                balance,
-                supply
-            );
-
             investments[i - offset] = ITraderPoolRiskyProposal.ActiveInvestmentInfo(
                 proposalId,
                 balance,
+                baseBalances[user][proposalId],
                 lpBalances[user][proposalId],
-                baseShare,
-                positionShare
+                proposalInfos[proposalId].balanceBase.ratio(balance, supply),
+                proposalInfos[proposalId].balancePosition.ratio(balance, supply)
             );
         }
     }
@@ -228,17 +230,15 @@ library TraderPoolRiskyProposalView {
                     lp2s[i],
                     propSupply
                 );
-                receptions.baseAmount += proposalInfos[proposalId].balanceBase.ratio(
-                    lp2s[i],
-                    propSupply
-                );
-
                 receptions.receivedAmounts[i] = priceFeed.getNormPriceOut(
                     proposalInfos[proposalId].token,
                     parentTraderPoolInfo.baseToken,
                     receptions.givenAmounts[i]
                 );
-                receptions.baseAmount += receptions.receivedAmounts[i];
+
+                receptions.baseAmount +=
+                    proposalInfos[proposalId].balanceBase.ratio(lp2s[i], propSupply) +
+                    receptions.receivedAmounts[i];
             }
         }
     }
@@ -250,7 +250,7 @@ library TraderPoolRiskyProposalView {
         address from,
         uint256 amount,
         address[] calldata optionalPath,
-        bool fromExact
+        ITraderPoolRiskyProposal.ExchangeType exType
     ) external view returns (uint256, address[] memory) {
         if (proposalId > TraderPoolRiskyProposal(address(this)).proposalsTotalNum()) {
             return (0, new address[](0));
@@ -272,7 +272,7 @@ library TraderPoolRiskyProposalView {
         IPriceFeed priceFeed = ITraderPoolRiskyProposal(address(this)).priceFeed();
 
         return
-            fromExact
+            exType == ITraderPoolRiskyProposal.ExchangeType.FROM_EXACT
                 ? priceFeed.getNormalizedExtendedPriceOut(from, to, amount, optionalPath)
                 : priceFeed.getNormalizedExtendedPriceIn(from, to, amount, optionalPath);
     }
