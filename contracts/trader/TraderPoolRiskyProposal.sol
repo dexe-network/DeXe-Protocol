@@ -32,6 +32,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     );
     event ProposalExchanged(
         uint256 proposalId,
+        address sender,
         address fromToken,
         address toToken,
         uint256 fromVolume,
@@ -61,6 +62,8 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
 
         _proposalInfos[proposalId].proposalLimits = proposalLimits;
+
+        emit ProposalRestrictionsChanged(proposalId, msg.sender);
     }
 
     function getProposalInfos(uint256 offset, uint256 limit)
@@ -427,7 +430,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             (amount, amountGot) = (amountGot, amount);
         }
 
-        emit ProposalExchanged(proposalId, from, to, amount, amountGot);
+        emit ProposalExchanged(proposalId, msg.sender, from, to, amount, amountGot);
 
         if (from == baseToken) {
             info.balanceBase -= amount;

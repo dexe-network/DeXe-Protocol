@@ -11,6 +11,9 @@ contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
 
     mapping(address => UserInfo) public userInfos;
 
+    event UpdatedProfile(address user, string url);
+    event Agreed(address user, bytes32 documentHash);
+
     function __UserRegistry_init(string calldata name) public initializer {
         __EIP712_init(name, "1");
         __Ownable_init();
@@ -18,6 +21,8 @@ contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
 
     function changeProfile(string calldata url) public override {
         userInfos[msg.sender].profileURL = url;
+
+        emit UpdatedProfile(msg.sender, url);
     }
 
     function agreeToPrivacyPolicy(bytes calldata signature) public override {
@@ -33,6 +38,8 @@ contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
         );
 
         userInfos[msg.sender].signatureHash = keccak256(abi.encodePacked(signature));
+
+        emit Agreed(msg.sender, documentHash);
     }
 
     function changeProfileAndAgreeToPrivacyPolicy(string calldata url, bytes calldata signature)

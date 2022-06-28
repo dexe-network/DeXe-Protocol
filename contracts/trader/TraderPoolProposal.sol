@@ -47,6 +47,7 @@ abstract contract TraderPoolProposal is
     mapping(address => mapping(uint256 => uint256)) internal _lpBalances; // user => proposal id => LP invested
     mapping(address => uint256) public override totalLPBalances; // user => LP invested
 
+    event ProposalRestrictionsChanged(uint256 proposalId, address sender);
     event ProposalInvestorAdded(uint256 proposalId, address investor);
     event ProposalInvestorRemoved(uint256 proposalId, address investor);
     event ProposalInvested(

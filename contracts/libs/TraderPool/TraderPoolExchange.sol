@@ -15,7 +15,13 @@ library TraderPoolExchange {
     using PriceFeedLocal for IPriceFeed;
     using TokenBalance for address;
 
-    event Exchanged(address fromToken, address toToken, uint256 fromVolume, uint256 toVolume);
+    event Exchanged(
+        address sender,
+        address fromToken,
+        address toToken,
+        uint256 fromVolume,
+        uint256 toVolume
+    );
     event PositionClosed(address position);
 
     function _checkThisBalance(uint256 amount, address token) internal view {
@@ -70,7 +76,7 @@ library TraderPoolExchange {
             (amount, amountGot) = (amountGot, amount);
         }
 
-        emit Exchanged(from, to, amount, amountGot);
+        emit Exchanged(msg.sender, from, to, amount, amountGot);
 
         if (from != poolParameters.baseToken && from.thisBalance() == 0) {
             positions.remove(from);

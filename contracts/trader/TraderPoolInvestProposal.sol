@@ -35,8 +35,13 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         uint256 proposalId,
         ITraderPoolInvestProposal.ProposalLimits proposalLimits
     );
-    event ProposalWithdrawn(uint256 proposalId, uint256 amount);
-    event ProposalSupplied(uint256 proposalId, uint256[] amounts, address[] tokens);
+    event ProposalWithdrawn(uint256 proposalId, address sender, uint256 amount);
+    event ProposalSupplied(
+        uint256 proposalId,
+        address sender,
+        uint256[] amounts,
+        address[] tokens
+    );
     event ProposalClaimed(uint256 proposalId, address user, uint256[] amounts, address[] tokens);
 
     function __TraderPoolInvestProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
@@ -54,6 +59,8 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
         _proposalInfos[proposalId].proposalLimits = proposalLimits;
+
+        emit ProposalRestrictionsChanged(proposalId, msg.sender);
     }
 
     function getProposalInfos(uint256 offset, uint256 limit)
@@ -300,7 +307,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             amount.from18(_parentTraderPoolInfo.baseTokenDecimals)
         );
 
-        emit ProposalWithdrawn(proposalId, amount);
+        emit ProposalWithdrawn(proposalId, msg.sender, amount);
     }
 
     function supply(
@@ -322,7 +329,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             _updateCumulativeSum(proposalId, amounts[i], token);
         }
 
-        emit ProposalSupplied(proposalId, amounts, addresses);
+        emit ProposalSupplied(proposalId, msg.sender, amounts, addresses);
     }
 
     function convertInvestedBaseToDividends(uint256 proposalId) external override onlyTraderAdmin {
@@ -333,8 +340,13 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
         _updateCumulativeSum(proposalId, newInvestedBase, baseToken);
 
-        emit ProposalWithdrawn(proposalId, newInvestedBase);
-        emit ProposalSupplied(proposalId, newInvestedBase.asArray(), baseToken.asArray());
+        emit ProposalWithdrawn(proposalId, msg.sender, newInvestedBase);
+        emit ProposalSupplied(
+            proposalId,
+            msg.sender,
+            newInvestedBase.asArray(),
+            baseToken.asArray()
+        );
 
         delete _proposalInfos[proposalId].newInvestedBase;
     }

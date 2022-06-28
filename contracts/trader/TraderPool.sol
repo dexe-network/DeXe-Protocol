@@ -68,11 +68,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 fromVolume,
         uint256 toVolume
     );
-    event TraderCommissionMinted(address trader, uint256 lpMinted);
-    event TraderCommissionPaid(address investor, uint256 lpPaid);
-    event DescriptionURLChanged(string descriptionURL);
-    event ModifiedAdmins(address[] admins, bool add);
-    event ModifiedPrivateInvestors(address[] privateInvestors, bool add);
+    event CommissionClaimed(address sender, uint256 traderLpClaimed, uint256 traderBaseClaimed);
+    event DescriptionURLChanged(address sender, string descriptionURL);
+    event ModifiedAdmins(address sender, address[] admins, bool add);
+    event ModifiedPrivateInvestors(address sender, address[] privateInvestors, bool add);
 
     modifier onlyTraderAdmin() {
         _onlyTraderAdmin();
@@ -141,7 +140,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         _traderAdmins.add(_poolParameters.trader);
 
-        emit ModifiedAdmins(admins, add);
+        emit ModifiedAdmins(msg.sender, admins, add);
     }
 
     function modifyPrivateInvestors(address[] calldata privateInvestors, bool add)
@@ -157,7 +156,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             }
         }
 
-        emit ModifiedPrivateInvestors(privateInvestors, add);
+        emit ModifiedPrivateInvestors(msg.sender, privateInvestors, add);
     }
 
     function changePoolParameters(
@@ -180,7 +179,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _poolParameters.totalLPEmission = totalLPEmission;
         _poolParameters.minimalInvestment = minimalInvestment;
 
-        emit DescriptionURLChanged(descriptionURL);
+        emit DescriptionURLChanged(msg.sender, descriptionURL);
     }
 
     function totalInvestors() external view override returns (uint256) {
@@ -324,7 +323,11 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             commissionReceivers
         );
 
-        emit TraderCommissionMinted(_poolParameters.trader, lpToDistribute - dexeLPCommission);
+        emit CommissionClaimed(
+            msg.sender,
+            lpToDistribute - dexeLPCommission,
+            baseToDistribute - dexeBaseCommission
+        );
     }
 
     function getReinvestCommissions(uint256 offset, uint256 limit)
@@ -374,8 +377,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
                     allBaseCommission += baseCommission;
                     allLPCommission += lpCommission;
-
-                    emit TraderCommissionPaid(investor, lpCommission);
                 }
             }
         }

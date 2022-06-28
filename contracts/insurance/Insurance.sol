@@ -34,6 +34,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
 
     uint256 public totalPool; // tokens only from pools
 
+    event ProposedClaim(address sender, string url);
     event Deposited(uint256 amount, address investor);
     event Withdrawn(uint256 amount, address investor);
     event Paidout(uint256 insurancePayout, uint256 userStakePayout, address investor);
@@ -114,6 +115,8 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         );
 
         _ongoingClaims.add(url);
+
+        emit ProposedClaim(_msgSender(), url);
     }
 
     function ongoingClaimsCount() external view override returns (uint256) {
