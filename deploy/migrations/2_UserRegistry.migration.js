@@ -11,7 +11,7 @@ module.exports = async (deployer) => {
   const userRegistry = await deployer.deploy(UserRegistry);
 
   logTransaction(
-    await contractsRegistry.addContract(await contractsRegistry.USER_REGISTRY_NAME(), userRegistry.address),
+    await contractsRegistry.addProxyContract(await contractsRegistry.USER_REGISTRY_NAME(), userRegistry.address),
     "Add UserRegistry"
   );
 };
