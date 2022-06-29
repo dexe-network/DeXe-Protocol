@@ -27,7 +27,11 @@ abstract contract GovCreator is IGovCreator {
         govUserKeeper = IGovUserKeeper(govUserKeeperAddress);
     }
 
-    function createProposal(address[] memory executors, bytes[] calldata data) external override {
+    function createProposal(
+        string calldata descriptionURL,
+        address[] memory executors,
+        bytes[] calldata data
+    ) external override {
         require(
             executors.length > 0 && executors.length == data.length,
             "GovC: invalid array length"
@@ -37,15 +41,22 @@ abstract contract GovCreator is IGovCreator {
         uint256 proposalId = ++_latestProposalId;
 
         address mainExecutor = executors[executors.length - 1];
-        (, bool isInternal, bool settingsExist) = govSetting.executorInfo(mainExecutor);
+        (, bool isInternal, bool trustedExecutor) = govSetting.executorInfo(mainExecutor);
+
+        bool forceDefaultSettings;
+        IGovSettings.ProposalSettings memory settings;
 
         if (isInternal) {
             executors = _handleExecutorsAndDataForInternalProposal(executors, data);
-        } else if (settingsExist) {
-            _handleDataForExistingSettingsProposal(data);
+        } else if (trustedExecutor) {
+            forceDefaultSettings = _handleDataForExistingSettingsProposal(data);
         }
 
-        IGovSettings.ProposalSettings memory settings = govSetting.getSettings(mainExecutor);
+        if (forceDefaultSettings) {
+            settings = govSetting.getDefaultSettings();
+        } else {
+            settings = govSetting.getSettings(mainExecutor);
+        }
 
         proposals[proposalId] = Proposal({
             core: ProposalCore({
@@ -56,6 +67,7 @@ abstract contract GovCreator is IGovCreator {
                 nftPowerSnapshotId: govUserKeeper.createNftPowerSnapshot(),
                 proposalId: proposalId
             }),
+            descriptionURL: descriptionURL,
             executors: executors,
             data: data
         });
@@ -93,16 +105,25 @@ abstract contract GovCreator is IGovCreator {
         return executors;
     }
 
-    function _handleDataForExistingSettingsProposal(bytes[] calldata data) private pure {
+    function _handleDataForExistingSettingsProposal(bytes[] calldata data)
+        private
+        pure
+        returns (bool)
+    {
         for (uint256 i; i < data.length - 1; i++) {
             bytes4 selector = _getSelector(data[i]);
-            require(
-                selector == IERC20.approve.selector ||
-                    selector == IERC721.approve.selector ||
-                    selector == IERC1155.setApprovalForAll.selector,
-                "GovC: invalid data (2)"
-            );
+
+            if (
+                selector != IERC20.approve.selector &&
+                selector != IERC721.approve.selector &&
+                selector != IERC721.setApprovalForAll.selector &&
+                selector != IERC1155.setApprovalForAll.selector
+            ) {
+                return true;
+            }
         }
+
+        return false;
     }
 
     function _getSelector(bytes calldata data) private pure returns (bytes4 selector) {

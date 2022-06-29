@@ -9,6 +9,8 @@ import "../interfaces/gov/IGovPool.sol";
 import "./GovFee.sol";
 
 contract GovPool is IGovPool, GovFee, ERC721HolderUpgradeable, ERC1155HolderUpgradeable {
+    string public descriptionURL;
+
     event ProposalExecuted(uint256 proposalId);
 
     function __GovPool_init(
@@ -16,7 +18,8 @@ contract GovPool is IGovPool, GovFee, ERC721HolderUpgradeable, ERC1155HolderUpgr
         address govUserKeeperAddress,
         address validatorsAddress,
         uint256 _votesLimit,
-        uint256 _feePercentage
+        uint256 _feePercentage,
+        string calldata _descriptionURL
     ) external initializer {
         __GovFee_init(
             govSettingAddress,
@@ -27,6 +30,8 @@ contract GovPool is IGovPool, GovFee, ERC721HolderUpgradeable, ERC1155HolderUpgr
         );
         __ERC721Holder_init();
         __ERC1155Holder_init();
+
+        descriptionURL = _descriptionURL;
     }
 
     function execute(uint256 proposalId) external override {
