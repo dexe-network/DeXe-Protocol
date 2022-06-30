@@ -1,6 +1,8 @@
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("./helpers/hardhatTimeTraveller");
+const { web3 } = require("hardhat");
+const { assert } = require("chai");
 
 const GovPool = artifacts.require("GovPool");
 const GovValidators = artifacts.require("GovValidators");
@@ -82,7 +84,7 @@ const getBytesAddSettings = (settings) => {
             },
           ],
           type: "tuple[]",
-          name: "_var",
+          name: "_settings",
         },
       ],
     },
@@ -90,27 +92,7 @@ const getBytesAddSettings = (settings) => {
   );
 };
 
-const getBytesApprove = (address, amount) => {
-  return web3.eth.abi.encodeFunctionCall(
-    {
-      name: "approve",
-      type: "function",
-      inputs: [
-        {
-          type: "address",
-          name: "spender",
-        },
-        {
-          type: "uint256",
-          name: "amount",
-        },
-      ],
-    },
-    [address, amount]
-  );
-};
-
-const getBytesEditSettings = (types, settings) => {
+const getBytesEditSettings = (ids, settings) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       name: "editSettings",
@@ -118,7 +100,7 @@ const getBytesEditSettings = (types, settings) => {
       inputs: [
         {
           type: "uint256[]",
-          name: "_var",
+          name: "settingsIds",
         },
         {
           components: [
@@ -152,11 +134,51 @@ const getBytesEditSettings = (types, settings) => {
             },
           ],
           type: "tuple[]",
-          name: "_var",
+          name: "_settings",
         },
       ],
     },
-    [types, settings]
+    [ids, settings]
+  );
+};
+
+const getBytesChangeExecutors = (executors, ids) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      name: "changeExecutors",
+      type: "function",
+      inputs: [
+        {
+          type: "address[]",
+          name: "executors",
+        },
+        {
+          type: "uint256[]",
+          name: "settingsIds",
+        },
+      ],
+    },
+    [executors, ids]
+  );
+};
+
+const getBytesApprove = (address, amount) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      name: "approve",
+      type: "function",
+      inputs: [
+        {
+          type: "address",
+          name: "spender",
+        },
+        {
+          type: "uint256",
+          name: "amount",
+        },
+      ],
+    },
+    [address, amount]
   );
 };
 
@@ -305,7 +327,7 @@ describe("GovPool", () => {
         });
 
         it("should create 2 proposals", async () => {
-          await govPool.createProposal("example.com", [SECOND], [getBytesApprove(SECOND, 1)]);
+          await govPool.createProposal("example.com", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
           let proposal = await govPool.proposals(1);
 
           assert.equal(proposal.core.settings[0], DEFAULT_SETTINGS.earlyCompletion);
@@ -320,7 +342,7 @@ describe("GovPool", () => {
           assert.equal(proposal.core.proposalId, 1);
           assert.equal(proposal.descriptionURL, "example.com");
 
-          await govPool.createProposal("example2.com", [THIRD], [getBytesApprove(SECOND, 1)]);
+          await govPool.createProposal("example2.com", [THIRD], [0], [getBytesApprove(SECOND, 1)]);
           proposal = await govPool.proposals(2);
 
           assert.equal(proposal.core.settings[0], DEFAULT_SETTINGS.earlyCompletion);
@@ -338,12 +360,37 @@ describe("GovPool", () => {
 
         it("should revert when create proposal with arrays zero length", async () => {
           await truffleAssert.reverts(
-            govPool.createProposal("", [], [getBytesApprove(SECOND, 1)]),
+            govPool.createProposal("", [], [0], [getBytesApprove(SECOND, 1)]),
             "GovC: invalid array length"
           );
           await truffleAssert.reverts(
-            govPool.createProposal("", [SECOND, THIRD], [getBytesApprove(SECOND, 1)]),
+            govPool.createProposal("", [SECOND], [0, 0], [getBytesApprove(SECOND, 1)]),
             "GovC: invalid array length"
+          );
+          await truffleAssert.reverts(
+            govPool.createProposal("", [SECOND, THIRD], [0, 0], [getBytesApprove(SECOND, 1)]),
+            "GovC: invalid array length"
+          );
+        });
+
+        it("should revert when creating internal proposal with non zero value", async () => {
+          await truffleAssert.reverts(
+            govPool.createProposal(
+              "example.com",
+              [settings.address],
+              [1],
+              [getBytesEditSettings([3], [DEFAULT_SETTINGS])]
+            ),
+            "GovC: invalid internal data"
+          );
+          await truffleAssert.passes(
+            govPool.createProposal(
+              "example.com",
+              [settings.address],
+              [0],
+              [getBytesEditSettings([3], [DEFAULT_SETTINGS])]
+            ),
+            "Created"
           );
         });
       });
@@ -353,8 +400,8 @@ describe("GovPool", () => {
           await userKeeper.depositTokens(OWNER, 1);
           await userKeeper.depositNfts(OWNER, [1]);
 
-          await govPool.createProposal("example.com", [SECOND], [getBytesApprove(SECOND, 1)]);
-          await govPool.createProposal("example.com", [THIRD], [getBytesApprove(SECOND, 1)]);
+          await govPool.createProposal("example.com", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
+          await govPool.createProposal("example.com", [THIRD], [0], [getBytesApprove(SECOND, 1)]);
         });
 
         it("should get info from 2 proposals", async () => {
@@ -376,8 +423,8 @@ describe("GovPool", () => {
         await userKeeper.depositTokens(OWNER, wei("1000"));
         await userKeeper.depositNfts(OWNER, [1, 2, 3, 4]);
 
-        await govPool.createProposal("example.com", [SECOND], [getBytesApprove(SECOND, 1)]);
-        await govPool.createProposal("example.com", [THIRD], [getBytesApprove(SECOND, 1)]);
+        await govPool.createProposal("example.com", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
+        await govPool.createProposal("example.com", [THIRD], [0], [getBytesApprove(SECOND, 1)]);
       });
 
       describe("init()", () => {
@@ -557,7 +604,12 @@ describe("GovPool", () => {
 
         beforeEach("setup", async () => {
           startTime = await getCurrentBlockTime();
-          await govPool.createProposal("example.com", [settings.address], [getBytesEditSettings([3], [NEW_SETTINGS])]);
+          await govPool.createProposal(
+            "example.com",
+            [settings.address],
+            [0],
+            [getBytesEditSettings([3], [NEW_SETTINGS])]
+          );
 
           await token.mint(SECOND, wei("100000000000000000000"));
           await token.mint(THIRD, wei("100000000000000000000"));
@@ -669,7 +721,8 @@ describe("GovPool", () => {
 
         it("should add new settings", async () => {
           const bytes = getBytesAddSettings([NEW_SETTINGS]);
-          await govPool.createProposal("example.com", [settings.address], [bytes]);
+
+          await govPool.createProposal("example.com", [settings.address], [0], [bytes]);
           await govPool.voteTokens(1, wei("1000"));
           await govPool.voteTokens(1, wei("100000000000000000000"), { from: SECOND });
           await govPool.voteTokens(1, wei("100000000000000000000"), { from: THIRD });
@@ -693,8 +746,100 @@ describe("GovPool", () => {
           assert.equal((await govPool.proposals(1)).core.executed, true);
         });
 
+        it("should add new settings, change executors and create default trusted proposal", async () => {
+          const executorTransfer = await ExecutorTransferMock.new(
+            govPool.address,
+            token.address,
+            nft.address,
+            nft.address
+          );
+
+          const settingsBytes = getBytesAddSettings([NEW_SETTINGS]);
+          const changeExecutorBytes = getBytesChangeExecutors([executorTransfer.address], [3]);
+
+          await govPool.createProposal(
+            "example.com",
+            [settings.address, settings.address],
+            [0, 0],
+            [settingsBytes, changeExecutorBytes]
+          );
+          await govPool.voteTokens(1, wei("1000"));
+          await govPool.voteTokens(1, wei("100000000000000000000"), { from: SECOND });
+          await govPool.voteTokens(1, wei("100000000000000000000"), { from: THIRD });
+
+          await govPool.moveProposalToValidators(1);
+          await validators.vote(1, wei("100"), false, { from: OWNER });
+          await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+          await govPool.execute(1);
+
+          assert.equal((await settings.executorInfo(executorTransfer.address))[0], 3);
+
+          const bytesExecute = getBytesExecute(web3);
+          const bytesApprove = getBytesApprove(executorTransfer.address, wei("99"));
+
+          await govPool.createProposal(
+            "example.com",
+            [token.address, executorTransfer.address],
+            [wei("1"), wei("1")],
+            [bytesApprove, bytesExecute]
+          );
+
+          assert.equal((await govPool.proposals(2)).core.settings[1], DEFAULT_SETTINGS.duration);
+
+          await govPool.createProposal(
+            "example.com",
+            [token.address, executorTransfer.address],
+            ["0", wei("1")],
+            [bytesApprove, bytesExecute]
+          );
+
+          assert.equal((await govPool.proposals(3)).core.settings[1], NEW_SETTINGS.duration);
+        });
+
+        it("should execute proposal and send ether", async () => {
+          let startTime = await getCurrentBlockTime();
+
+          const executorTransfer = await ExecutorTransferMock.new(
+            govPool.address,
+            token.address,
+            nft.address,
+            nft.address
+          );
+          await executorTransfer.setTransferAmount(wei("99"), [], [], []);
+
+          await token.transfer(govPool.address, wei("100"));
+          await govPool.sendTransaction({ value: wei("1"), from: OWNER });
+
+          const bytesExecute = getBytesExecute(web3);
+          const bytesApprove = getBytesApprove(executorTransfer.address, wei("99"));
+
+          await govPool.createProposal(
+            "example.com",
+            [token.address, executorTransfer.address],
+            ["0", wei("1")],
+            [bytesApprove, bytesExecute]
+          );
+          await govPool.voteTokens(1, wei("1000"));
+          await govPool.voteTokens(1, wei("100000000000000000000"), { from: SECOND });
+          await govPool.voteTokens(1, wei("100000000000000000000"), { from: THIRD });
+
+          await setTime(startTime + 999);
+
+          await govPool.moveProposalToValidators(1);
+          await validators.vote(1, wei("100"), false, { from: OWNER });
+          await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+          assert.equal(await web3.eth.getBalance(executorTransfer.address), "0");
+
+          await truffleAssert.passes(govPool.execute(1), "Executed");
+
+          assert.equal(await web3.eth.getBalance(executorTransfer.address), wei("1"));
+        });
+
         it("should get revert from proposal call", async () => {
           let startTime = await getCurrentBlockTime();
+
           const executorTransfer = await ExecutorTransferMock.new(
             govPool.address,
             token.address,
@@ -707,12 +852,13 @@ describe("GovPool", () => {
 
           const bytesExecute = getBytesExecute(web3);
 
-          await govPool.createProposal("example.com", [executorTransfer.address], [bytesExecute]);
+          await govPool.createProposal("example.com", [executorTransfer.address], [0], [bytesExecute]);
           await govPool.voteTokens(1, wei("1000"));
           await govPool.voteTokens(1, wei("100000000000000000000"), { from: SECOND });
           await govPool.voteTokens(1, wei("100000000000000000000"), { from: THIRD });
 
           await setTime(startTime + 999);
+
           await govPool.moveProposalToValidators(1);
           await validators.vote(1, wei("100"), false, { from: OWNER });
           await validators.vote(1, wei("1000000000000"), false, { from: SECOND });

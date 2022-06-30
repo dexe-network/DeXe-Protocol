@@ -30,10 +30,13 @@ abstract contract GovCreator is IGovCreator {
     function createProposal(
         string calldata descriptionURL,
         address[] memory executors,
+        uint256[] calldata values,
         bytes[] calldata data
     ) external override {
         require(
-            executors.length > 0 && executors.length == data.length,
+            executors.length > 0 &&
+                executors.length == values.length &&
+                executors.length == data.length,
             "GovC: invalid array length"
         );
         require(govUserKeeper.canUserParticipate(msg.sender, 1, 1), "GovC: low balance");
@@ -47,9 +50,9 @@ abstract contract GovCreator is IGovCreator {
         IGovSettings.ProposalSettings memory settings;
 
         if (isInternal) {
-            executors = _handleExecutorsAndDataForInternalProposal(executors, data);
+            executors = _handleExecutorsAndDataForInternalProposal(executors, values, data);
         } else if (trustedExecutor) {
-            forceDefaultSettings = _handleDataForExistingSettingsProposal(data);
+            forceDefaultSettings = _handleDataForExistingSettingsProposal(values, data);
         }
 
         if (forceDefaultSettings) {
@@ -69,6 +72,7 @@ abstract contract GovCreator is IGovCreator {
             }),
             descriptionURL: descriptionURL,
             executors: executors,
+            values: values,
             data: data
         });
 
@@ -86,6 +90,7 @@ abstract contract GovCreator is IGovCreator {
 
     function _handleExecutorsAndDataForInternalProposal(
         address[] memory executors,
+        uint256[] calldata values,
         bytes[] calldata data
     ) private pure returns (address[] memory) {
         address mainExecutor = executors[executors.length - 1];
@@ -93,10 +98,11 @@ abstract contract GovCreator is IGovCreator {
         for (uint256 i; i < data.length; i++) {
             bytes4 selector = _getSelector(data[i]);
             require(
-                selector == IGovSettings.addSettings.selector ||
-                    selector == IGovSettings.editSettings.selector ||
-                    selector == IGovSettings.changeExecutors.selector,
-                "GovC: invalid data (1)"
+                values[i] == 0 &&
+                    (selector == IGovSettings.addSettings.selector ||
+                        selector == IGovSettings.editSettings.selector ||
+                        selector == IGovSettings.changeExecutors.selector),
+                "GovC: invalid internal data"
             );
 
             executors[i] = mainExecutor;
@@ -105,21 +111,21 @@ abstract contract GovCreator is IGovCreator {
         return executors;
     }
 
-    function _handleDataForExistingSettingsProposal(bytes[] calldata data)
-        private
-        pure
-        returns (bool)
-    {
+    function _handleDataForExistingSettingsProposal(
+        uint256[] calldata values,
+        bytes[] calldata data
+    ) private pure returns (bool) {
         for (uint256 i; i < data.length - 1; i++) {
             bytes4 selector = _getSelector(data[i]);
 
             if (
-                selector != IERC20.approve.selector &&
-                selector != IERC721.approve.selector &&
-                selector != IERC721.setApprovalForAll.selector &&
-                selector != IERC1155.setApprovalForAll.selector
+                values[i] != 0 ||
+                (selector != IERC20.approve.selector &&
+                    selector != IERC721.approve.selector &&
+                    selector != IERC721.setApprovalForAll.selector &&
+                    selector != IERC1155.setApprovalForAll.selector)
             ) {
-                return true;
+                return true; // should use default settings
             }
         }
 

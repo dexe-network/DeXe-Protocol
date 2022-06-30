@@ -35,20 +35,23 @@ contract GovPool is IGovPool, GovFee, ERC721HolderUpgradeable, ERC1155HolderUpgr
     }
 
     function execute(uint256 proposalId) external override {
-        ProposalCore storage core = proposals[proposalId].core;
+        Proposal storage proposal = proposals[proposalId];
 
         require(
-            _getProposalState(core) == ProposalState.Succeeded,
+            _getProposalState(proposal.core) == ProposalState.Succeeded,
             "Gov: invalid proposal status"
         );
 
-        core.executed = true;
+        proposal.core.executed = true;
 
-        address[] memory executors = proposals[proposalId].executors;
-        bytes[] memory data = proposals[proposalId].data;
+        address[] memory executors = proposal.executors;
+        uint256[] memory values = proposal.values;
+        bytes[] memory data = proposal.data;
 
         for (uint256 i; i < data.length; i++) {
-            (bool status, bytes memory returnedData) = executors[i].call(data[i]);
+            (bool status, bytes memory returnedData) = executors[i].call{value: values[i]}(
+                data[i]
+            );
 
             if (!status) {
                 revert(_getRevertMsg(returnedData));

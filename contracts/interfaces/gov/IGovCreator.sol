@@ -20,6 +20,7 @@ interface IGovCreator {
         ProposalCore core;
         string descriptionURL;
         address[] executors;
+        uint256[] values;
         bytes[] data;
     }
 
@@ -29,10 +30,12 @@ interface IGovCreator {
     /// @notice For external proposal, any configuration of addresses and bytes
     /// @param descriptionURL IPFS url to the proposal's description
     /// @param executors Executors addresses
+    /// @param values the ether values
     /// @param data data Bytes
     function createProposal(
         string calldata descriptionURL,
         address[] memory executors,
+        uint256[] calldata values,
         bytes[] calldata data
     ) external;
 

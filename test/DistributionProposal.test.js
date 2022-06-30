@@ -139,7 +139,7 @@ describe("DistributionProposal", () => {
       await userKeeper.depositNfts(OWNER, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
       await setTime(startTime + 999);
-      await govPool.createProposal("example.com", [proposal.address], [getBytesExecute()]);
+      await govPool.createProposal("example.com", [proposal.address], [0], [getBytesExecute()]);
 
       await govPool.voteNfts(1, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
@@ -166,7 +166,7 @@ describe("DistributionProposal", () => {
       await userKeeper.depositNfts(THIRD, [6, 7, 8, 9]);
 
       await setTime(startTime + 999);
-      await govPool.createProposal("example.com", [proposal.address], [getBytesExecute()], { from: SECOND });
+      await govPool.createProposal("example.com", [proposal.address], [0], [getBytesExecute()], { from: SECOND });
       await proposal.setProposalId(1);
     });
 
