@@ -62,7 +62,7 @@ abstract contract GovVote is IGovVote, GovCreator {
     }
 
     function voteNfts(uint256 proposalId, uint256[] calldata nftIds) external override {
-        _voteNfts(proposalId, nftIds.transform(), msg.sender);
+        _voteNfts(proposalId, nftIds, msg.sender);
     }
 
     function voteDelegatedNfts(
@@ -70,46 +70,9 @@ abstract contract GovVote is IGovVote, GovCreator {
         uint256[] calldata nftIds,
         address holder
     ) external override {
-        ShrinkableArray.UintArray memory nftIdsFiltered = govUserKeeper
-            .filterNftsAvailableForDelegator(msg.sender, holder, nftIds.transform());
-
         require(nftIdsFiltered.length > 0, "GovV: nfts is not found");
 
-        _voteNfts(proposalId, nftIdsFiltered, holder);
-    }
-
-    function unlock(address user) external override {
-        unlockInProposals(_votedInProposals[user].values(), user);
-    }
-
-    function unlockInProposals(uint256[] memory proposalIds, address user) public override {
-        IGovUserKeeper userKeeper = govUserKeeper;
-
-        for (uint256 i; i < proposalIds.length; i++) {
-            _beforeUnlock(proposalIds[i]);
-
-            userKeeper.unlockTokens(user, proposalIds[i]);
-            userKeeper.unlockNfts(user, _voteInfos[proposalIds[i]][user].nftsVoted.values());
-
-            _votedInProposals[user].remove(proposalIds[i]);
-        }
-    }
-
-    function unlockNfts(
-        uint256 proposalId,
-        address user,
-        uint256[] calldata nftIds
-    ) external override {
-        _beforeUnlock(proposalId);
-
-        for (uint256 i; i < nftIds.length; i++) {
-            require(
-                _voteInfos[proposalId][user].nftsVoted.contains(nftIds[i]),
-                "GovV: NFT is not voting"
-            );
-        }
-
-        govUserKeeper.unlockNfts(user, nftIds);
+        _voteNfts(proposalId, nftIds, holder);
     }
 
     function moveProposalToValidators(uint256 proposalId) external override {
@@ -239,33 +202,28 @@ abstract contract GovVote is IGovVote, GovCreator {
 
     function _voteNfts(
         uint256 proposalId,
-        ShrinkableArray.UintArray memory nftIds,
+        uint256[] calldata nftIds,
         address voter
     ) private {
         ProposalCore storage core = _beforeVote(proposalId, voter);
 
-        ShrinkableArray.UintArray memory _nftsToVote = ShrinkableArray.create(nftIds.length);
-        uint256 length;
-
         for (uint256 i; i < nftIds.length; i++) {
-            if (_voteInfos[proposalId][voter].nftsVoted.contains(nftIds.values[i])) {
-                continue;
-            }
-
-            require(i == 0 || nftIds.values[i] > nftIds.values[i - 1], "GovV: wrong NFT order");
-
-            _nftsToVote.values[length++] = nftIds.values[i];
+            require(
+                !_voteInfos[proposalId][voter].nftsVoted.contains(nftIds[i]),
+                "GovV: NFT already voted"
+            );
+            require(i == 0 || nftIds[i] > nftIds[i - 1], "GovV: wrong NFT order");
         }
 
         IGovUserKeeper userKeeper = govUserKeeper;
 
-        _nftsToVote = userKeeper.lockNfts(voter, _nftsToVote.crop(length));
-        uint256 voteAmount = userKeeper.getNftsPowerInTokens(_nftsToVote, core.nftPowerSnapshotId);
+        userKeeper.lockNfts(voter, nftIds);
+        uint256 voteAmount = userKeeper.getNftsPowerInTokens(nftIds, core.nftPowerSnapshotId);
 
         require(voteAmount > 0, "GovV: vote amount is zero");
 
-        for (uint256 i; i < _nftsToVote.length; i++) {
-            _voteInfos[proposalId][voter].nftsVoted.add(_nftsToVote.values[i]);
+        for (uint256 i; i < nftIds.length; i++) {
+            _voteInfos[proposalId][voter].nftsVoted.add(nftIds[i]);
         }
 
         _totalVotedInProposal[proposalId] += voteAmount;
@@ -293,14 +251,5 @@ abstract contract GovVote is IGovVote, GovCreator {
         );
 
         return core;
-    }
-
-    function _beforeUnlock(uint256 proposalId) private view {
-        ProposalState state = _getProposalState(proposals[proposalId].core);
-
-        require(
-            state == ProposalState.Succeeded || state == ProposalState.Defeated,
-            "GovV: invalid proposal status"
-        );
     }
 }

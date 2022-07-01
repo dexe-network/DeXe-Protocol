@@ -28,9 +28,6 @@ contract DistributionProposal is IDistributionProposal, Ownable {
     /// @dev If claimed, return `true`
     mapping(address => bool) public claimed;
 
-    event DistributionStarted();
-    event Claimed(address voter, uint256 amount);
-
     modifier onlyGov() {
         require(msg.sender == govAddress, "DP: not a `Gov` contract");
         _;
@@ -61,8 +58,6 @@ contract DistributionProposal is IDistributionProposal, Ownable {
         require(proposalId != 0, "DP: proposal ID isn't set");
 
         distributionStarted = true;
-
-        emit DistributionStarted();
     }
 
     function claim(address voter) external override {
@@ -76,8 +71,6 @@ contract DistributionProposal is IDistributionProposal, Ownable {
         claimed[voter] = true;
 
         IERC20(rewardAddress).safeTransfer(voter, reward.from18(ERC20(rewardAddress).decimals()));
-
-        emit Claimed(voter, reward);
     }
 
     function getPotentialReward(address voter) public view override returns (uint256) {

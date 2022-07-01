@@ -11,8 +11,6 @@ import "./GovFee.sol";
 contract GovPool is IGovPool, GovFee, ERC721HolderUpgradeable, ERC1155HolderUpgradeable {
     string public descriptionURL;
 
-    event ProposalExecuted(uint256 proposalId);
-
     function __GovPool_init(
         address govSettingAddress,
         address govUserKeeperAddress,
@@ -57,8 +55,6 @@ contract GovPool is IGovPool, GovFee, ERC721HolderUpgradeable, ERC1155HolderUpgr
                 revert(_getRevertMsg(returnedData));
             }
         }
-
-        emit ProposalExecuted(proposalId);
     }
 
     receive() external payable {}

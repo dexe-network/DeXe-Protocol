@@ -21,8 +21,6 @@ abstract contract GovFee is IGovFee, OwnableUpgradeable, GovVote {
     /// @dev zero address - native token
     mapping(address => uint64) public lastUpdate; // token address => last update
 
-    event FeeWithdrawn(address token, uint256 amount, uint256 fee);
-
     function __GovFee_init(
         address govSettingAddress,
         address govUserKeeperAddress,
@@ -66,7 +64,5 @@ abstract contract GovFee is IGovFee, OwnableUpgradeable, GovVote {
         } else {
             payable(recipient).transfer(toWithdraw);
         }
-
-        emit FeeWithdrawn(tokenAddress, toWithdraw, fee);
     }
 }
