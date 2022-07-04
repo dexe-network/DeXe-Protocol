@@ -4,11 +4,10 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "../interfaces/gov/validators/IGovValidators.sol";
 import "../interfaces/gov/IGovVote.sol";
+import "../interfaces/gov/validators/IGovValidators.sol";
 
 import "../libs/MathHelper.sol";
-import "../libs/ShrinkableArray.sol";
 
 import "./GovCreator.sol";
 
@@ -17,8 +16,6 @@ import "../core/Globals.sol";
 abstract contract GovVote is IGovVote, GovCreator {
     using Math for uint256;
     using MathHelper for uint256;
-    using ShrinkableArray for ShrinkableArray.UintArray;
-    using ShrinkableArray for uint256[];
     using EnumerableSet for EnumerableSet.UintSet;
 
     /// @dev `Validators` contract address
@@ -27,52 +24,115 @@ abstract contract GovVote is IGovVote, GovCreator {
     uint256 public votesLimit;
 
     mapping(uint256 => uint256) private _totalVotedInProposal; // proposalId => total voted
-    mapping(uint256 => mapping(address => VoteInfo)) private _voteInfos; // proposalId => voter => info
+    mapping(uint256 => mapping(address => mapping(bool => VoteInfo))) internal _voteInfos; // proposalId => voter => isMicropool => info
 
-    mapping(address => EnumerableSet.UintSet) private _votedInProposals; // voter => active proposal ids
+    mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
 
-    function __GovVote_init(
-        address govSettingAddress,
-        address govUserKeeperAddress,
-        address validatorsAddress,
-        uint256 _votesLimit
-    ) internal {
-        __GovCreator_init(govSettingAddress, govUserKeeperAddress);
-
+    function __GovVote_init(address validatorsAddress, uint256 _votesLimit) internal {
         require(_votesLimit > 0);
 
         validators = IGovValidators(validatorsAddress);
         votesLimit = _votesLimit;
     }
 
-    function voteTokens(uint256 proposalId, uint256 amount) external override {
-        _voteTokens(proposalId, amount, msg.sender);
-    }
-
-    function voteDelegatedTokens(
+    function vote(
         uint256 proposalId,
         uint256 amount,
-        address holder
+        uint256[] calldata nftIds
     ) external override {
-        _voteTokens(
-            proposalId,
-            amount.min(govUserKeeper.delegatedTokens(holder, msg.sender)),
-            holder
-        );
+        require(amount > 0 || nftIds.length > 0, "GovV: empty vote");
+
+        _voteTokens(proposalId, amount, false);
+        _voteNfts(proposalId, nftIds, false);
     }
 
-    function voteNfts(uint256 proposalId, uint256[] calldata nftIds) external override {
-        _voteNfts(proposalId, nftIds, msg.sender);
+    function voteDelegated(
+        uint256 proposalId,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external override {
+        require(amount > 0 || nftIds.length > 0, "GovV: empty delegated vote");
+
+        _voteTokens(proposalId, amount, true);
+        _voteNfts(proposalId, nftIds, true);
     }
 
-    function voteDelegatedNfts(
+    function _voteTokens(
+        uint256 proposalId,
+        uint256 amount,
+        bool isMicropool
+    ) private {
+        ProposalCore storage core = _beforeVote(proposalId, isMicropool);
+        VoteInfo storage voteInfo = _voteInfos[proposalId][msg.sender][isMicropool];
+
+        IGovUserKeeper userKeeper = govUserKeeper;
+
+        userKeeper.lockTokens(proposalId, msg.sender, isMicropool, amount);
+        uint256 tokenBalance = userKeeper.tokenBalance(msg.sender, isMicropool);
+
+        require(amount <= tokenBalance - voteInfo.tokensVoted, "GovV: wrong vote amount");
+
+        voteInfo.totalVoted += amount;
+        voteInfo.tokensVoted += amount;
+
+        _totalVotedInProposal[proposalId] += amount;
+
+        core.votesFor += amount;
+    }
+
+    function _voteNfts(
         uint256 proposalId,
         uint256[] calldata nftIds,
-        address holder
-    ) external override {
-        require(nftIdsFiltered.length > 0, "GovV: nfts is not found");
+        bool isMicropool
+    ) private {
+        ProposalCore storage core = _beforeVote(proposalId, isMicropool);
+        VoteInfo storage voteInfo = _voteInfos[proposalId][msg.sender][isMicropool];
 
-        _voteNfts(proposalId, nftIds, holder);
+        for (uint256 i; i < nftIds.length; i++) {
+            require(i == 0 || nftIds[i] > nftIds[i - 1], "GovV: wrong NFT order");
+            require(!voteInfo.nftsVoted.contains(nftIds[i]), "GovV: NFT already voted");
+        }
+
+        IGovUserKeeper userKeeper = govUserKeeper;
+
+        userKeeper.lockNfts(msg.sender, isMicropool, nftIds);
+        uint256 voteAmount = userKeeper.getNftsPowerInTokens(nftIds, core.nftPowerSnapshotId);
+
+        for (uint256 i; i < nftIds.length; i++) {
+            voteInfo.nftsVoted.add(nftIds[i]);
+        }
+
+        voteInfo.totalVoted += voteAmount;
+
+        _totalVotedInProposal[proposalId] += voteAmount;
+
+        core.votesFor += voteAmount;
+    }
+
+    function _beforeVote(uint256 proposalId, bool isMicropool)
+        private
+        returns (ProposalCore storage)
+    {
+        ProposalCore storage core = proposals[proposalId].core;
+
+        _votedInProposals[msg.sender][isMicropool].add(proposalId);
+
+        require(
+            _votedInProposals[msg.sender][isMicropool].length() <= votesLimit,
+            "GovV: vote limit reached"
+        );
+        require(_getProposalState(core) == ProposalState.Voting, "GovV: vote unavailable");
+        require(
+            govUserKeeper.canParticipate(
+                msg.sender,
+                isMicropool,
+                core.settings.minTokenBalance,
+                core.settings.minNftBalance
+            ),
+            "GovV: low balance"
+        );
+
+        return core;
     }
 
     function moveProposalToValidators(uint256 proposalId) external override {
@@ -88,31 +148,14 @@ abstract contract GovVote is IGovVote, GovCreator {
         );
     }
 
-    function getTotalVotes(uint256 proposalId, address voter)
-        external
-        view
-        override
-        returns (uint256, uint256)
-    {
-        return (_totalVotedInProposal[proposalId], _voteInfos[proposalId][voter].totalVoted);
-    }
-
-    function getVoteInfo(uint256 proposalId, address voter)
-        external
-        view
-        override
-        returns (
-            uint256,
-            uint256,
-            uint256,
-            uint256[] memory
-        )
-    {
+    function getTotalVotes(
+        uint256 proposalId,
+        address voter,
+        bool isMicropool
+    ) external view override returns (uint256, uint256) {
         return (
             _totalVotedInProposal[proposalId],
-            _voteInfos[proposalId][voter].totalVoted,
-            _voteInfos[proposalId][voter].tokensVoted,
-            _voteInfos[proposalId][voter].nftsVoted.values()
+            _voteInfos[proposalId][voter][isMicropool].totalVoted
         );
     }
 
@@ -174,82 +217,5 @@ abstract contract GovVote is IGovVote, GovCreator {
             totalVoteWeight == 0
                 ? false
                 : PERCENTAGE_100.ratio(core.votesFor, totalVoteWeight) >= core.settings.quorum;
-    }
-
-    function _voteTokens(
-        uint256 proposalId,
-        uint256 amount,
-        address voter
-    ) private {
-        ProposalCore storage core = _beforeVote(proposalId, voter);
-        IGovUserKeeper userKeeper = govUserKeeper;
-
-        uint256 tokenBalance = userKeeper.tokenBalance(voter);
-
-        uint256 voted = _voteInfos[proposalId][voter].tokensVoted;
-        uint256 voteAmount = amount.min(tokenBalance - voted);
-
-        require(voteAmount > 0, "GovV: vote amount is zero");
-
-        userKeeper.lockTokens(voter, voteAmount, proposalId);
-
-        _totalVotedInProposal[proposalId] += voteAmount;
-        _voteInfos[proposalId][voter].totalVoted += voteAmount;
-        _voteInfos[proposalId][voter].tokensVoted = voted + voteAmount;
-
-        core.votesFor += voteAmount;
-    }
-
-    function _voteNfts(
-        uint256 proposalId,
-        uint256[] calldata nftIds,
-        address voter
-    ) private {
-        ProposalCore storage core = _beforeVote(proposalId, voter);
-
-        for (uint256 i; i < nftIds.length; i++) {
-            require(
-                !_voteInfos[proposalId][voter].nftsVoted.contains(nftIds[i]),
-                "GovV: NFT already voted"
-            );
-            require(i == 0 || nftIds[i] > nftIds[i - 1], "GovV: wrong NFT order");
-        }
-
-        IGovUserKeeper userKeeper = govUserKeeper;
-
-        userKeeper.lockNfts(voter, nftIds);
-        uint256 voteAmount = userKeeper.getNftsPowerInTokens(nftIds, core.nftPowerSnapshotId);
-
-        require(voteAmount > 0, "GovV: vote amount is zero");
-
-        for (uint256 i; i < nftIds.length; i++) {
-            _voteInfos[proposalId][voter].nftsVoted.add(nftIds[i]);
-        }
-
-        _totalVotedInProposal[proposalId] += voteAmount;
-        _voteInfos[proposalId][voter].totalVoted += voteAmount;
-
-        core.votesFor += voteAmount;
-    }
-
-    function _beforeVote(uint256 proposalId, address voter)
-        private
-        returns (ProposalCore storage)
-    {
-        _votedInProposals[voter].add(proposalId);
-        ProposalCore storage core = proposals[proposalId].core;
-
-        require(_votedInProposals[voter].length() <= votesLimit, "GovV: vote limit reached");
-        require(_getProposalState(core) == ProposalState.Voting, "GovV: vote unavailable");
-        require(
-            govUserKeeper.canUserParticipate(
-                voter,
-                core.settings.minTokenBalance,
-                core.settings.minNftBalance
-            ),
-            "GovV: low balance"
-        );
-
-        return core;
     }
 }

@@ -6,9 +6,14 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpg
 
 import "../interfaces/gov/IGovPool.sol";
 
-import "./GovFee.sol";
+import "./GovUserKeeperController.sol";
 
-contract GovPool is IGovPool, GovFee, ERC721HolderUpgradeable, ERC1155HolderUpgradeable {
+contract GovPool is
+    IGovPool,
+    GovUserKeeperController,
+    ERC721HolderUpgradeable,
+    ERC1155HolderUpgradeable
+{
     string public descriptionURL;
 
     function __GovPool_init(
@@ -19,13 +24,9 @@ contract GovPool is IGovPool, GovFee, ERC721HolderUpgradeable, ERC1155HolderUpgr
         uint256 _feePercentage,
         string calldata _descriptionURL
     ) external initializer {
-        __GovFee_init(
-            govSettingAddress,
-            govUserKeeperAddress,
-            validatorsAddress,
-            _votesLimit,
-            _feePercentage
-        );
+        __GovCreator_init(govSettingAddress, govUserKeeperAddress);
+        __GovVote_init(validatorsAddress, _votesLimit);
+        __GovFee_init(_feePercentage);
         __ERC721Holder_init();
         __ERC1155Holder_init();
 

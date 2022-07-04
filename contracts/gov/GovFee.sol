@@ -21,14 +21,7 @@ abstract contract GovFee is IGovFee, OwnableUpgradeable, GovVote {
     /// @dev zero address - native token
     mapping(address => uint64) public lastUpdate; // token address => last update
 
-    function __GovFee_init(
-        address govSettingAddress,
-        address govUserKeeperAddress,
-        address validatorsAddress,
-        uint256 _votesLimit,
-        uint256 _feePercentage
-    ) internal {
-        __GovVote_init(govSettingAddress, govUserKeeperAddress, validatorsAddress, _votesLimit);
+    function __GovFee_init(uint256 _feePercentage) internal {
         __Ownable_init();
 
         require(

@@ -8,7 +8,7 @@ import "../interfaces/core/IContractsRegistry.sol";
 import "@dlsl/dev-modules/pool-contracts-registry/pool-factory/AbstractPoolFactory.sol";
 
 import "../gov/GovPool.sol";
-import "../gov/GovUserKeeper.sol";
+import "../gov/user-keeper/GovUserKeeper.sol";
 import "../gov/settings/GovSettings.sol";
 import "../gov/validators/GovValidators.sol";
 import "../gov/GovPoolRegistry.sol";

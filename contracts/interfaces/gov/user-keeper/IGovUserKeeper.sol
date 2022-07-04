@@ -1,13 +1,28 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "../../libs/ShrinkableArray.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
  * This contract is responsible for securely storing user's funds that are used during the voting. This are either
  * ERC20 tokens or NFTs
  */
 interface IGovUserKeeper {
+    struct BalanceInfo {
+        uint256 tokenBalance;
+        uint256 maxTokensLocked;
+        mapping(uint256 => uint256) lockedInProposals; // proposal id => locked amount
+        EnumerableSet.UintSet lockedProposals; // array of proposals where tokens are locked
+        EnumerableSet.UintSet nftBalance; // array of NFTs
+    }
+
+    struct UserInfo {
+        BalanceInfo balanceInfo;
+        mapping(address => uint256) delegatedTokens; // delegatee => amount
+        mapping(address => EnumerableSet.UintSet) delegatedNfts; // delegatee => tokenIds
+        EnumerableSet.AddressSet delegatees;
+    }
+
     struct NFTInfo {
         bool isSupportPower;
         bool isSupportTotalSupply;
@@ -21,170 +36,92 @@ interface IGovUserKeeper {
         mapping(uint256 => uint256) nftPower;
     }
 
-    /// @notice The function to get the token balance of the user
-    /// @param user the user to get the balance of
-    /// @return the balance
-    function tokenBalance(address user) external view returns (uint256);
-
-    /// @notice The function to get the delegated amounts
-    /// @param holder the delegator
-    /// @param spender the delegatee
-    /// @return the delegated amount
-    function delegatedTokens(address holder, address spender) external view returns (uint256);
-
-    /// @notice Add tokens to the `holder` balance
-    /// @param holder Holder
-    /// @param amount Token amount. Wei
-    function depositTokens(address holder, uint256 amount) external;
-
-    /// @notice Delegate (approve) tokens from `msg.sender` to `spender`
-    /// @param spender Spender
-    /// @param amount Token amount. Wei
-    function delegateTokens(address spender, uint256 amount) external;
-
-    /// @notice Withdraw tokens from balance
-    /// @param amount Token amount. Wei
-    function withdrawTokens(uint256 amount) external;
-
-    /// @notice Add NFTs to the `holder` balance
-    /// @param holder Holder
-    /// @param nftIds NFTs. Array [1, 34, ...]
-    function depositNfts(address holder, uint256[] calldata nftIds) external;
-
-    /// @notice Delegate (approve) NFTs from `msg.sender` to `spender`
-    /// @param spender Spender
-    /// @param nftIds NFTs. Array [1, 34, ...]
-    /// @param delegationStatus. Array [true, false, ...]. If `true`, delegate nft to `spender`
-    function delegateNfts(
-        address spender,
-        uint256[] calldata nftIds,
-        bool[] calldata delegationStatus
+    function depositTokens(
+        address payer,
+        address receiver,
+        uint256 amount
     ) external;
 
-    /// @notice Withdraw NFTs from balance
-    /// @param nftIds NFT Ids
-    function withdrawNfts(uint256[] calldata nftIds) external;
+    function withdrawTokens(
+        address payer,
+        address receiver,
+        uint256 amount
+    ) external;
 
-    /// @return bool `true` if NFT contract support `Power` interface
-    /// @return bool `true` if NFT contract support `Enumerable` interface
-    /// @return uint256 Total power of all NFTs in tokens
-    /// @return uint256 Total supply if NFT contract isn't support `Power` and `Enumerable` interface
-    function getNftContractInfo()
-        external
-        view
-        returns (
-            bool,
-            bool,
-            uint256,
-            uint256
-        );
+    function delegateTokens(
+        address delegator,
+        address delegatee,
+        uint256 amount
+    ) external;
 
-    /// @param user Holder address
-    /// @return uint256 Actual token balance. Wei
-    /// @return uint256 Actual locked amount. Wei
-    function tokenBalanceOf(address user) external view returns (uint256, uint256);
+    function undelegateTokens(
+        address delegator,
+        address delegatee,
+        uint256 amount
+    ) external;
 
-    /// @param user Holder address
-    /// @return uint256 Actual NFTs count on balance
-    /// @return uint256 Actual locked NFTs count on balance
-    function nftBalanceCountOf(address user) external view returns (uint256, uint256);
+    function depositNfts(
+        address payer,
+        address receiver,
+        uint256[] calldata nftIds
+    ) external;
 
-    function delegatedNftsCountOf(address holder, address spender) external view returns (uint256);
+    function withdrawNfts(
+        address payer,
+        address receiver,
+        uint256[] calldata nftIds
+    ) external;
 
-    /// @param user Holder address
-    /// @param offset Index in array
-    /// @param limit NFTs limit
-    /// @return uint256[] NFTs on balance
-    function nftBalanceOf(
-        address user,
-        uint256 offset,
-        uint256 limit
-    ) external view returns (uint256[] memory);
+    function delegateNfts(
+        address delegator,
+        address delegatee,
+        uint256[] calldata nftIds
+    ) external;
 
-    /// @param user Holder address
-    /// @param offset Index in array
-    /// @param limit NFTs limit
-    /// @return uint256[] Locked NFTs
-    /// @return uint256[] Locked num for each locked NFT
-    function nftLockedBalanceOf(
-        address user,
-        uint256 offset,
-        uint256 limit
-    ) external view returns (uint256[] memory, uint256[] memory);
+    function undelegateNfts(
+        address delegator,
+        address delegatee,
+        uint256[] calldata nftIds
+    ) external;
 
-    /// @param holder Main token holder address
-    /// @param spender Spender address
-    /// @param offset Index in array
-    /// @param limit NFTs limit
-    /// @return Delegated NFTs. Array
-    function getDelegatedNfts(
-        address holder,
-        address spender,
-        uint256 offset,
-        uint256 limit
-    ) external view returns (uint256[] memory);
+    function tokenBalance(address voter, bool isMicropool) external view returns (uint256);
 
-    /// @return uint256 Total vote amount for each proposal
-    /// @dev Participates in the quorum calculation
+    function canParticipate(
+        address voter,
+        bool isMicropool,
+        uint256 requiredTokens,
+        uint256 requiredNfts
+    ) external view returns (bool);
+
     function getTotalVoteWeight() external view returns (uint256);
 
-    /// @notice Calculate certain NFTs power by `snapshotId`
-    /// @param nftIds NFT IDs
-    /// @param snapshotId Snapshot ID
-    /// @return uint256 Nft power in tokens
-    function getNftsPowerInTokens(ShrinkableArray.UintArray calldata nftIds, uint256 snapshotId)
+    function getNftsPowerInTokens(uint256[] calldata nftIds, uint256 snapshotId)
         external
         view
         returns (uint256);
 
-    /// @param delegate Spender address
-    /// @param holder Main token holder address
-    /// @param nftIds Array of NFTs that should be filtered
-    /// @return Return filtered input array, where only delegated NFTs
-    function filterNftsAvailableForDelegator(
-        address delegate,
-        address holder,
-        ShrinkableArray.UintArray calldata nftIds
-    ) external view returns (ShrinkableArray.UintArray memory);
-
-    /// @notice Create NFTs power snapshot
-    /// @return Return NFTs power snapshot ID
     function createNftPowerSnapshot() external returns (uint256);
 
-    /// @notice Lock tokens. Locked tokens unavailable to transfer from contract
-    /// @param voter Voter address
-    /// @param amount Token amount. Wei
+    function updateMaxTokenLockedAmount(address voter, bool isMicropool) external;
+
     function lockTokens(
+        uint256 proposalId,
         address voter,
-        uint256 amount,
-        uint256 proposalId
+        bool isMicropool,
+        uint256 amount
     ) external;
 
-    /// @notice Unlock tokens
-    /// @param voter Holder address
-    /// @param proposalId Proposal ID
-    function unlockTokens(address voter, uint256 proposalId) external;
+    function unlockTokens(
+        uint256 proposalId,
+        address voter,
+        bool isMicropool
+    ) external;
 
-    /// @notice Filters incoming NFTs (`nftIds`) by existing on balance and locks them
-    /// @param voter NFT owner address. If NFT is not on contract or owner is other address, skip it
-    /// @param nftIds List of NFT ids to lock.
-    /// @return uint256[] Array with locked nftIds
-    function lockNfts(address voter, ShrinkableArray.UintArray calldata nftIds)
-        external
-        returns (ShrinkableArray.UintArray memory);
+    function lockNfts(
+        address voter,
+        bool isMicropool,
+        uint256[] calldata nftIds
+    ) external;
 
-    /// @notice Unlock incoming `nftIds`
-    /// @param voter Holder address
-    /// @param nftIds List of NFT ids to unlock
-    function unlockNfts(address voter, uint256[] calldata nftIds) external;
-
-    /// @notice Checks the user's balance
-    /// @param user Holder address
-    /// @param requiredTokens Minimal require tokens amount
-    /// @param requiredNfts Minimal require nfts amount
-    function canUserParticipate(
-        address user,
-        uint256 requiredTokens,
-        uint256 requiredNfts
-    ) external view returns (bool);
+    function unlockNfts(uint256[] calldata nftIds) external;
 }

@@ -5,9 +5,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
+import "../interfaces/gov/IGovCreator.sol";
 import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
-import "../interfaces/gov/IGovCreator.sol";
 
 abstract contract GovCreator is IGovCreator {
     IGovSettings public govSetting;
@@ -37,7 +37,7 @@ abstract contract GovCreator is IGovCreator {
                 executors.length == data.length,
             "GovC: invalid array length"
         );
-        require(govUserKeeper.canUserParticipate(msg.sender, 1, 1), "GovC: low balance");
+        require(govUserKeeper.canParticipate(msg.sender, false, 1, 1), "GovC: low balance");
 
         uint256 proposalId = ++_latestProposalId;
 

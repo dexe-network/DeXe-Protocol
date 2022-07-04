@@ -76,7 +76,8 @@ contract DistributionProposal is IDistributionProposal, Ownable {
     function getPotentialReward(address voter) public view override returns (uint256) {
         (uint256 totalVoteWeight, uint256 voteWeight) = IGovVote(govAddress).getTotalVotes(
             proposalId,
-            voter
+            voter,
+            false
         );
 
         return totalVoteWeight == 0 ? 0 : rewardAmount.ratio(voteWeight, totalVoteWeight);
