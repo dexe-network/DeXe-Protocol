@@ -51,17 +51,25 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _coreProperties = CoreProperties(registry.getCorePropertiesContract());
     }
 
-    function deployGovPool(GovPoolDeployParams calldata parameters) external override {
+    function deployGovPool(bool withValidators, GovPoolDeployParams calldata parameters)
+        external
+        override
+    {
         string memory poolType = _govPoolRegistry.GOV_POOL_NAME();
 
         address settingsProxy = _deploy(
             address(_govPoolRegistry),
             _govPoolRegistry.SETTINGS_NAME()
         );
-        address validatorsProxy = _deploy(
-            address(_govPoolRegistry),
-            _govPoolRegistry.VALIDATORS_NAME()
-        );
+        address validatorsProxy;
+
+        if (withValidators) {
+            validatorsProxy = _deploy(
+                address(_govPoolRegistry),
+                _govPoolRegistry.VALIDATORS_NAME()
+            );
+        }
+
         address userKeeperProxy = _deploy(
             address(_govPoolRegistry),
             _govPoolRegistry.USER_KEEPER_NAME()
@@ -78,25 +86,34 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.userKeeperParams.totalPowerInTokens,
             parameters.userKeeperParams.nftsTotalSupply
         );
-        GovValidators(validatorsProxy).__GovValidators_init(
-            parameters.validatorsParams.name,
-            parameters.validatorsParams.symbol,
-            parameters.validatorsParams.duration,
-            parameters.validatorsParams.quorum,
-            parameters.validatorsParams.validators,
-            parameters.validatorsParams.balances
-        );
+
+        if (withValidators) {
+            GovValidators(validatorsProxy).__GovValidators_init(
+                parameters.validatorsParams.name,
+                parameters.validatorsParams.symbol,
+                parameters.validatorsParams.duration,
+                parameters.validatorsParams.quorum,
+                parameters.validatorsParams.validators,
+                parameters.validatorsParams.balances
+            );
+        }
+
         GovPool(payable(poolProxy)).__GovPool_init(
             settingsProxy,
             userKeeperProxy,
             validatorsProxy,
             parameters.votesLimit,
-            parameters.feePercentage
+            parameters.feePercentage,
+            parameters.descriptionURL
         );
 
         GovSettings(settingsProxy).transferOwnership(poolProxy);
         GovUserKeeper(userKeeperProxy).transferOwnership(poolProxy);
-        GovValidators(validatorsProxy).transferOwnership(poolProxy);
+
+        if (withValidators) {
+            GovValidators(validatorsProxy).transferOwnership(poolProxy);
+        }
+
         GovPool(payable(poolProxy)).transferOwnership(parameters.owner);
 
         _register(address(_govPoolRegistry), poolType, poolProxy);

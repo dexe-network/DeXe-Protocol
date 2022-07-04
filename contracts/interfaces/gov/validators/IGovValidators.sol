@@ -16,7 +16,8 @@ interface IGovValidators {
     enum ProposalType {
         ChangeInternalDuration,
         ChangeInternalQuorum,
-        ChangeBalance
+        ChangeInternalDurationAndQuorum,
+        ChangeBalances
     }
 
     struct InternalProposalSettings {
@@ -35,25 +36,26 @@ interface IGovValidators {
     struct InternalProposal {
         ProposalType proposalType;
         ProposalCore core;
-        uint256 newValue;
-        address userAddress;
+        uint256[] newValues;
+        address[] userAddresses;
     }
 
     struct ExternalProposal {
         ProposalCore core;
     }
 
-    /// @notice Create internal proposal for changing address balance, base quorum, base duration
+    /// @notice Create internal proposal for changing validators balances, base quorum, base duration
     /// @param proposalType `ProposalType`
     /// 0 - `ChangeInternalDuration`, change base duration
     /// 1 - `ChangeInternalQuorum`, change base quorum
-    /// 2 - `ChangeBalance`, change address balance
-    /// @param newValue New value (tokens amount, quorum or duration)
-    /// @param userAddress Validator address, set it if `proposalType` == `ChangeBalance`
+    /// 2 - `ChangeInternalDurationAndQuorum`, change base duration and quorum
+    /// 3 - `ChangeBalances`, change address balance
+    /// @param newValues New values (tokens amounts array, quorum or duration or both)
+    /// @param userAddresses Validators addresses, set it if `proposalType` == `ChangeBalances`
     function createInternalProposal(
         ProposalType proposalType,
-        uint256 newValue,
-        address userAddress
+        uint256[] calldata newValues,
+        address[] calldata userAddresses
     ) external;
 
     /// @notice Create external proposal. This function can call only `Gov` contract

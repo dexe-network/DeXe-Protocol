@@ -31,6 +31,7 @@ interface IGovSettings {
     function changeExecutors(address[] calldata executors, uint256[] calldata settingsIds)
         external;
 
+    /// @notice The function the get executor's info
     /// @param executor Executor address
     /// @return settings ID for `executor`
     /// @return `true` if `executor` is current address
@@ -44,6 +45,11 @@ interface IGovSettings {
             bool
         );
 
+    /// @notice The function to get default settings
+    /// @return default setting
+    function getDefaultSettings() external view returns (ProposalSettings memory);
+
+    /// @notice The function the get the settings of the executor
     /// @param executor Executor address
     /// @return `ProposalSettings` by `executor` address
     function getSettings(address executor) external view returns (ProposalSettings memory);

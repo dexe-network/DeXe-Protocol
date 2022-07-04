@@ -42,7 +42,7 @@ contract ExecutorTransferMock is ERC721Holder, ERC1155Holder {
         amounts1155 = _amounts1155;
     }
 
-    function execute() external {
+    function execute() external payable {
         address _govAddress = govAddress;
 
         if (amount20 > 0) {

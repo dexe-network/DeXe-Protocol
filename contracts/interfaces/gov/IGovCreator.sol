@@ -18,7 +18,9 @@ interface IGovCreator {
 
     struct Proposal {
         ProposalCore core;
+        string descriptionURL;
         address[] executors;
+        uint256[] values;
         bytes[] data;
     }
 
@@ -26,9 +28,16 @@ interface IGovCreator {
     /// @notice For internal proposal, last executor should be `GovSetting` contract
     /// @notice For typed proposal, last executor should be typed contract
     /// @notice For external proposal, any configuration of addresses and bytes
+    /// @param descriptionURL IPFS url to the proposal's description
     /// @param executors Executors addresses
+    /// @param values the ether values
     /// @param data data Bytes
-    function createProposal(address[] memory executors, bytes[] calldata data) external;
+    function createProposal(
+        string calldata descriptionURL,
+        address[] memory executors,
+        uint256[] calldata values,
+        bytes[] calldata data
+    ) external;
 
     /// @param proposalId Proposal ID
     /// @return Executor addresses

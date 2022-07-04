@@ -381,7 +381,7 @@ describe("PoolFactory", () => {
   describe("deployGovPool", () => {
     let POOL_PARAMETERS;
 
-    it("should deploy gov pool", async () => {
+    it("should deploy gov pool with validators", async () => {
       POOL_PARAMETERS = {
         seetingsParams: {
           internalProposalSetting: {
@@ -420,9 +420,10 @@ describe("PoolFactory", () => {
         owner: OWNER,
         votesLimit: 10,
         feePercentage: PRECISION.toFixed(),
+        descriptionURL: "example.com",
       };
 
-      await poolFactory.deployGovPool(POOL_PARAMETERS);
+      await poolFactory.deployGovPool(true, POOL_PARAMETERS);
 
       assert.equal((await govPoolRegistry.countPools(await govPoolRegistry.GOV_POOL_NAME())).toString(), "1");
       assert.equal(
@@ -432,6 +433,61 @@ describe("PoolFactory", () => {
 
       let govPool = await GovPool.at((await govPoolRegistry.listPools(await govPoolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
       assert.equal(await govPool.owner(), OWNER);
+    });
+
+    it("should deploy gov pool without validators", async () => {
+      POOL_PARAMETERS = {
+        seetingsParams: {
+          internalProposalSetting: {
+            earlyCompletion: true,
+            duration: 500,
+            durationValidators: 600,
+            quorum: PRECISION.times("51").toFixed(),
+            quorumValidators: PRECISION.times("61").toFixed(),
+            minTokenBalance: wei("10"),
+            minNftBalance: 2,
+          },
+          defaultProposalSetting: {
+            earlyCompletion: false,
+            duration: 700,
+            durationValidators: 800,
+            quorum: PRECISION.times("71").toFixed(),
+            quorumValidators: PRECISION.times("100").toFixed(),
+            minTokenBalance: wei("20"),
+            minNftBalance: 3,
+          },
+        },
+        validatorsParams: {
+          name: "",
+          symbol: "",
+          duration: 0,
+          quorum: 0,
+          validators: [],
+          balances: [],
+        },
+        userKeeperParams: {
+          tokenAddress: testERC20.address,
+          nftAddress: testERC721.address,
+          totalPowerInTokens: wei("33000"),
+          nftsTotalSupply: 33,
+        },
+        owner: OWNER,
+        votesLimit: 10,
+        feePercentage: PRECISION.toFixed(),
+        descriptionURL: "example.com",
+      };
+
+      await poolFactory.deployGovPool(false, POOL_PARAMETERS);
+
+      assert.equal((await govPoolRegistry.countPools(await govPoolRegistry.GOV_POOL_NAME())).toString(), "1");
+      assert.equal(
+        (await govPoolRegistry.countOwnerPools(OWNER, await govPoolRegistry.GOV_POOL_NAME())).toString(),
+        "1"
+      );
+
+      let govPool = await GovPool.at((await govPoolRegistry.listPools(await govPoolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+
+      assert.equal(await govPool.validators(), "0x0000000000000000000000000000000000000000");
     });
   });
 });

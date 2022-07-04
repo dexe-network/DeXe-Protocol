@@ -65,15 +65,24 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
     function createInternalProposal(
         ProposalType proposalType,
-        uint256 newValue,
-        address user
+        uint256[] calldata newValues,
+        address[] calldata users
     ) external override onlyValidatorHolder {
         if (proposalType == ProposalType.ChangeInternalDuration) {
-            require(newValue > 0, "Validators: invalid duration value");
+            require(newValues[0] > 0, "Validators: invalid duration value");
         } else if (proposalType == ProposalType.ChangeInternalQuorum) {
-            require(newValue <= PERCENTAGE_100, "Validators: invalid quorum value");
+            require(newValues[0] <= PERCENTAGE_100, "Validators: invalid quorum value");
+        } else if (proposalType == ProposalType.ChangeInternalDurationAndQuorum) {
+            require(
+                newValues[0] > 0 && newValues[1] <= PERCENTAGE_100,
+                "Validators: invalid duration or quorum values"
+            );
         } else {
-            require(user != address(0), "Validators: invalid address");
+            require(newValues.length == users.length, "Validators: invalid length");
+
+            for (uint256 i = 0; i < users.length; i++) {
+                require(users[i] != address(0), "Validators: invalid address");
+            }
         }
 
         internalProposals[++_latestInternalProposalId] = InternalProposal({
@@ -85,8 +94,8 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
                 votesFor: 0,
                 snapshotId: govValidatorsToken.snapshot()
             }),
-            newValue: newValue,
-            userAddress: user
+            newValues: newValues,
+            userAddresses: users
         });
     }
 
@@ -154,20 +163,28 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         proposal.core.executed = true;
 
         ProposalType proposalType = proposal.proposalType;
-        uint256 proposalValue = proposal.newValue;
 
         if (proposalType == ProposalType.ChangeInternalDuration) {
-            internalProposalSettings.duration = uint64(proposalValue);
+            internalProposalSettings.duration = uint64(proposal.newValues[0]);
         } else if (proposalType == ProposalType.ChangeInternalQuorum) {
-            internalProposalSettings.quorum = uint128(proposalValue);
-        } else if (proposalType == ProposalType.ChangeBalance) {
-            address user = proposal.userAddress;
-            uint256 balance = govValidatorsToken.balanceOf(user);
+            internalProposalSettings.quorum = uint128(proposal.newValues[0]);
+        } else if (proposalType == ProposalType.ChangeInternalDurationAndQuorum) {
+            internalProposalSettings.duration = uint64(proposal.newValues[0]);
+            internalProposalSettings.quorum = uint128(proposal.newValues[1]);
+        } else if (proposalType == ProposalType.ChangeBalances) {
+            GovValidatorsToken validatorsToken = govValidatorsToken;
+            uint256 length = proposal.newValues.length;
 
-            if (balance < proposalValue) {
-                govValidatorsToken.mint(user, proposalValue - balance);
-            } else {
-                govValidatorsToken.burn(user, balance - proposalValue);
+            for (uint256 i = 0; i < length; i++) {
+                address user = proposal.userAddresses[i];
+                uint256 newBalance = proposal.newValues[i];
+                uint256 balance = validatorsToken.balanceOf(user);
+
+                if (balance < newBalance) {
+                    validatorsToken.mint(user, newBalance - balance);
+                } else {
+                    validatorsToken.burn(user, balance - newBalance);
+                }
             }
         }
     }

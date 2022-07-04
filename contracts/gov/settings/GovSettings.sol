@@ -66,10 +66,8 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         override
         onlyOwner
     {
-        address owner = owner();
-
         for (uint256 i; i < executors.length; i++) {
-            if (settingsIds[i] == _INTERNAL_SETTINGS_ID || executors[i] == owner) {
+            if (settingsIds[i] == _INTERNAL_SETTINGS_ID || executors[i] == address(this)) {
                 continue;
             }
 
@@ -109,6 +107,10 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
             settingsId == 0
                 ? (0, false, false)
                 : (settingsId, settingsId == _INTERNAL_SETTINGS_ID, _settingsExist(settingsId));
+    }
+
+    function getDefaultSettings() external view override returns (ProposalSettings memory) {
+        return settings[_DEFAULT_SETTINGS_ID];
     }
 
     function getSettings(address executor)
