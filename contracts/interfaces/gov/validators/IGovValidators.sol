@@ -17,7 +17,7 @@ interface IGovValidators {
         ChangeInternalDuration,
         ChangeInternalQuorum,
         ChangeInternalDurationAndQuorum,
-        ChangeBalance
+        ChangeBalances
     }
 
     struct InternalProposalSettings {
@@ -48,9 +48,10 @@ interface IGovValidators {
     /// @param proposalType `ProposalType`
     /// 0 - `ChangeInternalDuration`, change base duration
     /// 1 - `ChangeInternalQuorum`, change base quorum
-    /// 2 - `ChangeBalance`, change address balance
+    /// 2 - `ChangeInternalDurationAndQuorum`, change base duration and quorum
+    /// 3 - `ChangeBalances`, change address balance
     /// @param newValues New values (tokens amounts array, quorum or duration or both)
-    /// @param userAddresses Validators addresses, set it if `proposalType` == `ChangeBalance`
+    /// @param userAddresses Validators addresses, set it if `proposalType` == `ChangeBalances`
     function createInternalProposal(
         ProposalType proposalType,
         uint256[] calldata newValues,

@@ -171,7 +171,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         } else if (proposalType == ProposalType.ChangeInternalDurationAndQuorum) {
             internalProposalSettings.duration = uint64(proposal.newValues[0]);
             internalProposalSettings.quorum = uint128(proposal.newValues[1]);
-        } else if (proposalType == ProposalType.ChangeBalance) {
+        } else if (proposalType == ProposalType.ChangeBalances) {
             GovValidatorsToken validatorsToken = govValidatorsToken;
             uint256 length = proposal.newValues.length;
 

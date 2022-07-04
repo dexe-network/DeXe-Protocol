@@ -419,7 +419,7 @@ describe("GovValidators", () => {
         assert.equal((await validators.internalProposalSettings()).quorum.toFixed(), toPercent("15"));
       });
 
-      it("should correctly execute `ChangeBalance` proposal", async () => {
+      it("should correctly execute `ChangeBalances` proposal", async () => {
         await validators.createInternalProposal(3, [wei("50")], [SECOND], { from: SECOND });
         await validators.vote(1, wei("200"), true, { from: THIRD });
         await validators.execute(1);
