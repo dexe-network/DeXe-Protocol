@@ -19,6 +19,10 @@ contract TraderPoolMock is TraderPool {
         (, maxTraderLeverage) = _poolParameters.getMaxTraderLeverage();
     }
 
+    function canRemovePrivateInvestor(address investor) public view override returns (bool) {
+        return balanceOf(investor) == 0;
+    }
+
     function proposalPoolAddress() external pure override returns (address) {
         return address(0);
     }

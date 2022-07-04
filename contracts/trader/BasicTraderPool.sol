@@ -55,6 +55,12 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         AbstractDependant(address(_traderPoolProposal)).setDependencies(contractsRegistry);
     }
 
+    function canRemovePrivateInvestor(address investor) public view override returns (bool) {
+        return
+            balanceOf(investor) == 0 &&
+            _traderPoolProposal.getTotalActiveInvestments(investor) == 0;
+    }
+
     function proposalPoolAddress() external view override returns (address) {
         return address(_traderPoolProposal);
     }

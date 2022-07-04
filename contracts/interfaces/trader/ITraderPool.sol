@@ -175,6 +175,11 @@ interface ITraderPool {
     /// @param add if true the investors will be added, if false the investors will be removed
     function modifyPrivateInvestors(address[] calldata privateInvestors, bool add) external;
 
+    /// @notice The function that check if the private investor can be removed
+    /// @param investor private investor
+    /// @return true if can be removed, false otherwise
+    function canRemovePrivateInvestor(address investor) external view returns (bool);
+
     /// @notice The function to change certain parameters of the pool
     /// @param descriptionURL the IPFS URL to new description
     /// @param privatePool the new access for this pool
