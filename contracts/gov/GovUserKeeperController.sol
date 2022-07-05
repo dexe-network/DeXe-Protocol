@@ -7,6 +7,8 @@ import "./GovFee.sol";
 
 abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
     using EnumerableSet for EnumerableSet.UintSet;
+    using ShrinkableArray for uint256[];
+    using ShrinkableArray for ShrinkableArray.UintArray;
 
     function deposit(
         address receiver,
@@ -17,6 +19,18 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
 
         govUserKeeper.depositTokens(msg.sender, receiver, amount);
         govUserKeeper.depositNfts(msg.sender, receiver, nftIds);
+    }
+
+    function getWithdrawableAssets(address user)
+        external
+        view
+        override
+        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts)
+    {
+        ShrinkableArray.UintArray memory proposalIds = getUnlockedProposals(user, false);
+        uint256[] memory unlockedNfts = getUnlockedNfts(proposalIds, user, false);
+
+        return govUserKeeper.getWithdrawableAssets(user, proposalIds, unlockedNfts);
     }
 
     function withdraw(
@@ -45,6 +59,19 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
         govUserKeeper.delegateNfts(msg.sender, delegatee, nftIds);
     }
 
+    function getUndelegateableAssets(address delegator, address delegatee)
+        external
+        view
+        override
+        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts)
+    {
+        ShrinkableArray.UintArray memory proposalIds = getUnlockedProposals(delegatee, true);
+        uint256[] memory unlockedNfts = getUnlockedNfts(proposalIds, delegatee, true);
+
+        return
+            govUserKeeper.getUndelegateableAssets(delegator, delegatee, proposalIds, unlockedNfts);
+    }
+
     function undelegate(
         address delegatee,
         uint256 amount,
@@ -56,6 +83,54 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
 
         govUserKeeper.undelegateTokens(msg.sender, delegatee, amount);
         govUserKeeper.undelegateNfts(msg.sender, delegatee, nftIds);
+    }
+
+    function getUnlockedProposals(address user, bool isMicropool)
+        public
+        view
+        returns (ShrinkableArray.UintArray memory proposalIds)
+    {
+        uint256[] memory unlockedProposals = new uint256[](
+            _votedInProposals[user][isMicropool].length()
+        );
+        uint256 unlockedLength;
+
+        for (uint256 i; i < unlockedProposals.length; i++) {
+            uint256 proposalId = _votedInProposals[user][isMicropool].at(i);
+
+            ProposalState state = _getProposalState(proposals[proposalId].core);
+
+            if (state == ProposalState.Succeeded || state == ProposalState.Defeated) {
+                unlockedProposals[unlockedLength++] = proposalId;
+            }
+        }
+
+        proposalIds = unlockedProposals.transform().crop(unlockedLength);
+    }
+
+    function getUnlockedNfts(
+        ShrinkableArray.UintArray memory proposalIds,
+        address user,
+        bool isMicropool
+    ) public view returns (uint256[] memory unlockedNfts) {
+        uint256 totalLength;
+
+        for (uint256 i; i < proposalIds.length; i++) {
+            totalLength += _voteInfos[proposalIds.values[i]][user][isMicropool].nftsVoted.length();
+        }
+
+        unlockedNfts = new uint256[](totalLength);
+        totalLength = 0;
+
+        for (uint256 i; i < proposalIds.length; i++) {
+            VoteInfo storage voteInfo = _voteInfos[proposalIds.values[i]][user][isMicropool];
+
+            uint256 length = voteInfo.nftsVoted.length();
+
+            for (uint256 j; j < length; j++) {
+                unlockedNfts[totalLength++] = voteInfo.nftsVoted.at(j);
+            }
+        }
     }
 
     function unlock(address user, bool isMicropool) public override {
@@ -70,7 +145,16 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
         IGovUserKeeper userKeeper = govUserKeeper;
 
         for (uint256 i; i < proposalIds.length; i++) {
-            _beforeUnlock(proposalIds[i], user, isMicropool);
+            require(
+                _votedInProposals[user][isMicropool].contains(proposalIds[i]),
+                "GovUKC: hasn't voted for this proposal"
+            );
+
+            ProposalState state = _getProposalState(proposals[proposalIds[i]].core);
+
+            if (state != ProposalState.Succeeded && state != ProposalState.Defeated) {
+                continue;
+            }
 
             userKeeper.unlockTokens(proposalIds[i], user, isMicropool);
             userKeeper.unlockNfts(
@@ -81,23 +165,5 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
         }
 
         userKeeper.updateMaxTokenLockedAmount(user, isMicropool);
-    }
-
-    function _beforeUnlock(
-        uint256 proposalId,
-        address user,
-        bool isMicropool
-    ) private view {
-        require(
-            _votedInProposals[user][isMicropool].contains(proposalId),
-            "GovUKC: hasn't voted for this proposal"
-        );
-
-        ProposalState state = _getProposalState(proposals[proposalId].core);
-
-        require(
-            state == ProposalState.Succeeded || state == ProposalState.Defeated,
-            "GovUKC: invalid proposal status"
-        );
     }
 }

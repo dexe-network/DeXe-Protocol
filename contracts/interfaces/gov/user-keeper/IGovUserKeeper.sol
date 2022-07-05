@@ -3,6 +3,8 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+import "../../../libs/ShrinkableArray.sol";
+
 /**
  * This contract is responsible for securely storing user's funds that are used during the voting. This are either
  * ERC20 tokens or NFTs
@@ -101,6 +103,28 @@ interface IGovUserKeeper {
         returns (uint256);
 
     function createNftPowerSnapshot() external returns (uint256);
+
+    function getUndelegateableAssets(
+        address delegator,
+        address delegatee,
+        ShrinkableArray.UintArray calldata unlockedProposals,
+        uint256[] calldata unlockedNfts
+    )
+        external
+        view
+        returns (
+            uint256 undelegateableTokens,
+            ShrinkableArray.UintArray memory undelegateableNfts
+        );
+
+    function getWithdrawableAssets(
+        address voter,
+        ShrinkableArray.UintArray calldata unlockedProposals,
+        uint256[] calldata unlockedNfts
+    )
+        external
+        view
+        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts);
 
     function updateMaxTokenLockedAmount(address voter, bool isMicropool) external;
 

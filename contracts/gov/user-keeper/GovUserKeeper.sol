@@ -13,6 +13,7 @@ import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
 
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
+import "../../interfaces/gov/IGovUserKeeperController.sol";
 
 import "../../libs/MathHelper.sol";
 
@@ -24,6 +25,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     using MathHelper for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
+    using ShrinkableArray for uint256[];
+    using ShrinkableArray for ShrinkableArray.UintArray;
     using Paginator for EnumerableSet.UintSet;
     using DecimalsConverter for uint256;
 
@@ -375,6 +378,107 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         return currentPowerSnapshotId;
     }
 
+    function getUndelegateableAssets(
+        address delegator,
+        address delegatee,
+        ShrinkableArray.UintArray calldata unlockedProposals,
+        uint256[] calldata unlockedNfts
+    )
+        external
+        view
+        override
+        returns (uint256 undelegateableTokens, ShrinkableArray.UintArray memory undelegateableNfts)
+    {
+        UserInfo storage delegatorInfo = _usersInfo[delegator];
+
+        (
+            uint256 withdrawableTokens,
+            ShrinkableArray.UintArray memory withdrawableNfts
+        ) = _getFreeAssets(delegatee, true, unlockedProposals, unlockedNfts);
+
+        undelegateableTokens = delegatorInfo.delegatedTokens[delegatee].min(withdrawableTokens);
+
+        uint256[] memory nfts = new uint256[](withdrawableNfts.length);
+        uint256 nftsLength;
+
+        for (uint256 i; i < nfts.length; i++) {
+            if (delegatorInfo.delegatedNfts[delegatee].contains(withdrawableNfts.values[i])) {
+                nfts[nftsLength++] = withdrawableNfts.values[i];
+            }
+        }
+
+        undelegateableNfts = nfts.transform().crop(nftsLength);
+    }
+
+    function getWithdrawableAssets(
+        address voter,
+        ShrinkableArray.UintArray calldata unlockedProposals,
+        uint256[] calldata unlockedNfts
+    )
+        external
+        view
+        override
+        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts)
+    {
+        return _getFreeAssets(voter, false, unlockedProposals, unlockedNfts);
+    }
+
+    function _getFreeAssets(
+        address voter,
+        bool isMicropool,
+        ShrinkableArray.UintArray calldata unlockedProposals,
+        uint256[] calldata unlockedNfts
+    )
+        private
+        view
+        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts)
+    {
+        BalanceInfo storage balanceInfo = _getBalanceInfoStorage(voter, isMicropool);
+
+        uint256 length = balanceInfo.lockedProposals.length();
+        uint256 newLockedAmount;
+
+        for (uint256 i; i < length; i++) {
+            uint256 proposal = balanceInfo.lockedProposals.at(i);
+            bool unlocked;
+
+            for (uint256 j = 0; j < unlockedProposals.length; j++) {
+                if (proposal == unlockedProposals.values[j]) {
+                    unlocked = true;
+                    break;
+                }
+            }
+
+            if (!unlocked) {
+                newLockedAmount = newLockedAmount.max(balanceInfo.lockedInProposals[proposal]);
+            }
+        }
+
+        withdrawableTokens = balanceInfo.tokenBalance - newLockedAmount;
+
+        uint256[] memory nfts = new uint256[](balanceInfo.nftBalance.length());
+        uint256 nftsLength;
+
+        for (uint256 i; i < nfts.length; i++) {
+            uint256 nftId = balanceInfo.nftBalance.at(i);
+            uint256 nftLockAmount = _nftLockedNums[nftId];
+
+            if (nftLockAmount != 0) {
+                for (uint256 j = 0; j < unlockedNfts.length; j++) {
+                    if (unlockedNfts[j] == nftId) {
+                        nftLockAmount--;
+                    }
+                }
+            }
+
+            if (nftLockAmount == 0) {
+                nfts[nftsLength++] = nftId;
+            }
+        }
+
+        withdrawableNfts = nfts.transform().crop(nftsLength);
+    }
+
     function updateMaxTokenLockedAmount(address voter, bool isMicropool)
         external
         override
@@ -382,7 +486,21 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     {
         BalanceInfo storage balanceInfo = _getBalanceInfoStorage(voter, isMicropool);
 
-        balanceInfo.maxTokensLocked = _getNewTokenLockedAmount(balanceInfo);
+        uint256 length = balanceInfo.lockedProposals.length();
+        uint256 lockedAmount = balanceInfo.maxTokensLocked;
+        uint256 newLockedAmount;
+
+        for (uint256 i; i < length; i++) {
+            newLockedAmount = newLockedAmount.max(
+                balanceInfo.lockedInProposals[balanceInfo.lockedProposals.at(i)]
+            );
+
+            if (newLockedAmount == lockedAmount) {
+                break;
+            }
+        }
+
+        balanceInfo.maxTokensLocked = newLockedAmount;
     }
 
     function lockTokens(
@@ -436,33 +554,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
             _nftLockedNums[nftIds[i]]--;
         }
-    }
-
-    function _getNewTokenLockedAmount(BalanceInfo storage balanceInfo)
-        private
-        view
-        returns (uint256)
-    {
-        uint256 lockedAmount = balanceInfo.maxTokensLocked;
-
-        if (lockedAmount == 0) {
-            return 0;
-        }
-
-        uint256 length = balanceInfo.lockedProposals.length();
-        uint256 newLockedAmount;
-
-        for (uint256 i = length; i > 0; i--) {
-            newLockedAmount = newLockedAmount.max(
-                balanceInfo.lockedInProposals[balanceInfo.lockedProposals.at(i - 1)]
-            );
-
-            if (newLockedAmount == lockedAmount) {
-                break;
-            }
-        }
-
-        return newLockedAmount;
     }
 
     function _getBalanceInfoStorage(address voter, bool isMicropool)
