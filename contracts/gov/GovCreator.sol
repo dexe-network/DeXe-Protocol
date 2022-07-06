@@ -37,7 +37,6 @@ abstract contract GovCreator is IGovCreator {
                 executors.length == data.length,
             "GovC: invalid array length"
         );
-        require(govUserKeeper.canParticipate(msg.sender, false, 1, 1), "GovC: low balance");
 
         uint256 proposalId = ++_latestProposalId;
 
@@ -58,6 +57,17 @@ abstract contract GovCreator is IGovCreator {
         } else {
             settings = govSetting.getSettings(mainExecutor);
         }
+
+        require(
+            govUserKeeper.canParticipate(
+                msg.sender,
+                false,
+                !settings.delegatedVotingAllowed,
+                1,
+                1
+            ),
+            "GovC: low balance"
+        );
 
         proposals[proposalId] = Proposal({
             core: ProposalCore({

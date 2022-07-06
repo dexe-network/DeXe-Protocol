@@ -7,6 +7,7 @@ pragma solidity ^0.8.4;
 interface IGovSettings {
     struct ProposalSettings {
         bool earlyCompletion;
+        bool delegatedVotingAllowed;
         uint64 duration;
         uint64 durationValidators;
         uint128 quorum;

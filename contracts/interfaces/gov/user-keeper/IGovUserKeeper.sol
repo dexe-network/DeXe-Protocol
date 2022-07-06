@@ -85,11 +85,22 @@ interface IGovUserKeeper {
         uint256[] calldata nftIds
     ) external;
 
-    function tokenBalance(address voter, bool isMicropool) external view returns (uint256);
+    function tokenBalance(
+        address voter,
+        bool isMicropool,
+        bool useDelegated
+    ) external view returns (uint256 balance);
+
+    function nftBalance(
+        address voter,
+        bool isMicropool,
+        bool useDelegated
+    ) external view returns (uint256 balance);
 
     function canParticipate(
         address voter,
         bool isMicropool,
+        bool useDelegated,
         uint256 requiredTokens,
         uint256 requiredNfts
     ) external view returns (bool);
@@ -147,6 +158,7 @@ interface IGovUserKeeper {
     function lockNfts(
         address voter,
         bool isMicropool,
+        bool useDelegated,
         uint256[] calldata nftIds
     ) external;
 

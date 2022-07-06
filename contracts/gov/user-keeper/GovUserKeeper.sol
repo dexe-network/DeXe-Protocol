@@ -113,11 +113,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         address token = tokenAddress;
         uint256 balance = payerBalanceInfo.tokenBalance;
+        uint256 availableBalance = balance.max(payerBalanceInfo.maxTokensLocked) -
+            payerBalanceInfo.maxTokensLocked;
 
-        require(
-            amount <= balance - payerBalanceInfo.maxTokensLocked,
-            "GovUK: nothing to withdraw"
-        );
+        require(amount <= availableBalance, "GovUK: nothing to withdraw");
 
         payerBalanceInfo.tokenBalance = balance - amount;
 
@@ -132,11 +131,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         UserInfo storage delegatorInfo = _usersInfo[delegator];
 
         uint256 balance = delegatorInfo.balanceInfo.tokenBalance;
+        uint256 availableBalance = balance.max(delegatorInfo.balanceInfo.maxTokensLocked) -
+            delegatorInfo.balanceInfo.maxTokensLocked;
 
-        require(
-            amount <= balance - delegatorInfo.balanceInfo.maxTokensLocked,
-            "GovUK: overdelegation"
-        );
+        require(amount <= availableBalance, "GovUK: overdelegation");
 
         delegatorInfo.balanceInfo.tokenBalance = balance - amount;
 
@@ -266,25 +264,53 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
     }
 
-    function tokenBalance(address voter, bool isMicropool)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        return _getBalanceInfoStorage(voter, isMicropool).tokenBalance;
+    function tokenBalance(
+        address voter,
+        bool isMicropool,
+        bool useDelegated
+    ) public view override returns (uint256 balance) {
+        balance = _getBalanceInfoStorage(voter, isMicropool).tokenBalance;
+
+        if (!isMicropool && useDelegated) {
+            UserInfo storage userInfo = _usersInfo[voter];
+
+            uint256 delegateeLength = userInfo.delegatees.length();
+
+            for (uint256 i; i < delegateeLength; i++) {
+                balance += userInfo.delegatedTokens[userInfo.delegatees.at(i)];
+            }
+        }
+    }
+
+    function nftBalance(
+        address voter,
+        bool isMicropool,
+        bool useDelegated
+    ) public view override returns (uint256 balance) {
+        balance = _getBalanceInfoStorage(voter, isMicropool).nftBalance.length();
+
+        if (!isMicropool && useDelegated) {
+            UserInfo storage userInfo = _usersInfo[voter];
+
+            uint256 delegateeLength = userInfo.delegatees.length();
+
+            for (uint256 i; i < delegateeLength; i++) {
+                balance += userInfo.delegatedNfts[userInfo.delegatees.at(i)].length();
+            }
+        }
     }
 
     function canParticipate(
         address voter,
         bool isMicropool,
+        bool useDelegated,
         uint256 requiredTokens,
         uint256 requiredNfts
     ) external view override returns (bool) {
-        BalanceInfo storage balanceInfo = _getBalanceInfoStorage(voter, isMicropool);
+        uint256 tokens = tokenBalance(voter, isMicropool, useDelegated);
+        uint256 nfts = nftBalance(voter, isMicropool, useDelegated);
 
-        return (balanceInfo.tokenBalance >= requiredTokens ||
-            balanceInfo.nftBalance.length() >= requiredNfts);
+        return (tokens >= requiredTokens || nfts >= requiredNfts);
     }
 
     function getTotalVoteWeight() external view override returns (uint256) {
@@ -511,24 +537,35 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address voter,
         bool isMicropool
     ) external override onlyOwner {
-        BalanceInfo storage balanceInfo = _getBalanceInfoStorage(voter, isMicropool);
-
-        if (balanceInfo.maxTokensLocked == 0) {
-            return;
-        }
-
-        delete balanceInfo.lockedInProposals[proposalId];
+        delete _getBalanceInfoStorage(voter, isMicropool).lockedInProposals[proposalId];
     }
 
     function lockNfts(
         address voter,
         bool isMicropool,
+        bool useDelegated,
         uint256[] calldata nftIds
     ) external override onlyOwner {
         BalanceInfo storage balanceInfo = _getBalanceInfoStorage(voter, isMicropool);
 
         for (uint256 i; i < nftIds.length; i++) {
-            require(balanceInfo.nftBalance.contains(nftIds[i]), "GovUK: NFT is not owned");
+            bool userContains = balanceInfo.nftBalance.contains(nftIds[i]);
+            bool delegatedContains;
+
+            if (!userContains && !isMicropool && useDelegated) {
+                UserInfo storage userInfo = _usersInfo[voter];
+
+                uint256 delegateeLength = userInfo.delegatees.length();
+
+                for (uint256 j; j < delegateeLength; j++) {
+                    if (userInfo.delegatedNfts[userInfo.delegatees.at(j)].contains(nftIds[i])) {
+                        delegatedContains = true;
+                        break;
+                    }
+                }
+            }
+
+            require(userContains || delegatedContains, "GovUK: NFT is not owned");
 
             _nftLockedNums[nftIds[i]]++;
         }

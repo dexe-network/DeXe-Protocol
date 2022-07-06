@@ -52,6 +52,10 @@ abstract contract GovVote is IGovVote, GovCreator {
         uint256[] calldata nftIds
     ) external override {
         require(amount > 0 || nftIds.length > 0, "GovV: empty delegated vote");
+        require(
+            proposals[proposalId].core.settings.delegatedVotingAllowed,
+            "GovV: delegated voting unavailable"
+        );
 
         _voteTokens(proposalId, amount, true);
         _voteNfts(proposalId, nftIds, true);
@@ -62,13 +66,15 @@ abstract contract GovVote is IGovVote, GovCreator {
         uint256 amount,
         bool isMicropool
     ) private {
-        ProposalCore storage core = _beforeVote(proposalId, isMicropool);
+        bool useDelegated = !proposals[proposalId].core.settings.delegatedVotingAllowed;
+
+        ProposalCore storage core = _beforeVote(proposalId, isMicropool, useDelegated);
         VoteInfo storage voteInfo = _voteInfos[proposalId][msg.sender][isMicropool];
 
         IGovUserKeeper userKeeper = govUserKeeper;
 
         userKeeper.lockTokens(proposalId, msg.sender, isMicropool, amount);
-        uint256 tokenBalance = userKeeper.tokenBalance(msg.sender, isMicropool);
+        uint256 tokenBalance = userKeeper.tokenBalance(msg.sender, isMicropool, useDelegated);
 
         require(amount <= tokenBalance - voteInfo.tokensVoted, "GovV: wrong vote amount");
 
@@ -85,7 +91,9 @@ abstract contract GovVote is IGovVote, GovCreator {
         uint256[] calldata nftIds,
         bool isMicropool
     ) private {
-        ProposalCore storage core = _beforeVote(proposalId, isMicropool);
+        bool useDelegated = !proposals[proposalId].core.settings.delegatedVotingAllowed;
+
+        ProposalCore storage core = _beforeVote(proposalId, isMicropool, useDelegated);
         VoteInfo storage voteInfo = _voteInfos[proposalId][msg.sender][isMicropool];
 
         for (uint256 i; i < nftIds.length; i++) {
@@ -95,7 +103,7 @@ abstract contract GovVote is IGovVote, GovCreator {
 
         IGovUserKeeper userKeeper = govUserKeeper;
 
-        userKeeper.lockNfts(msg.sender, isMicropool, nftIds);
+        userKeeper.lockNfts(msg.sender, isMicropool, useDelegated, nftIds);
         uint256 voteAmount = userKeeper.getNftsPowerInTokens(nftIds, core.nftPowerSnapshotId);
 
         for (uint256 i; i < nftIds.length; i++) {
@@ -109,10 +117,11 @@ abstract contract GovVote is IGovVote, GovCreator {
         core.votesFor += voteAmount;
     }
 
-    function _beforeVote(uint256 proposalId, bool isMicropool)
-        private
-        returns (ProposalCore storage)
-    {
+    function _beforeVote(
+        uint256 proposalId,
+        bool isMicropool,
+        bool useDelegated
+    ) private returns (ProposalCore storage) {
         ProposalCore storage core = proposals[proposalId].core;
 
         _votedInProposals[msg.sender][isMicropool].add(proposalId);
@@ -126,6 +135,7 @@ abstract contract GovVote is IGovVote, GovCreator {
             govUserKeeper.canParticipate(
                 msg.sender,
                 isMicropool,
+                useDelegated,
                 core.settings.minTokenBalance,
                 core.settings.minNftBalance
             ),
