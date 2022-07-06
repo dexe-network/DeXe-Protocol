@@ -381,7 +381,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function getUndelegateableAssets(
         address delegator,
         address delegatee,
-        ShrinkableArray.UintArray calldata unlockedProposals,
+        ShrinkableArray.UintArray calldata lockedProposals,
         uint256[] calldata unlockedNfts
     )
         external
@@ -394,7 +394,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         (
             uint256 withdrawableTokens,
             ShrinkableArray.UintArray memory withdrawableNfts
-        ) = _getFreeAssets(delegatee, true, unlockedProposals, unlockedNfts);
+        ) = _getFreeAssets(delegatee, true, lockedProposals, unlockedNfts);
 
         undelegateableTokens = delegatorInfo.delegatedTokens[delegatee].min(withdrawableTokens);
 
@@ -412,7 +412,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     function getWithdrawableAssets(
         address voter,
-        ShrinkableArray.UintArray calldata unlockedProposals,
+        ShrinkableArray.UintArray calldata lockedProposals,
         uint256[] calldata unlockedNfts
     )
         external
@@ -420,13 +420,13 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         override
         returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts)
     {
-        return _getFreeAssets(voter, false, unlockedProposals, unlockedNfts);
+        return _getFreeAssets(voter, false, lockedProposals, unlockedNfts);
     }
 
     function _getFreeAssets(
         address voter,
         bool isMicropool,
-        ShrinkableArray.UintArray calldata unlockedProposals,
+        ShrinkableArray.UintArray calldata lockedProposals,
         uint256[] calldata unlockedNfts
     )
         private
@@ -435,23 +435,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     {
         BalanceInfo storage balanceInfo = _getBalanceInfoStorage(voter, isMicropool);
 
-        uint256 length = balanceInfo.lockedProposals.length();
         uint256 newLockedAmount;
 
-        for (uint256 i; i < length; i++) {
-            uint256 proposal = balanceInfo.lockedProposals.at(i);
-            bool unlocked;
-
-            for (uint256 j = 0; j < unlockedProposals.length; j++) {
-                if (proposal == unlockedProposals.values[j]) {
-                    unlocked = true;
-                    break;
-                }
-            }
-
-            if (!unlocked) {
-                newLockedAmount = newLockedAmount.max(balanceInfo.lockedInProposals[proposal]);
-            }
+        for (uint256 i; i < lockedProposals.length; i++) {
+            newLockedAmount = newLockedAmount.max(
+                balanceInfo.lockedInProposals[lockedProposals.values[i]]
+            );
         }
 
         withdrawableTokens = balanceInfo.tokenBalance - newLockedAmount;
@@ -479,20 +468,19 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         withdrawableNfts = nfts.transform().crop(nftsLength);
     }
 
-    function updateMaxTokenLockedAmount(address voter, bool isMicropool)
-        external
-        override
-        onlyOwner
-    {
+    function updateMaxTokenLockedAmount(
+        uint256[] calldata lockedProposals,
+        address voter,
+        bool isMicropool
+    ) external override onlyOwner {
         BalanceInfo storage balanceInfo = _getBalanceInfoStorage(voter, isMicropool);
 
-        uint256 length = balanceInfo.lockedProposals.length();
         uint256 lockedAmount = balanceInfo.maxTokensLocked;
         uint256 newLockedAmount;
 
-        for (uint256 i; i < length; i++) {
+        for (uint256 i; i < lockedProposals.length; i++) {
             newLockedAmount = newLockedAmount.max(
-                balanceInfo.lockedInProposals[balanceInfo.lockedProposals.at(i)]
+                balanceInfo.lockedInProposals[lockedProposals[i]]
             );
 
             if (newLockedAmount == lockedAmount) {
@@ -512,7 +500,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         BalanceInfo storage balanceInfo = _getBalanceInfoStorage(voter, isMicropool);
 
         balanceInfo.lockedInProposals[proposalId] += amount;
-        balanceInfo.lockedProposals.add(proposalId);
 
         balanceInfo.maxTokensLocked = balanceInfo.maxTokensLocked.max(
             balanceInfo.lockedInProposals[proposalId]
@@ -531,7 +518,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
 
         delete balanceInfo.lockedInProposals[proposalId];
-        balanceInfo.lockedProposals.remove(proposalId);
     }
 
     function lockNfts(

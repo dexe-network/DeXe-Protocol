@@ -14,7 +14,6 @@ interface IGovUserKeeper {
         uint256 tokenBalance;
         uint256 maxTokensLocked;
         mapping(uint256 => uint256) lockedInProposals; // proposal id => locked amount
-        EnumerableSet.UintSet lockedProposals; // array of proposals where tokens are locked
         EnumerableSet.UintSet nftBalance; // array of NFTs
     }
 
@@ -107,7 +106,7 @@ interface IGovUserKeeper {
     function getUndelegateableAssets(
         address delegator,
         address delegatee,
-        ShrinkableArray.UintArray calldata unlockedProposals,
+        ShrinkableArray.UintArray calldata lockedProposals,
         uint256[] calldata unlockedNfts
     )
         external
@@ -119,14 +118,18 @@ interface IGovUserKeeper {
 
     function getWithdrawableAssets(
         address voter,
-        ShrinkableArray.UintArray calldata unlockedProposals,
+        ShrinkableArray.UintArray calldata lockedProposals,
         uint256[] calldata unlockedNfts
     )
         external
         view
         returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts);
 
-    function updateMaxTokenLockedAmount(address voter, bool isMicropool) external;
+    function updateMaxTokenLockedAmount(
+        uint256[] calldata lockedProposals,
+        address voter,
+        bool isMicropool
+    ) external;
 
     function lockTokens(
         uint256 proposalId,

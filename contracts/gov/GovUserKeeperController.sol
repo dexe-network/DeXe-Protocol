@@ -21,18 +21,6 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
         govUserKeeper.depositNfts(msg.sender, receiver, nftIds);
     }
 
-    function getWithdrawableAssets(address user)
-        external
-        view
-        override
-        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts)
-    {
-        ShrinkableArray.UintArray memory proposalIds = getUnlockedProposals(user, false);
-        uint256[] memory unlockedNfts = getUnlockedNfts(proposalIds, user, false);
-
-        return govUserKeeper.getWithdrawableAssets(user, proposalIds, unlockedNfts);
-    }
-
     function withdraw(
         address receiver,
         uint256 amount,
@@ -59,19 +47,6 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
         govUserKeeper.delegateNfts(msg.sender, delegatee, nftIds);
     }
 
-    function getUndelegateableAssets(address delegator, address delegatee)
-        external
-        view
-        override
-        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts)
-    {
-        ShrinkableArray.UintArray memory proposalIds = getUnlockedProposals(delegatee, true);
-        uint256[] memory unlockedNfts = getUnlockedNfts(proposalIds, delegatee, true);
-
-        return
-            govUserKeeper.getUndelegateableAssets(delegator, delegatee, proposalIds, unlockedNfts);
-    }
-
     function undelegate(
         address delegatee,
         uint256 amount,
@@ -85,15 +60,53 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
         govUserKeeper.undelegateNfts(msg.sender, delegatee, nftIds);
     }
 
-    function getUnlockedProposals(address user, bool isMicropool)
+    function getWithdrawableAssets(address user)
+        external
+        view
+        override
+        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts)
+    {
+        (
+            ShrinkableArray.UintArray memory unlockedIds,
+            ShrinkableArray.UintArray memory lockedIds
+        ) = getProposals(user, false);
+        uint256[] memory unlockedNfts = getUnlockedNfts(unlockedIds, user, false);
+
+        return govUserKeeper.getWithdrawableAssets(user, lockedIds, unlockedNfts);
+    }
+
+    function getUndelegateableAssets(address delegator, address delegatee)
+        external
+        view
+        override
+        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts)
+    {
+        (
+            ShrinkableArray.UintArray memory unlockedIds,
+            ShrinkableArray.UintArray memory lockedIds
+        ) = getProposals(delegatee, true);
+        uint256[] memory unlockedNfts = getUnlockedNfts(unlockedIds, delegatee, true);
+
+        return
+            govUserKeeper.getUndelegateableAssets(delegator, delegatee, lockedIds, unlockedNfts);
+    }
+
+    function getProposals(address user, bool isMicropool)
         public
         view
-        returns (ShrinkableArray.UintArray memory proposalIds)
+        returns (
+            ShrinkableArray.UintArray memory unlockedIds,
+            ShrinkableArray.UintArray memory lockedIds
+        )
     {
         uint256[] memory unlockedProposals = new uint256[](
             _votedInProposals[user][isMicropool].length()
         );
+        uint256[] memory lockedProposals = new uint256[](
+            _votedInProposals[user][isMicropool].length()
+        );
         uint256 unlockedLength;
+        uint256 lockedLength;
 
         for (uint256 i; i < unlockedProposals.length; i++) {
             uint256 proposalId = _votedInProposals[user][isMicropool].at(i);
@@ -102,28 +115,31 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
 
             if (state == ProposalState.Succeeded || state == ProposalState.Defeated) {
                 unlockedProposals[unlockedLength++] = proposalId;
+            } else {
+                lockedProposals[lockedLength++] = proposalId;
             }
         }
 
-        proposalIds = unlockedProposals.transform().crop(unlockedLength);
+        unlockedIds = unlockedProposals.transform().crop(unlockedLength);
+        lockedIds = lockedProposals.transform().crop(lockedLength);
     }
 
     function getUnlockedNfts(
-        ShrinkableArray.UintArray memory proposalIds,
+        ShrinkableArray.UintArray memory unlockedIds,
         address user,
         bool isMicropool
     ) public view returns (uint256[] memory unlockedNfts) {
         uint256 totalLength;
 
-        for (uint256 i; i < proposalIds.length; i++) {
-            totalLength += _voteInfos[proposalIds.values[i]][user][isMicropool].nftsVoted.length();
+        for (uint256 i; i < unlockedIds.length; i++) {
+            totalLength += _voteInfos[unlockedIds.values[i]][user][isMicropool].nftsVoted.length();
         }
 
         unlockedNfts = new uint256[](totalLength);
         totalLength = 0;
 
-        for (uint256 i; i < proposalIds.length; i++) {
-            VoteInfo storage voteInfo = _voteInfos[proposalIds.values[i]][user][isMicropool];
+        for (uint256 i; i < unlockedIds.length; i++) {
+            VoteInfo storage voteInfo = _voteInfos[unlockedIds.values[i]][user][isMicropool];
 
             uint256 length = voteInfo.nftsVoted.length();
 
@@ -164,6 +180,10 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
             _votedInProposals[user][isMicropool].remove(proposalIds[i]);
         }
 
-        userKeeper.updateMaxTokenLockedAmount(user, isMicropool);
+        userKeeper.updateMaxTokenLockedAmount(
+            _votedInProposals[user][isMicropool].values(),
+            user,
+            isMicropool
+        );
     }
 }
