@@ -245,7 +245,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         for (uint256 i; i < nftIds.length; i++) {
             require(
                 delegatorInfo.delegatedNfts[delegatee].contains(nftIds[i]) &&
-                    micropoolInfo.nftBalance.contains(nftIds[i]) &&
                     _nftLockedNums[nftIds[i]] == 0,
                 "GovUK: NFT is not owned or locked"
             );
@@ -262,6 +261,15 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         ) {
             delegatorInfo.delegatees.remove(delegatee);
         }
+    }
+
+    function maxLockedAmount(address voter, bool isMicropool)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return _getBalanceInfoStorage(voter, isMicropool).maxTokensLocked;
     }
 
     function tokenBalance(
@@ -536,7 +544,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 proposalId,
         address voter,
         bool isMicropool
-    ) external override onlyOwner {
+    ) external override onlyOwner returns (uint256 unlockedAmount) {
+        unlockedAmount = _getBalanceInfoStorage(voter, isMicropool).lockedInProposals[proposalId];
+
         delete _getBalanceInfoStorage(voter, isMicropool).lockedInProposals[proposalId];
     }
 

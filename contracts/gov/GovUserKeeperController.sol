@@ -6,6 +6,7 @@ import "../interfaces/gov/IGovUserKeeperController.sol";
 import "./GovFee.sol";
 
 abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
+    using Math for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
     using ShrinkableArray for uint256[];
     using ShrinkableArray for ShrinkableArray.UintArray;
@@ -99,16 +100,14 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
             ShrinkableArray.UintArray memory lockedIds
         )
     {
-        uint256[] memory unlockedProposals = new uint256[](
-            _votedInProposals[user][isMicropool].length()
-        );
-        uint256[] memory lockedProposals = new uint256[](
-            _votedInProposals[user][isMicropool].length()
-        );
+        uint256 proposalsLength = _votedInProposals[user][isMicropool].length();
+
+        uint256[] memory unlockedProposals = new uint256[](proposalsLength);
+        uint256[] memory lockedProposals = new uint256[](proposalsLength);
         uint256 unlockedLength;
         uint256 lockedLength;
 
-        for (uint256 i; i < unlockedProposals.length; i++) {
+        for (uint256 i; i < proposalsLength; i++) {
             uint256 proposalId = _votedInProposals[user][isMicropool].at(i);
 
             ProposalState state = _getProposalState(proposals[proposalId].core);
@@ -160,6 +159,9 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
     ) public override {
         IGovUserKeeper userKeeper = govUserKeeper;
 
+        uint256 maxLockedAmount = userKeeper.maxLockedAmount(user, isMicropool);
+        uint256 maxUnlocked;
+
         for (uint256 i; i < proposalIds.length; i++) {
             require(
                 _votedInProposals[user][isMicropool].contains(proposalIds[i]),
@@ -172,7 +174,9 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
                 continue;
             }
 
-            userKeeper.unlockTokens(proposalIds[i], user, isMicropool);
+            maxUnlocked = userKeeper.unlockTokens(proposalIds[i], user, isMicropool).max(
+                maxUnlocked
+            );
             userKeeper.unlockNfts(
                 _voteInfos[proposalIds[i]][user][isMicropool].nftsVoted.values()
             );
@@ -180,10 +184,12 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
             _votedInProposals[user][isMicropool].remove(proposalIds[i]);
         }
 
-        userKeeper.updateMaxTokenLockedAmount(
-            _votedInProposals[user][isMicropool].values(),
-            user,
-            isMicropool
-        );
+        if (maxLockedAmount <= maxUnlocked) {
+            userKeeper.updateMaxTokenLockedAmount(
+                _votedInProposals[user][isMicropool].values(),
+                user,
+                isMicropool
+            );
+        }
     }
 }

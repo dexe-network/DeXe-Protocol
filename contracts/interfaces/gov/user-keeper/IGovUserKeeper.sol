@@ -85,6 +85,8 @@ interface IGovUserKeeper {
         uint256[] calldata nftIds
     ) external;
 
+    function maxLockedAmount(address voter, bool isMicropool) external view returns (uint256);
+
     function tokenBalance(
         address voter,
         bool isMicropool,
@@ -153,7 +155,7 @@ interface IGovUserKeeper {
         uint256 proposalId,
         address voter,
         bool isMicropool
-    ) external;
+    ) external returns (uint256 unlockedAmount);
 
     function lockNfts(
         address voter,
