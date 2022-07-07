@@ -551,10 +551,11 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 lpAmount,
         uint256 baseAmount
     ) internal returns (uint256 baseTransfer) {
-        _checkRemoveInvestor(user, lpAmount);
         baseTransfer = _updateFromData(user, lpAmount);
 
         emit Divested(user, lpAmount, baseAmount == 0 ? baseTransfer : baseAmount);
+
+        _checkRemoveInvestor(user, lpAmount);
     }
 
     function _updateTo(

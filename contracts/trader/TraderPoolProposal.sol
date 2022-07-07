@@ -216,12 +216,13 @@ abstract contract TraderPoolProposal is
         uint256 lp2Amount,
         bool isTransfer
     ) internal virtual returns (uint256 lpTransfer, uint256 baseTransfer) {
-        _checkRemoveInvestor(user, proposalId, lp2Amount);
         (lpTransfer, baseTransfer) = _updateFromData(user, proposalId, lp2Amount);
 
         if (isTransfer) {
             emit ProposalDivested(proposalId, user, lp2Amount, lpTransfer, baseTransfer);
         }
+
+        _checkRemoveInvestor(user, proposalId, lp2Amount);
     }
 
     function _updateTo(
