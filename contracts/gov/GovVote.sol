@@ -8,7 +8,7 @@ import "../interfaces/gov/IGovVote.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
 
 import "../libs/GovUserKeeper/GovUserKeeperLocal.sol";
-import "../libs/MathHelper.sol";
+import "../libs/math/MathHelper.sol";
 
 import "./GovCreator.sol";
 

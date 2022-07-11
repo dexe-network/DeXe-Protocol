@@ -16,8 +16,8 @@ import "../../trader/TraderPool.sol";
 import "./TraderPoolPrice.sol";
 import "./TraderPoolCommission.sol";
 import "./TraderPoolLeverage.sol";
-import "../MathHelper.sol";
-import "../TokenBalance.sol";
+import "../math/MathHelper.sol";
+import "../utils/TokenBalance.sol";
 import "../PriceFeed/PriceFeedLocal.sol";
 
 library TraderPoolView {

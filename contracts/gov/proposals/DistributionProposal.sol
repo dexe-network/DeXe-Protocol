@@ -10,7 +10,7 @@ import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 import "../../interfaces/gov/IGovVote.sol";
 import "../../interfaces/gov/proposals/IDistributionProposal.sol";
 
-import "../../libs/MathHelper.sol";
+import "../../libs/math/MathHelper.sol";
 
 contract DistributionProposal is IDistributionProposal, Ownable {
     using SafeERC20 for IERC20;

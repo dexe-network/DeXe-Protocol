@@ -11,7 +11,7 @@ import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "../libs/AddressSetHelper.sol";
+import "../libs/utils/AddressSetHelper.sol";
 
 import "./Globals.sol";
 

@@ -8,7 +8,7 @@ import "../../interfaces/core/IPriceFeed.sol";
 import "../../interfaces/core/ICoreProperties.sol";
 
 import "../PriceFeed/PriceFeedLocal.sol";
-import "../TokenBalance.sol";
+import "../utils/TokenBalance.sol";
 
 library TraderPoolExchange {
     using EnumerableSet for EnumerableSet.AddressSet;

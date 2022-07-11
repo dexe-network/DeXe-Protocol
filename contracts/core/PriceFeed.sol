@@ -18,7 +18,7 @@ import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
 import "../libs/PriceFeed/UniswapV2PathFinder.sol";
-import "../libs/AddressSetHelper.sol";
+import "../libs/utils/AddressSetHelper.sol";
 
 import "../core/Globals.sol";
 

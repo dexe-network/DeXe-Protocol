@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "../../interfaces/trader/ITraderPool.sol";
 import "../../interfaces/core/IPriceFeed.sol";
 
-import "../../libs/TokenBalance.sol";
+import "../../libs/utils/TokenBalance.sol";
 
 library TraderPoolPrice {
     using EnumerableSet for EnumerableSet.AddressSet;

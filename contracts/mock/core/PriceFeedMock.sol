@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 import "../../core/PriceFeed.sol";
 
-import "../../libs/MathHelper.sol";
+import "../../libs/math/MathHelper.sol";
 
 contract PriceFeedMock is PriceFeed {
     using SafeERC20 for IERC20;

@@ -8,7 +8,7 @@ import "../../interfaces/trader/ITraderPoolInvestProposal.sol";
 import "../../interfaces/core/IPriceFeed.sol";
 
 import "../PriceFeed/PriceFeedLocal.sol";
-import "../../libs/MathHelper.sol";
+import "../../libs/math/MathHelper.sol";
 
 import "../../trader/TraderPoolInvestProposal.sol";
 

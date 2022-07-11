@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "../../libs/ShrinkableArray.sol";
+import "../../libs/data-structures/ShrinkableArray.sol";
 
 interface IGovUserKeeperController {
     function deposit(

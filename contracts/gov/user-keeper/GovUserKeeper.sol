@@ -15,7 +15,7 @@ import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/IGovUserKeeperController.sol";
 
-import "../../libs/MathHelper.sol";
+import "../../libs/math/MathHelper.sol";
 
 import "../ERC721/ERC721Power.sol";
 
@@ -92,7 +92,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address payer,
         address receiver,
         uint256 amount
-    ) external override onlyOwner withSupportedToken {
+    ) external override withSupportedToken {
         address token = tokenAddress;
 
         IERC20(token).safeTransferFrom(
@@ -108,7 +108,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address payer,
         address receiver,
         uint256 amount
-    ) external override onlyOwner withSupportedToken {
+    ) external override withSupportedToken {
         BalanceInfo storage payerBalanceInfo = _usersInfo[payer].balanceInfo;
 
         address token = tokenAddress;
@@ -127,7 +127,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address delegator,
         address delegatee,
         uint256 amount
-    ) external override onlyOwner withSupportedToken {
+    ) external override withSupportedToken {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
 
         uint256 balance = delegatorInfo.balanceInfo.tokenBalance;
@@ -148,7 +148,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address delegator,
         address delegatee,
         uint256 amount
-    ) external override onlyOwner withSupportedToken {
+    ) external override withSupportedToken {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
         BalanceInfo storage micropoolInfo = _micropoolsInfo[delegatee];
 
@@ -177,7 +177,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address payer,
         address receiver,
         uint256[] calldata nftIds
-    ) external override onlyOwner withSupportedNft {
+    ) external override withSupportedNft {
         BalanceInfo storage receiverInfo = _usersInfo[receiver].balanceInfo;
 
         IERC721 nft = IERC721(nftAddress);
@@ -193,7 +193,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address payer,
         address receiver,
         uint256[] calldata nftIds
-    ) external override onlyOwner withSupportedNft {
+    ) external override withSupportedNft {
         BalanceInfo storage payerInfo = _usersInfo[payer].balanceInfo;
 
         IERC721 nft = IERC721(nftAddress);
@@ -214,7 +214,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address delegator,
         address delegatee,
         uint256[] calldata nftIds
-    ) external override onlyOwner withSupportedNft {
+    ) external override withSupportedNft {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
         BalanceInfo storage micropoolInfo = _micropoolsInfo[delegatee];
 
@@ -238,7 +238,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address delegator,
         address delegatee,
         uint256[] calldata nftIds
-    ) external override onlyOwner withSupportedNft {
+    ) external override withSupportedNft {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
         BalanceInfo storage micropoolInfo = _micropoolsInfo[delegatee];
 

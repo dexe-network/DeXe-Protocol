@@ -11,7 +11,7 @@ import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
 import "../../interfaces/gov/ERC721/IERC721Power.sol";
 
-import "../../libs/MathHelper.sol";
+import "../../libs/math/MathHelper.sol";
 
 import "../../core/Globals.sol";
 

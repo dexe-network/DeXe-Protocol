@@ -12,8 +12,8 @@ import "../../interfaces/core/ICoreProperties.sol";
 
 import "../../trader/TraderPool.sol";
 
-import "../../libs/MathHelper.sol";
-import "../../libs/TokenBalance.sol";
+import "../../libs/math/MathHelper.sol";
+import "../../libs/utils/TokenBalance.sol";
 
 library TraderPoolCommission {
     using DecimalsConverter for uint256;

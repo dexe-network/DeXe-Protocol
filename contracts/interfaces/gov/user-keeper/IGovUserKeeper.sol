@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "../../../libs/ShrinkableArray.sol";
+import "../../../libs/data-structures/ShrinkableArray.sol";
 
 /**
  * This contract is responsible for securely storing user's funds that are used during the voting. This are either

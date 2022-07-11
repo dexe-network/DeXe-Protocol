@@ -6,19 +6,21 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
+import "@dlsl/dev-modules/libs/data-structures/StringSet.sol";
+import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
 
 import "../interfaces/insurance/IInsurance.sol";
 import "../interfaces/trader/ITraderPoolRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "../libs/StringSet.sol";
-import "../libs/MathHelper.sol";
+import "../libs/math/MathHelper.sol";
 
 import "../core/Globals.sol";
 
 contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
     using StringSet for StringSet.Set;
+    using Paginator for StringSet.Set;
     using Math for uint256;
     using MathHelper for uint256;
 
@@ -129,13 +131,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         override
         returns (string[] memory urls)
     {
-        uint256 to = (offset + limit).min(_ongoingClaims.length()).max(offset);
-
-        urls = new string[](to - offset);
-
-        for (uint256 i = offset; i < to; i++) {
-            urls[i - offset] = _ongoingClaims.at(i);
-        }
+        return _ongoingClaims.part(offset, limit);
     }
 
     function finishedClaimsCount() external view override returns (uint256) {
@@ -148,14 +144,12 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         override
         returns (string[] memory urls, FinishedClaims[] memory info)
     {
-        uint256 to = (offset + limit).min(_finishedClaims.length()).max(offset);
+        urls = _finishedClaims.part(offset, limit);
 
-        urls = new string[](to - offset);
-        info = new FinishedClaims[](to - offset);
+        info = new FinishedClaims[](urls.length);
 
-        for (uint256 i = offset; i < to; i++) {
-            urls[i - offset] = _finishedClaims.at(i);
-            info[i - offset] = _finishedClaimsInfo[urls[i - offset]];
+        for (uint256 i = 0; i < urls.length; i++) {
+            info[i] = _finishedClaimsInfo[urls[i]];
         }
     }
 
