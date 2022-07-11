@@ -25,14 +25,16 @@ interface IGovVote {
 
     function vote(
         uint256 proposalId,
-        uint256 amount,
-        uint256[] calldata nftIds
+        uint256 depositAmount,
+        uint256[] calldata depositNftIds,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds
     ) external;
 
     function voteDelegated(
         uint256 proposalId,
-        uint256 amount,
-        uint256[] calldata nftIds
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds
     ) external;
 
     /// @notice Move proposal from internal voting to `Validators` contract

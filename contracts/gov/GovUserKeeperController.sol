@@ -10,16 +10,17 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
     using EnumerableSet for EnumerableSet.UintSet;
     using ShrinkableArray for uint256[];
     using ShrinkableArray for ShrinkableArray.UintArray;
+    using GovUserKeeperLocal for *;
 
     function deposit(
         address receiver,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external override {
+    ) public override {
         require(amount > 0 || nftIds.length > 0, "GovUKC: empty deposit");
 
-        govUserKeeper.depositTokens(msg.sender, receiver, amount);
-        govUserKeeper.depositNfts(msg.sender, receiver, nftIds);
+        govUserKeeper.depositTokens.exec(receiver, amount);
+        govUserKeeper.depositNfts.exec(receiver, nftIds);
     }
 
     function withdraw(
@@ -31,8 +32,8 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
 
         unlock(msg.sender, false);
 
-        govUserKeeper.withdrawTokens(msg.sender, receiver, amount);
-        govUserKeeper.withdrawNfts(msg.sender, receiver, nftIds);
+        govUserKeeper.withdrawTokens.exec(receiver, amount);
+        govUserKeeper.withdrawNfts.exec(receiver, nftIds);
     }
 
     function delegate(
@@ -44,8 +45,8 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
 
         unlock(msg.sender, false);
 
-        govUserKeeper.delegateTokens(msg.sender, delegatee, amount);
-        govUserKeeper.delegateNfts(msg.sender, delegatee, nftIds);
+        govUserKeeper.delegateTokens.exec(delegatee, amount);
+        govUserKeeper.delegateNfts.exec(delegatee, nftIds);
     }
 
     function undelegate(
@@ -57,8 +58,8 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
 
         unlock(delegatee, true);
 
-        govUserKeeper.undelegateTokens(msg.sender, delegatee, amount);
-        govUserKeeper.undelegateNfts(msg.sender, delegatee, nftIds);
+        govUserKeeper.undelegateTokens.exec(delegatee, amount);
+        govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
     }
 
     function getWithdrawableAssets(address user)

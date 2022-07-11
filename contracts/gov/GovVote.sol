@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "../interfaces/gov/IGovVote.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
 
+import "../libs/GovUserKeeper/GovUserKeeperLocal.sol";
 import "../libs/MathHelper.sol";
 
 import "./GovCreator.sol";
@@ -17,6 +18,7 @@ abstract contract GovVote is IGovVote, GovCreator {
     using Math for uint256;
     using MathHelper for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
+    using GovUserKeeperLocal for *;
 
     /// @dev `Validators` contract address
     IGovValidators public validators;
@@ -37,28 +39,33 @@ abstract contract GovVote is IGovVote, GovCreator {
 
     function vote(
         uint256 proposalId,
-        uint256 amount,
-        uint256[] calldata nftIds
+        uint256 depositAmount,
+        uint256[] calldata depositNftIds,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds
     ) external override {
-        require(amount > 0 || nftIds.length > 0, "GovV: empty vote");
+        require(voteAmount > 0 || voteNftIds.length > 0, "GovV: empty vote");
 
-        _voteTokens(proposalId, amount, false);
-        _voteNfts(proposalId, nftIds, false);
+        govUserKeeper.depositTokens.exec(msg.sender, depositAmount);
+        govUserKeeper.depositNfts.exec(msg.sender, depositNftIds);
+
+        _voteTokens(proposalId, voteAmount, false);
+        _voteNfts(proposalId, voteNftIds, false);
     }
 
     function voteDelegated(
         uint256 proposalId,
-        uint256 amount,
-        uint256[] calldata nftIds
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds
     ) external override {
-        require(amount > 0 || nftIds.length > 0, "GovV: empty delegated vote");
+        require(voteAmount > 0 || voteNftIds.length > 0, "GovV: empty delegated vote");
         require(
             proposals[proposalId].core.settings.delegatedVotingAllowed,
             "GovV: delegated voting unavailable"
         );
 
-        _voteTokens(proposalId, amount, true);
-        _voteNfts(proposalId, nftIds, true);
+        _voteTokens(proposalId, voteAmount, true);
+        _voteNfts(proposalId, voteNftIds, true);
     }
 
     function _voteTokens(
