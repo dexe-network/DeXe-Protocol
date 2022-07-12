@@ -337,53 +337,59 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         );
     }
 
-    function getReinvestCommissions(uint256 offset, uint256 limit)
+    function getReinvestCommissions(uint256[] calldata offsetLimits)
         external
         view
         override
         returns (Commissions memory commissions)
     {
-        return _poolParameters.getReinvestCommissions(_investors, offset, limit);
+        return _poolParameters.getReinvestCommissions(_investors, offsetLimits);
     }
 
     function getNextCommissionEpoch() public view returns (uint256) {
         return _poolParameters.nextCommissionEpoch();
     }
 
-    function reinvestCommission(
-        uint256 offset,
-        uint256 limit,
-        uint256 minDexeCommissionOut
-    ) external virtual override onlyTraderAdmin {
+    function reinvestCommission(uint256[] calldata offsetLimits, uint256 minDexeCommissionOut)
+        external
+        virtual
+        override
+        onlyTraderAdmin
+    {
         require(openPositions().length == 0, "TP: positions are open");
 
-        uint256 to = (offset + limit).min(_investors.length()).max(offset);
+        uint256 investorsLength = _investors.length();
         uint256 totalSupply = totalSupply();
-
         uint256 nextCommissionEpoch = getNextCommissionEpoch();
         uint256 allBaseCommission;
         uint256 allLPCommission;
 
-        for (uint256 i = offset; i < to; i++) {
-            address investor = _investors.at(i);
-            InvestorInfo storage info = investorsInfo[investor];
+        for (uint256 i = 0; i < offsetLimits.length; i += 2) {
+            uint256 to = (offsetLimits[i] + offsetLimits[i + 1]).min(investorsLength).max(
+                offsetLimits[i]
+            );
 
-            if (nextCommissionEpoch > info.commissionUnlockEpoch) {
-                (
-                    uint256 investorBaseAmount,
-                    uint256 baseCommission,
-                    uint256 lpCommission
-                ) = _poolParameters.calculateCommissionOnReinvest(investor, totalSupply);
+            for (uint256 j = offsetLimits[i]; j < to; j++) {
+                address investor = _investors.at(j);
+                InvestorInfo storage info = investorsInfo[investor];
 
-                info.commissionUnlockEpoch = nextCommissionEpoch;
+                if (nextCommissionEpoch > info.commissionUnlockEpoch) {
+                    (
+                        uint256 investorBaseAmount,
+                        uint256 baseCommission,
+                        uint256 lpCommission
+                    ) = _poolParameters.calculateCommissionOnReinvest(investor, totalSupply);
 
-                if (lpCommission > 0) {
-                    info.investedBase = investorBaseAmount - baseCommission;
+                    info.commissionUnlockEpoch = nextCommissionEpoch;
 
-                    _burn(investor, lpCommission);
+                    if (lpCommission > 0) {
+                        info.investedBase = investorBaseAmount - baseCommission;
 
-                    allBaseCommission += baseCommission;
-                    allLPCommission += lpCommission;
+                        _burn(investor, lpCommission);
+
+                        allBaseCommission += baseCommission;
+                        allLPCommission += lpCommission;
+                    }
                 }
             }
         }

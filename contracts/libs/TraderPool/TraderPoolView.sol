@@ -100,26 +100,51 @@ library TraderPoolView {
         }
     }
 
+    function _getReinvestCommission(
+        ITraderPool.PoolParameters storage poolParameters,
+        address investor,
+        uint256 totalPoolBase,
+        uint256 totalSupply
+    ) internal view returns (uint256 baseCommission, uint256 lpCommission) {
+        (, uint256 commissionUnlockEpoch) = TraderPool(address(this)).investorsInfo(investor);
+
+        if (poolParameters.nextCommissionEpoch() > commissionUnlockEpoch) {
+            uint256 lpBalance = IERC20(address(this)).balanceOf(investor);
+            uint256 baseShare = totalPoolBase.ratio(lpBalance, totalSupply);
+
+            (baseCommission, lpCommission) = poolParameters.calculateCommissionOnDivest(
+                investor,
+                baseShare,
+                lpBalance
+            );
+        }
+    }
+
     function getReinvestCommissions(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage investors,
-        uint256 offset,
-        uint256 limit
+        uint256[] calldata offsetLimits
     ) external view returns (ITraderPool.Commissions memory commissions) {
-        uint256 to = (offset + limit).min(investors.length()).max(offset);
+        (uint256 totalPoolBase, ) = poolParameters.getNormalizedPoolPriceAndUSD();
         uint256 totalSupply = IERC20(address(this)).totalSupply();
 
-        uint256 nextCommissionEpoch = poolParameters.nextCommissionEpoch();
         uint256 allBaseCommission;
         uint256 allLPCommission;
 
-        for (uint256 i = offset; i < to; i++) {
-            address investor = investors.at(i);
-            (, uint256 commissionUnlockEpoch) = TraderPool(address(this)).investorsInfo(investor);
+        for (uint256 i = 0; i < offsetLimits.length; i += 2) {
+            uint256 to = (offsetLimits[i] + offsetLimits[i + 1]).min(investors.length()).max(
+                offsetLimits[i]
+            );
 
-            if (nextCommissionEpoch > commissionUnlockEpoch) {
-                (, uint256 baseCommission, uint256 lpCommission) = poolParameters
-                    .calculateCommissionOnReinvest(investor, totalSupply);
+            for (uint256 j = offsetLimits[i]; j < to; j++) {
+                address investor = investors.at(j);
+
+                (uint256 baseCommission, uint256 lpCommission) = _getReinvestCommission(
+                    poolParameters,
+                    investor,
+                    totalPoolBase,
+                    totalSupply
+                );
 
                 allBaseCommission += baseCommission;
                 allLPCommission += lpCommission;
@@ -206,7 +231,8 @@ library TraderPoolView {
         }
     }
 
-    function _getUserBalancesInfo(
+    function _getUserInfo(
+        ITraderPool.PoolParameters storage poolParameters,
         address user,
         uint256 totalPoolBase,
         uint256 totalPoolUSD,
@@ -219,6 +245,20 @@ library TraderPoolView {
         (userInfo.investedBase, userInfo.commissionUnlockTimestamp) = TraderPool(address(this))
             .investorsInfo(user);
 
+        if (totalSupply > 0) {
+            userInfo.poolUSDShare = totalPoolUSD.ratio(userInfo.poolLPBalance, totalSupply);
+            userInfo.poolBaseShare = totalPoolBase.ratio(userInfo.poolLPBalance, totalSupply);
+
+            if (userInfo.commissionUnlockTimestamp > 0) {
+                (userInfo.owedBaseCommission, userInfo.owedLPCommission) = poolParameters
+                    .calculateCommissionOnDivest(
+                        user,
+                        userInfo.poolBaseShare,
+                        userInfo.poolLPBalance
+                    );
+            }
+        }
+
         userInfo.commissionUnlockTimestamp = userInfo.commissionUnlockTimestamp == 0
             ? coreProperties.getCommissionEpochByTimestamp(block.timestamp, commissionPeriod)
             : userInfo.commissionUnlockTimestamp;
@@ -227,11 +267,6 @@ library TraderPoolView {
             userInfo.commissionUnlockTimestamp,
             commissionPeriod
         );
-
-        if (totalSupply > 0) {
-            userInfo.poolUSDShare = totalPoolUSD.ratio(userInfo.poolLPBalance, totalSupply);
-            userInfo.poolBaseShare = totalPoolBase.ratio(userInfo.poolLPBalance, totalSupply);
-        }
     }
 
     function getUsersInfo(
@@ -247,7 +282,8 @@ library TraderPoolView {
 
         usersInfo = new ITraderPool.UserInfo[](to - offset + 1);
 
-        usersInfo[0] = _getUserBalancesInfo(
+        usersInfo[0] = _getUserInfo(
+            poolParameters,
             poolParameters.trader,
             totalPoolBase,
             totalPoolUSD,
@@ -256,7 +292,8 @@ library TraderPoolView {
         );
 
         for (uint256 i = offset; i < to; i++) {
-            usersInfo[i - offset + 1] = _getUserBalancesInfo(
+            usersInfo[i - offset + 1] = _getUserInfo(
+                poolParameters,
                 investors.at(i),
                 totalPoolBase,
                 totalPoolUSD,

@@ -223,9 +223,9 @@ describe("TraderPool", () => {
     });
   }
 
-  async function reinvestCommission(offset, limit) {
-    const commissions = await traderPool.getReinvestCommissions(offset, limit);
-    await traderPool.reinvestCommission(offset, limit, commissions.dexeDexeCommission);
+  async function reinvestCommission(offsetLimits) {
+    const commissions = await traderPool.getReinvestCommissions(offsetLimits);
+    await traderPool.reinvestCommission(offsetLimits, commissions.dexeDexeCommission);
   }
 
   async function exchangeFromExact(from, to, amount) {
@@ -578,14 +578,25 @@ describe("TraderPool", () => {
 
         assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("3000"));
 
-        await truffleAssert.reverts(reinvestCommission(0, 5), "TP: no commission available");
+        await truffleAssert.reverts(reinvestCommission([0, 5]), "TP: no commission available");
 
         await setTime((await getCurrentBlockTime()) + SECONDS_IN_MONTH);
 
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("1000"));
 
-        const commission = await traderPool.getReinvestCommissions(0, 5);
-        await reinvestCommission(0, 5);
+        const userCommission = await traderPool.getUsersInfo(0, 1);
+        const commission = await traderPool.getReinvestCommissions([0, 5]);
+
+        await reinvestCommission([0, 5]);
+
+        assert.equal(toBN(userCommission[0].owedBaseCommission).toFixed(), "0");
+        assert.equal(toBN(userCommission[0].owedLPCommission).toFixed(), "0");
+        assert.equal(toBN(userCommission[1].owedBaseCommission).toFixed(), wei("250"));
+        assert.closeTo(
+          toBN(userCommission[1].owedLPCommission).toNumber(),
+          toBN(wei("166.6666666")).toNumber(),
+          toBN(wei("0.000001")).toNumber()
+        );
 
         assert.equal(toBN(commission.traderBaseCommission).toFixed(), wei("175"));
         assert.closeTo(
@@ -621,7 +632,47 @@ describe("TraderPool", () => {
           toBN(wei("0.000001")).toNumber()
         );
 
-        await truffleAssert.reverts(reinvestCommission(0, 5), "TP: no commission available");
+        await truffleAssert.reverts(reinvestCommission([0, 5]), "TP: no commission available");
+      });
+
+      it("should calculate trader commission 2", async () => {
+        await tokens.WETH.mint(THIRD, wei("1000"));
+
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await invest(wei("1000"), OWNER);
+
+        await tokens.WETH.approve(traderPool.address, wei("1000"), { from: THIRD });
+        await invest(wei("1000"), THIRD);
+
+        await exchangeFromExact(tokens.WETH.address, tokens.MANA.address, wei("2000"));
+
+        await uniswapV2Router.setReserve(tokens.MANA.address, wei("500000"));
+        await uniswapV2Router.setReserve(tokens.WETH.address, wei("1000000"));
+
+        await exchangeFromExact(tokens.MANA.address, tokens.WETH.address, wei("2000"));
+
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_MONTH);
+
+        const commission1 = await traderPool.getReinvestCommissions([0, 1, 1, 1]);
+        const commission2 = await traderPool.getReinvestCommissions([0, 2]);
+
+        assert.deepEqual(commission1, commission2);
+
+        await reinvestCommission([0, 1, 1, 1]);
+
+        assert.equal(toBN(commission1.traderBaseCommission).toFixed(), wei("350"));
+        assert.closeTo(
+          toBN(commission1.traderLPCommission).toNumber(),
+          toBN(wei("233.33333333")).toNumber(),
+          toBN(wei("0.000001")).toNumber()
+        );
+
+        assert.equal(toBN(commission1.dexeBaseCommission).toFixed(), wei("150"));
+        assert.closeTo(
+          toBN(commission1.dexeLPCommission).toNumber(),
+          toBN(wei("100")).toNumber(),
+          toBN(wei("0.000001")).toNumber()
+        );
       });
 
       it("should allow commission calculation if the positions are blacklisted", async () => {
@@ -636,11 +687,11 @@ describe("TraderPool", () => {
 
         await setTime((await getCurrentBlockTime()) + SECONDS_IN_MONTH);
 
-        await truffleAssert.reverts(reinvestCommission(0, 5), "TP: positions are open");
+        await truffleAssert.reverts(reinvestCommission([0, 5]), "TP: positions are open");
 
         await coreProperties.addBlacklistTokens([tokens.MANA.address]);
 
-        await truffleAssert.passes(reinvestCommission(0, 5), "Calculates the commission");
+        await truffleAssert.passes(reinvestCommission([0, 5]), "Calculates the commission");
       });
 
       it("there shouldn't be any commission 1", async () => {
@@ -658,7 +709,7 @@ describe("TraderPool", () => {
 
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("1000"));
 
-        await truffleAssert.reverts(reinvestCommission(0, 5), "TP: no commission available");
+        await truffleAssert.reverts(reinvestCommission([0, 5]), "TP: no commission available");
       });
 
       it("there shouldn't be any commission 2", async () => {
@@ -671,7 +722,7 @@ describe("TraderPool", () => {
 
         await setTime((await getCurrentBlockTime()) + SECONDS_IN_MONTH);
 
-        await reinvestCommission(0, 5);
+        await reinvestCommission([0, 5]);
 
         assert.closeTo(
           (await traderPool.balanceOf(OWNER)).toNumber(),
@@ -692,7 +743,7 @@ describe("TraderPool", () => {
           await tokens.MANA.balanceOf(traderPool.address)
         );
 
-        await truffleAssert.reverts(reinvestCommission(0, 5), "TP: no commission available");
+        await truffleAssert.reverts(reinvestCommission([0, 5]), "TP: no commission available");
       });
     });
 

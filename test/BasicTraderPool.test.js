@@ -235,9 +235,9 @@ describe("BasicTraderPool", () => {
     await traderPool.invest(amount, receptions.receivedAmounts, { from: account });
   }
 
-  async function reinvestCommission(offset, limit) {
-    const commissions = await traderPool.getReinvestCommissions(offset, limit);
-    await traderPool.reinvestCommission(offset, limit, commissions.dexeDexeCommission);
+  async function reinvestCommission(offsetLimits) {
+    const commissions = await traderPool.getReinvestCommissions(offsetLimits);
+    await traderPool.reinvestCommission(offsetLimits, commissions.dexeDexeCommission);
   }
 
   async function exchangeFromExact(from, to, amount) {
@@ -612,8 +612,8 @@ describe("BasicTraderPool", () => {
 
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("500"));
 
-        const commissions = await traderPool.getReinvestCommissions(0, 5);
-        await reinvestCommission(0, 5);
+        const commissions = await traderPool.getReinvestCommissions([0, 5]);
+        await reinvestCommission([0, 5]);
 
         assert.equal(toBN(commissions.traderBaseCommission).toFixed(), wei("87.5"));
         assert.closeTo(

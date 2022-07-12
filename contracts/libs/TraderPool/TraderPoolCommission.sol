@@ -60,18 +60,17 @@ library TraderPoolCommission {
             uint256 lpCommission
         )
     {
-        uint256 investorBalance = IERC20(address(this)).balanceOf(investor);
-        uint256 baseTokenBalance = poolParameters.baseToken.normThisBalance();
-
         if (oldTotalSupply > 0) {
-            investorBaseAmount = baseTokenBalance.ratio(investorBalance, oldTotalSupply);
-            (uint256 investedBase, ) = TraderPool(address(this)).investorsInfo(investor);
+            uint256 investorBalance = IERC20(address(this)).balanceOf(investor);
+            uint256 baseTokenBalance = poolParameters.baseToken.normThisBalance();
 
-            (baseCommission, lpCommission) = _calculateInvestorCommission(
+            investorBaseAmount = baseTokenBalance.ratio(investorBalance, oldTotalSupply);
+
+            (baseCommission, lpCommission) = calculateCommissionOnDivest(
                 poolParameters,
+                investor,
                 investorBaseAmount,
-                investorBalance,
-                investedBase
+                investorBalance
             );
         }
     }
@@ -81,7 +80,7 @@ library TraderPoolCommission {
         address investor,
         uint256 investorBaseAmount,
         uint256 amountLP
-    ) external view returns (uint256 baseCommission, uint256 lpCommission) {
+    ) public view returns (uint256 baseCommission, uint256 lpCommission) {
         uint256 balance = IERC20(address(this)).balanceOf(investor);
 
         if (balance > 0) {

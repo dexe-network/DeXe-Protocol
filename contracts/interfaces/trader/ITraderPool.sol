@@ -102,12 +102,16 @@ interface ITraderPool {
     /// @param investedBase the amount of base tokens invested into the pool (after commission calculation this might increase)
     /// @param poolUSDShare the equivalent amount of USD that represent the user's pool share
     /// @param poolUSDShare the equivalent amount of base tokens that represent the user's pool share
+    /// @param owedBaseCommission the base commission the user will pay if the trader desides to claim commission now
+    /// @param owedLPCommission the equivalent LP commission the user will pay if the trader desides to claim commission now
     struct UserInfo {
         uint256 commissionUnlockTimestamp;
         uint256 poolLPBalance;
         uint256 investedBase;
         uint256 poolUSDShare;
         uint256 poolBaseShare;
+        uint256 owedBaseCommission;
+        uint256 owedLPCommission;
     }
 
     /// @notice The structure that is returned from the TraderPoolView contract and stores static information about the pool
@@ -238,25 +242,23 @@ interface ITraderPool {
     /// @param minPositionsOut the minimal amounts of position tokens to be received
     function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut) external;
 
-    /// @notice The function to get the received commissions from the users when the "reinvestCommission" function is called
-    /// @param offset the starting index of the investors array
-    /// @param limit the number of investors to calculate the commission from
+    /// @notice The function to get the received commissions from the users when the "reinvestCommission" function is called.
+    /// This function also "projects" commissions to the current positions if they were to be closed
+    /// @param offsetLimits the starting indexes and the lengths of the investors array
+    /// Starting indexes are under even positions, lengths are under odd
     /// @return commissions the received commissions info
-    function getReinvestCommissions(uint256 offset, uint256 limit)
+    function getReinvestCommissions(uint256[] calldata offsetLimits)
         external
         view
         returns (Commissions memory commissions);
 
     /// @notice The function that takes the commission from the users' income. This function should be called once per the
     /// commission period. Use "getReinvestCommissions()" function to get minDexeCommissionOut parameter
-    /// @param offset the starting index of the users array
-    /// @param limit the number of users to take the commission from
+    /// @param offsetLimits the array of starting indexes and the lengths of the investors array.
+    /// Starting indexes are under even positions, lengths are under odd
     /// @param minDexeCommissionOut the minimal amount of DEXE tokens the platform will receive
-    function reinvestCommission(
-        uint256 offset,
-        uint256 limit,
-        uint256 minDexeCommissionOut
-    ) external;
+    function reinvestCommission(uint256[] calldata offsetLimits, uint256 minDexeCommissionOut)
+        external;
 
     /// @notice The function to get the commissions and received tokens when the "divest" function is called
     /// @param user the address of the user who is going to divest
