@@ -50,7 +50,12 @@ module.exports = {
     },
   },
   etherscan: {
-    apiKey: `${process.env.ETHERSCAN_KEY}`,
+    apiKey: {
+      mainnet: `${process.env.ETHERSCAN_KEY}`,
+      rinkeby: `${process.env.ETHERSCAN_KEY}`,
+      bsc: `${process.env.BSCSCAN_KEY}`,
+      bscTestnet: `${process.env.BSCSCAN_KEY}`,
+    },
   },
   mocha: {
     timeout: 1000000,

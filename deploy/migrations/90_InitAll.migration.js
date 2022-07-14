@@ -1,5 +1,5 @@
+const { logTransaction, logContracts } = require("../runners/logger/logger.js");
 const { toBN } = require("../../scripts/helpers/utils");
-const { logTransaction, logContracts } = require("../runners/logger.js");
 
 const Proxy = artifacts.require("TransparentUpgradeableProxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");

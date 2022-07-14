@@ -1,4 +1,4 @@
-const { logTransaction } = require("../runners/logger.js");
+const { logTransaction } = require("../runners/logger/logger.js");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const TransparentUpgradeableProxy = artifacts.require("TransparentUpgradeableProxy");
