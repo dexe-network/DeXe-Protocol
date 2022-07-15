@@ -236,16 +236,16 @@ library TraderPoolView {
         address user,
         uint256 totalPoolBase,
         uint256 totalPoolUSD,
-        uint256 totalSupply,
-        ICoreProperties.CommissionPeriod commissionPeriod
+        uint256 totalSupply
     ) internal view returns (ITraderPool.UserInfo memory userInfo) {
         ICoreProperties coreProperties = ITraderPool(address(this)).coreProperties();
 
         userInfo.poolLPBalance = IERC20(address(this)).balanceOf(user);
-        (userInfo.investedBase, userInfo.commissionUnlockTimestamp) = TraderPool(address(this))
-            .investorsInfo(user);
 
-        if (totalSupply > 0) {
+        if (userInfo.poolLPBalance > 0) {
+            (userInfo.investedBase, userInfo.commissionUnlockTimestamp) = TraderPool(address(this))
+                .investorsInfo(user);
+
             userInfo.poolUSDShare = totalPoolUSD.ratio(userInfo.poolLPBalance, totalSupply);
             userInfo.poolBaseShare = totalPoolBase.ratio(userInfo.poolLPBalance, totalSupply);
 
@@ -260,45 +260,58 @@ library TraderPoolView {
         }
 
         userInfo.commissionUnlockTimestamp = userInfo.commissionUnlockTimestamp == 0
-            ? coreProperties.getCommissionEpochByTimestamp(block.timestamp, commissionPeriod)
+            ? coreProperties.getCommissionEpochByTimestamp(
+                block.timestamp,
+                poolParameters.commissionPeriod
+            )
             : userInfo.commissionUnlockTimestamp;
 
         userInfo.commissionUnlockTimestamp = coreProperties.getCommissionTimestampByEpoch(
             userInfo.commissionUnlockTimestamp,
-            commissionPeriod
+            poolParameters.commissionPeriod
         );
     }
 
     function getUsersInfo(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage investors,
+        address user,
         uint256 offset,
         uint256 limit
     ) external view returns (ITraderPool.UserInfo[] memory usersInfo) {
         uint256 to = (offset + limit).min(investors.length()).max(offset);
+
         (uint256 totalPoolBase, uint256 totalPoolUSD) = poolParameters
             .getNormalizedPoolPriceAndUSD();
         uint256 totalSupply = IERC20(address(this)).totalSupply();
 
-        usersInfo = new ITraderPool.UserInfo[](to - offset + 1);
+        usersInfo = new ITraderPool.UserInfo[](to - offset + 2);
 
-        usersInfo[0] = _getUserInfo(
+        if (investors.contains(user)) {
+            usersInfo[0] = _getUserInfo(
+                poolParameters,
+                user,
+                totalPoolBase,
+                totalPoolUSD,
+                totalSupply
+            );
+        }
+
+        usersInfo[1] = _getUserInfo(
             poolParameters,
             poolParameters.trader,
             totalPoolBase,
             totalPoolUSD,
-            totalSupply,
-            poolParameters.commissionPeriod
+            totalSupply
         );
 
         for (uint256 i = offset; i < to; i++) {
-            usersInfo[i - offset + 1] = _getUserInfo(
+            usersInfo[i - offset + 2] = _getUserInfo(
                 poolParameters,
                 investors.at(i),
                 totalPoolBase,
                 totalPoolUSD,
-                totalSupply,
-                poolParameters.commissionPeriod
+                totalSupply
             );
         }
     }

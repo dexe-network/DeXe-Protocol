@@ -296,7 +296,7 @@ describe("TraderPool", () => {
         assert.equal((await traderPool.balanceOf(SECOND)).toFixed(), wei("1000"));
 
         const investorInfo = await traderPool.investorsInfo(SECOND);
-        const investorSecondInfo = (await traderPool.getUsersInfo(0, 2))[1];
+        const investorSecondInfo = await traderPool.getUsersInfo(SECOND, 0, 2);
 
         assert.equal(investorInfo.investedBase.toFixed(), wei("1000"));
         assert.equal(
@@ -305,10 +305,17 @@ describe("TraderPool", () => {
             .idiv(DEFAULT_CORE_PROPERTIES.commissionDurations[POOL_PARAMETERS.commissionPeriod])
             .plus(1)
         );
-        assert.equal(toBN(investorSecondInfo.poolLPBalance).toFixed(), wei("1000"));
-        assert.equal(toBN(investorSecondInfo.investedBase).toFixed(), wei("1000"));
-        assert.equal(toBN(investorSecondInfo.poolUSDShare).toFixed(), wei("1000"));
-        assert.equal(toBN(investorSecondInfo.poolBaseShare).toFixed(), wei("1000"));
+        assert.equal(toBN(investorSecondInfo[2].poolLPBalance).toFixed(), wei("1000"));
+        assert.equal(toBN(investorSecondInfo[2].investedBase).toFixed(), wei("1000"));
+        assert.equal(toBN(investorSecondInfo[2].poolUSDShare).toFixed(), wei("1000"));
+        assert.equal(toBN(investorSecondInfo[2].poolBaseShare).toFixed(), wei("1000"));
+
+        assert.equal(toBN(investorSecondInfo[1].poolLPBalance).toFixed(), wei("1000"));
+        assert.equal(toBN(investorSecondInfo[1].investedBase).toFixed(), "0");
+        assert.equal(toBN(investorSecondInfo[1].poolUSDShare).toFixed(), wei("1000"));
+        assert.equal(toBN(investorSecondInfo[1].poolBaseShare).toFixed(), wei("1000"));
+
+        assert.deepEqual(investorSecondInfo[0], investorSecondInfo[2]);
       });
     });
 
@@ -584,16 +591,17 @@ describe("TraderPool", () => {
 
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("1000"));
 
-        const userCommission = await traderPool.getUsersInfo(0, 1);
+        const userCommission = await traderPool.getUsersInfo(NOTHING, 0, 1);
         const commission = await traderPool.getReinvestCommissions([0, 5]);
 
         await reinvestCommission([0, 5]);
 
-        assert.equal(toBN(userCommission[0].owedBaseCommission).toFixed(), "0");
-        assert.equal(toBN(userCommission[0].owedLPCommission).toFixed(), "0");
-        assert.equal(toBN(userCommission[1].owedBaseCommission).toFixed(), wei("250"));
+        assert.deepEqual(userCommission[0], ["0", "0", "0", "0", "0", "0", "0"]);
+        assert.equal(toBN(userCommission[1].owedBaseCommission).toFixed(), "0");
+        assert.equal(toBN(userCommission[1].owedLPCommission).toFixed(), "0");
+        assert.equal(toBN(userCommission[2].owedBaseCommission).toFixed(), wei("250"));
         assert.closeTo(
-          toBN(userCommission[1].owedLPCommission).toNumber(),
+          toBN(userCommission[2].owedLPCommission).toNumber(),
           toBN(wei("166.6666666")).toNumber(),
           toBN(wei("0.000001")).toNumber()
         );

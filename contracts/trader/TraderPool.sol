@@ -201,13 +201,12 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         return coreProperties.getFilteredPositions(_positions.values());
     }
 
-    function getUsersInfo(uint256 offset, uint256 limit)
-        external
-        view
-        override
-        returns (UserInfo[] memory usersInfo)
-    {
-        return _poolParameters.getUsersInfo(_investors, offset, limit);
+    function getUsersInfo(
+        address user,
+        uint256 offset,
+        uint256 limit
+    ) external view override returns (UserInfo[] memory usersInfo) {
+        return _poolParameters.getUsersInfo(_investors, user, offset, limit);
     }
 
     function getPoolInfo() external view override returns (PoolInfo memory poolInfo) {

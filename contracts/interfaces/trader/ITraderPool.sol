@@ -204,7 +204,7 @@ interface ITraderPool {
     /// @return the address of the proposal pool
     function proposalPoolAddress() external view returns (address);
 
-    /// @notice The function that returns the actual LP emmission (the totalSupply() might be less)
+    /// @notice The function that returns the actual LP emission (the totalSupply() might be less)
     /// @return the actual LP tokens emission
     function totalEmission() external view returns (uint256);
 
@@ -212,14 +212,17 @@ interface ITraderPool {
     /// @return the array of open positions
     function openPositions() external view returns (address[] memory);
 
-    /// @notice The function that returns the information about the investors
+    /// @notice The function that returns the information about the trader and investors
+    /// @param user the exact user to receive information about
     /// @param offset the starting index of the investors array
     /// @param limit the length of the observed array
-    /// @return usersInfo the information about the investors
-    function getUsersInfo(uint256 offset, uint256 limit)
-        external
-        view
-        returns (UserInfo[] memory usersInfo);
+    /// @return usersInfo the information about the investors.
+    /// [0] is the info about the requested user, [1] is the info about the trader, [1:] is the info about offset-limit investors
+    function getUsersInfo(
+        address user,
+        uint256 offset,
+        uint256 limit
+    ) external view returns (UserInfo[] memory usersInfo);
 
     /// @notice The function to get the static pool information
     /// @return poolInfo the static info of the pool
