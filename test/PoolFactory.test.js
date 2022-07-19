@@ -386,6 +386,7 @@ describe("PoolFactory", () => {
         seetingsParams: {
           internalProposalSetting: {
             earlyCompletion: true,
+            delegatedVotingAllowed: true,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -395,6 +396,7 @@ describe("PoolFactory", () => {
           },
           defaultProposalSetting: {
             earlyCompletion: false,
+            delegatedVotingAllowed: true,
             duration: 700,
             durationValidators: 800,
             quorum: PRECISION.times("71").toFixed(),
@@ -440,6 +442,7 @@ describe("PoolFactory", () => {
         seetingsParams: {
           internalProposalSetting: {
             earlyCompletion: true,
+            delegatedVotingAllowed: true,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -449,6 +452,7 @@ describe("PoolFactory", () => {
           },
           defaultProposalSetting: {
             earlyCompletion: false,
+            delegatedVotingAllowed: true,
             duration: 700,
             durationValidators: 800,
             quorum: PRECISION.times("71").toFixed(),

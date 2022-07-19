@@ -3,6 +3,8 @@ pragma solidity ^0.8.4;
 
 import "../interfaces/gov/IGovUserKeeperController.sol";
 
+import "../libs/utils/ArrayInserter.sol";
+
 import "./GovFee.sol";
 
 abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
@@ -10,6 +12,7 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
     using EnumerableSet for EnumerableSet.UintSet;
     using ShrinkableArray for uint256[];
     using ShrinkableArray for ShrinkableArray.UintArray;
+    using ArrayInserter for uint256[];
     using GovUserKeeperLocal for *;
 
     function deposit(
@@ -141,11 +144,7 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
         for (uint256 i; i < unlockedIds.length; i++) {
             VoteInfo storage voteInfo = _voteInfos[unlockedIds.values[i]][user][isMicropool];
 
-            uint256 length = voteInfo.nftsVoted.length();
-
-            for (uint256 j; j < length; j++) {
-                unlockedNfts[totalLength++] = voteInfo.nftsVoted.at(j);
-            }
+            totalLength = unlockedNfts.insert(totalLength, voteInfo.nftsVoted.values());
         }
     }
 

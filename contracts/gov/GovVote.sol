@@ -49,8 +49,11 @@ abstract contract GovVote is IGovVote, GovCreator {
         govUserKeeper.depositTokens.exec(msg.sender, depositAmount);
         govUserKeeper.depositNfts.exec(msg.sender, depositNftIds);
 
-        _voteTokens(proposalId, voteAmount, false);
-        _voteNfts(proposalId, voteNftIds, false);
+        bool useDelegated = !proposals[proposalId].core.settings.delegatedVotingAllowed;
+        ProposalCore storage core = _beforeVote(proposalId, false, useDelegated);
+
+        _voteTokens(core, proposalId, voteAmount, false, useDelegated);
+        _voteNfts(core, proposalId, voteNftIds, false, useDelegated);
     }
 
     function voteDelegated(
@@ -64,18 +67,19 @@ abstract contract GovVote is IGovVote, GovCreator {
             "GovV: delegated voting unavailable"
         );
 
-        _voteTokens(proposalId, voteAmount, true);
-        _voteNfts(proposalId, voteNftIds, true);
+        ProposalCore storage core = _beforeVote(proposalId, true, false);
+
+        _voteTokens(core, proposalId, voteAmount, true, false);
+        _voteNfts(core, proposalId, voteNftIds, true, false);
     }
 
     function _voteTokens(
+        ProposalCore storage core,
         uint256 proposalId,
         uint256 amount,
-        bool isMicropool
+        bool isMicropool,
+        bool useDelegated
     ) private {
-        bool useDelegated = !proposals[proposalId].core.settings.delegatedVotingAllowed;
-
-        ProposalCore storage core = _beforeVote(proposalId, isMicropool, useDelegated);
         VoteInfo storage voteInfo = _voteInfos[proposalId][msg.sender][isMicropool];
 
         IGovUserKeeper userKeeper = govUserKeeper;
@@ -94,13 +98,12 @@ abstract contract GovVote is IGovVote, GovCreator {
     }
 
     function _voteNfts(
+        ProposalCore storage core,
         uint256 proposalId,
         uint256[] calldata nftIds,
-        bool isMicropool
+        bool isMicropool,
+        bool useDelegated
     ) private {
-        bool useDelegated = !proposals[proposalId].core.settings.delegatedVotingAllowed;
-
-        ProposalCore storage core = _beforeVote(proposalId, isMicropool, useDelegated);
         VoteInfo storage voteInfo = _voteInfos[proposalId][msg.sender][isMicropool];
 
         for (uint256 i; i < nftIds.length; i++) {

@@ -99,6 +99,12 @@ interface IGovUserKeeper {
         bool useDelegated
     ) external view returns (uint256 balance);
 
+    function nftExactBalance(
+        address voter,
+        bool isMicropool,
+        bool useDelegated
+    ) external view returns (uint256[] memory nfts);
+
     function canParticipate(
         address voter,
         bool isMicropool,
