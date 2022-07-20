@@ -13,7 +13,6 @@ const GovPool = artifacts.require("GovPool");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const GovSettings = artifacts.require("GovSettings");
 const GovValidators = artifacts.require("GovValidators");
-const TraderPoolMock = artifacts.require("TraderPoolMock");
 const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
 const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
 const TraderPoolExchangeLib = artifacts.require("TraderPoolExchange");
@@ -39,7 +38,6 @@ GovPool.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 GovSettings.numberFormat = "BigNumber";
 GovValidators.numberFormat = "BigNumber";
-TraderPoolMock.numberFormat = "BigNumber";
 InvestTraderPool.numberFormat = "BigNumber";
 BasicTraderPool.numberFormat = "BigNumber";
 RiskyPoolProposal.numberFormat = "BigNumber";
@@ -248,6 +246,11 @@ describe("PoolFactory", () => {
 
       assert.isTrue(await traderPoolRegistry.isPool(event.args.at));
 
+      const traderPool = await BasicTraderPool.at(event.args.at);
+
+      assert.equal((await traderPool.getPoolInfo()).parameters.trader, OWNER);
+      assert.equal((await traderPool.getPoolInfo()).parameters.baseTokenDecimals, 18);
+
       assert.equal(
         (await traderPoolRegistry.countPools(await traderPoolRegistry.BASIC_POOL_NAME())).toString(),
         lenPools.plus(1).toString()
@@ -288,6 +291,11 @@ describe("PoolFactory", () => {
       let event = tx.receipt.logs[0];
 
       assert.isTrue(await traderPoolRegistry.isPool(event.args.at));
+
+      const traderPool = await BasicTraderPool.at(event.args.at);
+
+      assert.equal((await traderPool.getPoolInfo()).parameters.trader, OWNER);
+      assert.equal((await traderPool.getPoolInfo()).parameters.baseTokenDecimals, 18);
 
       assert.equal(
         (await traderPoolRegistry.countPools(await traderPoolRegistry.INVEST_POOL_NAME())).toString(),

@@ -800,12 +800,7 @@ describe("GovPool", () => {
         });
 
         it("should add new settings, change executors and create default trusted proposal", async () => {
-          const executorTransfer = await ExecutorTransferMock.new(
-            govPool.address,
-            token.address,
-            nft.address,
-            nft.address
-          );
+          const executorTransfer = await ExecutorTransferMock.new(govPool.address, token.address);
 
           const settingsBytes = getBytesAddSettings([NEW_SETTINGS]);
           const changeExecutorBytes = getBytesChangeExecutors([executorTransfer.address], [3]);
@@ -852,13 +847,8 @@ describe("GovPool", () => {
         it("should execute proposal and send ether", async () => {
           let startTime = await getCurrentBlockTime();
 
-          const executorTransfer = await ExecutorTransferMock.new(
-            govPool.address,
-            token.address,
-            nft.address,
-            nft.address
-          );
-          await executorTransfer.setTransferAmount(wei("99"), [], [], []);
+          const executorTransfer = await ExecutorTransferMock.new(govPool.address, token.address);
+          await executorTransfer.setTransferAmount(wei("99"));
 
           await token.transfer(govPool.address, wei("100"));
           await govPool.sendTransaction({ value: wei("1"), from: OWNER });
@@ -891,13 +881,8 @@ describe("GovPool", () => {
         it("should get revert from proposal call", async () => {
           let startTime = await getCurrentBlockTime();
 
-          const executorTransfer = await ExecutorTransferMock.new(
-            govPool.address,
-            token.address,
-            nft.address,
-            nft.address
-          );
-          await executorTransfer.setTransferAmount(wei("99"), [], [], []);
+          const executorTransfer = await ExecutorTransferMock.new(govPool.address, token.address);
+          await executorTransfer.setTransferAmount(wei("99"));
 
           await token.transfer(govPool.address, wei("100"));
 

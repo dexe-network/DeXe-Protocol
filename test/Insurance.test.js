@@ -506,7 +506,7 @@ describe("Insurance", async () => {
       assert.equal(1, finishedClaims[1][0][2]);
     });
 
-    it("should correvtly pay when user's amounts is [60, 20, 0]", async () => {
+    it("should correctly pay when user's amounts is [60, 20, 0]", async () => {
       await dexe.transfer(insurance.address, 10000, { from: POOL });
       await insurance.receiveDexeFromPools(10000, { from: POOL });
 

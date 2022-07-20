@@ -11,12 +11,12 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
+import "@dlsl/dev-modules/libs/arrays/ArrayHelper.sol";
 
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/IGovUserKeeperController.sol";
 
 import "../../libs/math/MathHelper.sol";
-import "../../libs/utils/ArrayInserter.sol";
 
 import "../ERC721/ERC721Power.sol";
 
@@ -28,7 +28,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     using EnumerableSet for EnumerableSet.AddressSet;
     using ShrinkableArray for uint256[];
     using ShrinkableArray for ShrinkableArray.UintArray;
-    using ArrayInserter for uint256[];
+    using ArrayHelper for uint256[];
     using Paginator for EnumerableSet.UintSet;
     using DecimalsConverter for uint256;
 

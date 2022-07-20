@@ -257,9 +257,74 @@ describe("TraderPool", () => {
       traderPool = await deployPool(POOL_PARAMETERS);
     });
 
+    describe("modifiers", () => {
+      it("should modify admins", async () => {
+        assert.isTrue(await traderPool.isTraderAdmin(OWNER));
+        assert.isTrue(await traderPool.isTrader(OWNER));
+
+        await traderPool.modifyAdmins([SECOND, THIRD], true);
+        await traderPool.modifyAdmins([OWNER], false);
+
+        assert.isTrue(await traderPool.isTraderAdmin(OWNER));
+        assert.isTrue(await traderPool.isTraderAdmin(SECOND));
+        assert.isTrue(await traderPool.isTraderAdmin(THIRD));
+
+        await traderPool.modifyAdmins([SECOND, THIRD], false);
+
+        assert.isFalse(await traderPool.isTraderAdmin(SECOND));
+        assert.isFalse(await traderPool.isTraderAdmin(THIRD));
+      });
+
+      it("should modify private investors", async () => {
+        await traderPool.modifyPrivateInvestors([SECOND, THIRD], true);
+
+        assert.isFalse(await traderPool.isPrivateInvestor(OWNER));
+        assert.isTrue(await traderPool.isPrivateInvestor(SECOND));
+        assert.isTrue(await traderPool.isPrivateInvestor(THIRD));
+
+        assert.isTrue(await traderPool.canRemovePrivateInvestor(SECOND));
+        assert.isTrue(await traderPool.canRemovePrivateInvestor(THIRD));
+
+        await traderPool.modifyPrivateInvestors([SECOND, THIRD], false);
+
+        assert.isFalse(await traderPool.isPrivateInvestor(OWNER));
+        assert.isFalse(await traderPool.isPrivateInvestor(SECOND));
+      });
+
+      it("should change pool parameters", async () => {
+        let info = await traderPool.getPoolInfo();
+
+        assert.equal(info.parameters.descriptionURL, "placeholder.com");
+        assert.equal(info.parameters.baseToken, tokens.WETH.address);
+        assert.equal(info.parameters.minimalInvestment, "0");
+
+        await traderPool.changePoolParameters("example.com", false, 0, wei("10"));
+
+        info = await traderPool.getPoolInfo();
+
+        assert.equal(info.parameters.descriptionURL, "example.com");
+        assert.equal(toBN(info.parameters.minimalInvestment).toFixed(), wei("10"));
+      });
+    });
+
     describe("getters", () => {
-      it("getPoolInfo should not revert", async () => {
+      it("should not revert", async () => {
         await truffleAssert.passes(traderPool.getPoolInfo(), "pass");
+        await truffleAssert.passes(traderPool.canRemovePrivateInvestor(NOTHING), "pass");
+        await truffleAssert.passes(traderPool.totalInvestors(), "pass");
+        await truffleAssert.passes(traderPool.proposalPoolAddress(), "pass");
+        await truffleAssert.passes(traderPool.totalEmission(), "pass");
+        await truffleAssert.passes(traderPool.openPositions(), "pass");
+        await truffleAssert.passes(traderPool.getUsersInfo(NOTHING, 0, 10), "pass");
+        await truffleAssert.passes(traderPool.getLeverageInfo(), "pass");
+        await truffleAssert.passes(traderPool.getInvestTokens(wei("1")), "pass");
+        await truffleAssert.passes(traderPool.getReinvestCommissions([0, 10]), "pass");
+        await truffleAssert.passes(traderPool.getNextCommissionEpoch(), "pass");
+        await truffleAssert.passes(traderPool.getDivestAmountsAndCommissions(NOTHING, wei("10")), "pass");
+        await truffleAssert.passes(
+          traderPool.getExchangeAmount(tokens.MANA.address, tokens.WETH.address, wei("10"), [], ExchangeType.TO_EXACT),
+          "pass"
+        );
       });
     });
 
@@ -948,6 +1013,18 @@ describe("TraderPool", () => {
         assert.equal((await traderPool.balanceOf(THIRD)).toFixed(), wei("500"));
         assert.equal((await traderPool.investorsInfo(THIRD)).investedBase.toFixed(), wei("500"));
       });
+
+      it("should transfer all tokens and remove and add investor", async () => {
+        assert.equal(await traderPool.totalInvestors(), "1");
+        assert.isTrue(await traderPool.isInvestor(SECOND));
+        assert.isFalse(await traderPool.isInvestor(THIRD));
+
+        await traderPool.transfer(THIRD, wei("1000"), { from: SECOND });
+
+        assert.equal(await traderPool.totalInvestors(), "1");
+        assert.isTrue(await traderPool.isInvestor(THIRD));
+        assert.isFalse(await traderPool.isInvestor(SECOND));
+      });
     });
   });
 
@@ -1037,6 +1114,54 @@ describe("TraderPool", () => {
 
         assert.equal((await tokens.WBTC.balanceOf(traderPool.address)).toFixed(), wbtc.toFixed());
         assert.equal((await tokens.MANA.balanceOf(traderPool.address)).toFixed(), mana.toFixed());
+      });
+    });
+  });
+
+  describe("Private TraderPool", () => {
+    let POOL_PARAMETERS;
+
+    beforeEach("setup", async () => {
+      POOL_PARAMETERS = {
+        descriptionURL: "placeholder.com",
+        trader: OWNER,
+        privatePool: true,
+        totalLPEmission: 0,
+        baseToken: tokens.MANA.address,
+        baseTokenDecimals: 18,
+        minimalInvestment: 0,
+        commissionPeriod: ComissionPeriods.PERIOD_1,
+        commissionPercentage: toBN(50).times(PRECISION).toFixed(),
+      };
+
+      traderPool = await deployPool(POOL_PARAMETERS);
+    });
+
+    describe("token transfer", () => {
+      beforeEach("setup", async () => {
+        await traderPool.modifyPrivateInvestors([SECOND], true);
+
+        await tokens.MANA.mint(SECOND, wei("1000"));
+
+        await tokens.MANA.approve(traderPool.address, wei("1000"));
+        await invest(wei("1000"), OWNER);
+
+        await tokens.MANA.approve(traderPool.address, wei("1000"), { from: SECOND });
+        await invest(wei("1000"), SECOND);
+      });
+
+      it("should transfer tokens from trader to investor", async () => {
+        assert.equal(toBN(await traderPool.balanceOf(OWNER)).toFixed(), wei("1000"));
+        assert.equal(toBN(await traderPool.balanceOf(SECOND)).toFixed(), wei("1000"));
+
+        await traderPool.transfer(SECOND, wei("100"));
+
+        assert.equal(toBN(await traderPool.balanceOf(OWNER)).toFixed(), wei("900"));
+        assert.equal(toBN(await traderPool.balanceOf(SECOND)).toFixed(), wei("1100"));
+      });
+
+      it("should not transfer tokens to not private investor", async () => {
+        await truffleAssert.reverts(traderPool.transfer(THIRD, wei("100"), { from: SECOND }), "TP: private pool");
       });
     });
   });

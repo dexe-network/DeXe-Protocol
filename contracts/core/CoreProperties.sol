@@ -274,6 +274,6 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         override
         returns (uint256)
     {
-        return getCommissionInitTimestamp() + epoch * getCommissionDuration(commissionPeriod);
+        return getCommissionInitTimestamp() + epoch * getCommissionDuration(commissionPeriod) - 1;
     }
 }

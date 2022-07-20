@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 import "../interfaces/gov/IGovUserKeeperController.sol";
 
-import "../libs/utils/ArrayInserter.sol";
+import "@dlsl/dev-modules/libs/arrays/ArrayHelper.sol";
 
 import "./GovFee.sol";
 
@@ -12,7 +12,7 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
     using EnumerableSet for EnumerableSet.UintSet;
     using ShrinkableArray for uint256[];
     using ShrinkableArray for ShrinkableArray.UintArray;
-    using ArrayInserter for uint256[];
+    using ArrayHelper for uint256[];
     using GovUserKeeperLocal for *;
 
     function deposit(
