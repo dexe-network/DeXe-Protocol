@@ -237,7 +237,10 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 lpBalance = totalLPBalances[user] +
             IERC20(_parentTraderPoolInfo.parentPoolAddress).balanceOf(user);
 
-        return (_lpBalances[user][proposalId] + toBeInvested).ratio(PERCENTAGE_100, lpBalance);
+        return
+            lpBalance > 0
+                ? (_lpBalances[user][proposalId] + toBeInvested).ratio(PERCENTAGE_100, lpBalance)
+                : PERCENTAGE_100;
     }
 
     function invest(

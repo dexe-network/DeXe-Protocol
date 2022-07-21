@@ -314,6 +314,25 @@ describe("BasicTraderPool", () => {
       [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);
     });
 
+    describe("proposal getters", () => {
+      it("should not fail", async () => {
+        await truffleAssert.passes(proposalPool.getBaseToken(), "passes");
+        await truffleAssert.passes(proposalPool.getInvestedBaseInUSD(), "passes");
+        await truffleAssert.passes(proposalPool.getTotalActiveInvestments(NOTHING), "passes");
+        await truffleAssert.passes(proposalPool.getProposalInfos(0, 10), "passes");
+        await truffleAssert.passes(proposalPool.getActiveInvestmentsInfo(NOTHING, 0, 10), "passes");
+        await truffleAssert.passes(proposalPool.getUserInvestmentsLimits(NOTHING, [0, 10]), "passes");
+        await truffleAssert.passes(proposalPool.getCreationTokens(tokens.WETH.address, wei("10"), 0, []), "passes");
+        await truffleAssert.passes(proposalPool.getInvestTokens(1, wei("10")), "passes");
+        await truffleAssert.passes(proposalPool.getInvestmentPercentage(1, NOTHING, wei("10")), "passes");
+        await truffleAssert.passes(proposalPool.getDivestAmounts([0, 1], [0, wei("10")]), "passes");
+        await truffleAssert.passes(
+          proposalPool.getExchangeAmount(1, tokens.MANA.address, wei("1"), [], ExchangeType.TO_EXACT),
+          "passes"
+        );
+      });
+    });
+
     describe("exchange", () => {
       beforeEach("setup", async () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"));
@@ -1026,6 +1045,31 @@ describe("BasicTraderPool", () => {
           toBN(wei("1")).toNumber()
         );
         assert.equal(toBN(proposalInfo.balancePosition).toFixed(), "0");
+      });
+
+      it("should not exchange random tokens", async () => {
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(
+          tokens.MANA.address,
+          wei("500"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          PRECISION.times(80)
+        );
+
+        await tokens.MANA.approve(uniswapV2Router.address, wei("1000000"));
+
+        await uniswapV2Router.setReserve(tokens.MANA.address, wei("1000000"));
+        await uniswapV2Router.setReserve(tokens.WETH.address, wei("1000000"));
+
+        const info = await proposalPool.getExchangeAmount(1, tokens.WBTC.address, wei("1"), [], ExchangeType.TO_EXACT);
+
+        assert.equal(info[0], "0");
+        assert.deepEqual(info[1], []);
+
+        await truffleAssert.reverts(
+          proposalPool.exchange(1, tokens.WBTC.address, wei("1"), 0, [], ExchangeType.FROM_EXACT),
+          "TPRP: invalid from token"
+        );
       });
     });
 

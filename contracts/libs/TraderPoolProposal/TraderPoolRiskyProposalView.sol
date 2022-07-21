@@ -171,7 +171,10 @@ library TraderPoolRiskyProposalView {
             uint256 lp2Amount
         )
     {
-        if (proposalId > TraderPoolRiskyProposal(address(this)).proposalsTotalNum()) {
+        if (
+            proposalId == 0 ||
+            proposalId > TraderPoolRiskyProposal(address(this)).proposalsTotalNum()
+        ) {
             return (0, 0, 0);
         }
 
@@ -218,7 +221,7 @@ library TraderPoolRiskyProposalView {
         for (uint256 i = 0; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
 
-            if (proposalId > proposalsTotalNum) {
+            if (proposalId == 0 || proposalId > proposalsTotalNum) {
                 continue;
             }
 
@@ -252,7 +255,10 @@ library TraderPoolRiskyProposalView {
         address[] calldata optionalPath,
         ITraderPoolRiskyProposal.ExchangeType exType
     ) external view returns (uint256, address[] memory) {
-        if (proposalId > TraderPoolRiskyProposal(address(this)).proposalsTotalNum()) {
+        if (
+            proposalId == 0 ||
+            proposalId > TraderPoolRiskyProposal(address(this)).proposalsTotalNum()
+        ) {
             return (0, new address[](0));
         }
 

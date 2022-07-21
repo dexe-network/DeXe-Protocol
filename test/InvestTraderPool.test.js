@@ -300,6 +300,17 @@ describe("InvestTraderPool", () => {
       [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);
     });
 
+    describe("proposal getters", () => {
+      it("should not fail", async () => {
+        await truffleAssert.passes(proposalPool.getBaseToken(), "passes");
+        await truffleAssert.passes(proposalPool.getInvestedBaseInUSD(), "passes");
+        await truffleAssert.passes(proposalPool.getTotalActiveInvestments(NOTHING), "passes");
+        await truffleAssert.passes(proposalPool.getProposalInfos(0, 10), "passes");
+        await truffleAssert.passes(proposalPool.getActiveInvestmentsInfo(NOTHING, 0, 10), "passes");
+        await truffleAssert.passes(proposalPool.getRewards([0, 10], NOTHING), "passes");
+      });
+    });
+
     describe("invest", () => {
       beforeEach("setup", async () => {
         await tokens.WETH.mint(SECOND, wei("1000"));
@@ -502,6 +513,7 @@ describe("InvestTraderPool", () => {
 
         let info = (await proposalPool.getProposalInfos(0, 1))[0];
         assert.equal(toBN(info.totalInvestors).toFixed(), "1");
+        assert.equal(toBN(info.lp2Supply).toFixed(), toBN(info.proposalInfo.investedBase).toFixed());
         assert.closeTo(
           toBN(info.proposalInfo.newInvestedBase).toNumber(),
           toBN(wei("600")).toNumber(),
@@ -830,6 +842,7 @@ describe("InvestTraderPool", () => {
 
         let infoSecond = (await proposalPool.getActiveInvestmentsInfo(SECOND, 0, 1))[0];
 
+        assert.equal(toBN(infoSecond.baseInvested).toFixed(), toBN(infoSecond.lp2Balance).toFixed());
         assert.equal(toBN(infoSecond.lpInvested).toFixed(), wei("500"));
 
         await proposalPool.safeTransferFrom(SECOND, THIRD, 1, wei("250"), [], { from: SECOND });
