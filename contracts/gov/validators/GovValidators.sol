@@ -8,7 +8,7 @@ import "../../interfaces/gov/validators/IGovValidators.sol";
 
 import "./GovValidatorsToken.sol";
 
-import "../../libs/MathHelper.sol";
+import "../../libs/math/MathHelper.sol";
 import "../../core/Globals.sol";
 
 contract GovValidators is IGovValidators, OwnableUpgradeable {

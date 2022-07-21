@@ -67,4 +67,13 @@ interface IERC721Power is IERC721Enumerable {
     /// @notice Return required collateral amount for nft
     /// @param tokenId Nft number
     function getRequiredCollateralForNft(uint256 tokenId) external view returns (uint256);
+
+    /// @notice Sets collection URI
+    /// @param uri the collection URI
+    function setBaseUri(string calldata uri) external;
+
+    /// @notice Withdraws stuck tokens
+    /// @param token token address of 0 in case of ether
+    /// @param to the destination address
+    function withdrawStuckERC20(address token, address to) external;
 }

@@ -300,6 +300,17 @@ describe("InvestTraderPool", () => {
       [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);
     });
 
+    describe("proposal getters", () => {
+      it("should not fail", async () => {
+        await truffleAssert.passes(proposalPool.getBaseToken(), "passes");
+        await truffleAssert.passes(proposalPool.getInvestedBaseInUSD(), "passes");
+        await truffleAssert.passes(proposalPool.getTotalActiveInvestments(NOTHING), "passes");
+        await truffleAssert.passes(proposalPool.getProposalInfos(0, 10), "passes");
+        await truffleAssert.passes(proposalPool.getActiveInvestmentsInfo(NOTHING, 0, 10), "passes");
+        await truffleAssert.passes(proposalPool.getRewards([0, 10], NOTHING), "passes");
+      });
+    });
+
     describe("invest", () => {
       beforeEach("setup", async () => {
         await tokens.WETH.mint(SECOND, wei("1000"));
@@ -374,6 +385,24 @@ describe("InvestTraderPool", () => {
         assert.equal((await proposalPool.totalLockedLP()).toFixed(), wei("200"));
 
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("800"));
+      });
+
+      it("should change proposal's restrictions", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        await createProposal(wei("100"), [time.plus(100000), wei("10000")]);
+
+        let info = (await proposalPool.getProposalInfos(0, 1))[0];
+
+        assert.equal(info.proposalInfo.proposalLimits.timestampLimit, time.plus(100000));
+        assert.equal(info.proposalInfo.proposalLimits.investLPLimit, wei("10000"));
+
+        await proposalPool.changeProposalRestrictions(1, [time.plus(1000000), wei("100000")]);
+
+        info = (await proposalPool.getProposalInfos(0, 1))[0];
+
+        assert.equal(info.proposalInfo.proposalLimits.timestampLimit, time.plus(1000000));
+        assert.equal(info.proposalInfo.proposalLimits.investLPLimit, wei("100000"));
       });
     });
 
@@ -484,6 +513,7 @@ describe("InvestTraderPool", () => {
 
         let info = (await proposalPool.getProposalInfos(0, 1))[0];
         assert.equal(toBN(info.totalInvestors).toFixed(), "1");
+        assert.equal(toBN(info.lp2Supply).toFixed(), toBN(info.proposalInfo.investedBase).toFixed());
         assert.closeTo(
           toBN(info.proposalInfo.newInvestedBase).toNumber(),
           toBN(wei("600")).toNumber(),
@@ -812,6 +842,7 @@ describe("InvestTraderPool", () => {
 
         let infoSecond = (await proposalPool.getActiveInvestmentsInfo(SECOND, 0, 1))[0];
 
+        assert.equal(toBN(infoSecond.baseInvested).toFixed(), toBN(infoSecond.lp2Balance).toFixed());
         assert.equal(toBN(infoSecond.lpInvested).toFixed(), wei("500"));
 
         await proposalPool.safeTransferFrom(SECOND, THIRD, 1, wei("250"), [], { from: SECOND });
@@ -881,6 +912,72 @@ describe("InvestTraderPool", () => {
           toBN(wei("250")).toNumber(),
           toBN(wei("1")).toNumber()
         );
+      });
+    });
+  });
+
+  describe("Private pool", () => {
+    let POOL_PARAMETERS;
+
+    beforeEach("setup", async () => {
+      POOL_PARAMETERS = {
+        descriptionURL: "placeholder.com",
+        trader: OWNER,
+        privatePool: true,
+        totalLPEmission: 0,
+        baseToken: tokens.WETH.address,
+        baseTokenDecimals: 18,
+        minimalInvestment: 0,
+        commissionPeriod: ComissionPeriods.PERIOD_1,
+        commissionPercentage: toBN(50).times(PRECISION).toFixed(),
+      };
+
+      [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);
+
+      await traderPool.modifyPrivateInvestors([SECOND], true);
+    });
+
+    describe("remove private investor", () => {
+      beforeEach("setup", async () => {
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await tokens.WETH.approve(uniswapV2Router.address, wei("10000000"));
+        await tokens.USDT.approve(uniswapV2Router.address, wei("10000000", 6));
+
+        await invest(wei("1000"), OWNER);
+        await exchangeFromExact(tokens.WETH.address, tokens.USDT.address, wei("100"));
+
+        await uniswapV2Router.setReserve(tokens.WETH.address, wei("1000000"));
+        await uniswapV2Router.setReserve(tokens.USDT.address, wei("1000000", 6));
+
+        await exchangeFromExact(tokens.USDT.address, tokens.WETH.address, wei("100"));
+
+        await uniswapV2Router.setReserve(tokens.WETH.address, wei("1000000"));
+        await uniswapV2Router.setReserve(tokens.USDT.address, wei("1000000", 6));
+      });
+
+      it("should not remove private investor if they invested into proposal", async () => {
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(wei("1000"), [time.plus(10000000), wei("10000")]);
+
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
+
+        await tokens.WETH.mint(SECOND, wei("500"));
+        await tokens.WETH.approve(traderPool.address, wei("500"), { from: SECOND });
+
+        await invest(wei("500"), SECOND);
+        await investProposal(1, wei("500"), SECOND);
+
+        assert.equal(toBN(await traderPool.balanceOf(SECOND)).toFixed(), "0");
+
+        assert.isFalse(await traderPool.canRemovePrivateInvestor(SECOND));
+
+        assert.equal(await traderPool.totalInvestors(), "1");
+
+        await proposalPool.safeTransferFrom(SECOND, OWNER, 1, wei("500"), [], { from: SECOND });
+
+        assert.equal(await traderPool.totalInvestors(), "0");
+
+        assert.isTrue(await traderPool.canRemovePrivateInvestor(SECOND));
       });
     });
   });

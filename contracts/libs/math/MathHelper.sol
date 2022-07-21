@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "../core/Globals.sol";
+import "../../core/Globals.sol";
 
 library MathHelper {
     /// @notice percent has to be multiplied by PRECISION

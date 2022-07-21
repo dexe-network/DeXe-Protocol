@@ -62,6 +62,9 @@ describe("PriceFeed", () => {
     it("should set and return path tokens", async () => {
       await priceFeed.addPathTokens([USD.address, DEXE.address, USD.address]);
 
+      assert.isTrue(await priceFeed.isSupportedPathToken(USD.address));
+      assert.isFalse(await priceFeed.isSupportedPathToken(SECOND));
+
       assert.equal((await priceFeed.totalPathTokens()).toFixed(), "2");
       assert.deepEqual(await priceFeed.getPathTokens(), [USD.address, DEXE.address]);
     });
@@ -87,11 +90,33 @@ describe("PriceFeed", () => {
       await uniswapV2Router.setReserve(USD.address, wei(reserveTokens.idiv(2)));
     });
 
+    it("should get zero price", async () => {
+      await uniswapV2Router.enablePair(DEXE.address, USD.address);
+
+      const pricesInfo = await priceFeed.getExtendedPriceOut(DEXE.address, USD.address, 0, []);
+
+      assert.equal(pricesInfo.amountOut.toFixed(), "0");
+      assert.deepEqual(pricesInfo.path, []);
+    });
+
+    it("should get the same price", async () => {
+      const pricesInfo = await priceFeed.getExtendedPriceOut(DEXE.address, DEXE.address, wei("1"), []);
+
+      assert.equal(pricesInfo.amountOut.toFixed(), wei("1"));
+      assert.deepEqual(pricesInfo.path, []);
+    });
+
     it("should get correct direct price and path", async () => {
       await uniswapV2Router.enablePair(DEXE.address, USD.address);
 
       const pricesInfo = await priceFeed.getExtendedPriceOut(DEXE.address, USD.address, wei("1000"), []);
+      const usdPricesInfo = await priceFeed.getNormalizedPriceOutUSD(DEXE.address, wei("1000"));
+      const dexePricesInfo = await priceFeed.getNormalizedPriceOutDEXE(USD.address, wei("250"));
+      const normPricesInfo = await priceFeed.getNormalizedExtendedPriceOut(DEXE.address, USD.address, wei("1000"), []);
 
+      assert.equal(pricesInfo.amountOut.toFixed(), normPricesInfo.amountOut.toFixed());
+      assert.equal(pricesInfo.amountOut.toFixed(), usdPricesInfo.amountOut.toFixed());
+      assert.equal(pricesInfo.amountOut.toFixed(), dexePricesInfo.amountOut.toFixed());
       assert.equal(pricesInfo.amountOut.toFixed(), wei("500"));
       assert.deepEqual(pricesInfo.path, [DEXE.address, USD.address]);
     });
@@ -187,11 +212,33 @@ describe("PriceFeed", () => {
       await uniswapV2Router.setReserve(USD.address, wei(reserveTokens.idiv(2)));
     });
 
+    it("should get zero price", async () => {
+      await uniswapV2Router.enablePair(DEXE.address, USD.address);
+
+      const pricesInfo = await priceFeed.getExtendedPriceIn(DEXE.address, USD.address, 0, []);
+
+      assert.equal(pricesInfo.amountIn.toFixed(), "0");
+      assert.deepEqual(pricesInfo.path, []);
+    });
+
+    it("should get the same price", async () => {
+      const pricesInfo = await priceFeed.getExtendedPriceIn(DEXE.address, DEXE.address, wei("1"), []);
+
+      assert.equal(pricesInfo.amountIn.toFixed(), wei("1"));
+      assert.deepEqual(pricesInfo.path, []);
+    });
+
     it("should get direct price and path", async () => {
       await uniswapV2Router.enablePair(DEXE.address, USD.address);
 
       const pricesInfo = await priceFeed.getExtendedPriceIn(DEXE.address, USD.address, wei("500"), []);
+      const usdPriceInfo = await priceFeed.getNormalizedPriceInUSD(DEXE.address, wei("500"));
+      const dexePriceInfo = await priceFeed.getNormalizedPriceInDEXE(USD.address, wei("2000"));
+      const normPricesInfo = await priceFeed.getNormalizedExtendedPriceIn(DEXE.address, USD.address, wei("500"), []);
 
+      assert.equal(pricesInfo.amountIn.toFixed(), normPricesInfo.amountIn.toFixed());
+      assert.equal(pricesInfo.amountIn.toFixed(), usdPriceInfo.amountIn.toFixed());
+      assert.equal(pricesInfo.amountIn.toFixed(), dexePriceInfo.amountIn.toFixed());
       assert.equal(pricesInfo.amountIn.toFixed(), wei("1000"));
       assert.deepEqual(pricesInfo.path, [DEXE.address, USD.address]);
     });
@@ -242,6 +289,104 @@ describe("PriceFeed", () => {
 
       assert.equal(pricesInfo.amountIn.toFixed(), wei("2000"));
       assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, USD.address]);
+    });
+  });
+
+  describe("exchange, normalized exchange", () => {
+    let WBTC;
+
+    beforeEach("setup", async () => {
+      const MANA = await ERC20Mock.new("MANA", "MANA", 18);
+      WBTC = await ERC20Mock.new("WBTC", "WBTC", 8);
+
+      await DEXE.mint(OWNER, wei(tokensToMint));
+
+      await MANA.mint(OWNER, wei(tokensToMint));
+      await WBTC.mint(OWNER, wei(tokensToMint, 8));
+
+      await DEXE.approve(uniswapV2Router.address, wei(reserveTokens));
+      await uniswapV2Router.setReserve(DEXE.address, wei(reserveTokens));
+
+      await MANA.approve(uniswapV2Router.address, wei(reserveTokens));
+      await uniswapV2Router.setReserve(MANA.address, wei(reserveTokens));
+
+      await WBTC.approve(uniswapV2Router.address, wei(reserveTokens, 8));
+      await uniswapV2Router.setReserve(WBTC.address, wei(reserveTokens, 8));
+
+      await uniswapV2Router.enablePair(DEXE.address, MANA.address);
+      await uniswapV2Router.enablePair(MANA.address, WBTC.address);
+
+      await priceFeed.addPathTokens([MANA.address]);
+    });
+
+    it("should exchange from tokens", async () => {
+      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("999000000"));
+      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("999000000", 8));
+
+      await DEXE.approve(priceFeed.address, wei("1000"));
+
+      await priceFeed.exchangeFromExact(DEXE.address, WBTC.address, wei("1000"), [], 0);
+
+      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("998999000"));
+      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("999001000", 8));
+    });
+
+    it("should exchange to tokens", async () => {
+      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("999000000"));
+      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("999000000", 8));
+
+      await DEXE.approve(priceFeed.address, wei("1000"));
+
+      await priceFeed.exchangeToExact(DEXE.address, WBTC.address, wei("1000", 8), [], wei("1000"));
+
+      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("998999000"));
+      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("999001000", 8));
+    });
+
+    it("should exchange norm from tokens", async () => {
+      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("999000000"));
+      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("999000000", 8));
+
+      await WBTC.approve(priceFeed.address, wei("1000", 8));
+
+      await priceFeed.normalizedExchangeFromExact(WBTC.address, DEXE.address, wei("1000"), [], 0);
+
+      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("999001000"));
+      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("998999000", 8));
+    });
+
+    it("should exchange norm to tokens", async () => {
+      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("999000000"));
+      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("999000000", 8));
+
+      await WBTC.approve(priceFeed.address, wei("1000", 8));
+
+      await priceFeed.normalizedExchangeToExact(WBTC.address, DEXE.address, wei("1000"), [], wei("1000"));
+
+      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("999001000"));
+      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("998999000", 8));
+    });
+
+    it("should not exchange from tokens", async () => {
+      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("999000000"));
+
+      await DEXE.approve(priceFeed.address, wei("1000"));
+
+      await priceFeed.exchangeFromExact(DEXE.address, WBTC.address, 0, [], 0);
+      await priceFeed.exchangeFromExact(DEXE.address, DEXE.address, wei("1000"), [], 0);
+
+      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("999000000"));
+    });
+
+    it("should not exchange to tokens", async () => {
+      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("999000000", 8));
+
+      await DEXE.approve(priceFeed.address, wei("1000"));
+
+      await priceFeed.exchangeToExact(DEXE.address, WBTC.address, 0, [], 0);
+      await priceFeed.exchangeToExact(WBTC.address, WBTC.address, wei("1000", 8), [], wei("1000", 8));
+
+      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("999000000", 8));
     });
   });
 

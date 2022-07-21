@@ -5,9 +5,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
-import "../interfaces/gov/settings/IGovSettings.sol";
-import "../interfaces/gov/IGovUserKeeper.sol";
 import "../interfaces/gov/IGovCreator.sol";
+import "../interfaces/gov/settings/IGovSettings.sol";
+import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
 abstract contract GovCreator is IGovCreator {
     IGovSettings public govSetting;
@@ -16,8 +16,6 @@ abstract contract GovCreator is IGovCreator {
     uint256 private _latestProposalId;
 
     mapping(uint256 => Proposal) public proposals; // proposalId => info
-
-    event ProposalCreated(uint256 id);
 
     function __GovCreator_init(address govSettingAddress, address govUserKeeperAddress) internal {
         require(govSettingAddress != address(0), "GovC: address is zero (1)");
@@ -39,7 +37,6 @@ abstract contract GovCreator is IGovCreator {
                 executors.length == data.length,
             "GovC: invalid array length"
         );
-        require(govUserKeeper.canUserParticipate(msg.sender, 1, 1), "GovC: low balance");
 
         uint256 proposalId = ++_latestProposalId;
 
@@ -61,6 +58,17 @@ abstract contract GovCreator is IGovCreator {
             settings = govSetting.getSettings(mainExecutor);
         }
 
+        require(
+            govUserKeeper.canParticipate(
+                msg.sender,
+                false,
+                !settings.delegatedVotingAllowed,
+                1,
+                1
+            ),
+            "GovC: low balance"
+        );
+
         proposals[proposalId] = Proposal({
             core: ProposalCore({
                 settings: settings,
@@ -75,8 +83,6 @@ abstract contract GovCreator is IGovCreator {
             values: values,
             data: data
         });
-
-        emit ProposalCreated(proposalId);
     }
 
     function getProposalInfo(uint256 proposalId)

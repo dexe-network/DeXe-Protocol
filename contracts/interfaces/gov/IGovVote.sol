@@ -23,81 +23,29 @@ interface IGovVote {
         EnumerableSet.UintSet nftsVoted;
     }
 
-    /// @notice Token voting
-    /// @param proposalId Proposal ID
-    /// @param amount Token amount. Wei
-    function voteTokens(uint256 proposalId, uint256 amount) external;
-
-    /// @notice Delegate token voting
-    /// @param proposalId Proposal ID
-    /// @param amount Token amount. Wei
-    /// @param holder Token holder
-    function voteDelegatedTokens(
+    function vote(
         uint256 proposalId,
-        uint256 amount,
-        address holder
+        uint256 depositAmount,
+        uint256[] calldata depositNftIds,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds
     ) external;
 
-    /// @notice NFTs voting
-    /// @param proposalId Proposal ID
-    /// @param nftIds NFTs that the user votes with
-    function voteNfts(uint256 proposalId, uint256[] calldata nftIds) external;
-
-    /// @notice NFTs voting
-    /// @param proposalId Proposal ID
-    /// @param nftIds NFTs that the user votes with
-    /// @param holder NFTs holder
-    function voteDelegatedNfts(
+    function voteDelegated(
         uint256 proposalId,
-        uint256[] calldata nftIds,
-        address holder
-    ) external;
-
-    /// @notice Unlock tokens and NFTs in all ended proposals.
-    /// @param user Voter address
-    function unlock(address user) external;
-
-    /// @notice Unlock tokens and NFTs in selected ended proposals.
-    /// @param proposalIds Proposal IDs
-    /// @param user Voter address
-    function unlockInProposals(uint256[] memory proposalIds, address user) external;
-
-    /// @notice Unlock NFTs in ended proposals
-    /// @param proposalId Proposal ID
-    /// @param user Voter address
-    /// @param nftIds NFTs to unlock
-    function unlockNfts(
-        uint256 proposalId,
-        address user,
-        uint256[] calldata nftIds
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds
     ) external;
 
     /// @notice Move proposal from internal voting to `Validators` contract
     /// @param proposalId Proposal ID
     function moveProposalToValidators(uint256 proposalId) external;
 
-    /// @notice The function to get voter's general vote info
-    /// @param proposalId Proposal ID
-    /// @param voter Voter address
-    /// @return Total voted amount in proposal, total voted amount by the voter
-    function getTotalVotes(uint256 proposalId, address voter)
-        external
-        view
-        returns (uint256, uint256);
-
-    /// @notice The function to get voter's vote info with tokens and NFT information
-    /// @param proposalId Proposal ID
-    /// @param voter Voter address
-    /// @return Total voted amount in proposal, total voted amount by address, voted tokens amount, voted NFTs
-    function getVoteInfo(uint256 proposalId, address voter)
-        external
-        view
-        returns (
-            uint256,
-            uint256,
-            uint256,
-            uint256[] memory
-        );
+    function getTotalVotes(
+        uint256 proposalId,
+        address voter,
+        bool isMicropool
+    ) external view returns (uint256, uint256);
 
     /// @param proposalId Proposal ID
     /// @return `ProposalState`:

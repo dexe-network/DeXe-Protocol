@@ -10,7 +10,7 @@ import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 import "../../interfaces/gov/IGovVote.sol";
 import "../../interfaces/gov/proposals/IDistributionProposal.sol";
 
-import "../../libs/MathHelper.sol";
+import "../../libs/math/MathHelper.sol";
 
 contract DistributionProposal is IDistributionProposal, Ownable {
     using SafeERC20 for IERC20;
@@ -27,9 +27,6 @@ contract DistributionProposal is IDistributionProposal, Ownable {
 
     /// @dev If claimed, return `true`
     mapping(address => bool) public claimed;
-
-    event DistributionStarted();
-    event Claimed(address voter, uint256 amount);
 
     modifier onlyGov() {
         require(msg.sender == govAddress, "DP: not a `Gov` contract");
@@ -61,8 +58,6 @@ contract DistributionProposal is IDistributionProposal, Ownable {
         require(proposalId != 0, "DP: proposal ID isn't set");
 
         distributionStarted = true;
-
-        emit DistributionStarted();
     }
 
     function claim(address voter) external override {
@@ -76,14 +71,13 @@ contract DistributionProposal is IDistributionProposal, Ownable {
         claimed[voter] = true;
 
         IERC20(rewardAddress).safeTransfer(voter, reward.from18(ERC20(rewardAddress).decimals()));
-
-        emit Claimed(voter, reward);
     }
 
     function getPotentialReward(address voter) public view override returns (uint256) {
         (uint256 totalVoteWeight, uint256 voteWeight) = IGovVote(govAddress).getTotalVotes(
             proposalId,
-            voter
+            voter,
+            false
         );
 
         return totalVoteWeight == 0 ? 0 : rewardAmount.ratio(voteWeight, totalVoteWeight);

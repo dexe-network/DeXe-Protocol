@@ -22,8 +22,8 @@ import "../libs/TraderPool/TraderPoolLeverage.sol";
 import "../libs/TraderPool/TraderPoolCommission.sol";
 import "../libs/TraderPool/TraderPoolExchange.sol";
 import "../libs/TraderPool/TraderPoolView.sol";
-import "../libs/TokenBalance.sol";
-import "../libs/MathHelper.sol";
+import "../libs/utils/TokenBalance.sol";
+import "../libs/math/MathHelper.sol";
 
 import "../core/Globals.sol";
 

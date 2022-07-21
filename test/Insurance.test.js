@@ -117,12 +117,14 @@ describe("Insurance", async () => {
     const deposit = toBN(wei("10"));
 
     it("should buy insurance", async () => {
+      const received = await insurance.getReceivedInsurance(deposit);
       await insurance.buyInsurance(deposit, { from: SECOND });
 
       const depositInfo = await insurance.getInsurance(SECOND);
 
-      assert.equal(deposit.toString(), depositInfo[0].toString());
-      assert.equal(insuranceFactor * deposit, depositInfo[1].toString());
+      assert.equal(deposit.toFixed(), depositInfo[0].toFixed());
+      assert.equal(insuranceFactor * deposit, depositInfo[1].toFixed());
+      assert.equal(insuranceFactor * deposit, received.toFixed());
     });
 
     it("should buyInsurance twice", async () => {
@@ -130,15 +132,15 @@ describe("Insurance", async () => {
 
       let depositInfo = await insurance.getInsurance(SECOND);
 
-      assert.equal(deposit.toString(), depositInfo[0].toString());
-      assert.equal(insuranceFactor * deposit, depositInfo[1].toString());
+      assert.equal(deposit.toFixed(), depositInfo[0].toFixed());
+      assert.equal(insuranceFactor * deposit, depositInfo[1].toFixed());
 
       await insurance.buyInsurance(deposit, { from: SECOND });
 
       depositInfo = await insurance.getInsurance(SECOND);
 
-      assert.equal(deposit.times(2).toString(), depositInfo[0].toString());
-      assert.equal(insuranceFactor * deposit.times(2), depositInfo[1].toString());
+      assert.equal(deposit.times(2).toFixed(), depositInfo[0].toFixed());
+      assert.equal(insuranceFactor * deposit.times(2), depositInfo[1].toFixed());
     });
 
     it("should revert, when try to stake less then 10", async () => {
@@ -160,9 +162,9 @@ describe("Insurance", async () => {
 
       let depositInfo = await insurance.getInsurance(SECOND);
 
-      assert.equal(0, depositInfo[0].toString());
-      assert.equal(0, depositInfo[1].toString());
-      assert.equal(balance.toString(), (await dexe.balanceOf(SECOND)).toString());
+      assert.equal(0, depositInfo[0].toFixed());
+      assert.equal(0, depositInfo[1].toFixed());
+      assert.equal(balance.toFixed(), (await dexe.balanceOf(SECOND)).toFixed());
     });
 
     it("should withdraw twice", async () => {
@@ -177,17 +179,17 @@ describe("Insurance", async () => {
 
       let depositInfo = await insurance.getInsurance(SECOND);
 
-      assert.equal(deposit.minus(withdraw), depositInfo[0].toString());
-      assert.equal(deposit.minus(withdraw) * insuranceFactor, depositInfo[1].toString());
-      assert.equal(balance.minus(deposit).plus(withdraw).toString(), (await dexe.balanceOf(SECOND)).toString());
+      assert.equal(deposit.minus(withdraw), depositInfo[0].toFixed());
+      assert.equal(deposit.minus(withdraw) * insuranceFactor, depositInfo[1].toFixed());
+      assert.equal(balance.minus(deposit).plus(withdraw).toFixed(), (await dexe.balanceOf(SECOND)).toFixed());
 
       await insurance.withdraw(deposit.minus(withdraw), { from: SECOND });
 
       depositInfo = await insurance.getInsurance(SECOND);
 
-      assert.equal(0, depositInfo[0].toString());
-      assert.equal(0, depositInfo[1].toString());
-      assert.equal(balance.toString(), (await dexe.balanceOf(SECOND)).toString());
+      assert.equal(0, depositInfo[0].toFixed());
+      assert.equal(0, depositInfo[1].toFixed());
+      assert.equal(balance.toFixed(), (await dexe.balanceOf(SECOND)).toFixed());
     });
 
     it("should revert if lock is not over", async () => {
@@ -331,6 +333,7 @@ describe("Insurance", async () => {
       let ongoingClaims1 = await insurance.listOngoingClaims(0, 10);
 
       assert.deepEqual(ongoingClaims, ongoingClaims1);
+      assert.equal(len, await insurance.ongoingClaimsCount());
       assert.equal(len, ongoingClaims.length);
       assert.equal(len, ongoingClaims1.length);
     });
@@ -413,9 +416,9 @@ describe("Insurance", async () => {
       assert.equal(RON, finishedClaims[1][0][0][1]);
       assert.equal(BOB, finishedClaims[1][0][0][2]);
 
-      assert.equal(balanceAlice.plus(finishedClaims[1][0][1][0]).toString(), (await dexe.balanceOf(ALICE)).toString());
-      assert.equal(balanceRon.plus(finishedClaims[1][0][1][1]).toString(), (await dexe.balanceOf(RON)).toString());
-      assert.equal(balanceBob.plus(finishedClaims[1][0][1][2]).toString(), (await dexe.balanceOf(BOB)).toString());
+      assert.equal(balanceAlice.plus(finishedClaims[1][0][1][0]).toFixed(), (await dexe.balanceOf(ALICE)).toFixed());
+      assert.equal(balanceRon.plus(finishedClaims[1][0][1][1]).toFixed(), (await dexe.balanceOf(RON)).toFixed());
+      assert.equal(balanceBob.plus(finishedClaims[1][0][1][2]).toFixed(), (await dexe.balanceOf(BOB)).toFixed());
 
       assert.equal(1, finishedClaims[1][0][2]);
     });
@@ -469,9 +472,9 @@ describe("Insurance", async () => {
       assert.equal(RON, finishedClaims[1][0][0][1]);
       assert.equal(BOB, finishedClaims[1][0][0][2]);
 
-      assert.equal(balanceAlice.plus(finishedClaims[1][0][1][0]).toString(), (await dexe.balanceOf(ALICE)).toString());
-      assert.equal(balanceRon.plus(finishedClaims[1][0][1][1]).toString(), (await dexe.balanceOf(RON)).toString());
-      assert.equal(balanceBob.plus(finishedClaims[1][0][1][2]).toString(), (await dexe.balanceOf(BOB)).toString());
+      assert.equal(balanceAlice.plus(finishedClaims[1][0][1][0]).toFixed(), (await dexe.balanceOf(ALICE)).toFixed());
+      assert.equal(balanceRon.plus(finishedClaims[1][0][1][1]).toFixed(), (await dexe.balanceOf(RON)).toFixed());
+      assert.equal(balanceBob.plus(finishedClaims[1][0][1][2]).toFixed(), (await dexe.balanceOf(BOB)).toFixed());
 
       assert.equal(1, finishedClaims[1][0][2]);
     });
@@ -499,14 +502,14 @@ describe("Insurance", async () => {
       assert.equal(RON, finishedClaims[1][0][0][1]);
       assert.equal(BOB, finishedClaims[1][0][0][2]);
 
-      assert.equal(balanceAlice.plus(finishedClaims[1][0][1][0]).toString(), (await dexe.balanceOf(ALICE)).toString());
-      assert.equal(balanceRon.plus(finishedClaims[1][0][1][1]).toString(), (await dexe.balanceOf(RON)).toString());
-      assert.equal(balanceBob.plus(finishedClaims[1][0][1][2]).toString(), (await dexe.balanceOf(BOB)).toString());
+      assert.equal(balanceAlice.plus(finishedClaims[1][0][1][0]).toFixed(), (await dexe.balanceOf(ALICE)).toFixed());
+      assert.equal(balanceRon.plus(finishedClaims[1][0][1][1]).toFixed(), (await dexe.balanceOf(RON)).toFixed());
+      assert.equal(balanceBob.plus(finishedClaims[1][0][1][2]).toFixed(), (await dexe.balanceOf(BOB)).toFixed());
 
       assert.equal(1, finishedClaims[1][0][2]);
     });
 
-    it("should correvtly pay when user's amounts is [60, 20, 0]", async () => {
+    it("should correctly pay when user's amounts is [60, 20, 0]", async () => {
       await dexe.transfer(insurance.address, 10000, { from: POOL });
       await insurance.receiveDexeFromPools(10000, { from: POOL });
 
@@ -529,9 +532,9 @@ describe("Insurance", async () => {
       assert.equal(RON, finishedClaims[1][0][0][1]);
       assert.equal(BOB, finishedClaims[1][0][0][2]);
 
-      assert.equal(balanceAlice.plus(finishedClaims[1][0][1][0]).toString(), (await dexe.balanceOf(ALICE)).toString());
-      assert.equal(balanceRon.plus(finishedClaims[1][0][1][1]).toString(), (await dexe.balanceOf(RON)).toString());
-      assert.equal(balanceBob.plus(finishedClaims[1][0][1][2]).toString(), (await dexe.balanceOf(BOB)).toString());
+      assert.equal(balanceAlice.plus(finishedClaims[1][0][1][0]).toFixed(), (await dexe.balanceOf(ALICE)).toFixed());
+      assert.equal(balanceRon.plus(finishedClaims[1][0][1][1]).toFixed(), (await dexe.balanceOf(RON)).toFixed());
+      assert.equal(balanceBob.plus(finishedClaims[1][0][1][2]).toFixed(), (await dexe.balanceOf(BOB)).toFixed());
 
       assert.equal(1, finishedClaims[1][0][2]);
     });
@@ -641,6 +644,7 @@ describe("Insurance", async () => {
     it("should correctly return list", async () => {
       let finishedClaims = await insurance.listFinishedClaims(0, len);
 
+      assert.equal(await insurance.finishedClaimsCount(), len);
       assert.equal(finishedClaims[0].length, len);
       assert.equal(finishedClaims[1].length, len);
       assert.equal(finishedClaims[0][0], baseURL + 0);

@@ -25,6 +25,7 @@ const getBytesExecute = () => {
 
 const INTERNAL_SETTINGS = {
   earlyCompletion: true,
+  delegatedVotingAllowed: true,
   duration: 500,
   durationValidators: 600,
   quorum: PRECISION.times("51").toFixed(),
@@ -35,6 +36,7 @@ const INTERNAL_SETTINGS = {
 
 const DEFAULT_SETTINGS = {
   earlyCompletion: false,
+  delegatedVotingAllowed: true,
   duration: 700,
   durationValidators: 800,
   quorum: PRECISION.times("71").toFixed(),
@@ -136,12 +138,12 @@ describe("DistributionProposal", () => {
       startTime = await getCurrentBlockTime();
       await proposal.setProposalId(1);
 
-      await userKeeper.depositNfts(OWNER, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      await govPool.deposit(OWNER, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
       await setTime(startTime + 999);
       await govPool.createProposal("example.com", [proposal.address], [0], [getBytesExecute()]);
 
-      await govPool.voteNfts(1, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      await govPool.vote(1, 0, [], 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
       await setTime(startTime + 2000);
       await govPool.execute(1);
@@ -162,17 +164,18 @@ describe("DistributionProposal", () => {
 
       await token.mint(proposal.address, wei("100000"));
 
-      await userKeeper.depositNfts(SECOND, [1, 2, 3, 4, 5]);
-      await userKeeper.depositNfts(THIRD, [6, 7, 8, 9]);
+      await govPool.deposit(SECOND, 0, [1, 2, 3, 4, 5]);
+      await govPool.deposit(THIRD, 0, [6, 7, 8, 9]);
 
       await setTime(startTime + 999);
       await govPool.createProposal("example.com", [proposal.address], [0], [getBytesExecute()], { from: SECOND });
+
       await proposal.setProposalId(1);
     });
 
     it("should correctly claim", async () => {
-      await govPool.voteNfts(1, [1, 2, 3, 4, 5], { from: SECOND });
-      await govPool.voteNfts(1, [6, 7, 8, 9], { from: THIRD });
+      await govPool.vote(1, 0, [], 0, [1, 2, 3, 4, 5], { from: SECOND });
+      await govPool.vote(1, 0, [], 0, [6, 7, 8, 9], { from: THIRD });
 
       await setTime(startTime + 1700);
       await govPool.execute(1);
@@ -185,8 +188,8 @@ describe("DistributionProposal", () => {
     });
 
     it("should revert if already claimed", async () => {
-      await govPool.voteNfts(1, [1, 2, 3, 4, 5], { from: SECOND });
-      await govPool.voteNfts(1, [6, 7, 8, 9], { from: THIRD });
+      await govPool.vote(1, 0, [], 0, [1, 2, 3, 4, 5], { from: SECOND });
+      await govPool.vote(1, 0, [], 0, [6, 7, 8, 9], { from: THIRD });
 
       await setTime(startTime + 1700);
       await govPool.execute(1);
@@ -197,8 +200,8 @@ describe("DistributionProposal", () => {
     });
 
     it("should revert if nothing to claim", async () => {
-      await govPool.voteNfts(1, [1, 2, 3, 4, 5], { from: SECOND });
-      await govPool.voteNfts(1, [6, 7, 8, 9], { from: THIRD });
+      await govPool.vote(1, 0, [], 0, [1, 2, 3, 4, 5], { from: SECOND });
+      await govPool.vote(1, 0, [], 0, [6, 7, 8, 9], { from: THIRD });
 
       await setTime(startTime + 1700);
       await govPool.execute(1);

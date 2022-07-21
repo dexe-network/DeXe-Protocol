@@ -15,6 +15,10 @@ contract TraderPoolMock is TraderPool {
         __TraderPool_init(name, symbol, _poolParameters);
     }
 
+    function isInvestor(address investor) external view returns (bool) {
+        return _investors.contains(investor);
+    }
+
     function getMaxTraderLeverage() public view returns (uint256 maxTraderLeverage) {
         (, maxTraderLeverage) = _poolParameters.getMaxTraderLeverage();
     }

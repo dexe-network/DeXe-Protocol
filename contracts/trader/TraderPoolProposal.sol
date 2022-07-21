@@ -15,7 +15,7 @@ import "../interfaces/trader/ITraderPoolProposal.sol";
 import "../interfaces/trader/ITraderPoolInvestorsHook.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "../libs/MathHelper.sol";
+import "../libs/math/MathHelper.sol";
 
 import "./TraderPool.sol";
 

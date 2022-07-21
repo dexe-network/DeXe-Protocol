@@ -106,8 +106,8 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
 
     /// @notice The function to get the information about the active proposals of this user
     /// @param user the user to observe
-    /// @param offset the starting index of the users array
-    /// @param limit the number of users to observe
+    /// @param offset the starting index of the invested proposals array
+    /// @param limit the number of proposals to observe
     /// @return investments the information about the currently active investments
     function getActiveInvestmentsInfo(
         address user,

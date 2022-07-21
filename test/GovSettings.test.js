@@ -10,6 +10,7 @@ const PRECISION = toBN(10).pow(25);
 
 const INTERNAL_SETTINGS = {
   earlyCompletion: true,
+  delegatedVotingAllowed: true,
   duration: 500,
   durationValidators: 600,
   quorum: PRECISION.times("51").toFixed(),
@@ -20,6 +21,7 @@ const INTERNAL_SETTINGS = {
 
 const DEFAULT_SETTINGS = {
   earlyCompletion: false,
+  delegatedVotingAllowed: true,
   duration: 700,
   durationValidators: 800,
   quorum: PRECISION.times("71").toFixed(),
@@ -56,6 +58,7 @@ describe("GovSettings", () => {
       const internalSettings = await settings.settings(1);
 
       assert.isTrue(internalSettings.earlyCompletion);
+      assert.isTrue(internalSettings.delegatedVotingAllowed);
       assert.equal(internalSettings.duration, 500);
       assert.equal(internalSettings.durationValidators, 600);
       assert.equal(internalSettings.quorum.toFixed(), PRECISION.times("51").toFixed());
@@ -66,6 +69,7 @@ describe("GovSettings", () => {
       const defaultSettings = await settings.settings(2);
 
       assert.isFalse(defaultSettings.earlyCompletion);
+      assert.isTrue(internalSettings.delegatedVotingAllowed);
       assert.equal(defaultSettings.duration, 700);
       assert.equal(defaultSettings.durationValidators, 800);
       assert.equal(defaultSettings.quorum.toFixed(), PRECISION.times("71").toFixed());
@@ -81,6 +85,7 @@ describe("GovSettings", () => {
     it("should add two settings", async () => {
       const newSettings1 = {
         earlyCompletion: false,
+        delegatedVotingAllowed: true,
         duration: 50,
         durationValidators: 100,
         quorum: toPercent("1"),
@@ -91,6 +96,7 @@ describe("GovSettings", () => {
 
       const newSettings2 = {
         earlyCompletion: true,
+        delegatedVotingAllowed: false,
         duration: 150,
         durationValidators: 120,
         quorum: toPercent("2"),
@@ -105,6 +111,7 @@ describe("GovSettings", () => {
       const settings2 = await settings.settings(4);
 
       assert.equal(settings1.earlyCompletion, newSettings1.earlyCompletion);
+      assert.equal(settings1.delegatedVotingAllowed, newSettings1.delegatedVotingAllowed);
       assert.equal(settings1.duration.toString(), newSettings1.duration);
       assert.equal(settings1.durationValidators, newSettings1.durationValidators);
       assert.equal(settings1.quorum.toString(), toBN(newSettings1.quorum));
@@ -113,6 +120,7 @@ describe("GovSettings", () => {
       assert.equal(settings1.minNftBalance, newSettings1.minNftBalance);
 
       assert.equal(settings2.earlyCompletion, newSettings2.earlyCompletion);
+      assert.equal(settings2.delegatedVotingAllowed, newSettings2.delegatedVotingAllowed);
       assert.equal(settings2.duration.toString(), newSettings2.duration);
       assert.equal(settings2.durationValidators, newSettings2.durationValidators);
       assert.equal(settings2.quorum.toString(), toBN(newSettings2.quorum));
@@ -126,6 +134,7 @@ describe("GovSettings", () => {
     it("should revert if invalid vote duration value", async () => {
       const newSettings = {
         earlyCompletion: false,
+        delegatedVotingAllowed: false,
         duration: 0,
         durationValidators: 100,
         quorum: toPercent("1"),
@@ -140,6 +149,7 @@ describe("GovSettings", () => {
     it("should revert if invalid quorum value", async () => {
       const newSettings = {
         earlyCompletion: false,
+        delegatedVotingAllowed: false,
         duration: 50,
         durationValidators: 100,
         quorum: toPercent("100.0001"),
@@ -154,6 +164,7 @@ describe("GovSettings", () => {
     it("should revert if invalid quorum value", async () => {
       const newSettings = {
         earlyCompletion: false,
+        delegatedVotingAllowed: false,
         duration: 50,
         durationValidators: 0,
         quorum: toPercent("1"),
@@ -171,6 +182,7 @@ describe("GovSettings", () => {
     it("should revert if invalid quorum value", async () => {
       const newSettings = {
         earlyCompletion: false,
+        delegatedVotingAllowed: false,
         duration: 50,
         durationValidators: 100,
         quorum: toPercent("1"),
@@ -187,6 +199,7 @@ describe("GovSettings", () => {
     it("should edit existed settings", async () => {
       const newSettings1 = {
         earlyCompletion: false,
+        delegatedVotingAllowed: false,
         duration: 50,
         durationValidators: 100,
         quorum: toPercent("1"),
@@ -200,6 +213,7 @@ describe("GovSettings", () => {
       const internalSettings = await settings.settings(1);
 
       assert.isFalse(internalSettings.earlyCompletion);
+      assert.isFalse(internalSettings.delegatedVotingAllowed);
       assert.equal(internalSettings.duration, newSettings1.duration);
       assert.equal(internalSettings.durationValidators, newSettings1.durationValidators);
       assert.equal(internalSettings.quorum.toFixed(), newSettings1.quorum);
@@ -210,6 +224,7 @@ describe("GovSettings", () => {
       const defaultSettings = await settings.settings(2);
 
       assert.isFalse(defaultSettings.earlyCompletion);
+      assert.isFalse(defaultSettings.delegatedVotingAllowed);
       assert.equal(defaultSettings.duration, newSettings1.duration);
       assert.equal(defaultSettings.durationValidators, newSettings1.durationValidators);
       assert.equal(defaultSettings.quorum.toFixed(), newSettings1.quorum);
@@ -221,6 +236,7 @@ describe("GovSettings", () => {
     it("should skip editing nonexistent settings", async () => {
       const newSettings1 = {
         earlyCompletion: false,
+        delegatedVotingAllowed: false,
         duration: 50,
         durationValidators: 100,
         quorum: toPercent("1"),
@@ -232,7 +248,9 @@ describe("GovSettings", () => {
       await settings.editSettings([1, 4], [newSettings1, newSettings1]);
 
       const internalSettings = await settings.settings(1);
+
       assert.isFalse(internalSettings.earlyCompletion);
+      assert.isFalse(internalSettings.delegatedVotingAllowed);
       assert.equal(internalSettings.duration, newSettings1.duration);
       assert.equal(internalSettings.durationValidators, newSettings1.durationValidators);
       assert.equal(internalSettings.quorum.toFixed(), newSettings1.quorum);
@@ -241,7 +259,9 @@ describe("GovSettings", () => {
       assert.equal(internalSettings.minNftBalance, newSettings1.minNftBalance);
 
       const newSettings = await settings.settings(4);
+
       assert.isFalse(newSettings.earlyCompletion);
+      assert.isFalse(newSettings.delegatedVotingAllowed);
       assert.equal(newSettings.duration, 0);
       assert.equal(newSettings.durationValidators, 0);
       assert.equal(newSettings.quorum.toFixed(), 0);
@@ -278,6 +298,7 @@ describe("GovSettings", () => {
     it("should return info about executor", async () => {
       const newSettings1 = {
         earlyCompletion: false,
+        delegatedVotingAllowed: false,
         duration: 50,
         durationValidators: 100,
         quorum: toPercent("1"),
@@ -290,6 +311,7 @@ describe("GovSettings", () => {
       await settings.changeExecutors([EXECUTOR1], [3]);
 
       const executorInfo = await settings.executorInfo(EXECUTOR1);
+
       assert.equal(executorInfo[0].toString(), 3);
       assert.isFalse(executorInfo[1]);
       assert.isTrue(executorInfo[2]);
@@ -297,6 +319,7 @@ describe("GovSettings", () => {
 
     it("should return info about internal executor", async () => {
       const executorInfo = await settings.executorInfo(settings.address);
+
       assert.equal(executorInfo[0].toString(), 1);
       assert.isTrue(executorInfo[1]);
       assert.isTrue(executorInfo[2]);
@@ -304,6 +327,7 @@ describe("GovSettings", () => {
 
     it("should return info about nonexistent executor", async () => {
       const executorInfo = await settings.executorInfo(EXECUTOR1);
+
       assert.equal(executorInfo[0].toString(), 0);
       assert.isFalse(executorInfo[1]);
       assert.isFalse(executorInfo[2]);
@@ -314,6 +338,7 @@ describe("GovSettings", () => {
     it("should return setting for executor", async () => {
       const newSettings1 = {
         earlyCompletion: false,
+        delegatedVotingAllowed: false,
         duration: 50,
         durationValidators: 100,
         quorum: toPercent("1"),
@@ -326,23 +351,29 @@ describe("GovSettings", () => {
       await settings.changeExecutors([EXECUTOR1], [3]);
 
       const executorSettings = await settings.getSettings(EXECUTOR1);
+
       assert.isFalse(executorSettings[0]);
-      assert.equal(executorSettings[1].toString(), 50);
-      assert.equal(executorSettings[2].toString(), 100);
+      assert.isFalse(executorSettings[1]);
+      assert.equal(executorSettings[2].toString(), 50);
+      assert.equal(executorSettings[3].toString(), 100);
     });
 
     it("should return setting for internal executor", async () => {
       const internalSettings = await settings.getSettings(settings.address);
+
       assert.isTrue(internalSettings[0]);
-      assert.equal(internalSettings[1], 500);
-      assert.equal(internalSettings[2], 600);
+      assert.isTrue(internalSettings[1]);
+      assert.equal(internalSettings[2], 500);
+      assert.equal(internalSettings[3], 600);
     });
 
     it("should return setting for nonexistent executor", async () => {
       const nonexistent = await settings.getSettings(EXECUTOR1);
+
       assert.isFalse(nonexistent[0]);
-      assert.equal(nonexistent[1], 700);
-      assert.equal(nonexistent[2], 800);
+      assert.isTrue(nonexistent[1]);
+      assert.equal(nonexistent[2], 700);
+      assert.equal(nonexistent[3], 800);
     });
   });
 });

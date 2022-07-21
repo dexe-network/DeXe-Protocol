@@ -8,7 +8,7 @@ import "../../interfaces/trader/ITraderPoolInvestProposal.sol";
 import "../../interfaces/core/IPriceFeed.sol";
 
 import "../PriceFeed/PriceFeedLocal.sol";
-import "../../libs/MathHelper.sol";
+import "../../libs/math/MathHelper.sol";
 
 import "../../trader/TraderPoolInvestProposal.sol";
 
@@ -33,6 +33,9 @@ library TraderPoolInvestProposalView {
 
         for (uint256 i = offset; i < to; i++) {
             proposals[i - offset].proposalInfo = proposalInfos[i + 1];
+            proposals[i - offset].lp2Supply = TraderPoolInvestProposal(address(this)).totalSupply(
+                i + 1
+            );
             proposals[i - offset].totalInvestors = investors[i + 1].length();
         }
     }
@@ -76,7 +79,7 @@ library TraderPoolInvestProposalView {
         for (uint256 i = 0; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
 
-            if (proposalId > proposalsTotalNum) {
+            if (proposalId == 0 || proposalId > proposalsTotalNum) {
                 continue;
             }
 

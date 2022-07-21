@@ -11,7 +11,7 @@ import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
 import "../../interfaces/gov/ERC721/IERC721Power.sol";
 
-import "../../libs/MathHelper.sol";
+import "../../libs/math/MathHelper.sol";
 
 import "../../core/Globals.sol";
 
@@ -241,11 +241,11 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         return currentPower;
     }
 
-    function setBaseUri(string calldata uri) external onlyOwner {
+    function setBaseUri(string calldata uri) external override onlyOwner {
         baseURI = uri;
     }
 
-    function withdrawStuckERC20(address token, address to) external onlyOwner {
+    function withdrawStuckERC20(address token, address to) external override onlyOwner {
         uint256 toWithdraw = IERC20(token).balanceOf(address(this));
 
         if (token == collateralToken) {

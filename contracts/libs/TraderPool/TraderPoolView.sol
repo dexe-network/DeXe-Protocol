@@ -16,8 +16,8 @@ import "../../trader/TraderPool.sol";
 import "./TraderPoolPrice.sol";
 import "./TraderPoolCommission.sol";
 import "./TraderPoolLeverage.sol";
-import "../MathHelper.sol";
-import "../TokenBalance.sol";
+import "../math/MathHelper.sol";
+import "../utils/TokenBalance.sol";
 import "../PriceFeed/PriceFeedLocal.sol";
 
 library TraderPoolView {
@@ -78,25 +78,25 @@ library TraderPoolView {
         receptions.receivedAmounts = new uint256[](positionTokens.length);
 
         if (totalBase > 0) {
+            IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
+
             receptions.baseAmount = currentBaseAmount.ratio(amountInBaseToInvest, totalBase);
             receptions.lpAmount = receptions.lpAmount.ratio(
                 IERC20(address(this)).totalSupply(),
                 totalBase
             );
-        }
 
-        IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
-
-        for (uint256 i = 0; i < positionTokens.length; i++) {
-            receptions.givenAmounts[i] = positionPricesInBase[i].ratio(
-                amountInBaseToInvest,
-                totalBase
-            );
-            receptions.receivedAmounts[i] = priceFeed.getNormPriceOut(
-                poolParameters.baseToken,
-                positionTokens[i],
-                receptions.givenAmounts[i]
-            );
+            for (uint256 i = 0; i < positionTokens.length; i++) {
+                receptions.givenAmounts[i] = positionPricesInBase[i].ratio(
+                    amountInBaseToInvest,
+                    totalBase
+                );
+                receptions.receivedAmounts[i] = priceFeed.getNormPriceOut(
+                    poolParameters.baseToken,
+                    positionTokens[i],
+                    receptions.givenAmounts[i]
+                );
+            }
         }
     }
 

@@ -35,9 +35,11 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
 
     /// @notice The struct that holds extra information about this proposal
     /// @param proposalInfo the information about this proposal
+    /// @param lp2Supply the total supply of LP2 tokens
     /// @param totalInvestors the number of investors currently in this proposal
     struct ProposalInfoExtended {
         ProposalInfo proposalInfo;
+        uint256 lp2Supply;
         uint256 totalInvestors;
     }
 
@@ -108,8 +110,8 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
 
     /// @notice The function to get the information about the active proposals of this user
     /// @param user the user to observe
-    /// @param offset the starting index of the users array
-    /// @param limit the number of users to observe
+    /// @param offset the starting index of the invested proposals array
+    /// @param limit the number of proposals to observe
     /// @return investments the information about the currently active investments
     function getActiveInvestmentsInfo(
         address user,

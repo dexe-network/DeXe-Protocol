@@ -1,6 +1,8 @@
 const ethSigUtil = require("@metamask/eth-sig-util");
 const { assert } = require("chai");
+const { web3 } = require("hardhat");
 const { accounts } = require("../scripts/helpers/utils");
+const truffleAssert = require("truffle-assertions");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const UserRegistry = artifacts.require("UserRegistry");
@@ -12,14 +14,11 @@ describe("UserRegistry", () => {
   let OWNER;
   let OWNER_PRIVATE_KEY = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
-  let SECOND;
-
   let userRegistry;
   let userRegistryName;
 
   before("setup", async () => {
     OWNER = await accounts(0);
-    SECOND = await accounts(1);
   });
 
   beforeEach("setup", async () => {
@@ -76,13 +75,25 @@ describe("UserRegistry", () => {
 
   describe("Privacy Policy signature", () => {
     it("should sign the privacy policy", async () => {
-      const docHash = await web3.utils.soliditySha3("Privacy Policy document content");
+      const docHash = web3.utils.soliditySha3("Privacy Policy document content");
       const signature = await sign(docHash, OWNER_PRIVATE_KEY);
+
+      assert.isFalse(await userRegistry.agreed(OWNER));
 
       await userRegistry.setPrivacyPolicyDocumentHash(docHash);
       await userRegistry.agreeToPrivacyPolicy(signature);
 
+      assert.equal(await userRegistry.documentHash(), docHash);
       assert.isTrue(await userRegistry.agreed(OWNER));
+    });
+
+    it("should not agree to wrong policy", async () => {
+      const docHash = web3.utils.soliditySha3("Privacy Policy document content");
+      const wrongDocHash = web3.utils.soliditySha3("BAD DOC");
+      const signature = await sign(wrongDocHash, OWNER_PRIVATE_KEY);
+
+      await userRegistry.setPrivacyPolicyDocumentHash(docHash);
+      await truffleAssert.reverts(userRegistry.agreeToPrivacyPolicy(signature), "UserRegistry: invalid signature");
     });
   });
 
@@ -92,6 +103,19 @@ describe("UserRegistry", () => {
 
       await userRegistry.changeProfile("example.com");
 
+      assert.equal((await userRegistry.userInfos(OWNER)).profileURL, "example.com");
+    });
+  });
+
+  describe("Profile & policy", () => {
+    it("should set new profile and agree to policy", async () => {
+      const docHash = web3.utils.soliditySha3("Privacy Policy document content");
+      const signature = await sign(docHash, OWNER_PRIVATE_KEY);
+
+      await userRegistry.setPrivacyPolicyDocumentHash(docHash);
+      await userRegistry.changeProfileAndAgreeToPrivacyPolicy("example.com", signature);
+
+      assert.isTrue(await userRegistry.agreed(OWNER));
       assert.equal((await userRegistry.userInfos(OWNER)).profileURL, "example.com");
     });
   });

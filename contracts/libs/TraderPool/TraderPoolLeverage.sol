@@ -9,7 +9,7 @@ import "../../interfaces/core/IPriceFeed.sol";
 import "../../interfaces/core/ICoreProperties.sol";
 
 import "./TraderPoolPrice.sol";
-import "../../libs/MathHelper.sol";
+import "../../libs/math/MathHelper.sol";
 
 library TraderPoolLeverage {
     using MathHelper for uint256;
