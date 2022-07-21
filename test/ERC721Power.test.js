@@ -180,8 +180,17 @@ describe("ERC721Power", () => {
   });
 
   describe("setBaseUri()", () => {
+    beforeEach(async () => {
+      await nft.setRequiredCollateral("540");
+      await nft.setMaxPower(toPercent("90"));
+
+      await nft.safeMint(SECOND, 1);
+    });
+
     it("should correctly set base uri", async () => {
       await nft.setBaseUri("placeholder");
+
+      assert.equal(await nft.tokenURI(1), "placeholder1");
       assert.equal(await nft.baseURI(), "placeholder");
     });
   });
@@ -204,6 +213,7 @@ describe("ERC721Power", () => {
       await setTime(startTime + 900);
 
       await nft.recalculateNftPower("1");
+
       let infos = await nft.nftInfos("1");
       assert.equal(infos.lastUpdate, "0");
       assert.equal(infos.currentPower, "0");
@@ -211,6 +221,7 @@ describe("ERC721Power", () => {
 
       await setTime(startTime + 1000);
       await nft.recalculateNftPower("1");
+
       infos = await nft.nftInfos("1");
       assert.equal(infos.lastUpdate.toString(), startTime + 1001);
       assert.equal(toBN(infos.currentPower).toString(), toPercent("89.991").toString());

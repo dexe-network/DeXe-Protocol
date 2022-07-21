@@ -420,14 +420,20 @@ describe("GovValidators", () => {
       });
 
       it("should correctly execute `ChangeBalances` proposal", async () => {
-        await validators.createInternalProposal(3, [wei("50")], [SECOND], { from: SECOND });
+        assert.isFalse(await validators.isQuorumReached(1, true));
+
+        await validators.createInternalProposal(3, [wei("200")], [SECOND], { from: SECOND });
         await validators.vote(1, wei("200"), true, { from: THIRD });
+
+        assert.isTrue(await validators.isQuorumReached(1, true));
+
         await validators.execute(1);
 
-        assert.equal((await validatorsToken.balanceOf(SECOND)).toFixed(), wei("50"));
+        assert.equal((await validatorsToken.balanceOf(SECOND)).toFixed(), wei("200"));
 
         await validators.createInternalProposal(3, [wei("0")], [SECOND], { from: SECOND });
         await validators.vote(2, wei("200"), true, { from: THIRD });
+        await validators.vote(2, wei("100"), true, { from: SECOND });
         await validators.execute(2);
 
         assert.equal(await validatorsToken.balanceOf(SECOND), wei("0"));

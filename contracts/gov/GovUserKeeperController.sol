@@ -84,7 +84,7 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
         external
         view
         override
-        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts)
+        returns (uint256 undelegateableTokens, ShrinkableArray.UintArray memory undelegateableNfts)
     {
         (
             ShrinkableArray.UintArray memory unlockedIds,
@@ -116,7 +116,11 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
 
             ProposalState state = _getProposalState(proposals[proposalId].core);
 
-            if (state == ProposalState.Succeeded || state == ProposalState.Defeated) {
+            if (
+                state == ProposalState.Executed ||
+                state == ProposalState.Succeeded ||
+                state == ProposalState.Defeated
+            ) {
                 unlockedProposals[unlockedLength++] = proposalId;
             } else {
                 lockedProposals[lockedLength++] = proposalId;
@@ -170,7 +174,11 @@ abstract contract GovUserKeeperController is IGovUserKeeperController, GovFee {
 
             ProposalState state = _getProposalState(proposals[proposalIds[i]].core);
 
-            if (state != ProposalState.Succeeded && state != ProposalState.Defeated) {
+            if (
+                state != ProposalState.Executed &&
+                state != ProposalState.Succeeded &&
+                state != ProposalState.Defeated
+            ) {
                 continue;
             }
 
