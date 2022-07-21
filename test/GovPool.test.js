@@ -939,6 +939,10 @@ describe("GovPool", () => {
           assert.isTrue((await govPool.proposals(1)).core.executed);
         });
 
+        it("should not execute random proposals", async () => {
+          await truffleAssert.reverts(govPool.execute(1), "Gov: invalid proposal status");
+        });
+
         it("should change settings then full vote", async () => {
           const bytes = getBytesEditSettings([1], [NEW_INTERNAL_SETTINGS]);
 
