@@ -11,6 +11,10 @@ class Verifier {
           address: contractAddr,
           constructorArguments: args,
         });
+
+        await hre.run("compile", {
+          quiet: true,
+        });
       } catch (e) {
         console.log(e.message);
       }

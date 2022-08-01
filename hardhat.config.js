@@ -27,7 +27,7 @@ module.exports = {
       url: "https://data-seed-prebsc-1-s1.binance.org:8545",
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       gasMultiplier: 1.2,
-      timeout: 60000,
+      timeout: 600000,
     },
     bsc_mainnet: {
       url: "https://bsc-dataseed.binance.org/",
