@@ -92,21 +92,18 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         return settings[settingsId].duration > 0;
     }
 
-    function executorInfo(address executor)
-        public
-        view
-        returns (
-            uint256,
-            bool,
-            bool
-        )
-    {
+    function executorInfo(address executor) public view returns (uint256, ExecutorType) {
         uint256 settingsId = executorToSettings[executor];
 
-        return
-            settingsId == 0
-                ? (0, false, false)
-                : (settingsId, settingsId == _INTERNAL_SETTINGS_ID, _settingsExist(settingsId));
+        if (settingsId == 0) {
+            return (0, ExecutorType.NONE);
+        } else if (settingsId == _INTERNAL_SETTINGS_ID) {
+            return (settingsId, ExecutorType.INTERNAL);
+        } else if (_settingsExist(settingsId)) {
+            return (settingsId, ExecutorType.TRUSTED);
+        } else {
+            return (settingsId, ExecutorType.DISTRIBUTION);
+        }
     }
 
     function getDefaultSettings() external view override returns (ProposalSettings memory) {
@@ -119,13 +116,11 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         override
         returns (ProposalSettings memory)
     {
-        (uint256 settingsId, bool isInternal, bool isSettingsSet) = executorInfo(executor);
+        (uint256 settingsId, ExecutorType executorType) = executorInfo(executor);
 
-        if (isInternal) {
+        if (executorType == ExecutorType.INTERNAL) {
             return settings[_INTERNAL_SETTINGS_ID];
-        }
-
-        if (isSettingsSet) {
+        } else if (executorType == ExecutorType.TRUSTED) {
             return settings[settingsId];
         }
 

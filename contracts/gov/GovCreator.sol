@@ -41,14 +41,14 @@ abstract contract GovCreator is IGovCreator {
         uint256 proposalId = ++_latestProposalId;
 
         address mainExecutor = executors[executors.length - 1];
-        (, bool isInternal, bool trustedExecutor) = govSetting.executorInfo(mainExecutor);
+        (, IGovSettings.ExecutorType executorType) = govSetting.executorInfo(mainExecutor);
 
         bool forceDefaultSettings;
         IGovSettings.ProposalSettings memory settings;
 
-        if (isInternal) {
+        if (executorType == IGovSettings.ExecutorType.INTERNAL) {
             executors = _handleExecutorsAndDataForInternalProposal(executors, values, data);
-        } else if (trustedExecutor) {
+        } else if (executorType == IGovSettings.ExecutorType.TRUSTED) {
             forceDefaultSettings = _handleDataForExistingSettingsProposal(values, data);
         }
 

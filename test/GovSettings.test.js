@@ -313,24 +313,21 @@ describe("GovSettings", () => {
       const executorInfo = await settings.executorInfo(EXECUTOR1);
 
       assert.equal(executorInfo[0].toString(), 3);
-      assert.isFalse(executorInfo[1]);
-      assert.isTrue(executorInfo[2]);
+      assert.equal(executorInfo[1].toFixed(), "3");
     });
 
     it("should return info about internal executor", async () => {
       const executorInfo = await settings.executorInfo(settings.address);
 
       assert.equal(executorInfo[0].toString(), 1);
-      assert.isTrue(executorInfo[1]);
-      assert.isTrue(executorInfo[2]);
+      assert.equal(executorInfo[1].toFixed(), "1");
     });
 
     it("should return info about nonexistent executor", async () => {
       const executorInfo = await settings.executorInfo(EXECUTOR1);
 
       assert.equal(executorInfo[0].toString(), 0);
-      assert.isFalse(executorInfo[1]);
-      assert.isFalse(executorInfo[2]);
+      assert.equal(executorInfo[1].toFixed(), "0");
     });
   });
 
