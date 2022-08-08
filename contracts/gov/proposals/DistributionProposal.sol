@@ -18,62 +18,60 @@ contract DistributionProposal is IDistributionProposal, Ownable {
     using DecimalsConverter for uint256;
 
     address public govAddress;
-    uint256 public proposalId;
 
-    address public rewardAddress;
-    uint256 public rewardAmount;
-
-    bool public distributionStarted;
-
-    /// @dev If claimed, return `true`
-    mapping(address => bool) public claimed;
+    mapping(uint256 => IDistributionProposal.DistributionProposalStruct) proposals;
 
     modifier onlyGov() {
         require(msg.sender == govAddress, "DP: not a `Gov` contract");
         _;
     }
 
-    constructor(
-        address _govAddress,
-        address _rewardAddress,
-        uint256 _rewardAmount
-    ) {
+    constructor(address _govAddress) {
         require(_govAddress != address(0), "DP: `_govAddress` is zero");
-        require(_rewardAddress != address(0), "DP: `_rewardAddress` is zero");
-        require(_rewardAmount != 0, "DP: `_rewardAmount` is zero");
 
         govAddress = _govAddress;
-        rewardAddress = _rewardAddress;
-        rewardAmount = _rewardAmount;
     }
 
-    function setProposalId(uint256 _proposalId) external override onlyOwner {
-        require(proposalId == 0, "DP: already set up");
-        require(_proposalId != 0, "DP: `_proposalId` is zero");
+    function execute(
+        uint256 proposalId,
+        address token,
+        uint256 amount
+    ) external override onlyGov {
+        require(proposals[proposalId].rewardAddress != address(0), "DP: proposal already exist");
+        require(token != address(0), "DP: zero address");
+        require(amount > 0, "DP: zero amount");
 
-        proposalId = _proposalId;
+        proposals[proposalId].rewardAddress = token;
+        proposals[proposalId].rewardAmount = amount;
     }
 
-    function execute() external override onlyGov {
-        require(proposalId != 0, "DP: proposal ID isn't set");
+    function claim(address voter, uint256[] calldata proposalIds) external override {
+        require(proposalIds.length > 0, "DP: zero array length");
+        require(voter != address(0), "DP: zero address");
 
-        distributionStarted = true;
+        for (uint256 i; i < proposalIds.length; i++) {
+            DistributionProposalStruct storage dpInfo = proposals[proposalIds[i]];
+            address rewardAddress = dpInfo.rewardAddress;
+
+            if (rewardAddress != address(0)) {
+                uint256 reward = getPotentialReward(voter, proposalIds[i], dpInfo.rewardAmount);
+
+                if (reward > 0) {
+                    dpInfo.claimed[voter] = true;
+                    IERC20(rewardAddress).safeTransfer(
+                        voter,
+                        reward.from18(ERC20(rewardAddress).decimals())
+                    );
+                }
+            }
+        }
     }
 
-    function claim(address voter) external override {
-        require(distributionStarted, "DP: distribution hasn't started yet");
-        require(!claimed[voter], "DP: already claimed");
-
-        uint256 reward = getPotentialReward(voter);
-
-        require(reward != 0, "DP: nothing to claim");
-
-        claimed[voter] = true;
-
-        IERC20(rewardAddress).safeTransfer(voter, reward.from18(ERC20(rewardAddress).decimals()));
-    }
-
-    function getPotentialReward(address voter) public view override returns (uint256) {
+    function getPotentialReward(
+        address voter,
+        uint256 proposalId,
+        uint256 rewardAmount
+    ) public view override returns (uint256) {
         (uint256 totalVoteWeight, uint256 voteWeight) = IGovVote(govAddress).getTotalVotes(
             proposalId,
             voter,

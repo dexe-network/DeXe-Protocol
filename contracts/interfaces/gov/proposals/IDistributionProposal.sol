@@ -6,18 +6,29 @@ pragma solidity ^0.8.4;
  * all the voters who participated in the certain proposal
  */
 interface IDistributionProposal {
-    /// @notice Once, set proposal ID to contract
-    /// @param proposalId Proposal ID from `Gov` contract
-    function setProposalId(uint256 proposalId) external;
+    struct DistributionProposalStruct {
+        address rewardAddress;
+        uint256 rewardAmount;
+        /// @dev If claimed, return `true`
+        mapping(address => bool) claimed;
+    }
 
     /// @notice Executed by `Gov` contract, open 'claim'
-    function execute() external;
+    function execute(
+        uint256 proposalId,
+        address token,
+        uint256 amount
+    ) external;
 
     /// @notice Distribute rewards
     /// @param voter Voter address
-    function claim(address voter) external;
+    function claim(address voter, uint256[] calldata proposalIds) external;
 
     /// @notice Return potential reward. If user isn't vote, or `getTotalVotesWeight` is zero, return zero
     /// @param voter Voter address
-    function getPotentialReward(address voter) external view returns (uint256);
+    function getPotentialReward(
+        address voter,
+        uint256 proposalId,
+        uint256 rewardAmount
+    ) external view returns (uint256);
 }
