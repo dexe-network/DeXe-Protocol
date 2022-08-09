@@ -120,7 +120,9 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
 
         if (executorType == ExecutorType.INTERNAL) {
             return settings[_INTERNAL_SETTINGS_ID];
-        } else if (executorType == ExecutorType.TRUSTED) {
+        } else if (
+            executorType == ExecutorType.TRUSTED || executorType == ExecutorType.DISTRIBUTION
+        ) {
             return settings[settingsId];
         }
 

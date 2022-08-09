@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
@@ -12,7 +12,7 @@ import "../../interfaces/gov/proposals/IDistributionProposal.sol";
 
 import "../../libs/math/MathHelper.sol";
 
-contract DistributionProposal is IDistributionProposal, Ownable {
+contract DistributionProposal is IDistributionProposal, OwnableUpgradeable {
     using SafeERC20 for IERC20;
     using MathHelper for uint256;
     using DecimalsConverter for uint256;
@@ -26,7 +26,8 @@ contract DistributionProposal is IDistributionProposal, Ownable {
         _;
     }
 
-    constructor(address _govAddress) {
+    function __DistributionProposal_init(address _govAddress) external initializer {
+        __Ownable_init();
         require(_govAddress != address(0), "DP: `_govAddress` is zero");
 
         govAddress = _govAddress;

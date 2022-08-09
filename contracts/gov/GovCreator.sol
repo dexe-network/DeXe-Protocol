@@ -13,16 +13,24 @@ abstract contract GovCreator is IGovCreator {
     IGovSettings public govSetting;
     IGovUserKeeper public govUserKeeper;
 
+    address public distributionProposal;
+
     uint256 private _latestProposalId;
 
     mapping(uint256 => Proposal) public proposals; // proposalId => info
 
-    function __GovCreator_init(address govSettingAddress, address govUserKeeperAddress) internal {
+    function __GovCreator_init(
+        address govSettingAddress,
+        address govUserKeeperAddress,
+        address distributionProposalAddress
+    ) internal {
         require(govSettingAddress != address(0), "GovC: address is zero (1)");
         require(govUserKeeperAddress != address(0), "GovC: address is zero (2)");
 
         govSetting = IGovSettings(govSettingAddress);
         govUserKeeper = IGovUserKeeper(govUserKeeperAddress);
+
+        distributionProposal = distributionProposalAddress;
     }
 
     function createProposal(
@@ -50,6 +58,8 @@ abstract contract GovCreator is IGovCreator {
             executors = _handleExecutorsAndDataForInternalProposal(executors, values, data);
         } else if (executorType == IGovSettings.ExecutorType.TRUSTED) {
             forceDefaultSettings = _handleDataForExistingSettingsProposal(values, data);
+        } else if (executorType == IGovSettings.ExecutorType.DISTRIBUTION) {
+            _handleDataForDistributionProposal(executors, values, data);
         }
 
         if (forceDefaultSettings) {
@@ -136,6 +146,25 @@ abstract contract GovCreator is IGovCreator {
         }
 
         return false;
+    }
+
+    function _handleDataForDistributionProposal(
+        address[] memory executors,
+        uint256[] calldata values,
+        bytes[] calldata data
+    ) private view {
+        require(distributionProposal == executors[executors.length - 1], "GovC: invalid executor");
+
+        for (uint256 i; i < data.length - 1; i++) {
+            bytes4 selector = _getSelector(data[i]);
+
+            require(
+                (values[i] == 0 && selector != IERC20.approve.selector) ||
+                    selector != IERC20.transfer.selector ||
+                    selector != IERC20.transferFrom.selector,
+                "GovC: invalid internal data"
+            );
+        }
     }
 
     function _getSelector(bytes calldata data) private pure returns (bytes4 selector) {
