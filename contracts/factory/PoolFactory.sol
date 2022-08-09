@@ -70,14 +70,13 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
                 address(_govPoolRegistry),
                 _govPoolRegistry.VALIDATORS_NAME()
             );
-        }
-
-        address dpProxy;
-
-        if (withDistributionProposal) {
-            dpProxy = _deploy(
-                address(_govPoolRegistry),
-                _govPoolRegistry.DISTRIBUTION_PROPOSAL_NAME()
+            GovValidators(validatorsProxy).__GovValidators_init(
+                parameters.validatorsParams.name,
+                parameters.validatorsParams.symbol,
+                parameters.validatorsParams.duration,
+                parameters.validatorsParams.quorum,
+                parameters.validatorsParams.validators,
+                parameters.validatorsParams.balances
             );
         }
 
@@ -86,6 +85,15 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             _govPoolRegistry.USER_KEEPER_NAME()
         );
         address poolProxy = _deploy(address(_govPoolRegistry), poolType);
+
+        address dpProxy;
+        if (withDistributionProposal) {
+            dpProxy = _deploy(
+                address(_govPoolRegistry),
+                _govPoolRegistry.DISTRIBUTION_PROPOSAL_NAME()
+            );
+            DistributionProposal(dpProxy).__DistributionProposal_init(poolProxy);
+        }
 
         GovSettings(settingsProxy).__GovSettings_init(
             parameters.seetingsParams.internalProposalSetting,
@@ -97,21 +105,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.userKeeperParams.totalPowerInTokens,
             parameters.userKeeperParams.nftsTotalSupply
         );
-
-        if (withValidators) {
-            GovValidators(validatorsProxy).__GovValidators_init(
-                parameters.validatorsParams.name,
-                parameters.validatorsParams.symbol,
-                parameters.validatorsParams.duration,
-                parameters.validatorsParams.quorum,
-                parameters.validatorsParams.validators,
-                parameters.validatorsParams.balances
-            );
-        }
-
-        if (withDistributionProposal) {
-            DistributionProposal(dpProxy).__DistributionProposal_init(poolProxy);
-        }
 
         GovPool(payable(poolProxy)).__GovPool_init(
             settingsProxy,
