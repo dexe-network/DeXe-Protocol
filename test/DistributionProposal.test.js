@@ -45,7 +45,18 @@ const DEFAULT_SETTINGS = {
   minNftBalance: 3,
 };
 
-describe("DistributionProposal", () => {
+const DP_SETTINGS = {
+  earlyCompletion: false,
+  delegatedVotingAllowed: true,
+  duration: 700,
+  durationValidators: 800,
+  quorum: PRECISION.times("71").toFixed(),
+  quorumValidators: PRECISION.times("100").toFixed(),
+  minTokenBalance: wei("20"),
+  minNftBalance: 3,
+};
+
+describe.only("DistributionProposal", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -69,11 +80,20 @@ describe("DistributionProposal", () => {
     settings = await GovSettings.new();
     userKeeper = await GovUserKeeper.new();
     govPool = await GovPool.new();
-    proposal = await DistributionProposal.new(govPool.address, token.address, wei("100000"));
+    proposal = await DistributionProposal.new(govPool.address);
 
-    await settings.__GovSettings_init(INTERNAL_SETTINGS, DEFAULT_SETTINGS);
+    await settings.__GovSettings_init(INTERNAL_SETTINGS, DP_SETTINGS, DEFAULT_SETTINGS);
     await userKeeper.__GovUserKeeper_init(ZERO, nft.address, wei("33000"), 33);
-    await govPool.__GovPool_init(settings.address, userKeeper.address, ZERO, 100, PRECISION.times(10), "example.com");
+    await proposal.__DistributionProposal_init(govPool.address);
+    await govPool.__GovPool_init(
+      settings.address,
+      userKeeper.address,
+      proposal.address,
+      ZERO,
+      100,
+      PRECISION.times(10),
+      "example.com"
+    );
 
     await settings.transferOwnership(govPool.address);
     await userKeeper.transferOwnership(govPool.address);
@@ -89,8 +109,6 @@ describe("DistributionProposal", () => {
   describe("constructor", () => {
     it("should set parameter correctly", async () => {
       assert.equal(await proposal.govAddress(), govPool.address);
-      assert.equal(await proposal.rewardAddress(), token.address);
-      assert.equal((await proposal.rewardAmount()).toFixed(), wei("100000"));
     });
 
     it("should revert if `_govAddress` is zero", async () => {

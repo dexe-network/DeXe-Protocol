@@ -35,7 +35,7 @@ abstract contract GovCreator is IGovCreator {
 
     function createProposal(
         string calldata descriptionURL,
-        address[] memory executors,
+        address[] calldata executors,
         uint256[] calldata values,
         bytes[] calldata data
     ) external override {
@@ -55,11 +55,11 @@ abstract contract GovCreator is IGovCreator {
         IGovSettings.ProposalSettings memory settings;
 
         if (executorType == IGovSettings.ExecutorType.INTERNAL) {
-            executors = _handleExecutorsAndDataForInternalProposal(executors, values, data);
-        } else if (executorType == IGovSettings.ExecutorType.TRUSTED) {
-            forceDefaultSettings = _handleDataForExistingSettingsProposal(values, data);
+            _handleExecutorsAndDataForInternalProposal(executors, values, data);
         } else if (executorType == IGovSettings.ExecutorType.DISTRIBUTION) {
             _handleDataForDistributionProposal(executors, values, data);
+        } else if (executorType == IGovSettings.ExecutorType.TRUSTED) {
+            forceDefaultSettings = _handleDataForExistingSettingsProposal(values, data);
         }
 
         if (forceDefaultSettings) {
@@ -105,26 +105,21 @@ abstract contract GovCreator is IGovCreator {
     }
 
     function _handleExecutorsAndDataForInternalProposal(
-        address[] memory executors,
+        address[] calldata executors,
         uint256[] calldata values,
         bytes[] calldata data
-    ) private pure returns (address[] memory) {
-        address mainExecutor = executors[executors.length - 1];
-
+    ) private pure {
         for (uint256 i; i < data.length; i++) {
             bytes4 selector = _getSelector(data[i]);
             require(
                 values[i] == 0 &&
+                    executors[executors.length - 1] == executors[i] &&
                     (selector == IGovSettings.addSettings.selector ||
                         selector == IGovSettings.editSettings.selector ||
                         selector == IGovSettings.changeExecutors.selector),
                 "GovC: invalid internal data"
             );
-
-            executors[i] = mainExecutor;
         }
-
-        return executors;
     }
 
     function _handleDataForExistingSettingsProposal(
@@ -149,19 +144,22 @@ abstract contract GovCreator is IGovCreator {
     }
 
     function _handleDataForDistributionProposal(
-        address[] memory executors,
+        address[] calldata executors,
         uint256[] calldata values,
         bytes[] calldata data
     ) private view {
+        (uint256 decodedId, , ) = abi.decode(data[data.length - 1], (uint256, address, uint256));
+        require(decodedId == _latestProposalId, "GovC: invalid proposalId");
         require(distributionProposal == executors[executors.length - 1], "GovC: invalid executor");
 
         for (uint256 i; i < data.length - 1; i++) {
             bytes4 selector = _getSelector(data[i]);
 
             require(
-                (values[i] == 0 && selector != IERC20.approve.selector) ||
-                    selector != IERC20.transfer.selector ||
-                    selector != IERC20.transferFrom.selector,
+                values[i] == 0 &&
+                    (selector == IERC20.approve.selector ||
+                        selector == IERC20.transfer.selector ||
+                        selector == IERC20.transferFrom.selector),
                 "GovC: invalid internal data"
             );
         }

@@ -11,6 +11,7 @@ import "../core/ICoreProperties.sol";
 interface IPoolFactory {
     struct SettingsDeployParams {
         IGovSettings.ProposalSettings internalProposalSetting;
+        IGovSettings.ProposalSettings distributionProposalSettings;
         IGovSettings.ProposalSettings defaultProposalSetting;
     }
 

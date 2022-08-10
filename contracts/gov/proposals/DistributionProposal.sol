@@ -19,7 +19,7 @@ contract DistributionProposal is IDistributionProposal, OwnableUpgradeable {
 
     address public govAddress;
 
-    mapping(uint256 => IDistributionProposal.DistributionProposalStruct) proposals;
+    mapping(uint256 => IDistributionProposal.DistributionProposalStruct) public proposals;
 
     modifier onlyGov() {
         require(msg.sender == govAddress, "DP: not a `Gov` contract");
@@ -38,7 +38,7 @@ contract DistributionProposal is IDistributionProposal, OwnableUpgradeable {
         address token,
         uint256 amount
     ) external override onlyGov {
-        require(proposals[proposalId].rewardAddress != address(0), "DP: proposal already exist");
+        require(proposals[proposalId].rewardAddress == address(0), "DP: proposal already exist");
         require(token != address(0), "DP: zero address");
         require(amount > 0, "DP: zero amount");
 
@@ -54,23 +54,26 @@ contract DistributionProposal is IDistributionProposal, OwnableUpgradeable {
             DistributionProposalStruct storage dpInfo = proposals[proposalIds[i]];
             address rewardAddress = dpInfo.rewardAddress;
 
-            if (rewardAddress != address(0)) {
-                uint256 reward = getPotentialReward(voter, proposalIds[i], dpInfo.rewardAmount);
+            require(rewardAddress != address(0), "DP: zero address");
+            require(!dpInfo.claimed[voter], "DP: already claimed");
 
-                if (reward > 0) {
-                    dpInfo.claimed[voter] = true;
-                    IERC20(rewardAddress).safeTransfer(
-                        voter,
-                        reward.from18(ERC20(rewardAddress).decimals())
-                    );
-                }
+            uint256 reward = getPotentialReward(proposalIds[i], voter, dpInfo.rewardAmount);
+
+            dpInfo.claimed[voter] = true;
+
+            IERC20 token = IERC20(rewardAddress);
+            uint256 balance = token.balanceOf(address(this));
+            if (balance < reward) {
+                token.safeTransferFrom(govAddress, address(this), reward - balance);
             }
+
+            token.safeTransfer(voter, reward);
         }
     }
 
     function getPotentialReward(
-        address voter,
         uint256 proposalId,
+        address voter,
         uint256 rewardAmount
     ) public view override returns (uint256) {
         (uint256 totalVoteWeight, uint256 voteWeight) = IGovVote(govAddress).getTotalVotes(

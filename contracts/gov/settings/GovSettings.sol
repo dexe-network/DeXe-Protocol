@@ -9,7 +9,8 @@ import "../../core/Globals.sol";
 
 contract GovSettings is IGovSettings, OwnableUpgradeable {
     uint256 private constant _INTERNAL_SETTINGS_ID = 1;
-    uint256 private constant _DEFAULT_SETTINGS_ID = 2;
+    uint256 private constant _DISTRIBUTION_PROPOSAL_SETTINGS_ID = 2;
+    uint256 private constant _DEFAULT_SETTINGS_ID = 3;
 
     uint256 private _latestSettingsId;
 
@@ -18,19 +19,22 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
 
     function __GovSettings_init(
         ProposalSettings calldata internalProposalSetting,
+        ProposalSettings calldata distributionProposalSettings,
         ProposalSettings calldata defaultProposalSetting
     ) external initializer {
         __Ownable_init();
 
         _validateProposalSettings(internalProposalSetting);
+        _validateProposalSettings(distributionProposalSettings);
         _validateProposalSettings(defaultProposalSetting);
 
         settings[_INTERNAL_SETTINGS_ID] = internalProposalSetting;
+        settings[_DISTRIBUTION_PROPOSAL_SETTINGS_ID] = distributionProposalSettings;
         settings[_DEFAULT_SETTINGS_ID] = defaultProposalSetting;
 
         executorToSettings[address(this)] = _INTERNAL_SETTINGS_ID;
 
-        _latestSettingsId += 2;
+        _latestSettingsId += 3;
     }
 
     function addSettings(ProposalSettings[] calldata _settings) external override onlyOwner {
@@ -99,10 +103,12 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
             return (0, ExecutorType.NONE);
         } else if (settingsId == _INTERNAL_SETTINGS_ID) {
             return (settingsId, ExecutorType.INTERNAL);
+        } else if (settingsId == _DISTRIBUTION_PROPOSAL_SETTINGS_ID) {
+            return (settingsId, ExecutorType.DISTRIBUTION);
         } else if (_settingsExist(settingsId)) {
             return (settingsId, ExecutorType.TRUSTED);
         } else {
-            return (settingsId, ExecutorType.DISTRIBUTION);
+            return (settingsId, ExecutorType.NONE);
         }
     }
 
@@ -120,9 +126,9 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
 
         if (executorType == ExecutorType.INTERNAL) {
             return settings[_INTERNAL_SETTINGS_ID];
-        } else if (
-            executorType == ExecutorType.TRUSTED || executorType == ExecutorType.DISTRIBUTION
-        ) {
+        } else if (executorType == ExecutorType.DISTRIBUTION) {
+            return settings[_DISTRIBUTION_PROPOSAL_SETTINGS_ID];
+        } else if (executorType == ExecutorType.TRUSTED) {
             return settings[settingsId];
         }
 

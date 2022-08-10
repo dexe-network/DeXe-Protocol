@@ -97,6 +97,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         GovSettings(settingsProxy).__GovSettings_init(
             parameters.seetingsParams.internalProposalSetting,
+            parameters.seetingsParams.distributionProposalSettings,
             parameters.seetingsParams.defaultProposalSetting
         );
         GovUserKeeper(userKeeperProxy).__GovUserKeeper_init(
