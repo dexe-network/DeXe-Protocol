@@ -24,6 +24,11 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
     ) external initializer {
         __Ownable_init();
 
+        require(
+            !distributionProposalSettings.delegatedVotingAllowed,
+            "GovSettings: Distribution proposal settings delegatedVotingAllowed"
+        );
+
         _validateProposalSettings(internalProposalSetting);
         _validateProposalSettings(distributionProposalSettings);
         _validateProposalSettings(defaultProposalSetting);

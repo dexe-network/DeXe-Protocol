@@ -1,6 +1,7 @@
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("./helpers/hardhatTimeTraveller");
+const { assert } = require("chai");
 
 const GovPool = artifacts.require("GovPool");
 const DistributionProposal = artifacts.require("DistributionProposal");
@@ -19,8 +20,33 @@ ERC20Mock.numberFormat = "BigNumber";
 const PRECISION = toBN(10).pow(25);
 const ZERO = "0x0000000000000000000000000000000000000000";
 
-const getBytesExecute = () => {
-  return web3.eth.abi.encodeFunctionSignature("execute()");
+const getBytesExecute = (proposalId, token, amount) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "uint256",
+          name: "proposalId",
+          type: "uint256",
+        },
+        {
+          internalType: "address",
+          name: "token",
+          type: "address",
+        },
+        {
+          internalType: "uint256",
+          name: "amount",
+          type: "uint256",
+        },
+      ],
+      name: "execute",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [proposalId, token, amount]
+  );
 };
 
 const INTERNAL_SETTINGS = {
@@ -47,7 +73,7 @@ const DEFAULT_SETTINGS = {
 
 const DP_SETTINGS = {
   earlyCompletion: false,
-  delegatedVotingAllowed: true,
+  delegatedVotingAllowed: false,
   duration: 700,
   durationValidators: 800,
   quorum: PRECISION.times("71").toFixed(),
@@ -56,7 +82,7 @@ const DP_SETTINGS = {
   minNftBalance: 3,
 };
 
-describe.only("DistributionProposal", () => {
+describe("DistributionProposal", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -112,40 +138,11 @@ describe.only("DistributionProposal", () => {
     });
 
     it("should revert if `_govAddress` is zero", async () => {
+      let newDP = await DistributionProposal.new();
       await truffleAssert.reverts(
-        DistributionProposal.new("0x0000000000000000000000000000000000000000", token.address, wei("100000")),
+        newDP.__DistributionProposal_init("0x0000000000000000000000000000000000000000"),
         "DP: `_govAddress` is zero"
       );
-    });
-
-    it("should revert if `_rewardAddress` is zero", async () => {
-      await truffleAssert.reverts(
-        DistributionProposal.new(govPool.address, "0x0000000000000000000000000000000000000000", wei("100000")),
-        "DP: `_rewardAddress` is zero"
-      );
-    });
-
-    it("should revert if `_rewardAmount` is zero", async () => {
-      await truffleAssert.reverts(
-        DistributionProposal.new(govPool.address, token.address, wei("0")),
-        "DP: `_rewardAmount` is zero"
-      );
-    });
-  });
-
-  describe("setProposalId()", () => {
-    it("should correctly set initial params", async () => {
-      await proposal.setProposalId(111);
-      assert.equal(await proposal.proposalId(), 111);
-    });
-
-    it("should revert if `_proposalId` is zero", async () => {
-      await truffleAssert.reverts(proposal.setProposalId(0), "DP: `_proposalId` is zero");
-    });
-
-    it("should revert if already set up", async () => {
-      await proposal.setProposalId(111);
-      await truffleAssert.reverts(proposal.setProposalId(0), "DP: already set up");
     });
   });
 
@@ -154,23 +151,28 @@ describe.only("DistributionProposal", () => {
 
     it("should correctly execute", async () => {
       startTime = await getCurrentBlockTime();
-      await proposal.setProposalId(1);
 
       await govPool.deposit(OWNER, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
       await setTime(startTime + 999);
-      await govPool.createProposal("example.com", [proposal.address], [0], [getBytesExecute()]);
+      await govPool.createProposal(
+        "example.com",
+        [proposal.address],
+        [0],
+        [getBytesExecute(1, token.address, wei("100"))]
+      );
 
       await govPool.vote(1, 0, [], 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
       await setTime(startTime + 2000);
       await govPool.execute(1);
 
-      assert.equal(await proposal.distributionStarted(), true);
+      assert.equal((await proposal.proposals(1)).rewardAddress, token.address);
+      assert.equal((await proposal.proposals(1)).rewardAmount, wei("100"));
     });
 
     it("should revert if not a `Gov` contract", async () => {
-      await truffleAssert.reverts(proposal.execute(), "DP: not a `Gov` contract");
+      await truffleAssert.reverts(proposal.execute(1, token.address, wei("100")), "DP: not a `Gov` contract");
     });
   });
 
@@ -186,9 +188,13 @@ describe.only("DistributionProposal", () => {
       await govPool.deposit(THIRD, 0, [6, 7, 8, 9]);
 
       await setTime(startTime + 999);
-      await govPool.createProposal("example.com", [proposal.address], [0], [getBytesExecute()], { from: SECOND });
-
-      await proposal.setProposalId(1);
+      await govPool.createProposal(
+        "example.com",
+        [proposal.address],
+        [0],
+        [getBytesExecute(1, token.address, wei("100000"))],
+        { from: SECOND }
+      );
     });
 
     it("should correctly claim", async () => {
@@ -198,8 +204,8 @@ describe.only("DistributionProposal", () => {
       await setTime(startTime + 1700);
       await govPool.execute(1);
 
-      await proposal.claim(SECOND);
-      await proposal.claim(THIRD);
+      await proposal.claim(SECOND, [1]);
+      await proposal.claim(THIRD, [1]);
 
       assert.equal((await token.balanceOf(SECOND)).toFixed(), "55555555555555555555556");
       assert.equal((await token.balanceOf(THIRD)).toFixed(), "44444444444444444444443");
@@ -212,23 +218,13 @@ describe.only("DistributionProposal", () => {
       await setTime(startTime + 1700);
       await govPool.execute(1);
 
-      await proposal.claim(SECOND);
+      await proposal.claim(SECOND, [1]);
 
-      await truffleAssert.reverts(proposal.claim(SECOND), "DP: already claimed");
-    });
-
-    it("should revert if nothing to claim", async () => {
-      await govPool.vote(1, 0, [], 0, [1, 2, 3, 4, 5], { from: SECOND });
-      await govPool.vote(1, 0, [], 0, [6, 7, 8, 9], { from: THIRD });
-
-      await setTime(startTime + 1700);
-      await govPool.execute(1);
-
-      await truffleAssert.reverts(proposal.claim(OWNER), "DP: nothing to claim");
+      await truffleAssert.reverts(proposal.claim(SECOND, [1]), "DP: already claimed");
     });
 
     it("should revert if distribution isn't start yet", async () => {
-      await truffleAssert.reverts(proposal.claim(SECOND), "DP: distribution hasn't started yet");
+      await truffleAssert.reverts(proposal.claim(SECOND, [1]), "DP: zero address");
     });
   });
 });

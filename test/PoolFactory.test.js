@@ -402,6 +402,16 @@ describe("PoolFactory", () => {
             minTokenBalance: wei("10"),
             minNftBalance: 2,
           },
+          distributionProposalSettings: {
+            earlyCompletion: true,
+            delegatedVotingAllowed: false,
+            duration: 500,
+            durationValidators: 600,
+            quorum: PRECISION.times("51").toFixed(),
+            quorumValidators: PRECISION.times("61").toFixed(),
+            minTokenBalance: wei("10"),
+            minNftBalance: 2,
+          },
           defaultProposalSetting: {
             earlyCompletion: false,
             delegatedVotingAllowed: true,
@@ -433,7 +443,7 @@ describe("PoolFactory", () => {
         descriptionURL: "example.com",
       };
 
-      await poolFactory.deployGovPool(true, POOL_PARAMETERS);
+      await poolFactory.deployGovPool(true, false, POOL_PARAMETERS);
 
       assert.equal((await govPoolRegistry.countPools(await govPoolRegistry.GOV_POOL_NAME())).toString(), "1");
       assert.equal(
@@ -450,7 +460,17 @@ describe("PoolFactory", () => {
         seetingsParams: {
           internalProposalSetting: {
             earlyCompletion: true,
-            delegatedVotingAllowed: true,
+            delegatedVotingAllowed: false,
+            duration: 500,
+            durationValidators: 600,
+            quorum: PRECISION.times("51").toFixed(),
+            quorumValidators: PRECISION.times("61").toFixed(),
+            minTokenBalance: wei("10"),
+            minNftBalance: 2,
+          },
+          distributionProposalSettings: {
+            earlyCompletion: true,
+            delegatedVotingAllowed: false,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -489,7 +509,7 @@ describe("PoolFactory", () => {
         descriptionURL: "example.com",
       };
 
-      await poolFactory.deployGovPool(false, POOL_PARAMETERS);
+      await poolFactory.deployGovPool(false, false, POOL_PARAMETERS);
 
       assert.equal((await govPoolRegistry.countPools(await govPoolRegistry.GOV_POOL_NAME())).toString(), "1");
       assert.equal(
