@@ -83,6 +83,15 @@ const DP_SETTINGS = {
 };
 
 describe("DistributionProposal", () => {
+  const unlockAndMint = async (address) => {
+    await hre.network.provider.request({
+      method: "hardhat_impersonateAccount",
+      params: [address],
+    });
+
+    await network.provider.send("hardhat_setBalance", [address, "0xFFFFFFFFFFFFFFFF"]);
+  };
+
   let OWNER;
   let SECOND;
   let THIRD;
@@ -139,10 +148,7 @@ describe("DistributionProposal", () => {
 
     it("should revert if `_govAddress` is zero", async () => {
       let newDP = await DistributionProposal.new();
-      await truffleAssert.reverts(
-        newDP.__DistributionProposal_init("0x0000000000000000000000000000000000000000"),
-        "DP: `_govAddress` is zero"
-      );
+      await truffleAssert.reverts(newDP.__DistributionProposal_init(ZERO), "DP: `_govAddress` is zero");
     });
   });
 
@@ -166,11 +172,7 @@ describe("DistributionProposal", () => {
 
       await setTime(startTime + 2000);
 
-      await hre.network.provider.request({
-        method: "hardhat_impersonateAccount",
-        params: [govPool.address],
-      });
-      await network.provider.send("hardhat_setBalance", [govPool.address, "0xFFFFFFFFFFFFFFFF"]);
+      await unlockAndMint(govPool.address);
     });
 
     it("should correctly execute", async () => {
@@ -192,10 +194,7 @@ describe("DistributionProposal", () => {
     });
 
     it("should revert when address is zero", async () => {
-      await truffleAssert.reverts(
-        proposal.execute(1, "0x0000000000000000000000000000000000000000", wei("100"), { from: govPool.address }),
-        "DP: zero address"
-      );
+      await truffleAssert.reverts(proposal.execute(1, ZERO, wei("100"), { from: govPool.address }), "DP: zero address");
     });
 
     it("should revert when amount is zero", async () => {
@@ -214,10 +213,7 @@ describe("DistributionProposal", () => {
 
       await govPool.deposit(SECOND, 0, [1, 2, 3, 4, 5]);
       await govPool.deposit(THIRD, 0, [6, 7, 8, 9]);
-    });
 
-    it("should correctly claim", async () => {
-      await token.mint(proposal.address, wei("100000"));
       await setTime(startTime + 999);
       await govPool.createProposal(
         "example.com",
@@ -226,6 +222,10 @@ describe("DistributionProposal", () => {
         [getBytesExecute(1, token.address, wei("100000"))],
         { from: SECOND }
       );
+    });
+
+    it("should correctly claim", async () => {
+      await token.mint(proposal.address, wei("100000"));
 
       await govPool.vote(1, 0, [], 0, [1, 2, 3, 4, 5], { from: SECOND });
       await govPool.vote(1, 0, [], 0, [6, 7, 8, 9], { from: THIRD });
@@ -242,20 +242,8 @@ describe("DistributionProposal", () => {
 
     it("should claim, when proposal amount < reward", async () => {
       await token.mint(proposal.address, wei("10"));
-      await setTime(startTime + 999);
-      await govPool.createProposal(
-        "example.com",
-        [proposal.address],
-        [0],
-        [getBytesExecute(1, token.address, wei("100000"))],
-        { from: SECOND }
-      );
 
-      await hre.network.provider.request({
-        method: "hardhat_impersonateAccount",
-        params: [govPool.address],
-      });
-      await network.provider.send("hardhat_setBalance", [govPool.address, "0xFFFFFFFFFFFFFFFF"]);
+      await unlockAndMint(govPool.address);
 
       await token.mint(govPool.address, wei("100000"));
       await token.approve(proposal.address, wei("100000"), { from: govPool.address });
@@ -275,14 +263,6 @@ describe("DistributionProposal", () => {
 
     it("should revert if already claimed", async () => {
       await token.mint(proposal.address, wei("100000"));
-      await setTime(startTime + 999);
-      await govPool.createProposal(
-        "example.com",
-        [proposal.address],
-        [0],
-        [getBytesExecute(1, token.address, wei("100000"))],
-        { from: SECOND }
-      );
 
       await govPool.vote(1, 0, [], 0, [1, 2, 3, 4, 5], { from: SECOND });
       await govPool.vote(1, 0, [], 0, [6, 7, 8, 9], { from: THIRD });
@@ -297,47 +277,20 @@ describe("DistributionProposal", () => {
 
     it("should revert if distribution isn't start yet", async () => {
       await token.mint(proposal.address, wei("100000"));
-      await setTime(startTime + 999);
-      await govPool.createProposal(
-        "example.com",
-        [proposal.address],
-        [0],
-        [getBytesExecute(1, token.address, wei("100000"))],
-        { from: SECOND }
-      );
 
       await truffleAssert.reverts(proposal.claim(SECOND, [1]), "DP: zero address");
     });
 
     it("should revert when array length is zero", async () => {
       await token.mint(proposal.address, wei("100000"));
-      await setTime(startTime + 999);
-      await govPool.createProposal(
-        "example.com",
-        [proposal.address],
-        [0],
-        [getBytesExecute(1, token.address, wei("100000"))],
-        { from: SECOND }
-      );
 
       await truffleAssert.reverts(proposal.claim(SECOND, []), "DP: zero array length");
     });
 
     it("should revert when address is zero", async () => {
       await token.mint(proposal.address, wei("100000"));
-      await setTime(startTime + 999);
-      await govPool.createProposal(
-        "example.com",
-        [proposal.address],
-        [0],
-        [getBytesExecute(1, token.address, wei("100000"))],
-        { from: SECOND }
-      );
 
-      await truffleAssert.reverts(
-        proposal.claim("0x0000000000000000000000000000000000000000", [1]),
-        "DP: zero address"
-      );
+      await truffleAssert.reverts(proposal.claim(ZERO, [1]), "DP: zero address");
     });
   });
 });
