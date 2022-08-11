@@ -149,7 +149,7 @@ describe("DistributionProposal", () => {
   describe("execute()", () => {
     let startTime;
 
-    it("should correctly execute", async () => {
+    beforeEach(async () => {
       startTime = await getCurrentBlockTime();
 
       await govPool.deposit(OWNER, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
@@ -165,14 +165,44 @@ describe("DistributionProposal", () => {
       await govPool.vote(1, 0, [], 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
       await setTime(startTime + 2000);
-      await govPool.execute(1);
 
+      await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [govPool.address],
+      });
+      await network.provider.send("hardhat_setBalance", [govPool.address, "0xFFFFFFFFFFFFFFFF"]);
+    });
+
+    it("should correctly execute", async () => {
+      await govPool.execute(1);
       assert.equal((await proposal.proposals(1)).rewardAddress, token.address);
       assert.equal((await proposal.proposals(1)).rewardAmount, wei("100"));
     });
 
     it("should revert if not a `Gov` contract", async () => {
       await truffleAssert.reverts(proposal.execute(1, token.address, wei("100")), "DP: not a `Gov` contract");
+    });
+
+    it("should revert when try execute existed porposal", async () => {
+      await govPool.execute(1);
+      await truffleAssert.reverts(
+        proposal.execute(1, token.address, wei("100"), { from: govPool.address }),
+        "DP: proposal already exist"
+      );
+    });
+
+    it("should revert when address is zero", async () => {
+      await truffleAssert.reverts(
+        proposal.execute(1, "0x0000000000000000000000000000000000000000", wei("100"), { from: govPool.address }),
+        "DP: zero address"
+      );
+    });
+
+    it("should revert when amount is zero", async () => {
+      await truffleAssert.reverts(
+        proposal.execute(1, token.address, "0", { from: govPool.address }),
+        "DP: zero amount"
+      );
     });
   });
 
@@ -182,11 +212,12 @@ describe("DistributionProposal", () => {
     beforeEach("setup", async () => {
       startTime = await getCurrentBlockTime();
 
-      await token.mint(proposal.address, wei("100000"));
-
       await govPool.deposit(SECOND, 0, [1, 2, 3, 4, 5]);
       await govPool.deposit(THIRD, 0, [6, 7, 8, 9]);
+    });
 
+    it("should correctly claim", async () => {
+      await token.mint(proposal.address, wei("100000"));
       await setTime(startTime + 999);
       await govPool.createProposal(
         "example.com",
@@ -195,9 +226,40 @@ describe("DistributionProposal", () => {
         [getBytesExecute(1, token.address, wei("100000"))],
         { from: SECOND }
       );
+
+      await govPool.vote(1, 0, [], 0, [1, 2, 3, 4, 5], { from: SECOND });
+      await govPool.vote(1, 0, [], 0, [6, 7, 8, 9], { from: THIRD });
+
+      await setTime(startTime + 1700);
+      await govPool.execute(1);
+
+      await proposal.claim(SECOND, [1]);
+      await proposal.claim(THIRD, [1]);
+
+      assert.equal((await token.balanceOf(SECOND)).toFixed(), "55555555555555555555556");
+      assert.equal((await token.balanceOf(THIRD)).toFixed(), "44444444444444444444443");
     });
 
-    it("should correctly claim", async () => {
+    it("should claim, when proposal amount < reward", async () => {
+      await token.mint(proposal.address, wei("10"));
+      await setTime(startTime + 999);
+      await govPool.createProposal(
+        "example.com",
+        [proposal.address],
+        [0],
+        [getBytesExecute(1, token.address, wei("100000"))],
+        { from: SECOND }
+      );
+
+      await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [govPool.address],
+      });
+      await network.provider.send("hardhat_setBalance", [govPool.address, "0xFFFFFFFFFFFFFFFF"]);
+
+      await token.mint(govPool.address, wei("100000"));
+      await token.approve(proposal.address, wei("100000"), { from: govPool.address });
+
       await govPool.vote(1, 0, [], 0, [1, 2, 3, 4, 5], { from: SECOND });
       await govPool.vote(1, 0, [], 0, [6, 7, 8, 9], { from: THIRD });
 
@@ -212,6 +274,16 @@ describe("DistributionProposal", () => {
     });
 
     it("should revert if already claimed", async () => {
+      await token.mint(proposal.address, wei("100000"));
+      await setTime(startTime + 999);
+      await govPool.createProposal(
+        "example.com",
+        [proposal.address],
+        [0],
+        [getBytesExecute(1, token.address, wei("100000"))],
+        { from: SECOND }
+      );
+
       await govPool.vote(1, 0, [], 0, [1, 2, 3, 4, 5], { from: SECOND });
       await govPool.vote(1, 0, [], 0, [6, 7, 8, 9], { from: THIRD });
 
@@ -224,7 +296,48 @@ describe("DistributionProposal", () => {
     });
 
     it("should revert if distribution isn't start yet", async () => {
+      await token.mint(proposal.address, wei("100000"));
+      await setTime(startTime + 999);
+      await govPool.createProposal(
+        "example.com",
+        [proposal.address],
+        [0],
+        [getBytesExecute(1, token.address, wei("100000"))],
+        { from: SECOND }
+      );
+
       await truffleAssert.reverts(proposal.claim(SECOND, [1]), "DP: zero address");
+    });
+
+    it("should revert when array length is zero", async () => {
+      await token.mint(proposal.address, wei("100000"));
+      await setTime(startTime + 999);
+      await govPool.createProposal(
+        "example.com",
+        [proposal.address],
+        [0],
+        [getBytesExecute(1, token.address, wei("100000"))],
+        { from: SECOND }
+      );
+
+      await truffleAssert.reverts(proposal.claim(SECOND, []), "DP: zero array length");
+    });
+
+    it("should revert when address is zero", async () => {
+      await token.mint(proposal.address, wei("100000"));
+      await setTime(startTime + 999);
+      await govPool.createProposal(
+        "example.com",
+        [proposal.address],
+        [0],
+        [getBytesExecute(1, token.address, wei("100000"))],
+        { from: SECOND }
+      );
+
+      await truffleAssert.reverts(
+        proposal.claim("0x0000000000000000000000000000000000000000", [1]),
+        "DP: zero address"
+      );
     });
   });
 });
