@@ -16,6 +16,13 @@ interface IGovSettings {
         uint256 minNftBalance;
     }
 
+    enum ExecutorType {
+        NONE,
+        INTERNAL,
+        DISTRIBUTION,
+        TRUSTED
+    }
+
     /// @notice Add new types to contract
     /// @param _settings New settings
     function addSettings(ProposalSettings[] calldata _settings) external;
@@ -35,16 +42,8 @@ interface IGovSettings {
     /// @notice The function the get executor's info
     /// @param executor Executor address
     /// @return settings ID for `executor`
-    /// @return `true` if `executor` is current address
-    /// @return `true` if `executor` has valid `ProposalSettings`
-    function executorInfo(address executor)
-        external
-        view
-        returns (
-            uint256,
-            bool,
-            bool
-        );
+    /// @return ExecutorType enum item
+    function executorInfo(address executor) external view returns (uint256, ExecutorType);
 
     /// @notice The function to get default settings
     /// @return default setting

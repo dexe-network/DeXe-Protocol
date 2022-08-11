@@ -19,12 +19,13 @@ contract GovPool is
     function __GovPool_init(
         address govSettingAddress,
         address govUserKeeperAddress,
+        address distributionProposalAddress,
         address validatorsAddress,
         uint256 _votesLimit,
         uint256 _feePercentage,
         string calldata _descriptionURL
     ) external initializer {
-        __GovCreator_init(govSettingAddress, govUserKeeperAddress);
+        __GovCreator_init(govSettingAddress, govUserKeeperAddress, distributionProposalAddress);
         __GovVote_init(validatorsAddress, _votesLimit);
         __GovFee_init(_feePercentage);
         __ERC721Holder_init();

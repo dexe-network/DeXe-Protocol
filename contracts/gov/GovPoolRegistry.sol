@@ -19,6 +19,7 @@ contract GovPoolRegistry is IGovPoolRegistry, AbstractPoolContractsRegistry {
     string public constant SETTINGS_NAME = "SETTINGS";
     string public constant VALIDATORS_NAME = "VALIDATORS";
     string public constant USER_KEEPER_NAME = "USER_KEEPER";
+    string public constant DISTRIBUTION_PROPOSAL_NAME = "DISTRIBUTION_PROPOSAL";
 
     address internal _poolFactory;
 

@@ -11,6 +11,7 @@ import "../gov/GovPool.sol";
 import "../gov/user-keeper/GovUserKeeper.sol";
 import "../gov/settings/GovSettings.sol";
 import "../gov/validators/GovValidators.sol";
+import "../gov/proposals/DistributionProposal.sol";
 import "../gov/GovPoolRegistry.sol";
 
 import "../trader/BasicTraderPool.sol";
@@ -51,10 +52,11 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _coreProperties = CoreProperties(registry.getCorePropertiesContract());
     }
 
-    function deployGovPool(bool withValidators, GovPoolDeployParams calldata parameters)
-        external
-        override
-    {
+    function deployGovPool(
+        bool withValidators,
+        bool withDistributionProposal,
+        GovPoolDeployParams calldata parameters
+    ) external override {
         string memory poolType = _govPoolRegistry.GOV_POOL_NAME();
 
         address settingsProxy = _deploy(
@@ -68,26 +70,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
                 address(_govPoolRegistry),
                 _govPoolRegistry.VALIDATORS_NAME()
             );
-        }
-
-        address userKeeperProxy = _deploy(
-            address(_govPoolRegistry),
-            _govPoolRegistry.USER_KEEPER_NAME()
-        );
-        address poolProxy = _deploy(address(_govPoolRegistry), poolType);
-
-        GovSettings(settingsProxy).__GovSettings_init(
-            parameters.seetingsParams.internalProposalSetting,
-            parameters.seetingsParams.defaultProposalSetting
-        );
-        GovUserKeeper(userKeeperProxy).__GovUserKeeper_init(
-            parameters.userKeeperParams.tokenAddress,
-            parameters.userKeeperParams.nftAddress,
-            parameters.userKeeperParams.totalPowerInTokens,
-            parameters.userKeeperParams.nftsTotalSupply
-        );
-
-        if (withValidators) {
             GovValidators(validatorsProxy).__GovValidators_init(
                 parameters.validatorsParams.name,
                 parameters.validatorsParams.symbol,
@@ -98,9 +80,37 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             );
         }
 
+        address userKeeperProxy = _deploy(
+            address(_govPoolRegistry),
+            _govPoolRegistry.USER_KEEPER_NAME()
+        );
+        address poolProxy = _deploy(address(_govPoolRegistry), poolType);
+
+        address dpProxy;
+        if (withDistributionProposal) {
+            dpProxy = _deploy(
+                address(_govPoolRegistry),
+                _govPoolRegistry.DISTRIBUTION_PROPOSAL_NAME()
+            );
+            DistributionProposal(dpProxy).__DistributionProposal_init(poolProxy);
+        }
+
+        GovSettings(settingsProxy).__GovSettings_init(
+            parameters.seetingsParams.internalProposalSetting,
+            parameters.seetingsParams.distributionProposalSettings,
+            parameters.seetingsParams.defaultProposalSetting
+        );
+        GovUserKeeper(userKeeperProxy).__GovUserKeeper_init(
+            parameters.userKeeperParams.tokenAddress,
+            parameters.userKeeperParams.nftAddress,
+            parameters.userKeeperParams.totalPowerInTokens,
+            parameters.userKeeperParams.nftsTotalSupply
+        );
+
         GovPool(payable(poolProxy)).__GovPool_init(
             settingsProxy,
             userKeeperProxy,
+            dpProxy,
             validatorsProxy,
             parameters.votesLimit,
             parameters.feePercentage,

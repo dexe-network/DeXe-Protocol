@@ -19,6 +19,17 @@ const INTERNAL_SETTINGS = {
   minNftBalance: 2,
 };
 
+const DP_SETTINGS = {
+  earlyCompletion: false,
+  delegatedVotingAllowed: false,
+  duration: 600,
+  durationValidators: 800,
+  quorum: PRECISION.times("71").toFixed(),
+  quorumValidators: PRECISION.times("100").toFixed(),
+  minTokenBalance: wei("20"),
+  minNftBalance: 3,
+};
+
 const DEFAULT_SETTINGS = {
   earlyCompletion: false,
   delegatedVotingAllowed: true,
@@ -50,7 +61,7 @@ describe("GovSettings", () => {
   beforeEach("setup", async () => {
     settings = await GovSettings.new();
 
-    await settings.__GovSettings_init(INTERNAL_SETTINGS, DEFAULT_SETTINGS);
+    await settings.__GovSettings_init(INTERNAL_SETTINGS, DP_SETTINGS, DEFAULT_SETTINGS);
   });
 
   describe("init", () => {
@@ -66,7 +77,18 @@ describe("GovSettings", () => {
       assert.equal(internalSettings.minTokenBalance.toFixed(), wei("10"));
       assert.equal(internalSettings.minNftBalance, 2);
 
-      const defaultSettings = await settings.settings(2);
+      const defaultProposalSetting = await settings.settings(2);
+
+      assert.isFalse(defaultProposalSetting.earlyCompletion);
+      assert.isFalse(defaultProposalSetting.delegatedVotingAllowed);
+      assert.equal(defaultProposalSetting.duration, 600);
+      assert.equal(defaultProposalSetting.durationValidators, 800);
+      assert.equal(defaultProposalSetting.quorum.toFixed(), PRECISION.times("71").toFixed());
+      assert.equal(defaultProposalSetting.quorumValidators.toFixed(), PRECISION.times("100").toFixed());
+      assert.equal(defaultProposalSetting.minTokenBalance.toFixed(), wei("20"));
+      assert.equal(defaultProposalSetting.minNftBalance, 3);
+
+      const defaultSettings = await settings.settings(3);
 
       assert.isFalse(defaultSettings.earlyCompletion);
       assert.isTrue(internalSettings.delegatedVotingAllowed);
@@ -107,8 +129,8 @@ describe("GovSettings", () => {
 
       await settings.addSettings([newSettings1, newSettings2]);
 
-      const settings1 = await settings.settings(3);
-      const settings2 = await settings.settings(4);
+      const settings1 = await settings.settings(4);
+      const settings2 = await settings.settings(5);
 
       assert.equal(settings1.earlyCompletion, newSettings1.earlyCompletion);
       assert.equal(settings1.delegatedVotingAllowed, newSettings1.delegatedVotingAllowed);
@@ -313,24 +335,21 @@ describe("GovSettings", () => {
       const executorInfo = await settings.executorInfo(EXECUTOR1);
 
       assert.equal(executorInfo[0].toString(), 3);
-      assert.isFalse(executorInfo[1]);
-      assert.isTrue(executorInfo[2]);
+      assert.equal(executorInfo[1].toFixed(), "3");
     });
 
     it("should return info about internal executor", async () => {
       const executorInfo = await settings.executorInfo(settings.address);
 
       assert.equal(executorInfo[0].toString(), 1);
-      assert.isTrue(executorInfo[1]);
-      assert.isTrue(executorInfo[2]);
+      assert.equal(executorInfo[1].toFixed(), "1");
     });
 
     it("should return info about nonexistent executor", async () => {
       const executorInfo = await settings.executorInfo(EXECUTOR1);
 
       assert.equal(executorInfo[0].toString(), 0);
-      assert.isFalse(executorInfo[1]);
-      assert.isFalse(executorInfo[2]);
+      assert.equal(executorInfo[1].toFixed(), "0");
     });
   });
 
@@ -348,7 +367,7 @@ describe("GovSettings", () => {
       };
 
       await settings.addSettings([newSettings1]);
-      await settings.changeExecutors([EXECUTOR1], [3]);
+      await settings.changeExecutors([EXECUTOR1], [4]);
 
       const executorSettings = await settings.getSettings(EXECUTOR1);
 
