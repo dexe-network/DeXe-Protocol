@@ -148,7 +148,10 @@ abstract contract GovCreator is IGovCreator {
         uint256[] calldata values,
         bytes[] calldata data
     ) private view {
-        (uint256 decodedId, , ) = abi.decode(data[data.length - 1], (uint256, address, uint256));
+        (uint256 decodedId, , ) = abi.decode(
+            data[data.length - 1][4:],
+            (uint256, address, uint256)
+        );
         require(decodedId == _latestProposalId, "GovC: invalid proposalId");
         require(distributionProposal == executors[executors.length - 1], "GovC: invalid executor");
 

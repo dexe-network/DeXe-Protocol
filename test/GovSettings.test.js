@@ -61,7 +61,12 @@ describe("GovSettings", () => {
   beforeEach("setup", async () => {
     settings = await GovSettings.new();
 
-    await settings.__GovSettings_init(INTERNAL_SETTINGS, DP_SETTINGS, DEFAULT_SETTINGS);
+    await settings.__GovSettings_init(
+      "0x0000000000000000000000000000000000000000",
+      INTERNAL_SETTINGS,
+      DP_SETTINGS,
+      DEFAULT_SETTINGS
+    );
   });
 
   describe("init", () => {

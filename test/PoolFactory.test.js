@@ -596,6 +596,18 @@ describe("PoolFactory", () => {
       let govPool = await GovPool.at((await govPoolRegistry.listPools(await govPoolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
       assert.equal(await govPool.owner(), OWNER);
       assert.notEqual(await govPool.distributionProposal(), "0x0000000000000000000000000000000000000000");
+
+      let govSettings = await GovSettings.at(await govPool.govSetting());
+      let settings = await govSettings.getSettings(await govPool.distributionProposal());
+
+      assert.equal(settings[0], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.earlyCompletion);
+      assert.equal(settings[1], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.delegatedVotingAllowed);
+      assert.equal(settings[2], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.duration);
+      assert.equal(settings[3], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.durationValidators);
+      assert.equal(settings[4], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.quorum);
+      assert.equal(settings[5], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.quorumValidators);
+      assert.equal(settings[6], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.minTokenBalance);
+      assert.equal(settings[7], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.minNftBalance);
     });
   });
 });

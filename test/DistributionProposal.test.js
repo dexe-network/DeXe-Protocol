@@ -117,7 +117,7 @@ describe("DistributionProposal", () => {
     govPool = await GovPool.new();
     proposal = await DistributionProposal.new(govPool.address);
 
-    await settings.__GovSettings_init(INTERNAL_SETTINGS, DP_SETTINGS, DEFAULT_SETTINGS);
+    await settings.__GovSettings_init(proposal.address, INTERNAL_SETTINGS, DP_SETTINGS, DEFAULT_SETTINGS);
     await userKeeper.__GovUserKeeper_init(ZERO, nft.address, wei("33000"), 33);
     await proposal.__DistributionProposal_init(govPool.address);
     await govPool.__GovPool_init(

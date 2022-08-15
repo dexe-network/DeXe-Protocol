@@ -314,7 +314,12 @@ describe("GovPool", () => {
     beforeEach("setup", async () => {
       nft = await ERC721EnumMock.new("Mock", "Mock");
 
-      await settings.__GovSettings_init(INTERNAL_SETTINGS, DP_SETTINGS, DEFAULT_SETTINGS);
+      await settings.__GovSettings_init(
+        "0x0000000000000000000000000000000000000000",
+        INTERNAL_SETTINGS,
+        DP_SETTINGS,
+        DEFAULT_SETTINGS
+      );
       await validators.__GovValidators_init(
         "Validator Token",
         "VT",
