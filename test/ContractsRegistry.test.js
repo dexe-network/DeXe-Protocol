@@ -22,7 +22,7 @@ describe("ContractsRegistry", () => {
   beforeEach("setup", async () => {
     contractsRegistry = await ContractsRegistry.new();
 
-    await contractsRegistry.__ContractsRegistry_init();
+    await contractsRegistry.__OwnableContractsRegistry_init();
   });
 
   describe("contract management", async () => {

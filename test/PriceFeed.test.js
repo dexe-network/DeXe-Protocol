@@ -42,7 +42,7 @@ describe("PriceFeed", () => {
     USD = await ERC20Mock.new("USD", "USD", 18);
     uniswapV2Router = await UniswapV2RouterMock.new();
 
-    await contractsRegistry.__ContractsRegistry_init();
+    await contractsRegistry.__OwnableContractsRegistry_init();
 
     await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), _priceFeed.address);
 

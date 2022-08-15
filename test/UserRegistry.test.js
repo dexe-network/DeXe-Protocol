@@ -25,7 +25,7 @@ describe("UserRegistry", () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _userRegistry = await UserRegistry.new();
 
-    await contractsRegistry.__ContractsRegistry_init();
+    await contractsRegistry.__OwnableContractsRegistry_init();
 
     userRegistryName = await contractsRegistry.USER_REGISTRY_NAME();
 

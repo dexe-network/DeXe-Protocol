@@ -11,7 +11,7 @@ module.exports = async (deployer) => {
   const proxy = await deployer.deploy(TransparentUpgradeableProxy, contractsRegistry.address, proxyAdmin, []);
 
   logTransaction(
-    await (await ContractsRegistry.at(proxy.address)).__ContractsRegistry_init(),
+    await (await ContractsRegistry.at(proxy.address)).__OwnableContractsRegistry_init(),
     "Init ContractsRegistry"
   );
 };

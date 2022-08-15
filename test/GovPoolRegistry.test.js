@@ -26,7 +26,7 @@ describe("GovPoolRegistry", () => {
     const _govPoolRegistry = await GovPoolRegistry.new();
     token = await ERC20Mock.new("MOCK", "MOCK", 18);
 
-    await contractsRegistry.__ContractsRegistry_init();
+    await contractsRegistry.__OwnableContractsRegistry_init();
 
     await contractsRegistry.addContract(await contractsRegistry.POOL_FACTORY_NAME(), FACTORY);
 
@@ -37,7 +37,7 @@ describe("GovPoolRegistry", () => {
 
     govPoolRegistry = await GovPoolRegistry.at(await contractsRegistry.getGovPoolRegistryContract());
 
-    await govPoolRegistry.__PoolContractsRegistry_init();
+    await govPoolRegistry.__OwnablePoolContractsRegistry_init();
 
     await contractsRegistry.injectDependencies(await contractsRegistry.GOV_POOL_REGISTRY_NAME());
   });
@@ -64,8 +64,8 @@ describe("GovPoolRegistry", () => {
     });
 
     it("should successfully add new pools", async () => {
-      await govPoolRegistry.addPool(GOV_NAME, POOL_1, { from: FACTORY });
-      await govPoolRegistry.addPool(GOV_NAME, POOL_2, { from: FACTORY });
+      await govPoolRegistry.addProxyPool(GOV_NAME, POOL_1, { from: FACTORY });
+      await govPoolRegistry.addProxyPool(GOV_NAME, POOL_2, { from: FACTORY });
 
       assert.equal((await govPoolRegistry.countPools(GOV_NAME)).toFixed(), "2");
       assert.equal((await govPoolRegistry.countPools(USER_KEEPER_NAME)).toFixed(), "0");
@@ -80,8 +80,8 @@ describe("GovPoolRegistry", () => {
     });
 
     it("should list added pools", async () => {
-      await govPoolRegistry.addPool(GOV_NAME, POOL_1, { from: FACTORY });
-      await govPoolRegistry.addPool(GOV_NAME, POOL_2, { from: FACTORY });
+      await govPoolRegistry.addProxyPool(GOV_NAME, POOL_1, { from: FACTORY });
+      await govPoolRegistry.addProxyPool(GOV_NAME, POOL_2, { from: FACTORY });
 
       assert.deepEqual(await govPoolRegistry.listPools(GOV_NAME, 0, 2), [POOL_1, POOL_2]);
       assert.deepEqual(await govPoolRegistry.listPools(GOV_NAME, 0, 10), [POOL_1, POOL_2]);

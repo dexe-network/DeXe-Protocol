@@ -71,8 +71,8 @@ module.exports = async (deployer) => {
 
   logTransaction(await insurance.__Insurance_init(), "Init Insurance");
 
-  logTransaction(await traderPoolRegistry.__PoolContractsRegistry_init(), "Init TraderPoolRegistry");
-  logTransaction(await govPoolRegistry.__PoolContractsRegistry_init(), "Init TraderPoolRegistry");
+  logTransaction(await traderPoolRegistry.__OwnablePoolContractsRegistry_init(), "Init TraderPoolRegistry");
+  logTransaction(await govPoolRegistry.__OwnablePoolContractsRegistry_init(), "Init GovPoolRegistry");
 
   ////////////////////////////////////////////////////////////
 

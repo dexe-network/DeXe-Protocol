@@ -154,7 +154,7 @@ describe("TraderPool", () => {
     uniswapV2Router = await UniswapV2RouterMock.new();
     const _traderPoolRegistry = await TraderPoolRegistry.new();
 
-    await contractsRegistry.__ContractsRegistry_init();
+    await contractsRegistry.__OwnableContractsRegistry_init();
 
     await contractsRegistry.addProxyContract(await contractsRegistry.INSURANCE_NAME(), _insurance.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
@@ -181,7 +181,7 @@ describe("TraderPool", () => {
     await insurance.__Insurance_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
     await priceFeed.__PriceFeed_init();
-    await traderPoolRegistry.__PoolContractsRegistry_init();
+    await traderPoolRegistry.__OwnablePoolContractsRegistry_init();
 
     await contractsRegistry.injectDependencies(await contractsRegistry.INSURANCE_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
@@ -198,7 +198,7 @@ describe("TraderPool", () => {
 
     await traderPool.__TraderPoolMock_init("Test pool", "TP", poolParameters);
 
-    await traderPoolRegistry.addPool(NAME, traderPool.address, {
+    await traderPoolRegistry.addProxyPool(NAME, traderPool.address, {
       from: FACTORY,
     });
     await traderPoolRegistry.associateUserWithPool(OWNER, NAME, traderPool.address, {

@@ -69,7 +69,7 @@ describe("Insurance", async () => {
     const _coreProperties = await CoreProperties.new();
     dexe = await ERC20Mock.new("DEXE", "DEXE", 18);
 
-    await contractsRegistry.__ContractsRegistry_init();
+    await contractsRegistry.__OwnableContractsRegistry_init();
 
     await contractsRegistry.addProxyContract(await contractsRegistry.INSURANCE_NAME(), _insurance.address);
     await contractsRegistry.addProxyContract(
@@ -88,7 +88,7 @@ describe("Insurance", async () => {
     const coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     insurance = await Insurance.at(await contractsRegistry.getInsuranceContract());
 
-    await traderPoolRegistry.__PoolContractsRegistry_init();
+    await traderPoolRegistry.__OwnablePoolContractsRegistry_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
     await insurance.__Insurance_init();
 
@@ -98,7 +98,7 @@ describe("Insurance", async () => {
 
     decimal = await dexe.decimals();
 
-    await traderPoolRegistry.addPool(await traderPoolRegistry.BASIC_POOL_NAME(), POOL, {
+    await traderPoolRegistry.addProxyPool(await traderPoolRegistry.BASIC_POOL_NAME(), POOL, {
       from: SECOND,
     });
     await traderPoolRegistry.associateUserWithPool(OWNER, await traderPoolRegistry.BASIC_POOL_NAME(), POOL, {

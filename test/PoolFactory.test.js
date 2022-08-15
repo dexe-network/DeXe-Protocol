@@ -145,7 +145,7 @@ describe("PoolFactory", () => {
     const _govPoolRegistry = await GovPoolRegistry.new();
     const _poolFactory = await PoolFactory.new();
 
-    await contractsRegistry.__ContractsRegistry_init();
+    await contractsRegistry.__OwnableContractsRegistry_init();
 
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), _priceFeed.address);
@@ -171,8 +171,8 @@ describe("PoolFactory", () => {
     const priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
 
     await priceFeed.__PriceFeed_init();
-    await traderPoolRegistry.__PoolContractsRegistry_init();
-    await govPoolRegistry.__PoolContractsRegistry_init();
+    await traderPoolRegistry.__OwnablePoolContractsRegistry_init();
+    await govPoolRegistry.__OwnablePoolContractsRegistry_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
 
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_FACTORY_NAME());

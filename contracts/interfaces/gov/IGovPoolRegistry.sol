@@ -7,6 +7,11 @@ pragma solidity ^0.8.4;
  * with it via the BeaconProxy pattern
  */
 interface IGovPoolRegistry {
+    /// @notice The function to add the pool proxy to the registry (called by the PoolFactory)
+    /// @param name the type of the pool
+    /// @param poolAddress the address of the pool to add
+    function addProxyPool(string calldata name, address poolAddress) external;
+
     /// @notice The function to associate an owner with the pool (called by the PoolFactory)
     /// @param user the owner of the pool
     /// @param name the type of the pool

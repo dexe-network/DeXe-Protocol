@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@dlsl/dev-modules/contracts-registry/AbstractContractsRegistry.sol";
+import "@dlsl/dev-modules/contracts-registry/presets/OwnableContractsRegistry.sol";
 
 import "../interfaces/core/IContractsRegistry.sol";
 
-contract ContractsRegistry is IContractsRegistry, AbstractContractsRegistry {
+contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry {
     string public constant USER_REGISTRY_NAME = "USER_REGISTRY";
 
     string public constant POOL_FACTORY_NAME = "POOL_FACTORY";

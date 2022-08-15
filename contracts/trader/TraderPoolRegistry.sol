@@ -4,13 +4,13 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "@dlsl/dev-modules/pool-contracts-registry/AbstractPoolContractsRegistry.sol";
+import "@dlsl/dev-modules/pool-contracts-registry/presets/OwnablePoolContractsRegistry.sol";
 import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
 
 import "../interfaces/trader/ITraderPoolRegistry.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-contract TraderPoolRegistry is ITraderPoolRegistry, AbstractPoolContractsRegistry {
+contract TraderPoolRegistry is ITraderPoolRegistry, OwnablePoolContractsRegistry {
     using EnumerableSet for EnumerableSet.AddressSet;
     using Paginator for EnumerableSet.AddressSet;
     using Math for uint256;
@@ -24,14 +24,23 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractPoolContractsRegistr
 
     mapping(address => mapping(string => EnumerableSet.AddressSet)) internal _traderPools; // trader => name => pool
 
-    function _onlyPoolFactory() internal view override {
+    modifier onlyPoolFactory() {
         require(_poolFactory == _msgSender(), "TraderPoolRegistry: Caller is not a factory");
+        _;
     }
 
     function setDependencies(address contractsRegistry) public override {
         super.setDependencies(contractsRegistry);
 
         _poolFactory = IContractsRegistry(contractsRegistry).getPoolFactoryContract();
+    }
+
+    function addProxyPool(string calldata name, address poolAddress)
+        external
+        override
+        onlyPoolFactory
+    {
+        _addProxyPool(name, poolAddress);
     }
 
     function associateUserWithPool(
