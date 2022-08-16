@@ -12,6 +12,7 @@ interface IPoolFactory {
     struct SettingsDeployParams {
         IGovSettings.ProposalSettings internalProposalSetting;
         IGovSettings.ProposalSettings distributionProposalSettings;
+        IGovSettings.ProposalSettings changeValidatorsBalancesSettings;
         IGovSettings.ProposalSettings defaultProposalSetting;
     }
 
@@ -62,13 +63,9 @@ interface IPoolFactory {
     }
 
     /// @notice The function to deploy gov pools
-    /// @param withValidators if true deploys gov pool with validators
     /// @param parameters the pool deploy parameters
-    function deployGovPool(
-        bool withValidators,
-        bool withDistributionProposal,
-        GovPoolDeployParams calldata parameters
-    ) external;
+    function deployGovPool(bool withDistributionProposal, GovPoolDeployParams calldata parameters)
+        external;
 
     /// @notice The function to deploy basic pools
     /// @param name the ERC20 name of the pool

@@ -8,10 +8,12 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "../interfaces/gov/IGovCreator.sol";
 import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
+import "../interfaces/gov/validators/IGovValidators.sol";
 
 abstract contract GovCreator is IGovCreator {
     IGovSettings public govSetting;
     IGovUserKeeper public govUserKeeper;
+    IGovValidators public govValidators;
 
     address public distributionProposal;
 
@@ -22,13 +24,15 @@ abstract contract GovCreator is IGovCreator {
     function __GovCreator_init(
         address govSettingAddress,
         address govUserKeeperAddress,
-        address distributionProposalAddress
+        address distributionProposalAddress,
+        address validatorsAddress
     ) internal {
         require(govSettingAddress != address(0), "GovC: address is zero (1)");
         require(govUserKeeperAddress != address(0), "GovC: address is zero (2)");
 
         govSetting = IGovSettings(govSettingAddress);
         govUserKeeper = IGovUserKeeper(govUserKeeperAddress);
+        govValidators = IGovValidators(validatorsAddress);
 
         distributionProposal = distributionProposalAddress;
     }
@@ -37,7 +41,8 @@ abstract contract GovCreator is IGovCreator {
         string calldata descriptionURL,
         address[] calldata executors,
         uint256[] calldata values,
-        bytes[] calldata data
+        bytes[] calldata data,
+        bool validatorsVote
     ) external override {
         require(
             executors.length > 0 &&
@@ -58,6 +63,8 @@ abstract contract GovCreator is IGovCreator {
             _handleExecutorsAndDataForInternalProposal(executors, values, data);
         } else if (executorType == IGovSettings.ExecutorType.DISTRIBUTION) {
             _handleDataForDistributionProposal(executors, values, data);
+        } else if (executorType == IGovSettings.ExecutorType.VALIDATORS) {
+            _handleDataForChangeValidatorBalanceProposal(executors, values, data);
         } else if (executorType == IGovSettings.ExecutorType.TRUSTED) {
             forceDefaultSettings = _handleDataForExistingSettingsProposal(values, data);
         }
@@ -91,7 +98,8 @@ abstract contract GovCreator is IGovCreator {
             descriptionURL: descriptionURL,
             executors: executors,
             values: values,
-            data: data
+            data: data,
+            validatorsVote: validatorsVote
         });
     }
 
@@ -154,6 +162,29 @@ abstract contract GovCreator is IGovCreator {
         );
         require(decodedId == _latestProposalId, "GovC: invalid proposalId");
         require(distributionProposal == executors[executors.length - 1], "GovC: invalid executor");
+
+        for (uint256 i; i < data.length - 1; i++) {
+            bytes4 selector = _getSelector(data[i]);
+
+            require(
+                values[i] == 0 &&
+                    (selector == IERC20.approve.selector ||
+                        selector == IERC20.transfer.selector ||
+                        selector == IERC20.transferFrom.selector),
+                "GovC: invalid internal data"
+            );
+        }
+    }
+
+    function _handleDataForChangeValidatorBalanceProposal(
+        address[] calldata executors,
+        uint256[] calldata values,
+        bytes[] calldata data
+    ) private view {
+        require(
+            address(govValidators) == executors[executors.length - 1],
+            "GovC: invalid executor"
+        );
 
         for (uint256 i; i < data.length - 1; i++) {
             bytes4 selector = _getSelector(data[i]);

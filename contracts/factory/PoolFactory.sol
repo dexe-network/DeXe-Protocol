@@ -49,27 +49,25 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _coreProperties = CoreProperties(registry.getCorePropertiesContract());
     }
 
-    function deployGovPool(
-        bool withValidators,
-        bool withDistributionProposal,
-        GovPoolDeployParams calldata parameters
-    ) external override {
+    function deployGovPool(bool withDistributionProposal, GovPoolDeployParams calldata parameters)
+        external
+        override
+    {
         string memory poolType = _poolRegistry.GOV_POOL_NAME();
 
         address settingsProxy = _deploy(address(_poolRegistry), _poolRegistry.SETTINGS_NAME());
         address validatorsProxy;
 
-        if (withValidators) {
-            validatorsProxy = _deploy(address(_poolRegistry), _poolRegistry.VALIDATORS_NAME());
-            GovValidators(validatorsProxy).__GovValidators_init(
-                parameters.validatorsParams.name,
-                parameters.validatorsParams.symbol,
-                parameters.validatorsParams.duration,
-                parameters.validatorsParams.quorum,
-                parameters.validatorsParams.validators,
-                parameters.validatorsParams.balances
-            );
-        }
+        validatorsProxy = _deploy(address(_poolRegistry), _poolRegistry.VALIDATORS_NAME());
+
+        GovValidators(validatorsProxy).__GovValidators_init(
+            parameters.validatorsParams.name,
+            parameters.validatorsParams.symbol,
+            parameters.validatorsParams.duration,
+            parameters.validatorsParams.quorum,
+            parameters.validatorsParams.validators,
+            parameters.validatorsParams.balances
+        );
 
         address userKeeperProxy = _deploy(
             address(_poolRegistry),
@@ -85,8 +83,10 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         GovSettings(settingsProxy).__GovSettings_init(
             address(dpProxy),
+            address(validatorsProxy),
             parameters.seetingsParams.internalProposalSetting,
             parameters.seetingsParams.distributionProposalSettings,
+            parameters.seetingsParams.changeValidatorsBalancesSettings,
             parameters.seetingsParams.defaultProposalSetting
         );
         GovUserKeeper(userKeeperProxy).__GovUserKeeper_init(
@@ -109,9 +109,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         GovSettings(settingsProxy).transferOwnership(poolProxy);
         GovUserKeeper(userKeeperProxy).transferOwnership(poolProxy);
 
-        if (withValidators) {
-            GovValidators(validatorsProxy).transferOwnership(poolProxy);
-        }
+        GovValidators(validatorsProxy).transferOwnership(poolProxy);
 
         GovPool(payable(poolProxy)).transferOwnership(parameters.owner);
 

@@ -77,7 +77,7 @@ const DEFAULT_CORE_PROPERTIES = {
   insuranceWithdrawalLock: SECONDS_IN_DAY,
 };
 
-describe("PoolFactory", () => {
+describe.only("PoolFactory", () => {
   let OWNER;
   let NOTHING;
 
@@ -432,7 +432,7 @@ describe("PoolFactory", () => {
         descriptionURL: "example.com",
       };
 
-      await poolFactory.deployGovPool(true, false, POOL_PARAMETERS);
+      await poolFactory.deployGovPool(false, POOL_PARAMETERS);
 
       assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
       assert.equal(
@@ -479,10 +479,10 @@ describe("PoolFactory", () => {
           },
         },
         validatorsParams: {
-          name: "",
-          symbol: "",
-          duration: 0,
-          quorum: 0,
+          name: "Validator Token",
+          symbol: "VT",
+          duration: 500,
+          quorum: PRECISION.times("51").toFixed(),
           validators: [],
           balances: [],
         },
@@ -498,17 +498,13 @@ describe("PoolFactory", () => {
         descriptionURL: "example.com",
       };
 
-      await poolFactory.deployGovPool(false, false, POOL_PARAMETERS);
+      await poolFactory.deployGovPool(false, POOL_PARAMETERS);
 
       assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
       assert.equal(
         (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.GOV_POOL_NAME())).toString(),
         "1"
       );
-
-      let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
-
-      assert.equal(await govPool.validators(), "0x0000000000000000000000000000000000000000");
     });
 
     it("should deploy pool with DP", async () => {
@@ -565,7 +561,7 @@ describe("PoolFactory", () => {
         descriptionURL: "example.com",
       };
 
-      await poolFactory.deployGovPool(true, true, POOL_PARAMETERS);
+      await poolFactory.deployGovPool(true, POOL_PARAMETERS);
 
       assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
       assert.equal(

@@ -156,10 +156,13 @@ abstract contract GovVote is IGovVote, GovCreator {
     }
 
     function moveProposalToValidators(uint256 proposalId) external override {
-        ProposalCore storage core = proposals[proposalId].core;
+        Proposal storage proposal = proposals[proposalId];
+        ProposalCore storage core = proposal.core;
         ProposalState state = _getProposalState(core);
 
         require(state == ProposalState.WaitingForVotingTransfer, "GovV: can't be moved");
+        require(proposal.validatorsVote, "GovV: validators voting off");
+        require(validators.getValidatorsCount() > 0, "GovV: no validators");
 
         validators.createExternalProposal(
             proposalId,

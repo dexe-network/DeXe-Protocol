@@ -22,6 +22,7 @@ interface IGovCreator {
         address[] executors;
         uint256[] values;
         bytes[] data;
+        bool validatorsVote;
     }
 
     /// @notice Create proposal
@@ -36,7 +37,8 @@ interface IGovCreator {
         string calldata descriptionURL,
         address[] memory executors,
         uint256[] calldata values,
-        bytes[] calldata data
+        bytes[] calldata data,
+        bool validatorsVote
     ) external;
 
     /// @param proposalId Proposal ID

@@ -98,4 +98,6 @@ interface IGovValidators {
     /// @param isInternal If `true`, check internal proposal
     /// @return `true` if quorum reached. Return `false` if not or proposal isn't exist.
     function isQuorumReached(uint256 proposalId, bool isInternal) external view returns (bool);
+
+    function getValidatorsCount() external view returns (uint256);
 }

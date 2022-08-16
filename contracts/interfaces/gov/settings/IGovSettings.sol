@@ -20,6 +20,7 @@ interface IGovSettings {
         NONE,
         INTERNAL,
         DISTRIBUTION,
+        VALIDATORS,
         TRUSTED
     }
 
