@@ -41,8 +41,7 @@ abstract contract GovCreator is IGovCreator {
         string calldata descriptionURL,
         address[] calldata executors,
         uint256[] calldata values,
-        bytes[] calldata data,
-        bool validatorsVote
+        bytes[] calldata data
     ) external override {
         require(
             executors.length > 0 &&
@@ -98,8 +97,7 @@ abstract contract GovCreator is IGovCreator {
             descriptionURL: descriptionURL,
             executors: executors,
             values: values,
-            data: data,
-            validatorsVote: validatorsVote
+            data: data
         });
     }
 
@@ -186,14 +184,12 @@ abstract contract GovCreator is IGovCreator {
             "GovC: invalid executor"
         );
 
-        for (uint256 i; i < data.length - 1; i++) {
+        for (uint256 i; i < data.length; i++) {
             bytes4 selector = _getSelector(data[i]);
-
             require(
                 values[i] == 0 &&
-                    (selector == IERC20.approve.selector ||
-                        selector == IERC20.transfer.selector ||
-                        selector == IERC20.transferFrom.selector),
+                    executors[executors.length - 1] == executors[i] &&
+                    (selector == IGovValidators.changeBalances.selector),
                 "GovC: invalid internal data"
             );
         }

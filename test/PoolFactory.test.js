@@ -401,6 +401,16 @@ describe.only("PoolFactory", () => {
             minTokenBalance: wei("10"),
             minNftBalance: 2,
           },
+          changeValidatorsBalancesSettings: {
+            earlyCompletion: true,
+            delegatedVotingAllowed: false,
+            duration: 500,
+            durationValidators: 600,
+            quorum: PRECISION.times("51").toFixed(),
+            quorumValidators: PRECISION.times("61").toFixed(),
+            minTokenBalance: wei("10"),
+            minNftBalance: 2,
+          },
           defaultProposalSetting: {
             earlyCompletion: false,
             delegatedVotingAllowed: true,
@@ -442,6 +452,10 @@ describe.only("PoolFactory", () => {
 
       let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
       assert.equal(await govPool.owner(), OWNER);
+
+      let govValidators = await GovValidators.at(await govPool.govValidators());
+
+      assert.equal((await govValidators.getValidatorsCount()).toFixed(), 1);
     });
 
     it("should deploy gov pool without validators", async () => {
@@ -458,6 +472,16 @@ describe.only("PoolFactory", () => {
             minNftBalance: 2,
           },
           distributionProposalSettings: {
+            earlyCompletion: true,
+            delegatedVotingAllowed: false,
+            duration: 500,
+            durationValidators: 600,
+            quorum: PRECISION.times("51").toFixed(),
+            quorumValidators: PRECISION.times("61").toFixed(),
+            minTokenBalance: wei("10"),
+            minNftBalance: 2,
+          },
+          changeValidatorsBalancesSettings: {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
             duration: 500,
@@ -521,6 +545,16 @@ describe.only("PoolFactory", () => {
             minNftBalance: 2,
           },
           distributionProposalSettings: {
+            earlyCompletion: true,
+            delegatedVotingAllowed: false,
+            duration: 500,
+            durationValidators: 600,
+            quorum: PRECISION.times("51").toFixed(),
+            quorumValidators: PRECISION.times("61").toFixed(),
+            minTokenBalance: wei("10"),
+            minNftBalance: 2,
+          },
+          changeValidatorsBalancesSettings: {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
             duration: 500,

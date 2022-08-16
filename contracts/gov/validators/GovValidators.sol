@@ -58,15 +58,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         internalProposalSettings.duration = duration;
         internalProposalSettings.quorum = quorum;
 
-        for (uint256 i; i < validators.length; i++) {
-            _validatorsTokenContract.mint(validators[i], balances[i]);
-        }
-
-        validatorsCount = validators.length;
-    }
-
-    function getValidatorsCount() external view returns (uint256) {
-        return validatorsCount;
+        _changeBalances(balances, validators);
     }
 
     function createInternalProposal(
@@ -246,6 +238,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
     function changeBalances(uint256[] memory newValues, address[] memory userAddresses)
         external
+        override
         onlyOwner
     {
         _changeBalances(newValues, userAddresses);
@@ -255,7 +248,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         GovValidatorsToken validatorsToken = govValidatorsToken;
         uint256 length = newValues.length;
 
-        uint256 toRemove;
+        uint256 validatorsCount_ = validatorsCount;
 
         for (uint256 i = 0; i < length; i++) {
             address user = userAddresses[i];
@@ -264,15 +257,19 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
             if (balance < newBalance) {
                 validatorsToken.mint(user, newBalance - balance);
-            } else {
+
+                if (balance == 0) {
+                    validatorsCount_++;
+                }
+            } else if (balance > newBalance) {
                 validatorsToken.burn(user, balance - newBalance);
 
-                if (balance - newBalance == 0) {
-                    toRemove++;
+                if (newBalance == 0) {
+                    validatorsCount_--;
                 }
             }
         }
 
-        validatorsCount -= toRemove;
+        validatorsCount = validatorsCount_;
     }
 }

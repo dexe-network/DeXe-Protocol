@@ -42,6 +42,17 @@ const INTERNAL_SETTINGS = {
   minNftBalance: 2,
 };
 
+const CHANGE_VALIDATORS_BALANCES_SETTINGS = {
+  earlyCompletion: true,
+  delegatedVotingAllowed: true,
+  duration: 500,
+  durationValidators: 600,
+  quorum: PRECISION.times("51").toFixed(),
+  quorumValidators: PRECISION.times("61").toFixed(),
+  minTokenBalance: wei("10"),
+  minNftBalance: 2,
+};
+
 const DP_SETTINGS = {
   earlyCompletion: false,
   delegatedVotingAllowed: false,
@@ -212,7 +223,7 @@ const getBytesApprove = (address, amount) => {
   );
 };
 
-describe("GovPool", () => {
+describe.only("GovPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -314,12 +325,6 @@ describe("GovPool", () => {
     beforeEach("setup", async () => {
       nft = await ERC721EnumMock.new("Mock", "Mock");
 
-      await settings.__GovSettings_init(
-        "0x0000000000000000000000000000000000000000",
-        INTERNAL_SETTINGS,
-        DP_SETTINGS,
-        DEFAULT_SETTINGS
-      );
       await validators.__GovValidators_init(
         "Validator Token",
         "VT",
@@ -328,6 +333,16 @@ describe("GovPool", () => {
         [OWNER, SECOND],
         [wei("100"), wei("1000000000000")]
       );
+
+      await settings.__GovSettings_init(
+        "0x0000000000000000000000000000000000000000",
+        validators.address,
+        INTERNAL_SETTINGS,
+        DP_SETTINGS,
+        CHANGE_VALIDATORS_BALANCES_SETTINGS,
+        DEFAULT_SETTINGS
+      );
+
       await userKeeper.__GovUserKeeper_init(token.address, nft.address, wei("33000"), 33);
       await govPool.__GovPool_init(
         settings.address,
@@ -699,7 +714,8 @@ describe("GovPool", () => {
             "example.com",
             [settings.address],
             [0],
-            [getBytesEditSettings([3], [NEW_SETTINGS])]
+            [getBytesEditSettings([3], [NEW_SETTINGS])],
+            true
           );
 
           await token.mint(SECOND, wei("100000000000000000000"));
@@ -946,7 +962,7 @@ describe("GovPool", () => {
 
           await govPool.execute(1);
 
-          const addedSettings = await settings.settings(4);
+          const addedSettings = await settings.settings(5);
 
           assert.isTrue(addedSettings.earlyCompletion);
           assert.isFalse(addedSettings.delegatedVotingAllowed);
@@ -980,7 +996,7 @@ describe("GovPool", () => {
           await govPool.deposit(OWNER, 0, [1, 2, 3, 4]);
           await govPool.delegate(SECOND, wei("1000"), [1, 2, 3, 4]);
 
-          await govPool.createProposal("example.com", [settings.address], [0], [bytes]);
+          await govPool.createProposal("example.com", [settings.address], [0], [bytes], false);
           await govPool.vote(2, 0, [], wei("1000"), [1, 2, 3, 4]);
           await truffleAssert.reverts(
             govPool.voteDelegated(2, wei("1000"), [1, 2, 3, 4], { from: SECOND }),
@@ -1021,7 +1037,8 @@ describe("GovPool", () => {
             "example.com",
             [token.address, executorTransfer.address],
             [wei("1"), wei("1")],
-            [bytesApprove, bytesExecute]
+            [bytesApprove, bytesExecute],
+            false
           );
 
           assert.equal((await govPool.proposals(2)).core.settings[2], DEFAULT_SETTINGS.duration);
@@ -1030,7 +1047,8 @@ describe("GovPool", () => {
             "example.com",
             [token.address, executorTransfer.address],
             ["0", wei("1")],
-            [bytesApprove, bytesExecute]
+            [bytesApprove, bytesExecute],
+            false
           );
 
           assert.equal((await govPool.proposals(3)).core.settings[2], NEW_SETTINGS.duration);

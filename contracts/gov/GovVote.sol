@@ -30,10 +30,9 @@ abstract contract GovVote is IGovVote, GovCreator {
 
     mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
 
-    function __GovVote_init(address validatorsAddress, uint256 _votesLimit) internal {
+    function __GovVote_init(uint256 _votesLimit) internal {
         require(_votesLimit > 0);
 
-        validators = IGovValidators(validatorsAddress);
         votesLimit = _votesLimit;
     }
 
@@ -161,8 +160,6 @@ abstract contract GovVote is IGovVote, GovCreator {
         ProposalState state = _getProposalState(core);
 
         require(state == ProposalState.WaitingForVotingTransfer, "GovV: can't be moved");
-        require(proposal.validatorsVote, "GovV: validators voting off");
-        require(validators.getValidatorsCount() > 0, "GovV: no validators");
 
         validators.createExternalProposal(
             proposalId,
@@ -205,7 +202,11 @@ abstract contract GovVote is IGovVote, GovCreator {
                         false
                     );
 
-                    if (status == IGovValidators.ProposalState.Undefined) {
+                    if (
+                        status == IGovValidators.ProposalState.Undefined &&
+                        core.settings.validatorsVote &&
+                        govValidators.validatorsCount() > 0
+                    ) {
                         return ProposalState.WaitingForVotingTransfer;
                     }
 
