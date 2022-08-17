@@ -7,13 +7,18 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@dlsl/dev-modules/pool-contracts-registry/presets/OwnablePoolContractsRegistry.sol";
 import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
 
-import "../interfaces/gov/IGovPoolRegistry.sol";
+import "../interfaces/factory/IPoolRegistry.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-contract GovPoolRegistry is IGovPoolRegistry, OwnablePoolContractsRegistry {
+contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     using EnumerableSet for EnumerableSet.AddressSet;
     using Paginator for EnumerableSet.AddressSet;
     using Math for uint256;
+
+    string public constant BASIC_POOL_NAME = "BASIC_POOL";
+    string public constant INVEST_POOL_NAME = "INVEST_POOL";
+    string public constant RISKY_PROPOSAL_NAME = "RISKY_POOL_PROPOSAL";
+    string public constant INVEST_PROPOSAL_NAME = "INVEST_POOL_PROPOSAL";
 
     string public constant GOV_POOL_NAME = "GOV_POOL";
     string public constant SETTINGS_NAME = "SETTINGS";
@@ -26,7 +31,7 @@ contract GovPoolRegistry is IGovPoolRegistry, OwnablePoolContractsRegistry {
     mapping(address => mapping(string => EnumerableSet.AddressSet)) internal _ownerPools; // pool owner => name => pool
 
     modifier onlyPoolFactory() {
-        require(_poolFactory == _msgSender(), "GovPoolRegistry: Caller is not a factory");
+        require(_poolFactory == _msgSender(), "PoolRegistry: Caller is not a factory");
         _;
     }
 
@@ -48,11 +53,11 @@ contract GovPoolRegistry is IGovPoolRegistry, OwnablePoolContractsRegistry {
         address user,
         string calldata name,
         address poolAddress
-    ) external override onlyPoolFactory {
+    ) external onlyPoolFactory {
         _ownerPools[user][name].add(poolAddress);
     }
 
-    function countOwnerPools(address user, string calldata name)
+    function countAssociatedPools(address user, string calldata name)
         external
         view
         override
@@ -61,12 +66,49 @@ contract GovPoolRegistry is IGovPoolRegistry, OwnablePoolContractsRegistry {
         return _ownerPools[user][name].length();
     }
 
-    function listOwnerPools(
+    function listAssociatedPools(
         address user,
         string calldata name,
         uint256 offset,
         uint256 limit
     ) external view override returns (address[] memory pools) {
         return _ownerPools[user][name].part(offset, limit);
+    }
+
+    function listTraderPoolsWithInfo(
+        string calldata name,
+        uint256 offset,
+        uint256 limit
+    )
+        external
+        view
+        override
+        returns (
+            address[] memory pools,
+            ITraderPool.PoolInfo[] memory poolInfos,
+            ITraderPool.LeverageInfo[] memory leverageInfos
+        )
+    {
+        pools = _pools[name].part(offset, limit);
+
+        poolInfos = new ITraderPool.PoolInfo[](pools.length);
+        leverageInfos = new ITraderPool.LeverageInfo[](pools.length);
+
+        for (uint256 i = 0; i < pools.length; i++) {
+            poolInfos[i] = ITraderPool(pools[i]).getPoolInfo();
+            leverageInfos[i] = ITraderPool(pools[i]).getLeverageInfo();
+        }
+    }
+
+    function isBasicPool(address potentialPool) public view override returns (bool) {
+        return _pools[BASIC_POOL_NAME].contains(potentialPool);
+    }
+
+    function isInvestPool(address potentialPool) public view override returns (bool) {
+        return _pools[INVEST_POOL_NAME].contains(potentialPool);
+    }
+
+    function isTraderPool(address potentialPool) external view override returns (bool) {
+        return isBasicPool(potentialPool) || isInvestPool(potentialPool);
     }
 }

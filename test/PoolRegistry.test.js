@@ -3,7 +3,7 @@ const { toBN, accounts } = require("../scripts/helpers/utils");
 const truffleAssert = require("truffle-assertions");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
-const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
+const PoolRegistry = artifacts.require("PoolRegistry");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const Insurance = artifacts.require("Insurance");
 const CoreProperties = artifacts.require("CoreProperties");
@@ -17,7 +17,7 @@ const TraderPoolPriceLib = artifacts.require("TraderPoolPrice");
 const TraderPoolViewLib = artifacts.require("TraderPoolView");
 
 ContractsRegistry.numberFormat = "BigNumber";
-TraderPoolRegistry.numberFormat = "BigNumber";
+PoolRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 Insurance.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
@@ -59,7 +59,7 @@ const DEFAULT_CORE_PROPERTIES = {
   insuranceWithdrawalLock: SECONDS_IN_DAY,
 };
 
-describe("TraderPoolRegistry", () => {
+describe("PoolRegistry", () => {
   let OWNER;
   let FACTORY;
   let NOTHING;
@@ -68,7 +68,7 @@ describe("TraderPoolRegistry", () => {
   let INVEST_NAME;
 
   let DEXE;
-  let traderPoolRegistry;
+  let poolRegistry;
 
   before("setup", async () => {
     OWNER = await accounts(0);
@@ -98,7 +98,7 @@ describe("TraderPoolRegistry", () => {
 
   beforeEach("setup", async () => {
     const contractsRegistry = await ContractsRegistry.new();
-    const _traderPoolRegistry = await TraderPoolRegistry.new();
+    const _poolRegistry = await PoolRegistry.new();
     const _insurance = await Insurance.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     const USD = await ERC20Mock.new("USD", "USD", 18);
@@ -111,10 +111,7 @@ describe("TraderPoolRegistry", () => {
     await contractsRegistry.addProxyContract(await contractsRegistry.INSURANCE_NAME(), _insurance.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), _priceFeed.address);
-    await contractsRegistry.addProxyContract(
-      await contractsRegistry.TRADER_POOL_REGISTRY_NAME(),
-      _traderPoolRegistry.address
-    );
+    await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), _poolRegistry.address);
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
@@ -128,20 +125,20 @@ describe("TraderPoolRegistry", () => {
     const insurance = await Insurance.at(await contractsRegistry.getInsuranceContract());
     const coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     const priceFeed = await PriceFeedMock.at(await contractsRegistry.getPriceFeedContract());
-    traderPoolRegistry = await TraderPoolRegistry.at(await contractsRegistry.getTraderPoolRegistryContract());
+    poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
 
     await insurance.__Insurance_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
     await priceFeed.__PriceFeed_init();
-    await traderPoolRegistry.__OwnablePoolContractsRegistry_init();
+    await poolRegistry.__OwnablePoolContractsRegistry_init();
 
     await contractsRegistry.injectDependencies(await contractsRegistry.INSURANCE_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
-    await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_REGISTRY_NAME());
+    await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
 
-    BASIC_NAME = await traderPoolRegistry.BASIC_POOL_NAME();
-    INVEST_NAME = await traderPoolRegistry.INVEST_POOL_NAME();
+    BASIC_NAME = await poolRegistry.BASIC_POOL_NAME();
+    INVEST_NAME = await poolRegistry.INVEST_POOL_NAME();
   });
 
   async function deployPool(poolParameters) {
@@ -149,14 +146,14 @@ describe("TraderPoolRegistry", () => {
 
     await traderPool.__TraderPoolMock_init("Test pool", "TP", poolParameters);
 
-    await traderPoolRegistry.addProxyPool(BASIC_NAME, traderPool.address, {
+    await poolRegistry.addProxyPool(BASIC_NAME, traderPool.address, {
       from: FACTORY,
     });
-    await traderPoolRegistry.associateUserWithPool(OWNER, BASIC_NAME, traderPool.address, {
+    await poolRegistry.associateUserWithPool(OWNER, BASIC_NAME, traderPool.address, {
       from: FACTORY,
     });
 
-    await traderPoolRegistry.injectDependenciesToExistingPools(BASIC_NAME, 0, 10);
+    await poolRegistry.injectDependenciesToExistingPools(BASIC_NAME, 0, 10);
 
     return traderPool;
   }
@@ -173,73 +170,73 @@ describe("TraderPoolRegistry", () => {
     });
 
     it("should successfully add and get implementation", async () => {
-      await traderPoolRegistry.setNewImplementations([BASIC_NAME], [DEXE.address]);
+      await poolRegistry.setNewImplementations([BASIC_NAME], [DEXE.address]);
 
-      assert.equal(await traderPoolRegistry.getImplementation(BASIC_NAME), DEXE.address);
+      assert.equal(await poolRegistry.getImplementation(BASIC_NAME), DEXE.address);
     });
 
     it("should successfully add new BASIC pools", async () => {
-      assert.isFalse(await traderPoolRegistry.isBasicPool(POOL_2));
-      assert.isFalse(await traderPoolRegistry.isInvestPool(POOL_1));
+      assert.isFalse(await poolRegistry.isBasicPool(POOL_2));
+      assert.isFalse(await poolRegistry.isInvestPool(POOL_1));
 
-      await traderPoolRegistry.addProxyPool(BASIC_NAME, POOL_1, { from: FACTORY });
-      await traderPoolRegistry.addProxyPool(BASIC_NAME, POOL_2, { from: FACTORY });
+      await poolRegistry.addProxyPool(BASIC_NAME, POOL_1, { from: FACTORY });
+      await poolRegistry.addProxyPool(BASIC_NAME, POOL_2, { from: FACTORY });
 
-      assert.equal((await traderPoolRegistry.countPools(BASIC_NAME)).toFixed(), "2");
-      assert.equal((await traderPoolRegistry.countPools(INVEST_NAME)).toFixed(), "0");
+      assert.equal((await poolRegistry.countPools(BASIC_NAME)).toFixed(), "2");
+      assert.equal((await poolRegistry.countPools(INVEST_NAME)).toFixed(), "0");
 
-      assert.isTrue(await traderPoolRegistry.isBasicPool(POOL_2));
-      assert.isFalse(await traderPoolRegistry.isInvestPool(POOL_1));
+      assert.isTrue(await poolRegistry.isBasicPool(POOL_2));
+      assert.isFalse(await poolRegistry.isInvestPool(POOL_1));
 
-      assert.isFalse(await traderPoolRegistry.isPool(POOL_3));
-      assert.isTrue(await traderPoolRegistry.isPool(POOL_2));
+      assert.isFalse(await poolRegistry.isTraderPool(POOL_3));
+      assert.isTrue(await poolRegistry.isTraderPool(POOL_2));
     });
 
     it("should successfully add new INVEST pools", async () => {
-      assert.isFalse(await traderPoolRegistry.isBasicPool(POOL_2));
-      assert.isFalse(await traderPoolRegistry.isInvestPool(POOL_1));
+      assert.isFalse(await poolRegistry.isBasicPool(POOL_2));
+      assert.isFalse(await poolRegistry.isInvestPool(POOL_1));
 
-      await traderPoolRegistry.addProxyPool(INVEST_NAME, POOL_1, { from: FACTORY });
-      await traderPoolRegistry.addProxyPool(INVEST_NAME, POOL_2, { from: FACTORY });
+      await poolRegistry.addProxyPool(INVEST_NAME, POOL_1, { from: FACTORY });
+      await poolRegistry.addProxyPool(INVEST_NAME, POOL_2, { from: FACTORY });
 
-      assert.equal((await traderPoolRegistry.countPools(INVEST_NAME)).toFixed(), "2");
-      assert.equal((await traderPoolRegistry.countPools(BASIC_NAME)).toFixed(), "0");
+      assert.equal((await poolRegistry.countPools(INVEST_NAME)).toFixed(), "2");
+      assert.equal((await poolRegistry.countPools(BASIC_NAME)).toFixed(), "0");
 
-      assert.isFalse(await traderPoolRegistry.isBasicPool(POOL_2));
-      assert.isTrue(await traderPoolRegistry.isInvestPool(POOL_1));
+      assert.isFalse(await poolRegistry.isBasicPool(POOL_2));
+      assert.isTrue(await poolRegistry.isInvestPool(POOL_1));
 
-      assert.isFalse(await traderPoolRegistry.isPool(POOL_3));
-      assert.isTrue(await traderPoolRegistry.isPool(POOL_2));
+      assert.isFalse(await poolRegistry.isTraderPool(POOL_3));
+      assert.isTrue(await poolRegistry.isTraderPool(POOL_2));
     });
 
     it("should successfully associate new pools", async () => {
-      await traderPoolRegistry.associateUserWithPool(OWNER, BASIC_NAME, POOL_1, { from: FACTORY });
-      await traderPoolRegistry.associateUserWithPool(OWNER, BASIC_NAME, POOL_2, { from: FACTORY });
+      await poolRegistry.associateUserWithPool(OWNER, BASIC_NAME, POOL_1, { from: FACTORY });
+      await poolRegistry.associateUserWithPool(OWNER, BASIC_NAME, POOL_2, { from: FACTORY });
 
-      assert.equal((await traderPoolRegistry.countTraderPools(OWNER, BASIC_NAME)).toFixed(), "2");
-      assert.equal((await traderPoolRegistry.countTraderPools(OWNER, INVEST_NAME)).toFixed(), "0");
+      assert.equal((await poolRegistry.countAssociatedPools(OWNER, BASIC_NAME)).toFixed(), "2");
+      assert.equal((await poolRegistry.countAssociatedPools(OWNER, INVEST_NAME)).toFixed(), "0");
     });
 
     it("should list added pools", async () => {
-      await traderPoolRegistry.addProxyPool(BASIC_NAME, POOL_1, { from: FACTORY });
-      await traderPoolRegistry.addProxyPool(BASIC_NAME, POOL_2, { from: FACTORY });
+      await poolRegistry.addProxyPool(BASIC_NAME, POOL_1, { from: FACTORY });
+      await poolRegistry.addProxyPool(BASIC_NAME, POOL_2, { from: FACTORY });
 
-      assert.deepEqual(await traderPoolRegistry.listPools(BASIC_NAME, 0, 2), [POOL_1, POOL_2]);
-      assert.deepEqual(await traderPoolRegistry.listPools(BASIC_NAME, 0, 10), [POOL_1, POOL_2]);
-      assert.deepEqual(await traderPoolRegistry.listPools(BASIC_NAME, 1, 1), [POOL_2]);
-      assert.deepEqual(await traderPoolRegistry.listPools(BASIC_NAME, 2, 0), []);
-      assert.deepEqual(await traderPoolRegistry.listPools(INVEST_NAME, 0, 2), []);
+      assert.deepEqual(await poolRegistry.listPools(BASIC_NAME, 0, 2), [POOL_1, POOL_2]);
+      assert.deepEqual(await poolRegistry.listPools(BASIC_NAME, 0, 10), [POOL_1, POOL_2]);
+      assert.deepEqual(await poolRegistry.listPools(BASIC_NAME, 1, 1), [POOL_2]);
+      assert.deepEqual(await poolRegistry.listPools(BASIC_NAME, 2, 0), []);
+      assert.deepEqual(await poolRegistry.listPools(INVEST_NAME, 0, 2), []);
     });
 
     it("should list associated pools", async () => {
-      await traderPoolRegistry.associateUserWithPool(OWNER, BASIC_NAME, POOL_1, { from: FACTORY });
-      await traderPoolRegistry.associateUserWithPool(OWNER, BASIC_NAME, POOL_2, { from: FACTORY });
+      await poolRegistry.associateUserWithPool(OWNER, BASIC_NAME, POOL_1, { from: FACTORY });
+      await poolRegistry.associateUserWithPool(OWNER, BASIC_NAME, POOL_2, { from: FACTORY });
 
-      assert.deepEqual(await traderPoolRegistry.listTraderPools(OWNER, BASIC_NAME, 0, 2), [POOL_1, POOL_2]);
-      assert.deepEqual(await traderPoolRegistry.listTraderPools(OWNER, BASIC_NAME, 0, 10), [POOL_1, POOL_2]);
-      assert.deepEqual(await traderPoolRegistry.listTraderPools(OWNER, BASIC_NAME, 1, 1), [POOL_2]);
-      assert.deepEqual(await traderPoolRegistry.listTraderPools(OWNER, BASIC_NAME, 2, 0), []);
-      assert.deepEqual(await traderPoolRegistry.listTraderPools(OWNER, INVEST_NAME, 0, 2), []);
+      assert.deepEqual(await poolRegistry.listAssociatedPools(OWNER, BASIC_NAME, 0, 2), [POOL_1, POOL_2]);
+      assert.deepEqual(await poolRegistry.listAssociatedPools(OWNER, BASIC_NAME, 0, 10), [POOL_1, POOL_2]);
+      assert.deepEqual(await poolRegistry.listAssociatedPools(OWNER, BASIC_NAME, 1, 1), [POOL_2]);
+      assert.deepEqual(await poolRegistry.listAssociatedPools(OWNER, BASIC_NAME, 2, 0), []);
+      assert.deepEqual(await poolRegistry.listAssociatedPools(OWNER, INVEST_NAME, 0, 2), []);
     });
   });
 
@@ -264,11 +261,11 @@ describe("TraderPoolRegistry", () => {
     });
 
     it("should get info", async () => {
-      await truffleAssert.passes(await traderPoolRegistry.listPoolsWithInfo(BASIC_NAME, 0, 10), "passes");
-      await truffleAssert.passes(await traderPoolRegistry.listPoolsWithInfo(INVEST_NAME, 0, 10), "passes");
+      await truffleAssert.passes(await poolRegistry.listTraderPoolsWithInfo(BASIC_NAME, 0, 10), "passes");
+      await truffleAssert.passes(await poolRegistry.listTraderPoolsWithInfo(INVEST_NAME, 0, 10), "passes");
 
-      assert.equal((await traderPoolRegistry.listPoolsWithInfo(BASIC_NAME, 0, 1)).pools.length, 1);
-      assert.equal((await traderPoolRegistry.listPoolsWithInfo(INVEST_NAME, 0, 1)).pools.length, 0);
+      assert.equal((await poolRegistry.listTraderPoolsWithInfo(BASIC_NAME, 0, 1)).pools.length, 1);
+      assert.equal((await poolRegistry.listTraderPoolsWithInfo(INVEST_NAME, 0, 1)).pools.length, 0);
     });
   });
 });

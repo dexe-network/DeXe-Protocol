@@ -3,7 +3,7 @@ const { logTransaction } = require("../runners/logger/logger.js");
 const Proxy = artifacts.require("TransparentUpgradeableProxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 
-const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
+const PoolRegistry = artifacts.require("PoolRegistry");
 
 const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
 const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
@@ -55,7 +55,7 @@ async function link(deployer) {
 module.exports = async (deployer) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
-  const traderPoolRegistry = await TraderPoolRegistry.at(await contractsRegistry.getTraderPoolRegistryContract());
+  const poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
 
   await link(deployer);
 
@@ -64,13 +64,13 @@ module.exports = async (deployer) => {
   const riskyPoolProposal = await deployer.deploy(RiskyPoolProposal);
   const investPoolProposal = await deployer.deploy(InvestPoolProposal);
 
-  const basicPoolName = await traderPoolRegistry.BASIC_POOL_NAME();
-  const investPoolName = await traderPoolRegistry.INVEST_POOL_NAME();
-  const riskyProposalName = await traderPoolRegistry.RISKY_PROPOSAL_NAME();
-  const investProposalName = await traderPoolRegistry.INVEST_PROPOSAL_NAME();
+  const basicPoolName = await poolRegistry.BASIC_POOL_NAME();
+  const investPoolName = await poolRegistry.INVEST_POOL_NAME();
+  const riskyProposalName = await poolRegistry.RISKY_PROPOSAL_NAME();
+  const investProposalName = await poolRegistry.INVEST_PROPOSAL_NAME();
 
   logTransaction(
-    await traderPoolRegistry.setNewImplementations(
+    await poolRegistry.setNewImplementations(
       [basicPoolName, investPoolName, riskyProposalName, investProposalName],
       [basicTraderPool.address, investTraderPool.address, riskyPoolProposal.address, investPoolProposal.address]
     ),

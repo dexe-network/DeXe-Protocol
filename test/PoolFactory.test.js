@@ -7,8 +7,7 @@ const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC721Mock = artifacts.require("ERC721Mock");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
-const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
-const GovPoolRegistry = artifacts.require("GovPoolRegistry");
+const PoolRegistry = artifacts.require("PoolRegistry");
 const GovPool = artifacts.require("GovPool");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const GovSettings = artifacts.require("GovSettings");
@@ -33,8 +32,7 @@ ERC20Mock.numberFormat = "BigNumber";
 ERC721Mock.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
 PriceFeed.numberFormat = "BigNumber";
-TraderPoolRegistry.numberFormat = "BigNumber";
-GovPoolRegistry.numberFormat = "BigNumber";
+PoolRegistry.numberFormat = "BigNumber";
 GovPool.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 GovSettings.numberFormat = "BigNumber";
@@ -84,8 +82,7 @@ describe("PoolFactory", () => {
   let NOTHING;
 
   let DEXE;
-  let traderPoolRegistry;
-  let govPoolRegistry;
+  let poolRegistry;
   let poolFactory;
   let coreProperties;
 
@@ -141,22 +138,14 @@ describe("PoolFactory", () => {
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeed.new();
-    const _traderPoolRegistry = await TraderPoolRegistry.new();
-    const _govPoolRegistry = await GovPoolRegistry.new();
+    const _poolRegistry = await PoolRegistry.new();
     const _poolFactory = await PoolFactory.new();
 
     await contractsRegistry.__OwnableContractsRegistry_init();
 
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), _priceFeed.address);
-    await contractsRegistry.addProxyContract(
-      await contractsRegistry.TRADER_POOL_REGISTRY_NAME(),
-      _traderPoolRegistry.address
-    );
-    await contractsRegistry.addProxyContract(
-      await contractsRegistry.GOV_POOL_REGISTRY_NAME(),
-      _govPoolRegistry.address
-    );
+    await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), _poolRegistry.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.POOL_FACTORY_NAME(), _poolFactory.address);
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
@@ -165,19 +154,17 @@ describe("PoolFactory", () => {
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
 
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
-    traderPoolRegistry = await TraderPoolRegistry.at(await contractsRegistry.getTraderPoolRegistryContract());
-    govPoolRegistry = await GovPoolRegistry.at(await contractsRegistry.getGovPoolRegistryContract());
+    poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
     poolFactory = await PoolFactory.at(await contractsRegistry.getPoolFactoryContract());
     const priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
 
     await priceFeed.__PriceFeed_init();
-    await traderPoolRegistry.__OwnablePoolContractsRegistry_init();
-    await govPoolRegistry.__OwnablePoolContractsRegistry_init();
+    await poolRegistry.__OwnablePoolContractsRegistry_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
 
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_FACTORY_NAME());
-    await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_REGISTRY_NAME());
-    await contractsRegistry.injectDependencies(await contractsRegistry.GOV_POOL_REGISTRY_NAME());
+    await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
+    await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
 
     let investTraderPool = await InvestTraderPool.new();
@@ -191,29 +178,23 @@ describe("PoolFactory", () => {
     let govSettings = await GovSettings.new();
     let govValidators = await GovValidators.new();
 
-    const traderPoolNames = [
-      await traderPoolRegistry.INVEST_POOL_NAME(),
-      await traderPoolRegistry.BASIC_POOL_NAME(),
-      await traderPoolRegistry.RISKY_PROPOSAL_NAME(),
-      await traderPoolRegistry.INVEST_PROPOSAL_NAME(),
+    const poolNames = [
+      await poolRegistry.INVEST_POOL_NAME(),
+      await poolRegistry.BASIC_POOL_NAME(),
+      await poolRegistry.RISKY_PROPOSAL_NAME(),
+      await poolRegistry.INVEST_PROPOSAL_NAME(),
+      await poolRegistry.GOV_POOL_NAME(),
+      await poolRegistry.USER_KEEPER_NAME(),
+      await poolRegistry.SETTINGS_NAME(),
+      await poolRegistry.VALIDATORS_NAME(),
+      await poolRegistry.DISTRIBUTION_PROPOSAL_NAME(),
     ];
 
-    const govPoolNames = [
-      await govPoolRegistry.GOV_POOL_NAME(),
-      await govPoolRegistry.USER_KEEPER_NAME(),
-      await govPoolRegistry.SETTINGS_NAME(),
-      await govPoolRegistry.VALIDATORS_NAME(),
-      await govPoolRegistry.DISTRIBUTION_PROPOSAL_NAME(),
-    ];
-
-    const traderPoolAddrs = [
+    const poolAddrs = [
       investTraderPool.address,
       basicTraderPool.address,
       riskyPoolProposal.address,
       investPoolProposal.address,
-    ];
-
-    const govPoolAddrs = [
       govPool.address,
       govUserKeeper.address,
       govSettings.address,
@@ -221,8 +202,7 @@ describe("PoolFactory", () => {
       distributionProposal.address,
     ];
 
-    await traderPoolRegistry.setNewImplementations(traderPoolNames, traderPoolAddrs);
-    await govPoolRegistry.setNewImplementations(govPoolNames, govPoolAddrs);
+    await poolRegistry.setNewImplementations(poolNames, poolAddrs);
   });
 
   describe("deployBasicPool", async () => {
@@ -246,14 +226,14 @@ describe("PoolFactory", () => {
       assert.equal("BASIC_POOL", event.args.poolType);
     });
 
-    it("should deploy pool and check TraderPoolRegistry", async () => {
-      let lenPools = await traderPoolRegistry.countPools(await traderPoolRegistry.BASIC_POOL_NAME());
-      let lenUser = await traderPoolRegistry.countTraderPools(OWNER, await traderPoolRegistry.BASIC_POOL_NAME());
+    it("should deploy pool and check PoolRegistry", async () => {
+      let lenPools = await poolRegistry.countPools(await poolRegistry.BASIC_POOL_NAME());
+      let lenUser = await poolRegistry.countTraderPools(OWNER, await poolRegistry.BASIC_POOL_NAME());
 
       let tx = await poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS);
       let event = tx.receipt.logs[0];
 
-      assert.isTrue(await traderPoolRegistry.isPool(event.args.at));
+      assert.isTrue(await poolRegistry.isPool(event.args.at));
 
       const traderPool = await BasicTraderPool.at(event.args.at);
 
@@ -261,11 +241,11 @@ describe("PoolFactory", () => {
       assert.equal((await traderPool.getPoolInfo()).parameters.baseTokenDecimals, 18);
 
       assert.equal(
-        (await traderPoolRegistry.countPools(await traderPoolRegistry.BASIC_POOL_NAME())).toString(),
+        (await poolRegistry.countPools(await poolRegistry.BASIC_POOL_NAME())).toString(),
         lenPools.plus(1).toString()
       );
       assert.equal(
-        (await traderPoolRegistry.countTraderPools(OWNER, await traderPoolRegistry.BASIC_POOL_NAME())).toString(),
+        (await poolRegistry.countTraderPools(OWNER, await poolRegistry.BASIC_POOL_NAME())).toString(),
         lenUser.plus(1).toString()
       );
     });
@@ -292,14 +272,14 @@ describe("PoolFactory", () => {
       assert.equal("INVEST_POOL", event.args.poolType);
     });
 
-    it("should deploy pool and check TraderPoolRegistry", async () => {
-      let lenPools = await traderPoolRegistry.countPools(await traderPoolRegistry.INVEST_POOL_NAME());
-      let lenUser = await traderPoolRegistry.countTraderPools(OWNER, await traderPoolRegistry.INVEST_POOL_NAME());
+    it("should deploy pool and check PoolRegistry", async () => {
+      let lenPools = await poolRegistry.countPools(await poolRegistry.INVEST_POOL_NAME());
+      let lenUser = await poolRegistry.countTraderPools(OWNER, await poolRegistry.INVEST_POOL_NAME());
 
       let tx = await poolFactory.deployInvestPool("Invest", "IP", POOL_PARAMETERS);
       let event = tx.receipt.logs[0];
 
-      assert.isTrue(await traderPoolRegistry.isPool(event.args.at));
+      assert.isTrue(await poolRegistry.isPool(event.args.at));
 
       const traderPool = await BasicTraderPool.at(event.args.at);
 
@@ -307,11 +287,11 @@ describe("PoolFactory", () => {
       assert.equal((await traderPool.getPoolInfo()).parameters.baseTokenDecimals, 18);
 
       assert.equal(
-        (await traderPoolRegistry.countPools(await traderPoolRegistry.INVEST_POOL_NAME())).toString(),
+        (await poolRegistry.countPools(await poolRegistry.INVEST_POOL_NAME())).toString(),
         lenPools.plus(1).toString()
       );
       assert.equal(
-        (await traderPoolRegistry.countTraderPools(OWNER, await traderPoolRegistry.INVEST_POOL_NAME())).toString(),
+        (await poolRegistry.countTraderPools(OWNER, await poolRegistry.INVEST_POOL_NAME())).toString(),
         lenUser.plus(1).toString()
       );
     });
@@ -454,13 +434,13 @@ describe("PoolFactory", () => {
 
       await poolFactory.deployGovPool(true, false, POOL_PARAMETERS);
 
-      assert.equal((await govPoolRegistry.countPools(await govPoolRegistry.GOV_POOL_NAME())).toString(), "1");
+      assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
       assert.equal(
-        (await govPoolRegistry.countOwnerPools(OWNER, await govPoolRegistry.GOV_POOL_NAME())).toString(),
+        (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.GOV_POOL_NAME())).toString(),
         "1"
       );
 
-      let govPool = await GovPool.at((await govPoolRegistry.listPools(await govPoolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+      let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
       assert.equal(await govPool.owner(), OWNER);
     });
 
@@ -520,13 +500,13 @@ describe("PoolFactory", () => {
 
       await poolFactory.deployGovPool(false, false, POOL_PARAMETERS);
 
-      assert.equal((await govPoolRegistry.countPools(await govPoolRegistry.GOV_POOL_NAME())).toString(), "1");
+      assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
       assert.equal(
-        (await govPoolRegistry.countOwnerPools(OWNER, await govPoolRegistry.GOV_POOL_NAME())).toString(),
+        (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.GOV_POOL_NAME())).toString(),
         "1"
       );
 
-      let govPool = await GovPool.at((await govPoolRegistry.listPools(await govPoolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+      let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
 
       assert.equal(await govPool.validators(), "0x0000000000000000000000000000000000000000");
     });
@@ -587,13 +567,13 @@ describe("PoolFactory", () => {
 
       await poolFactory.deployGovPool(true, true, POOL_PARAMETERS);
 
-      assert.equal((await govPoolRegistry.countPools(await govPoolRegistry.GOV_POOL_NAME())).toString(), "1");
+      assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
       assert.equal(
-        (await govPoolRegistry.countOwnerPools(OWNER, await govPoolRegistry.GOV_POOL_NAME())).toString(),
+        (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.GOV_POOL_NAME())).toString(),
         "1"
       );
 
-      let govPool = await GovPool.at((await govPoolRegistry.listPools(await govPoolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+      let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
       assert.equal(await govPool.owner(), OWNER);
       assert.notEqual(await govPool.distributionProposal(), "0x0000000000000000000000000000000000000000");
 

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./ITraderPool.sol";
+import "../trader/ITraderPool.sol";
 
 /**
- * This is the TraderPoolRegistry contract, a tuned ContractsRegistry contract. Its purpose is the management of
- * TraderPools + proposal pools. The owner of this contract is capable of upgrading TraderPools'
- * implementation via the ProxyBeacon pattern
+ * This is the PoolRegistry contract, a tuned ContractsRegistry contract. Its purpose is the management of
+ * TraderPools, proposal pools, GovPools and contracts related to GovPools.
+ * The owner of this contract is capable of upgrading pools' implementation via the ProxyBeacon pattern
  */
-interface ITraderPoolRegistry {
+interface IPoolRegistry {
     /// @notice The function to add the pool proxy to the registry (called by the PoolFactory)
     /// @param name the type of the pool
     /// @param poolAddress the address of the pool to add
@@ -24,33 +24,36 @@ interface ITraderPoolRegistry {
         address poolAddress
     ) external;
 
-    /// @notice The function that counts trader's pools by their type
+    /// @notice The function that counts associated pools by their type
     /// @param user the owner of the pool
     /// @param name the type of the pool
     /// @return the total number of pools with the specified type
-    function countTraderPools(address user, string calldata name) external view returns (uint256);
+    function countAssociatedPools(address user, string calldata name)
+        external
+        view
+        returns (uint256);
 
-    /// @notice The function that lists trader pools by the provided type and user
+    /// @notice The function that lists associated pools by the provided type and user
     /// @param user the trader
     /// @param name the type of the pool
     /// @param offset the starting index of the pools array
     /// @param limit the length of the observed pools array
     /// @return pools the addresses of the pools
-    function listTraderPools(
+    function listAssociatedPools(
         address user,
         string calldata name,
         uint256 offset,
         uint256 limit
     ) external view returns (address[] memory pools);
 
-    /// @notice The function that lists the pools with their static info
+    /// @notice The function that lists trader pools with their static info
     /// @param name the type of the pool
     /// @param offset the the starting index of the pools array
     /// @param limit the length of the observed pools array
     /// @return pools the addresses of the pools
     /// @return poolInfos the array of static information per pool
     /// @return leverageInfos the array of trader leverage information per pool
-    function listPoolsWithInfo(
+    function listTraderPoolsWithInfo(
         string calldata name,
         uint256 offset,
         uint256 limit
@@ -76,5 +79,5 @@ interface ITraderPoolRegistry {
     /// @notice The function to check if the given address is a valid TraderPool
     /// @param potentialPool the address to inspect
     /// @return true if the address is a TraderPool, false otherwise
-    function isPool(address potentialPool) external view returns (bool);
+    function isTraderPool(address potentialPool) external view returns (bool);
 }

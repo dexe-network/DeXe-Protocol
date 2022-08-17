@@ -9,7 +9,7 @@ const ERC20Mock = artifacts.require("ERC20Mock");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeedMock = artifacts.require("PriceFeedMock");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
-const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
+const PoolRegistry = artifacts.require("PoolRegistry");
 const TraderPoolMock = artifacts.require("TraderPoolMock");
 const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
 const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
@@ -23,7 +23,7 @@ ERC20Mock.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
 PriceFeedMock.numberFormat = "BigNumber";
 UniswapV2RouterMock.numberFormat = "BigNumber";
-TraderPoolRegistry.numberFormat = "BigNumber";
+PoolRegistry.numberFormat = "BigNumber";
 TraderPoolMock.numberFormat = "BigNumber";
 
 const SECONDS_IN_DAY = 86400;
@@ -78,7 +78,7 @@ describe("TraderPool", () => {
   let coreProperties;
   let priceFeed;
   let uniswapV2Router;
-  let traderPoolRegistry;
+  let poolRegistry;
   let tokens = {};
 
   let traderPool;
@@ -152,17 +152,14 @@ describe("TraderPool", () => {
     const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeedMock.new();
     uniswapV2Router = await UniswapV2RouterMock.new();
-    const _traderPoolRegistry = await TraderPoolRegistry.new();
+    const _poolRegistry = await PoolRegistry.new();
 
     await contractsRegistry.__OwnableContractsRegistry_init();
 
     await contractsRegistry.addProxyContract(await contractsRegistry.INSURANCE_NAME(), _insurance.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), _priceFeed.address);
-    await contractsRegistry.addProxyContract(
-      await contractsRegistry.TRADER_POOL_REGISTRY_NAME(),
-      _traderPoolRegistry.address
-    );
+    await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), _poolRegistry.address);
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
@@ -176,36 +173,36 @@ describe("TraderPool", () => {
     insurance = await Insurance.at(await contractsRegistry.getInsuranceContract());
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     priceFeed = await PriceFeedMock.at(await contractsRegistry.getPriceFeedContract());
-    traderPoolRegistry = await TraderPoolRegistry.at(await contractsRegistry.getTraderPoolRegistryContract());
+    poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
 
     await insurance.__Insurance_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
     await priceFeed.__PriceFeed_init();
-    await traderPoolRegistry.__OwnablePoolContractsRegistry_init();
+    await poolRegistry.__OwnablePoolContractsRegistry_init();
 
     await contractsRegistry.injectDependencies(await contractsRegistry.INSURANCE_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
-    await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_REGISTRY_NAME());
+    await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
 
     await configureBaseTokens();
   });
 
   async function deployPool(poolParameters) {
-    const NAME = await traderPoolRegistry.BASIC_POOL_NAME();
+    const NAME = await poolRegistry.BASIC_POOL_NAME();
 
     const traderPool = await TraderPoolMock.new();
 
     await traderPool.__TraderPoolMock_init("Test pool", "TP", poolParameters);
 
-    await traderPoolRegistry.addProxyPool(NAME, traderPool.address, {
+    await poolRegistry.addProxyPool(NAME, traderPool.address, {
       from: FACTORY,
     });
-    await traderPoolRegistry.associateUserWithPool(OWNER, NAME, traderPool.address, {
+    await poolRegistry.associateUserWithPool(OWNER, NAME, traderPool.address, {
       from: FACTORY,
     });
 
-    await traderPoolRegistry.injectDependenciesToExistingPools(NAME, 0, 10);
+    await poolRegistry.injectDependenciesToExistingPools(NAME, 0, 10);
 
     return traderPool;
   }

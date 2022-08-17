@@ -12,8 +12,7 @@ const PriceFeed = artifacts.require("PriceFeed");
 const Insurance = artifacts.require("Insurance");
 
 const PoolFactory = artifacts.require("PoolFactory");
-const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
-const GovPoolRegistry = artifacts.require("GovPoolRegistry");
+const PoolRegistry = artifacts.require("PoolRegistry");
 
 const SECONDS_IN_DAY = 86400;
 const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
@@ -54,8 +53,7 @@ module.exports = async (deployer) => {
   const insurance = await Insurance.at(await contractsRegistry.getInsuranceContract());
 
   const poolFactory = await PoolFactory.at(await contractsRegistry.getPoolFactoryContract());
-  const traderPoolRegistry = await TraderPoolRegistry.at(await contractsRegistry.getTraderPoolRegistryContract());
-  const govPoolRegistry = await GovPoolRegistry.at(await contractsRegistry.getGovPoolRegistryContract());
+  const poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
 
   ////////////////////////////////////////////////////////////
 
@@ -71,8 +69,7 @@ module.exports = async (deployer) => {
 
   logTransaction(await insurance.__Insurance_init(), "Init Insurance");
 
-  logTransaction(await traderPoolRegistry.__OwnablePoolContractsRegistry_init(), "Init TraderPoolRegistry");
-  logTransaction(await govPoolRegistry.__OwnablePoolContractsRegistry_init(), "Init GovPoolRegistry");
+  logTransaction(await poolRegistry.__OwnablePoolContractsRegistry_init(), "Init PoolRegistry");
 
   ////////////////////////////////////////////////////////////
 
@@ -94,13 +91,8 @@ module.exports = async (deployer) => {
   );
 
   logTransaction(
-    await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_REGISTRY_NAME()),
-    "Inject TraderPoolRegistry"
-  );
-
-  logTransaction(
-    await contractsRegistry.injectDependencies(await contractsRegistry.GOV_POOL_REGISTRY_NAME()),
-    "Inject GovPoolRegistry"
+    await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME()),
+    "Inject PoolRegistry"
   );
 
   ////////////////////////////////////////////////////////////
@@ -112,7 +104,6 @@ module.exports = async (deployer) => {
     ["PriceFeed", priceFeed.address],
     ["Insurance", insurance.address],
     ["PoolFactory", poolFactory.address],
-    ["TraderPoolRegistry", traderPoolRegistry.address],
-    ["GovPoolRegistry", govPoolRegistry.address]
+    ["PoolRegistry", poolRegistry.address]
   );
 };

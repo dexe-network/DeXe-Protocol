@@ -5,13 +5,13 @@ const { setTime, getCurrentBlockTime } = require("./helpers/hardhatTimeTraveller
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const Insurance = artifacts.require("Insurance");
 const ERC20Mock = artifacts.require("ERC20Mock");
-const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
+const PoolRegistry = artifacts.require("PoolRegistry");
 const CoreProperties = artifacts.require("CoreProperties");
 
 ContractsRegistry.numberFormat = "BigNumber";
 Insurance.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
-TraderPoolRegistry.numberFormat = "BigNumber";
+PoolRegistry.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
 
 const SECONDS_IN_DAY = 86400;
@@ -64,7 +64,7 @@ describe("Insurance", async () => {
 
   beforeEach("setup", async () => {
     const contractsRegistry = await ContractsRegistry.new();
-    const _traderPoolRegistry = await TraderPoolRegistry.new();
+    const _poolRegistry = await PoolRegistry.new();
     const _insurance = await Insurance.new();
     const _coreProperties = await CoreProperties.new();
     dexe = await ERC20Mock.new("DEXE", "DEXE", 18);
@@ -72,10 +72,7 @@ describe("Insurance", async () => {
     await contractsRegistry.__OwnableContractsRegistry_init();
 
     await contractsRegistry.addProxyContract(await contractsRegistry.INSURANCE_NAME(), _insurance.address);
-    await contractsRegistry.addProxyContract(
-      await contractsRegistry.TRADER_POOL_REGISTRY_NAME(),
-      _traderPoolRegistry.address
-    );
+    await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), _poolRegistry.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), dexe.address);
@@ -84,24 +81,24 @@ describe("Insurance", async () => {
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
 
-    const traderPoolRegistry = await TraderPoolRegistry.at(await contractsRegistry.getTraderPoolRegistryContract());
+    const poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
     const coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     insurance = await Insurance.at(await contractsRegistry.getInsuranceContract());
 
-    await traderPoolRegistry.__OwnablePoolContractsRegistry_init();
+    await poolRegistry.__OwnablePoolContractsRegistry_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
     await insurance.__Insurance_init();
 
-    await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_REGISTRY_NAME());
+    await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.INSURANCE_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
 
     decimal = await dexe.decimals();
 
-    await traderPoolRegistry.addProxyPool(await traderPoolRegistry.BASIC_POOL_NAME(), POOL, {
+    await poolRegistry.addProxyPool(await poolRegistry.BASIC_POOL_NAME(), POOL, {
       from: SECOND,
     });
-    await traderPoolRegistry.associateUserWithPool(OWNER, await traderPoolRegistry.BASIC_POOL_NAME(), POOL, {
+    await poolRegistry.associateUserWithPool(OWNER, await poolRegistry.BASIC_POOL_NAME(), POOL, {
       from: SECOND,
     });
 

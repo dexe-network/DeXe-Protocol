@@ -10,7 +10,7 @@ import "@dlsl/dev-modules/libs/data-structures/StringSet.sol";
 import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
 
 import "../interfaces/insurance/IInsurance.sol";
-import "../interfaces/trader/ITraderPoolRegistry.sol";
+import "../interfaces/factory/IPoolRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
@@ -24,7 +24,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
     using Math for uint256;
     using MathHelper for uint256;
 
-    ITraderPoolRegistry internal _traderPoolRegistry;
+    IPoolRegistry internal _poolRegistry;
     ERC20 internal _dexe;
     ICoreProperties internal _coreProperties;
 
@@ -42,7 +42,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
     event Paidout(uint256 insurancePayout, uint256 userStakePayout, address investor);
 
     modifier onlyTraderPool() {
-        require(_traderPoolRegistry.isPool(_msgSender()), "Insurance: Not a trader pool");
+        require(_poolRegistry.isTraderPool(_msgSender()), "Insurance: Not a trader pool");
         _;
     }
 
@@ -62,7 +62,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
     function setDependencies(address contractsRegistry) external override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
-        _traderPoolRegistry = ITraderPoolRegistry(registry.getTraderPoolRegistryContract());
+        _poolRegistry = IPoolRegistry(registry.getPoolRegistryContract());
         _dexe = ERC20(registry.getDEXEContract());
         _coreProperties = ICoreProperties(registry.getCorePropertiesContract());
     }
