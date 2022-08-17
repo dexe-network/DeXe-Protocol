@@ -10,7 +10,7 @@ import "../interfaces/trader/IInvestTraderPool.sol";
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 import "@dlsl/dev-modules/libs/arrays/ArrayHelper.sol";
 
-import "../libs/TraderPoolProposal/TraderPoolInvestProposalView.sol";
+import "../libs/trader-pool-proposal/TraderPoolInvestProposalView.sol";
 
 import "../core/Globals.sol";
 import "./TraderPoolProposal.sol";

@@ -18,7 +18,7 @@ import "./TraderPoolCommission.sol";
 import "./TraderPoolLeverage.sol";
 import "../math/MathHelper.sol";
 import "../utils/TokenBalance.sol";
-import "../PriceFeed/PriceFeedLocal.sol";
+import "../price-feed/PriceFeedLocal.sol";
 
 library TraderPoolView {
     using EnumerableSet for EnumerableSet.AddressSet;

@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "../interfaces/gov/IGovVote.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
 
-import "../libs/GovUserKeeper/GovUserKeeperLocal.sol";
+import "../libs/gov-user-keeper/GovUserKeeperLocal.sol";
 import "../libs/math/MathHelper.sol";
 
 import "./GovCreator.sol";

@@ -9,7 +9,7 @@ import "../../interfaces/trader/ITraderPoolRiskyProposal.sol";
 import "../../interfaces/core/IPriceFeed.sol";
 
 import "../math/MathHelper.sol";
-import "../PriceFeed/PriceFeedLocal.sol";
+import "../price-feed/PriceFeedLocal.sol";
 
 import "../../trader/TraderPoolRiskyProposal.sol";
 

@@ -7,7 +7,7 @@ import "../../interfaces/trader/ITraderPool.sol";
 import "../../interfaces/core/IPriceFeed.sol";
 import "../../interfaces/core/ICoreProperties.sol";
 
-import "../PriceFeed/PriceFeedLocal.sol";
+import "../price-feed/PriceFeedLocal.sol";
 import "../utils/TokenBalance.sol";
 
 library TraderPoolExchange {

@@ -16,12 +16,12 @@ import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/insurance/IInsurance.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "../libs/PriceFeed/PriceFeedLocal.sol";
-import "../libs/TraderPool/TraderPoolPrice.sol";
-import "../libs/TraderPool/TraderPoolLeverage.sol";
-import "../libs/TraderPool/TraderPoolCommission.sol";
-import "../libs/TraderPool/TraderPoolExchange.sol";
-import "../libs/TraderPool/TraderPoolView.sol";
+import "../libs/price-feed/PriceFeedLocal.sol";
+import "../libs/trader-pool/TraderPoolPrice.sol";
+import "../libs/trader-pool/TraderPoolLeverage.sol";
+import "../libs/trader-pool/TraderPoolCommission.sol";
+import "../libs/trader-pool/TraderPoolExchange.sol";
+import "../libs/trader-pool/TraderPoolView.sol";
 import "../libs/utils/TokenBalance.sol";
 import "../libs/math/MathHelper.sol";
 
