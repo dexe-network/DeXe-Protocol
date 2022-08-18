@@ -49,13 +49,6 @@ describe("GovValidators", () => {
         );
       });
 
-      it("should revert if invalid array length (2)", async () => {
-        await truffleAssert.reverts(
-          validators.__GovValidators_init("Validator Token", "VT", 500, PRECISION.times("51").toFixed(), [], []),
-          "Validators: length is zero"
-        );
-      });
-
       it("should revert if invalid duration value", async () => {
         await truffleAssert.reverts(
           validators.__GovValidators_init(

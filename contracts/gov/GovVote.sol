@@ -20,9 +20,6 @@ abstract contract GovVote is IGovVote, GovCreator {
     using EnumerableSet for EnumerableSet.UintSet;
     using GovUserKeeperLocal for *;
 
-    /// @dev `Validators` contract address
-    IGovValidators public validators;
-
     uint256 public votesLimit;
 
     mapping(uint256 => uint256) private _totalVotedInProposal; // proposalId => total voted
@@ -155,13 +152,12 @@ abstract contract GovVote is IGovVote, GovCreator {
     }
 
     function moveProposalToValidators(uint256 proposalId) external override {
-        Proposal storage proposal = proposals[proposalId];
-        ProposalCore storage core = proposal.core;
+        ProposalCore storage core = proposals[proposalId].core;
         ProposalState state = _getProposalState(core);
 
         require(state == ProposalState.WaitingForVotingTransfer, "GovV: can't be moved");
 
-        validators.createExternalProposal(
+        govValidators.createExternalProposal(
             proposalId,
             core.settings.durationValidators,
             core.settings.quorumValidators
@@ -196,17 +192,17 @@ abstract contract GovVote is IGovVote, GovCreator {
 
         if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
             if (_quorumReached(core)) {
-                if (address(validators) != address(0)) {
-                    IGovValidators.ProposalState status = validators.getProposalState(
+                if (
+                    address(govValidators) != address(0) &&
+                    core.settings.validatorsVote &&
+                    govValidators.validatorsCount() > 0
+                ) {
+                    IGovValidators.ProposalState status = govValidators.getProposalState(
                         core.proposalId,
                         false
                     );
 
-                    if (
-                        status == IGovValidators.ProposalState.Undefined &&
-                        core.settings.validatorsVote &&
-                        govValidators.validatorsCount() > 0
-                    ) {
+                    if (status == IGovValidators.ProposalState.Undefined) {
                         return ProposalState.WaitingForVotingTransfer;
                     }
 

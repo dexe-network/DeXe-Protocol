@@ -178,12 +178,7 @@ abstract contract GovCreator is IGovCreator {
         address[] calldata executors,
         uint256[] calldata values,
         bytes[] calldata data
-    ) private view {
-        require(
-            address(govValidators) == executors[executors.length - 1],
-            "GovC: invalid executor"
-        );
-
+    ) private pure {
         for (uint256 i; i < data.length; i++) {
             bytes4 selector = _getSelector(data[i]);
             require(

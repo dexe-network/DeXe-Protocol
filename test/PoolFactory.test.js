@@ -384,6 +384,7 @@ describe.only("PoolFactory", () => {
           internalProposalSetting: {
             earlyCompletion: true,
             delegatedVotingAllowed: true,
+            validatorsVote: false,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -394,6 +395,7 @@ describe.only("PoolFactory", () => {
           distributionProposalSettings: {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
+            validatorsVote: false,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -404,6 +406,7 @@ describe.only("PoolFactory", () => {
           changeValidatorsBalancesSettings: {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
+            validatorsVote: false,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -414,6 +417,7 @@ describe.only("PoolFactory", () => {
           defaultProposalSetting: {
             earlyCompletion: false,
             delegatedVotingAllowed: true,
+            validatorsVote: false,
             duration: 700,
             durationValidators: 800,
             quorum: PRECISION.times("71").toFixed(),
@@ -455,7 +459,7 @@ describe.only("PoolFactory", () => {
 
       let govValidators = await GovValidators.at(await govPool.govValidators());
 
-      assert.equal((await govValidators.getValidatorsCount()).toFixed(), 1);
+      assert.equal((await govValidators.validatorsCount()).toFixed(), 1);
     });
 
     it("should deploy gov pool without validators", async () => {
@@ -464,6 +468,7 @@ describe.only("PoolFactory", () => {
           internalProposalSetting: {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
+            validatorsVote: false,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -474,6 +479,7 @@ describe.only("PoolFactory", () => {
           distributionProposalSettings: {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
+            validatorsVote: false,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -484,6 +490,7 @@ describe.only("PoolFactory", () => {
           changeValidatorsBalancesSettings: {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
+            validatorsVote: false,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -494,6 +501,7 @@ describe.only("PoolFactory", () => {
           defaultProposalSetting: {
             earlyCompletion: false,
             delegatedVotingAllowed: true,
+            validatorsVote: false,
             duration: 700,
             durationValidators: 800,
             quorum: PRECISION.times("71").toFixed(),
@@ -537,6 +545,7 @@ describe.only("PoolFactory", () => {
           internalProposalSetting: {
             earlyCompletion: true,
             delegatedVotingAllowed: true,
+            validatorsVote: false,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -547,6 +556,7 @@ describe.only("PoolFactory", () => {
           distributionProposalSettings: {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
+            validatorsVote: false,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -557,6 +567,7 @@ describe.only("PoolFactory", () => {
           changeValidatorsBalancesSettings: {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
+            validatorsVote: true,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -612,12 +623,13 @@ describe.only("PoolFactory", () => {
 
       assert.equal(settings[0], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.earlyCompletion);
       assert.equal(settings[1], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.delegatedVotingAllowed);
-      assert.equal(settings[2], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.duration);
-      assert.equal(settings[3], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.durationValidators);
-      assert.equal(settings[4], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.quorum);
-      assert.equal(settings[5], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.quorumValidators);
-      assert.equal(settings[6], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.minTokenBalance);
-      assert.equal(settings[7], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.minNftBalance);
+      assert.equal(settings[2], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.validatorsVote);
+      assert.equal(settings[3], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.duration);
+      assert.equal(settings[4], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.durationValidators);
+      assert.equal(settings[5], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.quorum);
+      assert.equal(settings[6], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.quorumValidators);
+      assert.equal(settings[7], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.minTokenBalance);
+      assert.equal(settings[8], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.minNftBalance);
     });
   });
 });

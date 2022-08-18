@@ -82,6 +82,17 @@ const DP_SETTINGS = {
   minNftBalance: 3,
 };
 
+const VALIDATORS_BALANCES_SETTINGS = {
+  earlyCompletion: false,
+  delegatedVotingAllowed: false,
+  duration: 700,
+  durationValidators: 800,
+  quorum: PRECISION.times("71").toFixed(),
+  quorumValidators: PRECISION.times("100").toFixed(),
+  minTokenBalance: wei("20"),
+  minNftBalance: 3,
+};
+
 describe("DistributionProposal", () => {
   const unlockAndMint = async (address) => {
     await hre.network.provider.request({
@@ -117,7 +128,14 @@ describe("DistributionProposal", () => {
     govPool = await GovPool.new();
     proposal = await DistributionProposal.new(govPool.address);
 
-    await settings.__GovSettings_init(proposal.address, INTERNAL_SETTINGS, DP_SETTINGS, DEFAULT_SETTINGS);
+    await settings.__GovSettings_init(
+      proposal.address,
+      ZERO,
+      INTERNAL_SETTINGS,
+      DP_SETTINGS,
+      VALIDATORS_BALANCES_SETTINGS,
+      DEFAULT_SETTINGS
+    );
     await userKeeper.__GovUserKeeper_init(ZERO, nft.address, wei("33000"), 33);
     await proposal.__DistributionProposal_init(govPool.address);
     await govPool.__GovPool_init(
