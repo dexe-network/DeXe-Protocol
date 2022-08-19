@@ -373,6 +373,24 @@ describe("PoolFactory", () => {
         "PoolFactory: token is blacklisted"
       );
     });
+
+    it("should revert when try to deploy pool with trader = address(0)", async () => {
+      let POOL_PARAMETERS = {
+        descriptionURL: "placeholder.com",
+        trader: "0x0000000000000000000000000000000000000000",
+        privatePool: false,
+        totalLPEmission: 0,
+        baseToken: testERC20.address,
+        minimalInvestment: 0,
+        commissionPeriod: ComissionPeriods.PERIOD_1,
+        commissionPercentage: toBN(30).times(PRECISION).toFixed(),
+      };
+
+      await truffleAssert.reverts(
+        poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
+        "PoolFactory: invalid trader address"
+      );
+    });
   });
 
   describe("deployGovPool", () => {
@@ -384,6 +402,7 @@ describe("PoolFactory", () => {
           internalProposalSetting: {
             earlyCompletion: true,
             delegatedVotingAllowed: true,
+            validatorsVote: false,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -394,6 +413,18 @@ describe("PoolFactory", () => {
           distributionProposalSettings: {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
+            validatorsVote: false,
+            duration: 500,
+            durationValidators: 600,
+            quorum: PRECISION.times("51").toFixed(),
+            quorumValidators: PRECISION.times("61").toFixed(),
+            minTokenBalance: wei("10"),
+            minNftBalance: 2,
+          },
+          validatorsBalancesSettings: {
+            earlyCompletion: true,
+            delegatedVotingAllowed: false,
+            validatorsVote: false,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -404,6 +435,7 @@ describe("PoolFactory", () => {
           defaultProposalSetting: {
             earlyCompletion: false,
             delegatedVotingAllowed: true,
+            validatorsVote: false,
             duration: 700,
             durationValidators: 800,
             quorum: PRECISION.times("71").toFixed(),
@@ -432,7 +464,7 @@ describe("PoolFactory", () => {
         descriptionURL: "example.com",
       };
 
-      await poolFactory.deployGovPool(true, false, POOL_PARAMETERS);
+      await poolFactory.deployGovPool(false, POOL_PARAMETERS);
 
       assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
       assert.equal(
@@ -442,6 +474,10 @@ describe("PoolFactory", () => {
 
       let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
       assert.equal(await govPool.owner(), OWNER);
+
+      let govValidators = await GovValidators.at(await govPool.govValidators());
+
+      assert.equal((await govValidators.validatorsCount()).toFixed(), 1);
     });
 
     it("should deploy gov pool without validators", async () => {
@@ -450,6 +486,7 @@ describe("PoolFactory", () => {
           internalProposalSetting: {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
+            validatorsVote: false,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -460,6 +497,18 @@ describe("PoolFactory", () => {
           distributionProposalSettings: {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
+            validatorsVote: false,
+            duration: 500,
+            durationValidators: 600,
+            quorum: PRECISION.times("51").toFixed(),
+            quorumValidators: PRECISION.times("61").toFixed(),
+            minTokenBalance: wei("10"),
+            minNftBalance: 2,
+          },
+          validatorsBalancesSettings: {
+            earlyCompletion: true,
+            delegatedVotingAllowed: false,
+            validatorsVote: false,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -470,6 +519,7 @@ describe("PoolFactory", () => {
           defaultProposalSetting: {
             earlyCompletion: false,
             delegatedVotingAllowed: true,
+            validatorsVote: false,
             duration: 700,
             durationValidators: 800,
             quorum: PRECISION.times("71").toFixed(),
@@ -479,10 +529,10 @@ describe("PoolFactory", () => {
           },
         },
         validatorsParams: {
-          name: "",
-          symbol: "",
-          duration: 0,
-          quorum: 0,
+          name: "Validator Token",
+          symbol: "VT",
+          duration: 500,
+          quorum: PRECISION.times("51").toFixed(),
           validators: [],
           balances: [],
         },
@@ -498,17 +548,13 @@ describe("PoolFactory", () => {
         descriptionURL: "example.com",
       };
 
-      await poolFactory.deployGovPool(false, false, POOL_PARAMETERS);
+      await poolFactory.deployGovPool(false, POOL_PARAMETERS);
 
       assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
       assert.equal(
         (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.GOV_POOL_NAME())).toString(),
         "1"
       );
-
-      let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
-
-      assert.equal(await govPool.validators(), "0x0000000000000000000000000000000000000000");
     });
 
     it("should deploy pool with DP", async () => {
@@ -517,6 +563,7 @@ describe("PoolFactory", () => {
           internalProposalSetting: {
             earlyCompletion: true,
             delegatedVotingAllowed: true,
+            validatorsVote: false,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -527,6 +574,18 @@ describe("PoolFactory", () => {
           distributionProposalSettings: {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
+            validatorsVote: false,
+            duration: 500,
+            durationValidators: 600,
+            quorum: PRECISION.times("51").toFixed(),
+            quorumValidators: PRECISION.times("61").toFixed(),
+            minTokenBalance: wei("10"),
+            minNftBalance: 2,
+          },
+          validatorsBalancesSettings: {
+            earlyCompletion: true,
+            delegatedVotingAllowed: false,
+            validatorsVote: true,
             duration: 500,
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
@@ -565,7 +624,7 @@ describe("PoolFactory", () => {
         descriptionURL: "example.com",
       };
 
-      await poolFactory.deployGovPool(true, true, POOL_PARAMETERS);
+      await poolFactory.deployGovPool(true, POOL_PARAMETERS);
 
       assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
       assert.equal(
@@ -582,12 +641,13 @@ describe("PoolFactory", () => {
 
       assert.equal(settings[0], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.earlyCompletion);
       assert.equal(settings[1], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.delegatedVotingAllowed);
-      assert.equal(settings[2], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.duration);
-      assert.equal(settings[3], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.durationValidators);
-      assert.equal(settings[4], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.quorum);
-      assert.equal(settings[5], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.quorumValidators);
-      assert.equal(settings[6], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.minTokenBalance);
-      assert.equal(settings[7], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.minNftBalance);
+      assert.equal(settings[2], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.validatorsVote);
+      assert.equal(settings[3], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.duration);
+      assert.equal(settings[4], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.durationValidators);
+      assert.equal(settings[5], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.quorum);
+      assert.equal(settings[6], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.quorumValidators);
+      assert.equal(settings[7], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.minTokenBalance);
+      assert.equal(settings[8], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.minNftBalance);
     });
   });
 });

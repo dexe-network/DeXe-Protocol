@@ -25,8 +25,13 @@ contract GovPool is
         uint256 _feePercentage,
         string calldata _descriptionURL
     ) external initializer {
-        __GovCreator_init(govSettingAddress, govUserKeeperAddress, distributionProposalAddress);
-        __GovVote_init(validatorsAddress, _votesLimit);
+        __GovCreator_init(
+            govSettingAddress,
+            govUserKeeperAddress,
+            distributionProposalAddress,
+            validatorsAddress
+        );
+        __GovVote_init(_votesLimit);
         __GovFee_init(_feePercentage);
         __ERC721Holder_init();
         __ERC1155Holder_init();

@@ -52,6 +52,7 @@ const getBytesExecute = (proposalId, token, amount) => {
 const INTERNAL_SETTINGS = {
   earlyCompletion: true,
   delegatedVotingAllowed: true,
+  validatorsVote: false,
   duration: 500,
   durationValidators: 600,
   quorum: PRECISION.times("51").toFixed(),
@@ -63,6 +64,7 @@ const INTERNAL_SETTINGS = {
 const DEFAULT_SETTINGS = {
   earlyCompletion: false,
   delegatedVotingAllowed: true,
+  validatorsVote: false,
   duration: 700,
   durationValidators: 800,
   quorum: PRECISION.times("71").toFixed(),
@@ -72,6 +74,18 @@ const DEFAULT_SETTINGS = {
 };
 
 const DP_SETTINGS = {
+  earlyCompletion: false,
+  delegatedVotingAllowed: false,
+  validatorsVote: false,
+  duration: 700,
+  durationValidators: 800,
+  quorum: PRECISION.times("71").toFixed(),
+  quorumValidators: PRECISION.times("100").toFixed(),
+  minTokenBalance: wei("20"),
+  minNftBalance: 3,
+};
+
+const VALIDATORS_BALANCES_SETTINGS = {
   earlyCompletion: false,
   delegatedVotingAllowed: false,
   duration: 700,
@@ -117,7 +131,14 @@ describe("DistributionProposal", () => {
     govPool = await GovPool.new();
     proposal = await DistributionProposal.new(govPool.address);
 
-    await settings.__GovSettings_init(proposal.address, INTERNAL_SETTINGS, DP_SETTINGS, DEFAULT_SETTINGS);
+    await settings.__GovSettings_init(
+      proposal.address,
+      ZERO,
+      INTERNAL_SETTINGS,
+      DP_SETTINGS,
+      VALIDATORS_BALANCES_SETTINGS,
+      DEFAULT_SETTINGS
+    );
     await userKeeper.__GovUserKeeper_init(ZERO, nft.address, wei("33000"), 33);
     await proposal.__DistributionProposal_init(govPool.address);
     await govPool.__GovPool_init(

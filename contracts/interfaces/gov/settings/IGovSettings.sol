@@ -8,6 +8,7 @@ interface IGovSettings {
     struct ProposalSettings {
         bool earlyCompletion;
         bool delegatedVotingAllowed;
+        bool validatorsVote;
         uint64 duration;
         uint64 durationValidators;
         uint128 quorum;
@@ -20,6 +21,7 @@ interface IGovSettings {
         NONE,
         INTERNAL,
         DISTRIBUTION,
+        VALIDATORS,
         TRUSTED
     }
 

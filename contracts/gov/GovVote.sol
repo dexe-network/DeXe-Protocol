@@ -20,9 +20,6 @@ abstract contract GovVote is IGovVote, GovCreator {
     using EnumerableSet for EnumerableSet.UintSet;
     using GovUserKeeperLocal for *;
 
-    /// @dev `Validators` contract address
-    IGovValidators public validators;
-
     uint256 public votesLimit;
 
     mapping(uint256 => uint256) private _totalVotedInProposal; // proposalId => total voted
@@ -30,10 +27,9 @@ abstract contract GovVote is IGovVote, GovCreator {
 
     mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
 
-    function __GovVote_init(address validatorsAddress, uint256 _votesLimit) internal {
+    function __GovVote_init(uint256 _votesLimit) internal {
         require(_votesLimit > 0);
 
-        validators = IGovValidators(validatorsAddress);
         votesLimit = _votesLimit;
     }
 
@@ -161,7 +157,7 @@ abstract contract GovVote is IGovVote, GovCreator {
 
         require(state == ProposalState.WaitingForVotingTransfer, "GovV: can't be moved");
 
-        validators.createExternalProposal(
+        govValidators.createExternalProposal(
             proposalId,
             core.settings.durationValidators,
             core.settings.quorumValidators
@@ -196,8 +192,8 @@ abstract contract GovVote is IGovVote, GovCreator {
 
         if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
             if (_quorumReached(core)) {
-                if (address(validators) != address(0)) {
-                    IGovValidators.ProposalState status = validators.getProposalState(
+                if (core.settings.validatorsVote && govValidators.validatorsCount() > 0) {
+                    IGovValidators.ProposalState status = govValidators.getProposalState(
                         core.proposalId,
                         false
                     );

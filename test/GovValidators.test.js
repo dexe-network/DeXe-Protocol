@@ -49,13 +49,6 @@ describe("GovValidators", () => {
         );
       });
 
-      it("should revert if invalid array length (2)", async () => {
-        await truffleAssert.reverts(
-          validators.__GovValidators_init("Validator Token", "VT", 500, PRECISION.times("51").toFixed(), [], []),
-          "Validators: length is zero"
-        );
-      });
-
       it("should revert if invalid duration value", async () => {
         await truffleAssert.reverts(
           validators.__GovValidators_init(
@@ -165,6 +158,13 @@ describe("GovValidators", () => {
         assert.equal(internal.core.quorum, toPercent("51"));
         assert.equal(internal.core.votesFor, 0);
         assert.equal(internal.core.snapshotId, 1);
+      });
+
+      it("should revert when arrays lengths not equals", async () => {
+        await truffleAssert.reverts(
+          validators.createInternalProposal(3, [13, 15], [OWNER], { from: SECOND }),
+          "Validators: invalid length"
+        );
       });
 
       it("should revert if aller is not the validator", async () => {
@@ -446,6 +446,14 @@ describe("GovValidators", () => {
       it("should revert if only by `Succeeded` state", async () => {
         await validators.createInternalProposal(2, [wei("50"), toPercent("50")], [], { from: SECOND });
         await truffleAssert.reverts(validators.execute(1), "Validators: only by `Succeeded` state");
+      });
+    });
+
+    describe("changeBalances()", () => {
+      it("should set 100 tokens to SECOND", async () => {
+        await validators.changeBalances([100], [SECOND]);
+
+        assert.equal(await validatorsToken.balanceOf(SECOND), 100);
       });
     });
   });
