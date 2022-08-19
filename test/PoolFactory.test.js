@@ -77,7 +77,7 @@ const DEFAULT_CORE_PROPERTIES = {
   insuranceWithdrawalLock: SECONDS_IN_DAY,
 };
 
-describe.only("PoolFactory", () => {
+describe("PoolFactory", () => {
   let OWNER;
   let NOTHING;
 
