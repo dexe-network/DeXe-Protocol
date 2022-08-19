@@ -192,11 +192,7 @@ abstract contract GovVote is IGovVote, GovCreator {
 
         if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
             if (_quorumReached(core)) {
-                if (
-                    address(govValidators) != address(0) &&
-                    core.settings.validatorsVote &&
-                    govValidators.validatorsCount() > 0
-                ) {
+                if (core.settings.validatorsVote && govValidators.validatorsCount() > 0) {
                     IGovValidators.ProposalState status = govValidators.getProposalState(
                         core.proposalId,
                         false

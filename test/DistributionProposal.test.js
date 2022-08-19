@@ -52,6 +52,7 @@ const getBytesExecute = (proposalId, token, amount) => {
 const INTERNAL_SETTINGS = {
   earlyCompletion: true,
   delegatedVotingAllowed: true,
+  validatorsVote: false,
   duration: 500,
   durationValidators: 600,
   quorum: PRECISION.times("51").toFixed(),
@@ -63,6 +64,7 @@ const INTERNAL_SETTINGS = {
 const DEFAULT_SETTINGS = {
   earlyCompletion: false,
   delegatedVotingAllowed: true,
+  validatorsVote: false,
   duration: 700,
   durationValidators: 800,
   quorum: PRECISION.times("71").toFixed(),
@@ -74,6 +76,7 @@ const DEFAULT_SETTINGS = {
 const DP_SETTINGS = {
   earlyCompletion: false,
   delegatedVotingAllowed: false,
+  validatorsVote: false,
   duration: 700,
   durationValidators: 800,
   quorum: PRECISION.times("71").toFixed(),

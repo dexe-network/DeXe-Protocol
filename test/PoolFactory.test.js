@@ -373,6 +373,24 @@ describe("PoolFactory", () => {
         "PoolFactory: token is blacklisted"
       );
     });
+
+    it("should revert when try to deploy pool with trader = address(0)", async () => {
+      let POOL_PARAMETERS = {
+        descriptionURL: "placeholder.com",
+        trader: "0x0000000000000000000000000000000000000000",
+        privatePool: false,
+        totalLPEmission: 0,
+        baseToken: testERC20.address,
+        minimalInvestment: 0,
+        commissionPeriod: ComissionPeriods.PERIOD_1,
+        commissionPercentage: toBN(30).times(PRECISION).toFixed(),
+      };
+
+      await truffleAssert.reverts(
+        poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
+        "PoolFactory: invalid trader address"
+      );
+    });
   });
 
   describe("deployGovPool", () => {
@@ -403,7 +421,7 @@ describe("PoolFactory", () => {
             minTokenBalance: wei("10"),
             minNftBalance: 2,
           },
-          changeValidatorsBalancesSettings: {
+          validatorsBalancesSettings: {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
             validatorsVote: false,
@@ -487,7 +505,7 @@ describe("PoolFactory", () => {
             minTokenBalance: wei("10"),
             minNftBalance: 2,
           },
-          changeValidatorsBalancesSettings: {
+          validatorsBalancesSettings: {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
             validatorsVote: false,
@@ -564,7 +582,7 @@ describe("PoolFactory", () => {
             minTokenBalance: wei("10"),
             minNftBalance: 2,
           },
-          changeValidatorsBalancesSettings: {
+          validatorsBalancesSettings: {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
             validatorsVote: true,

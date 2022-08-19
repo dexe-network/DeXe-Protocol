@@ -12,7 +12,7 @@ interface IPoolFactory {
     struct SettingsDeployParams {
         IGovSettings.ProposalSettings internalProposalSetting;
         IGovSettings.ProposalSettings distributionProposalSettings;
-        IGovSettings.ProposalSettings changeValidatorsBalancesSettings;
+        IGovSettings.ProposalSettings validatorsBalancesSettings;
         IGovSettings.ProposalSettings defaultProposalSetting;
     }
 
