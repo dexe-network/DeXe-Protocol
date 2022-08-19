@@ -25,6 +25,7 @@ const RiskyPoolProposal = artifacts.require("TraderPoolRiskyProposal");
 const InvestPoolProposal = artifacts.require("TraderPoolInvestProposal");
 const DistributionProposal = artifacts.require("DistributionProposal");
 const UniswapV2PathFinderLib = artifacts.require("UniswapV2PathFinder");
+const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const PoolFactory = artifacts.require("PoolFactory");
 
 ContractsRegistry.numberFormat = "BigNumber";
@@ -41,6 +42,7 @@ InvestTraderPool.numberFormat = "BigNumber";
 BasicTraderPool.numberFormat = "BigNumber";
 RiskyPoolProposal.numberFormat = "BigNumber";
 InvestPoolProposal.numberFormat = "BigNumber";
+UniswapV2RouterMock.numberFormat = "BigNumber";
 PoolFactory.numberFormat = "BigNumber";
 
 const SECONDS_IN_DAY = 86400;
@@ -81,7 +83,6 @@ describe("PoolFactory", () => {
   let OWNER;
   let NOTHING;
 
-  let DEXE;
   let poolRegistry;
   let poolFactory;
   let coreProperties;
@@ -135,11 +136,13 @@ describe("PoolFactory", () => {
     testERC721 = await ERC721Mock.new("TestERC721", "TS");
 
     const contractsRegistry = await ContractsRegistry.new();
-    DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
+    const DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
+    const USD = await ERC20Mock.new("USD", "USD", 6);
     const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeed.new();
     const _poolRegistry = await PoolRegistry.new();
     const _poolFactory = await PoolFactory.new();
+    const uniswapV2Router = await UniswapV2RouterMock.new();
 
     await contractsRegistry.__OwnableContractsRegistry_init();
 
@@ -149,6 +152,10 @@ describe("PoolFactory", () => {
     await contractsRegistry.addProxyContract(await contractsRegistry.POOL_FACTORY_NAME(), _poolFactory.address);
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
+    await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
+    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
+    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), uniswapV2Router.address);
+
     await contractsRegistry.addContract(await contractsRegistry.INSURANCE_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
@@ -166,6 +173,7 @@ describe("PoolFactory", () => {
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
+    await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
 
     let investTraderPool = await InvestTraderPool.new();
     let basicTraderPool = await BasicTraderPool.new();
@@ -205,17 +213,21 @@ describe("PoolFactory", () => {
     await poolRegistry.setNewImplementations(poolNames, poolAddrs);
   });
 
-  describe("deployBasicPool", async () => {
-    let POOL_PARAMETERS = {
-      descriptionURL: "placeholder.com",
-      trader: OWNER,
-      privatePool: false,
-      totalLPEmission: 0,
-      baseToken: testERC20.address,
-      minimalInvestment: 0,
-      commissionPeriod: ComissionPeriods.PERIOD_1,
-      commissionPercentage: toBN(30).times(PRECISION).toFixed(),
-    };
+  describe("deployBasicPool", () => {
+    let POOL_PARAMETERS;
+
+    beforeEach("setup", async () => {
+      POOL_PARAMETERS = {
+        descriptionURL: "placeholder.com",
+        trader: OWNER,
+        privatePool: false,
+        totalLPEmission: 0,
+        baseToken: testERC20.address,
+        minimalInvestment: 0,
+        commissionPeriod: ComissionPeriods.PERIOD_1,
+        commissionPercentage: toBN(30).times(PRECISION).toFixed(),
+      };
+    });
 
     it("should deploy basic pool and check event", async () => {
       let tx = await poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS);
@@ -228,12 +240,12 @@ describe("PoolFactory", () => {
 
     it("should deploy pool and check PoolRegistry", async () => {
       let lenPools = await poolRegistry.countPools(await poolRegistry.BASIC_POOL_NAME());
-      let lenUser = await poolRegistry.countTraderPools(OWNER, await poolRegistry.BASIC_POOL_NAME());
+      let lenUser = await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.BASIC_POOL_NAME());
 
       let tx = await poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS);
       let event = tx.receipt.logs[0];
 
-      assert.isTrue(await poolRegistry.isPool(event.args.at));
+      assert.isTrue(await poolRegistry.isTraderPool(event.args.at));
 
       const traderPool = await BasicTraderPool.at(event.args.at);
 
@@ -245,23 +257,27 @@ describe("PoolFactory", () => {
         lenPools.plus(1).toString()
       );
       assert.equal(
-        (await poolRegistry.countTraderPools(OWNER, await poolRegistry.BASIC_POOL_NAME())).toString(),
+        (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.BASIC_POOL_NAME())).toString(),
         lenUser.plus(1).toString()
       );
     });
   });
 
-  describe("deployInvestPool", async () => {
-    let POOL_PARAMETERS = {
-      descriptionURL: "placeholder.com",
-      trader: OWNER,
-      privatePool: false,
-      totalLPEmission: 0,
-      baseToken: testERC20.address,
-      minimalInvestment: 0,
-      commissionPeriod: ComissionPeriods.PERIOD_1,
-      commissionPercentage: toBN(30).times(PRECISION).toFixed(),
-    };
+  describe("deployInvestPool", () => {
+    let POOL_PARAMETERS;
+
+    beforeEach("setup", async () => {
+      POOL_PARAMETERS = {
+        descriptionURL: "placeholder.com",
+        trader: OWNER,
+        privatePool: false,
+        totalLPEmission: 0,
+        baseToken: testERC20.address,
+        minimalInvestment: 0,
+        commissionPeriod: ComissionPeriods.PERIOD_1,
+        commissionPercentage: toBN(30).times(PRECISION).toFixed(),
+      };
+    });
 
     it("should deploy invest pool and check events", async () => {
       let tx = await poolFactory.deployInvestPool("Invest", "IP", POOL_PARAMETERS);
@@ -274,12 +290,12 @@ describe("PoolFactory", () => {
 
     it("should deploy pool and check PoolRegistry", async () => {
       let lenPools = await poolRegistry.countPools(await poolRegistry.INVEST_POOL_NAME());
-      let lenUser = await poolRegistry.countTraderPools(OWNER, await poolRegistry.INVEST_POOL_NAME());
+      let lenUser = await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.INVEST_POOL_NAME());
 
       let tx = await poolFactory.deployInvestPool("Invest", "IP", POOL_PARAMETERS);
       let event = tx.receipt.logs[0];
 
-      assert.isTrue(await poolRegistry.isPool(event.args.at));
+      assert.isTrue(await poolRegistry.isTraderPool(event.args.at));
 
       const traderPool = await BasicTraderPool.at(event.args.at);
 
@@ -291,7 +307,7 @@ describe("PoolFactory", () => {
         lenPools.plus(1).toString()
       );
       assert.equal(
-        (await poolRegistry.countTraderPools(OWNER, await poolRegistry.INVEST_POOL_NAME())).toString(),
+        (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.INVEST_POOL_NAME())).toString(),
         lenUser.plus(1).toString()
       );
     });
