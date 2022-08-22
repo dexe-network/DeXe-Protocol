@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
-import "../../interfaces/gov/IGovVote.sol";
+import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/proposals/IDistributionProposal.sol";
 
 import "../../libs/math/MathHelper.sol";
@@ -76,7 +76,7 @@ contract DistributionProposal is IDistributionProposal, OwnableUpgradeable {
         address voter,
         uint256 rewardAmount
     ) public view override returns (uint256) {
-        (uint256 totalVoteWeight, uint256 voteWeight) = IGovVote(govAddress).getTotalVotes(
+        (uint256 totalVoteWeight, uint256 voteWeight) = IGovPool(govAddress).getTotalVotes(
             proposalId,
             voter,
             false

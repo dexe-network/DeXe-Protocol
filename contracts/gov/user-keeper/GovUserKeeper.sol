@@ -14,7 +14,7 @@ import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
 import "@dlsl/dev-modules/libs/arrays/ArrayHelper.sol";
 
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
-import "../../interfaces/gov/IGovUserKeeperController.sol";
+import "../../interfaces/gov/IGovPool.sol";
 
 import "../../libs/math/MathHelper.sol";
 
