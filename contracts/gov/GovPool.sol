@@ -1,33 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-/// @dev govCreator imports
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
+
+import "@dlsl/dev-modules/libs/arrays/ArrayHelper.sol";
+
 import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
-
-/// @dev govVote imports
-import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "../interfaces/gov/IGovPool.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
+
 import "../libs/gov-user-keeper/GovUserKeeperLocal.sol";
 import "../libs/math/MathHelper.sol";
+import "../libs/utils/DataHelper.sol";
+
 import "../core/Globals.sol";
-
-/// @dev govFee imports
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-
-/// @dev govUserKeeperController imports
-import "@dlsl/dev-modules/libs/arrays/ArrayHelper.sol";
-
-/// @dev govPool imports
-import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
-import "../interfaces/gov/IGovPool.sol";
 
 contract GovPool is
     IGovPool,
@@ -44,12 +40,13 @@ contract GovPool is
     /// @dev govFee usings
     using SafeERC20 for IERC20;
     using Math for uint64;
-    using MathHelper for uint256;
 
     /// @dev govUserKeeperController usings
     using ShrinkableArray for uint256[];
     using ShrinkableArray for ShrinkableArray.UintArray;
     using ArrayHelper for uint256[];
+
+    using DataHelper for *;
 
     /// @dev govCreator vars
     IGovSettings public govSetting;
@@ -83,6 +80,8 @@ contract GovPool is
         uint256 _feePercentage,
         string calldata _descriptionURL
     ) external initializer {
+        __ERC721Holder_init();
+        __ERC1155Holder_init();
         __Ownable_init();
 
         /// @dev govCreator requires
@@ -112,8 +111,6 @@ contract GovPool is
         feePercentage = _feePercentage;
 
         /// @dev govPool inits
-        __ERC721Holder_init();
-        __ERC1155Holder_init();
         descriptionURL = _descriptionURL;
     }
 
@@ -491,7 +488,7 @@ contract GovPool is
             );
 
             if (!status) {
-                revert(_getRevertMsg(returnedData));
+                revert(DataHelper._getRevertMsg(returnedData));
             }
         }
     }
@@ -506,7 +503,7 @@ contract GovPool is
         bytes[] calldata data
     ) private pure {
         for (uint256 i; i < data.length; i++) {
-            bytes4 selector = _getSelector(data[i]);
+            bytes4 selector = DataHelper._getSelector(data[i]);
             require(
                 values[i] == 0 &&
                     executors[executors.length - 1] == executors[i] &&
@@ -523,7 +520,7 @@ contract GovPool is
         bytes[] calldata data
     ) private pure returns (bool) {
         for (uint256 i; i < data.length - 1; i++) {
-            bytes4 selector = _getSelector(data[i]);
+            bytes4 selector = DataHelper._getSelector(data[i]);
 
             if (
                 values[i] != 0 ||
@@ -552,7 +549,7 @@ contract GovPool is
         require(distributionProposal == executors[executors.length - 1], "GovC: invalid executor");
 
         for (uint256 i; i < data.length - 1; i++) {
-            bytes4 selector = _getSelector(data[i]);
+            bytes4 selector = DataHelper._getSelector(data[i]);
 
             require(
                 values[i] == 0 &&
@@ -570,19 +567,13 @@ contract GovPool is
         bytes[] calldata data
     ) private pure {
         for (uint256 i; i < data.length; i++) {
-            bytes4 selector = _getSelector(data[i]);
+            bytes4 selector = DataHelper._getSelector(data[i]);
             require(
                 values[i] == 0 &&
                     executors[executors.length - 1] == executors[i] &&
                     (selector == IGovValidators.changeBalances.selector),
                 "GovC: invalid internal data"
             );
-        }
-    }
-
-    function _getSelector(bytes calldata data) private pure returns (bytes4 selector) {
-        assembly {
-            selector := calldataload(data.offset)
         }
     }
 
@@ -724,18 +715,5 @@ contract GovPool is
             totalVoteWeight == 0
                 ? false
                 : PERCENTAGE_100.ratio(core.votesFor, totalVoteWeight) >= core.settings.quorum;
-    }
-
-    /// @dev govPool internal functs
-    function _getRevertMsg(bytes memory data) internal pure returns (string memory) {
-        if (data.length < 68) {
-            return "Transaction reverted silently";
-        }
-
-        assembly {
-            data := add(data, 0x04)
-        }
-
-        return abi.decode(data, (string));
     }
 }
