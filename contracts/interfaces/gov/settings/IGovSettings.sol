@@ -16,9 +16,9 @@ interface IGovSettings {
         uint256 minTokenBalance;
         uint256 minNftBalance;
         address rewardToken;
-        uint256 creatingReward;
+        uint256 creationRewards;
         uint256 executionReward;
-        uint256 voteCoefficient;
+        uint256 voteRewardsCoefficient;
     }
 
     enum ExecutorType {

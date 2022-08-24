@@ -43,9 +43,9 @@ const INTERNAL_SETTINGS = {
   minTokenBalance: wei("10"),
   minNftBalance: 2,
   rewardToken: ZERO,
-  creatingReward: wei("10"),
+  creationRewards: wei("10"),
   executionReward: wei("5"),
-  voteCoefficient: toBN("10").pow("25").toFixed(),
+  voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
 };
 
 const VALIDATORS_BALANCES_SETTINGS = {
@@ -59,9 +59,9 @@ const VALIDATORS_BALANCES_SETTINGS = {
   minTokenBalance: wei("10"),
   minNftBalance: 2,
   rewardToken: ZERO,
-  creatingReward: wei("10"),
+  creationRewards: wei("10"),
   executionReward: wei("5"),
-  voteCoefficient: toBN("10").pow("25").toFixed(),
+  voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
 };
 
 const DP_SETTINGS = {
@@ -75,9 +75,9 @@ const DP_SETTINGS = {
   minTokenBalance: wei("20"),
   minNftBalance: 3,
   rewardToken: ZERO,
-  creatingReward: wei("10"),
+  creationRewards: wei("10"),
   executionReward: wei("5"),
-  voteCoefficient: toBN("10").pow("25").toFixed(),
+  voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
 };
 
 const DEFAULT_SETTINGS = {
@@ -91,9 +91,9 @@ const DEFAULT_SETTINGS = {
   minTokenBalance: wei("20"),
   minNftBalance: 3,
   rewardToken: ZERO,
-  creatingReward: wei("10"),
+  creationRewards: wei("10"),
   executionReward: wei("5"),
-  voteCoefficient: toBN("10").pow("25").toFixed(),
+  voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
 };
 
 const getBytesExecute = () => {
@@ -150,7 +150,7 @@ const getBytesAddSettings = (settings) => {
             },
             {
               type: "uint256",
-              name: "creatingReward",
+              name: "creationRewards",
             },
             {
               type: "uint256",
@@ -158,7 +158,7 @@ const getBytesAddSettings = (settings) => {
             },
             {
               type: "uint256",
-              name: "voteCoefficient",
+              name: "voteRewardsCoefficient",
             },
           ],
           type: "tuple[]",
@@ -224,7 +224,7 @@ const getBytesEditSettings = (ids, settings) => {
             },
             {
               type: "uint256",
-              name: "creatingReward",
+              name: "creationRewards",
             },
             {
               type: "uint256",
@@ -232,7 +232,7 @@ const getBytesEditSettings = (ids, settings) => {
             },
             {
               type: "uint256",
-              name: "voteCoefficient",
+              name: "voteRewardsCoefficient",
             },
           ],
           type: "tuple[]",
@@ -780,9 +780,9 @@ describe("GovPool", () => {
           minTokenBalance: wei("20"),
           minNftBalance: 3,
           rewardToken: ZERO,
-          creatingReward: 0,
+          creationRewards: 0,
           executionReward: 0,
-          voteCoefficient: 0,
+          voteRewardsCoefficient: 0,
         };
 
         beforeEach("setup", async () => {
@@ -1004,9 +1004,9 @@ describe("GovPool", () => {
           minTokenBalance: 1,
           minNftBalance: 1,
           rewardToken: ZERO,
-          creatingReward: 0,
+          creationRewards: 0,
           executionReward: 0,
-          voteCoefficient: 0,
+          voteRewardsCoefficient: 0,
         };
 
         const NEW_INTERNAL_SETTINGS = {
@@ -1019,9 +1019,9 @@ describe("GovPool", () => {
           minTokenBalance: wei("1"),
           minNftBalance: 1,
           rewardToken: ZERO,
-          creatingReward: 0,
+          creationRewards: 0,
           executionReward: 0,
-          voteCoefficient: 0,
+          voteRewardsCoefficient: 0,
         };
 
         beforeEach(async () => {
@@ -1205,10 +1205,10 @@ describe("GovPool", () => {
         quorumValidators: 1,
         minTokenBalance: 1,
         minNftBalance: 1,
-        rewardToken: "0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF",
-        creatingReward: wei("10"),
+        rewardToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        creationRewards: wei("10"),
         executionReward: wei("5"),
-        voteCoefficient: toBN("10").pow("25").toFixed(),
+        voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
       };
 
       beforeEach(async () => {
@@ -1233,7 +1233,7 @@ describe("GovPool", () => {
 
         await govPool.execute(1);
 
-        await govPool.claimReward(1);
+        await govPool.claimReward([1]);
 
         assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("16"));
       });
@@ -1261,7 +1261,7 @@ describe("GovPool", () => {
 
         let balance = toBN(await web3.eth.getBalance(OWNER));
 
-        let tx = await govPool.claimReward(2);
+        let tx = await govPool.claimReward([2]);
 
         assert.equal(
           await web3.eth.getBalance(OWNER),

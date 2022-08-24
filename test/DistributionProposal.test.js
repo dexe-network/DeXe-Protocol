@@ -60,9 +60,9 @@ const INTERNAL_SETTINGS = {
   minTokenBalance: wei("10"),
   minNftBalance: 2,
   rewardToken: ZERO,
-  creatingReward: 0,
+  creationRewards: 0,
   executionReward: 0,
-  voteCoefficient: 0,
+  voteRewardsCoefficient: 0,
 };
 
 const DEFAULT_SETTINGS = {
@@ -76,9 +76,9 @@ const DEFAULT_SETTINGS = {
   minTokenBalance: wei("20"),
   minNftBalance: 3,
   rewardToken: ZERO,
-  creatingReward: 0,
+  creationRewards: 0,
   executionReward: 0,
-  voteCoefficient: 0,
+  voteRewardsCoefficient: 0,
 };
 
 const DP_SETTINGS = {
@@ -92,9 +92,9 @@ const DP_SETTINGS = {
   minTokenBalance: wei("20"),
   minNftBalance: 3,
   rewardToken: ZERO,
-  creatingReward: 0,
+  creationRewards: 0,
   executionReward: 0,
-  voteCoefficient: 0,
+  voteRewardsCoefficient: 0,
 };
 
 const VALIDATORS_BALANCES_SETTINGS = {
@@ -107,9 +107,9 @@ const VALIDATORS_BALANCES_SETTINGS = {
   minTokenBalance: wei("20"),
   minNftBalance: 3,
   rewardToken: ZERO,
-  creatingReward: 0,
+  creationRewards: 0,
   executionReward: 0,
-  voteCoefficient: 0,
+  voteRewardsCoefficient: 0,
 };
 
 describe("DistributionProposal", () => {

@@ -71,8 +71,7 @@ contract GovPool is
     /// @dev govPool vars
     string public descriptionURL;
 
-    mapping(uint256 => address) public proposalCreators; // proposalId => creator
-    mapping(uint256 => address) public proposalExecutors; // proposalId => executor
+    mapping(uint256 => mapping(address => uint256)) public pendingRewards;
 
     function __GovPool_init(
         address govSettingAddress,
@@ -181,7 +180,7 @@ contract GovPool is
             data: data
         });
 
-        proposalCreators[proposalId] = msg.sender;
+        pendingRewards[proposalId][msg.sender] = settings.creationRewards;
     }
 
     function getProposalInfo(uint256 proposalId)
@@ -497,47 +496,36 @@ contract GovPool is
             }
         }
 
-        proposalExecutors[proposalId] = msg.sender;
+        pendingRewards[proposalId][msg.sender] += proposal.core.settings.executionReward;
     }
 
-    function claimReward(uint256 proposalId) external {
-        IGovSettings.ProposalSettings storage proposalSettings = proposals[proposalId]
-            .core
-            .settings;
-        require(proposalSettings.rewardToken != address(0), "GovP: rewards off");
+    function claimReward(uint256[] calldata proposalIds) external {
+        for (uint256 i; i < proposalIds.length; i++) {
+            IGovSettings.ProposalSettings storage proposalSettings = proposals[proposalIds[i]]
+                .core
+                .settings;
+            require(proposalSettings.rewardToken != address(0), "GovP: rewards off");
 
-        require(proposals[proposalId].core.executed, "GovP: proposal not executed");
+            require(proposals[proposalIds[i]].core.executed, "GovP: proposal not executed");
 
-        uint256 rewardAmount;
+            uint256 toPay = pendingRewards[proposalIds[i]][msg.sender];
+            uint256 balance;
 
-        if (proposalCreators[proposalId] == msg.sender) {
-            rewardAmount += proposalSettings.creatingReward;
-        }
+            if (proposalSettings.rewardToken == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
+                balance = address(this).balance;
+            } else {
+                balance = IERC20(proposalSettings.rewardToken).balanceOf(address(this));
+            }
 
-        if (proposalExecutors[proposalId] == msg.sender) {
-            rewardAmount += proposalSettings.executionReward;
-        }
-
-        rewardAmount +=
-            _voteInfos[proposalId][msg.sender][true].totalVoted +
-            (_voteInfos[proposalId][msg.sender][false].totalVoted *
-                proposalSettings.voteCoefficient) /
-            PRECISION;
-
-        if (proposalSettings.rewardToken == 0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF) {
-            uint256 balance = address(this).balance;
             require(balance > 0, "GovP: zero contract balance");
-            (bool status, ) = payable(msg.sender).call{
-                value: balance < rewardAmount ? balance : rewardAmount
-            }("");
-            require(status, "GovP: Failed to send eth");
-        } else {
-            uint256 balance = IERC20(proposalSettings.rewardToken).balanceOf(address(this));
-            require(balance > 0, "GovP: zero contract balance");
-            IERC20(proposalSettings.rewardToken).safeTransfer(
-                msg.sender,
-                balance < rewardAmount ? balance : rewardAmount
-            );
+            toPay = balance < toPay ? balance : toPay;
+
+            if (proposalSettings.rewardToken == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
+                (bool status, ) = payable(msg.sender).call{value: toPay}("");
+                require(status, "GovP: Failed to send eth");
+            } else {
+                IERC20(proposalSettings.rewardToken).safeTransfer(msg.sender, toPay);
+            }
         }
     }
 
@@ -649,6 +637,10 @@ contract GovPool is
         _totalVotedInProposal[proposalId] += amount;
 
         core.votesFor += amount;
+
+        pendingRewards[proposalId][msg.sender] +=
+            (amount * core.settings.voteRewardsCoefficient) /
+            PRECISION;
     }
 
     function _voteNfts(
@@ -679,6 +671,10 @@ contract GovPool is
         _totalVotedInProposal[proposalId] += voteAmount;
 
         core.votesFor += voteAmount;
+
+        pendingRewards[proposalId][msg.sender] +=
+            (voteAmount * core.settings.voteRewardsCoefficient) /
+            PRECISION;
     }
 
     function _beforeVote(

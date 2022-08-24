@@ -20,9 +20,9 @@ const INTERNAL_SETTINGS = {
   minTokenBalance: wei("10"),
   minNftBalance: 2,
   rewardToken: ZERO,
-  creatingReward: 0,
+  creationRewards: 0,
   executionReward: 0,
-  voteCoefficient: 0,
+  voteRewardsCoefficient: 0,
 };
 
 const DP_SETTINGS = {
@@ -36,9 +36,9 @@ const DP_SETTINGS = {
   minTokenBalance: wei("20"),
   minNftBalance: 3,
   rewardToken: ZERO,
-  creatingReward: 0,
+  creationRewards: 0,
   executionReward: 0,
-  voteCoefficient: 0,
+  voteRewardsCoefficient: 0,
 };
 
 const VALIDATORS_BALANCES_SETTINGS = {
@@ -52,9 +52,9 @@ const VALIDATORS_BALANCES_SETTINGS = {
   minTokenBalance: wei("20"),
   minNftBalance: 3,
   rewardToken: ZERO,
-  creatingReward: 0,
+  creationRewards: 0,
   executionReward: 0,
-  voteCoefficient: 0,
+  voteRewardsCoefficient: 0,
 };
 
 const DEFAULT_SETTINGS = {
@@ -68,9 +68,9 @@ const DEFAULT_SETTINGS = {
   minTokenBalance: wei("20"),
   minNftBalance: 3,
   rewardToken: ZERO,
-  creatingReward: 0,
+  creationRewards: 0,
   executionReward: 0,
-  voteCoefficient: 0,
+  voteRewardsCoefficient: 0,
 };
 
 function toPercent(num) {
@@ -154,9 +154,9 @@ describe("GovSettings", () => {
         minTokenBalance: wei("3"),
         minNftBalance: 4,
         rewardToken: ZERO,
-        creatingReward: 0,
+        creationRewards: 0,
         executionReward: 0,
-        voteCoefficient: 0,
+        voteRewardsCoefficient: 0,
       };
 
       const newSettings2 = {
@@ -169,9 +169,9 @@ describe("GovSettings", () => {
         minTokenBalance: wei("4"),
         minNftBalance: 4,
         rewardToken: ZERO,
-        creatingReward: 0,
+        creationRewards: 0,
         executionReward: 0,
-        voteCoefficient: 0,
+        voteRewardsCoefficient: 0,
       };
 
       await settings.addSettings([newSettings1, newSettings2]);
@@ -211,9 +211,9 @@ describe("GovSettings", () => {
         minTokenBalance: wei("3"),
         minNftBalance: 4,
         rewardToken: ZERO,
-        creatingReward: 0,
+        creationRewards: 0,
         executionReward: 0,
-        voteCoefficient: 0,
+        voteRewardsCoefficient: 0,
       };
 
       await truffleAssert.reverts(settings.addSettings([newSettings]), "GovSettings: invalid vote duration value");
@@ -230,9 +230,9 @@ describe("GovSettings", () => {
         minTokenBalance: wei("3"),
         minNftBalance: 4,
         rewardToken: ZERO,
-        creatingReward: 0,
+        creationRewards: 0,
         executionReward: 0,
-        voteCoefficient: 0,
+        voteRewardsCoefficient: 0,
       };
 
       await truffleAssert.reverts(settings.addSettings([newSettings]), "GovSettings: invalid quorum value");
@@ -249,9 +249,9 @@ describe("GovSettings", () => {
         minTokenBalance: wei("3"),
         minNftBalance: 4,
         rewardToken: ZERO,
-        creatingReward: 0,
+        creationRewards: 0,
         executionReward: 0,
-        voteCoefficient: 0,
+        voteRewardsCoefficient: 0,
       };
 
       await truffleAssert.reverts(
@@ -271,9 +271,9 @@ describe("GovSettings", () => {
         minTokenBalance: wei("3"),
         minNftBalance: 4,
         rewardToken: ZERO,
-        creatingReward: 0,
+        creationRewards: 0,
         executionReward: 0,
-        voteCoefficient: 0,
+        voteRewardsCoefficient: 0,
       };
 
       await truffleAssert.reverts(settings.addSettings([newSettings]), "GovSettings: invalid validator quorum value");
@@ -292,9 +292,9 @@ describe("GovSettings", () => {
         minTokenBalance: wei("3"),
         minNftBalance: 4,
         rewardToken: ZERO,
-        creatingReward: 0,
+        creationRewards: 0,
         executionReward: 0,
-        voteCoefficient: 0,
+        voteRewardsCoefficient: 0,
       };
 
       await settings.editSettings([1, 2], [newSettings1, newSettings1]);
@@ -333,9 +333,9 @@ describe("GovSettings", () => {
         minTokenBalance: wei("3"),
         minNftBalance: 4,
         rewardToken: ZERO,
-        creatingReward: 0,
+        creationRewards: 0,
         executionReward: 0,
-        voteCoefficient: 0,
+        voteRewardsCoefficient: 0,
       };
 
       await settings.editSettings([1, 4], [newSettings1, newSettings1]);
@@ -399,9 +399,9 @@ describe("GovSettings", () => {
         minTokenBalance: wei("3"),
         minNftBalance: 4,
         rewardToken: ZERO,
-        creatingReward: 0,
+        creationRewards: 0,
         executionReward: 0,
-        voteCoefficient: 0,
+        voteRewardsCoefficient: 0,
       };
 
       await settings.addSettings([newSettings1]);
@@ -441,9 +441,9 @@ describe("GovSettings", () => {
         minTokenBalance: wei("3"),
         minNftBalance: 4,
         rewardToken: ZERO,
-        creatingReward: 0,
+        creationRewards: 0,
         executionReward: 0,
-        voteCoefficient: 0,
+        voteRewardsCoefficient: 0,
       };
 
       await settings.addSettings([newSettings1]);
