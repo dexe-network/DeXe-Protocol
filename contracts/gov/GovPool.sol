@@ -524,7 +524,7 @@ contract GovPool is
                 proposalSettings.voteCoefficient) /
             PRECISION;
 
-        if (proposalSettings.rewardToken == address(0xF)) {
+        if (proposalSettings.rewardToken == 0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF) {
             uint256 balance = address(this).balance;
             require(balance > 0, "GovP: zero contract balance");
             (bool status, ) = payable(msg.sender).call{

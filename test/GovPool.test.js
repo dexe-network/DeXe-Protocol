@@ -20,6 +20,7 @@ ERC20Mock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
 const PRECISION = toBN(10).pow(25);
+const ZERO = "0x0000000000000000000000000000000000000000";
 
 const ProposalState = {
   Voting: 0,
@@ -41,6 +42,10 @@ const INTERNAL_SETTINGS = {
   quorumValidators: PRECISION.times("61").toFixed(),
   minTokenBalance: wei("10"),
   minNftBalance: 2,
+  rewardToken: ZERO,
+  creatingReward: wei("10"),
+  executionReward: wei("5"),
+  voteCoefficient: toBN("10").pow("25").toFixed(),
 };
 
 const VALIDATORS_BALANCES_SETTINGS = {
@@ -53,6 +58,10 @@ const VALIDATORS_BALANCES_SETTINGS = {
   quorumValidators: PRECISION.times("61").toFixed(),
   minTokenBalance: wei("10"),
   minNftBalance: 2,
+  rewardToken: ZERO,
+  creatingReward: wei("10"),
+  executionReward: wei("5"),
+  voteCoefficient: toBN("10").pow("25").toFixed(),
 };
 
 const DP_SETTINGS = {
@@ -65,6 +74,10 @@ const DP_SETTINGS = {
   quorumValidators: PRECISION.times("100").toFixed(),
   minTokenBalance: wei("20"),
   minNftBalance: 3,
+  rewardToken: ZERO,
+  creatingReward: wei("10"),
+  executionReward: wei("5"),
+  voteCoefficient: toBN("10").pow("25").toFixed(),
 };
 
 const DEFAULT_SETTINGS = {
@@ -77,6 +90,10 @@ const DEFAULT_SETTINGS = {
   quorumValidators: PRECISION.times("100").toFixed(),
   minTokenBalance: wei("20"),
   minNftBalance: 3,
+  rewardToken: ZERO,
+  creatingReward: wei("10"),
+  executionReward: wei("5"),
+  voteCoefficient: toBN("10").pow("25").toFixed(),
 };
 
 const getBytesExecute = () => {
@@ -126,6 +143,22 @@ const getBytesAddSettings = (settings) => {
             {
               type: "uint256",
               name: "minNftBalance",
+            },
+            {
+              type: "address",
+              name: "rewardToken",
+            },
+            {
+              type: "uint256",
+              name: "creatingReward",
+            },
+            {
+              type: "uint256",
+              name: "executionReward",
+            },
+            {
+              type: "uint256",
+              name: "voteCoefficient",
             },
           ],
           type: "tuple[]",
@@ -184,6 +217,22 @@ const getBytesEditSettings = (ids, settings) => {
             {
               type: "uint256",
               name: "minNftBalance",
+            },
+            {
+              type: "address",
+              name: "rewardToken",
+            },
+            {
+              type: "uint256",
+              name: "creatingReward",
+            },
+            {
+              type: "uint256",
+              name: "executionReward",
+            },
+            {
+              type: "uint256",
+              name: "voteCoefficient",
             },
           ],
           type: "tuple[]",
@@ -246,6 +295,7 @@ describe("GovPool", () => {
   let userKeeper;
   let govPool;
   let token;
+  let rewardToken;
   let nft;
 
   before("setup", async () => {
@@ -257,10 +307,13 @@ describe("GovPool", () => {
 
   beforeEach("setup", async () => {
     token = await ERC20Mock.new("Mock", "Mock", 18);
+    rewardToken = await ERC20Mock.new("REWARD", "RWD", 18);
     settings = await GovSettings.new();
     validators = await GovValidators.new();
     userKeeper = await GovUserKeeper.new();
     govPool = await GovPool.new();
+
+    await rewardToken.mint(govPool.address, wei("1000"));
   });
 
   describe("Empty pool", () => {
@@ -336,6 +389,11 @@ describe("GovPool", () => {
   describe("Fullfat GovPool", () => {
     beforeEach("setup", async () => {
       nft = await ERC721EnumMock.new("Mock", "Mock");
+
+      INTERNAL_SETTINGS.rewardToken = rewardToken.address;
+      DP_SETTINGS.rewardToken = rewardToken.address;
+      VALIDATORS_BALANCES_SETTINGS.rewardToken = rewardToken.address;
+      DEFAULT_SETTINGS.rewardToken = rewardToken.address;
 
       await validators.__GovValidators_init(
         "Validator Token",
@@ -721,6 +779,10 @@ describe("GovPool", () => {
           quorumValidators: PRECISION.times("100").toFixed(),
           minTokenBalance: wei("20"),
           minNftBalance: 3,
+          rewardToken: ZERO,
+          creatingReward: 0,
+          executionReward: 0,
+          voteCoefficient: 0,
         };
 
         beforeEach("setup", async () => {
@@ -941,6 +1003,10 @@ describe("GovPool", () => {
           quorumValidators: 1,
           minTokenBalance: 1,
           minNftBalance: 1,
+          rewardToken: ZERO,
+          creatingReward: 0,
+          executionReward: 0,
+          voteCoefficient: 0,
         };
 
         const NEW_INTERNAL_SETTINGS = {
@@ -952,6 +1018,10 @@ describe("GovPool", () => {
           quorumValidators: PRECISION.times("1").toFixed(),
           minTokenBalance: wei("1"),
           minNftBalance: 1,
+          rewardToken: ZERO,
+          creatingReward: 0,
+          executionReward: 0,
+          voteCoefficient: 0,
         };
 
         beforeEach(async () => {
@@ -1122,6 +1192,81 @@ describe("GovPool", () => {
 
           await truffleAssert.reverts(govPool.execute(1), "ERC20: insufficient allowance");
         });
+      });
+    });
+
+    describe("reward", () => {
+      let NEW_SETTINGS = {
+        earlyCompletion: true,
+        delegatedVotingAllowed: false,
+        duration: 1,
+        durationValidators: 1,
+        quorum: 1,
+        quorumValidators: 1,
+        minTokenBalance: 1,
+        minNftBalance: 1,
+        rewardToken: "0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF",
+        creatingReward: wei("10"),
+        executionReward: wei("5"),
+        voteCoefficient: toBN("10").pow("25").toFixed(),
+      };
+
+      beforeEach(async () => {
+        await token.mint(SECOND, wei("100000000000000000000"));
+
+        await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
+
+        await govPool.deposit(OWNER, wei("1000"), []);
+        await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
+      });
+
+      it("should claim reward", async () => {
+        const bytes = getBytesAddSettings([NEW_SETTINGS]);
+
+        await govPool.createProposal("example.com", [settings.address], [0], [bytes]);
+        await govPool.vote(1, 0, [], wei("1"), []);
+        await govPool.vote(1, 0, [], wei("100000000000000000000"), [], { from: SECOND });
+
+        await govPool.moveProposalToValidators(1);
+        await validators.vote(1, wei("100"), false);
+        await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+        await govPool.execute(1);
+
+        await govPool.claimReward(1);
+
+        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("16"));
+      });
+
+      it("should claim reward in native", async () => {
+        const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
+
+        await govPool.createProposal("example.com", [settings.address], [0], [bytes]);
+        await govPool.vote(1, 0, [], wei("100000000000000000000"), [], { from: SECOND });
+
+        await govPool.moveProposalToValidators(1);
+        await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+        await govPool.execute(1);
+
+        await network.provider.send("hardhat_setBalance", [
+          govPool.address, // address
+          "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", // balance
+        ]);
+
+        await govPool.createProposal("example.com", [settings.address], [0], [getBytesAddSettings([NEW_SETTINGS])]);
+        await govPool.vote(2, 0, [], wei("1"), []);
+
+        await govPool.execute(2);
+
+        let balance = toBN(await web3.eth.getBalance(OWNER));
+
+        let tx = await govPool.claimReward(2);
+
+        assert.equal(
+          await web3.eth.getBalance(OWNER),
+          balance.plus(wei("16")).minus(toBN(tx.receipt.gasUsed).times(tx.receipt.effectiveGasPrice)).toFixed()
+        );
       });
     });
   });

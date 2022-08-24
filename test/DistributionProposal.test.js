@@ -59,6 +59,10 @@ const INTERNAL_SETTINGS = {
   quorumValidators: PRECISION.times("61").toFixed(),
   minTokenBalance: wei("10"),
   minNftBalance: 2,
+  rewardToken: ZERO,
+  creatingReward: 0,
+  executionReward: 0,
+  voteCoefficient: 0,
 };
 
 const DEFAULT_SETTINGS = {
@@ -71,6 +75,10 @@ const DEFAULT_SETTINGS = {
   quorumValidators: PRECISION.times("100").toFixed(),
   minTokenBalance: wei("20"),
   minNftBalance: 3,
+  rewardToken: ZERO,
+  creatingReward: 0,
+  executionReward: 0,
+  voteCoefficient: 0,
 };
 
 const DP_SETTINGS = {
@@ -83,6 +91,10 @@ const DP_SETTINGS = {
   quorumValidators: PRECISION.times("100").toFixed(),
   minTokenBalance: wei("20"),
   minNftBalance: 3,
+  rewardToken: ZERO,
+  creatingReward: 0,
+  executionReward: 0,
+  voteCoefficient: 0,
 };
 
 const VALIDATORS_BALANCES_SETTINGS = {
@@ -94,6 +106,10 @@ const VALIDATORS_BALANCES_SETTINGS = {
   quorumValidators: PRECISION.times("100").toFixed(),
   minTokenBalance: wei("20"),
   minNftBalance: 3,
+  rewardToken: ZERO,
+  creatingReward: 0,
+  executionReward: 0,
+  voteCoefficient: 0,
 };
 
 describe("DistributionProposal", () => {
