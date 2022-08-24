@@ -143,7 +143,7 @@ contract GovPool is
         } else if (executorType == IGovSettings.ExecutorType.DISTRIBUTION) {
             _handleDataForDistributionProposal(executors, values, data);
         } else if (executorType == IGovSettings.ExecutorType.VALIDATORS) {
-            _handleDataForChangeValidatorBalanceProposal(executors, values, data);
+            _handleDataForValidatorBalanceProposal(executors, values, data);
         } else if (executorType == IGovSettings.ExecutorType.TRUSTED) {
             forceDefaultSettings = _handleDataForExistingSettingsProposal(values, data);
         }
@@ -597,7 +597,7 @@ contract GovPool is
         }
     }
 
-    function _handleDataForChangeValidatorBalanceProposal(
+    function _handleDataForValidatorBalanceProposal(
         address[] calldata executors,
         uint256[] calldata values,
         bytes[] calldata data

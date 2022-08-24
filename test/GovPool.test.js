@@ -1268,6 +1268,74 @@ describe("GovPool", () => {
           balance.plus(wei("16")).minus(toBN(tx.receipt.gasUsed).times(tx.receipt.effectiveGasPrice)).toFixed()
         );
       });
+
+      it("should revert when rewards off", async () => {
+        let ZERO_ADDRESS = {
+          earlyCompletion: true,
+          delegatedVotingAllowed: false,
+          duration: 1,
+          durationValidators: 1,
+          quorum: 1,
+          quorumValidators: 1,
+          minTokenBalance: 1,
+          minNftBalance: 1,
+          rewardToken: ZERO,
+          creationRewards: wei("10"),
+          executionReward: wei("5"),
+          voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
+        };
+
+        const bytes = getBytesEditSettings([1], [ZERO_ADDRESS]);
+
+        await govPool.createProposal("example.com", [settings.address], [0], [bytes]);
+        await govPool.vote(1, 0, [], wei("100000000000000000000"), [], { from: SECOND });
+
+        await govPool.moveProposalToValidators(1);
+        await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+        await govPool.execute(1);
+
+        await govPool.createProposal("example.com", [settings.address], [0], [getBytesAddSettings([NEW_SETTINGS])]);
+        await govPool.vote(2, 0, [], wei("1"), []);
+
+        await govPool.execute(2);
+
+        await truffleAssert.reverts(govPool.claimReward([2]), "GovP: rewards off");
+      });
+
+      it("should revert when try claim reward before execute", async () => {
+        const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
+
+        await govPool.createProposal("example.com", [settings.address], [0], [bytes]);
+        await govPool.vote(1, 0, [], wei("100000000000000000000"), [], { from: SECOND });
+
+        await govPool.moveProposalToValidators(1);
+        await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+        await truffleAssert.reverts(govPool.claimReward([1]), "GovP: proposal not executed");
+      });
+
+      it("should revert when balance = 0", async () => {
+        let newToken = await ERC20Mock.new("NT", "NT", 18);
+        NEW_SETTINGS.rewardToken = newToken.address;
+
+        const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
+
+        await govPool.createProposal("example.com", [settings.address], [0], [bytes]);
+        await govPool.vote(1, 0, [], wei("100000000000000000000"), [], { from: SECOND });
+
+        await govPool.moveProposalToValidators(1);
+        await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+        await govPool.execute(1);
+
+        await govPool.createProposal("example.com", [settings.address], [0], [getBytesAddSettings([NEW_SETTINGS])]);
+        await govPool.vote(2, 0, [], wei("1"), []);
+
+        await govPool.execute(2);
+
+        await truffleAssert.reverts(govPool.claimReward([2]), "GovP: zero contract balance");
+      });
     });
   });
 });
