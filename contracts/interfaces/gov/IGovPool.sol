@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./settings/IGovSettings.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "../../libs/data-structures/ShrinkableArray.sol";
 
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "./settings/IGovSettings.sol";
 
 /**
  * This is the Governance pool contract. This contract is the third contract the user can deploy through

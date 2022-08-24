@@ -46,7 +46,7 @@ contract GovPool is
     using ShrinkableArray for ShrinkableArray.UintArray;
     using ArrayHelper for uint256[];
 
-    using DataHelper for *;
+    using DataHelper for bytes;
 
     /// @dev govCreator vars
     IGovSettings public govSetting;
@@ -488,7 +488,7 @@ contract GovPool is
             );
 
             if (!status) {
-                revert(DataHelper._getRevertMsg(returnedData));
+                revert(returnedData.getRevertMsg());
             }
         }
     }
@@ -503,7 +503,7 @@ contract GovPool is
         bytes[] calldata data
     ) private pure {
         for (uint256 i; i < data.length; i++) {
-            bytes4 selector = DataHelper._getSelector(data[i]);
+            bytes4 selector = data[i].getSelector();
             require(
                 values[i] == 0 &&
                     executors[executors.length - 1] == executors[i] &&
@@ -520,7 +520,7 @@ contract GovPool is
         bytes[] calldata data
     ) private pure returns (bool) {
         for (uint256 i; i < data.length - 1; i++) {
-            bytes4 selector = DataHelper._getSelector(data[i]);
+            bytes4 selector = data[i].getSelector();
 
             if (
                 values[i] != 0 ||
@@ -549,7 +549,7 @@ contract GovPool is
         require(distributionProposal == executors[executors.length - 1], "GovC: invalid executor");
 
         for (uint256 i; i < data.length - 1; i++) {
-            bytes4 selector = DataHelper._getSelector(data[i]);
+            bytes4 selector = data[i].getSelector();
 
             require(
                 values[i] == 0 &&
@@ -567,7 +567,7 @@ contract GovPool is
         bytes[] calldata data
     ) private pure {
         for (uint256 i; i < data.length; i++) {
-            bytes4 selector = DataHelper._getSelector(data[i]);
+            bytes4 selector = data[i].getSelector();
             require(
                 values[i] == 0 &&
                     executors[executors.length - 1] == executors[i] &&
