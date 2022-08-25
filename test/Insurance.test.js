@@ -42,7 +42,7 @@ const DEFAULT_CORE_PROPERTIES = {
   insuranceWithdrawalLock: SECONDS_IN_DAY,
 };
 
-describe("Insurance", async () => {
+describe("Insurance", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -110,7 +110,7 @@ describe("Insurance", async () => {
     await dexe.approve(insurance.address, toBN(1000).times(toBN(10).pow(decimal)), { from: SECOND });
   });
 
-  describe("buyInsurance", async () => {
+  describe("buyInsurance", () => {
     const deposit = toBN(wei("10"));
 
     it("should buy insurance", async () => {
@@ -145,7 +145,7 @@ describe("Insurance", async () => {
     });
   });
 
-  describe("withdraw", async () => {
+  describe("withdraw", () => {
     const deposit = toBN(wei("100"));
 
     it("should withdraw all deposit", async () => {
@@ -207,7 +207,7 @@ describe("Insurance", async () => {
     });
   });
 
-  describe("proposeClaim", async () => {
+  describe("proposeClaim", () => {
     const deposit = toBN(wei("100"));
 
     it("should not propose claim", async () => {
@@ -310,7 +310,7 @@ describe("Insurance", async () => {
     });
   });
 
-  describe("listOngoingClaims", async () => {
+  describe("listOngoingClaims", () => {
     const len = 10;
     const deposit = toBN(wei("100"));
 
@@ -354,7 +354,7 @@ describe("Insurance", async () => {
     });
   });
 
-  describe("acceptClaim", async () => {
+  describe("acceptClaim", () => {
     const baseURL = "url";
     const deposit = toBN(wei("100"));
     let ALICE;
@@ -544,7 +544,7 @@ describe("Insurance", async () => {
     });
   });
 
-  describe("rejectClaim", async () => {
+  describe("rejectClaim", () => {
     const baseURL = "url";
     const deposit = toBN(wei("100"));
 
@@ -590,7 +590,7 @@ describe("Insurance", async () => {
     });
   });
 
-  describe("listFinishedClaims", async () => {
+  describe("listFinishedClaims", () => {
     const len = 10;
     const baseURL = "url";
     const deposit = toBN(wei("100"));

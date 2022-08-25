@@ -140,6 +140,23 @@ describe("GovSettings", () => {
 
       assert.equal(await settings.executorToSettings(settings.address), 1);
     });
+
+    it("should revert when delegatedVotingAllowed for DP", async () => {
+      DP_SETTINGS.delegatedVotingAllowed = true;
+      let settings = await GovSettings.new();
+      await truffleAssert.reverts(
+        settings.__GovSettings_init(
+          "0x0000000000000000000000000000000000000000",
+          "0x0000000000000000000000000000000000000000",
+          INTERNAL_SETTINGS,
+          DP_SETTINGS,
+          VALIDATORS_BALANCES_SETTINGS,
+          DEFAULT_SETTINGS
+        ),
+        "GovSettings: Distribution proposal settings delegatedVotingAllowed"
+      );
+      DP_SETTINGS.delegatedVotingAllowed = false;
+    });
   });
 
   describe("addSettings()", () => {
@@ -464,6 +481,15 @@ describe("GovSettings", () => {
       assert.isTrue(internalSettings[1]);
       assert.equal(internalSettings[3], 500);
       assert.equal(internalSettings[4], 600);
+    });
+
+    it("should return settings for validators executor", async () => {
+      const validatorSettings = await settings.getSettings(ZERO);
+
+      assert.isFalse(validatorSettings[0]);
+      assert.isFalse(validatorSettings[1]);
+      assert.equal(validatorSettings[3], 600);
+      assert.equal(validatorSettings[4], 800);
     });
 
     it("should return setting for nonexistent executor", async () => {

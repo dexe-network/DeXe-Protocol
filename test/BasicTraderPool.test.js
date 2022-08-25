@@ -727,7 +727,7 @@ describe("BasicTraderPool", () => {
       });
     });
 
-    describe("divestProposal", async () => {
+    describe("divestProposal", () => {
       beforeEach("setup", async () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"));
 

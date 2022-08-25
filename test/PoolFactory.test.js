@@ -315,7 +315,7 @@ describe("PoolFactory", () => {
     });
   });
 
-  describe("TraderPool validation", async () => {
+  describe("TraderPool validation", () => {
     let POOL_PARAMETERS;
 
     it("should revert when try to deploy with incorrect percentage for Period 1", async () => {
