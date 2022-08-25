@@ -158,4 +158,8 @@ interface IGovPool {
     /// @notice Execute proposal
     /// @param proposalId Proposal ID
     function execute(uint256 proposalId) external;
+
+    function claimReward(uint256[] calldata proposalIds) external;
+
+    function executeAndClaim(uint256 proposalId) external;
 }
