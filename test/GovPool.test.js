@@ -1238,6 +1238,22 @@ describe("GovPool", () => {
         assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("16"));
       });
 
+      it("should execute and claim", async () => {
+        const bytes = getBytesAddSettings([NEW_SETTINGS]);
+
+        await govPool.createProposal("example.com", [settings.address], [0], [bytes]);
+        await govPool.vote(1, 0, [], wei("1"), []);
+        await govPool.vote(1, 0, [], wei("100000000000000000000"), [], { from: SECOND });
+
+        await govPool.moveProposalToValidators(1);
+        await validators.vote(1, wei("100"), false);
+        await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+        await govPool.executeAndClaim(1);
+
+        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("16"));
+      });
+
       it("should claim reward in native", async () => {
         const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
 

@@ -142,20 +142,34 @@ describe("GovSettings", () => {
     });
 
     it("should revert when delegatedVotingAllowed for DP", async () => {
-      DP_SETTINGS.delegatedVotingAllowed = true;
+      INCORRECT_DP_SETTINGS = {
+        earlyCompletion: false,
+        delegatedVotingAllowed: true,
+        validatorsVote: true,
+        duration: 600,
+        durationValidators: 800,
+        quorum: PRECISION.times("71").toFixed(),
+        quorumValidators: PRECISION.times("100").toFixed(),
+        minTokenBalance: wei("20"),
+        minNftBalance: 3,
+        rewardToken: ZERO,
+        creationRewards: 0,
+        executionReward: 0,
+        voteRewardsCoefficient: 0,
+      };
+
       let settings = await GovSettings.new();
       await truffleAssert.reverts(
         settings.__GovSettings_init(
           "0x0000000000000000000000000000000000000000",
           "0x0000000000000000000000000000000000000000",
           INTERNAL_SETTINGS,
-          DP_SETTINGS,
+          INCORRECT_DP_SETTINGS,
           VALIDATORS_BALANCES_SETTINGS,
           DEFAULT_SETTINGS
         ),
         "GovSettings: Distribution proposal settings delegatedVotingAllowed"
       );
-      DP_SETTINGS.delegatedVotingAllowed = false;
     });
   });
 
