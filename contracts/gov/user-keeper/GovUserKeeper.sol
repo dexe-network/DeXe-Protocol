@@ -637,8 +637,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 totalPowerInTokens,
         uint256 nftsTotalSupply
     ) internal {
-        require(_nftAddress == address(0), "GovUK: current token address isn't zero");
-        require(nftAddress != address(0), "GovUK: new token address is zero");
+        require(nftAddress == address(0), "GovUK: current token address isn't zero");
+        require(_nftAddress != address(0), "GovUK: new token address is zero");
 
         require(totalPowerInTokens > 0, "GovUK: the equivalent is zero");
 
@@ -654,5 +654,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
             nftInfo.totalSupply = nftsTotalSupply;
         }
+
+        nftAddress = _nftAddress;
     }
 }

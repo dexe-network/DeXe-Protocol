@@ -92,6 +92,17 @@ describe("GovSettings", () => {
 
   beforeEach("setup", async () => {
     settings = await GovSettings.new();
+
+    await settings.__GovSettings_init(
+      ZERO,
+      ZERO,
+      ZERO,
+      ZERO,
+      INTERNAL_SETTINGS,
+      DP_SETTINGS,
+      VALIDATORS_BALANCES_SETTINGS,
+      DEFAULT_SETTINGS
+    );
   });
 
   describe("incorrect settings", () => {

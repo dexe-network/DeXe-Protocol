@@ -148,8 +148,10 @@ describe("DistributionProposal", () => {
     proposal = await DistributionProposal.new(govPool.address);
 
     await settings.__GovSettings_init(
+      govPool.address,
       proposal.address,
       ZERO,
+      userKeeper.address,
       INTERNAL_SETTINGS,
       DP_SETTINGS,
       VALIDATORS_BALANCES_SETTINGS,
