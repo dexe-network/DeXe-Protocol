@@ -115,7 +115,7 @@ describe("GovUserKeeper", () => {
         );
       });
 
-      it("should set erc20", async () => {
+      it("should set erc721", async () => {
         await newUserKeeper.setERC721Address(nft.address, wei("33000"), 33);
 
         assert.equal(nft.address, await newUserKeeper.nftAddress());

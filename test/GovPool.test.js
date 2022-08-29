@@ -109,7 +109,7 @@ const getBytesEditUrl = (url) => {
           type: "string",
         },
       ],
-      name: "editDescriprionURL",
+      name: "editDescriptionURL",
       type: "function",
     },
     [url]
@@ -1200,7 +1200,7 @@ describe("GovPool", () => {
           await truffleAssert.reverts(govPool.execute(1), "ERC20: insufficient allowance");
         });
 
-        it("should create proposal for editDescriprionURL", async () => {
+        it("should create proposal for editDescriptionURL", async () => {
           const newUrl = "new_url";
           const bytesEditUrl = getBytesEditUrl(newUrl);
 
@@ -1219,25 +1219,10 @@ describe("GovPool", () => {
         });
       });
 
-      describe("editDescriprionURL()", () => {
-        it("should correctly set url", async () => {
-          await hre.network.provider.request({
-            method: "hardhat_impersonateAccount",
-            params: [govPool.address],
-          });
-          await network.provider.send("hardhat_setBalance", [
-            govPool.address, // address
-            "0xFFFFFFFFFFFFFFFFFFF", // balance
-          ]);
-          let newUrl = "new_url";
-          await govPool.editDescriprionURL(newUrl, { from: govPool.address });
-
-          assert.equal(await govPool.descriptionURL(), newUrl);
-        });
-
+      describe("editDescriptionURL()", () => {
         it("should revert when try call from non govPool address", async () => {
           let newUrl = "new_url";
-          await truffleAssert.reverts(govPool.editDescriprionURL(newUrl), "GovP: not this contract");
+          await truffleAssert.reverts(govPool.editDescriptionURL(newUrl), "GovP: not this contract");
         });
       });
     });
