@@ -775,6 +775,7 @@ contract GovPool is
 
     function getVotingRewards(uint256 amount, uint256 voteRewardsCoefficient)
         internal
+        pure
         returns (uint256)
     {
         return (amount * voteRewardsCoefficient) / PRECISION;
