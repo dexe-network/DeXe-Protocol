@@ -71,6 +71,8 @@ contract GovPool is
     /// @dev govPool vars
     string public descriptionURL;
 
+    mapping(uint256 => mapping(address => uint256)) public pendingRewards;
+
     function __GovPool_init(
         address govSettingAddress,
         address govUserKeeperAddress,
@@ -141,7 +143,7 @@ contract GovPool is
         } else if (executorType == IGovSettings.ExecutorType.DISTRIBUTION) {
             _handleDataForDistributionProposal(executors, values, data);
         } else if (executorType == IGovSettings.ExecutorType.VALIDATORS) {
-            _handleDataForChangeValidatorBalanceProposal(executors, values, data);
+            _handleDataForValidatorBalanceProposal(executors, values, data);
         } else if (executorType == IGovSettings.ExecutorType.TRUSTED) {
             forceDefaultSettings = _handleDataForExistingSettingsProposal(values, data);
         }
@@ -177,6 +179,8 @@ contract GovPool is
             values: values,
             data: data
         });
+
+        pendingRewards[proposalId][msg.sender] = settings.creationRewards;
     }
 
     function getProposalInfo(uint256 proposalId)
@@ -468,7 +472,7 @@ contract GovPool is
     }
 
     /// @dev govPool functs
-    function execute(uint256 proposalId) external override {
+    function execute(uint256 proposalId) public override {
         Proposal storage proposal = proposals[proposalId];
 
         require(
@@ -491,6 +495,19 @@ contract GovPool is
                 revert(returnedData.getRevertMsg());
             }
         }
+
+        pendingRewards[proposalId][msg.sender] += proposal.core.settings.executionReward;
+    }
+
+    function claimReward(uint256[] calldata proposalIds) external override {
+        for (uint256 i; i < proposalIds.length; i++) {
+            _claimReward(proposalIds[i]);
+        }
+    }
+
+    function executeAndClaim(uint256 proposalId) external override {
+        execute(proposalId);
+        _claimReward(proposalId);
     }
 
     receive() external payable {}
@@ -561,7 +578,7 @@ contract GovPool is
         }
     }
 
-    function _handleDataForChangeValidatorBalanceProposal(
+    function _handleDataForValidatorBalanceProposal(
         address[] calldata executors,
         uint256[] calldata values,
         bytes[] calldata data
@@ -601,6 +618,11 @@ contract GovPool is
         _totalVotedInProposal[proposalId] += amount;
 
         core.votesFor += amount;
+
+        pendingRewards[proposalId][msg.sender] += getVotingRewards(
+            amount,
+            core.settings.voteRewardsCoefficient
+        );
     }
 
     function _voteNfts(
@@ -631,6 +653,10 @@ contract GovPool is
         _totalVotedInProposal[proposalId] += voteAmount;
 
         core.votesFor += voteAmount;
+
+        pendingRewards[proposalId][msg.sender] +=
+            (voteAmount * core.settings.voteRewardsCoefficient) /
+            PRECISION;
     }
 
     function _beforeVote(
@@ -715,5 +741,43 @@ contract GovPool is
             totalVoteWeight == 0
                 ? false
                 : PERCENTAGE_100.ratio(core.votesFor, totalVoteWeight) >= core.settings.quorum;
+    }
+
+    function _claimReward(uint256 proposalId) internal {
+        IGovSettings.ProposalSettings storage proposalSettings = proposals[proposalId]
+            .core
+            .settings;
+        require(proposalSettings.rewardToken != address(0), "GovP: rewards off");
+
+        require(proposals[proposalId].core.executed, "GovP: proposal not executed");
+
+        uint256 toPay = pendingRewards[proposalId][msg.sender];
+        pendingRewards[proposalId][msg.sender] = 0;
+
+        uint256 balance;
+
+        if (proposalSettings.rewardToken == ETHEREUM_ADDRESS) {
+            balance = address(this).balance;
+        } else {
+            balance = IERC20(proposalSettings.rewardToken).balanceOf(address(this));
+        }
+
+        require(balance > 0, "GovP: zero contract balance");
+        toPay = balance < toPay ? balance : toPay;
+
+        if (proposalSettings.rewardToken == ETHEREUM_ADDRESS) {
+            (bool status, ) = payable(msg.sender).call{value: toPay}("");
+            require(status, "GovP: Failed to send eth");
+        } else {
+            IERC20(proposalSettings.rewardToken).safeTransfer(msg.sender, toPay);
+        }
+    }
+
+    function getVotingRewards(uint256 amount, uint256 voteRewardsCoefficient)
+        internal
+        pure
+        returns (uint256)
+    {
+        return (amount * voteRewardsCoefficient) / PRECISION;
     }
 }

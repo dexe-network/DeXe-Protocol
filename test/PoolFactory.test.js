@@ -50,6 +50,8 @@ const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
 const PRECISION = toBN(10).pow(25);
 const DECIMAL = toBN(10).pow(18);
 
+const ZERO = "0x0000000000000000000000000000000000000000";
+
 const ComissionPeriods = {
   PERIOD_1: 0,
   PERIOD_2: 1,
@@ -313,7 +315,7 @@ describe("PoolFactory", () => {
     });
   });
 
-  describe("TraderPool validation", async () => {
+  describe("TraderPool validation", () => {
     let POOL_PARAMETERS;
 
     it("should revert when try to deploy with incorrect percentage for Period 1", async () => {
@@ -425,6 +427,10 @@ describe("PoolFactory", () => {
             quorumValidators: PRECISION.times("61").toFixed(),
             minTokenBalance: wei("10"),
             minNftBalance: 2,
+            rewardToken: ZERO,
+            creationRewards: 0,
+            executionReward: 0,
+            voteRewardsCoefficient: 0,
           },
           distributionProposalSettings: {
             earlyCompletion: true,
@@ -436,6 +442,10 @@ describe("PoolFactory", () => {
             quorumValidators: PRECISION.times("61").toFixed(),
             minTokenBalance: wei("10"),
             minNftBalance: 2,
+            rewardToken: ZERO,
+            creationRewards: 0,
+            executionReward: 0,
+            voteRewardsCoefficient: 0,
           },
           validatorsBalancesSettings: {
             earlyCompletion: true,
@@ -447,6 +457,10 @@ describe("PoolFactory", () => {
             quorumValidators: PRECISION.times("61").toFixed(),
             minTokenBalance: wei("10"),
             minNftBalance: 2,
+            rewardToken: ZERO,
+            creationRewards: 0,
+            executionReward: 0,
+            voteRewardsCoefficient: 0,
           },
           defaultProposalSetting: {
             earlyCompletion: false,
@@ -458,6 +472,10 @@ describe("PoolFactory", () => {
             quorumValidators: PRECISION.times("100").toFixed(),
             minTokenBalance: wei("20"),
             minNftBalance: 3,
+            rewardToken: ZERO,
+            creationRewards: 0,
+            executionReward: 0,
+            voteRewardsCoefficient: 0,
           },
         },
         validatorsParams: {
@@ -509,6 +527,10 @@ describe("PoolFactory", () => {
             quorumValidators: PRECISION.times("61").toFixed(),
             minTokenBalance: wei("10"),
             minNftBalance: 2,
+            rewardToken: ZERO,
+            creationRewards: 0,
+            executionReward: 0,
+            voteRewardsCoefficient: 0,
           },
           distributionProposalSettings: {
             earlyCompletion: true,
@@ -520,6 +542,10 @@ describe("PoolFactory", () => {
             quorumValidators: PRECISION.times("61").toFixed(),
             minTokenBalance: wei("10"),
             minNftBalance: 2,
+            rewardToken: ZERO,
+            creationRewards: 0,
+            executionReward: 0,
+            voteRewardsCoefficient: 0,
           },
           validatorsBalancesSettings: {
             earlyCompletion: true,
@@ -531,6 +557,10 @@ describe("PoolFactory", () => {
             quorumValidators: PRECISION.times("61").toFixed(),
             minTokenBalance: wei("10"),
             minNftBalance: 2,
+            rewardToken: ZERO,
+            creationRewards: 0,
+            executionReward: 0,
+            voteRewardsCoefficient: 0,
           },
           defaultProposalSetting: {
             earlyCompletion: false,
@@ -542,6 +572,10 @@ describe("PoolFactory", () => {
             quorumValidators: PRECISION.times("100").toFixed(),
             minTokenBalance: wei("20"),
             minNftBalance: 3,
+            rewardToken: ZERO,
+            creationRewards: 0,
+            executionReward: 0,
+            voteRewardsCoefficient: 0,
           },
         },
         validatorsParams: {
@@ -586,6 +620,10 @@ describe("PoolFactory", () => {
             quorumValidators: PRECISION.times("61").toFixed(),
             minTokenBalance: wei("10"),
             minNftBalance: 2,
+            rewardToken: ZERO,
+            creationRewards: 0,
+            executionReward: 0,
+            voteRewardsCoefficient: 0,
           },
           distributionProposalSettings: {
             earlyCompletion: true,
@@ -597,6 +635,10 @@ describe("PoolFactory", () => {
             quorumValidators: PRECISION.times("61").toFixed(),
             minTokenBalance: wei("10"),
             minNftBalance: 2,
+            rewardToken: ZERO,
+            creationRewards: 0,
+            executionReward: 0,
+            voteRewardsCoefficient: 0,
           },
           validatorsBalancesSettings: {
             earlyCompletion: true,
@@ -608,6 +650,10 @@ describe("PoolFactory", () => {
             quorumValidators: PRECISION.times("61").toFixed(),
             minTokenBalance: wei("10"),
             minNftBalance: 2,
+            rewardToken: ZERO,
+            creationRewards: 0,
+            executionReward: 0,
+            voteRewardsCoefficient: 0,
           },
           defaultProposalSetting: {
             earlyCompletion: false,
@@ -618,6 +664,10 @@ describe("PoolFactory", () => {
             quorumValidators: PRECISION.times("100").toFixed(),
             minTokenBalance: wei("20"),
             minNftBalance: 3,
+            rewardToken: ZERO,
+            creationRewards: 0,
+            executionReward: 0,
+            voteRewardsCoefficient: 0,
           },
         },
         validatorsParams: {

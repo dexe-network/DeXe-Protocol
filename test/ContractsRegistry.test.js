@@ -25,7 +25,7 @@ describe("ContractsRegistry", () => {
     await contractsRegistry.__OwnableContractsRegistry_init();
   });
 
-  describe("contract management", async () => {
+  describe("contract management", () => {
     it("should add and remove the contract", async () => {
       const USD = await ERC20Mock.new("USD", "USD", 18);
 

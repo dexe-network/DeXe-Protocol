@@ -15,6 +15,10 @@ interface IGovSettings {
         uint128 quorumValidators;
         uint256 minTokenBalance;
         uint256 minNftBalance;
+        address rewardToken;
+        uint256 creationRewards;
+        uint256 executionReward;
+        uint256 voteRewardsCoefficient;
     }
 
     enum ExecutorType {
