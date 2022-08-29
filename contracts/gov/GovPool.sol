@@ -486,7 +486,7 @@ contract GovPool is
             totalLength = unlockedNfts.insert(totalLength, voteInfo.nftsVoted.values());
         }
     }
-    
+
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
         descriptionURL = newDescriptionURL;
     }
@@ -510,7 +510,7 @@ contract GovPool is
                         selector == IGovUserKeeper.setERC20Address.selector ||
                         selector == IGovUserKeeper.setERC721Address.selector ||
                         selector == IGovPool.editDescriptionURL.selector),
-                "GovC: invalid internal data"
+                "Gov: invalid internal data"
             );
         }
     }
