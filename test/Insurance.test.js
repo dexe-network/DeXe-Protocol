@@ -536,7 +536,7 @@ describe("Insurance", () => {
       assert.equal(1, finishedClaims[1][0][2]);
     });
 
-    it("should rever when try to accept unproposed claim", async () => {
+    it("should revert when try to accept unproposed claim", async () => {
       const amount = 100;
       const users = [ALICE, RON, BOB];
       const amounts = [amount, amount, amount];

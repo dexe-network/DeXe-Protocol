@@ -606,7 +606,7 @@ describe("TraderPool", () => {
         await invest(wei("1000"), SECOND);
       });
 
-      it("should calculate trader's commission", async () => {
+      it("should calculate trader commission", async () => {
         let leverage = await traderPool.getLeverageInfo();
 
         assert.equal(toBN(leverage.totalPoolUSDWithProposals).toFixed(), wei("2000"));

@@ -9,6 +9,7 @@ const GovValidatorsToken = artifacts.require("GovValidatorsToken");
 GovValidators.numberFormat = "BigNumber";
 GovValidatorsToken.numberFormat = "BigNumber";
 
+const ZERO = "0x0000000000000000000000000000000000000000";
 const PRECISION = toBN(10).pow(25);
 
 function toPercent(num) {
@@ -60,20 +61,6 @@ describe("GovValidators", () => {
             [wei("100")]
           ),
           "Validators: duration is zero"
-        );
-      });
-
-      it("should revert if invalid quorum value", async () => {
-        await truffleAssert.reverts(
-          validators.__GovValidators_init(
-            "Validator Token",
-            "VT",
-            100,
-            PRECISION.times("101").toFixed(),
-            [SECOND],
-            [wei("100")]
-          ),
-          "Validators: invalid quorum value"
         );
       });
 
@@ -197,7 +184,7 @@ describe("GovValidators", () => {
 
       it("should revert if invalid address", async () => {
         await truffleAssert.reverts(
-          validators.createInternalProposal(3, [0], ["0x0000000000000000000000000000000000000000"], { from: SECOND }),
+          validators.createInternalProposal(3, [0], [ZERO], { from: SECOND }),
           "Validators: invalid address"
         );
       });
@@ -224,7 +211,7 @@ describe("GovValidators", () => {
         );
       });
 
-      it("should revert if caller is not the owner", async () => {
+      it("should revert if proposal already exists", async () => {
         await validators.createExternalProposal(1, 1, 1);
         await truffleAssert.reverts(validators.createExternalProposal(1, 1, 1), "Validators: proposal already exist");
       });

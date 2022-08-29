@@ -319,30 +319,22 @@ describe("GovPool", () => {
   describe("Empty pool", () => {
     describe("GovCreator", () => {
       describe("init", () => {
-        it("should revert when try to set zero addresses", async () => {
+        it("should revert when setting zero addresses", async () => {
           await truffleAssert.reverts(
             govPool.__GovPool_init(
-              "0x0000000000000000000000000000000000000000",
+              ZERO,
               userKeeper.address,
-              "0x0000000000000000000000000000000000000000",
+              ZERO,
               validators.address,
               100,
               PRECISION.times(10),
               "example.com"
             ),
-            "GovC: address is zero (1)"
+            "Gov: address is zero (1)"
           );
           await truffleAssert.reverts(
-            govPool.__GovPool_init(
-              settings.address,
-              "0x0000000000000000000000000000000000000000",
-              "0x0000000000000000000000000000000000000000",
-              validators.address,
-              100,
-              PRECISION.times(10),
-              ""
-            ),
-            "GovC: address is zero (2)"
+            govPool.__GovPool_init(settings.address, ZERO, ZERO, validators.address, 100, PRECISION.times(10), ""),
+            "Gov: address is zero (2)"
           );
         });
       });
@@ -350,12 +342,12 @@ describe("GovPool", () => {
 
     describe("GovVote", () => {
       describe("init()", () => {
-        it("should revert when try to set votesLimit = 0", async () => {
+        it("should revert when setting votesLimit = 0", async () => {
           await truffleAssert.reverts(
             govPool.__GovPool_init(
               settings.address,
               userKeeper.address,
-              "0x0000000000000000000000000000000000000000",
+              ZERO,
               validators.address,
               0,
               PRECISION.times(10),
@@ -368,18 +360,18 @@ describe("GovPool", () => {
 
     describe("GovFee", () => {
       describe("init()", () => {
-        it("should revert when try set fee percentage more than 100%", async () => {
+        it("should revert when setting fee percentage more than 100%", async () => {
           await truffleAssert.reverts(
             govPool.__GovPool_init(
               settings.address,
               userKeeper.address,
-              "0x0000000000000000000000000000000000000000",
+              ZERO,
               validators.address,
               100,
               PRECISION.times(1000),
               "example.com"
             ),
-            "GovFee: `_feePercentage` can't be more than 100%"
+            "Gov: feePercentage can't be more than 100%"
           );
         });
       });
@@ -405,7 +397,7 @@ describe("GovPool", () => {
       );
 
       await settings.__GovSettings_init(
-        "0x0000000000000000000000000000000000000000",
+        ZERO,
         validators.address,
         INTERNAL_SETTINGS,
         DP_SETTINGS,
@@ -417,7 +409,7 @@ describe("GovPool", () => {
       await govPool.__GovPool_init(
         settings.address,
         userKeeper.address,
-        "0x0000000000000000000000000000000000000000",
+        ZERO,
         validators.address,
         100,
         PRECISION.times(10),
@@ -564,18 +556,18 @@ describe("GovPool", () => {
           assert.equal(proposal.descriptionURL, "example2.com");
         });
 
-        it("should revert when create proposal with arrays zero length", async () => {
+        it("should revert when creating proposal with arrays zero length", async () => {
           await truffleAssert.reverts(
             govPool.createProposal("", [], [0], [getBytesApprove(SECOND, 1)]),
-            "GovC: invalid array length"
+            "Gov: invalid array length"
           );
           await truffleAssert.reverts(
             govPool.createProposal("", [SECOND], [0, 0], [getBytesApprove(SECOND, 1)]),
-            "GovC: invalid array length"
+            "Gov: invalid array length"
           );
           await truffleAssert.reverts(
             govPool.createProposal("", [SECOND, THIRD], [0, 0], [getBytesApprove(SECOND, 1)]),
-            "GovC: invalid array length"
+            "Gov: invalid array length"
           );
         });
 
@@ -587,7 +579,7 @@ describe("GovPool", () => {
               [1],
               [getBytesEditSettings([4], [DEFAULT_SETTINGS])]
             ),
-            "GovC: invalid internal data"
+            "Gov: invalid internal data"
           );
           await truffleAssert.passes(
             govPool.createProposal(
@@ -659,7 +651,7 @@ describe("GovPool", () => {
         });
 
         it("should revert when vote zero amount", async () => {
-          await truffleAssert.reverts(govPool.vote(1, 0, [], 0, []), "GovV: empty vote");
+          await truffleAssert.reverts(govPool.vote(1, 0, [], 0, []), "Gov: empty vote");
         });
       });
 
@@ -696,17 +688,17 @@ describe("GovPool", () => {
         });
 
         it("should revert when vote is zero amount", async () => {
-          await truffleAssert.reverts(govPool.voteDelegated(1, 0, [], { from: SECOND }), "GovV: empty delegated vote");
+          await truffleAssert.reverts(govPool.voteDelegated(1, 0, [], { from: SECOND }), "Gov: empty delegated vote");
         });
 
         it("should revert when spending undelegated tokens", async () => {
-          await truffleAssert.reverts(govPool.voteDelegated(1, 1, [], { from: FOURTH }), "GovV: low balance");
+          await truffleAssert.reverts(govPool.voteDelegated(1, 1, [], { from: FOURTH }), "Gov: low balance");
         });
 
         it("should revert if voting with amount exceeding delegation", async () => {
           await truffleAssert.reverts(
             govPool.voteDelegated(1, wei("1000"), [], { from: SECOND }),
-            "GovV: wrong vote amount"
+            "Gov: wrong vote amount"
           );
         });
       });
@@ -731,7 +723,7 @@ describe("GovPool", () => {
         });
 
         it("should revert when order is wrong", async () => {
-          await truffleAssert.reverts(govPool.vote(1, 0, [], 0, [3, 2]), "GovV: wrong NFT order");
+          await truffleAssert.reverts(govPool.vote(1, 0, [], 0, [3, 2]), "Gov: wrong NFT order");
         });
       });
 
@@ -760,7 +752,7 @@ describe("GovPool", () => {
         });
 
         it("should revert when spending undelegated nfts", async () => {
-          await truffleAssert.reverts(govPool.voteDelegated(1, 0, [1], { from: FOURTH }), "GovV: low balance");
+          await truffleAssert.reverts(govPool.voteDelegated(1, 0, [1], { from: FOURTH }), "Gov: low balance");
         });
 
         it("should revert when voting with not delegated nfts", async () => {
@@ -831,7 +823,7 @@ describe("GovPool", () => {
         });
 
         it("should revert when try move without vote", async () => {
-          await truffleAssert.reverts(govPool.moveProposalToValidators(3), "GovV: can't be moved");
+          await truffleAssert.reverts(govPool.moveProposalToValidators(3), "Gov: can't be moved");
         });
       });
     });
@@ -863,8 +855,8 @@ describe("GovPool", () => {
           );
         });
 
-        it("should revert when nothing to withdraw", async () => {
-          await truffleAssert.reverts(govPool.withdrawFee(token.address, SECOND), "GFee: nothing to withdraw");
+        it("should revert when there is no fee", async () => {
+          await truffleAssert.reverts(govPool.withdrawFee(token.address, SECOND), "Gov: no fee");
         });
       });
 
@@ -880,16 +872,13 @@ describe("GovPool", () => {
 
           await setTime(startTime + 1000);
 
-          await govPool.withdrawFee("0x0000000000000000000000000000000000000000", SECOND);
+          await govPool.withdrawFee(ZERO, SECOND);
 
           assert.equal(await web3.eth.getBalance(SECOND), toBN(secondBalance).plus(toBN("162354134956874")).toFixed());
         });
 
-        it("should revert when nothing to withdraw", async () => {
-          await truffleAssert.reverts(
-            govPool.withdrawFee("0x0000000000000000000000000000000000000000", SECOND),
-            "GFee: nothing to withdraw"
-          );
+        it("should revert when there is no fee", async () => {
+          await truffleAssert.reverts(govPool.withdrawFee(ZERO, SECOND), "Gov: no fee");
         });
       });
     });
@@ -935,24 +924,24 @@ describe("GovPool", () => {
         it("should not unlock nonexisting proposals", async () => {
           await truffleAssert.reverts(
             govPool.unlockInProposals([1], OWNER, false),
-            "GovUKC: hasn't voted for this proposal"
+            "Gov: hasn't voted for this proposal"
           );
         });
 
         it("should not deposit zero tokens", async () => {
-          await truffleAssert.reverts(govPool.deposit(OWNER, 0, []), "GovUKC: empty deposit");
+          await truffleAssert.reverts(govPool.deposit(OWNER, 0, []), "Gov: empty deposit");
         });
 
         it("should not withdraw zero tokens", async () => {
-          await truffleAssert.reverts(govPool.withdraw(OWNER, 0, []), "GovUKC: empty withdrawal");
+          await truffleAssert.reverts(govPool.withdraw(OWNER, 0, []), "Gov: empty withdrawal");
         });
 
         it("should not delegate zero tokens", async () => {
-          await truffleAssert.reverts(govPool.delegate(OWNER, 0, []), "GovUKC: empty delegation");
+          await truffleAssert.reverts(govPool.delegate(OWNER, 0, []), "Gov: empty delegation");
         });
 
         it("should not undelegate zero tokens", async () => {
-          await truffleAssert.reverts(govPool.undelegate(OWNER, 0, []), "GovUKC: empty undelegation");
+          await truffleAssert.reverts(govPool.undelegate(OWNER, 0, []), "Gov: empty undelegation");
         });
       });
 
@@ -1084,7 +1073,7 @@ describe("GovPool", () => {
           await govPool.vote(2, 0, [], wei("1000"), [1, 2, 3, 4]);
           await truffleAssert.reverts(
             govPool.voteDelegated(2, wei("1000"), [1, 2, 3, 4], { from: SECOND }),
-            "GovV: delegated voting unavailable"
+            "Gov: delegated voting unavailable"
           );
         });
 
@@ -1316,7 +1305,7 @@ describe("GovPool", () => {
 
         await govPool.execute(2);
 
-        await truffleAssert.reverts(govPool.claimReward([2]), "GovP: rewards off");
+        await truffleAssert.reverts(govPool.claimReward([2]), "Gov: rewards off");
       });
 
       it("should revert when try claim reward before execute", async () => {
@@ -1328,7 +1317,7 @@ describe("GovPool", () => {
         await govPool.moveProposalToValidators(1);
         await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
-        await truffleAssert.reverts(govPool.claimReward([1]), "GovP: proposal not executed");
+        await truffleAssert.reverts(govPool.claimReward([1]), "Gov: proposal not executed");
       });
 
       it("should revert when balance = 0", async () => {
@@ -1350,7 +1339,7 @@ describe("GovPool", () => {
 
         await govPool.execute(2);
 
-        await truffleAssert.reverts(govPool.claimReward([2]), "GovP: zero contract balance");
+        await truffleAssert.reverts(govPool.claimReward([2]), "Gov: zero contract balance");
       });
     });
   });

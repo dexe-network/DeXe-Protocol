@@ -240,7 +240,7 @@ describe("PoolRegistry", () => {
     });
   });
 
-  describe("get info from real pools", () => {
+  describe("get info from trader pools", () => {
     let POOL_PARAMETERS;
 
     beforeEach("setup", async () => {
@@ -260,7 +260,7 @@ describe("PoolRegistry", () => {
       await deployPool(POOL_PARAMETERS);
     });
 
-    it("should get info", async () => {
+    it("should get info from trader pools", async () => {
       await truffleAssert.passes(await poolRegistry.listTraderPoolsWithInfo(BASIC_NAME, 0, 10), "passes");
       await truffleAssert.passes(await poolRegistry.listTraderPoolsWithInfo(INVEST_NAME, 0, 10), "passes");
 

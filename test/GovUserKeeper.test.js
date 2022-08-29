@@ -15,6 +15,7 @@ ERC721Mock.numberFormat = "BigNumber";
 ERC721EnumMock.numberFormat = "BigNumber";
 ERC721Power.numberFormat = "BigNumber";
 
+const ZERO = "0x0000000000000000000000000000000000000000";
 const PRECISION = toBN(10).pow(25);
 
 describe("GovUserKeeper", () => {
@@ -444,12 +445,7 @@ describe("GovUserKeeper", () => {
     beforeEach("setup", async () => {
       nft = await ERC721Mock.new("Mock", "Mock");
 
-      await userKeeper.__GovUserKeeper_init(
-        "0x0000000000000000000000000000000000000000",
-        nft.address,
-        wei("33000"),
-        33
-      );
+      await userKeeper.__GovUserKeeper_init(ZERO, nft.address, wei("33000"), 33);
     });
 
     it("should revert if token is not supported", async () => {
@@ -459,12 +455,7 @@ describe("GovUserKeeper", () => {
 
   describe("No NFT GovUserKeeper", () => {
     beforeEach("", async () => {
-      await userKeeper.__GovUserKeeper_init(
-        token.address,
-        "0x0000000000000000000000000000000000000000",
-        wei("33000"),
-        33
-      );
+      await userKeeper.__GovUserKeeper_init(token.address, ZERO, wei("33000"), 33);
     });
 
     it("should revert if nft is not supported", async () => {

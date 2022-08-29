@@ -318,7 +318,7 @@ describe("PoolFactory", () => {
   describe("TraderPool validation", () => {
     let POOL_PARAMETERS;
 
-    it("should revert when try to deploy with incorrect percentage for Period 1", async () => {
+    it("should revert when deploying with incorrect percentage for Period 1", async () => {
       POOL_PARAMETERS = {
         descriptionURL: "placeholder.com",
         trader: OWNER,
@@ -336,7 +336,7 @@ describe("PoolFactory", () => {
       );
     });
 
-    it("should revert when try to deploy with incorrect percentage for Period 2", async () => {
+    it("should revert when deploying with incorrect percentage for Period 2", async () => {
       POOL_PARAMETERS = {
         descriptionURL: "placeholder.com",
         trader: OWNER,
@@ -354,7 +354,7 @@ describe("PoolFactory", () => {
       );
     });
 
-    it("should revert when try to deploy with incorrect percentage for Period 3", async () => {
+    it("should revert when deploying with incorrect percentage for Period 3", async () => {
       POOL_PARAMETERS = {
         descriptionURL: "placeholder.com",
         trader: OWNER,
@@ -392,10 +392,10 @@ describe("PoolFactory", () => {
       );
     });
 
-    it("should revert when try to deploy pool with trader = address(0)", async () => {
+    it("should revert when deploying pool with trader = address(0)", async () => {
       let POOL_PARAMETERS = {
         descriptionURL: "placeholder.com",
-        trader: "0x0000000000000000000000000000000000000000",
+        trader: ZERO,
         privatePool: false,
         totalLPEmission: 0,
         baseToken: testERC20.address,
@@ -700,7 +700,7 @@ describe("PoolFactory", () => {
 
       let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
       assert.equal(await govPool.owner(), OWNER);
-      assert.notEqual(await govPool.distributionProposal(), "0x0000000000000000000000000000000000000000");
+      assert.notEqual(await govPool.distributionProposal(), ZERO);
 
       let govSettings = await GovSettings.at(await govPool.govSetting());
       let settings = await govSettings.getSettings(await govPool.distributionProposal());
