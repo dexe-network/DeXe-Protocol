@@ -63,6 +63,11 @@ contract GovPool is
 
     mapping(uint256 => mapping(address => uint256)) public pendingRewards; // proposalId => user => tokens amount
 
+    modifier onlyThis() {
+        require(address(this) == msg.sender, "GovP: not this contract");
+        _;
+    }
+
     function __GovPool_init(
         address govSettingAddress,
         address govUserKeeperAddress,
@@ -481,8 +486,8 @@ contract GovPool is
             totalLength = unlockedNfts.insert(totalLength, voteInfo.nftsVoted.values());
         }
     }
-    function editDescriprionURL(string calldata newDescriptionURL) external {
-        require(address(this) == msg.sender, "GovP: not this contract");
+
+    function editDescriprionURL(string calldata newDescriptionURL) external onlyThis {
         descriptionURL = newDescriptionURL;
     }
 

@@ -128,7 +128,7 @@ describe("GovUserKeeper", () => {
         );
       });
 
-      it("should revert, when token address already setted", async () => {
+      it("should revert, when token address already set", async () => {
         await newUserKeeper.setERC721Address(nft.address, wei("33000"), 33);
         await truffleAssert.reverts(
           newUserKeeper.setERC721Address(nft.address, wei("33000"), 33),

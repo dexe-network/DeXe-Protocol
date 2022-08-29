@@ -1200,7 +1200,7 @@ describe("GovPool", () => {
           await truffleAssert.reverts(govPool.execute(1), "ERC20: insufficient allowance");
         });
 
-        it.skip("should create proposal for editDescriprionURL", async () => {
+        it("should create proposal for editDescriprionURL", async () => {
           const newUrl = "new_url";
           const bytesEditUrl = getBytesEditUrl(newUrl);
 
@@ -1215,7 +1215,7 @@ describe("GovPool", () => {
 
           await govPool.execute(1);
 
-          assert.equal(await govPool.descriptionURL(), bytesEditUrl);
+          assert.equal(await govPool.descriptionURL(), newUrl);
         });
       });
 
