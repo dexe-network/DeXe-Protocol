@@ -67,76 +67,6 @@ describe("GovUserKeeper", () => {
       });
     });
 
-    describe("setERC20Address()", () => {
-      let newUserKeeper;
-
-      beforeEach(async () => {
-        newUserKeeper = await GovUserKeeper.new();
-        await newUserKeeper.__GovUserKeeper_init(
-          "0x0000000000000000000000000000000000000000",
-          nft.address,
-          wei("33000"),
-          33
-        );
-      });
-
-      it("should set erc20", async () => {
-        await newUserKeeper.setERC20Address(token.address);
-
-        assert.equal(token.address, await newUserKeeper.tokenAddress());
-      });
-
-      it("should revert, when new token address is 0", async () => {
-        await truffleAssert.reverts(
-          newUserKeeper.setERC20Address("0x0000000000000000000000000000000000000000"),
-          "GovUK: new token address is zero"
-        );
-      });
-
-      it("should revert, when token address already setted", async () => {
-        await newUserKeeper.setERC20Address(token.address);
-        await truffleAssert.reverts(
-          newUserKeeper.setERC20Address(token.address),
-          "GovUK: current token address isn't zero"
-        );
-      });
-    });
-
-    describe("setERC721Address", () => {
-      let newUserKeeper;
-
-      beforeEach(async () => {
-        newUserKeeper = await GovUserKeeper.new();
-        await newUserKeeper.__GovUserKeeper_init(
-          token.address,
-          "0x0000000000000000000000000000000000000000",
-          wei("33000"),
-          33
-        );
-      });
-
-      it("should set erc721", async () => {
-        await newUserKeeper.setERC721Address(nft.address, wei("33000"), 33);
-
-        assert.equal(nft.address, await newUserKeeper.nftAddress());
-      });
-
-      it("should revert, when new token address is 0", async () => {
-        await truffleAssert.reverts(
-          newUserKeeper.setERC721Address("0x0000000000000000000000000000000000000000", wei("33000"), 33),
-          "GovUK: new token address is zero"
-        );
-      });
-
-      it("should revert, when token address already set", async () => {
-        await newUserKeeper.setERC721Address(nft.address, wei("33000"), 33);
-        await truffleAssert.reverts(
-          newUserKeeper.setERC721Address(nft.address, wei("33000"), 33),
-          "GovUK: current token address isn't zero"
-        );
-      });
-    });
-
     describe("depositTokens()", () => {
       it("should correctly add tokens to balance", async () => {
         await userKeeper.depositTokens(OWNER, SECOND, wei("100"));
@@ -521,6 +451,21 @@ describe("GovUserKeeper", () => {
     it("should revert if token is not supported", async () => {
       await truffleAssert.reverts(userKeeper.depositTokens(OWNER, OWNER, wei("100")), "GovUK: token is not supported");
     });
+
+    it("should set erc20", async () => {
+      await userKeeper.setERC20Address(token.address);
+
+      assert.equal(token.address, await userKeeper.tokenAddress());
+    });
+
+    it("should revert, when new token address is 0", async () => {
+      await truffleAssert.reverts(userKeeper.setERC20Address(ZERO), "GovUK: new token address is zero");
+    });
+
+    it("should revert, when token address already setted", async () => {
+      await userKeeper.setERC20Address(token.address);
+      await truffleAssert.reverts(userKeeper.setERC20Address(token.address), "GovUK: current token address isn't zero");
+    });
   });
 
   describe("No NFT GovUserKeeper", () => {
@@ -537,6 +482,27 @@ describe("GovUserKeeper", () => {
       expect((await userKeeper.getNftsPowerInTokens([1], 0)).toFixed(), "0");
       expect((await userKeeper.getNftsPowerInTokens([1], 1)).toFixed(), "0");
       expect((await userKeeper.getNftsPowerInTokens([0], 1)).toFixed(), "0");
+    });
+
+    it("should set erc721", async () => {
+      await userKeeper.setERC721Address(nft.address, wei("33000"), 33);
+
+      assert.equal(nft.address, await userKeeper.nftAddress());
+    });
+
+    it("should revert, when new token address is 0", async () => {
+      await truffleAssert.reverts(
+        userKeeper.setERC721Address(ZERO, wei("33000"), 33),
+        "GovUK: new token address is zero"
+      );
+    });
+
+    it("should revert, when token address already set", async () => {
+      await userKeeper.setERC721Address(nft.address, wei("33000"), 33);
+      await truffleAssert.reverts(
+        userKeeper.setERC721Address(nft.address, wei("33000"), 33),
+        "GovUK: current token address isn't zero"
+      );
     });
   });
 

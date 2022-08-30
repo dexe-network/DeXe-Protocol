@@ -1222,7 +1222,7 @@ describe("GovPool", () => {
       describe("editDescriptionURL()", () => {
         it("should revert when try call from non govPool address", async () => {
           let newUrl = "new_url";
-          await truffleAssert.reverts(govPool.editDescriptionURL(newUrl), "GovP: not this contract");
+          await truffleAssert.reverts(govPool.editDescriptionURL(newUrl), "Gov: not this contract");
         });
       });
     });

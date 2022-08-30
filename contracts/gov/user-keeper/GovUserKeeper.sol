@@ -474,7 +474,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         return _getFreeAssets(voter, false, lockedProposals, unlockedNfts);
     }
 
-    function setERC20Address(address _tokenAddress) external onlyOwner {
+    function setERC20Address(address _tokenAddress) external override onlyOwner {
         _setERC20Address(_tokenAddress);
     }
 
@@ -482,7 +482,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address _nftAddress,
         uint256 totalPowerInTokens,
         uint256 nftsTotalSupply
-    ) external onlyOwner {
+    ) external override onlyOwner {
         _setERC721Address(_nftAddress, totalPowerInTokens, nftsTotalSupply);
     }
 

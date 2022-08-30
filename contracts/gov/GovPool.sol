@@ -64,7 +64,7 @@ contract GovPool is
     mapping(uint256 => mapping(address => uint256)) public pendingRewards; // proposalId => user => tokens amount
 
     modifier onlyThis() {
-        require(address(this) == msg.sender, "GovP: not this contract");
+        require(address(this) == msg.sender, "Gov: not this contract");
         _;
     }
 
