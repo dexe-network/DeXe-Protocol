@@ -63,6 +63,11 @@ contract GovPool is
 
     mapping(uint256 => mapping(address => uint256)) public pendingRewards; // proposalId => user => tokens amount
 
+    modifier onlyThis() {
+        require(address(this) == msg.sender, "Gov: not this contract");
+        _;
+    }
+
     function __GovPool_init(
         address govSettingAddress,
         address govUserKeeperAddress,
@@ -482,6 +487,10 @@ contract GovPool is
         }
     }
 
+    function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
+        descriptionURL = newDescriptionURL;
+    }
+
     receive() external payable {}
 
     function _handleExecutorsAndDataForInternalProposal(
@@ -497,7 +506,10 @@ contract GovPool is
                     executors[executors.length - 1] == executors[i] &&
                     (selector == IGovSettings.addSettings.selector ||
                         selector == IGovSettings.editSettings.selector ||
-                        selector == IGovSettings.changeExecutors.selector),
+                        selector == IGovSettings.changeExecutors.selector ||
+                        selector == IGovUserKeeper.setERC20Address.selector ||
+                        selector == IGovUserKeeper.setERC721Address.selector ||
+                        selector == IGovPool.editDescriptionURL.selector),
                 "Gov: invalid internal data"
             );
         }

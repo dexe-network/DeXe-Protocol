@@ -82,12 +82,22 @@ describe("GovSettings", () => {
   let EXECUTOR1;
   let EXECUTOR2;
 
+  let GOV_POOL_ADDRESS;
+  let DP_ADDRESS;
+  let VALIDATORS_ADDRESS;
+  let USER_KEEPER_ADDRESS;
+
   let settings;
 
   before("setup", async () => {
     OWNER = await accounts(0);
     EXECUTOR1 = await accounts(1);
     EXECUTOR2 = await accounts(2);
+
+    GOV_POOL_ADDRESS = await accounts(3);
+    DP_ADDRESS = await accounts(4);
+    VALIDATORS_ADDRESS = await accounts(5);
+    USER_KEEPER_ADDRESS = await accounts(6);
   });
 
   beforeEach("setup", async () => {
@@ -98,8 +108,10 @@ describe("GovSettings", () => {
     it("should revert when delegatedVotingAllowed for DP", async () => {
       await truffleAssert.reverts(
         settings.__GovSettings_init(
-          ZERO,
-          ZERO,
+          GOV_POOL_ADDRESS,
+          DP_ADDRESS,
+          VALIDATORS_ADDRESS,
+          USER_KEEPER_ADDRESS,
           INTERNAL_SETTINGS,
           DEFAULT_SETTINGS,
           VALIDATORS_BALANCES_SETTINGS,
@@ -113,8 +125,10 @@ describe("GovSettings", () => {
   describe("correct settings", () => {
     beforeEach("setup", async () => {
       await settings.__GovSettings_init(
-        ZERO,
-        ZERO,
+        GOV_POOL_ADDRESS,
+        DP_ADDRESS,
+        VALIDATORS_ADDRESS,
+        USER_KEEPER_ADDRESS,
         INTERNAL_SETTINGS,
         DP_SETTINGS,
         VALIDATORS_BALANCES_SETTINGS,
@@ -486,7 +500,7 @@ describe("GovSettings", () => {
       });
 
       it("should return settings for validators executor", async () => {
-        const validatorSettings = await settings.getSettings(ZERO);
+        const validatorSettings = await settings.getSettings(VALIDATORS_ADDRESS);
 
         assert.isFalse(validatorSettings[0]);
         assert.isFalse(validatorSettings[1]);

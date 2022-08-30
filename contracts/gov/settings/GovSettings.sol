@@ -19,8 +19,10 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
     mapping(address => uint256) public executorToSettings; // executor => seetingsId
 
     function __GovSettings_init(
+        address govPoolAddress,
         address distributionProposalAddress,
         address validatorsAddress,
+        address govUserKeeperAddress,
         ProposalSettings calldata internalProposalSetting,
         ProposalSettings calldata distributionProposalSettings,
         ProposalSettings calldata validatorsBalancesSettings,
@@ -45,6 +47,8 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         executorToSettings[address(this)] = _INTERNAL_SETTINGS_ID;
         executorToSettings[distributionProposalAddress] = _DISTRIBUTION_PROPOSAL_SETTINGS_ID;
         executorToSettings[validatorsAddress] = _VALIDATORS_BALANCES_ID;
+        executorToSettings[govPoolAddress] = _INTERNAL_SETTINGS_ID;
+        executorToSettings[govUserKeeperAddress] = _INTERNAL_SETTINGS_ID;
 
         _latestSettingsId = 4;
     }

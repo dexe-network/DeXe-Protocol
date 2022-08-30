@@ -100,6 +100,22 @@ const getBytesExecute = () => {
   return web3.eth.abi.encodeFunctionSignature("execute()");
 };
 
+const getBytesEditUrl = (url) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          name: "newDescriptionURL",
+          type: "string",
+        },
+      ],
+      name: "editDescriptionURL",
+      type: "function",
+    },
+    [url]
+  );
+};
+
 const getBytesAddSettings = (settings) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -397,8 +413,10 @@ describe("GovPool", () => {
       );
 
       await settings.__GovSettings_init(
+        govPool.address,
         ZERO,
         validators.address,
+        userKeeper.address,
         INTERNAL_SETTINGS,
         DP_SETTINGS,
         VALIDATORS_BALANCES_SETTINGS,
@@ -1180,6 +1198,31 @@ describe("GovPool", () => {
           await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
           await truffleAssert.reverts(govPool.execute(1), "ERC20: insufficient allowance");
+        });
+
+        it("should create proposal for editDescriptionURL", async () => {
+          const newUrl = "new_url";
+          const bytesEditUrl = getBytesEditUrl(newUrl);
+
+          await govPool.createProposal("example.com", [govPool.address], [0], [bytesEditUrl]);
+
+          await govPool.vote(1, 0, [], wei("1000"), []);
+          await govPool.vote(1, 0, [], wei("100000000000000000000"), [], { from: SECOND });
+
+          await govPool.moveProposalToValidators(1);
+          await validators.vote(1, wei("100"), false);
+          await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+          await govPool.execute(1);
+
+          assert.equal(await govPool.descriptionURL(), newUrl);
+        });
+      });
+
+      describe("editDescriptionURL()", () => {
+        it("should revert when try call from non govPool address", async () => {
+          let newUrl = "new_url";
+          await truffleAssert.reverts(govPool.editDescriptionURL(newUrl), "Gov: not this contract");
         });
       });
     });

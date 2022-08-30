@@ -162,4 +162,6 @@ interface IGovPool {
     function claimReward(uint256[] calldata proposalIds) external;
 
     function executeAndClaim(uint256 proposalId) external;
+
+    function editDescriptionURL(string calldata newDescriptionURL) external;
 }
