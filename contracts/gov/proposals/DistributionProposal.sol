@@ -11,24 +11,27 @@ import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/proposals/IDistributionProposal.sol";
 
 import "../../libs/math/MathHelper.sol";
+import "../../libs/utils/TokenBalance.sol";
 
 contract DistributionProposal is IDistributionProposal, OwnableUpgradeable {
     using SafeERC20 for IERC20;
     using MathHelper for uint256;
     using DecimalsConverter for uint256;
+    using TokenBalance for address;
 
     address public govAddress;
 
     mapping(uint256 => IDistributionProposal.DistributionProposalStruct) public proposals;
 
     modifier onlyGov() {
-        require(msg.sender == govAddress, "DP: not a `Gov` contract");
+        require(msg.sender == govAddress, "DP: not a Gov contract");
         _;
     }
 
     function __DistributionProposal_init(address _govAddress) external initializer {
+        require(_govAddress != address(0), "DP: _govAddress is zero");
+
         __Ownable_init();
-        require(_govAddress != address(0), "DP: `_govAddress` is zero");
 
         govAddress = _govAddress;
     }
@@ -52,22 +55,21 @@ contract DistributionProposal is IDistributionProposal, OwnableUpgradeable {
 
         for (uint256 i; i < proposalIds.length; i++) {
             DistributionProposalStruct storage dpInfo = proposals[proposalIds[i]];
-            address rewardAddress = dpInfo.rewardAddress;
+            IERC20 rewardToken = IERC20(dpInfo.rewardAddress);
 
-            require(rewardAddress != address(0), "DP: zero address");
+            require(address(rewardToken) != address(0), "DP: zero address");
             require(!dpInfo.claimed[voter], "DP: already claimed");
 
             uint256 reward = getPotentialReward(proposalIds[i], voter, dpInfo.rewardAmount);
+            uint256 balance = address(rewardToken).thisBalance();
 
             dpInfo.claimed[voter] = true;
 
-            IERC20 token = IERC20(rewardAddress);
-            uint256 balance = token.balanceOf(address(this));
             if (balance < reward) {
-                token.safeTransferFrom(govAddress, address(this), reward - balance);
+                rewardToken.safeTransferFrom(govAddress, address(this), reward - balance);
             }
 
-            token.safeTransfer(voter, reward);
+            rewardToken.safeTransfer(voter, reward);
         }
     }
 

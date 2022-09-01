@@ -307,11 +307,11 @@ describe("GovValidators", () => {
         await truffleAssert.reverts(validators.vote(1, 1, false), "Validators: proposal does not exist");
       });
 
-      it("should revert if only by `Voting` state", async () => {
+      it("should revert if not Voting state", async () => {
         await validators.createInternalProposal(0, [100], [], { from: SECOND });
         await validators.vote(1, wei("1000"), true, { from: THIRD });
 
-        await truffleAssert.reverts(validators.vote(1, 1, true), "Validators: only by `Voting` state");
+        await truffleAssert.reverts(validators.vote(1, 1, true), "Validators: not Voting state");
       });
 
       it("should revert if vote amount can't be a zero", async () => {
@@ -430,9 +430,9 @@ describe("GovValidators", () => {
         await truffleAssert.reverts(validators.execute(1), "Validators: proposal does not exist");
       });
 
-      it("should revert if only by `Succeeded` state", async () => {
+      it("should revert if not Succeeded state", async () => {
         await validators.createInternalProposal(2, [wei("50"), toPercent("50")], [], { from: SECOND });
-        await truffleAssert.reverts(validators.execute(1), "Validators: only by `Succeeded` state");
+        await truffleAssert.reverts(validators.execute(1), "Validators: not Succeeded state");
       });
     });
 

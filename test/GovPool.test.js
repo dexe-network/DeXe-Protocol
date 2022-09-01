@@ -940,10 +940,7 @@ describe("GovPool", () => {
         });
 
         it("should not unlock nonexisting proposals", async () => {
-          await truffleAssert.reverts(
-            govPool.unlockInProposals([1], OWNER, false),
-            "Gov: hasn't voted for this proposal"
-          );
+          await truffleAssert.reverts(govPool.unlockInProposals([1], OWNER, false), "Gov: no vote for this proposal");
         });
 
         it("should not deposit zero tokens", async () => {
@@ -1068,7 +1065,7 @@ describe("GovPool", () => {
         });
 
         it("should not execute random proposals", async () => {
-          await truffleAssert.reverts(govPool.execute(1), "Gov: invalid proposal status");
+          await truffleAssert.reverts(govPool.execute(1), "Gov: invalid status");
         });
 
         it("should change settings then full vote", async () => {
@@ -1091,7 +1088,7 @@ describe("GovPool", () => {
           await govPool.vote(2, 0, [], wei("1000"), [1, 2, 3, 4]);
           await truffleAssert.reverts(
             govPool.voteDelegated(2, wei("1000"), [1, 2, 3, 4], { from: SECOND }),
-            "Gov: delegated voting unavailable"
+            "Gov: delegated voting off"
           );
         });
 

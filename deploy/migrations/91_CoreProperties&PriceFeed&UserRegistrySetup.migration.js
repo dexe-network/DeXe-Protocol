@@ -5,12 +5,14 @@ const ContractsRegistry = artifacts.require("ContractsRegistry");
 
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
+const UserRegistry = artifacts.require("UserRegistry");
 
 module.exports = async (deployer) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
   const priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
   const coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
+  const userRegistry = await UserRegistry.at(await contractsRegistry.getUserRegistryContract());
 
   let whitelistAddresses = [
     "0xae13d989dac2f0debff460ac112a837c89baa7cd", // WBNB
@@ -31,7 +33,12 @@ module.exports = async (deployer) => {
     "0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7", // BUSD
   ];
 
+  let documentHash = "0xdcf5635e2f38018583c7faa2aebd3361ed82c67c59c6a54de06b19181a596210";
+
   logTransaction(await coreProperties.addWhitelistTokens(whitelistAddresses), "Add whitelist tokens");
   logTransaction(await coreProperties.addBlacklistTokens(blacklistAddresses), "Add blacklist tokens");
+
   logTransaction(await priceFeed.addPathTokens(pathAddresses), "Add supported path tokens");
+
+  logTransaction(await userRegistry.setPrivacyPolicyDocumentHash(documentHash), "Add document hash");
 };

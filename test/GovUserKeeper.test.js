@@ -467,7 +467,7 @@ describe("GovUserKeeper", () => {
       await truffleAssert.reverts(userKeeper.setERC20Address(token.address), "GovUK: current token address isn't zero");
     });
 
-    it("should revert, when call not owner", async () => {
+    it("should revert, when caller is not owner", async () => {
       await truffleAssert.reverts(
         userKeeper.setERC20Address(token.address, { from: SECOND }),
         "Ownable: caller is not the owner"
@@ -476,7 +476,7 @@ describe("GovUserKeeper", () => {
   });
 
   describe("No NFT GovUserKeeper", () => {
-    beforeEach("", async () => {
+    beforeEach("setup", async () => {
       await userKeeper.__GovUserKeeper_init(token.address, ZERO, wei("33000"), 33);
     });
 
@@ -512,7 +512,7 @@ describe("GovUserKeeper", () => {
       );
     });
 
-    it("should revert, when call not owner", async () => {
+    it("should revert, when caller is not owner", async () => {
       await truffleAssert.reverts(
         userKeeper.setERC721Address(nft.address, wei("33000"), 33, { from: SECOND }),
         "Ownable: caller is not the owner"

@@ -629,6 +629,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function _setERC20Address(address _tokenAddress) internal {
         require(tokenAddress == address(0), "GovUK: current token address isn't zero");
         require(_tokenAddress != address(0), "GovUK: new token address is zero");
+
         tokenAddress = _tokenAddress;
     }
 

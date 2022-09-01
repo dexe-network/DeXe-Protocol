@@ -22,6 +22,7 @@ import "../interfaces/gov/validators/IGovValidators.sol";
 import "../libs/gov-user-keeper/GovUserKeeperLocal.sol";
 import "../libs/math/MathHelper.sol";
 import "../libs/utils/DataHelper.sol";
+import "../libs/utils/TokenBalance.sol";
 
 import "../core/Globals.sol";
 
@@ -40,6 +41,7 @@ contract GovPool is
     using ArrayHelper for uint256[];
     using DataHelper for bytes;
     using SafeERC20 for IERC20;
+    using TokenBalance for address;
     using GovUserKeeperLocal for *;
 
     IGovSettings public govSetting;
@@ -49,16 +51,18 @@ contract GovPool is
 
     string public descriptionURL;
 
-    uint256 private _latestProposalId;
+    uint256 internal _latestProposalId;
+    uint64 internal _deployedAt;
+
     mapping(uint256 => Proposal) public proposals; // proposalId => info
 
     uint256 public votesLimit;
-    mapping(uint256 => uint256) private _totalVotedInProposal; // proposalId => total voted
+    uint256 public feePercentage;
+
+    mapping(uint256 => uint256) internal _totalVotedInProposal; // proposalId => total voted
     mapping(uint256 => mapping(address => mapping(bool => VoteInfo))) internal _voteInfos; // proposalId => voter => isMicropool => info
     mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
 
-    uint64 private _deployedAt;
-    uint256 public feePercentage;
     mapping(address => uint64) public lastFeeWithdrawal; // token address => last fee withdrawal timestamp
 
     mapping(uint256 => mapping(address => uint256)) public pendingRewards; // proposalId => user => tokens amount
@@ -93,9 +97,9 @@ contract GovPool is
 
         descriptionURL = _descriptionURL;
 
-        votesLimit = _votesLimit;
-
         _deployedAt = uint64(block.timestamp);
+
+        votesLimit = _votesLimit;
         feePercentage = _feePercentage;
     }
 
@@ -192,7 +196,7 @@ contract GovPool is
         require(voteAmount > 0 || voteNftIds.length > 0, "Gov: empty delegated vote");
         require(
             proposals[proposalId].core.settings.delegatedVotingAllowed,
-            "Gov: delegated voting unavailable"
+            "Gov: delegated voting off"
         );
 
         ProposalCore storage core = _beforeVote(proposalId, true, false);
@@ -268,7 +272,7 @@ contract GovPool is
         for (uint256 i; i < proposalIds.length; i++) {
             require(
                 _votedInProposals[user][isMicropool].contains(proposalIds[i]),
-                "Gov: hasn't voted for this proposal"
+                "Gov: no vote for this proposal"
             );
 
             ProposalState state = _getProposalState(proposals[proposalIds[i]].core);
@@ -305,7 +309,7 @@ contract GovPool is
 
         require(
             _getProposalState(proposal.core) == ProposalState.Succeeded,
-            "Gov: invalid proposal status"
+            "Gov: invalid status"
         );
 
         proposal.core.executed = true;
@@ -358,12 +362,12 @@ contract GovPool is
         uint256 toWithdraw;
 
         if (tokenAddress != address(0)) {
-            balance = IERC20(tokenAddress).balanceOf(address(this));
+            balance = tokenAddress.thisBalance();
         } else {
             balance = address(this).balance;
         }
 
-        uint256 fee = feePercentage.ratio(block.timestamp - _lastFeeWithdrawal, 1 days * 365);
+        uint256 fee = feePercentage.ratio(block.timestamp - _lastFeeWithdrawal, YEAR);
         toWithdraw = balance.min(balance.percentage(fee));
 
         require(toWithdraw > 0, "Gov: no fee");
@@ -371,8 +375,7 @@ contract GovPool is
         if (tokenAddress != address(0)) {
             IERC20(tokenAddress).safeTransfer(recipient, toWithdraw);
         } else {
-            (bool status, ) = payable(recipient).call{value: toWithdraw}("");
-            require(status, "Gov: Failed to send eth");
+            _sendEthViaCall(recipient, toWithdraw);
         }
     }
 
@@ -410,6 +413,7 @@ contract GovPool is
             ShrinkableArray.UintArray memory unlockedIds,
             ShrinkableArray.UintArray memory lockedIds
         ) = getProposals(user, false);
+
         uint256[] memory unlockedNfts = getUnlockedNfts(unlockedIds, user, false);
 
         return govUserKeeper.getWithdrawableAssets(user, lockedIds, unlockedNfts);
@@ -425,6 +429,7 @@ contract GovPool is
             ShrinkableArray.UintArray memory unlockedIds,
             ShrinkableArray.UintArray memory lockedIds
         ) = getProposals(delegatee, true);
+
         uint256[] memory unlockedNfts = getUnlockedNfts(unlockedIds, delegatee, true);
 
         return
@@ -545,6 +550,7 @@ contract GovPool is
             data[data.length - 1][4:],
             (uint256, address, uint256)
         );
+
         require(decodedId == _latestProposalId, "Gov: invalid proposalId");
         require(distributionProposal == executors[executors.length - 1], "Gov: invalid executor");
 
@@ -736,7 +742,7 @@ contract GovPool is
         if (proposalSettings.rewardToken == ETHEREUM_ADDRESS) {
             balance = address(this).balance;
         } else {
-            balance = IERC20(proposalSettings.rewardToken).balanceOf(address(this));
+            balance = proposalSettings.rewardToken.thisBalance();
         }
 
         require(balance > 0, "Gov: zero contract balance");
@@ -744,8 +750,7 @@ contract GovPool is
         toPay = balance.min(toPay);
 
         if (proposalSettings.rewardToken == ETHEREUM_ADDRESS) {
-            (bool status, ) = payable(msg.sender).call{value: toPay}("");
-            require(status, "Gov: Failed to send eth");
+            _sendEthViaCall(msg.sender, toPay);
         } else {
             IERC20(proposalSettings.rewardToken).safeTransfer(msg.sender, toPay);
         }
@@ -757,5 +762,10 @@ contract GovPool is
         uint256 coefficient
     ) internal {
         pendingRewards[proposalId][msg.sender] += amount.ratio(coefficient, PRECISION);
+    }
+
+    function _sendEthViaCall(address receiver, uint256 value) internal {
+        (bool status, ) = payable(receiver).call{value: value}("");
+        require(status, "Gov: failed to send eth");
     }
 }

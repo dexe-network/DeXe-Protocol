@@ -32,7 +32,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
 
         require(
             !distributionProposalSettings.delegatedVotingAllowed,
-            "GovSettings: Distribution proposal settings delegatedVotingAllowed"
+            "GovSettings: invalid distribution settings"
         );
 
         _validateProposalSettings(internalProposalSetting);

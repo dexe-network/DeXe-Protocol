@@ -134,7 +134,7 @@ contract UniswapV2RouterMock {
         uint256 amountOutMin,
         address[] calldata path,
         address to,
-        uint256 deadline
+        uint256
     ) external returns (uint256[] memory amounts) {
         amounts = getAmountsOut(amountIn, path);
 
@@ -151,7 +151,7 @@ contract UniswapV2RouterMock {
         uint256 amountInMax,
         address[] calldata path,
         address to,
-        uint256 deadline
+        uint256
     ) external returns (uint256[] memory amounts) {
         amounts = getAmountsIn(amountOut, path);
 

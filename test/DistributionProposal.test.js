@@ -185,9 +185,9 @@ describe("DistributionProposal", () => {
       assert.equal(await proposal.govAddress(), govPool.address);
     });
 
-    it("should revert if `_govAddress` is zero", async () => {
+    it("should revert if _govAddress is zero", async () => {
       let newDP = await DistributionProposal.new();
-      await truffleAssert.reverts(newDP.__DistributionProposal_init(ZERO), "DP: `_govAddress` is zero");
+      await truffleAssert.reverts(newDP.__DistributionProposal_init(ZERO), "DP: _govAddress is zero");
     });
   });
 
@@ -220,11 +220,11 @@ describe("DistributionProposal", () => {
       assert.equal((await proposal.proposals(1)).rewardAmount, wei("100"));
     });
 
-    it("should revert if not a `Gov` contract", async () => {
-      await truffleAssert.reverts(proposal.execute(1, token.address, wei("100")), "DP: not a `Gov` contract");
+    it("should revert if not a Gov contract", async () => {
+      await truffleAssert.reverts(proposal.execute(1, token.address, wei("100")), "DP: not a Gov contract");
     });
 
-    it("should revert when try execute existed porposal", async () => {
+    it("should revert when try execute existed proposal", async () => {
       await govPool.execute(1);
       await truffleAssert.reverts(
         proposal.execute(1, token.address, wei("100"), { from: govPool.address }),

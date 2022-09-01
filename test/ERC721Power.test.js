@@ -54,20 +54,20 @@ describe("ERC721Power", () => {
 
     it("should revert if try to set reduction percent to zero", async () => {
       await setTime(startTime + 200);
-      await truffleAssert.reverts(nft.setReductionPercent("0"), "NftToken: reduction percent can't be a zero");
+      await truffleAssert.reverts(nft.setReductionPercent("0"), "ERC721Power: reduction percent can't be a zero");
     });
 
     it("should revert if try to set reduction percent to 100%", async () => {
       await setTime(startTime + 300);
       await truffleAssert.reverts(
         nft.setReductionPercent(toPercent("100")),
-        "NftToken: reduction percent can't be a 100%"
+        "ERC721Power: reduction percent can't be a 100%"
       );
     });
 
     it("should revert if try to set reduction percent after calculation start", async () => {
       await setTime(startTime + 999);
-      await truffleAssert.reverts(nft.setReductionPercent("1"), "NftToken: power calculation already begun");
+      await truffleAssert.reverts(nft.setReductionPercent("1"), "ERC721Power: power calculation already begun");
     });
   });
 
@@ -81,12 +81,12 @@ describe("ERC721Power", () => {
 
     it("should revert if try to set max power to zero", async () => {
       await setTime(startTime + 200);
-      await truffleAssert.reverts(nft.setMaxPower("0"), "NftToken: max power can't be zero (1)");
+      await truffleAssert.reverts(nft.setMaxPower("0"), "ERC721Power: max power can't be zero (1)");
     });
 
     it("should revert if try to set max power after calculation start", async () => {
       await setTime(startTime + 999);
-      await truffleAssert.reverts(nft.setMaxPower("1"), "NftToken: power calculation already begun");
+      await truffleAssert.reverts(nft.setMaxPower("1"), "ERC721Power: power calculation already begun");
     });
   });
 
@@ -100,12 +100,12 @@ describe("ERC721Power", () => {
 
     it("should revert if try to set max power to zero", async () => {
       await setTime(startTime + 200);
-      await truffleAssert.reverts(nft.setNftMaxPower("0", "1"), "NftToken: max power can't be zero (2)");
+      await truffleAssert.reverts(nft.setNftMaxPower("0", "1"), "ERC721Power: max power can't be zero (2)");
     });
 
     it("should revert if try to set max power for nft after calculation start", async () => {
       await setTime(startTime + 999);
-      await truffleAssert.reverts(nft.setNftMaxPower("10", "1"), "NftToken: power calculation already begun");
+      await truffleAssert.reverts(nft.setNftMaxPower("10", "1"), "ERC721Power: power calculation already begun");
     });
   });
 
@@ -122,13 +122,13 @@ describe("ERC721Power", () => {
 
       await truffleAssert.reverts(
         nft.setRequiredCollateral("0"),
-        "NftToken: required collateral amount can't be zero (1)"
+        "ERC721Power: required collateral amount can't be zero (1)"
       );
     });
 
     it("should revert if try to set required collateral amount after calculation start", async () => {
       await setTime(startTime + 999);
-      await truffleAssert.reverts(nft.setRequiredCollateral("0"), "NftToken: power calculation already begun");
+      await truffleAssert.reverts(nft.setRequiredCollateral("0"), "ERC721Power: power calculation already begun");
     });
   });
 
@@ -145,13 +145,16 @@ describe("ERC721Power", () => {
 
       await truffleAssert.reverts(
         nft.setNftRequiredCollateral("0", "1"),
-        "NftToken: required collateral amount can't be zero (2)"
+        "ERC721Power: required collateral amount can't be zero (2)"
       );
     });
 
     it("should revert if try to set required collateral amount after calculation start", async () => {
       await setTime(startTime + 999);
-      await truffleAssert.reverts(nft.setNftRequiredCollateral("10", "1"), "NftToken: power calculation already begun");
+      await truffleAssert.reverts(
+        nft.setNftRequiredCollateral("10", "1"),
+        "ERC721Power: power calculation already begun"
+      );
     });
   });
 
@@ -170,12 +173,12 @@ describe("ERC721Power", () => {
 
     it("should revert if try to mint mock20s when max power is zero", async () => {
       await setTime(startTime + 998);
-      await truffleAssert.reverts(nft.safeMint(SECOND, 1), "NftToken: max power for nft isn't set");
+      await truffleAssert.reverts(nft.safeMint(SECOND, 1), "ERC721Power: max power for nft isn't set");
     });
 
     it("should revert if try to mint mock20s when max power is zero", async () => {
       await setTime(startTime + 999);
-      await truffleAssert.reverts(nft.safeMint(SECOND, 1), "NftToken: power calculation already begun");
+      await truffleAssert.reverts(nft.safeMint(SECOND, 1), "ERC721Power: power calculation already begun");
     });
   });
 
@@ -263,7 +266,7 @@ describe("ERC721Power", () => {
     it("should revert if try to add collateral from not a nft pwner", async () => {
       await truffleAssert.reverts(
         nft.addCollateral("1", "1", { from: THIRD }),
-        "NftToken: sender isn't an nft owner (1)"
+        "ERC721Power: sender isn't an nft owner (1)"
       );
     });
   });
@@ -303,7 +306,7 @@ describe("ERC721Power", () => {
     });
 
     it("should revert if try to remove collateral from not a nft owner", async () => {
-      await truffleAssert.reverts(nft.removeCollateral("1", "1"), "NftToken: sender isn't an nft owner (2)");
+      await truffleAssert.reverts(nft.removeCollateral("1", "1"), "ERC721Power: sender isn't an nft owner (2)");
     });
   });
 
@@ -343,7 +346,7 @@ describe("ERC721Power", () => {
 
       await truffleAssert.reverts(
         nft.withdrawStuckERC20(anotherERC20.address, SECOND),
-        "NftToken: nothing to withdraw"
+        "ERC721Power: nothing to withdraw"
       );
     });
   });

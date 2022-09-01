@@ -117,7 +117,7 @@ describe("GovSettings", () => {
           VALIDATORS_BALANCES_SETTINGS,
           DEFAULT_SETTINGS
         ),
-        "GovSettings: Distribution proposal settings delegatedVotingAllowed"
+        "GovSettings: invalid distribution settings"
       );
     });
   });

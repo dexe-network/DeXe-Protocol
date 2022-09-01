@@ -17,10 +17,9 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
     GovValidatorsToken public govValidatorsToken;
 
-    /// @dev Base internal proposal settings
     InternalProposalSettings public internalProposalSettings;
 
-    uint256 private _latestInternalProposalId;
+    uint256 internal _latestInternalProposalId;
     uint256 public validatorsCount;
 
     mapping(uint256 => InternalProposal) public internalProposals; // proposalId => info
@@ -126,10 +125,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             ? internalProposals[proposalId].core
             : externalProposals[proposalId].core;
 
-        require(
-            _getProposalState(core) == ProposalState.Voting,
-            "Validators: only by `Voting` state"
-        );
+        require(_getProposalState(core) == ProposalState.Voting, "Validators: not Voting state");
 
         uint256 balanceAt = govValidatorsToken.balanceOfAt(msg.sender, core.snapshotId);
         uint256 voted = isInternal
@@ -155,7 +151,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         require(
             _getProposalState(proposal.core) == ProposalState.Succeeded,
-            "Validators: only by `Succeeded` state"
+            "Validators: not Succeeded state"
         );
 
         proposal.core.executed = true;
