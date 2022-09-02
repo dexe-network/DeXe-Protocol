@@ -23,6 +23,7 @@ const INTERNAL_SETTINGS = {
   creationRewards: 0,
   executionReward: 0,
   voteRewardsCoefficient: 0,
+  executorDescription: "internal",
 };
 
 const DP_SETTINGS = {
@@ -39,6 +40,7 @@ const DP_SETTINGS = {
   creationRewards: 0,
   executionReward: 0,
   voteRewardsCoefficient: 0,
+  executorDescription: "DP",
 };
 
 const VALIDATORS_BALANCES_SETTINGS = {
@@ -55,6 +57,7 @@ const VALIDATORS_BALANCES_SETTINGS = {
   creationRewards: 0,
   executionReward: 0,
   voteRewardsCoefficient: 0,
+  executorDescription: "validators",
 };
 
 const DEFAULT_SETTINGS = {
@@ -71,6 +74,7 @@ const DEFAULT_SETTINGS = {
   creationRewards: 0,
   executionReward: 0,
   voteRewardsCoefficient: 0,
+  executorDescription: "default",
 };
 
 function toPercent(num) {
@@ -148,6 +152,7 @@ describe("GovSettings", () => {
         assert.equal(internalSettings.quorumValidators.toFixed(), PRECISION.times("61").toFixed());
         assert.equal(internalSettings.minTokenBalance.toFixed(), wei("10"));
         assert.equal(internalSettings.minNftBalance, 2);
+        assert.equal(internalSettings.executorDescription, "internal");
 
         const defaultProposalSetting = await settings.settings(2);
 
@@ -159,6 +164,7 @@ describe("GovSettings", () => {
         assert.equal(defaultProposalSetting.quorumValidators.toFixed(), PRECISION.times("100").toFixed());
         assert.equal(defaultProposalSetting.minTokenBalance.toFixed(), wei("20"));
         assert.equal(defaultProposalSetting.minNftBalance, 3);
+        assert.equal(defaultProposalSetting.executorDescription, "DP");
 
         const defaultSettings = await settings.settings(4);
 
@@ -170,6 +176,7 @@ describe("GovSettings", () => {
         assert.equal(defaultSettings.quorumValidators.toFixed(), PRECISION.times("100").toFixed());
         assert.equal(defaultSettings.minTokenBalance.toFixed(), wei("20"));
         assert.equal(defaultSettings.minNftBalance, 3);
+        assert.equal(defaultSettings.executorDescription, "default");
 
         assert.equal(await settings.executorToSettings(settings.address), 1);
       });
@@ -190,6 +197,7 @@ describe("GovSettings", () => {
           creationRewards: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
+          executorDescription: "new_settings_1",
         };
 
         const newSettings2 = {
@@ -205,6 +213,7 @@ describe("GovSettings", () => {
           creationRewards: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
+          executorDescription: "new_settings_2",
         };
 
         await settings.addSettings([newSettings1, newSettings2]);
@@ -220,6 +229,7 @@ describe("GovSettings", () => {
         assert.equal(settings1.quorumValidators.toString(), toBN(newSettings1.quorumValidators));
         assert.equal(settings1.minTokenBalance, newSettings1.minTokenBalance);
         assert.equal(settings1.minNftBalance, newSettings1.minNftBalance);
+        assert.equal(settings1.executorDescription, newSettings1.executorDescription);
 
         assert.equal(settings2.earlyCompletion, newSettings2.earlyCompletion);
         assert.equal(settings2.delegatedVotingAllowed, newSettings2.delegatedVotingAllowed);
@@ -229,6 +239,7 @@ describe("GovSettings", () => {
         assert.equal(settings2.quorumValidators.toString(), toBN(newSettings2.quorumValidators));
         assert.equal(settings2.minTokenBalance, newSettings2.minTokenBalance);
         assert.equal(settings2.minNftBalance, newSettings2.minNftBalance);
+        assert.equal(settings2.executorDescription, newSettings2.executorDescription);
       });
     });
 
@@ -247,6 +258,7 @@ describe("GovSettings", () => {
           creationRewards: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
+          executorDescription: "new_settings",
         };
 
         await truffleAssert.reverts(settings.addSettings([newSettings]), "GovSettings: invalid vote duration value");
@@ -266,6 +278,7 @@ describe("GovSettings", () => {
           creationRewards: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
+          executorDescription: "new_settings",
         };
 
         await truffleAssert.reverts(settings.addSettings([newSettings]), "GovSettings: invalid quorum value");
@@ -285,6 +298,7 @@ describe("GovSettings", () => {
           creationRewards: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
+          executorDescription: "new_settings",
         };
 
         await truffleAssert.reverts(
@@ -307,6 +321,7 @@ describe("GovSettings", () => {
           creationRewards: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
+          executorDescription: "new_settings",
         };
 
         await truffleAssert.reverts(settings.addSettings([newSettings]), "GovSettings: invalid validator quorum value");
@@ -328,6 +343,7 @@ describe("GovSettings", () => {
           creationRewards: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
+          executorDescription: "new_settings",
         };
 
         await settings.editSettings([1, 2], [newSettings1, newSettings1]);
@@ -342,6 +358,7 @@ describe("GovSettings", () => {
         assert.equal(internalSettings.quorumValidators.toFixed(), newSettings1.quorumValidators);
         assert.equal(internalSettings.minTokenBalance.toFixed(), newSettings1.minTokenBalance);
         assert.equal(internalSettings.minNftBalance, newSettings1.minNftBalance);
+        assert.equal(internalSettings.executorDescription, newSettings1.executorDescription);
 
         const defaultSettings = await settings.settings(2);
 
@@ -353,6 +370,7 @@ describe("GovSettings", () => {
         assert.equal(defaultSettings.quorumValidators.toFixed(), newSettings1.quorumValidators);
         assert.equal(defaultSettings.minTokenBalance.toFixed(), newSettings1.minTokenBalance);
         assert.equal(defaultSettings.minNftBalance, newSettings1.minNftBalance);
+        assert.equal(defaultSettings.executorDescription, newSettings1.executorDescription);
       });
 
       it("should skip editing nonexistent settings", async () => {
@@ -369,6 +387,7 @@ describe("GovSettings", () => {
           creationRewards: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
+          executorDescription: "new_settings",
         };
 
         await settings.editSettings([1, 4], [newSettings1, newSettings1]);
@@ -383,6 +402,7 @@ describe("GovSettings", () => {
         assert.equal(internalSettings.quorumValidators.toFixed(), newSettings1.quorumValidators);
         assert.equal(internalSettings.minTokenBalance.toFixed(), newSettings1.minTokenBalance);
         assert.equal(internalSettings.minNftBalance, newSettings1.minNftBalance);
+        assert.equal(internalSettings.executorDescription, newSettings1.executorDescription);
 
         const newSettings = await settings.settings(5);
 
@@ -394,6 +414,7 @@ describe("GovSettings", () => {
         assert.equal(newSettings.quorumValidators.toFixed(), 0);
         assert.equal(newSettings.minTokenBalance.toFixed(), 0);
         assert.equal(newSettings.minNftBalance, 0);
+        assert.equal(newSettings.executorDescription, "");
       });
     });
 
@@ -435,6 +456,7 @@ describe("GovSettings", () => {
           creationRewards: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
+          executorDescription: "new_settings",
         };
 
         await settings.addSettings([newSettings1]);
@@ -477,6 +499,7 @@ describe("GovSettings", () => {
           creationRewards: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
+          executorDescription: "new_settings",
         };
 
         await settings.addSettings([newSettings1]);
