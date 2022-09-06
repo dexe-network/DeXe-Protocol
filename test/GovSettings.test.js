@@ -44,7 +44,7 @@ const DP_SETTINGS = {
 };
 
 const VALIDATORS_BALANCES_SETTINGS = {
-  earlyCompletion: false,
+  earlyCompletion: true,
   delegatedVotingAllowed: false,
   validatorsVote: true,
   duration: 600,
@@ -109,7 +109,7 @@ describe("GovSettings", () => {
   });
 
   describe("incorrect settings", () => {
-    it("should revert when delegatedVotingAllowed for DP", async () => {
+    it("should revert when delegatedVotingAllowed is on for DP", async () => {
       await truffleAssert.reverts(
         settings.__GovSettings_init(
           GOV_POOL_ADDRESS,
@@ -118,6 +118,22 @@ describe("GovSettings", () => {
           USER_KEEPER_ADDRESS,
           INTERNAL_SETTINGS,
           DEFAULT_SETTINGS,
+          VALIDATORS_BALANCES_SETTINGS,
+          DEFAULT_SETTINGS
+        ),
+        "GovSettings: invalid distribution settings"
+      );
+    });
+
+    it("should revert when earlyComletion is on for DP", async () => {
+      await truffleAssert.reverts(
+        settings.__GovSettings_init(
+          GOV_POOL_ADDRESS,
+          DP_ADDRESS,
+          VALIDATORS_ADDRESS,
+          USER_KEEPER_ADDRESS,
+          INTERNAL_SETTINGS,
+          VALIDATORS_BALANCES_SETTINGS,
           VALIDATORS_BALANCES_SETTINGS,
           DEFAULT_SETTINGS
         ),
@@ -525,7 +541,7 @@ describe("GovSettings", () => {
       it("should return settings for validators executor", async () => {
         const validatorSettings = await settings.getSettings(VALIDATORS_ADDRESS);
 
-        assert.isFalse(validatorSettings[0]);
+        assert.isTrue(validatorSettings[0]);
         assert.isFalse(validatorSettings[1]);
         assert.equal(validatorSettings[3], 600);
         assert.equal(validatorSettings[4], 800);

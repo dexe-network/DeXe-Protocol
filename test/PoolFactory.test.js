@@ -434,7 +434,7 @@ describe("PoolFactory", () => {
             executorDescription: "internal",
           },
           distributionProposalSettings: {
-            earlyCompletion: true,
+            earlyCompletion: false,
             delegatedVotingAllowed: false,
             validatorsVote: false,
             duration: 500,
@@ -538,7 +538,7 @@ describe("PoolFactory", () => {
             executorDescription: "internal",
           },
           distributionProposalSettings: {
-            earlyCompletion: true,
+            earlyCompletion: false,
             delegatedVotingAllowed: false,
             validatorsVote: false,
             duration: 500,
@@ -635,7 +635,7 @@ describe("PoolFactory", () => {
             executorDescription: "internal",
           },
           distributionProposalSettings: {
-            earlyCompletion: true,
+            earlyCompletion: false,
             delegatedVotingAllowed: false,
             validatorsVote: false,
             duration: 500,

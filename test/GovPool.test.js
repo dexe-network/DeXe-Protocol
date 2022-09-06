@@ -107,16 +107,32 @@ const getBytesExecute = () => {
 const getBytesEditUrl = (url) => {
   return web3.eth.abi.encodeFunctionCall(
     {
+      name: "editDescriptionURL",
+      type: "function",
       inputs: [
         {
           name: "newDescriptionURL",
           type: "string",
         },
       ],
-      name: "editDescriptionURL",
-      type: "function",
     },
     [url]
+  );
+};
+
+const getBytesSetNewFee = (fee) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      name: "setNewFee",
+      type: "function",
+      inputs: [
+        {
+          name: "newFee",
+          type: "uint256",
+        },
+      ],
+    },
+    [fee]
   );
 };
 
@@ -925,7 +941,7 @@ describe("GovPool", () => {
 
           await govPool.vote(1, wei("1000"), [], wei("500"), [], { from: SECOND });
 
-          let proposals = await govPool.getProposals(SECOND, false);
+          let proposals = await govPool.getUserProposals(SECOND, false);
           let withdrawable = await govPool.getWithdrawableAssets(SECOND);
 
           assert.deepEqual(proposals.unlockedIds[0], ["0"]);
@@ -937,7 +953,7 @@ describe("GovPool", () => {
 
           await setTime((await getCurrentBlockTime()) + 10000);
 
-          proposals = await govPool.getProposals(SECOND, false);
+          proposals = await govPool.getUserProposals(SECOND, false);
           withdrawable = await govPool.getWithdrawableAssets(SECOND);
 
           assert.deepEqual(proposals.unlockedIds[0], ["1"]);
@@ -982,7 +998,7 @@ describe("GovPool", () => {
 
           await govPool.voteDelegated(1, wei("400"), [4], { from: SECOND });
 
-          let proposals = await govPool.getProposals(SECOND, true);
+          let proposals = await govPool.getUserProposals(SECOND, true);
           let undelegateable = await govPool.getUndelegateableAssets(OWNER, SECOND);
 
           assert.deepEqual(proposals.unlockedIds[0], ["0"]);
@@ -994,7 +1010,7 @@ describe("GovPool", () => {
 
           await setTime((await getCurrentBlockTime()) + 10000);
 
-          proposals = await govPool.getProposals(SECOND, true);
+          proposals = await govPool.getUserProposals(SECOND, true);
           undelegateable = await govPool.getUndelegateableAssets(OWNER, SECOND);
 
           assert.deepEqual(proposals.unlockedIds[0], ["1"]);
@@ -1212,29 +1228,54 @@ describe("GovPool", () => {
           await truffleAssert.reverts(govPool.execute(1), "ERC20: insufficient allowance");
         });
 
-        it("should create proposal for editDescriptionURL", async () => {
-          const newUrl = "new_url";
-          const bytesEditUrl = getBytesEditUrl(newUrl);
+        describe("self execution", () => {
+          describe("editDescriptionURL()", () => {
+            it("should create proposal for editDescriptionURL", async () => {
+              const newUrl = "new_url";
+              const bytesEditUrl = getBytesEditUrl(newUrl);
 
-          await govPool.createProposal("example.com", [govPool.address], [0], [bytesEditUrl]);
+              await govPool.createProposal("example.com", [govPool.address], [0], [bytesEditUrl]);
 
-          await govPool.vote(1, 0, [], wei("1000"), []);
-          await govPool.vote(1, 0, [], wei("100000000000000000000"), [], { from: SECOND });
+              await govPool.vote(1, 0, [], wei("1000"), []);
+              await govPool.vote(1, 0, [], wei("100000000000000000000"), [], { from: SECOND });
 
-          await govPool.moveProposalToValidators(1);
-          await validators.vote(1, wei("100"), false);
-          await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+              await govPool.moveProposalToValidators(1);
+              await validators.vote(1, wei("100"), false);
+              await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
-          await govPool.execute(1);
+              await govPool.execute(1);
 
-          assert.equal(await govPool.descriptionURL(), newUrl);
-        });
-      });
+              assert.equal(await govPool.descriptionURL(), newUrl);
+            });
 
-      describe("editDescriptionURL()", () => {
-        it("should revert when try call from non govPool address", async () => {
-          let newUrl = "new_url";
-          await truffleAssert.reverts(govPool.editDescriptionURL(newUrl), "Gov: not this contract");
+            it("should revert when call is from non govPool address", async () => {
+              await truffleAssert.reverts(govPool.editDescriptionURL("new_url"), "Gov: not this contract");
+            });
+          });
+
+          describe("setNewFee()", () => {
+            it("should create proposal for editDescriptionURL", async () => {
+              const newFee = 123;
+              const bytesSetNewFee = getBytesSetNewFee(newFee);
+
+              await govPool.createProposal("example.com", [govPool.address], [0], [bytesSetNewFee]);
+
+              await govPool.vote(1, 0, [], wei("1000"), []);
+              await govPool.vote(1, 0, [], wei("100000000000000000000"), [], { from: SECOND });
+
+              await govPool.moveProposalToValidators(1);
+              await validators.vote(1, wei("100"), false);
+              await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+              await govPool.execute(1);
+
+              assert.equal(await govPool.feePercentage(), newFee);
+            });
+
+            it("should revert when call is from non govPool address", async () => {
+              await truffleAssert.reverts(govPool.setNewFee(0), "Gov: not this contract");
+            });
+          });
         });
       });
     });
@@ -1377,7 +1418,7 @@ describe("GovPool", () => {
         await truffleAssert.reverts(govPool.claimReward([1]), "Gov: proposal not executed");
       });
 
-      it("should revert when balance = 0", async () => {
+      it("should revert when balance < rewards", async () => {
         let newToken = await ERC20Mock.new("NT", "NT", 18);
         NEW_SETTINGS.rewardToken = newToken.address;
 
@@ -1396,7 +1437,7 @@ describe("GovPool", () => {
 
         await govPool.execute(2);
 
-        await truffleAssert.reverts(govPool.claimReward([2]), "Gov: zero contract balance");
+        await truffleAssert.reverts(govPool.claimReward([2]), "Gov: not enough balance");
       });
     });
   });

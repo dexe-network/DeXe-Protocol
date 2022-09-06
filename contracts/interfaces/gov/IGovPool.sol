@@ -12,7 +12,16 @@ import "./settings/IGovSettings.sol";
  * the factory. The users can participate in proposal's creation, voting and execution processes
  */
 interface IGovPool {
-    /// @dev IGovCreator
+    enum ProposalState {
+        Voting,
+        WaitingForVotingTransfer,
+        ValidatorVoting,
+        Defeated,
+        Succeeded,
+        Executed,
+        Undefined
+    }
+
     struct ProposalCore {
         IGovSettings.ProposalSettings settings;
         bool executed;
@@ -30,6 +39,12 @@ interface IGovPool {
         bytes[] data;
     }
 
+    struct VoteInfo {
+        uint256 totalVoted;
+        uint256 tokensVoted;
+        EnumerableSet.UintSet nftsVoted;
+    }
+
     /// @notice Create proposal
     /// @notice For internal proposal, last executor should be `GovSetting` contract
     /// @notice For typed proposal, last executor should be typed contract
@@ -45,31 +60,6 @@ interface IGovPool {
         bytes[] calldata data
     ) external;
 
-    /// @param proposalId Proposal ID
-    /// @return Executor addresses
-    /// @return Data for each address
-    function getProposalInfo(uint256 proposalId)
-        external
-        view
-        returns (address[] memory, bytes[] memory);
-
-    /// @dev IGovVote
-    enum ProposalState {
-        Voting,
-        WaitingForVotingTransfer,
-        ValidatorVoting,
-        Defeated,
-        Succeeded,
-        Executed,
-        Undefined
-    }
-
-    struct VoteInfo {
-        uint256 totalVoted;
-        uint256 tokensVoted;
-        EnumerableSet.UintSet nftsVoted;
-    }
-
     function vote(
         uint256 proposalId,
         uint256 depositAmount,
@@ -84,44 +74,11 @@ interface IGovPool {
         uint256[] calldata voteNftIds
     ) external;
 
-    /// @notice Move proposal from internal voting to `Validators` contract
-    /// @param proposalId Proposal ID
-    function moveProposalToValidators(uint256 proposalId) external;
-
-    function getTotalVotes(
-        uint256 proposalId,
-        address voter,
-        bool isMicropool
-    ) external view returns (uint256, uint256);
-
-    /// @param proposalId Proposal ID
-    /// @return `ProposalState`:
-    /// 0 -`Voting`, proposal where addresses can vote
-    /// 1 -`WaitingForVotingTransfer`, approved proposal that waiting `moveProposalToValidators()` call
-    /// 2 -`ValidatorVoting`, validators voting
-    /// 3 -`Defeated`, proposal where voting time is over and proposal defeated on first or second step
-    /// 4 -`Succeeded`, proposal with the required number of votes on each step
-    /// 5 -`Executed`, executed proposal
-    /// 6 -`Undefined`, nonexistent proposal
-    function getProposalState(uint256 proposalId) external view returns (ProposalState);
-
-    /// @dev IGovFee
-    /// @notice Withdraw fee
-    /// @param tokenAddress ERC20 token address or zero address for native withdraw
-    /// @param recipient Tokens recipient
-    function withdrawFee(address tokenAddress, address recipient) external;
-
-    /// @dev IGovUserKeeperController
     function deposit(
         address receiver,
         uint256 amount,
         uint256[] calldata nftIds
     ) external;
-
-    function getWithdrawableAssets(address user)
-        external
-        view
-        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts);
 
     function withdraw(
         address receiver,
@@ -134,11 +91,6 @@ interface IGovPool {
         uint256 amount,
         uint256[] calldata nftIds
     ) external;
-
-    function getUndelegateableAssets(address delegator, address delegatee)
-        external
-        view
-        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts);
 
     function undelegate(
         address delegatee,
@@ -154,14 +106,73 @@ interface IGovPool {
         bool isMicropool
     ) external;
 
-    /// @dev IGovPool
     /// @notice Execute proposal
     /// @param proposalId Proposal ID
     function execute(uint256 proposalId) external;
+
+    /// @notice Move proposal from internal voting to `Validators` contract
+    /// @param proposalId Proposal ID
+    function moveProposalToValidators(uint256 proposalId) external;
 
     function claimReward(uint256[] calldata proposalIds) external;
 
     function executeAndClaim(uint256 proposalId) external;
 
     function editDescriptionURL(string calldata newDescriptionURL) external;
+
+    function setNewFee(uint256 newFeePercentage) external;
+
+    /// @notice Withdraw fee
+    /// @param tokenAddress ERC20 token address or zero address for native withdraw
+    /// @param recipient Tokens recipient
+    function withdrawFee(address tokenAddress, address recipient) external;
+
+    /// @param proposalId Proposal ID
+    /// @return Executor addresses
+    /// @return Data for each address
+    function getProposalInfo(uint256 proposalId)
+        external
+        view
+        returns (address[] memory, bytes[] memory);
+
+    /// @param proposalId Proposal ID
+    /// @return `ProposalState`:
+    /// 0 -`Voting`, proposal where addresses can vote
+    /// 1 -`WaitingForVotingTransfer`, approved proposal that waiting `moveProposalToValidators()` call
+    /// 2 -`ValidatorVoting`, validators voting
+    /// 3 -`Defeated`, proposal where voting time is over and proposal defeated on first or second step
+    /// 4 -`Succeeded`, proposal with the required number of votes on each step
+    /// 5 -`Executed`, executed proposal
+    /// 6 -`Undefined`, nonexistent proposal
+    function getProposalState(uint256 proposalId) external view returns (ProposalState);
+
+    function getTotalVotes(
+        uint256 proposalId,
+        address voter,
+        bool isMicropool
+    ) external view returns (uint256, uint256);
+
+    function getWithdrawableAssets(address user)
+        external
+        view
+        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts);
+
+    function getUndelegateableAssets(address delegator, address delegatee)
+        external
+        view
+        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts);
+
+    function getUserProposals(address user, bool isMicropool)
+        external
+        view
+        returns (
+            ShrinkableArray.UintArray memory unlockedIds,
+            ShrinkableArray.UintArray memory lockedIds
+        );
+
+    function getUnlockedNfts(
+        ShrinkableArray.UintArray memory unlockedIds,
+        address user,
+        bool isMicropool
+    ) external view returns (uint256[] memory unlockedNfts);
 }

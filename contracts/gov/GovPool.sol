@@ -353,6 +353,16 @@ contract GovPool is
         _claimReward(proposalId);
     }
 
+    function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
+        descriptionURL = newDescriptionURL;
+    }
+
+    function setNewFee(uint256 newFeePercentage) external override onlyThis {
+        feePercentage = newFeePercentage;
+    }
+
+    receive() external payable {}
+
     function withdrawFee(address tokenAddress, address recipient) external override onlyOwner {
         uint64 _lastFeeWithdrawal = uint64(lastFeeWithdrawal[tokenAddress].max(_deployedAt));
 
@@ -412,7 +422,7 @@ contract GovPool is
         (
             ShrinkableArray.UintArray memory unlockedIds,
             ShrinkableArray.UintArray memory lockedIds
-        ) = getProposals(user, false);
+        ) = getUserProposals(user, false);
 
         uint256[] memory unlockedNfts = getUnlockedNfts(unlockedIds, user, false);
 
@@ -428,7 +438,7 @@ contract GovPool is
         (
             ShrinkableArray.UintArray memory unlockedIds,
             ShrinkableArray.UintArray memory lockedIds
-        ) = getProposals(delegatee, true);
+        ) = getUserProposals(delegatee, true);
 
         uint256[] memory unlockedNfts = getUnlockedNfts(unlockedIds, delegatee, true);
 
@@ -436,9 +446,10 @@ contract GovPool is
             govUserKeeper.getUndelegateableAssets(delegator, delegatee, lockedIds, unlockedNfts);
     }
 
-    function getProposals(address user, bool isMicropool)
+    function getUserProposals(address user, bool isMicropool)
         public
         view
+        override
         returns (
             ShrinkableArray.UintArray memory unlockedIds,
             ShrinkableArray.UintArray memory lockedIds
@@ -475,7 +486,7 @@ contract GovPool is
         ShrinkableArray.UintArray memory unlockedIds,
         address user,
         bool isMicropool
-    ) public view returns (uint256[] memory unlockedNfts) {
+    ) public view override returns (uint256[] memory unlockedNfts) {
         uint256 totalLength;
 
         for (uint256 i; i < unlockedIds.length; i++) {
@@ -491,12 +502,6 @@ contract GovPool is
             totalLength = unlockedNfts.insert(totalLength, voteInfo.nftsVoted.values());
         }
     }
-
-    function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
-        descriptionURL = newDescriptionURL;
-    }
-
-    receive() external payable {}
 
     function _handleExecutorsAndDataForInternalProposal(
         address[] calldata executors,
@@ -514,7 +519,8 @@ contract GovPool is
                         selector == IGovSettings.changeExecutors.selector ||
                         selector == IGovUserKeeper.setERC20Address.selector ||
                         selector == IGovUserKeeper.setERC721Address.selector ||
-                        selector == IGovPool.editDescriptionURL.selector),
+                        selector == IGovPool.editDescriptionURL.selector ||
+                        selector == IGovPool.setNewFee.selector),
                 "Gov: invalid internal data"
             );
         }
@@ -735,8 +741,6 @@ contract GovPool is
         require(proposals[proposalId].core.executed, "Gov: proposal not executed");
 
         uint256 toPay = pendingRewards[proposalId][msg.sender];
-        delete pendingRewards[proposalId][msg.sender];
-
         uint256 balance;
 
         if (proposalSettings.rewardToken == ETHEREUM_ADDRESS) {
@@ -745,9 +749,9 @@ contract GovPool is
             balance = proposalSettings.rewardToken.thisBalance();
         }
 
-        require(balance > 0, "Gov: zero contract balance");
+        require(balance >= toPay, "Gov: not enough balance");
 
-        toPay = balance.min(toPay);
+        delete pendingRewards[proposalId][msg.sender];
 
         if (proposalSettings.rewardToken == ETHEREUM_ADDRESS) {
             _sendEthViaCall(msg.sender, toPay);

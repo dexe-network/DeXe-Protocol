@@ -31,7 +31,8 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         __Ownable_init();
 
         require(
-            !distributionProposalSettings.delegatedVotingAllowed,
+            !distributionProposalSettings.delegatedVotingAllowed &&
+                !distributionProposalSettings.earlyCompletion,
             "GovSettings: invalid distribution settings"
         );
 
