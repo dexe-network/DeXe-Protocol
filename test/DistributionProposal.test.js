@@ -63,6 +63,7 @@ const INTERNAL_SETTINGS = {
   creationRewards: 0,
   executionReward: 0,
   voteRewardsCoefficient: 0,
+  executorDescription: "internal",
 };
 
 const DEFAULT_SETTINGS = {
@@ -79,6 +80,7 @@ const DEFAULT_SETTINGS = {
   creationRewards: 0,
   executionReward: 0,
   voteRewardsCoefficient: 0,
+  executorDescription: "default",
 };
 
 const DP_SETTINGS = {
@@ -95,6 +97,7 @@ const DP_SETTINGS = {
   creationRewards: 0,
   executionReward: 0,
   voteRewardsCoefficient: 0,
+  executorDescription: "DP",
 };
 
 const VALIDATORS_BALANCES_SETTINGS = {
@@ -110,6 +113,7 @@ const VALIDATORS_BALANCES_SETTINGS = {
   creationRewards: 0,
   executionReward: 0,
   voteRewardsCoefficient: 0,
+  executorDescription: "validators",
 };
 
 describe("DistributionProposal", () => {

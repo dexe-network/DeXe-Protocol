@@ -431,6 +431,7 @@ describe("PoolFactory", () => {
             creationRewards: 0,
             executionReward: 0,
             voteRewardsCoefficient: 0,
+            executorDescription: "internal",
           },
           distributionProposalSettings: {
             earlyCompletion: true,
@@ -446,6 +447,7 @@ describe("PoolFactory", () => {
             creationRewards: 0,
             executionReward: 0,
             voteRewardsCoefficient: 0,
+            executorDescription: "DP",
           },
           validatorsBalancesSettings: {
             earlyCompletion: true,
@@ -461,6 +463,7 @@ describe("PoolFactory", () => {
             creationRewards: 0,
             executionReward: 0,
             voteRewardsCoefficient: 0,
+            executorDescription: "validators",
           },
           defaultProposalSetting: {
             earlyCompletion: false,
@@ -476,6 +479,7 @@ describe("PoolFactory", () => {
             creationRewards: 0,
             executionReward: 0,
             voteRewardsCoefficient: 0,
+            executorDescription: "default",
           },
         },
         validatorsParams: {
@@ -531,6 +535,7 @@ describe("PoolFactory", () => {
             creationRewards: 0,
             executionReward: 0,
             voteRewardsCoefficient: 0,
+            executorDescription: "internal",
           },
           distributionProposalSettings: {
             earlyCompletion: true,
@@ -546,6 +551,7 @@ describe("PoolFactory", () => {
             creationRewards: 0,
             executionReward: 0,
             voteRewardsCoefficient: 0,
+            executorDescription: "DP",
           },
           validatorsBalancesSettings: {
             earlyCompletion: true,
@@ -561,6 +567,7 @@ describe("PoolFactory", () => {
             creationRewards: 0,
             executionReward: 0,
             voteRewardsCoefficient: 0,
+            executorDescription: "validators",
           },
           defaultProposalSetting: {
             earlyCompletion: false,
@@ -576,6 +583,7 @@ describe("PoolFactory", () => {
             creationRewards: 0,
             executionReward: 0,
             voteRewardsCoefficient: 0,
+            executorDescription: "default",
           },
         },
         validatorsParams: {
@@ -624,6 +632,7 @@ describe("PoolFactory", () => {
             creationRewards: 0,
             executionReward: 0,
             voteRewardsCoefficient: 0,
+            executorDescription: "internal",
           },
           distributionProposalSettings: {
             earlyCompletion: true,
@@ -639,6 +648,7 @@ describe("PoolFactory", () => {
             creationRewards: 0,
             executionReward: 0,
             voteRewardsCoefficient: 0,
+            executorDescription: "DP",
           },
           validatorsBalancesSettings: {
             earlyCompletion: true,
@@ -654,6 +664,7 @@ describe("PoolFactory", () => {
             creationRewards: 0,
             executionReward: 0,
             voteRewardsCoefficient: 0,
+            executorDescription: "validators",
           },
           defaultProposalSetting: {
             earlyCompletion: false,
@@ -668,6 +679,7 @@ describe("PoolFactory", () => {
             creationRewards: 0,
             executionReward: 0,
             voteRewardsCoefficient: 0,
+            executorDescription: "default",
           },
         },
         validatorsParams: {

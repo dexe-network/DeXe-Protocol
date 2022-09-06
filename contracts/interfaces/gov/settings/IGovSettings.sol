@@ -19,6 +19,7 @@ interface IGovSettings {
         uint256 creationRewards;
         uint256 executionReward;
         uint256 voteRewardsCoefficient;
+        string executorDescription;
     }
 
     enum ExecutorType {

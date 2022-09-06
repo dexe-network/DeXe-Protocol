@@ -46,6 +46,7 @@ const INTERNAL_SETTINGS = {
   creationRewards: wei("10"),
   executionReward: wei("5"),
   voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
+  executorDescription: "internal",
 };
 
 const VALIDATORS_BALANCES_SETTINGS = {
@@ -62,6 +63,7 @@ const VALIDATORS_BALANCES_SETTINGS = {
   creationRewards: wei("10"),
   executionReward: wei("5"),
   voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
+  executorDescription: "validators",
 };
 
 const DP_SETTINGS = {
@@ -78,6 +80,7 @@ const DP_SETTINGS = {
   creationRewards: wei("10"),
   executionReward: wei("5"),
   voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
+  executorDescription: "DP",
 };
 
 const DEFAULT_SETTINGS = {
@@ -94,6 +97,7 @@ const DEFAULT_SETTINGS = {
   creationRewards: wei("10"),
   executionReward: wei("5"),
   voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
+  executorDescription: "default",
 };
 
 const getBytesExecute = () => {
@@ -176,6 +180,10 @@ const getBytesAddSettings = (settings) => {
               type: "uint256",
               name: "voteRewardsCoefficient",
             },
+            {
+              type: "string",
+              name: "executorDescription",
+            },
           ],
           type: "tuple[]",
           name: "_settings",
@@ -249,6 +257,10 @@ const getBytesEditSettings = (ids, settings) => {
             {
               type: "uint256",
               name: "voteRewardsCoefficient",
+            },
+            {
+              type: "string",
+              name: "executorDescription",
             },
           ],
           type: "tuple[]",
@@ -793,6 +805,7 @@ describe("GovPool", () => {
           creationRewards: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
+          executorDescription: "new_settings",
         };
 
         beforeEach("setup", async () => {
@@ -1011,6 +1024,7 @@ describe("GovPool", () => {
           creationRewards: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
+          executorDescription: "new_settings",
         };
 
         const NEW_INTERNAL_SETTINGS = {
@@ -1026,6 +1040,7 @@ describe("GovPool", () => {
           creationRewards: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
+          executorDescription: "new_settings",
         };
 
         beforeEach(async () => {
@@ -1238,6 +1253,7 @@ describe("GovPool", () => {
         creationRewards: wei("10"),
         executionReward: wei("5"),
         voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
+        executorDescription: "new_settings",
       };
 
       beforeEach(async () => {
@@ -1328,6 +1344,7 @@ describe("GovPool", () => {
           creationRewards: wei("10"),
           executionReward: wei("5"),
           voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
+          executorDescription: "new_settings",
         };
 
         const bytes = getBytesEditSettings([1], [ZERO_ADDRESS]);
