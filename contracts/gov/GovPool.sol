@@ -52,7 +52,7 @@ contract GovPool is
     IGovValidators public govValidators;
     address public distributionProposal;
 
-    ICoreProperties public coreProperties;
+    ICoreProperties internal _coreProperties;
 
     string public descriptionURL;
 
@@ -94,7 +94,7 @@ contract GovPool is
     function setDependencies(address contractsRegistry) public virtual override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
-        coreProperties = ICoreProperties(registry.getCorePropertiesContract());
+        _coreProperties = ICoreProperties(registry.getCorePropertiesContract());
     }
 
     function createProposal(
@@ -134,15 +134,17 @@ contract GovPool is
             settings = govSetting.getSettings(mainExecutor);
         }
 
+        uint256 nftSnapshot = govUserKeeper.createNftPowerSnapshot();
+
         require(
             govUserKeeper.canParticipate(
                 msg.sender,
                 false,
                 !settings.delegatedVotingAllowed,
-                1,
-                1
+                settings.minVotesForCreating,
+                nftSnapshot
             ),
-            "Gov: low balance"
+            "Gov: low voting power"
         );
 
         proposals[proposalId] = Proposal({
@@ -151,7 +153,7 @@ contract GovPool is
                 executed: false,
                 voteEnd: uint64(block.timestamp + settings.duration),
                 votesFor: 0,
-                nftPowerSnapshotId: govUserKeeper.createNftPowerSnapshot(),
+                nftPowerSnapshotId: nftSnapshot,
                 proposalId: proposalId
             }),
             descriptionURL: _descriptionURL,
@@ -622,7 +624,7 @@ contract GovPool is
 
         require(
             _votedInProposals[msg.sender][isMicropool].length() <=
-                coreProperties.getGovVotesLimit(),
+                _coreProperties.getGovVotesLimit(),
             "Gov: vote limit reached"
         );
         require(_getProposalState(core) == ProposalState.Voting, "Gov: vote unavailable");
@@ -631,10 +633,10 @@ contract GovPool is
                 msg.sender,
                 isMicropool,
                 useDelegated,
-                core.settings.minTokenBalance,
-                core.settings.minNftBalance
+                core.settings.minVotesForVoting,
+                core.nftPowerSnapshotId
             ),
-            "Gov: low balance"
+            "Gov: low voting power"
         );
 
         return core;
@@ -714,7 +716,7 @@ contract GovPool is
         require(balance >= rewards, "Gov: not enough balance");
 
         uint64 lastCommission = uint64(lastFeeWithdrawal[rewardToken].max(_deployedAt));
-        (, uint256 commissionPercentage, , address[3] memory commissionReceivers) = coreProperties
+        (, uint256 commissionPercentage, , address[3] memory commissionReceivers) = _coreProperties
             .getDEXECommissionPercentages();
         commissionPercentage = commissionPercentage.ratio(block.timestamp - lastCommission, YEAR);
 

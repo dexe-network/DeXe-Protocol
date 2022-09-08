@@ -38,6 +38,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
 
         _validateProposalSettings(internalProposalSetting);
         _validateProposalSettings(distributionProposalSettings);
+        _validateProposalSettings(validatorsBalancesSettings);
         _validateProposalSettings(defaultProposalSetting);
 
         settings[_INTERNAL_SETTINGS_ID] = internalProposalSetting;
