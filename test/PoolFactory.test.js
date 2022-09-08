@@ -416,7 +416,7 @@ describe("PoolFactory", () => {
 
     it("should deploy gov pool with validators", async () => {
       POOL_PARAMETERS = {
-        seetingsParams: {
+        settingsParams: {
           internalProposalSetting: {
             earlyCompletion: true,
             delegatedVotingAllowed: true,
@@ -520,7 +520,7 @@ describe("PoolFactory", () => {
 
     it("should deploy gov pool without validators", async () => {
       POOL_PARAMETERS = {
-        seetingsParams: {
+        settingsParams: {
           internalProposalSetting: {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
@@ -617,7 +617,7 @@ describe("PoolFactory", () => {
 
     it("should deploy pool with DP", async () => {
       POOL_PARAMETERS = {
-        seetingsParams: {
+        settingsParams: {
           internalProposalSetting: {
             earlyCompletion: true,
             delegatedVotingAllowed: true,
@@ -717,15 +717,15 @@ describe("PoolFactory", () => {
       let govSettings = await GovSettings.at(await govPool.govSetting());
       let settings = await govSettings.getSettings(await govPool.distributionProposal());
 
-      assert.equal(settings[0], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.earlyCompletion);
-      assert.equal(settings[1], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.delegatedVotingAllowed);
-      assert.equal(settings[2], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.validatorsVote);
-      assert.equal(settings[3], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.duration);
-      assert.equal(settings[4], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.durationValidators);
-      assert.equal(settings[5], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.quorum);
-      assert.equal(settings[6], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.quorumValidators);
-      assert.equal(settings[7], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.minTokenBalance);
-      assert.equal(settings[8], POOL_PARAMETERS.seetingsParams.distributionProposalSettings.minNftBalance);
+      assert.equal(settings[0], POOL_PARAMETERS.settingsParams.distributionProposalSettings.earlyCompletion);
+      assert.equal(settings[1], POOL_PARAMETERS.settingsParams.distributionProposalSettings.delegatedVotingAllowed);
+      assert.equal(settings[2], POOL_PARAMETERS.settingsParams.distributionProposalSettings.validatorsVote);
+      assert.equal(settings[3], POOL_PARAMETERS.settingsParams.distributionProposalSettings.duration);
+      assert.equal(settings[4], POOL_PARAMETERS.settingsParams.distributionProposalSettings.durationValidators);
+      assert.equal(settings[5], POOL_PARAMETERS.settingsParams.distributionProposalSettings.quorum);
+      assert.equal(settings[6], POOL_PARAMETERS.settingsParams.distributionProposalSettings.quorumValidators);
+      assert.equal(settings[7], POOL_PARAMETERS.settingsParams.distributionProposalSettings.minTokenBalance);
+      assert.equal(settings[8], POOL_PARAMETERS.settingsParams.distributionProposalSettings.minNftBalance);
     });
   });
 });

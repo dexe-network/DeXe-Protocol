@@ -12,12 +12,15 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgra
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 
 import "@dlsl/dev-modules/libs/arrays/ArrayHelper.sol";
+import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
 
 import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
 import "../interfaces/gov/IGovPool.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
+import "../interfaces/core/IContractsRegistry.sol";
+import "../interfaces/core/ICoreProperties.sol";
 
 import "../libs/gov-user-keeper/GovUserKeeperLocal.sol";
 import "../libs/math/MathHelper.sol";
@@ -28,7 +31,7 @@ import "../core/Globals.sol";
 
 contract GovPool is
     IGovPool,
-    OwnableUpgradeable,
+    AbstractDependant,
     ERC721HolderUpgradeable,
     ERC1155HolderUpgradeable
 {
@@ -49,6 +52,8 @@ contract GovPool is
     IGovValidators public govValidators;
     address public distributionProposal;
 
+    ICoreProperties public coreProperties;
+
     string public descriptionURL;
 
     uint256 internal _latestProposalId;
@@ -56,14 +61,11 @@ contract GovPool is
 
     mapping(uint256 => Proposal) public proposals; // proposalId => info
 
-    uint256 public votesLimit;
-    uint256 public feePercentage;
-
     mapping(uint256 => uint256) internal _totalVotedInProposal; // proposalId => total voted
     mapping(uint256 => mapping(address => mapping(bool => VoteInfo))) internal _voteInfos; // proposalId => voter => isMicropool => info
     mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
 
-    mapping(address => uint64) public lastFeeWithdrawal; // token address => last fee withdrawal timestamp
+    mapping(address => uint64) public lastFeeWithdrawal; // token address => last commission withdrawal timestamp
 
     mapping(uint256 => mapping(address => uint256)) public pendingRewards; // proposalId => user => tokens amount
 
@@ -77,19 +79,8 @@ contract GovPool is
         address govUserKeeperAddress,
         address distributionProposalAddress,
         address validatorsAddress,
-        uint256 _votesLimit,
-        uint256 _feePercentage,
         string calldata _descriptionURL
     ) external initializer {
-        __ERC721Holder_init();
-        __ERC1155Holder_init();
-        __Ownable_init();
-
-        require(govSettingAddress != address(0), "Gov: address is zero (1)");
-        require(govUserKeeperAddress != address(0), "Gov: address is zero (2)");
-        require(_votesLimit > 0, "Gov: votes limit is zero");
-        require(_feePercentage <= PERCENTAGE_100, "Gov: feePercentage can't be more than 100%");
-
         govSetting = IGovSettings(govSettingAddress);
         govUserKeeper = IGovUserKeeper(govUserKeeperAddress);
         govValidators = IGovValidators(validatorsAddress);
@@ -98,9 +89,12 @@ contract GovPool is
         descriptionURL = _descriptionURL;
 
         _deployedAt = uint64(block.timestamp);
+    }
 
-        votesLimit = _votesLimit;
-        feePercentage = _feePercentage;
+    function setDependencies(address contractsRegistry) public virtual override dependant {
+        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
+
+        coreProperties = ICoreProperties(registry.getCorePropertiesContract());
     }
 
     function createProposal(
@@ -344,50 +338,20 @@ contract GovPool is
 
     function claimReward(uint256[] calldata proposalIds) external override {
         for (uint256 i; i < proposalIds.length; i++) {
-            _claimReward(proposalIds[i]);
+            _claimRewardAndPayCommission(proposalIds[i]);
         }
     }
 
     function executeAndClaim(uint256 proposalId) external override {
         execute(proposalId);
-        _claimReward(proposalId);
+        _claimRewardAndPayCommission(proposalId);
     }
 
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
         descriptionURL = newDescriptionURL;
     }
 
-    function setNewFee(uint256 newFeePercentage) external override onlyThis {
-        feePercentage = newFeePercentage;
-    }
-
     receive() external payable {}
-
-    function withdrawFee(address tokenAddress, address recipient) external override onlyOwner {
-        uint64 _lastFeeWithdrawal = uint64(lastFeeWithdrawal[tokenAddress].max(_deployedAt));
-
-        lastFeeWithdrawal[tokenAddress] = uint64(block.timestamp);
-
-        uint256 balance;
-        uint256 toWithdraw;
-
-        if (tokenAddress != address(0)) {
-            balance = tokenAddress.thisBalance();
-        } else {
-            balance = address(this).balance;
-        }
-
-        uint256 fee = feePercentage.ratio(block.timestamp - _lastFeeWithdrawal, YEAR);
-        toWithdraw = balance.min(balance.percentage(fee));
-
-        require(toWithdraw > 0, "Gov: no fee");
-
-        if (tokenAddress != address(0)) {
-            IERC20(tokenAddress).safeTransfer(recipient, toWithdraw);
-        } else {
-            _sendEthViaCall(recipient, toWithdraw);
-        }
-    }
 
     function getProposalInfo(uint256 proposalId)
         external
@@ -519,8 +483,7 @@ contract GovPool is
                         selector == IGovSettings.changeExecutors.selector ||
                         selector == IGovUserKeeper.setERC20Address.selector ||
                         selector == IGovUserKeeper.setERC721Address.selector ||
-                        selector == IGovPool.editDescriptionURL.selector ||
-                        selector == IGovPool.setNewFee.selector),
+                        selector == IGovPool.editDescriptionURL.selector),
                 "Gov: invalid internal data"
             );
         }
@@ -658,7 +621,8 @@ contract GovPool is
         _votedInProposals[msg.sender][isMicropool].add(proposalId);
 
         require(
-            _votedInProposals[msg.sender][isMicropool].length() <= votesLimit,
+            _votedInProposals[msg.sender][isMicropool].length() <=
+                coreProperties.getGovVotesLimit(),
             "Gov: vote limit reached"
         );
         require(_getProposalState(core) == ProposalState.Voting, "Gov: vote unavailable");
@@ -732,31 +696,41 @@ contract GovPool is
                 : PERCENTAGE_100.ratio(core.votesFor, totalVoteWeight) >= core.settings.quorum;
     }
 
-    function _claimReward(uint256 proposalId) internal {
-        IGovSettings.ProposalSettings storage proposalSettings = proposals[proposalId]
-            .core
-            .settings;
+    function _claimRewardAndPayCommission(uint256 proposalId) internal {
+        address rewardToken = proposals[proposalId].core.settings.rewardToken;
 
-        require(proposalSettings.rewardToken != address(0), "Gov: rewards off");
+        require(rewardToken != address(0), "Gov: rewards off");
         require(proposals[proposalId].core.executed, "Gov: proposal not executed");
 
-        uint256 toPay = pendingRewards[proposalId][msg.sender];
+        uint256 rewards = pendingRewards[proposalId][msg.sender];
         uint256 balance;
 
-        if (proposalSettings.rewardToken == ETHEREUM_ADDRESS) {
+        if (rewardToken == ETHEREUM_ADDRESS) {
             balance = address(this).balance;
         } else {
-            balance = proposalSettings.rewardToken.thisBalance();
+            balance = rewardToken.thisBalance();
         }
 
-        require(balance >= toPay, "Gov: not enough balance");
+        require(balance >= rewards, "Gov: not enough balance");
+
+        uint64 lastCommission = uint64(lastFeeWithdrawal[rewardToken].max(_deployedAt));
+        (, uint256 commissionPercentage, , address[3] memory commissionReceivers) = coreProperties
+            .getDEXECommissionPercentages();
+        commissionPercentage = commissionPercentage.ratio(block.timestamp - lastCommission, YEAR);
+
+        uint256 commission = (balance - rewards).min(
+            (balance - rewards).percentage(commissionPercentage)
+        );
 
         delete pendingRewards[proposalId][msg.sender];
+        lastFeeWithdrawal[rewardToken] = uint64(block.timestamp);
 
-        if (proposalSettings.rewardToken == ETHEREUM_ADDRESS) {
-            _sendEthViaCall(msg.sender, toPay);
+        if (rewardToken == ETHEREUM_ADDRESS) {
+            _sendEthViaCall(msg.sender, rewards);
+            _sendEthViaCall(commissionReceivers[1], commission);
         } else {
-            IERC20(proposalSettings.rewardToken).safeTransfer(msg.sender, toPay);
+            IERC20(rewardToken).safeTransfer(msg.sender, rewards);
+            IERC20(rewardToken).safeTransfer(commissionReceivers[1], commission);
         }
     }
 

@@ -307,6 +307,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         (
             uint256 dexePercentage,
+            ,
             uint256[] memory poolPercentages,
             address[3] memory commissionReceivers
         ) = coreProperties.getDEXECommissionPercentages();

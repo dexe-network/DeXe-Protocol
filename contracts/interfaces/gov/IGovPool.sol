@@ -120,13 +120,6 @@ interface IGovPool {
 
     function editDescriptionURL(string calldata newDescriptionURL) external;
 
-    function setNewFee(uint256 newFeePercentage) external;
-
-    /// @notice Withdraw fee
-    /// @param tokenAddress ERC20 token address or zero address for native withdraw
-    /// @param recipient Tokens recipient
-    function withdrawFee(address tokenAddress, address recipient) external;
-
     /// @param proposalId Proposal ID
     /// @return Executor addresses
     /// @return Data for each address

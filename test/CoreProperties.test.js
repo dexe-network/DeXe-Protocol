@@ -123,7 +123,7 @@ describe("CoreProperties", () => {
 
       assert.equal(toBN(commissions[0]).toFixed(), "20");
       assert.deepEqual(
-        commissions[1].map((e) => e.toFixed()),
+        commissions[2].map((e) => e.toFixed()),
         ["50", "25", "25"]
       );
     });
