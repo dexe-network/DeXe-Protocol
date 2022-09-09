@@ -7,11 +7,11 @@ import "../interfaces/core/IContractsRegistry.sol";
 
 import "@dlsl/dev-modules/pool-contracts-registry/pool-factory/AbstractPoolFactory.sol";
 
+import {DistributionProposal} from "../gov/proposals/DistributionProposal.sol";
 import "../gov/GovPool.sol";
 import "../gov/user-keeper/GovUserKeeper.sol";
 import "../gov/settings/GovSettings.sol";
 import "../gov/validators/GovValidators.sol";
-import "../gov/proposals/DistributionProposal.sol";
 
 import "../trader/BasicTraderPool.sol";
 import "../trader/InvestTraderPool.sol";
@@ -82,10 +82,10 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             address(dpProxy),
             address(validatorsProxy),
             address(userKeeperProxy),
-            parameters.settingsParams.internalProposalSetting,
+            parameters.settingsParams.internalProposalSettings,
             parameters.settingsParams.distributionProposalSettings,
             parameters.settingsParams.validatorsBalancesSettings,
-            parameters.settingsParams.defaultProposalSetting
+            parameters.settingsParams.defaultProposalSettings
         );
         GovPool(payable(poolProxy)).__GovPool_init(
             settingsProxy,

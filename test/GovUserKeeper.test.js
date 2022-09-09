@@ -1,6 +1,7 @@
 const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
 const truffleAssert = require("truffle-assertions");
+const { ZERO, PRECISION } = require("./utils/constants");
 const { getCurrentBlockTime, setTime } = require("./helpers/hardhatTimeTraveller");
 
 const GovUserKeeper = artifacts.require("GovUserKeeper");
@@ -14,9 +15,6 @@ ERC20Mock.numberFormat = "BigNumber";
 ERC721Mock.numberFormat = "BigNumber";
 ERC721EnumMock.numberFormat = "BigNumber";
 ERC721Power.numberFormat = "BigNumber";
-
-const ZERO = "0x0000000000000000000000000000000000000000";
-const PRECISION = toBN(10).pow(25);
 
 describe("GovUserKeeper", () => {
   let OWNER;

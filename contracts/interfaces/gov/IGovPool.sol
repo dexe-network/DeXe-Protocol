@@ -114,7 +114,7 @@ interface IGovPool {
     /// @param proposalId Proposal ID
     function moveProposalToValidators(uint256 proposalId) external;
 
-    function claimReward(uint256[] calldata proposalIds) external;
+    function claimRewards(uint256[] calldata proposalIds) external;
 
     function executeAndClaim(uint256 proposalId) external;
 

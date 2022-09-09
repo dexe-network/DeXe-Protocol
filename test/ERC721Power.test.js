@@ -1,6 +1,7 @@
 const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
 const { setTime, getCurrentBlockTime } = require("./helpers/hardhatTimeTraveller");
+const { PRECISION } = require("./utils/constants");
 const truffleAssert = require("truffle-assertions");
 
 const ERC721Power = artifacts.require("ERC721Power");
@@ -8,8 +9,6 @@ const ERC20Mock = artifacts.require("ERC20Mock");
 
 ERC721Power.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
-
-const PRECISION = toBN(10).pow(25);
 
 describe("ERC721Power", () => {
   let OWNER;

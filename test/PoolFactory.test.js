@@ -1,6 +1,7 @@
 const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
 const truffleAssert = require("truffle-assertions");
+const { ZERO, PRECISION, ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const ERC20Mock = artifacts.require("ERC20Mock");
@@ -44,42 +45,6 @@ RiskyPoolProposal.numberFormat = "BigNumber";
 InvestPoolProposal.numberFormat = "BigNumber";
 UniswapV2RouterMock.numberFormat = "BigNumber";
 PoolFactory.numberFormat = "BigNumber";
-
-const SECONDS_IN_DAY = 86400;
-const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
-const PRECISION = toBN(10).pow(25);
-const DECIMAL = toBN(10).pow(18);
-
-const ZERO = "0x0000000000000000000000000000000000000000";
-
-const ComissionPeriods = {
-  PERIOD_1: 0,
-  PERIOD_2: 1,
-  PERIOD_3: 2,
-};
-
-const DEFAULT_CORE_PROPERTIES = {
-  maxPoolInvestors: 1000,
-  maxOpenPositions: 25,
-  leverageThreshold: 2500,
-  leverageSlope: 5,
-  commissionInitTimestamp: 0,
-  commissionDurations: [SECONDS_IN_MONTH, SECONDS_IN_MONTH * 3, SECONDS_IN_MONTH * 12],
-  dexeCommissionPercentage: PRECISION.times(30).toFixed(),
-  dexeCommissionDistributionPercentages: [
-    PRECISION.times(33).toFixed(),
-    PRECISION.times(33).toFixed(),
-    PRECISION.times(33).toFixed(),
-  ],
-  minTraderCommission: PRECISION.times(20).toFixed(),
-  maxTraderCommissions: [PRECISION.times(30).toFixed(), PRECISION.times(50).toFixed(), PRECISION.times(70).toFixed()],
-  delayForRiskyPool: SECONDS_IN_DAY * 20,
-  insuranceFactor: 10,
-  maxInsurancePoolShare: 3,
-  minInsuranceDeposit: DECIMAL.times(10).toFixed(),
-  minInsuranceProposalAmount: DECIMAL.times(100).toFixed(),
-  insuranceWithdrawalLock: SECONDS_IN_DAY,
-};
 
 describe("PoolFactory", () => {
   let OWNER;
@@ -414,211 +379,10 @@ describe("PoolFactory", () => {
   describe("deployGovPool", () => {
     let POOL_PARAMETERS;
 
-    it("should deploy gov pool with validators", async () => {
-      POOL_PARAMETERS = {
-        settingsParams: {
-          internalProposalSetting: {
-            earlyCompletion: true,
-            delegatedVotingAllowed: true,
-            validatorsVote: false,
-            duration: 500,
-            durationValidators: 600,
-            quorum: PRECISION.times("51").toFixed(),
-            quorumValidators: PRECISION.times("61").toFixed(),
-            minTokenBalance: wei("10"),
-            minNftBalance: 2,
-            rewardToken: ZERO,
-            creationRewards: 0,
-            executionReward: 0,
-            voteRewardsCoefficient: 0,
-            executorDescription: "internal",
-          },
-          distributionProposalSettings: {
-            earlyCompletion: false,
-            delegatedVotingAllowed: false,
-            validatorsVote: false,
-            duration: 500,
-            durationValidators: 600,
-            quorum: PRECISION.times("51").toFixed(),
-            quorumValidators: PRECISION.times("61").toFixed(),
-            minTokenBalance: wei("10"),
-            minNftBalance: 2,
-            rewardToken: ZERO,
-            creationRewards: 0,
-            executionReward: 0,
-            voteRewardsCoefficient: 0,
-            executorDescription: "DP",
-          },
-          validatorsBalancesSettings: {
-            earlyCompletion: true,
-            delegatedVotingAllowed: false,
-            validatorsVote: false,
-            duration: 500,
-            durationValidators: 600,
-            quorum: PRECISION.times("51").toFixed(),
-            quorumValidators: PRECISION.times("61").toFixed(),
-            minTokenBalance: wei("10"),
-            minNftBalance: 2,
-            rewardToken: ZERO,
-            creationRewards: 0,
-            executionReward: 0,
-            voteRewardsCoefficient: 0,
-            executorDescription: "validators",
-          },
-          defaultProposalSetting: {
-            earlyCompletion: false,
-            delegatedVotingAllowed: true,
-            validatorsVote: false,
-            duration: 700,
-            durationValidators: 800,
-            quorum: PRECISION.times("71").toFixed(),
-            quorumValidators: PRECISION.times("100").toFixed(),
-            minTokenBalance: wei("20"),
-            minNftBalance: 3,
-            rewardToken: ZERO,
-            creationRewards: 0,
-            executionReward: 0,
-            voteRewardsCoefficient: 0,
-            executorDescription: "default",
-          },
-        },
-        validatorsParams: {
-          name: "Validator Token",
-          symbol: "VT",
-          duration: 500,
-          quorum: PRECISION.times("51").toFixed(),
-          validators: [OWNER],
-          balances: [wei("100")],
-        },
-        userKeeperParams: {
-          tokenAddress: testERC20.address,
-          nftAddress: testERC721.address,
-          totalPowerInTokens: wei("33000"),
-          nftsTotalSupply: 33,
-        },
-        owner: OWNER,
-        votesLimit: 10,
-        feePercentage: PRECISION.toFixed(),
-        descriptionURL: "example.com",
-      };
-
-      await poolFactory.deployGovPool(false, POOL_PARAMETERS);
-
-      assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
-      assert.equal(
-        (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.GOV_POOL_NAME())).toString(),
-        "1"
-      );
-
-      let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
-      assert.equal(await govPool.owner(), OWNER);
-
-      let govValidators = await GovValidators.at(await govPool.govValidators());
-
-      assert.equal((await govValidators.validatorsCount()).toFixed(), 1);
-    });
-
-    it("should deploy gov pool without validators", async () => {
-      POOL_PARAMETERS = {
-        settingsParams: {
-          internalProposalSetting: {
-            earlyCompletion: true,
-            delegatedVotingAllowed: false,
-            validatorsVote: false,
-            duration: 500,
-            durationValidators: 600,
-            quorum: PRECISION.times("51").toFixed(),
-            quorumValidators: PRECISION.times("61").toFixed(),
-            minTokenBalance: wei("10"),
-            minNftBalance: 2,
-            rewardToken: ZERO,
-            creationRewards: 0,
-            executionReward: 0,
-            voteRewardsCoefficient: 0,
-            executorDescription: "internal",
-          },
-          distributionProposalSettings: {
-            earlyCompletion: false,
-            delegatedVotingAllowed: false,
-            validatorsVote: false,
-            duration: 500,
-            durationValidators: 600,
-            quorum: PRECISION.times("51").toFixed(),
-            quorumValidators: PRECISION.times("61").toFixed(),
-            minTokenBalance: wei("10"),
-            minNftBalance: 2,
-            rewardToken: ZERO,
-            creationRewards: 0,
-            executionReward: 0,
-            voteRewardsCoefficient: 0,
-            executorDescription: "DP",
-          },
-          validatorsBalancesSettings: {
-            earlyCompletion: true,
-            delegatedVotingAllowed: false,
-            validatorsVote: false,
-            duration: 500,
-            durationValidators: 600,
-            quorum: PRECISION.times("51").toFixed(),
-            quorumValidators: PRECISION.times("61").toFixed(),
-            minTokenBalance: wei("10"),
-            minNftBalance: 2,
-            rewardToken: ZERO,
-            creationRewards: 0,
-            executionReward: 0,
-            voteRewardsCoefficient: 0,
-            executorDescription: "validators",
-          },
-          defaultProposalSetting: {
-            earlyCompletion: false,
-            delegatedVotingAllowed: true,
-            validatorsVote: false,
-            duration: 700,
-            durationValidators: 800,
-            quorum: PRECISION.times("71").toFixed(),
-            quorumValidators: PRECISION.times("100").toFixed(),
-            minTokenBalance: wei("20"),
-            minNftBalance: 3,
-            rewardToken: ZERO,
-            creationRewards: 0,
-            executionReward: 0,
-            voteRewardsCoefficient: 0,
-            executorDescription: "default",
-          },
-        },
-        validatorsParams: {
-          name: "Validator Token",
-          symbol: "VT",
-          duration: 500,
-          quorum: PRECISION.times("51").toFixed(),
-          validators: [],
-          balances: [],
-        },
-        userKeeperParams: {
-          tokenAddress: testERC20.address,
-          nftAddress: testERC721.address,
-          totalPowerInTokens: wei("33000"),
-          nftsTotalSupply: 33,
-        },
-        owner: OWNER,
-        votesLimit: 10,
-        feePercentage: PRECISION.toFixed(),
-        descriptionURL: "example.com",
-      };
-
-      await poolFactory.deployGovPool(false, POOL_PARAMETERS);
-
-      assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
-      assert.equal(
-        (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.GOV_POOL_NAME())).toString(),
-        "1"
-      );
-    });
-
     it("should deploy pool with DP", async () => {
       POOL_PARAMETERS = {
         settingsParams: {
-          internalProposalSetting: {
+          internalProposalSettings: {
             earlyCompletion: true,
             delegatedVotingAllowed: true,
             validatorsVote: false,
@@ -626,10 +390,10 @@ describe("PoolFactory", () => {
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
             quorumValidators: PRECISION.times("61").toFixed(),
-            minTokenBalance: wei("10"),
-            minNftBalance: 2,
+            minVotesForVoting: wei("10"),
+            minVotesForCreating: wei("5"),
             rewardToken: ZERO,
-            creationRewards: 0,
+            creationReward: 0,
             executionReward: 0,
             voteRewardsCoefficient: 0,
             executorDescription: "internal",
@@ -642,10 +406,10 @@ describe("PoolFactory", () => {
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
             quorumValidators: PRECISION.times("61").toFixed(),
-            minTokenBalance: wei("10"),
-            minNftBalance: 2,
+            minVotesForVoting: wei("10"),
+            minVotesForCreating: wei("5"),
             rewardToken: ZERO,
-            creationRewards: 0,
+            creationReward: 0,
             executionReward: 0,
             voteRewardsCoefficient: 0,
             executorDescription: "DP",
@@ -658,25 +422,26 @@ describe("PoolFactory", () => {
             durationValidators: 600,
             quorum: PRECISION.times("51").toFixed(),
             quorumValidators: PRECISION.times("61").toFixed(),
-            minTokenBalance: wei("10"),
-            minNftBalance: 2,
+            minVotesForVoting: wei("10"),
+            minVotesForCreating: wei("5"),
             rewardToken: ZERO,
-            creationRewards: 0,
+            creationReward: 0,
             executionReward: 0,
             voteRewardsCoefficient: 0,
             executorDescription: "validators",
           },
-          defaultProposalSetting: {
+          defaultProposalSettings: {
             earlyCompletion: false,
             delegatedVotingAllowed: true,
+            validatorsVote: true,
             duration: 700,
             durationValidators: 800,
             quorum: PRECISION.times("71").toFixed(),
             quorumValidators: PRECISION.times("100").toFixed(),
-            minTokenBalance: wei("20"),
-            minNftBalance: 3,
+            minVotesForVoting: wei("20"),
+            minVotesForCreating: wei("5"),
             rewardToken: ZERO,
-            creationRewards: 0,
+            creationReward: 0,
             executionReward: 0,
             voteRewardsCoefficient: 0,
             executorDescription: "default",
@@ -696,26 +461,21 @@ describe("PoolFactory", () => {
           totalPowerInTokens: wei("33000"),
           nftsTotalSupply: 33,
         },
-        owner: OWNER,
-        votesLimit: 10,
-        feePercentage: PRECISION.toFixed(),
         descriptionURL: "example.com",
       };
 
-      await poolFactory.deployGovPool(true, POOL_PARAMETERS);
+      await poolFactory.deployGovPool(POOL_PARAMETERS);
 
       assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
-      assert.equal(
-        (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.GOV_POOL_NAME())).toString(),
-        "1"
-      );
 
       let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
-      assert.equal(await govPool.owner(), OWNER);
-      assert.notEqual(await govPool.distributionProposal(), ZERO);
-
+      let govValidators = await GovValidators.at(await govPool.govValidators());
       let govSettings = await GovSettings.at(await govPool.govSetting());
       let settings = await govSettings.getSettings(await govPool.distributionProposal());
+
+      assert.equal(await govPool.descriptionURL(), "example.com");
+
+      assert.equal((await govValidators.validatorsCount()).toFixed(), 1);
 
       assert.equal(settings[0], POOL_PARAMETERS.settingsParams.distributionProposalSettings.earlyCompletion);
       assert.equal(settings[1], POOL_PARAMETERS.settingsParams.distributionProposalSettings.delegatedVotingAllowed);
@@ -724,8 +484,8 @@ describe("PoolFactory", () => {
       assert.equal(settings[4], POOL_PARAMETERS.settingsParams.distributionProposalSettings.durationValidators);
       assert.equal(settings[5], POOL_PARAMETERS.settingsParams.distributionProposalSettings.quorum);
       assert.equal(settings[6], POOL_PARAMETERS.settingsParams.distributionProposalSettings.quorumValidators);
-      assert.equal(settings[7], POOL_PARAMETERS.settingsParams.distributionProposalSettings.minTokenBalance);
-      assert.equal(settings[8], POOL_PARAMETERS.settingsParams.distributionProposalSettings.minNftBalance);
+      assert.equal(settings[7], POOL_PARAMETERS.settingsParams.distributionProposalSettings.minVotesForVoting);
+      assert.equal(settings[8], POOL_PARAMETERS.settingsParams.distributionProposalSettings.minVotesForCreating);
     });
   });
 });

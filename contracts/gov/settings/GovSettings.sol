@@ -23,10 +23,10 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         address distributionProposalAddress,
         address validatorsAddress,
         address govUserKeeperAddress,
-        ProposalSettings calldata internalProposalSetting,
+        ProposalSettings calldata internalProposalSettings,
         ProposalSettings calldata distributionProposalSettings,
         ProposalSettings calldata validatorsBalancesSettings,
-        ProposalSettings calldata defaultProposalSetting
+        ProposalSettings calldata defaultProposalSettings
     ) external initializer {
         __Ownable_init();
 
@@ -36,15 +36,15 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
             "GovSettings: invalid distribution settings"
         );
 
-        _validateProposalSettings(internalProposalSetting);
+        _validateProposalSettings(internalProposalSettings);
         _validateProposalSettings(distributionProposalSettings);
         _validateProposalSettings(validatorsBalancesSettings);
-        _validateProposalSettings(defaultProposalSetting);
+        _validateProposalSettings(defaultProposalSettings);
 
-        settings[_INTERNAL_SETTINGS_ID] = internalProposalSetting;
+        settings[_INTERNAL_SETTINGS_ID] = internalProposalSettings;
         settings[_DISTRIBUTION_PROPOSAL_SETTINGS_ID] = distributionProposalSettings;
         settings[_VALIDATORS_BALANCES_ID] = validatorsBalancesSettings;
-        settings[_DEFAULT_SETTINGS_ID] = defaultProposalSetting;
+        settings[_DEFAULT_SETTINGS_ID] = defaultProposalSettings;
 
         executorToSettings[address(this)] = _INTERNAL_SETTINGS_ID;
         executorToSettings[distributionProposalAddress] = _DISTRIBUTION_PROPOSAL_SETTINGS_ID;

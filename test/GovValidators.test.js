@@ -1,6 +1,7 @@
 const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
 const truffleAssert = require("truffle-assertions");
+const { ZERO, PRECISION } = require("./utils/constants");
 const { getCurrentBlockTime, setTime } = require("./helpers/hardhatTimeTraveller");
 
 const GovValidators = artifacts.require("GovValidators");
@@ -8,9 +9,6 @@ const GovValidatorsToken = artifacts.require("GovValidatorsToken");
 
 GovValidators.numberFormat = "BigNumber";
 GovValidatorsToken.numberFormat = "BigNumber";
-
-const ZERO = "0x0000000000000000000000000000000000000000";
-const PRECISION = toBN(10).pow(25);
 
 function toPercent(num) {
   return PRECISION.times(num).toFixed();

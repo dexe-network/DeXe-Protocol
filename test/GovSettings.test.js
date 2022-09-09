@@ -1,13 +1,11 @@
 const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
+const { ZERO, PRECISION } = require("./utils/constants");
 const truffleAssert = require("truffle-assertions");
 
 const GovSettings = artifacts.require("GovSettings");
 
 GovSettings.numberFormat = "BigNumber";
-
-const PRECISION = toBN(10).pow(25);
-const ZERO = "0x0000000000000000000000000000000000000000";
 
 const INTERNAL_SETTINGS = {
   earlyCompletion: true,
@@ -17,10 +15,10 @@ const INTERNAL_SETTINGS = {
   durationValidators: 600,
   quorum: PRECISION.times("51").toFixed(),
   quorumValidators: PRECISION.times("61").toFixed(),
-  minTokenBalance: wei("10"),
-  minNftBalance: 2,
+  minVotesForVoting: wei("10"),
+  minVotesForCreating: wei("2"),
   rewardToken: ZERO,
-  creationRewards: 0,
+  creationReward: 0,
   executionReward: 0,
   voteRewardsCoefficient: 0,
   executorDescription: "internal",
@@ -34,10 +32,10 @@ const DP_SETTINGS = {
   durationValidators: 800,
   quorum: PRECISION.times("71").toFixed(),
   quorumValidators: PRECISION.times("100").toFixed(),
-  minTokenBalance: wei("20"),
-  minNftBalance: 3,
+  minVotesForVoting: wei("20"),
+  minVotesForCreating: wei("3"),
   rewardToken: ZERO,
-  creationRewards: 0,
+  creationReward: 0,
   executionReward: 0,
   voteRewardsCoefficient: 0,
   executorDescription: "DP",
@@ -51,10 +49,10 @@ const VALIDATORS_BALANCES_SETTINGS = {
   durationValidators: 800,
   quorum: PRECISION.times("71").toFixed(),
   quorumValidators: PRECISION.times("100").toFixed(),
-  minTokenBalance: wei("20"),
-  minNftBalance: 3,
+  minVotesForVoting: wei("20"),
+  minVotesForCreating: wei("3"),
   rewardToken: ZERO,
-  creationRewards: 0,
+  creationReward: 0,
   executionReward: 0,
   voteRewardsCoefficient: 0,
   executorDescription: "validators",
@@ -68,10 +66,10 @@ const DEFAULT_SETTINGS = {
   durationValidators: 800,
   quorum: PRECISION.times("71").toFixed(),
   quorumValidators: PRECISION.times("100").toFixed(),
-  minTokenBalance: wei("20"),
-  minNftBalance: 3,
+  minVotesForVoting: wei("20"),
+  minVotesForCreating: wei("3"),
   rewardToken: ZERO,
-  creationRewards: 0,
+  creationReward: 0,
   executionReward: 0,
   voteRewardsCoefficient: 0,
   executorDescription: "default",
@@ -166,21 +164,21 @@ describe("GovSettings", () => {
         assert.equal(internalSettings.durationValidators, 600);
         assert.equal(internalSettings.quorum.toFixed(), PRECISION.times("51").toFixed());
         assert.equal(internalSettings.quorumValidators.toFixed(), PRECISION.times("61").toFixed());
-        assert.equal(internalSettings.minTokenBalance.toFixed(), wei("10"));
-        assert.equal(internalSettings.minNftBalance, 2);
+        assert.equal(internalSettings.minVotesForVoting.toFixed(), wei("10"));
+        assert.equal(internalSettings.minVotesForCreating.toFixed(), wei("2"));
         assert.equal(internalSettings.executorDescription, "internal");
 
-        const defaultProposalSetting = await settings.settings(2);
+        const defaultProposalSettings = await settings.settings(2);
 
-        assert.isFalse(defaultProposalSetting.earlyCompletion);
-        assert.isFalse(defaultProposalSetting.delegatedVotingAllowed);
-        assert.equal(defaultProposalSetting.duration, 600);
-        assert.equal(defaultProposalSetting.durationValidators, 800);
-        assert.equal(defaultProposalSetting.quorum.toFixed(), PRECISION.times("71").toFixed());
-        assert.equal(defaultProposalSetting.quorumValidators.toFixed(), PRECISION.times("100").toFixed());
-        assert.equal(defaultProposalSetting.minTokenBalance.toFixed(), wei("20"));
-        assert.equal(defaultProposalSetting.minNftBalance, 3);
-        assert.equal(defaultProposalSetting.executorDescription, "DP");
+        assert.isFalse(defaultProposalSettings.earlyCompletion);
+        assert.isFalse(defaultProposalSettings.delegatedVotingAllowed);
+        assert.equal(defaultProposalSettings.duration, 600);
+        assert.equal(defaultProposalSettings.durationValidators, 800);
+        assert.equal(defaultProposalSettings.quorum.toFixed(), PRECISION.times("71").toFixed());
+        assert.equal(defaultProposalSettings.quorumValidators.toFixed(), PRECISION.times("100").toFixed());
+        assert.equal(defaultProposalSettings.minVotesForVoting.toFixed(), wei("20"));
+        assert.equal(defaultProposalSettings.minVotesForCreating.toFixed(), wei("3"));
+        assert.equal(defaultProposalSettings.executorDescription, "DP");
 
         const defaultSettings = await settings.settings(4);
 
@@ -190,8 +188,8 @@ describe("GovSettings", () => {
         assert.equal(defaultSettings.durationValidators, 800);
         assert.equal(defaultSettings.quorum.toFixed(), PRECISION.times("71").toFixed());
         assert.equal(defaultSettings.quorumValidators.toFixed(), PRECISION.times("100").toFixed());
-        assert.equal(defaultSettings.minTokenBalance.toFixed(), wei("20"));
-        assert.equal(defaultSettings.minNftBalance, 3);
+        assert.equal(defaultSettings.minVotesForVoting.toFixed(), wei("20"));
+        assert.equal(defaultSettings.minVotesForCreating.toFixed(), wei("3"));
         assert.equal(defaultSettings.executorDescription, "default");
 
         assert.equal(await settings.executorToSettings(settings.address), 1);
@@ -203,14 +201,15 @@ describe("GovSettings", () => {
         const newSettings1 = {
           earlyCompletion: false,
           delegatedVotingAllowed: true,
+          validatorsVote: true,
           duration: 50,
           durationValidators: 100,
           quorum: toPercent("1"),
           quorumValidators: toPercent("2"),
-          minTokenBalance: wei("3"),
-          minNftBalance: 4,
+          minVotesForVoting: wei("3"),
+          minVotesForCreating: wei("4"),
           rewardToken: ZERO,
-          creationRewards: 0,
+          creationReward: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings_1",
@@ -219,14 +218,15 @@ describe("GovSettings", () => {
         const newSettings2 = {
           earlyCompletion: true,
           delegatedVotingAllowed: false,
+          validatorsVote: true,
           duration: 150,
           durationValidators: 120,
           quorum: toPercent("2"),
           quorumValidators: toPercent("3"),
-          minTokenBalance: wei("4"),
-          minNftBalance: 4,
+          minVotesForVoting: wei("4"),
+          minVotesForCreating: wei("4"),
           rewardToken: ZERO,
-          creationRewards: 0,
+          creationReward: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings_2",
@@ -243,8 +243,8 @@ describe("GovSettings", () => {
         assert.equal(settings1.durationValidators, newSettings1.durationValidators);
         assert.equal(settings1.quorum.toString(), toBN(newSettings1.quorum));
         assert.equal(settings1.quorumValidators.toString(), toBN(newSettings1.quorumValidators));
-        assert.equal(settings1.minTokenBalance, newSettings1.minTokenBalance);
-        assert.equal(settings1.minNftBalance, newSettings1.minNftBalance);
+        assert.equal(settings1.minVotesForVoting, newSettings1.minVotesForVoting);
+        assert.equal(settings1.minVotesForCreating, newSettings1.minVotesForCreating);
         assert.equal(settings1.executorDescription, newSettings1.executorDescription);
 
         assert.equal(settings2.earlyCompletion, newSettings2.earlyCompletion);
@@ -253,8 +253,8 @@ describe("GovSettings", () => {
         assert.equal(settings2.durationValidators, newSettings2.durationValidators);
         assert.equal(settings2.quorum.toString(), toBN(newSettings2.quorum));
         assert.equal(settings2.quorumValidators.toString(), toBN(newSettings2.quorumValidators));
-        assert.equal(settings2.minTokenBalance, newSettings2.minTokenBalance);
-        assert.equal(settings2.minNftBalance, newSettings2.minNftBalance);
+        assert.equal(settings2.minVotesForVoting, newSettings2.minVotesForVoting);
+        assert.equal(settings2.minVotesForCreating, newSettings2.minVotesForCreating);
         assert.equal(settings2.executorDescription, newSettings2.executorDescription);
       });
     });
@@ -264,14 +264,15 @@ describe("GovSettings", () => {
         const newSettings = {
           earlyCompletion: false,
           delegatedVotingAllowed: false,
+          validatorsVote: true,
           duration: 0,
           durationValidators: 100,
           quorum: toPercent("1"),
           quorumValidators: toPercent("2"),
-          minTokenBalance: wei("3"),
-          minNftBalance: 4,
+          minVotesForVoting: wei("3"),
+          minVotesForCreating: wei("4"),
           rewardToken: ZERO,
-          creationRewards: 0,
+          creationReward: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings",
@@ -284,14 +285,15 @@ describe("GovSettings", () => {
         const newSettings = {
           earlyCompletion: false,
           delegatedVotingAllowed: false,
+          validatorsVote: true,
           duration: 50,
           durationValidators: 100,
           quorum: toPercent("100.0001"),
           quorumValidators: toPercent("2"),
-          minTokenBalance: wei("3"),
-          minNftBalance: 4,
+          minVotesForVoting: wei("3"),
+          minVotesForCreating: wei("4"),
           rewardToken: ZERO,
-          creationRewards: 0,
+          creationReward: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings",
@@ -304,14 +306,15 @@ describe("GovSettings", () => {
         const newSettings = {
           earlyCompletion: false,
           delegatedVotingAllowed: false,
+          validatorsVote: true,
           duration: 50,
           durationValidators: 0,
           quorum: toPercent("1"),
           quorumValidators: toPercent("2"),
-          minTokenBalance: wei("3"),
-          minNftBalance: 4,
+          minVotesForVoting: wei("3"),
+          minVotesForCreating: wei("4"),
           rewardToken: ZERO,
-          creationRewards: 0,
+          creationReward: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings",
@@ -327,14 +330,15 @@ describe("GovSettings", () => {
         const newSettings = {
           earlyCompletion: false,
           delegatedVotingAllowed: false,
+          validatorsVote: true,
           duration: 50,
           durationValidators: 100,
           quorum: toPercent("1"),
           quorumValidators: toPercent("100.0001"),
-          minTokenBalance: wei("3"),
-          minNftBalance: 4,
+          minVotesForVoting: wei("3"),
+          minVotesForCreating: wei("4"),
           rewardToken: ZERO,
-          creationRewards: 0,
+          creationReward: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings",
@@ -349,14 +353,15 @@ describe("GovSettings", () => {
         const newSettings1 = {
           earlyCompletion: false,
           delegatedVotingAllowed: false,
+          validatorsVote: true,
           duration: 50,
           durationValidators: 100,
           quorum: toPercent("1"),
           quorumValidators: toPercent("2"),
-          minTokenBalance: wei("3"),
-          minNftBalance: 4,
+          minVotesForVoting: wei("3"),
+          minVotesForCreating: wei("4"),
           rewardToken: ZERO,
-          creationRewards: 0,
+          creationReward: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings",
@@ -372,8 +377,8 @@ describe("GovSettings", () => {
         assert.equal(internalSettings.durationValidators, newSettings1.durationValidators);
         assert.equal(internalSettings.quorum.toFixed(), newSettings1.quorum);
         assert.equal(internalSettings.quorumValidators.toFixed(), newSettings1.quorumValidators);
-        assert.equal(internalSettings.minTokenBalance.toFixed(), newSettings1.minTokenBalance);
-        assert.equal(internalSettings.minNftBalance, newSettings1.minNftBalance);
+        assert.equal(internalSettings.minVotesForVoting.toFixed(), newSettings1.minVotesForVoting);
+        assert.equal(internalSettings.minVotesForCreating, newSettings1.minVotesForCreating);
         assert.equal(internalSettings.executorDescription, newSettings1.executorDescription);
 
         const defaultSettings = await settings.settings(2);
@@ -384,8 +389,8 @@ describe("GovSettings", () => {
         assert.equal(defaultSettings.durationValidators, newSettings1.durationValidators);
         assert.equal(defaultSettings.quorum.toFixed(), newSettings1.quorum);
         assert.equal(defaultSettings.quorumValidators.toFixed(), newSettings1.quorumValidators);
-        assert.equal(defaultSettings.minTokenBalance.toFixed(), newSettings1.minTokenBalance);
-        assert.equal(defaultSettings.minNftBalance, newSettings1.minNftBalance);
+        assert.equal(defaultSettings.minVotesForVoting.toFixed(), newSettings1.minVotesForVoting);
+        assert.equal(defaultSettings.minVotesForCreating, newSettings1.minVotesForCreating);
         assert.equal(defaultSettings.executorDescription, newSettings1.executorDescription);
       });
 
@@ -393,14 +398,15 @@ describe("GovSettings", () => {
         const newSettings1 = {
           earlyCompletion: false,
           delegatedVotingAllowed: false,
+          validatorsVote: true,
           duration: 50,
           durationValidators: 100,
           quorum: toPercent("1"),
           quorumValidators: toPercent("2"),
-          minTokenBalance: wei("3"),
-          minNftBalance: 4,
+          minVotesForVoting: wei("3"),
+          minVotesForCreating: wei("4"),
           rewardToken: ZERO,
-          creationRewards: 0,
+          creationReward: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings",
@@ -416,8 +422,8 @@ describe("GovSettings", () => {
         assert.equal(internalSettings.durationValidators, newSettings1.durationValidators);
         assert.equal(internalSettings.quorum.toFixed(), newSettings1.quorum);
         assert.equal(internalSettings.quorumValidators.toFixed(), newSettings1.quorumValidators);
-        assert.equal(internalSettings.minTokenBalance.toFixed(), newSettings1.minTokenBalance);
-        assert.equal(internalSettings.minNftBalance, newSettings1.minNftBalance);
+        assert.equal(internalSettings.minVotesForVoting.toFixed(), newSettings1.minVotesForVoting);
+        assert.equal(internalSettings.minVotesForCreating, newSettings1.minVotesForCreating);
         assert.equal(internalSettings.executorDescription, newSettings1.executorDescription);
 
         const newSettings = await settings.settings(5);
@@ -428,8 +434,8 @@ describe("GovSettings", () => {
         assert.equal(newSettings.durationValidators, 0);
         assert.equal(newSettings.quorum.toFixed(), 0);
         assert.equal(newSettings.quorumValidators.toFixed(), 0);
-        assert.equal(newSettings.minTokenBalance.toFixed(), 0);
-        assert.equal(newSettings.minNftBalance, 0);
+        assert.equal(newSettings.minVotesForVoting.toFixed(), 0);
+        assert.equal(newSettings.minVotesForCreating, 0);
         assert.equal(newSettings.executorDescription, "");
       });
     });
@@ -462,14 +468,15 @@ describe("GovSettings", () => {
         const newSettings1 = {
           earlyCompletion: false,
           delegatedVotingAllowed: false,
+          validatorsVote: true,
           duration: 50,
           durationValidators: 100,
           quorum: toPercent("1"),
           quorumValidators: toPercent("2"),
-          minTokenBalance: wei("3"),
-          minNftBalance: 4,
+          minVotesForVoting: wei("3"),
+          minVotesForCreating: wei("4"),
           rewardToken: ZERO,
-          creationRewards: 0,
+          creationReward: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings",
@@ -509,10 +516,10 @@ describe("GovSettings", () => {
           durationValidators: 100,
           quorum: toPercent("1"),
           quorumValidators: toPercent("2"),
-          minTokenBalance: wei("3"),
-          minNftBalance: 4,
+          minVotesForVoting: wei("3"),
+          minVotesForCreating: wei("4"),
           rewardToken: ZERO,
-          creationRewards: 0,
+          creationReward: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings",
