@@ -22,6 +22,14 @@ interface IGovPool {
         Undefined
     }
 
+    event ProposalCreated(uint256 id, address sender, uint256 quorum);
+    event Delegated(address to, uint256 amount);
+    event Vote(uint256 id, address sender, uint256 personalVote, uint256 delegatedVote);
+    event DPCreated(uint256 id, address sender, address token, uint256 amount);
+    event ProposalAccepted(uint256 id);
+    event ProposalExecuted(uint256 id, address sender);
+    event RewardClaimed(uint256 id, address sender, uint256 amount);
+
     struct ProposalCore {
         IGovSettings.ProposalSettings settings;
         bool executed;
