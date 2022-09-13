@@ -40,7 +40,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         string descriptionURL
     );
 
-    event DaoDeploied(address govPool, address DP, address validators);
+    event DaoPoolDeployed(address govPool, address DP, address validators);
 
     function setDependencies(address contractsRegistry) public override {
         super.setDependencies(contractsRegistry);
