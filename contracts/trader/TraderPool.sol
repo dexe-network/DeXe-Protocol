@@ -151,7 +151,12 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         for (uint256 i = 0; i < privateInvestors.length; i++) {
             if (add) {
                 _privateInvestors.add(privateInvestors[i]);
-            } else if (canRemovePrivateInvestor(privateInvestors[i])) {
+            } else {
+                require(
+                    canRemovePrivateInvestor(privateInvestors[i]),
+                    "TP: can't remove investor"
+                );
+
                 _privateInvestors.remove(privateInvestors[i]);
             }
         }

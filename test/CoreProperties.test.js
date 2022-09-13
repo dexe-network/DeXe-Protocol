@@ -47,6 +47,105 @@ describe("CoreProperties", () => {
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
   });
 
+  describe("access", () => {
+    it("should not initialize twice", async () => {
+      await truffleAssert.reverts(
+        coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES),
+        "Initializable: contract is already initialized"
+      );
+    });
+
+    it("should not set dependencies from non dependant", async () => {
+      await truffleAssert.reverts(coreProperties.setDependencies(OWNER), "Dependant: Not an injector");
+    });
+
+    it("only owner should call these methods", async () => {
+      await truffleAssert.reverts(
+        coreProperties.setCoreParameters(DEFAULT_CORE_PROPERTIES, { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setMaximumPoolInvestors(100, { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setMaximumOpenPositions(100, { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setTraderLeverageParams(3000, 10, { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setCommissionInitTimestamp(100, { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setCommissionDurations([10, 100, 1000], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setDEXECommissionPercentages(20, 10, [50, 25, 25], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setTraderCommissionPercentages(10, [20, 50, 90], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setDelayForRiskyPool(100, { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setInsuranceParameters(
+          {
+            insuranceFactor: 10,
+            maxInsurancePoolShare: 20,
+            minInsuranceDeposit: 30,
+            minInsuranceProposalAmount: 40,
+            insuranceWithdrawalLock: 50,
+          },
+          { from: SECOND }
+        ),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setGovVotesLimit(20, { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.addWhitelistTokens([USD.address, DEXE.address], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.removeWhitelistTokens([USD.address], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.addBlacklistTokens([USD.address, DEXE.address], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.removeBlacklistTokens([USD.address], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+    });
+  });
+
   describe("simple setters", () => {
     it("should core parameters", async () => {
       await truffleAssert.passes(coreProperties.setCoreParameters(DEFAULT_CORE_PROPERTIES), "passes");

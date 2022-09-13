@@ -58,6 +58,28 @@ describe("PriceFeed", () => {
     await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
   });
 
+  describe("access", () => {
+    it("should not initialize twice", async () => {
+      await truffleAssert.reverts(priceFeed.__PriceFeed_init(), "Initializable: contract is already initialized");
+    });
+
+    it("should not set dependencies from non dependant", async () => {
+      await truffleAssert.reverts(priceFeed.setDependencies(OWNER), "Dependant: Not an injector");
+    });
+
+    it("only owner should call these methods", async () => {
+      await truffleAssert.reverts(
+        priceFeed.addPathTokens([USD.address], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        priceFeed.removePathTokens([USD.address], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+    });
+  });
+
   describe("path tokens", () => {
     it("should set and return path tokens", async () => {
       await priceFeed.addPathTokens([USD.address, DEXE.address, USD.address]);
@@ -283,9 +305,75 @@ describe("PriceFeed", () => {
 
       await uniswapV2Router.setBonuses(MANA.address, DEXE.address, wei("2000"));
 
-      await priceFeed.addPathTokens([MANA.address, WBTC.address]);
+      await priceFeed.addPathTokens([WBTC.address, MANA.address]);
 
       const pricesInfo = await priceFeed.getExtendedPriceIn(DEXE.address, USD.address, wei("2000"), []);
+
+      assert.equal(pricesInfo.amountIn.toFixed(), wei("2000"));
+      assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, USD.address]);
+    });
+
+    it("should get the best price from provided path", async () => {
+      const MANA = await ERC20Mock.new("MANA", "MANA", 18);
+      const WBTC = await ERC20Mock.new("WBTC", "WBTC", 8);
+
+      await MANA.mint(OWNER, wei(tokensToMint));
+      await WBTC.mint(OWNER, wei(tokensToMint, 8));
+
+      await MANA.approve(uniswapV2Router.address, wei(reserveTokens));
+      await uniswapV2Router.setReserve(MANA.address, wei(reserveTokens));
+
+      await WBTC.approve(uniswapV2Router.address, wei(reserveTokens, 8));
+      await uniswapV2Router.setReserve(WBTC.address, wei(reserveTokens, 8));
+
+      await uniswapV2Router.enablePair(DEXE.address, MANA.address);
+      await uniswapV2Router.enablePair(MANA.address, USD.address);
+
+      await uniswapV2Router.enablePair(DEXE.address, WBTC.address);
+      await uniswapV2Router.enablePair(WBTC.address, USD.address);
+
+      await uniswapV2Router.setBonuses(MANA.address, DEXE.address, wei("2000"));
+
+      await priceFeed.addPathTokens([WBTC.address]);
+
+      const pricesInfo = await priceFeed.getExtendedPriceIn(DEXE.address, USD.address, wei("2000"), [
+        DEXE.address,
+        MANA.address,
+        USD.address,
+      ]);
+
+      assert.equal(pricesInfo.amountIn.toFixed(), wei("2000"));
+      assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, USD.address]);
+    });
+
+    it("should stick to the best price", async () => {
+      const MANA = await ERC20Mock.new("MANA", "MANA", 18);
+      const WBTC = await ERC20Mock.new("WBTC", "WBTC", 8);
+
+      await MANA.mint(OWNER, wei(tokensToMint));
+      await WBTC.mint(OWNER, wei(tokensToMint, 8));
+
+      await MANA.approve(uniswapV2Router.address, wei(reserveTokens));
+      await uniswapV2Router.setReserve(MANA.address, wei(reserveTokens));
+
+      await WBTC.approve(uniswapV2Router.address, wei(reserveTokens, 8));
+      await uniswapV2Router.setReserve(WBTC.address, wei(reserveTokens, 8));
+
+      await uniswapV2Router.enablePair(DEXE.address, MANA.address);
+      await uniswapV2Router.enablePair(MANA.address, USD.address);
+
+      await uniswapV2Router.enablePair(DEXE.address, WBTC.address);
+      await uniswapV2Router.enablePair(WBTC.address, USD.address);
+
+      await uniswapV2Router.setBonuses(MANA.address, DEXE.address, wei("2000"));
+
+      await priceFeed.addPathTokens([MANA.address]);
+
+      const pricesInfo = await priceFeed.getExtendedPriceIn(DEXE.address, USD.address, wei("2000"), [
+        DEXE.address,
+        WBTC.address,
+        USD.address,
+      ]);
 
       assert.equal(pricesInfo.amountIn.toFixed(), wei("2000"));
       assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, USD.address]);

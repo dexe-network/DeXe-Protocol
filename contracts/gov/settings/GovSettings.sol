@@ -73,9 +73,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         onlyOwner
     {
         for (uint256 i; i < _settings.length; i++) {
-            if (!_settingsExist(settingsIds[i])) {
-                continue;
-            }
+            require(_settingsExist(settingsIds[i]), "GovSettings: settings do not exist");
 
             _validateProposalSettings(_settings[i]);
 
@@ -89,10 +87,6 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         onlyOwner
     {
         for (uint256 i; i < executors.length; i++) {
-            if (settingsIds[i] == _INTERNAL_SETTINGS_ID || executors[i] == address(this)) {
-                continue;
-            }
-
             executorToSettings[executors[i]] = settingsIds[i];
         }
     }
@@ -125,10 +119,8 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
             return (settingsId, ExecutorType.DISTRIBUTION);
         } else if (settingsId == _VALIDATORS_BALANCES_ID) {
             return (settingsId, ExecutorType.VALIDATORS);
-        } else if (_settingsExist(settingsId)) {
-            return (settingsId, ExecutorType.TRUSTED);
         } else {
-            return (settingsId, ExecutorType.NONE);
+            return (settingsId, ExecutorType.TRUSTED);
         }
     }
 

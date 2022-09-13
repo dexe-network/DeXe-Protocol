@@ -260,6 +260,13 @@ describe("DistributionProposal", () => {
       it("should set parameter correctly", async () => {
         assert.equal(await dp.govAddress(), govPool.address);
       });
+
+      it("should not initialize twice", async () => {
+        await truffleAssert.reverts(
+          dp.__DistributionProposal_init(govPool.address),
+          "Initializable: contract is already initialized"
+        );
+      });
     });
 
     describe("execute()", () => {
@@ -331,6 +338,10 @@ describe("DistributionProposal", () => {
           [getBytesDistributionProposal(1, token.address, wei("100000"))],
           { from: SECOND }
         );
+      });
+
+      it("should not claim wrong proposal", async () => {
+        assert.equal(await dp.getPotentialReward(2, OWNER, 123), 0);
       });
 
       it("should correctly claim", async () => {

@@ -75,9 +75,6 @@ library TraderPoolLeverage {
             amountInBaseToInvest
         );
 
-        require(
-            addInUSD + totalPriceInUSD <= maxTraderVolumeInUSD,
-            "TP: exchange exceeds leverage"
-        );
+        require(addInUSD + totalPriceInUSD <= maxTraderVolumeInUSD, "TP: leverage exceeded");
     }
 }

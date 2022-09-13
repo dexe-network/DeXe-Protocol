@@ -102,15 +102,17 @@ describe("GovValidators", () => {
         );
       });
 
-      it("only owner should call mint(), burn(), snapshot()", async () => {
+      it("only owner should call these functions", async () => {
         await truffleAssert.reverts(
           validatorsToken.mint(SECOND, "10", { from: SECOND }),
           "ValidatorsToken: caller is not the validator"
         );
+
         await truffleAssert.reverts(
           validatorsToken.burn(SECOND, "10", { from: SECOND }),
           "ValidatorsToken: caller is not the validator"
         );
+
         await truffleAssert.reverts(
           validatorsToken.snapshot({ from: SECOND }),
           "ValidatorsToken: caller is not the validator"
@@ -126,6 +128,29 @@ describe("GovValidators", () => {
         assert.equal(toBN(internalProposalSettings.quorum).toFixed(), toPercent("51"));
         assert.equal(await validatorsToken.balanceOf(SECOND), wei("100"));
         assert.equal(await validatorsToken.balanceOf(THIRD), wei("200"));
+      });
+
+      it("should not initialize twice", async () => {
+        await truffleAssert.reverts(
+          validators.__GovValidators_init(
+            "Validator Token",
+            "VT",
+            500,
+            PRECISION.times("51").toFixed(),
+            [SECOND, THIRD],
+            [wei("100"), wei("200")]
+          ),
+          "Initializable: contract is already initialized"
+        );
+      });
+    });
+
+    describe("access", () => {
+      it("only owner should call these functions", async () => {
+        await truffleAssert.reverts(
+          validators.changeBalances([100], [SECOND], { from: SECOND }),
+          "Ownable: caller is not the owner"
+        );
       });
     });
 
@@ -195,11 +220,15 @@ describe("GovValidators", () => {
         await validators.createExternalProposal(1, 33, 66);
 
         const external = await validators.externalProposals(1);
+
         assert.equal(external.voteEnd, currentTime + 33 + 1);
         assert.equal(external.executed, false);
         assert.equal(external.quorum, 66);
         assert.equal(external.votesFor, 0);
         assert.equal(external.snapshotId, 1);
+
+        assert.equal(await validators.getProposalState(1, false), 0);
+        assert.isFalse(await validators.isQuorumReached(1, false));
       });
 
       it("should revert if caller is not the owner", async () => {
@@ -417,8 +446,10 @@ describe("GovValidators", () => {
         assert.equal((await validatorsToken.balanceOf(SECOND)).toFixed(), wei("200"));
 
         await validators.createInternalProposal(3, [wei("0")], [SECOND], { from: SECOND });
+
         await validators.vote(2, wei("200"), true, { from: THIRD });
         await validators.vote(2, wei("100"), true, { from: SECOND });
+
         await validators.execute(2);
 
         assert.equal(await validatorsToken.balanceOf(SECOND), wei("0"));
@@ -435,10 +466,18 @@ describe("GovValidators", () => {
     });
 
     describe("changeBalances()", () => {
-      it("should set 100 tokens to SECOND", async () => {
+      it("should change SECOND balance", async () => {
         await validators.changeBalances([100], [SECOND]);
 
         assert.equal(await validatorsToken.balanceOf(SECOND), 100);
+
+        await validators.changeBalances([10], [SECOND]);
+
+        assert.equal(await validatorsToken.balanceOf(SECOND), 10);
+
+        await validators.changeBalances([10], [SECOND]);
+
+        assert.equal(await validatorsToken.balanceOf(SECOND), 10);
       });
     });
   });

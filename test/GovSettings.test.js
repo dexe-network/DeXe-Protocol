@@ -81,6 +81,7 @@ function toPercent(num) {
 
 describe("GovSettings", () => {
   let OWNER;
+  let SECOND;
   let EXECUTOR1;
   let EXECUTOR2;
 
@@ -93,13 +94,14 @@ describe("GovSettings", () => {
 
   before("setup", async () => {
     OWNER = await accounts(0);
-    EXECUTOR1 = await accounts(1);
-    EXECUTOR2 = await accounts(2);
+    SECOND = await accounts(1);
+    EXECUTOR1 = await accounts(2);
+    EXECUTOR2 = await accounts(3);
 
-    GOV_POOL_ADDRESS = await accounts(3);
-    DP_ADDRESS = await accounts(4);
-    VALIDATORS_ADDRESS = await accounts(5);
-    USER_KEEPER_ADDRESS = await accounts(6);
+    GOV_POOL_ADDRESS = await accounts(4);
+    DP_ADDRESS = await accounts(5);
+    VALIDATORS_ADDRESS = await accounts(6);
+    USER_KEEPER_ADDRESS = await accounts(7);
   });
 
   beforeEach("setup", async () => {
@@ -193,6 +195,41 @@ describe("GovSettings", () => {
         assert.equal(defaultSettings.executorDescription, "default");
 
         assert.equal(await settings.executorToSettings(settings.address), 1);
+      });
+
+      it("should not initialize twice", async () => {
+        await truffleAssert.reverts(
+          settings.__GovSettings_init(
+            GOV_POOL_ADDRESS,
+            DP_ADDRESS,
+            VALIDATORS_ADDRESS,
+            USER_KEEPER_ADDRESS,
+            INTERNAL_SETTINGS,
+            DP_SETTINGS,
+            VALIDATORS_BALANCES_SETTINGS,
+            DEFAULT_SETTINGS
+          ),
+          "Initializable: contract is already initialized"
+        );
+      });
+    });
+
+    describe("access", () => {
+      it("only owner should call these functions", async () => {
+        await truffleAssert.reverts(
+          settings.addSettings([INTERNAL_SETTINGS], { from: SECOND }),
+          "Ownable: caller is not the owner"
+        );
+
+        await truffleAssert.reverts(
+          settings.editSettings([1], [INTERNAL_SETTINGS], { from: SECOND }),
+          "Ownable: caller is not the owner"
+        );
+
+        await truffleAssert.reverts(
+          settings.changeExecutors([OWNER], [2], { from: SECOND }),
+          "Ownable: caller is not the owner"
+        );
       });
     });
 
@@ -412,31 +449,10 @@ describe("GovSettings", () => {
           executorDescription: "new_settings",
         };
 
-        await settings.editSettings([1, 4], [newSettings1, newSettings1]);
-
-        const internalSettings = await settings.settings(1);
-
-        assert.isFalse(internalSettings.earlyCompletion);
-        assert.isFalse(internalSettings.delegatedVotingAllowed);
-        assert.equal(internalSettings.duration, newSettings1.duration);
-        assert.equal(internalSettings.durationValidators, newSettings1.durationValidators);
-        assert.equal(internalSettings.quorum.toFixed(), newSettings1.quorum);
-        assert.equal(internalSettings.quorumValidators.toFixed(), newSettings1.quorumValidators);
-        assert.equal(internalSettings.minVotesForVoting.toFixed(), newSettings1.minVotesForVoting);
-        assert.equal(internalSettings.minVotesForCreating, newSettings1.minVotesForCreating);
-        assert.equal(internalSettings.executorDescription, newSettings1.executorDescription);
-
-        const newSettings = await settings.settings(5);
-
-        assert.isFalse(newSettings.earlyCompletion);
-        assert.isFalse(newSettings.delegatedVotingAllowed);
-        assert.equal(newSettings.duration, 0);
-        assert.equal(newSettings.durationValidators, 0);
-        assert.equal(newSettings.quorum.toFixed(), 0);
-        assert.equal(newSettings.quorumValidators.toFixed(), 0);
-        assert.equal(newSettings.minVotesForVoting.toFixed(), 0);
-        assert.equal(newSettings.minVotesForCreating, 0);
-        assert.equal(newSettings.executorDescription, "");
+        await truffleAssert.reverts(
+          settings.editSettings([1, 10], [newSettings1, newSettings1]),
+          "GovSettings: settings do not exist"
+        );
       });
     });
 
@@ -452,14 +468,7 @@ describe("GovSettings", () => {
         await settings.changeExecutors([EXECUTOR1, EXECUTOR2], [2, 1]);
 
         assert.equal(await settings.executorToSettings(EXECUTOR1), 2);
-        assert.equal(await settings.executorToSettings(EXECUTOR2), 0);
-      });
-
-      it("should skip adding 'Gov' executor association", async () => {
-        await settings.changeExecutors([EXECUTOR1, OWNER], [2, 4]);
-
-        assert.equal(await settings.executorToSettings(EXECUTOR1), 2);
-        assert.equal((await settings.executorToSettings(EXECUTOR2)).toString(), 0);
+        assert.equal(await settings.executorToSettings(EXECUTOR2), 1);
       });
     });
 

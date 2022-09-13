@@ -288,11 +288,17 @@ describe("BasicTraderPool", () => {
         await truffleAssert.passes(proposalPool.getActiveInvestmentsInfo(NOTHING, 0, 10), "passes");
         await truffleAssert.passes(proposalPool.getUserInvestmentsLimits(NOTHING, [0, 10]), "passes");
         await truffleAssert.passes(proposalPool.getCreationTokens(tokens.WETH.address, wei("10"), 0, []), "passes");
+        await truffleAssert.passes(proposalPool.getCreationTokens(OWNER, wei("10"), 0, []), "passes");
         await truffleAssert.passes(proposalPool.getInvestTokens(1, wei("10")), "passes");
+        await truffleAssert.passes(proposalPool.getInvestTokens(0, wei("10")), "passes");
         await truffleAssert.passes(proposalPool.getInvestmentPercentage(1, NOTHING, wei("10")), "passes");
         await truffleAssert.passes(proposalPool.getDivestAmounts([0, 1], [0, wei("10")]), "passes");
         await truffleAssert.passes(
           proposalPool.getExchangeAmount(1, tokens.MANA.address, wei("1"), [], ExchangeType.TO_EXACT),
+          "passes"
+        );
+        await truffleAssert.passes(
+          proposalPool.getExchangeAmount(0, tokens.MANA.address, wei("1"), [], ExchangeType.FROM_EXACT),
           "passes"
         );
       });
@@ -344,6 +350,23 @@ describe("BasicTraderPool", () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"));
 
         await invest(wei("1000"), OWNER);
+      });
+
+      it("should create empty proposal", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        const divests = await traderPool.getDivestAmountsAndCommissions(OWNER, wei("100"));
+        const creationTokens = await proposalPool.getCreationTokens(
+          tokens.MANA.address,
+          divests.receptions.baseAmount,
+          0,
+          []
+        );
+
+        await createProposal(tokens.MANA.address, wei("100"), [time.plus(100000), wei("10000"), wei("2")], 0);
+        await reinvestProposal(1, await proposalPool.balanceOf(OWNER, 1), OWNER);
+
+        await truffleAssert.passes(proposalPool.getDivestAmounts([1], [0]), "pass");
       });
 
       it("should create a proposal", async () => {

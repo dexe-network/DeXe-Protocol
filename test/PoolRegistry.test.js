@@ -125,6 +125,20 @@ describe("PoolRegistry", () => {
     return traderPool;
   }
 
+  describe("access", () => {
+    it("only factory should call these methods", async () => {
+      await truffleAssert.reverts(
+        poolRegistry.addProxyPool(BASIC_NAME, OWNER),
+        "PoolRegistry: Caller is not a factory"
+      );
+
+      await truffleAssert.reverts(
+        poolRegistry.associateUserWithPool(OWNER, BASIC_NAME, OWNER),
+        "PoolRegistry: Caller is not a factory"
+      );
+    });
+  });
+
   describe("add and list pools", () => {
     let POOL_1;
     let POOL_2;
