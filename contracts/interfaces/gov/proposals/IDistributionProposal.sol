@@ -13,8 +13,6 @@ interface IDistributionProposal {
         mapping(address => bool) claimed;
     }
 
-    event DistributionProposalClaimed(uint256 id, address sender, uint256 amount);
-
     /// @notice Executed by `Gov` contract, open 'claim'
     function execute(
         uint256 proposalId,

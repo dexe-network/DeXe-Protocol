@@ -28,6 +28,9 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     mapping(uint256 => mapping(address => uint256)) public addressVotedInternal; // proposalId => user => voted amount
     mapping(uint256 => mapping(address => uint256)) public addressVotedExternal; // proposalId => user => voted amount
 
+    event Voted(uint256 id, address sender, uint256 vote);
+    event ChangedValidatorsBalances(address[] validators, uint256[] newBalance);
+
     /// @dev Access only for addresses that have validator tokens
     modifier onlyValidatorHolder() {
         require(

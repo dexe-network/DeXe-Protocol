@@ -44,9 +44,6 @@ interface IGovValidators {
         ProposalCore core;
     }
 
-    event Vote(uint256 id, address sender, uint256 vote);
-    event ChangedValidatorsBalances(address[] validators, uint256[] newBalance);
-
     /// @notice Create internal proposal for changing validators balances, base quorum, base duration
     /// @param proposalType `ProposalType`
     /// 0 - `ChangeInternalDuration`, change base duration
