@@ -66,6 +66,15 @@ contract GovPool is
 
     mapping(uint256 => mapping(address => uint256)) public pendingRewards; // proposalId => user => tokens amount
 
+    event ProposalCreated(uint256 proposalId, address sender, uint256 quorum);
+    event Delegated(address to, uint256 amount);
+    event Undelegate(address to, uint256 amount);
+    event Voted(uint256 proposalId, address sender, uint256 personalVote, uint256 delegatedVote);
+    event DPCreated(uint256 proposalId, address sender, address token, uint256 amount);
+    // event ProposalAccepted(uint256 proposalId);
+    event ProposalExecuted(uint256 proposalId, address sender);
+    event RewardClaimed(uint256 proposalId, address sender, address[] tokens, uint256[] amounts);
+
     modifier onlyThis() {
         require(address(this) == msg.sender, "Gov: not this contract");
         _;
