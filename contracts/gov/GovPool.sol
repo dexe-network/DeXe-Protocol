@@ -73,7 +73,12 @@ contract GovPool is
     event DPCreated(uint256 proposalId, address sender, address token, uint256 amount);
     // event ProposalAccepted(uint256 proposalId);
     event ProposalExecuted(uint256 proposalId, address sender);
-    event RewardClaimed(uint256 proposalId, address sender, address[] tokens, uint256[] amounts);
+    event RewardClaimed(
+        uint256[] proposalIds,
+        address sender,
+        address[] tokens,
+        uint256[] amounts
+    );
 
     modifier onlyThis() {
         require(address(this) == msg.sender, "Gov: not this contract");
