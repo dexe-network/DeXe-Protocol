@@ -23,7 +23,7 @@ contract DistributionProposal is IDistributionProposal, Initializable {
 
     mapping(uint256 => IDistributionProposal.DistributionProposalStruct) public proposals;
 
-    event DistributionProposalClaimed(uint256 id, address sender, uint256 amount);
+    event DistributionProposalClaimed(uint256 proposalId, address sender, uint256 amount);
 
     modifier onlyGov() {
         require(msg.sender == govAddress, "DP: not a Gov contract");
