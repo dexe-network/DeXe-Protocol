@@ -383,6 +383,9 @@ describe("TraderPool", () => {
       it("should invest twice", async () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"));
         await invest(wei("500"), OWNER);
+
+        await traderPool.changePoolParameters("example.com", false, wei("10000"), 0);
+
         await invest(wei("500"), OWNER);
 
         assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("1000"));
@@ -940,6 +943,12 @@ describe("TraderPool", () => {
         assert.equal((await tokens.WETH.balanceOf(OWNER)).toFixed(), balance.plus(wei("750")).toFixed());
       });
 
+      it("trader should not divest if positions > 0", async () => {
+        await exchangeFromExact(tokens.WETH.address, tokens.MANA.address, wei("1000"));
+
+        await truffleAssert.reverts(divest(wei("500"), OWNER), "TP: can't divest");
+      });
+
       it("should divest investor with commission", async () => {
         await exchangeFromExact(tokens.WETH.address, tokens.MANA.address, wei("1000"));
 
@@ -1248,10 +1257,6 @@ describe("TraderPool", () => {
         await invest(wei("1000"), SECOND);
       });
 
-      it("should not transfer 0 tokens", async () => {
-        await truffleAssert.reverts(traderPool.transfer(SECOND, 0), "TP: 0 transfer");
-      });
-
       it("should transfer tokens from trader to investor", async () => {
         assert.equal(toBN(await traderPool.balanceOf(OWNER)).toFixed(), wei("1000"));
         assert.equal(toBN(await traderPool.balanceOf(SECOND)).toFixed(), wei("1000"));
@@ -1264,6 +1269,17 @@ describe("TraderPool", () => {
 
       it("should not transfer tokens to not private investor", async () => {
         await truffleAssert.reverts(traderPool.transfer(THIRD, wei("100"), { from: SECOND }), "TP: private pool");
+      });
+
+      it("should not transfer 0 tokens", async () => {
+        await truffleAssert.reverts(traderPool.transfer(SECOND, 0), "TP: 0 transfer");
+      });
+
+      it("should not transfer tokens if total investors > max", async () => {
+        await traderPool.modifyPrivateInvestors([THIRD], true);
+        await coreProperties.setMaximumPoolInvestors(0);
+
+        await truffleAssert.reverts(traderPool.transfer(THIRD, wei("1")), "TP: max investors");
       });
     });
   });

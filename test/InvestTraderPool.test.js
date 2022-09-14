@@ -266,6 +266,75 @@ describe("InvestTraderPool", () => {
       [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);
     });
 
+    describe("access", () => {
+      it("should not initialize twice", async () => {
+        await truffleAssert.reverts(
+          traderPool.__InvestTraderPool_init("Test pool", "TP", POOL_PARAMETERS, OWNER),
+          "Initializable: contract is already initialized"
+        );
+
+        await truffleAssert.reverts(
+          proposalPool.__TraderPoolInvestProposal_init({
+            parentPoolAddress: traderPool.address,
+            trader: POOL_PARAMETERS.trader,
+            baseToken: POOL_PARAMETERS.baseToken,
+            baseTokenDecimals: POOL_PARAMETERS.baseTokenDecimals,
+          }),
+          "Initializable: contract is already initialized"
+        );
+      });
+
+      it("should not set dependencies from non dependant", async () => {
+        await truffleAssert.reverts(traderPool.setDependencies(OWNER), "Dependant: Not an injector");
+      });
+
+      it("only trader admin should call these methods", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        await truffleAssert.reverts(
+          proposalPool.changeProposalRestrictions(1, [time.plus(1000000), wei("1000")], { from: SECOND }),
+          "TPP: not a trader admin"
+        );
+
+        await truffleAssert.reverts(proposalPool.withdraw(1, wei("1"), { from: SECOND }), "TPP: not a trader admin");
+        await truffleAssert.reverts(
+          proposalPool.supply(1, [wei("1")], [OWNER], { from: SECOND }),
+          "TPP: not a trader admin"
+        );
+        await truffleAssert.reverts(
+          proposalPool.convertInvestedBaseToDividends(1, { from: SECOND }),
+          "TPP: not a trader admin"
+        );
+      });
+
+      it("only trader should call these methods", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        await truffleAssert.reverts(
+          traderPool.createProposal("placeholder", wei("100"), [time.plus(100000), wei("10000")], [], { from: SECOND }),
+          "TP: not a trader"
+        );
+      });
+
+      it("only parent pool should call these methods", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        await truffleAssert.reverts(
+          proposalPool.create("placeholder", [time.plus(100000), wei("10000")], wei("100"), wei("100")),
+          "TPP: not a ParentPool"
+        );
+
+        await truffleAssert.reverts(proposalPool.invest(1, OWNER, wei("100"), wei("100")), "TPP: not a ParentPool");
+
+        await truffleAssert.reverts(proposalPool.divest(1, OWNER), "TPP: not a ParentPool");
+      });
+
+      it("only proposal pool should call these methods", async () => {
+        await truffleAssert.reverts(traderPool.checkRemoveInvestor(OWNER), "ITP: not a proposal");
+        await truffleAssert.reverts(traderPool.checkNewInvestor(OWNER), "ITP: not a proposal");
+      });
+    });
+
     describe("proposal getters", () => {
       it("should not fail", async () => {
         await truffleAssert.passes(proposalPool.getBaseToken(), "passes");
@@ -306,6 +375,34 @@ describe("InvestTraderPool", () => {
         await truffleAssert.passes(invest(wei("100"), SECOND), "Invested");
       });
 
+      it("should not invest into closed proposals", async () => {
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await invest(wei("1000"), OWNER);
+
+        await exchangeFromExact(tokens.WETH.address, tokens.USDT.address, wei("100"));
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
+
+        const time = toBN(await getCurrentBlockTime());
+
+        await invest(wei("1000"), SECOND);
+
+        await createProposal(wei("500"), [time.plus(2), wei("5000")]);
+        await createProposal(wei("500"), [time.plus(1000), wei("500")]);
+
+        await truffleAssert.reverts(investProposal(3, wei("100"), SECOND), "TPIP: proposal doesn't exist");
+        await truffleAssert.reverts(investProposal(1, wei("100"), SECOND), "TPIP: proposal is closed");
+        await truffleAssert.reverts(investProposal(2, wei("100"), SECOND), "TPIP: proposal is overinvested");
+      });
+
+      it("should be allowed to invest into proposal with no limits", async () => {
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await invest(wei("1000"), OWNER);
+
+        await createProposal(wei("500"), [0, 0]);
+
+        await truffleAssert.passes(investProposal(1, wei("500"), OWNER), "pass");
+      });
+
       it("should invest after delay", async () => {
         await tokens.WETH.approve(traderPool.address, wei("100"));
 
@@ -337,6 +434,19 @@ describe("InvestTraderPool", () => {
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("900"));
       });
 
+      it("should not create proposals with incorrect data", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        await truffleAssert.reverts(createProposal(wei("100"), [time.minus(1), wei("10000")]), "TPIP: wrong timestamp");
+
+        await truffleAssert.reverts(
+          createProposal(wei("100"), [time.plus(100), wei("10")]),
+          "TPIP: wrong investment limit"
+        );
+
+        await truffleAssert.reverts(createProposal(0, [time.plus(100000), wei("10")], 0, 0), "TPIP: zero investment");
+      });
+
       it("should create 2 proposals", async () => {
         const time = toBN(await getCurrentBlockTime());
 
@@ -365,6 +475,11 @@ describe("InvestTraderPool", () => {
 
         await proposalPool.changeProposalRestrictions(1, [time.plus(1000000), wei("100000")]);
 
+        await truffleAssert.reverts(
+          proposalPool.changeProposalRestrictions(2, [time.plus(1000000), wei("1000")]),
+          "TPIP: proposal doesn't exist"
+        );
+
         info = (await proposalPool.getProposalInfos(0, 1))[0];
 
         assert.equal(info.proposalInfo.proposalLimits.timestampLimit, time.plus(1000000));
@@ -379,6 +494,27 @@ describe("InvestTraderPool", () => {
 
         await tokens.WETH.mint(SECOND, wei("1000"));
         await tokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
+      });
+
+      it("should revert when investing before exchange", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        await createProposal(wei("100"), [time.plus(10000000), wei("10000")]);
+
+        await truffleAssert.reverts(investProposal(1, wei("100"), SECOND), "ITP: investment delay");
+      });
+
+      it("should revert when investing with delay", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        await tokens.WETH.approve(traderPool.address, wei("100"));
+
+        await createProposal(wei("100"), [time.plus(10000000), wei("10000")]);
+        await investProposal(1, wei("100"), OWNER);
+
+        await exchangeToExact(tokens.WETH.address, tokens.USDT.address, wei("100"));
+
+        await truffleAssert.reverts(investProposal(1, wei("100"), SECOND), "ITP: investment delay");
       });
 
       it("should invest into the proposal", async () => {
@@ -500,6 +636,12 @@ describe("InvestTraderPool", () => {
           toBN(wei("0")).toNumber(),
           toBN(wei("1")).toNumber()
         );
+
+        await truffleAssert.reverts(withdrawProposal(1, wei("9000")), "TPIP: withdrawing more than balance");
+      });
+
+      it("should check withdrawal in proposal", async () => {
+        await truffleAssert.reverts(withdrawProposal(2, wei("900")), "TPIP: proposal doesn't exist");
       });
     });
 
@@ -519,6 +661,20 @@ describe("InvestTraderPool", () => {
 
         await tokens.MANA.approve(proposalPool.address, wei("100"));
         await supplyProposal(1, [wei("50"), wei("100")], [tokens.WETH.address, tokens.MANA.address]);
+      });
+
+      it("should check supply in proposal", async () => {
+        await truffleAssert.reverts(
+          supplyProposal(2, [wei("50"), wei("50")], [tokens.WETH.address, tokens.MANA.address]),
+          "TPIP: proposal doesn't exist"
+        );
+
+        await truffleAssert.reverts(
+          supplyProposal(1, [wei("50")], [tokens.WETH.address, tokens.MANA.address]),
+          "TPIP: length mismatch"
+        );
+
+        await truffleAssert.reverts(supplyProposal(1, [0], [tokens.WETH.address]), "TPIP: amount is 0");
       });
     });
 
@@ -699,6 +855,12 @@ describe("InvestTraderPool", () => {
         );
 
         await truffleAssert.reverts(reinvestProposal(1, SECOND), "TPIP: nothing to divest");
+        await truffleAssert.reverts(reinvestProposal(2, SECOND), "TPIP: proposal doesn't exist");
+      });
+
+      it("should check reinvest in proposal", async () => {
+        await truffleAssert.reverts(convertToDividends(2), "TPIP: proposal doesn't exist");
+        await truffleAssert.reverts(reinvestProposal(1, OWNER), "TPIP: nothing to divest");
       });
 
       it("should reinvest huge proposal", async () => {
