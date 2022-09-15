@@ -1,5 +1,5 @@
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
-const { setTime, getCurrentBlockTime } = require("./helpers/hardhatTimeTraveller");
+const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
 const truffleAssert = require("truffle-assertions");
 const {
   SECONDS_IN_DAY,

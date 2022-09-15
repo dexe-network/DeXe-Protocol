@@ -1,6 +1,6 @@
 const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
-const { setTime, getCurrentBlockTime } = require("./helpers/hardhatTimeTraveller");
+const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
 const { PRECISION, ZERO } = require("./utils/constants");
 const truffleAssert = require("truffle-assertions");
 

@@ -2,7 +2,7 @@ const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
 const truffleAssert = require("truffle-assertions");
 const { ZERO, PRECISION } = require("./utils/constants");
-const { getCurrentBlockTime, setTime } = require("./helpers/hardhatTimeTraveller");
+const { getCurrentBlockTime, setTime } = require("./helpers/block-helper");
 
 const GovValidators = artifacts.require("GovValidators");
 const GovValidatorsToken = artifacts.require("GovValidatorsToken");
@@ -129,7 +129,9 @@ describe("GovValidators", () => {
         assert.equal(await validatorsToken.balanceOf(SECOND), wei("100"));
         assert.equal(await validatorsToken.balanceOf(THIRD), wei("200"));
       });
+    });
 
+    describe("access", () => {
       it("should not initialize twice", async () => {
         await truffleAssert.reverts(
           validators.__GovValidators_init(
@@ -143,9 +145,7 @@ describe("GovValidators", () => {
           "Initializable: contract is already initialized"
         );
       });
-    });
 
-    describe("access", () => {
       it("only owner should call these functions", async () => {
         await truffleAssert.reverts(
           validators.changeBalances([100], [SECOND], { from: SECOND }),

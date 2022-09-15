@@ -114,10 +114,10 @@ contract GovPool is
 
         if (executorType == IGovSettings.ExecutorType.INTERNAL) {
             _handleExecutorsAndDataForInternalProposal(executors, values, data);
-        } else if (executorType == IGovSettings.ExecutorType.DISTRIBUTION) {
-            _handleDataForDistributionProposal(executors, values, data);
         } else if (executorType == IGovSettings.ExecutorType.VALIDATORS) {
             _handleDataForValidatorBalanceProposal(executors, values, data);
+        } else if (executorType == IGovSettings.ExecutorType.DISTRIBUTION) {
+            _handleDataForDistributionProposal(values, data);
         } else if (executorType == IGovSettings.ExecutorType.TRUSTED) {
             forceDefaultSettings = _handleDataForExistingSettingsProposal(values, data);
         }
@@ -494,19 +494,59 @@ contract GovPool is
         address[] calldata executors,
         uint256[] calldata values,
         bytes[] calldata data
-    ) private pure {
+    ) private view {
         for (uint256 i; i < data.length; i++) {
             bytes4 selector = data[i].getSelector();
+            (, IGovSettings.ExecutorType executorType) = govSetting.executorInfo(executors[i]);
 
             require(
                 values[i] == 0 &&
-                    executors[executors.length - 1] == executors[i] &&
+                    executorType == IGovSettings.ExecutorType.INTERNAL &&
                     (selector == IGovSettings.addSettings.selector ||
                         selector == IGovSettings.editSettings.selector ||
                         selector == IGovSettings.changeExecutors.selector ||
                         selector == IGovUserKeeper.setERC20Address.selector ||
                         selector == IGovUserKeeper.setERC721Address.selector ||
                         selector == IGovPool.editDescriptionURL.selector),
+                "Gov: invalid internal data"
+            );
+        }
+    }
+
+    function _handleDataForValidatorBalanceProposal(
+        address[] calldata executors,
+        uint256[] calldata values,
+        bytes[] calldata data
+    ) private pure {
+        require(executors.length == 1, "Gov: invalid executors length");
+
+        for (uint256 i; i < data.length; i++) {
+            bytes4 selector = data[i].getSelector();
+
+            require(
+                values[i] == 0 && (selector == IGovValidators.changeBalances.selector),
+                "Gov: invalid internal data"
+            );
+        }
+    }
+
+    function _handleDataForDistributionProposal(uint256[] calldata values, bytes[] calldata data)
+        private
+        view
+    {
+        (uint256 decodedId, , ) = abi.decode(
+            data[data.length - 1][4:],
+            (uint256, address, uint256)
+        );
+
+        require(decodedId == _latestProposalId, "Gov: invalid proposalId");
+
+        for (uint256 i; i < data.length - 1; i++) {
+            bytes4 selector = data[i].getSelector();
+
+            require(
+                values[i] == 0 &&
+                    (selector == IERC20.approve.selector || selector == IERC20.transfer.selector),
                 "Gov: invalid internal data"
             );
         }
@@ -521,59 +561,14 @@ contract GovPool is
 
             if (
                 values[i] != 0 ||
-                (selector != IERC20.approve.selector &&
-                    selector != IERC721.approve.selector &&
-                    selector != IERC721.setApprovalForAll.selector &&
-                    selector != IERC1155.setApprovalForAll.selector)
+                (selector != IERC20.approve.selector && // same as selector != IERC721.approve.selector
+                    selector != IERC721.setApprovalForAll.selector) // same as IERC1155.setApprovalForAll.selector
             ) {
                 return true; // should use default settings
             }
         }
 
         return false;
-    }
-
-    function _handleDataForDistributionProposal(
-        address[] calldata executors,
-        uint256[] calldata values,
-        bytes[] calldata data
-    ) private view {
-        (uint256 decodedId, , ) = abi.decode(
-            data[data.length - 1][4:],
-            (uint256, address, uint256)
-        );
-
-        require(decodedId == _latestProposalId, "Gov: invalid proposalId");
-        require(distributionProposal == executors[executors.length - 1], "Gov: invalid executor");
-
-        for (uint256 i; i < data.length - 1; i++) {
-            bytes4 selector = data[i].getSelector();
-
-            require(
-                values[i] == 0 &&
-                    (selector == IERC20.approve.selector ||
-                        selector == IERC20.transfer.selector ||
-                        selector == IERC20.transferFrom.selector),
-                "Gov: invalid internal data"
-            );
-        }
-    }
-
-    function _handleDataForValidatorBalanceProposal(
-        address[] calldata executors,
-        uint256[] calldata values,
-        bytes[] calldata data
-    ) private pure {
-        for (uint256 i; i < data.length; i++) {
-            bytes4 selector = data[i].getSelector();
-
-            require(
-                values[i] == 0 &&
-                    executors[executors.length - 1] == executors[i] &&
-                    (selector == IGovValidators.changeBalances.selector),
-                "Gov: invalid internal data"
-            );
-        }
     }
 
     function _voteTokens(
@@ -682,10 +677,6 @@ contract GovPool is
                         return ProposalState.WaitingForVotingTransfer;
                     }
 
-                    if (status == IGovValidators.ProposalState.Voting) {
-                        return ProposalState.ValidatorVoting;
-                    }
-
                     if (status == IGovValidators.ProposalState.Succeeded) {
                         return ProposalState.Succeeded;
                     }
@@ -693,6 +684,8 @@ contract GovPool is
                     if (status == IGovValidators.ProposalState.Defeated) {
                         return ProposalState.Defeated;
                     }
+
+                    return ProposalState.ValidatorVoting;
                 } else {
                     return ProposalState.Succeeded;
                 }
@@ -707,12 +700,9 @@ contract GovPool is
     }
 
     function _quorumReached(ProposalCore storage core) private view returns (bool) {
-        uint256 totalVoteWeight = govUserKeeper.getTotalVoteWeight();
-
         return
-            totalVoteWeight == 0
-                ? false
-                : PERCENTAGE_100.ratio(core.votesFor, totalVoteWeight) >= core.settings.quorum;
+            PERCENTAGE_100.ratio(core.votesFor, govUserKeeper.getTotalVoteWeight()) >=
+            core.settings.quorum;
     }
 
     function _updateRewards(

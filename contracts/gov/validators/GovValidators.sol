@@ -232,7 +232,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
                 : externalProposals[proposalId].core.voteEnd != 0;
     }
 
-    function changeBalances(uint256[] memory newValues, address[] memory userAddresses)
+    function changeBalances(uint256[] calldata newValues, address[] calldata userAddresses)
         external
         override
         onlyOwner

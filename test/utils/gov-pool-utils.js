@@ -2,6 +2,82 @@ const getBytesExecute = () => {
   return web3.eth.abi.encodeFunctionSignature("execute()");
 };
 
+const getBytesApprove = (address, amount) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      name: "approve",
+      type: "function",
+      inputs: [
+        {
+          type: "address",
+          name: "spender",
+        },
+        {
+          type: "uint256",
+          name: "amount",
+        },
+      ],
+    },
+    [address, amount]
+  );
+};
+
+const getBytesApproveAll = (address, action) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      name: "setApprovalForAll",
+      type: "function",
+      inputs: [
+        {
+          type: "address",
+          name: "operator",
+        },
+        {
+          type: "bool",
+          name: "approved",
+        },
+      ],
+    },
+    [address, action]
+  );
+};
+
+const getBytesTransfer = (address, amount) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      name: "transfer",
+      type: "function",
+      inputs: [
+        {
+          type: "address",
+          name: "to",
+        },
+        {
+          type: "uint256",
+          name: "amount",
+        },
+      ],
+    },
+    [address, amount]
+  );
+};
+
+const getBytesEditUrl = (url) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      name: "editDescriptionURL",
+      type: "function",
+      inputs: [
+        {
+          name: "newDescriptionURL",
+          type: "string",
+        },
+      ],
+    },
+    [url]
+  );
+};
+
 const getBytesDistributionProposal = (proposalId, token, amount) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -31,19 +107,63 @@ const getBytesDistributionProposal = (proposalId, token, amount) => {
   );
 };
 
-const getBytesEditUrl = (url) => {
+const getBytesChangeBalances = (newValues, addresses) => {
   return web3.eth.abi.encodeFunctionCall(
     {
-      name: "editDescriptionURL",
+      name: "changeBalances",
       type: "function",
       inputs: [
         {
-          name: "newDescriptionURL",
-          type: "string",
+          name: "newValues",
+          type: "uint256[]",
+        },
+        {
+          name: "userAddresses",
+          type: "address[]",
         },
       ],
     },
-    [url]
+    [newValues, addresses]
+  );
+};
+
+const getBytesSetERC20Address = (address) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      name: "setERC20Address",
+      type: "function",
+      inputs: [
+        {
+          name: "_tokenAddress",
+          type: "address",
+        },
+      ],
+    },
+    [address]
+  );
+};
+
+const getBytesSetERC721Address = (address, totalPowerInTokens, nftsTotalSupply) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      name: "setERC721Address",
+      type: "function",
+      inputs: [
+        {
+          name: "_nftAddress",
+          type: "address",
+        },
+        {
+          name: "totalPowerInTokens",
+          type: "uint256",
+        },
+        {
+          name: "nftsTotalSupply",
+          type: "uint256",
+        },
+      ],
+    },
+    [address, totalPowerInTokens, nftsTotalSupply]
   );
 };
 
@@ -219,32 +339,17 @@ const getBytesChangeExecutors = (executors, ids) => {
   );
 };
 
-const getBytesApprove = (address, amount) => {
-  return web3.eth.abi.encodeFunctionCall(
-    {
-      name: "approve",
-      type: "function",
-      inputs: [
-        {
-          type: "address",
-          name: "spender",
-        },
-        {
-          type: "uint256",
-          name: "amount",
-        },
-      ],
-    },
-    [address, amount]
-  );
-};
-
 module.exports = {
   getBytesExecute,
-  getBytesDistributionProposal,
+  getBytesApprove,
+  getBytesApproveAll,
+  getBytesTransfer,
   getBytesEditUrl,
+  getBytesDistributionProposal,
+  getBytesChangeBalances,
+  getBytesSetERC20Address,
+  getBytesSetERC721Address,
   getBytesAddSettings,
   getBytesEditSettings,
   getBytesChangeExecutors,
-  getBytesApprove,
 };

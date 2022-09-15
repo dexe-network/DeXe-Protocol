@@ -7,7 +7,7 @@ const {
   DEFAULT_CORE_PROPERTIES,
 } = require("./utils/constants");
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
-const { setTime, getCurrentBlockTime } = require("./helpers/hardhatTimeTraveller");
+const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
 const truffleAssert = require("truffle-assertions");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");

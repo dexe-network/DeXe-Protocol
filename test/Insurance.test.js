@@ -1,7 +1,7 @@
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
 const truffleAssert = require("truffle-assertions");
 const { SECONDS_IN_DAY, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
-const { setTime, getCurrentBlockTime } = require("./helpers/hardhatTimeTraveller");
+const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const Insurance = artifacts.require("Insurance");

@@ -196,7 +196,9 @@ describe("GovSettings", () => {
 
         assert.equal(await settings.executorToSettings(settings.address), 1);
       });
+    });
 
+    describe("access", () => {
       it("should not initialize twice", async () => {
         await truffleAssert.reverts(
           settings.__GovSettings_init(
@@ -212,9 +214,7 @@ describe("GovSettings", () => {
           "Initializable: contract is already initialized"
         );
       });
-    });
 
-    describe("access", () => {
       it("only owner should call these functions", async () => {
         await truffleAssert.reverts(
           settings.addSettings([INTERNAL_SETTINGS], { from: SECOND }),

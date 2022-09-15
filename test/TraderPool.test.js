@@ -1,6 +1,6 @@
 const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
-const { setTime, getCurrentBlockTime } = require("./helpers/hardhatTimeTraveller");
+const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
 const truffleAssert = require("truffle-assertions");
 const {
   SECONDS_IN_MONTH,
@@ -17,6 +17,7 @@ const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeedMock = artifacts.require("PriceFeedMock");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const PoolRegistry = artifacts.require("PoolRegistry");
+const BundleMock = artifacts.require("BundleMock");
 const TraderPoolMock = artifacts.require("TraderPoolMock");
 const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
 const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
@@ -31,6 +32,7 @@ CoreProperties.numberFormat = "BigNumber";
 PriceFeedMock.numberFormat = "BigNumber";
 UniswapV2RouterMock.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
+BundleMock.numberFormat = "BigNumber";
 TraderPoolMock.numberFormat = "BigNumber";
 
 describe("TraderPool", () => {
@@ -968,6 +970,17 @@ describe("TraderPool", () => {
         );
         assert.equal((await tokens.WETH.balanceOf(SECOND)).toFixed(), wei("1250"));
         assert.equal((await traderPool.investorsInfo(SECOND)).investedBase.toFixed(), "0");
+      });
+
+      it("should not divest in the same block", async () => {
+        const bundle = await BundleMock.new();
+
+        await tokens.WETH.transfer(bundle.address, wei("100"));
+
+        await truffleAssert.reverts(
+          bundle.investDivest(traderPool.address, tokens.WETH.address, wei("10")),
+          "TP: wrong amount"
+        );
       });
 
       it("should divest investor without commission", async () => {
