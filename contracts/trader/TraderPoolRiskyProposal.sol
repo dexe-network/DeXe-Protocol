@@ -139,8 +139,8 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 minPositionOut,
         address[] calldata optionalPath
     ) external override onlyParentTraderPool returns (uint256 proposalId) {
-        require(token.isContract(), "BTP: not a contract");
-        require(token != _parentTraderPoolInfo.baseToken, "BTP: wrong proposal token");
+        require(token.isContract(), "TPRP: not a contract");
+        require(token != _parentTraderPoolInfo.baseToken, "TPRP: wrong proposal token");
         require(
             proposalLimits.timestampLimit == 0 || proposalLimits.timestampLimit >= block.timestamp,
             "TPRP: wrong timestamp"

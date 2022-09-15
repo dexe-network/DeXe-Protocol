@@ -1,6 +1,13 @@
 const { assert } = require("chai");
+const {
+  SECONDS_IN_MONTH,
+  PRECISION,
+  ExchangeType,
+  ComissionPeriods,
+  DEFAULT_CORE_PROPERTIES,
+} = require("./utils/constants");
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
-const { setTime, getCurrentBlockTime } = require("./helpers/hardhatTimeTraveller");
+const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
 const truffleAssert = require("truffle-assertions");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -28,45 +35,6 @@ UniswapV2RouterMock.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
 BasicTraderPool.numberFormat = "BigNumber";
 PoolProposal.numberFormat = "BigNumber";
-
-const SECONDS_IN_DAY = 86400;
-const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
-const PRECISION = toBN(10).pow(25);
-const DECIMAL = toBN(10).pow(18);
-
-const ExchangeType = {
-  FROM_EXACT: 0,
-  TO_EXACT: 1,
-};
-
-const ComissionPeriods = {
-  PERIOD_1: 0,
-  PERIOD_2: 1,
-  PERIOD_3: 2,
-};
-
-const DEFAULT_CORE_PROPERTIES = {
-  maxPoolInvestors: 1000,
-  maxOpenPositions: 25,
-  leverageThreshold: 2500,
-  leverageSlope: 5,
-  commissionInitTimestamp: 0,
-  commissionDurations: [SECONDS_IN_MONTH, SECONDS_IN_MONTH * 3, SECONDS_IN_MONTH * 12],
-  dexeCommissionPercentage: PRECISION.times(30).toFixed(),
-  dexeCommissionDistributionPercentages: [
-    PRECISION.times(33).toFixed(),
-    PRECISION.times(33).toFixed(),
-    PRECISION.times(33).toFixed(),
-  ],
-  minTraderCommission: PRECISION.times(20).toFixed(),
-  maxTraderCommissions: [PRECISION.times(30).toFixed(), PRECISION.times(50).toFixed(), PRECISION.times(70).toFixed()],
-  delayForRiskyPool: SECONDS_IN_DAY * 20,
-  insuranceFactor: 10,
-  maxInsurancePoolShare: 3,
-  minInsuranceDeposit: DECIMAL.times(10).toFixed(),
-  minInsuranceProposalAmount: DECIMAL.times(100).toFixed(),
-  insuranceWithdrawalLock: SECONDS_IN_DAY,
-};
 
 describe("BasicTraderPool", () => {
   let OWNER;
@@ -311,6 +279,98 @@ describe("BasicTraderPool", () => {
       [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);
     });
 
+    describe("access", () => {
+      it("should not initialize twice", async () => {
+        await truffleAssert.reverts(
+          traderPool.__BasicTraderPool_init("Test pool", "TP", POOL_PARAMETERS, OWNER),
+          "Initializable: contract is already initialized"
+        );
+
+        await truffleAssert.reverts(
+          proposalPool.__TraderPoolProposal_init({
+            parentPoolAddress: traderPool.address,
+            trader: POOL_PARAMETERS.trader,
+            baseToken: POOL_PARAMETERS.baseToken,
+            baseTokenDecimals: POOL_PARAMETERS.baseTokenDecimals,
+          }),
+          "Initializable: contract is not initializing"
+        );
+
+        await truffleAssert.reverts(
+          proposalPool.__TraderPoolRiskyProposal_init({
+            parentPoolAddress: traderPool.address,
+            trader: POOL_PARAMETERS.trader,
+            baseToken: POOL_PARAMETERS.baseToken,
+            baseTokenDecimals: POOL_PARAMETERS.baseTokenDecimals,
+          }),
+          "Initializable: contract is already initialized"
+        );
+      });
+
+      it("should not set dependencies from non dependant", async () => {
+        await truffleAssert.reverts(traderPool.setDependencies(OWNER), "Dependant: Not an injector");
+        await truffleAssert.reverts(proposalPool.setDependencies(OWNER), "Dependant: Not an injector");
+      });
+
+      it("only trader admin should call these methods", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        await truffleAssert.reverts(
+          proposalPool.changeProposalRestrictions(1, [time.plus(1000000), wei("1000"), wei("10")], { from: SECOND }),
+          "TPP: not a trader admin"
+        );
+
+        await truffleAssert.reverts(
+          proposalPool.exchange(1, tokens.WETH.address, wei("1"), 0, [], ExchangeType.FROM_EXACT, { from: SECOND }),
+          "TPP: not a trader admin"
+        );
+      });
+
+      it("only parent pool should call these methods", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        await truffleAssert.reverts(
+          proposalPool.create(
+            tokens.MANA.address,
+            [time.plus(100000), wei("10000"), wei("2")],
+            wei("100"),
+            wei("100"),
+            0,
+            0,
+            []
+          ),
+          "TPP: not a ParentPool"
+        );
+
+        await truffleAssert.reverts(proposalPool.invest(1, OWNER, wei("100"), wei("100"), 0), "TPP: not a ParentPool");
+
+        await truffleAssert.reverts(proposalPool.divest(1, OWNER, wei("100"), 0), "TPP: not a ParentPool");
+      });
+
+      it("only trader should call these methods", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        await truffleAssert.reverts(
+          traderPool.createProposal(
+            tokens.MANA.address,
+            wei("100"),
+            [time.plus(100000), wei("10000"), wei("2")],
+            0,
+            [],
+            0,
+            [],
+            { from: SECOND }
+          ),
+          "TP: not a trader"
+        );
+      });
+
+      it("only proposal pool should call these methods", async () => {
+        await truffleAssert.reverts(traderPool.checkRemoveInvestor(OWNER), "BTP: not a proposal");
+        await truffleAssert.reverts(traderPool.checkNewInvestor(OWNER), "BTP: not a proposal");
+      });
+    });
+
     describe("proposal getters", () => {
       it("should not fail", async () => {
         await truffleAssert.passes(proposalPool.getBaseToken(), "passes");
@@ -320,11 +380,17 @@ describe("BasicTraderPool", () => {
         await truffleAssert.passes(proposalPool.getActiveInvestmentsInfo(NOTHING, 0, 10), "passes");
         await truffleAssert.passes(proposalPool.getUserInvestmentsLimits(NOTHING, [0, 10]), "passes");
         await truffleAssert.passes(proposalPool.getCreationTokens(tokens.WETH.address, wei("10"), 0, []), "passes");
+        await truffleAssert.passes(proposalPool.getCreationTokens(OWNER, wei("10"), 0, []), "passes");
         await truffleAssert.passes(proposalPool.getInvestTokens(1, wei("10")), "passes");
+        await truffleAssert.passes(proposalPool.getInvestTokens(0, wei("10")), "passes");
         await truffleAssert.passes(proposalPool.getInvestmentPercentage(1, NOTHING, wei("10")), "passes");
         await truffleAssert.passes(proposalPool.getDivestAmounts([0, 1], [0, wei("10")]), "passes");
         await truffleAssert.passes(
           proposalPool.getExchangeAmount(1, tokens.MANA.address, wei("1"), [], ExchangeType.TO_EXACT),
+          "passes"
+        );
+        await truffleAssert.passes(
+          proposalPool.getExchangeAmount(0, tokens.MANA.address, wei("1"), [], ExchangeType.FROM_EXACT),
           "passes"
         );
       });
@@ -376,6 +442,44 @@ describe("BasicTraderPool", () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"));
 
         await invest(wei("1000"), OWNER);
+      });
+
+      it("should create empty proposal", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        await createProposal(tokens.MANA.address, wei("100"), [time.plus(100000), wei("10000"), wei("2")], 0);
+        await reinvestProposal(1, await proposalPool.balanceOf(OWNER, 1), OWNER);
+
+        await truffleAssert.passes(proposalPool.getDivestAmounts([1], [0]), "pass");
+      });
+
+      it("should not create proposals with incorrect data", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        await truffleAssert.reverts(
+          createProposal(OWNER, wei("100"), [time.plus(100000), wei("10000"), wei("2")], 0),
+          "TPRP: not a contract"
+        );
+
+        await truffleAssert.reverts(
+          createProposal(tokens.MANA.address, wei("100"), [time.minus(1), wei("10000"), wei("2")], 0),
+          "TPRP: wrong timestamp"
+        );
+
+        await truffleAssert.reverts(
+          createProposal(tokens.MANA.address, wei("100"), [time.plus(100), wei("10"), wei("2")], 0),
+          "TPRP: wrong investment limit"
+        );
+
+        await truffleAssert.reverts(
+          createProposal(tokens.MANA.address, 0, [time.plus(100000), wei("10"), wei("2")], 0),
+          "TPRP: zero investment"
+        );
+
+        await truffleAssert.reverts(
+          createProposal(tokens.MANA.address, wei("1"), [time.plus(100000), wei("10"), wei("2")], wei(wei("10"))),
+          "TPRP: percantage is bigger than 100"
+        );
       });
 
       it("should create a proposal", async () => {
@@ -468,7 +572,7 @@ describe("BasicTraderPool", () => {
 
         await truffleAssert.reverts(
           createProposal(tokens.WETH.address, wei("100"), [time.plus(1000), wei("1000"), wei("2")], 0),
-          "BTP: wrong proposal token"
+          "TPRP: wrong proposal token"
         );
 
         assert.equal((await proposalPool.proposalsTotalNum()).toFixed(), "2");
@@ -486,6 +590,11 @@ describe("BasicTraderPool", () => {
 
         await proposalPool.changeProposalRestrictions(1, [time.plus(1000000), wei("1000"), wei("10")]);
 
+        await truffleAssert.reverts(
+          proposalPool.changeProposalRestrictions(2, [time.plus(1000000), wei("1000"), wei("10")]),
+          "TPRP: proposal doesn't exist"
+        );
+
         info = (await proposalPool.getProposalInfos(0, 1))[0];
 
         assert.equal(info.proposalInfo.proposalLimits.timestampLimit, time.plus(1000000));
@@ -501,6 +610,19 @@ describe("BasicTraderPool", () => {
 
         await tokens.WETH.mint(SECOND, wei("1000"));
         await tokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
+      });
+
+      it("should not invest into closed proposals", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        await invest(wei("1000"), SECOND);
+
+        await createProposal(tokens.MANA.address, wei("500"), [time.plus(2), wei("5000"), wei("1.5")], 0);
+        await createProposal(tokens.MANA.address, wei("500"), [time.plus(1000), wei("500"), wei("1.5")], 0);
+
+        await truffleAssert.reverts(investProposal(3, wei("100"), SECOND), "TPRP: proposal doesn't exist");
+        await truffleAssert.reverts(investProposal(1, wei("100"), SECOND), "TPRP: proposal is closed");
+        await truffleAssert.reverts(investProposal(2, wei("100"), SECOND), "TPRP: proposal is overinvested");
       });
 
       it("should invest into proposal", async () => {
@@ -599,6 +721,12 @@ describe("BasicTraderPool", () => {
           toBN(wei("300")).toNumber(),
           toBN(wei("1")).toNumber()
         );
+      });
+
+      it("should be allowed to invest into proposal with no limits", async () => {
+        await createProposal(tokens.MANA.address, wei("500"), [0, 0, 0], 0);
+
+        await truffleAssert.passes(investProposal(1, wei("500"), OWNER), "pass");
       });
 
       it("trader should divest and then invest into the proposal", async () => {
@@ -737,6 +865,22 @@ describe("BasicTraderPool", () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
       });
 
+      it("should not divest with wrong params", async () => {
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(
+          tokens.WBTC.address,
+          wei("500"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          PRECISION.times(50)
+        );
+
+        await invest(wei("1000"), SECOND);
+        await investProposal(1, wei("500"), SECOND);
+
+        await truffleAssert.reverts(reinvestProposal(2, wei("250"), OWNER), "TPRP: proposal doesn't exist");
+        await truffleAssert.reverts(reinvestProposal(1, wei("1000"), SECOND), "TPRP: divesting more than balance");
+      });
+
       it("should create and then divest from proposal", async () => {
         assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("1000"));
 
@@ -783,6 +927,8 @@ describe("BasicTraderPool", () => {
 
         await invest(wei("1000"), SECOND);
         await investProposal(1, wei("100"), SECOND);
+
+        await truffleAssert.reverts(reinvestProposal(1, wei("100"), OWNER), "TPRP: divesting with open position");
 
         assert.closeTo(
           (await proposalPool.balanceOf(SECOND, 1)).toNumber(),
@@ -939,6 +1085,36 @@ describe("BasicTraderPool", () => {
         await invest(wei("1000"), OWNER);
       });
 
+      it("should not exchange with wrong params", async () => {
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(tokens.MANA.address, wei("500"), [time.plus(100000), wei("10000"), wei("2")], 0);
+
+        await truffleAssert.reverts(
+          exchangeFromExactProposal(2, tokens.WETH.address, wei("250")),
+          "TPRP: proposal doesn't exist"
+        );
+
+        await truffleAssert.reverts(
+          exchangeFromExactProposal(1, tokens.WETH.address, wei("1000")),
+          "TPRP: wrong base amount"
+        );
+
+        await truffleAssert.reverts(
+          exchangeFromExactProposal(1, tokens.MANA.address, wei("1000")),
+          "TPRP: wrong position amount"
+        );
+
+        await truffleAssert.reverts(
+          exchangeToExactProposal(1, tokens.WETH.address, wei("1000")),
+          "TPRP: wrong base amount"
+        );
+
+        await truffleAssert.reverts(
+          exchangeToExactProposal(1, tokens.MANA.address, wei("1000")),
+          "TPRP: wrong position amount"
+        );
+      });
+
       it("should exchange from exact in proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
         await createProposal(tokens.MANA.address, wei("500"), [time.plus(100000), wei("10000"), wei("2")], 0);
@@ -1018,6 +1194,27 @@ describe("BasicTraderPool", () => {
         );
       });
 
+      it("should exchange half position", async () => {
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(tokens.MANA.address, wei("500"), [time.plus(100000), wei("10000"), wei("2")], 0);
+
+        await exchangeToExactProposal(1, tokens.WETH.address, wei("250"));
+        await exchangeToExactProposal(1, tokens.MANA.address, wei("125"));
+
+        proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
+
+        assert.closeTo(
+          toBN(proposalInfo.balanceBase).toNumber(),
+          toBN(wei("375")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+        assert.closeTo(
+          toBN(proposalInfo.balancePosition).toNumber(),
+          toBN(wei("125")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+      });
+
       it("should exchange to exact from proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
         await createProposal(
@@ -1084,6 +1281,10 @@ describe("BasicTraderPool", () => {
 
         await invest(wei("500"), SECOND);
         await investProposal(1, wei("500"), SECOND);
+      });
+
+      it("should not transfer 0 tokens", async () => {
+        await truffleAssert.reverts(proposalPool.safeTransferFrom(OWNER, SECOND, 1, 0, []), "TPP: 0 transfer");
       });
 
       it("should add new investor through transfer", async () => {

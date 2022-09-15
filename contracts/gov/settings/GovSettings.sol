@@ -23,10 +23,10 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         address distributionProposalAddress,
         address validatorsAddress,
         address govUserKeeperAddress,
-        ProposalSettings calldata internalProposalSetting,
+        ProposalSettings calldata internalProposalSettings,
         ProposalSettings calldata distributionProposalSettings,
         ProposalSettings calldata validatorsBalancesSettings,
-        ProposalSettings calldata defaultProposalSetting
+        ProposalSettings calldata defaultProposalSettings
     ) external initializer {
         __Ownable_init();
 
@@ -36,14 +36,15 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
             "GovSettings: invalid distribution settings"
         );
 
-        _validateProposalSettings(internalProposalSetting);
+        _validateProposalSettings(internalProposalSettings);
         _validateProposalSettings(distributionProposalSettings);
-        _validateProposalSettings(defaultProposalSetting);
+        _validateProposalSettings(validatorsBalancesSettings);
+        _validateProposalSettings(defaultProposalSettings);
 
-        settings[_INTERNAL_SETTINGS_ID] = internalProposalSetting;
+        settings[_INTERNAL_SETTINGS_ID] = internalProposalSettings;
         settings[_DISTRIBUTION_PROPOSAL_SETTINGS_ID] = distributionProposalSettings;
         settings[_VALIDATORS_BALANCES_ID] = validatorsBalancesSettings;
-        settings[_DEFAULT_SETTINGS_ID] = defaultProposalSetting;
+        settings[_DEFAULT_SETTINGS_ID] = defaultProposalSettings;
 
         executorToSettings[address(this)] = _INTERNAL_SETTINGS_ID;
         executorToSettings[distributionProposalAddress] = _DISTRIBUTION_PROPOSAL_SETTINGS_ID;
@@ -72,9 +73,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         onlyOwner
     {
         for (uint256 i; i < _settings.length; i++) {
-            if (!_settingsExist(settingsIds[i])) {
-                continue;
-            }
+            require(_settingsExist(settingsIds[i]), "GovSettings: settings do not exist");
 
             _validateProposalSettings(_settings[i]);
 
@@ -88,10 +87,6 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         onlyOwner
     {
         for (uint256 i; i < executors.length; i++) {
-            if (settingsIds[i] == _INTERNAL_SETTINGS_ID || executors[i] == address(this)) {
-                continue;
-            }
-
             executorToSettings[executors[i]] = settingsIds[i];
         }
     }
@@ -124,10 +119,8 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
             return (settingsId, ExecutorType.DISTRIBUTION);
         } else if (settingsId == _VALIDATORS_BALANCES_ID) {
             return (settingsId, ExecutorType.VALIDATORS);
-        } else if (_settingsExist(settingsId)) {
-            return (settingsId, ExecutorType.TRUSTED);
         } else {
-            return (settingsId, ExecutorType.NONE);
+            return (settingsId, ExecutorType.TRUSTED);
         }
     }
 

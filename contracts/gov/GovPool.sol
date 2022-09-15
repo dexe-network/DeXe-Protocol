@@ -12,12 +12,15 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgra
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 
 import "@dlsl/dev-modules/libs/arrays/ArrayHelper.sol";
+import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
 
 import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
 import "../interfaces/gov/IGovPool.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
+import "../interfaces/core/IContractsRegistry.sol";
+import "../interfaces/core/ICoreProperties.sol";
 
 import "../libs/gov-user-keeper/GovUserKeeperLocal.sol";
 import "../libs/math/MathHelper.sol";
@@ -28,7 +31,7 @@ import "../core/Globals.sol";
 
 contract GovPool is
     IGovPool,
-    OwnableUpgradeable,
+    AbstractDependant,
     ERC721HolderUpgradeable,
     ERC1155HolderUpgradeable
 {
@@ -49,21 +52,16 @@ contract GovPool is
     IGovValidators public govValidators;
     address public distributionProposal;
 
+    ICoreProperties internal _coreProperties;
+
     string public descriptionURL;
 
     uint256 internal _latestProposalId;
-    uint64 internal _deployedAt;
 
     mapping(uint256 => Proposal) public proposals; // proposalId => info
 
-    uint256 public votesLimit;
-    uint256 public feePercentage;
-
-    mapping(uint256 => uint256) internal _totalVotedInProposal; // proposalId => total voted
     mapping(uint256 => mapping(address => mapping(bool => VoteInfo))) internal _voteInfos; // proposalId => voter => isMicropool => info
     mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
-
-    mapping(address => uint64) public lastFeeWithdrawal; // token address => last fee withdrawal timestamp
 
     mapping(uint256 => mapping(address => uint256)) public pendingRewards; // proposalId => user => tokens amount
 
@@ -77,30 +75,20 @@ contract GovPool is
         address govUserKeeperAddress,
         address distributionProposalAddress,
         address validatorsAddress,
-        uint256 _votesLimit,
-        uint256 _feePercentage,
         string calldata _descriptionURL
     ) external initializer {
-        __ERC721Holder_init();
-        __ERC1155Holder_init();
-        __Ownable_init();
-
-        require(govSettingAddress != address(0), "Gov: address is zero (1)");
-        require(govUserKeeperAddress != address(0), "Gov: address is zero (2)");
-        require(_votesLimit > 0, "Gov: votes limit is zero");
-        require(_feePercentage <= PERCENTAGE_100, "Gov: feePercentage can't be more than 100%");
-
         govSetting = IGovSettings(govSettingAddress);
         govUserKeeper = IGovUserKeeper(govUserKeeperAddress);
         govValidators = IGovValidators(validatorsAddress);
         distributionProposal = distributionProposalAddress;
 
         descriptionURL = _descriptionURL;
+    }
 
-        _deployedAt = uint64(block.timestamp);
+    function setDependencies(address contractsRegistry) public virtual override dependant {
+        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
-        votesLimit = _votesLimit;
-        feePercentage = _feePercentage;
+        _coreProperties = ICoreProperties(registry.getCorePropertiesContract());
     }
 
     function createProposal(
@@ -126,10 +114,10 @@ contract GovPool is
 
         if (executorType == IGovSettings.ExecutorType.INTERNAL) {
             _handleExecutorsAndDataForInternalProposal(executors, values, data);
-        } else if (executorType == IGovSettings.ExecutorType.DISTRIBUTION) {
-            _handleDataForDistributionProposal(executors, values, data);
         } else if (executorType == IGovSettings.ExecutorType.VALIDATORS) {
             _handleDataForValidatorBalanceProposal(executors, values, data);
+        } else if (executorType == IGovSettings.ExecutorType.DISTRIBUTION) {
+            _handleDataForDistributionProposal(values, data);
         } else if (executorType == IGovSettings.ExecutorType.TRUSTED) {
             forceDefaultSettings = _handleDataForExistingSettingsProposal(values, data);
         }
@@ -140,15 +128,17 @@ contract GovPool is
             settings = govSetting.getSettings(mainExecutor);
         }
 
+        uint256 nftSnapshot = govUserKeeper.createNftPowerSnapshot();
+
         require(
             govUserKeeper.canParticipate(
                 msg.sender,
                 false,
                 !settings.delegatedVotingAllowed,
-                1,
-                1
+                settings.minVotesForCreating,
+                nftSnapshot
             ),
-            "Gov: low balance"
+            "Gov: low voting power"
         );
 
         proposals[proposalId] = Proposal({
@@ -157,7 +147,7 @@ contract GovPool is
                 executed: false,
                 voteEnd: uint64(block.timestamp + settings.duration),
                 votesFor: 0,
-                nftPowerSnapshotId: govUserKeeper.createNftPowerSnapshot(),
+                nftPowerSnapshotId: nftSnapshot,
                 proposalId: proposalId
             }),
             descriptionURL: _descriptionURL,
@@ -166,7 +156,7 @@ contract GovPool is
             data: data
         });
 
-        pendingRewards[proposalId][msg.sender] = settings.creationRewards;
+        _updateRewards(proposalId, settings.creationReward, PRECISION);
     }
 
     function vote(
@@ -305,28 +295,8 @@ contract GovPool is
     }
 
     function execute(uint256 proposalId) public override {
-        Proposal storage proposal = proposals[proposalId];
-
-        require(
-            _getProposalState(proposal.core) == ProposalState.Succeeded,
-            "Gov: invalid status"
-        );
-
-        proposal.core.executed = true;
-
-        address[] memory executors = proposal.executors;
-        uint256[] memory values = proposal.values;
-        bytes[] memory data = proposal.data;
-
-        for (uint256 i; i < data.length; i++) {
-            (bool status, bytes memory returnedData) = executors[i].call{value: values[i]}(
-                data[i]
-            );
-
-            require(status, returnedData.getRevertMsg());
-        }
-
-        pendingRewards[proposalId][msg.sender] += proposal.core.settings.executionReward;
+        _execute(proposalId);
+        _payCommission(proposalId);
     }
 
     function moveProposalToValidators(uint256 proposalId) external override {
@@ -342,7 +312,7 @@ contract GovPool is
         );
     }
 
-    function claimReward(uint256[] calldata proposalIds) external override {
+    function claimRewards(uint256[] calldata proposalIds) external override {
         for (uint256 i; i < proposalIds.length; i++) {
             _claimReward(proposalIds[i]);
         }
@@ -357,37 +327,7 @@ contract GovPool is
         descriptionURL = newDescriptionURL;
     }
 
-    function setNewFee(uint256 newFeePercentage) external override onlyThis {
-        feePercentage = newFeePercentage;
-    }
-
     receive() external payable {}
-
-    function withdrawFee(address tokenAddress, address recipient) external override onlyOwner {
-        uint64 _lastFeeWithdrawal = uint64(lastFeeWithdrawal[tokenAddress].max(_deployedAt));
-
-        lastFeeWithdrawal[tokenAddress] = uint64(block.timestamp);
-
-        uint256 balance;
-        uint256 toWithdraw;
-
-        if (tokenAddress != address(0)) {
-            balance = tokenAddress.thisBalance();
-        } else {
-            balance = address(this).balance;
-        }
-
-        uint256 fee = feePercentage.ratio(block.timestamp - _lastFeeWithdrawal, YEAR);
-        toWithdraw = balance.min(balance.percentage(fee));
-
-        require(toWithdraw > 0, "Gov: no fee");
-
-        if (tokenAddress != address(0)) {
-            IERC20(tokenAddress).safeTransfer(recipient, toWithdraw);
-        } else {
-            _sendEthViaCall(recipient, toWithdraw);
-        }
-    }
 
     function getProposalInfo(uint256 proposalId)
         external
@@ -408,7 +348,7 @@ contract GovPool is
         bool isMicropool
     ) external view override returns (uint256, uint256) {
         return (
-            _totalVotedInProposal[proposalId],
+            proposals[proposalId].core.votesFor,
             _voteInfos[proposalId][voter][isMicropool].totalVoted
         );
     }
@@ -503,24 +443,110 @@ contract GovPool is
         }
     }
 
+    function _execute(uint256 proposalId) internal {
+        Proposal storage proposal = proposals[proposalId];
+        ProposalCore storage core = proposal.core;
+
+        require(_getProposalState(core) == ProposalState.Succeeded, "Gov: invalid status");
+
+        core.executed = true;
+
+        address[] memory executors = proposal.executors;
+        uint256[] memory values = proposal.values;
+        bytes[] memory data = proposal.data;
+
+        for (uint256 i; i < data.length; i++) {
+            (bool status, bytes memory returnedData) = executors[i].call{value: values[i]}(
+                data[i]
+            );
+
+            require(status, returnedData.getRevertMsg());
+        }
+
+        _updateRewards(proposalId, core.settings.executionReward, PRECISION);
+    }
+
+    function _payCommission(uint256 proposalId) internal {
+        ProposalCore storage core = proposals[proposalId].core;
+        IGovSettings.ProposalSettings storage settings = core.settings;
+
+        address rewardToken = settings.rewardToken;
+
+        if (rewardToken == address(0)) {
+            return;
+        }
+
+        uint256 totalRewards = settings.creationReward +
+            settings.executionReward +
+            core.votesFor.ratio(settings.voteRewardsCoefficient, PRECISION);
+
+        (, uint256 commissionPercentage, , address[3] memory commissionReceivers) = _coreProperties
+            .getDEXECommissionPercentages();
+
+        uint256 commission = rewardToken.thisBalance().min(
+            totalRewards.percentage(commissionPercentage)
+        );
+
+        _sendFunds(commissionReceivers[1], rewardToken, commission);
+    }
+
     function _handleExecutorsAndDataForInternalProposal(
         address[] calldata executors,
         uint256[] calldata values,
         bytes[] calldata data
-    ) private pure {
+    ) private view {
         for (uint256 i; i < data.length; i++) {
             bytes4 selector = data[i].getSelector();
+            (, IGovSettings.ExecutorType executorType) = govSetting.executorInfo(executors[i]);
 
             require(
                 values[i] == 0 &&
-                    executors[executors.length - 1] == executors[i] &&
+                    executorType == IGovSettings.ExecutorType.INTERNAL &&
                     (selector == IGovSettings.addSettings.selector ||
                         selector == IGovSettings.editSettings.selector ||
                         selector == IGovSettings.changeExecutors.selector ||
                         selector == IGovUserKeeper.setERC20Address.selector ||
                         selector == IGovUserKeeper.setERC721Address.selector ||
-                        selector == IGovPool.editDescriptionURL.selector ||
-                        selector == IGovPool.setNewFee.selector),
+                        selector == IGovPool.editDescriptionURL.selector),
+                "Gov: invalid internal data"
+            );
+        }
+    }
+
+    function _handleDataForValidatorBalanceProposal(
+        address[] calldata executors,
+        uint256[] calldata values,
+        bytes[] calldata data
+    ) private pure {
+        require(executors.length == 1, "Gov: invalid executors length");
+
+        for (uint256 i; i < data.length; i++) {
+            bytes4 selector = data[i].getSelector();
+
+            require(
+                values[i] == 0 && (selector == IGovValidators.changeBalances.selector),
+                "Gov: invalid internal data"
+            );
+        }
+    }
+
+    function _handleDataForDistributionProposal(uint256[] calldata values, bytes[] calldata data)
+        private
+        view
+    {
+        (uint256 decodedId, , ) = abi.decode(
+            data[data.length - 1][4:],
+            (uint256, address, uint256)
+        );
+
+        require(decodedId == _latestProposalId, "Gov: invalid proposalId");
+
+        for (uint256 i; i < data.length - 1; i++) {
+            bytes4 selector = data[i].getSelector();
+
+            require(
+                values[i] == 0 &&
+                    (selector == IERC20.approve.selector || selector == IERC20.transfer.selector),
                 "Gov: invalid internal data"
             );
         }
@@ -535,59 +561,14 @@ contract GovPool is
 
             if (
                 values[i] != 0 ||
-                (selector != IERC20.approve.selector &&
-                    selector != IERC721.approve.selector &&
-                    selector != IERC721.setApprovalForAll.selector &&
-                    selector != IERC1155.setApprovalForAll.selector)
+                (selector != IERC20.approve.selector && // same as selector != IERC721.approve.selector
+                    selector != IERC721.setApprovalForAll.selector) // same as IERC1155.setApprovalForAll.selector
             ) {
                 return true; // should use default settings
             }
         }
 
         return false;
-    }
-
-    function _handleDataForDistributionProposal(
-        address[] calldata executors,
-        uint256[] calldata values,
-        bytes[] calldata data
-    ) private view {
-        (uint256 decodedId, , ) = abi.decode(
-            data[data.length - 1][4:],
-            (uint256, address, uint256)
-        );
-
-        require(decodedId == _latestProposalId, "Gov: invalid proposalId");
-        require(distributionProposal == executors[executors.length - 1], "Gov: invalid executor");
-
-        for (uint256 i; i < data.length - 1; i++) {
-            bytes4 selector = data[i].getSelector();
-
-            require(
-                values[i] == 0 &&
-                    (selector == IERC20.approve.selector ||
-                        selector == IERC20.transfer.selector ||
-                        selector == IERC20.transferFrom.selector),
-                "Gov: invalid internal data"
-            );
-        }
-    }
-
-    function _handleDataForValidatorBalanceProposal(
-        address[] calldata executors,
-        uint256[] calldata values,
-        bytes[] calldata data
-    ) private pure {
-        for (uint256 i; i < data.length; i++) {
-            bytes4 selector = data[i].getSelector();
-
-            require(
-                values[i] == 0 &&
-                    executors[executors.length - 1] == executors[i] &&
-                    (selector == IGovValidators.changeBalances.selector),
-                "Gov: invalid internal data"
-            );
-        }
     }
 
     function _voteTokens(
@@ -608,8 +589,6 @@ contract GovPool is
 
         voteInfo.totalVoted += amount;
         voteInfo.tokensVoted += amount;
-
-        _totalVotedInProposal[proposalId] += amount;
 
         core.votesFor += amount;
 
@@ -641,8 +620,6 @@ contract GovPool is
 
         voteInfo.totalVoted += voteAmount;
 
-        _totalVotedInProposal[proposalId] += voteAmount;
-
         core.votesFor += voteAmount;
 
         _updateRewards(proposalId, voteAmount, core.settings.voteRewardsCoefficient);
@@ -658,7 +635,8 @@ contract GovPool is
         _votedInProposals[msg.sender][isMicropool].add(proposalId);
 
         require(
-            _votedInProposals[msg.sender][isMicropool].length() <= votesLimit,
+            _votedInProposals[msg.sender][isMicropool].length() <=
+                _coreProperties.getGovVotesLimit(),
             "Gov: vote limit reached"
         );
         require(_getProposalState(core) == ProposalState.Voting, "Gov: vote unavailable");
@@ -667,10 +645,10 @@ contract GovPool is
                 msg.sender,
                 isMicropool,
                 useDelegated,
-                core.settings.minTokenBalance,
-                core.settings.minNftBalance
+                core.settings.minVotesForVoting,
+                core.nftPowerSnapshotId
             ),
-            "Gov: low balance"
+            "Gov: low voting power"
         );
 
         return core;
@@ -699,10 +677,6 @@ contract GovPool is
                         return ProposalState.WaitingForVotingTransfer;
                     }
 
-                    if (status == IGovValidators.ProposalState.Voting) {
-                        return ProposalState.ValidatorVoting;
-                    }
-
                     if (status == IGovValidators.ProposalState.Succeeded) {
                         return ProposalState.Succeeded;
                     }
@@ -710,6 +684,8 @@ contract GovPool is
                     if (status == IGovValidators.ProposalState.Defeated) {
                         return ProposalState.Defeated;
                     }
+
+                    return ProposalState.ValidatorVoting;
                 } else {
                     return ProposalState.Succeeded;
                 }
@@ -724,40 +700,9 @@ contract GovPool is
     }
 
     function _quorumReached(ProposalCore storage core) private view returns (bool) {
-        uint256 totalVoteWeight = govUserKeeper.getTotalVoteWeight();
-
         return
-            totalVoteWeight == 0
-                ? false
-                : PERCENTAGE_100.ratio(core.votesFor, totalVoteWeight) >= core.settings.quorum;
-    }
-
-    function _claimReward(uint256 proposalId) internal {
-        IGovSettings.ProposalSettings storage proposalSettings = proposals[proposalId]
-            .core
-            .settings;
-
-        require(proposalSettings.rewardToken != address(0), "Gov: rewards off");
-        require(proposals[proposalId].core.executed, "Gov: proposal not executed");
-
-        uint256 toPay = pendingRewards[proposalId][msg.sender];
-        uint256 balance;
-
-        if (proposalSettings.rewardToken == ETHEREUM_ADDRESS) {
-            balance = address(this).balance;
-        } else {
-            balance = proposalSettings.rewardToken.thisBalance();
-        }
-
-        require(balance >= toPay, "Gov: not enough balance");
-
-        delete pendingRewards[proposalId][msg.sender];
-
-        if (proposalSettings.rewardToken == ETHEREUM_ADDRESS) {
-            _sendEthViaCall(msg.sender, toPay);
-        } else {
-            IERC20(proposalSettings.rewardToken).safeTransfer(msg.sender, toPay);
-        }
+            PERCENTAGE_100.ratio(core.votesFor, govUserKeeper.getTotalVoteWeight()) >=
+            core.settings.quorum;
     }
 
     function _updateRewards(
@@ -768,8 +713,31 @@ contract GovPool is
         pendingRewards[proposalId][msg.sender] += amount.ratio(coefficient, PRECISION);
     }
 
-    function _sendEthViaCall(address receiver, uint256 value) internal {
-        (bool status, ) = payable(receiver).call{value: value}("");
-        require(status, "Gov: failed to send eth");
+    function _claimReward(uint256 proposalId) internal {
+        address rewardToken = proposals[proposalId].core.settings.rewardToken;
+
+        require(rewardToken != address(0), "Gov: rewards off");
+        require(proposals[proposalId].core.executed, "Gov: proposal not executed");
+
+        uint256 rewards = pendingRewards[proposalId][msg.sender];
+
+        require(rewardToken.thisBalance() >= rewards, "Gov: not enough balance");
+
+        delete pendingRewards[proposalId][msg.sender];
+
+        _sendFunds(msg.sender, rewardToken, rewards);
+    }
+
+    function _sendFunds(
+        address receiver,
+        address token,
+        uint256 amount
+    ) internal {
+        if (token == ETHEREUM_ADDRESS) {
+            (bool status, ) = payable(receiver).call{value: amount}("");
+            require(status, "Gov: failed to send eth");
+        } else {
+            IERC20(token).safeTransfer(receiver, amount);
+        }
     }
 }

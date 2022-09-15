@@ -38,7 +38,7 @@ library TraderPoolView {
         uint256 lpCommission
     ) internal view returns (ITraderPool.Commissions memory commissions) {
         IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
-        (uint256 dexePercentage, , ) = ITraderPool(address(this))
+        (uint256 dexePercentage, , , ) = ITraderPool(address(this))
             .coreProperties()
             .getDEXECommissionPercentages();
 

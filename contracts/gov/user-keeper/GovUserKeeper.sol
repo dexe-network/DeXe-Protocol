@@ -325,29 +325,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
     }
 
-    function canParticipate(
-        address voter,
-        bool isMicropool,
-        bool useDelegated,
-        uint256 requiredTokens,
-        uint256 requiredNfts
-    ) external view override returns (bool) {
-        uint256 tokens = tokenBalance(voter, isMicropool, useDelegated);
-        uint256 nfts = nftBalance(voter, isMicropool, useDelegated);
-
-        return (tokens >= requiredTokens || nfts >= requiredNfts);
-    }
-
-    function getTotalVoteWeight() external view override returns (uint256) {
-        address token = tokenAddress;
-
-        return
-            (token != address(0) ? IERC20(token).totalSupply().to18(ERC20(token).decimals()) : 0) +
-            nftInfo.totalPowerInTokens;
-    }
-
-    function getNftsPowerInTokens(uint256[] calldata nftIds, uint256 snapshotId)
-        external
+    function getNftsPowerInTokens(uint256[] memory nftIds, uint256 snapshotId)
+        public
         view
         override
         returns (uint256)
@@ -427,6 +406,33 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         nftSnapshot[currentPowerSnapshotId].totalNftsPower = totalNftsPower;
 
         return currentPowerSnapshotId;
+    }
+
+    function getTotalVoteWeight() external view override returns (uint256) {
+        address token = tokenAddress;
+
+        return
+            (token != address(0) ? IERC20(token).totalSupply().to18(ERC20(token).decimals()) : 0) +
+            nftInfo.totalPowerInTokens;
+    }
+
+    function canParticipate(
+        address voter,
+        bool isMicropool,
+        bool useDelegated,
+        uint256 requiredVotes,
+        uint256 snapshotId
+    ) external view override returns (bool) {
+        uint256 tokens = tokenBalance(voter, isMicropool, useDelegated);
+
+        if (tokens >= requiredVotes) {
+            return true;
+        }
+
+        uint256[] memory nftIds = nftExactBalance(voter, isMicropool, useDelegated);
+        uint256 nftPower = getNftsPowerInTokens(nftIds, snapshotId);
+
+        return tokens + nftPower >= requiredVotes;
     }
 
     function getUndelegateableAssets(

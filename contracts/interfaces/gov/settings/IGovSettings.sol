@@ -13,10 +13,10 @@ interface IGovSettings {
         uint64 durationValidators;
         uint128 quorum;
         uint128 quorumValidators;
-        uint256 minTokenBalance;
-        uint256 minNftBalance;
+        uint256 minVotesForVoting;
+        uint256 minVotesForCreating;
         address rewardToken;
-        uint256 creationRewards;
+        uint256 creationReward;
         uint256 executionReward;
         uint256 voteRewardsCoefficient;
         string executorDescription;

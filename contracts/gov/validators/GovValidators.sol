@@ -165,7 +165,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         } else if (proposalType == ProposalType.ChangeInternalDurationAndQuorum) {
             internalProposalSettings.duration = uint64(proposal.newValues[0]);
             internalProposalSettings.quorum = uint128(proposal.newValues[1]);
-        } else if (proposalType == ProposalType.ChangeBalances) {
+        } else {
             _changeBalances(proposal.newValues, proposal.userAddresses);
         }
     }
@@ -232,7 +232,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
                 : externalProposals[proposalId].core.voteEnd != 0;
     }
 
-    function changeBalances(uint256[] memory newValues, address[] memory userAddresses)
+    function changeBalances(uint256[] calldata newValues, address[] calldata userAddresses)
         external
         override
         onlyOwner

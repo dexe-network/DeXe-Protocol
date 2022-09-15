@@ -1,5 +1,6 @@
 const { assert } = require("chai");
 const { toBN, accounts } = require("../scripts/helpers/utils");
+const { SECONDS_IN_MONTH, ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
 const truffleAssert = require("truffle-assertions");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -9,40 +10,6 @@ const ERC20Mock = artifacts.require("ERC20Mock");
 ContractsRegistry.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
-
-const SECONDS_IN_DAY = 86400;
-const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
-const PRECISION = toBN(10).pow(25);
-const DECIMAL = toBN(10).pow(18);
-
-const ComissionPeriods = {
-  PERIOD_1: 0,
-  PERIOD_2: 1,
-  PERIOD_3: 2,
-};
-
-const DEFAULT_CORE_PROPERTIES = {
-  maxPoolInvestors: 1000,
-  maxOpenPositions: 25,
-  leverageThreshold: 2500,
-  leverageSlope: 5,
-  commissionInitTimestamp: 0,
-  commissionDurations: [SECONDS_IN_MONTH, SECONDS_IN_MONTH * 3, SECONDS_IN_MONTH * 12],
-  dexeCommissionPercentage: PRECISION.times(30).toFixed(),
-  dexeCommissionDistributionPercentages: [
-    PRECISION.times(33).toFixed(),
-    PRECISION.times(33).toFixed(),
-    PRECISION.times(33).toFixed(),
-  ],
-  minTraderCommission: PRECISION.times(20).toFixed(),
-  maxTraderCommissions: [PRECISION.times(30).toFixed(), PRECISION.times(50).toFixed(), PRECISION.times(70).toFixed()],
-  delayForRiskyPool: SECONDS_IN_DAY * 20,
-  insuranceFactor: 10,
-  maxInsurancePoolShare: 3,
-  minInsuranceDeposit: DECIMAL.times(10).toFixed(),
-  minInsuranceProposalAmount: DECIMAL.times(100).toFixed(),
-  insuranceWithdrawalLock: SECONDS_IN_DAY,
-};
 
 describe("CoreProperties", () => {
   let OWNER;
@@ -78,6 +45,105 @@ describe("CoreProperties", () => {
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
 
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
+  });
+
+  describe("access", () => {
+    it("should not initialize twice", async () => {
+      await truffleAssert.reverts(
+        coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES),
+        "Initializable: contract is already initialized"
+      );
+    });
+
+    it("should not set dependencies from non dependant", async () => {
+      await truffleAssert.reverts(coreProperties.setDependencies(OWNER), "Dependant: Not an injector");
+    });
+
+    it("only owner should call these methods", async () => {
+      await truffleAssert.reverts(
+        coreProperties.setCoreParameters(DEFAULT_CORE_PROPERTIES, { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setMaximumPoolInvestors(100, { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setMaximumOpenPositions(100, { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setTraderLeverageParams(3000, 10, { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setCommissionInitTimestamp(100, { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setCommissionDurations([10, 100, 1000], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setDEXECommissionPercentages(20, 10, [50, 25, 25], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setTraderCommissionPercentages(10, [20, 50, 90], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setDelayForRiskyPool(100, { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setInsuranceParameters(
+          {
+            insuranceFactor: 10,
+            maxInsurancePoolShare: 20,
+            minInsuranceDeposit: 30,
+            minInsuranceProposalAmount: 40,
+            insuranceWithdrawalLock: 50,
+          },
+          { from: SECOND }
+        ),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.setGovVotesLimit(20, { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.addWhitelistTokens([USD.address, DEXE.address], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.removeWhitelistTokens([USD.address], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.addBlacklistTokens([USD.address, DEXE.address], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        coreProperties.removeBlacklistTokens([USD.address], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+    });
   });
 
   describe("simple setters", () => {
@@ -117,13 +183,14 @@ describe("CoreProperties", () => {
     });
 
     it("should set dexe commission percentages", async () => {
-      await coreProperties.setDEXECommissionPercentages(20, [50, 25, 25]);
+      await coreProperties.setDEXECommissionPercentages(20, 10, [50, 25, 25]);
 
       const commissions = await coreProperties.getDEXECommissionPercentages();
 
       assert.equal(toBN(commissions[0]).toFixed(), "20");
+      assert.equal(toBN(commissions[1]).toFixed(), "10");
       assert.deepEqual(
-        commissions[1].map((e) => e.toFixed()),
+        commissions[2].map((e) => e.toFixed()),
         ["50", "25", "25"]
       );
     });
@@ -147,13 +214,27 @@ describe("CoreProperties", () => {
     });
 
     it("should set insurance parameters", async () => {
-      await coreProperties.setInsuranceParameters(10, 20, 30, 40, 50);
+      const params = {
+        insuranceFactor: 10,
+        maxInsurancePoolShare: 20,
+        minInsuranceDeposit: 30,
+        minInsuranceProposalAmount: 40,
+        insuranceWithdrawalLock: 50,
+      };
+
+      await coreProperties.setInsuranceParameters(params);
 
       assert.equal(toBN(await coreProperties.getInsuranceFactor()).toFixed(), "10");
       assert.equal(toBN(await coreProperties.getMaxInsurancePoolShare()).toFixed(), "20");
       assert.equal(toBN(await coreProperties.getMinInsuranceDeposit()).toFixed(), "30");
       assert.equal(toBN(await coreProperties.getMinInsuranceProposalAmount()).toFixed(), "40");
       assert.equal(toBN(await coreProperties.getInsuranceWithdrawalLock()).toFixed(), "50");
+    });
+
+    it("should set gov votes limit", async () => {
+      await coreProperties.setGovVotesLimit(20);
+
+      assert.equal(toBN(await coreProperties.getGovVotesLimit()).toFixed(), "20");
     });
   });
 

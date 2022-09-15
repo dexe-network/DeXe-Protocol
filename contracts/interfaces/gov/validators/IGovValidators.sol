@@ -99,7 +99,8 @@ interface IGovValidators {
     /// @return `true` if quorum reached. Return `false` if not or proposal isn't exist.
     function isQuorumReached(uint256 proposalId, bool isInternal) external view returns (bool);
 
-    function changeBalances(uint256[] memory newValues, address[] memory userAddresses) external;
+    function changeBalances(uint256[] calldata newValues, address[] calldata userAddresses)
+        external;
 
     function validatorsCount() external view returns (uint256);
 }

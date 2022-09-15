@@ -20,7 +20,7 @@ interface ICoreProperties {
         DIVIDENDS
     }
 
-    /// @notice The struct that stores vital platform's parameters that may be modified by the OWNER
+    /// @notice The struct that stores TraderPools parameters
     /// @param maxPoolInvestors the maximum number of investors in the TraderPool
     /// @param maxOpenPositions the maximum number of concurrently opened positions by a trader
     /// @param leverageThreshold the first parameter in the trader's formula
@@ -32,12 +32,7 @@ interface ICoreProperties {
     /// @param minTraderCommission the minimal trader's commission the trader can specify
     /// @param maxTraderCommissions the maximal trader's commission the trader can specify based on the chosen commission period
     /// @param delayForRiskyPool the investment delay after the first exchange in the risky pool in seconds
-    /// @param insuranceFactor the deposit insurance multiplier. Means how many insurance tokens is received per deposited token
-    /// @param maxInsurancePoolShare the maximal share of the pool which can be used to pay out the insurance. 3 = 1/3 of the pool
-    /// @param minInsuranceDeposit the minimal required deposit in DEXE tokens to receive an insurance
-    /// @param minInsuranceProposalAmount the minimal amount of DEXE to be on insurance deposit to propose claims
-    /// @param insuranceWithdrawalLock the time needed to wait to withdraw tokens from the insurance after the deposit
-    struct CoreParameters {
+    struct TraderParameters {
         uint256 maxPoolInvestors;
         uint256 maxOpenPositions;
         uint256 leverageThreshold;
@@ -49,11 +44,35 @@ interface ICoreProperties {
         uint256 minTraderCommission;
         uint256[] maxTraderCommissions;
         uint256 delayForRiskyPool;
+    }
+
+    /// @notice The struct that stores Insurance parameters
+    /// @param insuranceFactor the deposit insurance multiplier. Means how many insurance tokens is received per deposited token
+    /// @param maxInsurancePoolShare the maximal share of the pool which can be used to pay out the insurance. 3 = 1/3 of the pool
+    /// @param minInsuranceDeposit the minimal required deposit in DEXE tokens to receive an insurance
+    /// @param minInsuranceProposalAmount the minimal amount of DEXE to be on insurance deposit to propose claims
+    /// @param insuranceWithdrawalLock the time needed to wait to withdraw tokens from the insurance after the deposit
+    struct InsuranceParameters {
         uint256 insuranceFactor;
         uint256 maxInsurancePoolShare;
         uint256 minInsuranceDeposit;
         uint256 minInsuranceProposalAmount;
         uint256 insuranceWithdrawalLock;
+    }
+
+    /// @notice The struct that stores GovPool parameters
+    /// @param govVotesLimit the maximum number of simultaneous votes of the voter
+    /// @param govCommission the protocol's commission percentage
+    struct GovParameters {
+        uint256 govVotesLimit;
+        uint256 govCommissionPercentage;
+    }
+
+    /// @notice The struct that stores vital platform's parameters that may be modified by the OWNER
+    struct CoreParameters {
+        TraderParameters traderParams;
+        InsuranceParameters insuranceParams;
+        GovParameters govParams;
     }
 
     /// @notice The function to set CoreParameters
@@ -101,9 +120,11 @@ interface ICoreProperties {
 
     /// @notice The function to modify the platform's commission percentages
     /// @param dexeCommission DEXE percentage commission. Should be multiplied by 10**25
+    /// @param govCommission the gov percentage commission. Should be multiplied by 10**25
     /// @param distributionPercentages the percentages of the individual contracts (has to add up to 10**27)
     function setDEXECommissionPercentages(
         uint256 dexeCommission,
+        uint256 govCommission,
         uint256[] calldata distributionPercentages
     ) external;
 
@@ -120,18 +141,12 @@ interface ICoreProperties {
     function setDelayForRiskyPool(uint256 delayForRiskyPool) external;
 
     /// @notice The function to set new insurance parameters
-    /// @param insuranceFactor the deposit tokens multiplier
-    /// @param maxInsurancePoolShare the maximum share of the insurance pool to be paid in a single payout
-    /// @param minInsuranceDeposit the minimum allowed deposit in DEXE tokens to receive an insurance
-    /// @param minInsuranceProposalAmount the minimal amount of DEXE to be on insurance deposit to propose claims
-    /// @param insuranceWithdrawalLock the time needed to wait to withdraw tokens from the insurance after the deposit
-    function setInsuranceParameters(
-        uint256 insuranceFactor,
-        uint256 maxInsurancePoolShare,
-        uint256 minInsuranceDeposit,
-        uint256 minInsuranceProposalAmount,
-        uint256 insuranceWithdrawalLock
-    ) external;
+    /// @param insuranceParams the insurance parameters
+    function setInsuranceParameters(InsuranceParameters calldata insuranceParams) external;
+
+    /// @notice The function to set new gov votes limit
+    /// @param newVotesLimit new gov votes limit
+    function setGovVotesLimit(uint256 newVotesLimit) external;
 
     /// @notice The function that returns the total number of whitelisted tokens
     /// @return the number of whitelisted tokens
@@ -200,6 +215,7 @@ interface ICoreProperties {
 
     /// @notice The function to get DEXE commission percentages and receivers
     /// @return totalPercentage the overall DEXE commission percentage
+    /// @return govPercentage the overall gov commission percentage
     /// @return individualPercentages the array of individual receiver's percentages
     /// individualPercentages[INSURANCE] - insurance commission
     /// individualPercentages[TREASURY] - treasury commission
@@ -210,6 +226,7 @@ interface ICoreProperties {
         view
         returns (
             uint256 totalPercentage,
+            uint256 govPercentage,
             uint256[] memory individualPercentages,
             address[3] memory commissionReceivers
         );
@@ -245,6 +262,10 @@ interface ICoreProperties {
     /// @notice The function to get insurance withdrawal lock duration
     /// @return the duration of insurance lock
     function getInsuranceWithdrawalLock() external view returns (uint256);
+
+    /// @notice The function to get max votes limit of the gov pool
+    /// @return votesLimit the votes limit
+    function getGovVotesLimit() external view returns (uint256 votesLimit);
 
     /// @notice The function to get current commission epoch based on the timestamp and period
     /// @param timestamp the timestamp (should not be less than the initial timestamp)
