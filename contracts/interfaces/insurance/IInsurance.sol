@@ -99,6 +99,10 @@ interface IInsurance {
     /// @param url the IPFS URL of the claim to be rejected
     function rejectClaim(string calldata url) external;
 
+    /// @notice The function to get the maximum insurance payout
+    /// @return the maximum insurance payout in dexe
+    function getMaxTreasuryPayout() external view returns (uint256);
+
     /// @notice The function to get user's insurance info
     /// @param user the user to get info about
     /// @return deposit the total DEXE deposit of the provided user

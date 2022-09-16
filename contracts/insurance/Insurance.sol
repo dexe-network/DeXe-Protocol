@@ -170,7 +170,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
             totalToPay += amounts[i];
         }
 
-        uint256 accessiblePool = totalPool / _coreProperties.getMaxInsurancePoolShare();
+        uint256 accessiblePool = getMaxTreasuryPayout();
 
         if (totalToPay >= accessiblePool) {
             for (uint256 i = 0; i < amounts.length; i++) {
@@ -207,6 +207,10 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         uint256 deposit = userInfos[user].stake;
 
         return (deposit, deposit * _coreProperties.getInsuranceFactor());
+    }
+
+    function getMaxTreasuryPayout() public view override returns (uint256) {
+        return totalPool / _coreProperties.getMaxInsurancePoolShare();
     }
 
     function _payout(address user, uint256 toPayFromPool) internal returns (uint256) {

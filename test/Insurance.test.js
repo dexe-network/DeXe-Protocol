@@ -2,6 +2,7 @@ const { toBN, accounts, wei } = require("../scripts/helpers/utils");
 const truffleAssert = require("truffle-assertions");
 const { SECONDS_IN_DAY, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
 const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
+const { assert } = require("chai");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const Insurance = artifacts.require("Insurance");
@@ -405,6 +406,8 @@ describe("Insurance", () => {
       let balanceAlice = await dexe.balanceOf(ALICE);
       let balanceRon = await dexe.balanceOf(RON);
       let balanceBob = await dexe.balanceOf(BOB);
+
+      assert.equal((await insurance.getMaxTreasuryPayout()).toFixed(), 333333);
 
       await insurance.acceptClaim("url0", users, amounts);
 
