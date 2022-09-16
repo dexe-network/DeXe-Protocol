@@ -16,12 +16,12 @@ import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/insurance/IInsurance.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "../libs/PriceFeed/PriceFeedLocal.sol";
-import "../libs/TraderPool/TraderPoolPrice.sol";
-import "../libs/TraderPool/TraderPoolLeverage.sol";
-import "../libs/TraderPool/TraderPoolCommission.sol";
-import "../libs/TraderPool/TraderPoolExchange.sol";
-import "../libs/TraderPool/TraderPoolView.sol";
+import "../libs/price-feed/PriceFeedLocal.sol";
+import "../libs/trader-pool/TraderPoolPrice.sol";
+import "../libs/trader-pool/TraderPoolLeverage.sol";
+import "../libs/trader-pool/TraderPoolCommission.sol";
+import "../libs/trader-pool/TraderPoolExchange.sol";
+import "../libs/trader-pool/TraderPoolView.sol";
 import "../libs/utils/TokenBalance.sol";
 import "../libs/math/MathHelper.sol";
 
@@ -151,7 +151,12 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         for (uint256 i = 0; i < privateInvestors.length; i++) {
             if (add) {
                 _privateInvestors.add(privateInvestors[i]);
-            } else if (canRemovePrivateInvestor(privateInvestors[i])) {
+            } else {
+                require(
+                    canRemovePrivateInvestor(privateInvestors[i]),
+                    "TP: can't remove investor"
+                );
+
                 _privateInvestors.remove(privateInvestors[i]);
             }
         }
@@ -307,6 +312,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         (
             uint256 dexePercentage,
+            ,
             uint256[] memory poolPercentages,
             address[3] memory commissionReceivers
         ) = coreProperties.getDEXECommissionPercentages();

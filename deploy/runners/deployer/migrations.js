@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const Deployer = require("../deployer/deployer");
+const Deployer = require("./deployer");
 
 class Migrations {
   getMigrationFiles() {

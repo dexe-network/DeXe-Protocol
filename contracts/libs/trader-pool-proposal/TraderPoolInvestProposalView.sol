@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../../interfaces/trader/ITraderPoolInvestProposal.sol";
 import "../../interfaces/core/IPriceFeed.sol";
 
-import "../PriceFeed/PriceFeedLocal.sol";
+import "../price-feed/PriceFeedLocal.sol";
 import "../../libs/math/MathHelper.sol";
 
 import "../../trader/TraderPoolInvestProposal.sol";

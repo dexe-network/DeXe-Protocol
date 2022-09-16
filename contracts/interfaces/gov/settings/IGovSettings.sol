@@ -8,12 +8,26 @@ interface IGovSettings {
     struct ProposalSettings {
         bool earlyCompletion;
         bool delegatedVotingAllowed;
+        bool validatorsVote;
         uint64 duration;
         uint64 durationValidators;
         uint128 quorum;
         uint128 quorumValidators;
-        uint256 minTokenBalance;
-        uint256 minNftBalance;
+        uint256 minVotesForVoting;
+        uint256 minVotesForCreating;
+        address rewardToken;
+        uint256 creationReward;
+        uint256 executionReward;
+        uint256 voteRewardsCoefficient;
+        string executorDescription;
+    }
+
+    enum ExecutorType {
+        NONE,
+        INTERNAL,
+        DISTRIBUTION,
+        VALIDATORS,
+        TRUSTED
     }
 
     /// @notice Add new types to contract
@@ -35,16 +49,8 @@ interface IGovSettings {
     /// @notice The function the get executor's info
     /// @param executor Executor address
     /// @return settings ID for `executor`
-    /// @return `true` if `executor` is current address
-    /// @return `true` if `executor` has valid `ProposalSettings`
-    function executorInfo(address executor)
-        external
-        view
-        returns (
-            uint256,
-            bool,
-            bool
-        );
+    /// @return ExecutorType enum item
+    function executorInfo(address executor) external view returns (uint256, ExecutorType);
 
     /// @notice The function to get default settings
     /// @return default setting

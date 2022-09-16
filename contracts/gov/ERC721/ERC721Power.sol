@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.9;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -12,6 +12,7 @@ import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 import "../../interfaces/gov/ERC721/IERC721Power.sol";
 
 import "../../libs/math/MathHelper.sol";
+import "../../libs/utils/TokenBalance.sol";
 
 import "../../core/Globals.sol";
 
@@ -20,11 +21,11 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     using Math for uint256;
     using MathHelper for uint256;
     using DecimalsConverter for uint256;
+    using TokenBalance for address;
 
     uint64 public powerCalcStartTimestamp;
     string public baseURI;
 
-    /// @notice Contain detail nft information
     mapping(uint256 => NftInfo) public nftInfos; // tokenId => info
 
     uint256 public reductionPercent;
@@ -38,7 +39,7 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     modifier onlyBeforePowerCalc() {
         require(
             block.timestamp < powerCalcStartTimestamp,
-            "NftToken: power calculation already begun"
+            "ERC721Power: power calculation already begun"
         );
         _;
     }
@@ -68,14 +69,17 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         onlyOwner
         onlyBeforePowerCalc
     {
-        require(_reductionPercent > 0, "NftToken: reduction percent can't be a zero");
-        require(_reductionPercent < PERCENTAGE_100, "NftToken: reduction percent can't be a 100%");
+        require(_reductionPercent > 0, "ERC721Power: reduction percent can't be a zero");
+        require(
+            _reductionPercent < PERCENTAGE_100,
+            "ERC721Power: reduction percent can't be a 100%"
+        );
 
         reductionPercent = _reductionPercent;
     }
 
     function setMaxPower(uint256 _maxPower) external override onlyOwner onlyBeforePowerCalc {
-        require(_maxPower > 0, "NftToken: max power can't be zero (1)");
+        require(_maxPower > 0, "ERC721Power: max power can't be zero (1)");
 
         maxPower = _maxPower;
     }
@@ -86,7 +90,7 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         onlyOwner
         onlyBeforePowerCalc
     {
-        require(_maxPower > 0, "NftToken: max power can't be zero (2)");
+        require(_maxPower > 0, "ERC721Power: max power can't be zero (2)");
 
         nftInfos[tokenId].maxPower = _maxPower;
     }
@@ -97,7 +101,7 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         onlyOwner
         onlyBeforePowerCalc
     {
-        require(_collateralToken != address(0), "NftToken: zero address");
+        require(_collateralToken != address(0), "ERC721Power: zero address");
 
         collateralToken = _collateralToken;
     }
@@ -108,7 +112,7 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         onlyOwner
         onlyBeforePowerCalc
     {
-        require(amount > 0, "NftToken: required collateral amount can't be zero (1)");
+        require(amount > 0, "ERC721Power: required collateral amount can't be zero (1)");
 
         requiredCollateral = amount;
     }
@@ -119,7 +123,7 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         onlyOwner
         onlyBeforePowerCalc
     {
-        require(amount > 0, "NftToken: required collateral amount can't be zero (2)");
+        require(amount > 0, "ERC721Power: required collateral amount can't be zero (2)");
 
         nftInfos[tokenId].requiredCollateral = amount;
     }
@@ -130,17 +134,17 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         onlyOwner
         onlyBeforePowerCalc
     {
-        require(getMaxPowerForNft(tokenId) > 0, "NftToken: max power for nft isn't set");
+        require(getMaxPowerForNft(tokenId) > 0, "ERC721Power: max power for nft isn't set");
         require(
             getRequiredCollateralForNft(tokenId) > 0,
-            "NftToken: required collateral amount for nft isn't set"
+            "ERC721Power: required collateral amount for nft isn't set"
         );
 
         _safeMint(to, tokenId, "");
     }
 
     function addCollateral(uint256 amount, uint256 tokenId) external override {
-        require(ownerOf(tokenId) == msg.sender, "NftToken: sender isn't an nft owner (1)");
+        require(ownerOf(tokenId) == msg.sender, "ERC721Power: sender isn't an nft owner (1)");
 
         IERC20(collateralToken).safeTransferFrom(
             msg.sender,
@@ -156,12 +160,12 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     }
 
     function removeCollateral(uint256 amount, uint256 tokenId) external override {
-        require(ownerOf(tokenId) == msg.sender, "NftToken: sender isn't an nft owner (2)");
+        require(ownerOf(tokenId) == msg.sender, "ERC721Power: sender isn't an nft owner (2)");
 
         uint256 currentCollateralAmount = nftInfos[tokenId].currentCollateral;
         amount = amount.min(currentCollateralAmount);
 
-        require(amount > 0, "NftToken: nothing to remove");
+        require(amount > 0, "ERC721Power: nothing to remove");
 
         _recalculateNftPower(tokenId, currentCollateralAmount);
 
@@ -246,13 +250,13 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     }
 
     function withdrawStuckERC20(address token, address to) external override onlyOwner {
-        uint256 toWithdraw = IERC20(token).balanceOf(address(this));
+        uint256 toWithdraw = token.thisBalance();
 
         if (token == collateralToken) {
             toWithdraw -= totalCollateral;
         }
 
-        require(toWithdraw > 0, "NftToken: nothing to withdraw");
+        require(toWithdraw > 0, "ERC721Power: nothing to withdraw");
 
         IERC20(token).safeTransfer(to, toWithdraw);
     }

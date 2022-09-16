@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
+import "../../core/Globals.sol";
+
 library TokenBalance {
     using DecimalsConverter for uint256;
 
@@ -14,6 +16,9 @@ library TokenBalance {
     }
 
     function thisBalance(address token) internal view returns (uint256) {
-        return IERC20(token).balanceOf(address(this));
+        return
+            token == ETHEREUM_ADDRESS
+                ? address(this).balance
+                : IERC20(token).balanceOf(address(this));
     }
 }

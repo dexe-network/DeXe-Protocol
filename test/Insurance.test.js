@@ -1,51 +1,24 @@
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
 const truffleAssert = require("truffle-assertions");
-const { setTime, getCurrentBlockTime } = require("./helpers/hardhatTimeTraveller");
+const { SECONDS_IN_DAY, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
+const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
+const { assert } = require("chai");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const Insurance = artifacts.require("Insurance");
 const ERC20Mock = artifacts.require("ERC20Mock");
-const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
+const PoolRegistry = artifacts.require("PoolRegistry");
 const CoreProperties = artifacts.require("CoreProperties");
 
 ContractsRegistry.numberFormat = "BigNumber";
 Insurance.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
-TraderPoolRegistry.numberFormat = "BigNumber";
+PoolRegistry.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
 
-const SECONDS_IN_DAY = 86400;
-const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
-const PRECISION = toBN(10).pow(25);
-const DECIMAL = toBN(10).pow(18);
-
-const DEFAULT_CORE_PROPERTIES = {
-  maxPoolInvestors: 1000,
-  maxOpenPositions: 25,
-  leverageThreshold: 2500,
-  leverageSlope: 5,
-  commissionInitTimestamp: 0,
-  commissionDurations: [SECONDS_IN_MONTH, SECONDS_IN_MONTH * 3, SECONDS_IN_MONTH * 12],
-  dexeCommissionPercentage: PRECISION.times(30).toFixed(),
-  dexeCommissionDistributionPercentages: [
-    PRECISION.times(33).toFixed(),
-    PRECISION.times(33).toFixed(),
-    PRECISION.times(33).toFixed(),
-  ],
-  minTraderCommission: PRECISION.times(20).toFixed(),
-  maxTraderCommissions: [PRECISION.times(30).toFixed(), PRECISION.times(50).toFixed(), PRECISION.times(70).toFixed()],
-  delayForRiskyPool: SECONDS_IN_DAY * 20,
-  insuranceFactor: 10,
-  maxInsurancePoolShare: 3,
-  minInsuranceDeposit: DECIMAL.times(10).toFixed(),
-  minInsuranceProposalAmount: DECIMAL.times(100).toFixed(),
-  insuranceWithdrawalLock: SECONDS_IN_DAY,
-};
-
-describe("Insurance", async () => {
+describe("Insurance", () => {
   let OWNER;
   let SECOND;
-  let THIRD;
   let NOTHING;
   let POOL;
 
@@ -57,25 +30,21 @@ describe("Insurance", async () => {
   before("setup", async () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
-    THIRD = await accounts(2);
     POOL = await accounts(3);
     NOTHING = await accounts(9);
   });
 
   beforeEach("setup", async () => {
     const contractsRegistry = await ContractsRegistry.new();
-    const _traderPoolRegistry = await TraderPoolRegistry.new();
+    const _poolRegistry = await PoolRegistry.new();
     const _insurance = await Insurance.new();
     const _coreProperties = await CoreProperties.new();
     dexe = await ERC20Mock.new("DEXE", "DEXE", 18);
 
-    await contractsRegistry.__ContractsRegistry_init();
+    await contractsRegistry.__OwnableContractsRegistry_init();
 
     await contractsRegistry.addProxyContract(await contractsRegistry.INSURANCE_NAME(), _insurance.address);
-    await contractsRegistry.addProxyContract(
-      await contractsRegistry.TRADER_POOL_REGISTRY_NAME(),
-      _traderPoolRegistry.address
-    );
+    await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), _poolRegistry.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), dexe.address);
@@ -84,24 +53,24 @@ describe("Insurance", async () => {
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
 
-    const traderPoolRegistry = await TraderPoolRegistry.at(await contractsRegistry.getTraderPoolRegistryContract());
+    const poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
     const coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     insurance = await Insurance.at(await contractsRegistry.getInsuranceContract());
 
-    await traderPoolRegistry.__PoolContractsRegistry_init();
+    await poolRegistry.__OwnablePoolContractsRegistry_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
     await insurance.__Insurance_init();
 
-    await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_REGISTRY_NAME());
+    await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.INSURANCE_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
 
     decimal = await dexe.decimals();
 
-    await traderPoolRegistry.addPool(await traderPoolRegistry.BASIC_POOL_NAME(), POOL, {
+    await poolRegistry.addProxyPool(await poolRegistry.BASIC_POOL_NAME(), POOL, {
       from: SECOND,
     });
-    await traderPoolRegistry.associateUserWithPool(OWNER, await traderPoolRegistry.BASIC_POOL_NAME(), POOL, {
+    await poolRegistry.associateUserWithPool(OWNER, await poolRegistry.BASIC_POOL_NAME(), POOL, {
       from: SECOND,
     });
 
@@ -113,7 +82,33 @@ describe("Insurance", async () => {
     await dexe.approve(insurance.address, toBN(1000).times(toBN(10).pow(decimal)), { from: SECOND });
   });
 
-  describe("buyInsurance", async () => {
+  describe("access", () => {
+    it("should not initialize twice", async () => {
+      await truffleAssert.reverts(insurance.__Insurance_init(), "Initializable: contract is already initialized");
+    });
+
+    it("should not set dependencies from non dependant", async () => {
+      await truffleAssert.reverts(insurance.setDependencies(OWNER), "Dependant: Not an injector");
+    });
+
+    it("only trader pool should call these methods", async () => {
+      await truffleAssert.reverts(insurance.receiveDexeFromPools(wei("1")), "Insurance: Not a trader pool");
+    });
+
+    it("only owner should call these methods", async () => {
+      await truffleAssert.reverts(
+        insurance.acceptClaim("placeholder", [OWNER], [wei("1")], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        insurance.rejectClaim("placeholder", { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+    });
+  });
+
+  describe("buyInsurance", () => {
     const deposit = toBN(wei("10"));
 
     it("should buy insurance", async () => {
@@ -148,7 +143,7 @@ describe("Insurance", async () => {
     });
   });
 
-  describe("withdraw", async () => {
+  describe("withdraw", () => {
     const deposit = toBN(wei("100"));
 
     it("should withdraw all deposit", async () => {
@@ -210,7 +205,7 @@ describe("Insurance", async () => {
     });
   });
 
-  describe("proposeClaim", async () => {
+  describe("proposeClaim", () => {
     const deposit = toBN(wei("100"));
 
     it("should not propose claim", async () => {
@@ -238,7 +233,16 @@ describe("Insurance", async () => {
       assert.equal(0, finishedClaims[0].length);
     });
 
-    it("should propse two urls", async () => {
+    it("should not proposal 2 claims in one day", async () => {
+      const url = "url";
+
+      await insurance.buyInsurance(deposit, { from: SECOND });
+
+      await insurance.proposeClaim(url, { from: SECOND });
+      await truffleAssert.reverts(insurance.proposeClaim(url, { from: SECOND }), "Insurance: Proposal once per day");
+    });
+
+    it("should propose two urls", async () => {
       const url1 = "url1";
       const url2 = "url2";
 
@@ -313,7 +317,7 @@ describe("Insurance", async () => {
     });
   });
 
-  describe("listOngoingClaims", async () => {
+  describe("listOngoingClaims", () => {
     const len = 10;
     const deposit = toBN(wei("100"));
 
@@ -357,9 +361,10 @@ describe("Insurance", async () => {
     });
   });
 
-  describe("acceptClaim", async () => {
+  describe("acceptClaim", () => {
     const baseURL = "url";
     const deposit = toBN(wei("100"));
+
     let ALICE;
     let RON;
     let BOB;
@@ -402,6 +407,8 @@ describe("Insurance", async () => {
       let balanceRon = await dexe.balanceOf(RON);
       let balanceBob = await dexe.balanceOf(BOB);
 
+      assert.equal((await insurance.getMaxTreasuryPayout()).toFixed(), 333333);
+
       await insurance.acceptClaim("url0", users, amounts);
 
       let finishedClaims = await insurance.listFinishedClaims(0, 100);
@@ -421,6 +428,12 @@ describe("Insurance", async () => {
       assert.equal(balanceBob.plus(finishedClaims[1][0][1][2]).toFixed(), (await dexe.balanceOf(BOB)).toFixed());
 
       assert.equal(1, finishedClaims[1][0][2]);
+    });
+
+    it("should not accept claim if length mismatches", async () => {
+      const url = "url";
+
+      await truffleAssert.reverts(insurance.acceptClaim(url + "0", [OWNER], []), "Insurance: length mismatch");
     });
 
     it("should accept claim when totalBalance lower then amounts", async () => {
@@ -539,7 +552,7 @@ describe("Insurance", async () => {
       assert.equal(1, finishedClaims[1][0][2]);
     });
 
-    it("should rever when try to accept unproposed claim", async () => {
+    it("should revert when try to accept unproposed claim", async () => {
       const amount = 100;
       const users = [ALICE, RON, BOB];
       const amounts = [amount, amount, amount];
@@ -547,7 +560,7 @@ describe("Insurance", async () => {
     });
   });
 
-  describe("rejectClaim", async () => {
+  describe("rejectClaim", () => {
     const baseURL = "url";
     const deposit = toBN(wei("100"));
 
@@ -593,7 +606,7 @@ describe("Insurance", async () => {
     });
   });
 
-  describe("listFinishedClaims", async () => {
+  describe("listFinishedClaims", () => {
     const len = 10;
     const baseURL = "url";
     const deposit = toBN(wei("100"));

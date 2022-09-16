@@ -13,7 +13,7 @@ contract PriceFeedMock is PriceFeed {
         address inToken,
         address outToken,
         uint256 amountIn,
-        address[] memory optionalPath
+        address[] memory
     ) public view override returns (uint256, address[] memory) {
         if (amountIn == 0) {
             return (0, new address[](0));
@@ -33,7 +33,7 @@ contract PriceFeedMock is PriceFeed {
         address inToken,
         address outToken,
         uint256 amountOut,
-        address[] memory optionalPath
+        address[] memory
     ) public view override returns (uint256, address[] memory) {
         if (amountOut == 0) {
             return (0, new address[](0));
@@ -53,7 +53,7 @@ contract PriceFeedMock is PriceFeed {
         address inToken,
         address outToken,
         uint256 amountIn,
-        address[] memory optionalPath,
+        address[] memory,
         uint256 minAmountOut
     ) public override returns (uint256) {
         if (amountIn == 0) {
@@ -82,7 +82,7 @@ contract PriceFeedMock is PriceFeed {
         address inToken,
         address outToken,
         uint256 amountOut,
-        address[] memory optionalPath,
+        address[] memory,
         uint256 maxAmountIn
     ) public override returns (uint256) {
         if (amountOut == 0) {

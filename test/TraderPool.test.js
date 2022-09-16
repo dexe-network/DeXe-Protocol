@@ -1,7 +1,14 @@
 const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
-const { setTime, getCurrentBlockTime } = require("./helpers/hardhatTimeTraveller");
+const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
 const truffleAssert = require("truffle-assertions");
+const {
+  SECONDS_IN_MONTH,
+  PRECISION,
+  ExchangeType,
+  ComissionPeriods,
+  DEFAULT_CORE_PROPERTIES,
+} = require("./utils/constants");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const Insurance = artifacts.require("Insurance");
@@ -9,7 +16,8 @@ const ERC20Mock = artifacts.require("ERC20Mock");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeedMock = artifacts.require("PriceFeedMock");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
-const TraderPoolRegistry = artifacts.require("TraderPoolRegistry");
+const PoolRegistry = artifacts.require("PoolRegistry");
+const BundleMock = artifacts.require("BundleMock");
 const TraderPoolMock = artifacts.require("TraderPoolMock");
 const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
 const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
@@ -23,47 +31,9 @@ ERC20Mock.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
 PriceFeedMock.numberFormat = "BigNumber";
 UniswapV2RouterMock.numberFormat = "BigNumber";
-TraderPoolRegistry.numberFormat = "BigNumber";
+PoolRegistry.numberFormat = "BigNumber";
+BundleMock.numberFormat = "BigNumber";
 TraderPoolMock.numberFormat = "BigNumber";
-
-const SECONDS_IN_DAY = 86400;
-const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
-const PRECISION = toBN(10).pow(25);
-const DECIMAL = toBN(10).pow(18);
-
-const ExchangeType = {
-  FROM_EXACT: 0,
-  TO_EXACT: 1,
-};
-
-const ComissionPeriods = {
-  PERIOD_1: 0,
-  PERIOD_2: 1,
-  PERIOD_3: 2,
-};
-
-const DEFAULT_CORE_PROPERTIES = {
-  maxPoolInvestors: 1000,
-  maxOpenPositions: 25,
-  leverageThreshold: 2500,
-  leverageSlope: 5,
-  commissionInitTimestamp: 0,
-  commissionDurations: [SECONDS_IN_MONTH, SECONDS_IN_MONTH * 3, SECONDS_IN_MONTH * 12],
-  dexeCommissionPercentage: PRECISION.times(30).toFixed(),
-  dexeCommissionDistributionPercentages: [
-    PRECISION.times(33).toFixed(),
-    PRECISION.times(33).toFixed(),
-    PRECISION.times(33).toFixed(),
-  ],
-  minTraderCommission: PRECISION.times(20).toFixed(),
-  maxTraderCommissions: [PRECISION.times(30).toFixed(), PRECISION.times(50).toFixed(), PRECISION.times(70).toFixed()],
-  delayForRiskyPool: SECONDS_IN_DAY * 20,
-  insuranceFactor: 10,
-  maxInsurancePoolShare: 3,
-  minInsuranceDeposit: DECIMAL.times(10).toFixed(),
-  minInsuranceProposalAmount: DECIMAL.times(100).toFixed(),
-  insuranceWithdrawalLock: SECONDS_IN_DAY,
-};
 
 describe("TraderPool", () => {
   let OWNER;
@@ -78,7 +48,7 @@ describe("TraderPool", () => {
   let coreProperties;
   let priceFeed;
   let uniswapV2Router;
-  let traderPoolRegistry;
+  let poolRegistry;
   let tokens = {};
 
   let traderPool;
@@ -152,17 +122,14 @@ describe("TraderPool", () => {
     const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeedMock.new();
     uniswapV2Router = await UniswapV2RouterMock.new();
-    const _traderPoolRegistry = await TraderPoolRegistry.new();
+    const _poolRegistry = await PoolRegistry.new();
 
-    await contractsRegistry.__ContractsRegistry_init();
+    await contractsRegistry.__OwnableContractsRegistry_init();
 
     await contractsRegistry.addProxyContract(await contractsRegistry.INSURANCE_NAME(), _insurance.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), _priceFeed.address);
-    await contractsRegistry.addProxyContract(
-      await contractsRegistry.TRADER_POOL_REGISTRY_NAME(),
-      _traderPoolRegistry.address
-    );
+    await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), _poolRegistry.address);
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
@@ -176,36 +143,36 @@ describe("TraderPool", () => {
     insurance = await Insurance.at(await contractsRegistry.getInsuranceContract());
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     priceFeed = await PriceFeedMock.at(await contractsRegistry.getPriceFeedContract());
-    traderPoolRegistry = await TraderPoolRegistry.at(await contractsRegistry.getTraderPoolRegistryContract());
+    poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
 
     await insurance.__Insurance_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
     await priceFeed.__PriceFeed_init();
-    await traderPoolRegistry.__PoolContractsRegistry_init();
+    await poolRegistry.__OwnablePoolContractsRegistry_init();
 
     await contractsRegistry.injectDependencies(await contractsRegistry.INSURANCE_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
-    await contractsRegistry.injectDependencies(await contractsRegistry.TRADER_POOL_REGISTRY_NAME());
+    await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
 
     await configureBaseTokens();
   });
 
   async function deployPool(poolParameters) {
-    const NAME = await traderPoolRegistry.BASIC_POOL_NAME();
+    const NAME = await poolRegistry.BASIC_POOL_NAME();
 
     const traderPool = await TraderPoolMock.new();
 
     await traderPool.__TraderPoolMock_init("Test pool", "TP", poolParameters);
 
-    await traderPoolRegistry.addPool(NAME, traderPool.address, {
+    await poolRegistry.addProxyPool(NAME, traderPool.address, {
       from: FACTORY,
     });
-    await traderPoolRegistry.associateUserWithPool(OWNER, NAME, traderPool.address, {
+    await poolRegistry.associateUserWithPool(OWNER, NAME, traderPool.address, {
       from: FACTORY,
     });
 
-    await traderPoolRegistry.injectDependenciesToExistingPools(NAME, 0, 10);
+    await poolRegistry.injectDependenciesToExistingPools(NAME, 0, 10);
 
     return traderPool;
   }
@@ -257,6 +224,42 @@ describe("TraderPool", () => {
       traderPool = await deployPool(POOL_PARAMETERS);
     });
 
+    describe("access", () => {
+      it("should not initialize twice", async () => {
+        await truffleAssert.reverts(
+          traderPool.__TraderPool_init("Test pool", "TP", POOL_PARAMETERS),
+          "Initializable: contract is not initializing"
+        );
+      });
+
+      it("should not set dependencies from non dependant", async () => {
+        await truffleAssert.reverts(traderPool.setDependencies(OWNER), "Dependant: Not an injector");
+      });
+
+      it("only admin should call these methods", async () => {
+        await truffleAssert.reverts(traderPool.modifyAdmins([SECOND], true, { from: SECOND }), "TP: not an admin");
+
+        await truffleAssert.reverts(
+          traderPool.modifyPrivateInvestors([SECOND], true, { from: SECOND }),
+          "TP: not an admin"
+        );
+
+        await truffleAssert.reverts(
+          traderPool.changePoolParameters("placeholder", false, 0, 0, { from: SECOND }),
+          "TP: not an admin"
+        );
+
+        await truffleAssert.reverts(traderPool.reinvestCommission([0, 10], 0, { from: SECOND }), "TP: not an admin");
+
+        await truffleAssert.reverts(
+          traderPool.exchange(tokens.WETH.address, tokens.WBTC.address, wei("500"), 0, [], ExchangeType.FROM_EXACT, {
+            from: SECOND,
+          }),
+          "TP: not an admin"
+        );
+      });
+    });
+
     describe("modifiers", () => {
       it("should modify admins", async () => {
         assert.isTrue(await traderPool.isTraderAdmin(OWNER));
@@ -291,6 +294,19 @@ describe("TraderPool", () => {
         assert.isFalse(await traderPool.isPrivateInvestor(SECOND));
       });
 
+      it("should not remove private investor", async () => {
+        await tokens.WETH.mint(SECOND, wei("1000"));
+
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await invest(wei("1000"), OWNER);
+
+        await tokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
+        await invest(wei("1000"), SECOND);
+
+        await traderPool.modifyPrivateInvestors([SECOND], true);
+        await truffleAssert.reverts(traderPool.modifyPrivateInvestors([SECOND], false), "TP: can't remove investor");
+      });
+
       it("should change pool parameters", async () => {
         let info = await traderPool.getPoolInfo();
 
@@ -304,6 +320,31 @@ describe("TraderPool", () => {
 
         assert.equal(info.parameters.descriptionURL, "example.com");
         assert.equal(toBN(info.parameters.minimalInvestment).toFixed(), wei("10"));
+
+        await traderPool.changePoolParameters("example.com", true, 0, wei("10"));
+
+        info = await traderPool.getPoolInfo();
+
+        assert.isTrue(info.parameters.privatePool);
+      });
+
+      it("should not change pool parameters", async () => {
+        await tokens.WETH.mint(SECOND, wei("1000"));
+
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await invest(wei("1000"), OWNER);
+
+        await tokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
+        await invest(wei("1000"), SECOND);
+
+        await truffleAssert.reverts(
+          traderPool.changePoolParameters("example.com", false, wei("1"), wei("10")),
+          "TP: wrong emission supply"
+        );
+        await truffleAssert.reverts(
+          traderPool.changePoolParameters("example.com", true, wei("10000"), wei("10")),
+          "TP: pool is not empty"
+        );
       });
     });
 
@@ -337,15 +378,38 @@ describe("TraderPool", () => {
 
         assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("1000"));
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("1000"));
+
+        await truffleAssert.passes(traderPool.getDivestAmountsAndCommissions(NOTHING, wei("10")), "pass");
       });
 
       it("should invest twice", async () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"));
         await invest(wei("500"), OWNER);
+
+        await traderPool.changePoolParameters("example.com", false, wei("10000"), 0);
+
         await invest(wei("500"), OWNER);
 
         assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("1000"));
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("1000"));
+      });
+
+      it("should not invest due to leverage", async () => {
+        await tokens.WETH.mint(SECOND, wei("1000"));
+
+        await tokens.WETH.approve(traderPool.address, wei("100"));
+        await invest(wei("100"), OWNER);
+
+        await tokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
+
+        await truffleAssert.reverts(invest(wei("1000"), SECOND), "TP: leverage exceeded");
+      });
+
+      it("should not invest if amount > emission", async () => {
+        await traderPool.changePoolParameters("example.com", false, wei("1"), 0);
+
+        await tokens.WETH.approve(traderPool.address, wei("100"));
+        await truffleAssert.reverts(invest(wei("100"), OWNER), "TP: minting > emission");
       });
 
       it("should invest investor", async () => {
@@ -367,7 +431,7 @@ describe("TraderPool", () => {
         assert.equal(
           investorInfo.commissionUnlockEpoch.toFixed(),
           toBN(await getCurrentBlockTime())
-            .idiv(DEFAULT_CORE_PROPERTIES.commissionDurations[POOL_PARAMETERS.commissionPeriod])
+            .idiv(DEFAULT_CORE_PROPERTIES.traderParams.commissionDurations[POOL_PARAMETERS.commissionPeriod])
             .plus(1)
         );
         assert.equal(toBN(investorSecondInfo[2].poolLPBalance).toFixed(), wei("1000"));
@@ -388,6 +452,36 @@ describe("TraderPool", () => {
       beforeEach("setup", async () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"));
         await invest(wei("1000"), OWNER);
+      });
+
+      it("should not exchange tokens > supply", async () => {
+        await truffleAssert.reverts(
+          traderPool.exchange(tokens.WETH.address, tokens.WBTC.address, wei("5000"), 0, [], ExchangeType.FROM_EXACT),
+          "TP: invalid exchange amount"
+        );
+      });
+
+      it("should not exchange wrong tokens", async () => {
+        await truffleAssert.reverts(
+          traderPool.exchange(OWNER, tokens.WBTC.address, wei("50"), 0, [], ExchangeType.FROM_EXACT),
+          "TP: invalid exchange address"
+        );
+      });
+
+      it("should not exchange if positions > max", async () => {
+        await coreProperties.setMaximumOpenPositions(0);
+
+        await truffleAssert.reverts(
+          traderPool.exchange(tokens.WETH.address, tokens.WBTC.address, wei("500"), 0, [], ExchangeType.FROM_EXACT),
+          "TP: max positions"
+        );
+      });
+
+      it("should not exchange these tokens", async () => {
+        await truffleAssert.reverts(
+          exchangeFromExact(tokens.WETH.address, tokens.WETH.address, wei("500")),
+          "TP: ambiguous exchange"
+        );
       });
 
       it("should exchange from exact tokens", async () => {
@@ -453,7 +547,7 @@ describe("TraderPool", () => {
       it("should not exchange blacklisted tokens", async () => {
         await coreProperties.addBlacklistTokens([tokens.WBTC.address]);
 
-        const exchange = (
+        const exchange1 = (
           await traderPool.getExchangeAmount(
             tokens.WETH.address,
             tokens.WBTC.address,
@@ -463,22 +557,26 @@ describe("TraderPool", () => {
           )
         )[0];
 
-        assert.equal(exchange.toFixed(), "0");
+        const exchange2 = (
+          await traderPool.getExchangeAmount(
+            tokens.WBTC.address,
+            tokens.WETH.address,
+            wei("500"),
+            [],
+            ExchangeType.FROM_EXACT
+          )
+        )[0];
+
+        assert.equal(exchange1.toFixed(), "0");
+        assert.equal(exchange2.toFixed(), "0");
 
         await truffleAssert.reverts(
           exchangeToExact(tokens.WETH.address, tokens.WBTC.address, wei("500")),
           "TP: blacklisted token"
         );
-      });
-
-      it("should not exchange these tokens", async () => {
         await truffleAssert.reverts(
-          exchangeFromExact(tokens.WETH.address, tokens.WETH.address, wei("500")),
-          "TP: ambiguous exchange"
-        );
-        await truffleAssert.reverts(
-          exchangeToExact(tokens.WBTC.address, tokens.WETH.address, wei("500")),
-          "TP: invalid exchange address"
+          exchangeFromExact(tokens.WBTC.address, tokens.WETH.address, wei("500")),
+          "TP: blacklisted token"
         );
       });
     });
@@ -609,7 +707,7 @@ describe("TraderPool", () => {
         await invest(wei("1000"), SECOND);
       });
 
-      it("should calculate trader's commission", async () => {
+      it("should calculate trader commission", async () => {
         let leverage = await traderPool.getLeverageInfo();
 
         assert.equal(toBN(leverage.totalPoolUSDWithProposals).toFixed(), wei("2000"));
@@ -847,6 +945,12 @@ describe("TraderPool", () => {
         assert.equal((await tokens.WETH.balanceOf(OWNER)).toFixed(), balance.plus(wei("750")).toFixed());
       });
 
+      it("trader should not divest if positions > 0", async () => {
+        await exchangeFromExact(tokens.WETH.address, tokens.MANA.address, wei("1000"));
+
+        await truffleAssert.reverts(divest(wei("500"), OWNER), "TP: can't divest");
+      });
+
       it("should divest investor with commission", async () => {
         await exchangeFromExact(tokens.WETH.address, tokens.MANA.address, wei("1000"));
 
@@ -866,6 +970,17 @@ describe("TraderPool", () => {
         );
         assert.equal((await tokens.WETH.balanceOf(SECOND)).toFixed(), wei("1250"));
         assert.equal((await traderPool.investorsInfo(SECOND)).investedBase.toFixed(), "0");
+      });
+
+      it("should not divest in the same block", async () => {
+        const bundle = await BundleMock.new();
+
+        await tokens.WETH.transfer(bundle.address, wei("100"));
+
+        await truffleAssert.reverts(
+          bundle.investDivest(traderPool.address, tokens.WETH.address, wei("10")),
+          "TP: wrong amount"
+        );
       });
 
       it("should divest investor without commission", async () => {
@@ -1039,7 +1154,7 @@ describe("TraderPool", () => {
         totalLPEmission: 0,
         baseToken: tokens.WBTC.address,
         baseTokenDecimals: 8,
-        minimalInvestment: 0,
+        minimalInvestment: wei("1", 8),
         commissionPeriod: ComissionPeriods.PERIOD_1,
         commissionPercentage: toBN(50).times(PRECISION).toFixed(),
       };
@@ -1056,6 +1171,11 @@ describe("TraderPool", () => {
 
         assert.equal((await tokens.WBTC.balanceOf(traderPool.address)).toFixed(), wei("1000", 8));
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("1000"));
+      });
+
+      it("should not invest", async () => {
+        await truffleAssert.reverts(invest(0, OWNER), "TP: zero investment");
+        await truffleAssert.reverts(invest(1, OWNER), "TP: underinvestment");
       });
 
       it("should invest investor", async () => {
@@ -1076,7 +1196,7 @@ describe("TraderPool", () => {
         assert.equal(
           investorInfo.commissionUnlockEpoch.toFixed(),
           toBN(await getCurrentBlockTime())
-            .idiv(DEFAULT_CORE_PROPERTIES.commissionDurations[POOL_PARAMETERS.commissionPeriod])
+            .idiv(DEFAULT_CORE_PROPERTIES.traderParams.commissionDurations[POOL_PARAMETERS.commissionPeriod])
             .plus(1)
         );
       });
@@ -1162,6 +1282,17 @@ describe("TraderPool", () => {
 
       it("should not transfer tokens to not private investor", async () => {
         await truffleAssert.reverts(traderPool.transfer(THIRD, wei("100"), { from: SECOND }), "TP: private pool");
+      });
+
+      it("should not transfer 0 tokens", async () => {
+        await truffleAssert.reverts(traderPool.transfer(SECOND, 0), "TP: 0 transfer");
+      });
+
+      it("should not transfer tokens if total investors > max", async () => {
+        await traderPool.modifyPrivateInvestors([THIRD], true);
+        await coreProperties.setMaximumPoolInvestors(0);
+
+        await truffleAssert.reverts(traderPool.transfer(THIRD, wei("1")), "TP: max investors");
       });
     });
   });

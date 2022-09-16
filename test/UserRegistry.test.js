@@ -1,6 +1,5 @@
 const ethSigUtil = require("@metamask/eth-sig-util");
 const { assert } = require("chai");
-const { web3 } = require("hardhat");
 const { accounts } = require("../scripts/helpers/utils");
 const truffleAssert = require("truffle-assertions");
 
@@ -12,6 +11,7 @@ UserRegistry.numberFormat = "BigNumber";
 
 describe("UserRegistry", () => {
   let OWNER;
+  let SECOND;
   let OWNER_PRIVATE_KEY = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
   let userRegistry;
@@ -19,13 +19,14 @@ describe("UserRegistry", () => {
 
   before("setup", async () => {
     OWNER = await accounts(0);
+    SECOND = await accounts(1);
   });
 
   beforeEach("setup", async () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _userRegistry = await UserRegistry.new();
 
-    await contractsRegistry.__ContractsRegistry_init();
+    await contractsRegistry.__OwnableContractsRegistry_init();
 
     userRegistryName = await contractsRegistry.USER_REGISTRY_NAME();
 
@@ -73,6 +74,24 @@ describe("UserRegistry", () => {
     });
   }
 
+  describe("access", () => {
+    it("should not initialize twice", async () => {
+      await truffleAssert.reverts(
+        userRegistry.__UserRegistry_init(userRegistryName),
+        "Initializable: contract is already initialized"
+      );
+    });
+
+    it("only owner should call these methods", async () => {
+      const docHash = web3.utils.soliditySha3("Privacy Policy document content");
+
+      await truffleAssert.reverts(
+        userRegistry.setPrivacyPolicyDocumentHash(docHash, { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+    });
+  });
+
   describe("Privacy Policy signature", () => {
     it("should sign the privacy policy", async () => {
       const docHash = web3.utils.soliditySha3("Privacy Policy document content");
@@ -94,6 +113,16 @@ describe("UserRegistry", () => {
 
       await userRegistry.setPrivacyPolicyDocumentHash(docHash);
       await truffleAssert.reverts(userRegistry.agreeToPrivacyPolicy(signature), "UserRegistry: invalid signature");
+    });
+
+    it("should not agree if doc in not set", async () => {
+      const docHash = web3.utils.soliditySha3("");
+      const signature = await sign(docHash, OWNER_PRIVATE_KEY);
+
+      await truffleAssert.reverts(
+        userRegistry.agreeToPrivacyPolicy(signature),
+        "UserRegistry: privacy policy is not set"
+      );
     });
   });
 

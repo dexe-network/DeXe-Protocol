@@ -14,7 +14,7 @@ import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
 import "@dlsl/dev-modules/libs/arrays/ArrayHelper.sol";
 
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
-import "../../interfaces/gov/IGovUserKeeperController.sol";
+import "../../interfaces/gov/IGovPool.sol";
 
 import "../../libs/math/MathHelper.sol";
 
@@ -67,26 +67,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         require(_tokenAddress != address(0) || _nftAddress != address(0), "GovUK: zero addresses");
 
-        tokenAddress = _tokenAddress;
-        nftAddress = _nftAddress;
-
         if (_nftAddress != address(0)) {
-            require(totalPowerInTokens > 0, "GovUK: the equivalent is zero");
+            _setERC721Address(_nftAddress, totalPowerInTokens, nftsTotalSupply);
+        }
 
-            nftInfo.totalPowerInTokens = totalPowerInTokens;
-
-            if (IERC165(_nftAddress).supportsInterface(type(IERC721Power).interfaceId)) {
-                nftInfo.isSupportPower = true;
-                nftInfo.isSupportTotalSupply = true;
-            } else if (
-                IERC165(_nftAddress).supportsInterface(type(IERC721Enumerable).interfaceId)
-            ) {
-                nftInfo.isSupportTotalSupply = true;
-            } else {
-                require(nftsTotalSupply > 0, "GovUK: total supply is zero");
-
-                nftInfo.totalSupply = nftsTotalSupply;
-            }
+        if (_tokenAddress != address(0)) {
+            _setERC20Address(_tokenAddress);
         }
     }
 
@@ -339,29 +325,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
     }
 
-    function canParticipate(
-        address voter,
-        bool isMicropool,
-        bool useDelegated,
-        uint256 requiredTokens,
-        uint256 requiredNfts
-    ) external view override returns (bool) {
-        uint256 tokens = tokenBalance(voter, isMicropool, useDelegated);
-        uint256 nfts = nftBalance(voter, isMicropool, useDelegated);
-
-        return (tokens >= requiredTokens || nfts >= requiredNfts);
-    }
-
-    function getTotalVoteWeight() external view override returns (uint256) {
-        address token = tokenAddress;
-
-        return
-            (token != address(0) ? IERC20(token).totalSupply().to18(ERC20(token).decimals()) : 0) +
-            nftInfo.totalPowerInTokens;
-    }
-
-    function getNftsPowerInTokens(uint256[] calldata nftIds, uint256 snapshotId)
-        external
+    function getNftsPowerInTokens(uint256[] memory nftIds, uint256 snapshotId)
+        public
         view
         override
         returns (uint256)
@@ -443,6 +408,33 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         return currentPowerSnapshotId;
     }
 
+    function getTotalVoteWeight() external view override returns (uint256) {
+        address token = tokenAddress;
+
+        return
+            (token != address(0) ? IERC20(token).totalSupply().to18(ERC20(token).decimals()) : 0) +
+            nftInfo.totalPowerInTokens;
+    }
+
+    function canParticipate(
+        address voter,
+        bool isMicropool,
+        bool useDelegated,
+        uint256 requiredVotes,
+        uint256 snapshotId
+    ) external view override returns (bool) {
+        uint256 tokens = tokenBalance(voter, isMicropool, useDelegated);
+
+        if (tokens >= requiredVotes) {
+            return true;
+        }
+
+        uint256[] memory nftIds = nftExactBalance(voter, isMicropool, useDelegated);
+        uint256 nftPower = getNftsPowerInTokens(nftIds, snapshotId);
+
+        return tokens + nftPower >= requiredVotes;
+    }
+
     function getUndelegateableAssets(
         address delegator,
         address delegatee,
@@ -486,6 +478,18 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts)
     {
         return _getFreeAssets(voter, false, lockedProposals, unlockedNfts);
+    }
+
+    function setERC20Address(address _tokenAddress) external override onlyOwner {
+        _setERC20Address(_tokenAddress);
+    }
+
+    function setERC721Address(
+        address _nftAddress,
+        uint256 totalPowerInTokens,
+        uint256 nftsTotalSupply
+    ) external override onlyOwner {
+        _setERC721Address(_nftAddress, totalPowerInTokens, nftsTotalSupply);
     }
 
     function _getFreeAssets(
@@ -626,5 +630,38 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         returns (BalanceInfo storage)
     {
         return isMicropool ? _micropoolsInfo[voter] : _usersInfo[voter].balanceInfo;
+    }
+
+    function _setERC20Address(address _tokenAddress) internal {
+        require(tokenAddress == address(0), "GovUK: current token address isn't zero");
+        require(_tokenAddress != address(0), "GovUK: new token address is zero");
+
+        tokenAddress = _tokenAddress;
+    }
+
+    function _setERC721Address(
+        address _nftAddress,
+        uint256 totalPowerInTokens,
+        uint256 nftsTotalSupply
+    ) internal {
+        require(nftAddress == address(0), "GovUK: current token address isn't zero");
+        require(_nftAddress != address(0), "GovUK: new token address is zero");
+
+        require(totalPowerInTokens > 0, "GovUK: the equivalent is zero");
+
+        nftInfo.totalPowerInTokens = totalPowerInTokens;
+
+        if (IERC165(_nftAddress).supportsInterface(type(IERC721Power).interfaceId)) {
+            nftInfo.isSupportPower = true;
+            nftInfo.isSupportTotalSupply = true;
+        } else if (IERC165(_nftAddress).supportsInterface(type(IERC721Enumerable).interfaceId)) {
+            nftInfo.isSupportTotalSupply = true;
+        } else {
+            require(nftsTotalSupply > 0, "GovUK: total supply is zero");
+
+            nftInfo.totalSupply = nftsTotalSupply;
+        }
+
+        nftAddress = _nftAddress;
     }
 }

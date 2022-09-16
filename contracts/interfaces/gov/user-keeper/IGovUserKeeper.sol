@@ -105,22 +105,22 @@ interface IGovUserKeeper {
         bool useDelegated
     ) external view returns (uint256[] memory nfts);
 
-    function canParticipate(
-        address voter,
-        bool isMicropool,
-        bool useDelegated,
-        uint256 requiredTokens,
-        uint256 requiredNfts
-    ) external view returns (bool);
-
-    function getTotalVoteWeight() external view returns (uint256);
-
     function getNftsPowerInTokens(uint256[] calldata nftIds, uint256 snapshotId)
         external
         view
         returns (uint256);
 
     function createNftPowerSnapshot() external returns (uint256);
+
+    function getTotalVoteWeight() external view returns (uint256);
+
+    function canParticipate(
+        address voter,
+        bool isMicropool,
+        bool useDelegated,
+        uint256 requiredVotes,
+        uint256 snapshotId
+    ) external view returns (bool);
 
     function getUndelegateableAssets(
         address delegator,
@@ -171,4 +171,12 @@ interface IGovUserKeeper {
     ) external;
 
     function unlockNfts(uint256[] calldata nftIds) external;
+
+    function setERC20Address(address _tokenAddress) external;
+
+    function setERC721Address(
+        address _nftAddress,
+        uint256 totalPowerInTokens,
+        uint256 nftsTotalSupply
+    ) external;
 }

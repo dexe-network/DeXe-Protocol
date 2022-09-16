@@ -10,8 +10,10 @@ import "../core/ICoreProperties.sol";
  */
 interface IPoolFactory {
     struct SettingsDeployParams {
-        IGovSettings.ProposalSettings internalProposalSetting;
-        IGovSettings.ProposalSettings defaultProposalSetting;
+        IGovSettings.ProposalSettings internalProposalSettings;
+        IGovSettings.ProposalSettings distributionProposalSettings;
+        IGovSettings.ProposalSettings validatorsBalancesSettings;
+        IGovSettings.ProposalSettings defaultProposalSettings;
     }
 
     struct ValidatorsDeployParams {
@@ -31,12 +33,9 @@ interface IPoolFactory {
     }
 
     struct GovPoolDeployParams {
-        SettingsDeployParams seetingsParams;
+        SettingsDeployParams settingsParams;
         ValidatorsDeployParams validatorsParams;
         UserKeeperDeployParams userKeeperParams;
-        address owner;
-        uint256 votesLimit;
-        uint256 feePercentage;
         string descriptionURL;
     }
 
@@ -61,9 +60,8 @@ interface IPoolFactory {
     }
 
     /// @notice The function to deploy gov pools
-    /// @param withValidators if true deploys gov pool with validators
     /// @param parameters the pool deploy parameters
-    function deployGovPool(bool withValidators, GovPoolDeployParams calldata parameters) external;
+    function deployGovPool(GovPoolDeployParams calldata parameters) external;
 
     /// @notice The function to deploy basic pools
     /// @param name the ERC20 name of the pool

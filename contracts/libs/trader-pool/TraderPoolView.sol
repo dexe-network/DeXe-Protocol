@@ -18,7 +18,7 @@ import "./TraderPoolCommission.sol";
 import "./TraderPoolLeverage.sol";
 import "../math/MathHelper.sol";
 import "../utils/TokenBalance.sol";
-import "../PriceFeed/PriceFeedLocal.sol";
+import "../price-feed/PriceFeedLocal.sol";
 
 library TraderPoolView {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -38,7 +38,7 @@ library TraderPoolView {
         uint256 lpCommission
     ) internal view returns (ITraderPool.Commissions memory commissions) {
         IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
-        (uint256 dexePercentage, , ) = ITraderPool(address(this))
+        (uint256 dexePercentage, , , ) = ITraderPool(address(this))
             .coreProperties()
             .getDEXECommissionPercentages();
 

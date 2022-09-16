@@ -1,17 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@dlsl/dev-modules/contracts-registry/AbstractContractsRegistry.sol";
+import "@dlsl/dev-modules/contracts-registry/presets/OwnableContractsRegistry.sol";
 
 import "../interfaces/core/IContractsRegistry.sol";
 
-contract ContractsRegistry is IContractsRegistry, AbstractContractsRegistry {
+contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry {
     string public constant USER_REGISTRY_NAME = "USER_REGISTRY";
 
     string public constant POOL_FACTORY_NAME = "POOL_FACTORY";
-
-    string public constant TRADER_POOL_REGISTRY_NAME = "TRADER_POOL_REGISTRY";
-    string public constant GOV_POOL_REGISTRY_NAME = "GOV_POOL_REGISTRY";
+    string public constant POOL_REGISTRY_NAME = "POOL_REGISTRY";
 
     string public constant DEXE_NAME = "DEXE";
     string public constant USD_NAME = "USD";
@@ -34,12 +32,8 @@ contract ContractsRegistry is IContractsRegistry, AbstractContractsRegistry {
         return getContract(POOL_FACTORY_NAME);
     }
 
-    function getTraderPoolRegistryContract() external view override returns (address) {
-        return getContract(TRADER_POOL_REGISTRY_NAME);
-    }
-
-    function getGovPoolRegistryContract() external view override returns (address) {
-        return getContract(GOV_POOL_REGISTRY_NAME);
+    function getPoolRegistryContract() external view override returns (address) {
+        return getContract(POOL_REGISTRY_NAME);
     }
 
     function getDEXEContract() external view override returns (address) {

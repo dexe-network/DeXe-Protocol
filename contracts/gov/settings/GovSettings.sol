@@ -9,7 +9,9 @@ import "../../core/Globals.sol";
 
 contract GovSettings is IGovSettings, OwnableUpgradeable {
     uint256 private constant _INTERNAL_SETTINGS_ID = 1;
-    uint256 private constant _DEFAULT_SETTINGS_ID = 2;
+    uint256 private constant _DISTRIBUTION_PROPOSAL_SETTINGS_ID = 2;
+    uint256 private constant _VALIDATORS_BALANCES_ID = 3;
+    uint256 private constant _DEFAULT_SETTINGS_ID = 4;
 
     uint256 private _latestSettingsId;
 
@@ -17,20 +19,40 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
     mapping(address => uint256) public executorToSettings; // executor => seetingsId
 
     function __GovSettings_init(
-        ProposalSettings calldata internalProposalSetting,
-        ProposalSettings calldata defaultProposalSetting
+        address govPoolAddress,
+        address distributionProposalAddress,
+        address validatorsAddress,
+        address govUserKeeperAddress,
+        ProposalSettings calldata internalProposalSettings,
+        ProposalSettings calldata distributionProposalSettings,
+        ProposalSettings calldata validatorsBalancesSettings,
+        ProposalSettings calldata defaultProposalSettings
     ) external initializer {
         __Ownable_init();
 
-        _validateProposalSettings(internalProposalSetting);
-        _validateProposalSettings(defaultProposalSetting);
+        require(
+            !distributionProposalSettings.delegatedVotingAllowed &&
+                !distributionProposalSettings.earlyCompletion,
+            "GovSettings: invalid distribution settings"
+        );
 
-        settings[_INTERNAL_SETTINGS_ID] = internalProposalSetting;
-        settings[_DEFAULT_SETTINGS_ID] = defaultProposalSetting;
+        _validateProposalSettings(internalProposalSettings);
+        _validateProposalSettings(distributionProposalSettings);
+        _validateProposalSettings(validatorsBalancesSettings);
+        _validateProposalSettings(defaultProposalSettings);
+
+        settings[_INTERNAL_SETTINGS_ID] = internalProposalSettings;
+        settings[_DISTRIBUTION_PROPOSAL_SETTINGS_ID] = distributionProposalSettings;
+        settings[_VALIDATORS_BALANCES_ID] = validatorsBalancesSettings;
+        settings[_DEFAULT_SETTINGS_ID] = defaultProposalSettings;
 
         executorToSettings[address(this)] = _INTERNAL_SETTINGS_ID;
+        executorToSettings[distributionProposalAddress] = _DISTRIBUTION_PROPOSAL_SETTINGS_ID;
+        executorToSettings[validatorsAddress] = _VALIDATORS_BALANCES_ID;
+        executorToSettings[govPoolAddress] = _INTERNAL_SETTINGS_ID;
+        executorToSettings[govUserKeeperAddress] = _INTERNAL_SETTINGS_ID;
 
-        _latestSettingsId += 2;
+        _latestSettingsId = 4;
     }
 
     function addSettings(ProposalSettings[] calldata _settings) external override onlyOwner {
@@ -51,9 +73,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         onlyOwner
     {
         for (uint256 i; i < _settings.length; i++) {
-            if (!_settingsExist(settingsIds[i])) {
-                continue;
-            }
+            require(_settingsExist(settingsIds[i]), "GovSettings: settings do not exist");
 
             _validateProposalSettings(_settings[i]);
 
@@ -67,10 +87,6 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         onlyOwner
     {
         for (uint256 i; i < executors.length; i++) {
-            if (settingsIds[i] == _INTERNAL_SETTINGS_ID || executors[i] == address(this)) {
-                continue;
-            }
-
             executorToSettings[executors[i]] = settingsIds[i];
         }
     }
@@ -92,21 +108,20 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         return settings[settingsId].duration > 0;
     }
 
-    function executorInfo(address executor)
-        public
-        view
-        returns (
-            uint256,
-            bool,
-            bool
-        )
-    {
+    function executorInfo(address executor) public view returns (uint256, ExecutorType) {
         uint256 settingsId = executorToSettings[executor];
 
-        return
-            settingsId == 0
-                ? (0, false, false)
-                : (settingsId, settingsId == _INTERNAL_SETTINGS_ID, _settingsExist(settingsId));
+        if (settingsId == 0) {
+            return (0, ExecutorType.NONE);
+        } else if (settingsId == _INTERNAL_SETTINGS_ID) {
+            return (settingsId, ExecutorType.INTERNAL);
+        } else if (settingsId == _DISTRIBUTION_PROPOSAL_SETTINGS_ID) {
+            return (settingsId, ExecutorType.DISTRIBUTION);
+        } else if (settingsId == _VALIDATORS_BALANCES_ID) {
+            return (settingsId, ExecutorType.VALIDATORS);
+        } else {
+            return (settingsId, ExecutorType.TRUSTED);
+        }
     }
 
     function getDefaultSettings() external view override returns (ProposalSettings memory) {
@@ -119,13 +134,15 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         override
         returns (ProposalSettings memory)
     {
-        (uint256 settingsId, bool isInternal, bool isSettingsSet) = executorInfo(executor);
+        (uint256 settingsId, ExecutorType executorType) = executorInfo(executor);
 
-        if (isInternal) {
+        if (executorType == ExecutorType.INTERNAL) {
             return settings[_INTERNAL_SETTINGS_ID];
-        }
-
-        if (isSettingsSet) {
+        } else if (executorType == ExecutorType.DISTRIBUTION) {
+            return settings[_DISTRIBUTION_PROPOSAL_SETTINGS_ID];
+        } else if (executorType == ExecutorType.VALIDATORS) {
+            return settings[_VALIDATORS_BALANCES_ID];
+        } else if (executorType == ExecutorType.TRUSTED) {
             return settings[settingsId];
         }
 

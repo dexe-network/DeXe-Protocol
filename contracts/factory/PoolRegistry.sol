@@ -4,13 +4,13 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "@dlsl/dev-modules/pool-contracts-registry/AbstractPoolContractsRegistry.sol";
+import "@dlsl/dev-modules/pool-contracts-registry/presets/OwnablePoolContractsRegistry.sol";
 import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
 
-import "../interfaces/trader/ITraderPoolRegistry.sol";
+import "../interfaces/factory/IPoolRegistry.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-contract TraderPoolRegistry is ITraderPoolRegistry, AbstractPoolContractsRegistry {
+contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     using EnumerableSet for EnumerableSet.AddressSet;
     using Paginator for EnumerableSet.AddressSet;
     using Math for uint256;
@@ -20,12 +20,19 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractPoolContractsRegistr
     string public constant RISKY_PROPOSAL_NAME = "RISKY_POOL_PROPOSAL";
     string public constant INVEST_PROPOSAL_NAME = "INVEST_POOL_PROPOSAL";
 
+    string public constant GOV_POOL_NAME = "GOV_POOL";
+    string public constant SETTINGS_NAME = "SETTINGS";
+    string public constant VALIDATORS_NAME = "VALIDATORS";
+    string public constant USER_KEEPER_NAME = "USER_KEEPER";
+    string public constant DISTRIBUTION_PROPOSAL_NAME = "DISTRIBUTION_PROPOSAL";
+
     address internal _poolFactory;
 
-    mapping(address => mapping(string => EnumerableSet.AddressSet)) internal _traderPools; // trader => name => pool
+    mapping(address => mapping(string => EnumerableSet.AddressSet)) internal _ownerPools; // pool owner => name => pool
 
-    function _onlyPoolFactory() internal view override {
-        require(_poolFactory == _msgSender(), "TraderPoolRegistry: Caller is not a factory");
+    modifier onlyPoolFactory() {
+        require(_poolFactory == _msgSender(), "PoolRegistry: Caller is not a factory");
+        _;
     }
 
     function setDependencies(address contractsRegistry) public override {
@@ -34,33 +41,41 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractPoolContractsRegistr
         _poolFactory = IContractsRegistry(contractsRegistry).getPoolFactoryContract();
     }
 
+    function addProxyPool(string calldata name, address poolAddress)
+        external
+        override
+        onlyPoolFactory
+    {
+        _addProxyPool(name, poolAddress);
+    }
+
     function associateUserWithPool(
         address user,
         string calldata name,
         address poolAddress
     ) external onlyPoolFactory {
-        _traderPools[user][name].add(poolAddress);
+        _ownerPools[user][name].add(poolAddress);
     }
 
-    function countTraderPools(address user, string calldata name)
+    function countAssociatedPools(address user, string calldata name)
         external
         view
         override
         returns (uint256)
     {
-        return _traderPools[user][name].length();
+        return _ownerPools[user][name].length();
     }
 
-    function listTraderPools(
+    function listAssociatedPools(
         address user,
         string calldata name,
         uint256 offset,
         uint256 limit
     ) external view override returns (address[] memory pools) {
-        return _traderPools[user][name].part(offset, limit);
+        return _ownerPools[user][name].part(offset, limit);
     }
 
-    function listPoolsWithInfo(
+    function listTraderPoolsWithInfo(
         string calldata name,
         uint256 offset,
         uint256 limit
@@ -93,7 +108,7 @@ contract TraderPoolRegistry is ITraderPoolRegistry, AbstractPoolContractsRegistr
         return _pools[INVEST_POOL_NAME].contains(potentialPool);
     }
 
-    function isPool(address potentialPool) external view override returns (bool) {
+    function isTraderPool(address potentialPool) external view override returns (bool) {
         return isBasicPool(potentialPool) || isInvestPool(potentialPool);
     }
 }
