@@ -1,6 +1,7 @@
 const { toBN } = require("../../scripts/helpers/utils");
 
 const ZERO = "0x0000000000000000000000000000000000000000";
+const ETHER = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
 const SECONDS_IN_DAY = 86400;
 const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
@@ -61,6 +62,7 @@ const DEFAULT_CORE_PROPERTIES = {
 
 module.exports = {
   ZERO,
+  ETHER,
   SECONDS_IN_DAY,
   SECONDS_IN_MONTH,
   PRECISION,

@@ -76,7 +76,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address settingsProxy = _deploy(_poolRegistry.SETTINGS_NAME());
         address poolProxy = _deploy(poolType);
 
-        DistributionProposal(dpProxy).__DistributionProposal_init(poolProxy);
+        DistributionProposal(payable(dpProxy)).__DistributionProposal_init(poolProxy);
         GovSettings(settingsProxy).__GovSettings_init(
             address(poolProxy),
             address(dpProxy),

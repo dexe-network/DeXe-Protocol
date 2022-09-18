@@ -12,7 +12,7 @@ const {
   getBytesApprove,
   getBytesApproveAll,
 } = require("./utils/gov-pool-utils");
-const { ZERO, PRECISION, ProposalState, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
+const { ZERO, ETHER, PRECISION, ProposalState, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("./helpers/block-helper");
 const { impersonate } = require("./helpers/impersonator");
@@ -50,6 +50,7 @@ describe("GovPool", () => {
   let FACTORY;
   let NOTHING;
 
+  let contractsRegistry;
   let coreProperties;
   let poolRegistry;
 
@@ -73,7 +74,7 @@ describe("GovPool", () => {
   });
 
   beforeEach("setup", async () => {
-    const contractsRegistry = await ContractsRegistry.new();
+    contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
@@ -87,7 +88,7 @@ describe("GovPool", () => {
 
     await contractsRegistry.addContract(await contractsRegistry.POOL_FACTORY_NAME(), FACTORY);
 
-    await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
+    await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), ETHER);
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.INSURANCE_NAME(), NOTHING);
 
@@ -1252,14 +1253,18 @@ describe("GovPool", () => {
         quorumValidators: 1,
         minVotesForVoting: 1,
         minVotesForCreating: 1,
-        rewardToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        rewardToken: ETHER,
         creationReward: wei("10"),
         executionReward: wei("5"),
         voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
         executorDescription: "new_settings",
       };
 
+      let treasury;
+
       beforeEach(async () => {
+        treasury = await contractsRegistry.getTreasuryContract();
+
         await token.mint(SECOND, wei("100000000000000000000"));
 
         await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
@@ -1279,7 +1284,11 @@ describe("GovPool", () => {
         await validators.vote(1, wei("100"), false);
         await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
+        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), "0");
+
         await govPool.execute(1);
+
+        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("20000000000000000003.2"));
 
         await govPool.claimRewards([1]);
 
@@ -1297,8 +1306,11 @@ describe("GovPool", () => {
         await validators.vote(1, wei("100"), false);
         await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
+        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), "0");
+
         await govPool.executeAndClaim(1);
 
+        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("20000000000000000003.2"));
         assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("16"));
       });
 
@@ -1311,17 +1323,18 @@ describe("GovPool", () => {
         await govPool.moveProposalToValidators(1);
         await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
-        await govPool.execute(1);
+        await network.provider.send("hardhat_setBalance", [govPool.address, "0x" + wei("100")]);
 
-        await network.provider.send("hardhat_setBalance", [
-          govPool.address, // address
-          "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", // balance
-        ]);
+        await govPool.execute(1);
 
         await govPool.createProposal("example.com", [settings.address], [0], [getBytesAddSettings([NEW_SETTINGS])]);
         await govPool.vote(2, 0, [], wei("1"), []);
 
+        assert.equal(await web3.eth.getBalance(treasury), "0");
+
         await govPool.execute(2);
+
+        assert.equal(await web3.eth.getBalance(treasury), wei("3.2"));
 
         let balance = toBN(await web3.eth.getBalance(OWNER));
 

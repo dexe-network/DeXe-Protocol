@@ -13,6 +13,8 @@ import "../../interfaces/gov/proposals/IDistributionProposal.sol";
 import "../../libs/math/MathHelper.sol";
 import "../../libs/utils/TokenBalance.sol";
 
+import "../../core/Globals.sol";
+
 contract DistributionProposal is IDistributionProposal, Initializable {
     using SafeERC20 for IERC20;
     using MathHelper for uint256;
@@ -38,7 +40,7 @@ contract DistributionProposal is IDistributionProposal, Initializable {
         uint256 proposalId,
         address token,
         uint256 amount
-    ) external override onlyGov {
+    ) external payable override onlyGov {
         require(proposals[proposalId].rewardAddress == address(0), "DP: proposal already exist");
         require(token != address(0), "DP: zero address");
         require(amount > 0, "DP: zero amount");
@@ -63,13 +65,20 @@ contract DistributionProposal is IDistributionProposal, Initializable {
 
             dpInfo.claimed[voter] = true;
 
-            if (balance < reward) {
-                rewardToken.safeTransferFrom(govAddress, address(this), reward - balance);
-            }
+            if (address(rewardToken) == ETHEREUM_ADDRESS) {
+                (bool status, ) = payable(voter).call{value: reward}("");
+                require(status, "DP: failed to send eth");
+            } else {
+                if (balance < reward) {
+                    rewardToken.safeTransferFrom(govAddress, address(this), reward - balance);
+                }
 
-            rewardToken.safeTransfer(voter, reward);
+                rewardToken.safeTransfer(voter, reward);
+            }
         }
     }
+
+    receive() external payable {}
 
     function getPotentialReward(
         uint256 proposalId,

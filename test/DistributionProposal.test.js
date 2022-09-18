@@ -3,7 +3,7 @@ const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("./helpers/block-helper");
 const { impersonate } = require("./helpers/impersonator");
 const { getBytesApprove, getBytesTransfer, getBytesDistributionProposal } = require("./utils/gov-pool-utils");
-const { ZERO, PRECISION, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
+const { ZERO, ETHER, PRECISION, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
 const { assert } = require("chai");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -332,6 +332,7 @@ describe("DistributionProposal", () => {
         await setTime(startTime + 999);
 
         await token.mint(govPool.address, wei("100000"));
+        await web3.eth.sendTransaction({ from: OWNER, to: govPool.address, value: wei("10") });
       });
 
       it("should not claim wrong proposal", async () => {
@@ -358,6 +359,54 @@ describe("DistributionProposal", () => {
 
         assert.equal((await token.balanceOf(SECOND)).toFixed(), "55555555555555555555556");
         assert.equal((await token.balanceOf(THIRD)).toFixed(), "44444444444444444444443");
+      });
+
+      it("should correctly claim ether", async () => {
+        await govPool.createProposal(
+          "example.com",
+          [dp.address],
+          [wei("1")],
+          [getBytesDistributionProposal(1, ETHER, wei("1"))],
+          { from: SECOND }
+        );
+
+        await govPool.vote(1, 0, [], 0, [1, 2, 3, 4, 5], { from: SECOND });
+        await govPool.vote(1, 0, [], 0, [6, 7, 8, 9], { from: THIRD });
+
+        await setTime(startTime + 10000);
+        await govPool.execute(1);
+
+        await dp.claim(SECOND, [1]);
+        await dp.claim(THIRD, [1]);
+
+        assert.closeTo(
+          toBN(await web3.eth.getBalance(SECOND)).toNumber(),
+          toBN(wei("10000.55")).toNumber(),
+          toBN(wei("10")).toNumber()
+        );
+        assert.closeTo(
+          toBN(await web3.eth.getBalance(THIRD)).toNumber(),
+          toBN(wei("10000.44")).toNumber(),
+          toBN(wei("10")).toNumber()
+        );
+      });
+
+      it("should not claim if not enough ether", async () => {
+        await govPool.createProposal(
+          "example.com",
+          [dp.address],
+          [0],
+          [getBytesDistributionProposal(1, ETHER, wei("1"))],
+          { from: SECOND }
+        );
+
+        await govPool.vote(1, 0, [], 0, [1, 2, 3, 4, 5], { from: SECOND });
+        await govPool.vote(1, 0, [], 0, [6, 7, 8, 9], { from: THIRD });
+
+        await setTime(startTime + 10000);
+        await govPool.execute(1);
+
+        await truffleAssert.reverts(dp.claim(SECOND, [1]), "DP: failed to send eth");
       });
 
       it("should claim, when proposal amount < reward", async () => {

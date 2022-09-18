@@ -18,7 +18,7 @@ interface IDistributionProposal {
         uint256 proposalId,
         address token,
         uint256 amount
-    ) external;
+    ) external payable;
 
     /// @notice Distribute rewards
     /// @param voter Voter address
