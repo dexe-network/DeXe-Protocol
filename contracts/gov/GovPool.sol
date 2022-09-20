@@ -68,6 +68,8 @@ contract GovPool is
     event ProposalCreated(uint256 proposalId, address sender, uint256 quorum);
     event Delegated(address from, address to, uint256 amount);
     event Undelegated(address from, address to, uint256 amount);
+    event DelegatedNFT(address from, address to, uint256[] tokens);
+    event UndelegatedNFT(address from, address to, uint256[] tokens);
     event Voted(uint256 proposalId, address sender, uint256 personalVote, uint256 delegatedVote);
     event DPCreated(uint256 proposalId, address sender, address token, uint256 amount);
     event ProposalExecuted(uint256 proposalId, address sender);
