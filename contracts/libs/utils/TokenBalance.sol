@@ -12,7 +12,10 @@ library TokenBalance {
     using DecimalsConverter for uint256;
 
     function normThisBalance(address token) internal view returns (uint256) {
-        return IERC20(token).balanceOf(address(this)).to18(ERC20(token).decimals());
+        return
+            token == ETHEREUM_ADDRESS
+                ? thisBalance(token)
+                : thisBalance(token).to18(ERC20(token).decimals());
     }
 
     function thisBalance(address token) internal view returns (uint256) {

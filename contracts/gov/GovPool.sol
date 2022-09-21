@@ -45,6 +45,7 @@ contract GovPool is
     using DataHelper for bytes;
     using SafeERC20 for IERC20;
     using TokenBalance for address;
+    using DecimalsConverter for uint256;
     using GovUserKeeperLocal for *;
 
     IGovSettings public govSetting;
@@ -483,7 +484,7 @@ contract GovPool is
         (, uint256 commissionPercentage, , address[3] memory commissionReceivers) = _coreProperties
             .getDEXECommissionPercentages();
 
-        uint256 commission = rewardToken.thisBalance().min(
+        uint256 commission = rewardToken.normThisBalance().min(
             totalRewards.percentage(commissionPercentage)
         );
 
@@ -721,7 +722,7 @@ contract GovPool is
 
         uint256 rewards = pendingRewards[proposalId][msg.sender];
 
-        require(rewardToken.thisBalance() >= rewards, "Gov: not enough balance");
+        require(rewardToken.normThisBalance() >= rewards, "Gov: not enough balance");
 
         delete pendingRewards[proposalId][msg.sender];
 
@@ -737,7 +738,7 @@ contract GovPool is
             (bool status, ) = payable(receiver).call{value: amount}("");
             require(status, "Gov: failed to send eth");
         } else {
-            IERC20(token).safeTransfer(receiver, amount);
+            IERC20(token).safeTransfer(receiver, amount.from18(ERC20(token).decimals()));
         }
     }
 }

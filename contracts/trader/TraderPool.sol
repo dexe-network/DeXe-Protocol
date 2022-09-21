@@ -457,12 +457,12 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _checkUserBalance(amountLP);
 
         IERC20 baseToken = IERC20(_poolParameters.baseToken);
-        uint256 receivedBase = address(baseToken).thisBalance().ratio(amountLP, totalSupply());
+        uint256 receivedBase = address(baseToken).normThisBalance().ratio(amountLP, totalSupply());
 
         _updateFrom(msg.sender, amountLP, receivedBase);
         _burn(msg.sender, amountLP);
 
-        baseToken.safeTransfer(msg.sender, receivedBase);
+        baseToken.safeTransfer(msg.sender, receivedBase.from18(_poolParameters.baseTokenDecimals));
     }
 
     function getDivestAmountsAndCommissions(address user, uint256 amountLP)

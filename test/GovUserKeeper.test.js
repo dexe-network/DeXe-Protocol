@@ -778,8 +778,8 @@ describe("GovUserKeeper", () => {
       await token.mint(OWNER, wei("900"));
       await token.approve(nft.address, wei("500"));
 
-      await nft.setMaxPower("10000");
-      await nft.setRequiredCollateral("500");
+      await nft.setMaxPower(wei("10000"));
+      await nft.setRequiredCollateral(wei("500"));
       await nft.setReductionPercent(PRECISION.times(toBN("0.01")));
 
       for (let i = 1; i <= 9; i++) {
@@ -807,16 +807,18 @@ describe("GovUserKeeper", () => {
         await setTime(startTime + 1999);
         await userKeeper.createNftPowerSnapshot();
 
-        assert.equal((await userKeeper.nftSnapshot(1)).totalNftsPower.toFixed(), "74400");
-        assert.equal((await userKeeper.getNftsPowerInTokens([1], 1)).toFixed(), wei("4080.645161290322580645"));
+        assert.equal((await userKeeper.nftSnapshot(1)).totalNftsPower.toFixed(), wei("74900"));
+        assert.equal((await userKeeper.getNftsPowerInTokens([1], 1)).toFixed(), wei("4053.404539385847797062"));
+        assert.equal((await userKeeper.getNftsPowerInTokens([2], 1)).toFixed(), wei("4053.404539385847797062"));
         assert.equal((await userKeeper.getNftsPowerInTokens([8], 1)).toFixed(), wei("0"));
-        assert.equal((await userKeeper.getNftsPowerInTokens([9], 1)).toFixed(), wei("4935.483870967741935483"));
-        assert.equal((await userKeeper.getNftsPowerInTokens([1, 8, 9], 1)).toFixed(), wei("9016.129032258064516128"));
+        assert.equal((await userKeeper.getNftsPowerInTokens([9], 1)).toFixed(), wei("4626.168224299065420560"));
+        assert.equal((await userKeeper.getNftsPowerInTokens([1, 8, 9], 1)).toFixed(), wei("8679.572763684913217622"));
 
-        assert.equal((await userKeeper.nftSnapshot(2)).totalNftsPower.toFixed(), "67400");
-        assert.equal((await userKeeper.getNftsPowerInTokens([1], 2)).toFixed(), wei("4014.836795252225519287"));
+        assert.equal((await userKeeper.nftSnapshot(2)).totalNftsPower.toFixed(), wei("67900"));
+        assert.equal((await userKeeper.getNftsPowerInTokens([1], 2)).toFixed(), wei("3985.272459499263622974"));
+        assert.equal((await userKeeper.getNftsPowerInTokens([2], 2)).toFixed(), wei("3985.272459499263622974"));
         assert.equal((await userKeeper.getNftsPowerInTokens([8], 2)).toFixed(), wei("0"));
-        assert.equal((await userKeeper.getNftsPowerInTokens([9], 2)).toFixed(), wei("5396.142433234421364985"));
+        assert.equal((await userKeeper.getNftsPowerInTokens([9], 2)).toFixed(), wei("5103.092783505154639175"));
       });
 
       it("should calculate zero power", async () => {

@@ -351,13 +351,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
 
         uint256 nftsPower;
-
-        for (uint256 i; i < nftIds.length; i++) {
-            (, , uint256 collateralAmount, , ) = ERC721Power(nftAddress).nftInfos(nftIds[i]);
-
-            nftsPower += collateralAmount;
-        }
-
         uint256 totalNftsPower = nftSnapshot[snapshotId].totalNftsPower;
 
         if (totalNftsPower != 0) {
@@ -397,7 +390,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         for (uint256 i; i < supply; i++) {
             uint256 index = nftContract.tokenByIndex(i);
-            uint256 power = nftContract.recalculateNftPower(index);
+            (, , uint256 collateralAmount, , ) = ERC721Power(nftAddress).nftInfos(index);
+            uint256 power = nftContract.recalculateNftPower(index) + collateralAmount;
 
             nftSnapshot[currentPowerSnapshotId].nftPower[index] = power;
             totalNftsPower += power;
