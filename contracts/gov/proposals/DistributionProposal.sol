@@ -25,7 +25,7 @@ contract DistributionProposal is IDistributionProposal, Initializable {
 
     mapping(uint256 => IDistributionProposal.DistributionProposalStruct) public proposals;
 
-    event DistributionProposalClaimed(uint256 proposalId, address sender, uint256 amount);
+    event DistributionProposalClaimed(uint256[] proposalIds, address sender, uint256[] amounts);
 
     modifier onlyGov() {
         require(msg.sender == govAddress, "DP: not a Gov contract");
@@ -55,6 +55,8 @@ contract DistributionProposal is IDistributionProposal, Initializable {
         require(proposalIds.length > 0, "DP: zero array length");
         require(voter != address(0), "DP: zero address");
 
+        uint256[] memory rewards = new uint256[](proposalIds.length);
+
         for (uint256 i; i < proposalIds.length; i++) {
             DistributionProposalStruct storage dpInfo = proposals[proposalIds[i]];
             IERC20 rewardToken = IERC20(dpInfo.rewardAddress);
@@ -64,6 +66,8 @@ contract DistributionProposal is IDistributionProposal, Initializable {
 
             uint256 reward = getPotentialReward(proposalIds[i], voter, dpInfo.rewardAmount);
             uint256 balance = address(rewardToken).thisBalance();
+
+            rewards[i] = reward;
 
             dpInfo.claimed[voter] = true;
 
@@ -78,6 +82,8 @@ contract DistributionProposal is IDistributionProposal, Initializable {
                 rewardToken.safeTransfer(voter, reward);
             }
         }
+
+        emit DistributionProposalClaimed(proposalIds, voter, rewards);
     }
 
     receive() external payable {}
