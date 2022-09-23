@@ -189,7 +189,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
                 : _getProposalState(externalProposals[proposalId].core);
     }
 
-    function _getProposalState(ProposalCore storage core) private view returns (ProposalState) {
+    function _getProposalState(ProposalCore storage core) internal view returns (ProposalState) {
         if (core.executed) {
             return ProposalState.Executed;
         }
@@ -221,14 +221,14 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
                 : _isQuorumReached(externalProposals[proposalId].core);
     }
 
-    function _isQuorumReached(ProposalCore storage core) private view returns (bool) {
+    function _isQuorumReached(ProposalCore storage core) internal view returns (bool) {
         uint256 totalSupply = govValidatorsToken.totalSupplyAt(core.snapshotId);
         uint256 currentQuorum = PERCENTAGE_100.ratio(core.votesFor, totalSupply);
 
         return currentQuorum >= core.quorum;
     }
 
-    function _proposalExists(uint256 proposalId, bool isInternal) private view returns (bool) {
+    function _proposalExists(uint256 proposalId, bool isInternal) internal view returns (bool) {
         return
             isInternal
                 ? internalProposals[proposalId].core.voteEnd != 0
@@ -243,7 +243,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         _changeBalances(newValues, userAddresses);
     }
 
-    function _changeBalances(uint256[] memory newValues, address[] memory userAddresses) private {
+    function _changeBalances(uint256[] memory newValues, address[] memory userAddresses) internal {
         GovValidatorsToken validatorsToken = govValidatorsToken;
         uint256 length = newValues.length;
 

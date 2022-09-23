@@ -37,12 +37,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     NFTInfo public nftInfo;
 
-    uint256 private _latestPowerSnapshotId;
+    uint256 internal _latestPowerSnapshotId;
 
-    mapping(address => UserInfo) private _usersInfo; // user => info
-    mapping(address => BalanceInfo) private _micropoolsInfo; // user = micropool address => info
+    mapping(address => UserInfo) internal _usersInfo; // user => info
+    mapping(address => BalanceInfo) internal _micropoolsInfo; // user = micropool address => info
 
-    mapping(uint256 => uint256) private _nftLockedNums; // tokenId => locked num
+    mapping(uint256 => uint256) internal _nftLockedNums; // tokenId => locked num
 
     mapping(uint256 => NFTSnapshot) public nftSnapshot; // snapshot id => snapshot info
 
@@ -492,7 +492,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         ShrinkableArray.UintArray calldata lockedProposals,
         uint256[] calldata unlockedNfts
     )
-        private
+        internal
         view
         returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts)
     {

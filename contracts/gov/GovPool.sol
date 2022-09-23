@@ -142,26 +142,13 @@ contract GovPool is
             settings = govSetting.getSettings(mainExecutor);
         }
 
-        uint256 nftSnapshot = govUserKeeper.createNftPowerSnapshot();
-
-        require(
-            govUserKeeper.canParticipate(
-                msg.sender,
-                false,
-                !settings.delegatedVotingAllowed,
-                settings.minVotesForCreating,
-                nftSnapshot
-            ),
-            "Gov: low voting power"
-        );
-
         proposals[proposalId] = Proposal({
             core: ProposalCore({
                 settings: settings,
                 executed: false,
                 voteEnd: uint64(block.timestamp + settings.duration),
                 votesFor: 0,
-                nftPowerSnapshotId: nftSnapshot,
+                nftPowerSnapshotId: govUserKeeper.createNftPowerSnapshot(),
                 proposalId: proposalId
             }),
             descriptionURL: _descriptionURL,
@@ -169,6 +156,11 @@ contract GovPool is
             values: values,
             data: data
         });
+
+        require(
+            _canParticipate(proposals[proposalId].core, false, !settings.delegatedVotingAllowed),
+            "Gov: low voting power"
+        );
 
         _updateRewards(proposalId, settings.creationReward, PRECISION);
     }
@@ -508,7 +500,7 @@ contract GovPool is
         address[] calldata executors,
         uint256[] calldata values,
         bytes[] calldata data
-    ) private view {
+    ) internal view {
         for (uint256 i; i < data.length; i++) {
             bytes4 selector = data[i].getSelector();
             (, IGovSettings.ExecutorType executorType) = govSetting.executorInfo(executors[i]);
@@ -531,7 +523,7 @@ contract GovPool is
         address[] calldata executors,
         uint256[] calldata values,
         bytes[] calldata data
-    ) private pure {
+    ) internal pure {
         require(executors.length == 1, "Gov: invalid executors length");
 
         for (uint256 i; i < data.length; i++) {
@@ -545,7 +537,7 @@ contract GovPool is
     }
 
     function _handleDataForDistributionProposal(uint256[] calldata values, bytes[] calldata data)
-        private
+        internal
         view
     {
         (uint256 decodedId, , ) = abi.decode(
@@ -569,7 +561,7 @@ contract GovPool is
     function _handleDataForExistingSettingsProposal(
         uint256[] calldata values,
         bytes[] calldata data
-    ) private pure returns (bool) {
+    ) internal pure returns (bool) {
         for (uint256 i; i < data.length - 1; i++) {
             bytes4 selector = data[i].getSelector();
 
@@ -591,7 +583,7 @@ contract GovPool is
         uint256 amount,
         bool isMicropool,
         bool useDelegated
-    ) private {
+    ) internal {
         VoteInfo storage voteInfo = _voteInfos[proposalId][msg.sender][isMicropool];
 
         IGovUserKeeper userKeeper = govUserKeeper;
@@ -615,22 +607,17 @@ contract GovPool is
         uint256[] calldata nftIds,
         bool isMicropool,
         bool useDelegated
-    ) private {
+    ) internal {
         VoteInfo storage voteInfo = _voteInfos[proposalId][msg.sender][isMicropool];
 
         for (uint256 i; i < nftIds.length; i++) {
-            require(i == 0 || nftIds[i] > nftIds[i - 1], "Gov: wrong NFT order");
-            require(!voteInfo.nftsVoted.contains(nftIds[i]), "Gov: NFT already voted");
+            require(voteInfo.nftsVoted.add(nftIds[i]), "Gov: NFT already voted");
         }
 
         IGovUserKeeper userKeeper = govUserKeeper;
 
         userKeeper.lockNfts(msg.sender, isMicropool, useDelegated, nftIds);
         uint256 voteAmount = userKeeper.getNftsPowerInTokens(nftIds, core.nftPowerSnapshotId);
-
-        for (uint256 i; i < nftIds.length; i++) {
-            voteInfo.nftsVoted.add(nftIds[i]);
-        }
 
         voteInfo.totalVoted += voteAmount;
 
@@ -643,8 +630,10 @@ contract GovPool is
         uint256 proposalId,
         bool isMicropool,
         bool useDelegated
-    ) private returns (ProposalCore storage) {
-        ProposalCore storage core = proposals[proposalId].core;
+    ) internal returns (ProposalCore storage core) {
+        core = proposals[proposalId].core;
+
+        unlock(msg.sender, isMicropool);
 
         _votedInProposals[msg.sender][isMicropool].add(proposalId);
 
@@ -654,18 +643,7 @@ contract GovPool is
             "Gov: vote limit reached"
         );
         require(_getProposalState(core) == ProposalState.Voting, "Gov: vote unavailable");
-        require(
-            govUserKeeper.canParticipate(
-                msg.sender,
-                isMicropool,
-                useDelegated,
-                core.settings.minVotesForVoting,
-                core.nftPowerSnapshotId
-            ),
-            "Gov: low voting power"
-        );
-
-        return core;
+        require(_canParticipate(core, isMicropool, useDelegated), "Gov: low voting power");
     }
 
     function _getProposalState(ProposalCore storage core) internal view returns (ProposalState) {
@@ -713,10 +691,25 @@ contract GovPool is
         return ProposalState.Voting;
     }
 
-    function _quorumReached(ProposalCore storage core) private view returns (bool) {
+    function _quorumReached(ProposalCore storage core) internal view returns (bool) {
         return
             PERCENTAGE_100.ratio(core.votesFor, govUserKeeper.getTotalVoteWeight()) >=
             core.settings.quorum;
+    }
+
+    function _canParticipate(
+        ProposalCore storage core,
+        bool isMicropool,
+        bool useDelegated
+    ) internal view returns (bool) {
+        return
+            govUserKeeper.canParticipate(
+                msg.sender,
+                isMicropool,
+                useDelegated,
+                core.settings.minVotesForVoting,
+                core.nftPowerSnapshotId
+            );
     }
 
     function _updateRewards(

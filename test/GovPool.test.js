@@ -715,8 +715,8 @@ describe("GovPool", () => {
           assert.equal((await govPool.proposals(1)).core.votesFor, SINGLE_NFT_COST.times(3).plus(1).toFixed());
         });
 
-        it("should revert when order is wrong", async () => {
-          await truffleAssert.reverts(govPool.vote(1, 0, [], 0, [3, 2]), "Gov: wrong NFT order");
+        it("should revert when voting with same NFTs", async () => {
+          await truffleAssert.reverts(govPool.vote(1, 0, [], 0, [2, 2]), "Gov: NFT already voted");
         });
       });
 

@@ -8,12 +8,12 @@ import "../../interfaces/gov/settings/IGovSettings.sol";
 import "../../core/Globals.sol";
 
 contract GovSettings is IGovSettings, OwnableUpgradeable {
-    uint256 private constant _INTERNAL_SETTINGS_ID = 1;
-    uint256 private constant _DISTRIBUTION_PROPOSAL_SETTINGS_ID = 2;
-    uint256 private constant _VALIDATORS_BALANCES_ID = 3;
-    uint256 private constant _DEFAULT_SETTINGS_ID = 4;
+    uint256 internal constant _INTERNAL_SETTINGS_ID = 1;
+    uint256 internal constant _DISTRIBUTION_PROPOSAL_SETTINGS_ID = 2;
+    uint256 internal constant _VALIDATORS_BALANCES_ID = 3;
+    uint256 internal constant _DEFAULT_SETTINGS_ID = 4;
 
-    uint256 private _latestSettingsId;
+    uint256 internal _latestSettingsId;
 
     mapping(uint256 => ProposalSettings) public settings; // settingsId => info
     mapping(address => uint256) public executorToSettings; // executor => seetingsId
@@ -91,7 +91,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         }
     }
 
-    function _validateProposalSettings(ProposalSettings calldata _settings) private pure {
+    function _validateProposalSettings(ProposalSettings calldata _settings) internal pure {
         require(_settings.duration > 0, "GovSettings: invalid vote duration value");
         require(_settings.quorum <= PERCENTAGE_100, "GovSettings: invalid quorum value");
         require(
@@ -104,7 +104,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         );
     }
 
-    function _settingsExist(uint256 settingsId) private view returns (bool) {
+    function _settingsExist(uint256 settingsId) internal view returns (bool) {
         return settings[settingsId].duration > 0;
     }
 
