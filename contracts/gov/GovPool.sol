@@ -320,15 +320,13 @@ contract GovPool is
 
     function claimRewards(uint256[] calldata proposalIds) external override {
         for (uint256 i; i < proposalIds.length; i++) {
-            (address token, uint256 amount) = _claimReward(proposalIds[i]);
-            _emitRewardsClaimed(proposalIds[i], token, amount);
+            _claimReward(proposalIds[i]);
         }
     }
 
     function executeAndClaim(uint256 proposalId) external override {
         execute(proposalId);
-        (address token, uint256 amount) = _claimReward(proposalId);
-        _emitRewardsClaimed(proposalId, token, amount);
+        _claimReward(proposalId);
     }
 
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
@@ -539,7 +537,7 @@ contract GovPool is
     }
 
     function _handleDataForDistributionProposal(uint256[] calldata values, bytes[] calldata data)
-        private
+        internal
     {
         (uint256 decodedId, address token, uint256 amount) = abi.decode(
             data[data.length - 1][4:],
@@ -580,6 +578,25 @@ contract GovPool is
         return false;
     }
 
+    function _vote(
+        ProposalCore storage core,
+        uint256 proposalId,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds,
+        bool isMicropool,
+        bool useDelegated
+    ) internal {
+        _voteTokens(core, proposalId, voteAmount, isMicropool, useDelegated);
+        uint256 nftVoteAmount = _voteNfts(core, proposalId, voteNftIds, isMicropool, useDelegated);
+
+        emit Voted(
+            proposalId,
+            msg.sender,
+            isMicropool ? 0 : voteAmount + nftVoteAmount,
+            isMicropool ? voteAmount + nftVoteAmount : 0
+        );
+    }
+
     function _voteTokens(
         ProposalCore storage core,
         uint256 proposalId,
@@ -610,7 +627,7 @@ contract GovPool is
         uint256[] calldata nftIds,
         bool isMicropool,
         bool useDelegated
-    ) private returns (uint256 voteAmount) {
+    ) internal returns (uint256 voteAmount) {
         VoteInfo storage voteInfo = _voteInfos[proposalId][msg.sender][isMicropool];
 
         for (uint256 i; i < nftIds.length; i++) {
@@ -620,7 +637,7 @@ contract GovPool is
         IGovUserKeeper userKeeper = govUserKeeper;
 
         userKeeper.lockNfts(msg.sender, isMicropool, useDelegated, nftIds);
-        uint256 voteAmount = userKeeper.getNftsPowerInTokens(nftIds, core.nftPowerSnapshotId);
+        voteAmount = userKeeper.getNftsPowerInTokens(nftIds, core.nftPowerSnapshotId);
 
         voteInfo.totalVoted += voteAmount;
 
@@ -723,22 +740,21 @@ contract GovPool is
         pendingRewards[proposalId][msg.sender] += amount.ratio(coefficient, PRECISION);
     }
 
-    function _claimReward(uint256 proposalId)
-        internal
-        returns (address rewardToken, uint256 rewards)
-    {
-        rewardToken = proposals[proposalId].core.settings.rewardToken;
+    function _claimReward(uint256 proposalId) internal {
+        address rewardToken = proposals[proposalId].core.settings.rewardToken;
 
         require(rewardToken != address(0), "Gov: rewards off");
         require(proposals[proposalId].core.executed, "Gov: proposal not executed");
 
-        rewards = pendingRewards[proposalId][msg.sender];
+        uint256 rewards = pendingRewards[proposalId][msg.sender];
 
         require(rewardToken.normThisBalance() >= rewards, "Gov: not enough balance");
 
         delete pendingRewards[proposalId][msg.sender];
 
         _sendFunds(msg.sender, rewardToken, rewards);
+
+        emit RewardClaimed(proposalId, msg.sender, rewardToken, rewards);
     }
 
     function _sendFunds(
@@ -759,7 +775,7 @@ contract GovPool is
         uint256 amount,
         uint256[] calldata nfts,
         bool isDelegate
-    ) private {
+    ) internal {
         emit Delegated(msg.sender, to, amount, nfts, isDelegate);
     }
 
@@ -767,26 +783,7 @@ contract GovPool is
         uint256 proposalId,
         address token,
         uint256 amount
-    ) private {
+    ) internal {
         emit RewardClaimed(proposalId, msg.sender, token, amount);
-    }
-
-    function _vote(
-        ProposalCore storage core,
-        uint256 proposalId,
-        uint256 voteAmount,
-        uint256[] calldata voteNftIds,
-        bool isMicropool,
-        bool useDelegated
-    ) private {
-        _voteTokens(core, proposalId, voteAmount, isMicropool, useDelegated);
-        uint256 nftVoteAmount = _voteNfts(core, proposalId, voteNftIds, isMicropool, useDelegated);
-
-        emit Voted(
-            proposalId,
-            msg.sender,
-            isMicropool ? 0 : voteAmount + nftVoteAmount,
-            isMicropool ? voteAmount + nftVoteAmount : 0
-        );
     }
 }
