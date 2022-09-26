@@ -77,6 +77,8 @@ contract DistributionProposal is IDistributionProposal, Initializable {
 
                 rewardToken.safeTransfer(voter, reward);
             }
+
+            emit DistributionProposalClaimed(proposalIds[i], voter, reward);
         }
     }
 

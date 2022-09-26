@@ -145,6 +145,8 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         }
 
         core.votesFor += voteAmount;
+
+        emit Voted(proposalId, msg.sender, voteAmount);
     }
 
     function execute(uint256 proposalId) external override {
@@ -270,5 +272,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         }
 
         validatorsCount = validatorsCount_;
+
+        emit ChangedValidatorsBalances(userAddresses, newValues);
     }
 }
