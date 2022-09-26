@@ -778,12 +778,4 @@ contract GovPool is
     ) internal {
         emit Delegated(msg.sender, to, amount, nfts, isDelegate);
     }
-
-    function _emitRewardsClaimed(
-        uint256 proposalId,
-        address token,
-        uint256 amount
-    ) internal {
-        emit RewardClaimed(proposalId, msg.sender, token, amount);
-    }
 }
