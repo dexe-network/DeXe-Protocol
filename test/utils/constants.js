@@ -13,6 +13,12 @@ const ExchangeType = {
   TO_EXACT: 1,
 };
 
+const InsuranceStatus = {
+  NULL: 0,
+  ACCEPTED: 1,
+  REJECTED: 2,
+};
+
 const ComissionPeriods = {
   PERIOD_1: 0,
   PERIOD_2: 1,
@@ -49,7 +55,7 @@ const DEFAULT_CORE_PROPERTIES = {
   },
   insuranceParams: {
     insuranceFactor: 10,
-    maxInsurancePoolShare: 3,
+    maxInsurancePoolShare: PRECISION.times(33.3333).toFixed(),
     minInsuranceDeposit: DECIMAL.times(10).toFixed(),
     minInsuranceProposalAmount: DECIMAL.times(100).toFixed(),
     insuranceWithdrawalLock: SECONDS_IN_DAY,
@@ -68,6 +74,7 @@ module.exports = {
   PRECISION,
   DECIMAL,
   ExchangeType,
+  InsuranceStatus,
   ComissionPeriods,
   ProposalState,
   DEFAULT_CORE_PROPERTIES,

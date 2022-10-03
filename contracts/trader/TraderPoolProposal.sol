@@ -71,7 +71,7 @@ abstract contract TraderPoolProposal is
     }
 
     function _onlyParentTraderPool() internal view {
-        require(_msgSender() == _parentTraderPoolInfo.parentPoolAddress, "TPP: not a ParentPool");
+        require(msg.sender == _parentTraderPoolInfo.parentPoolAddress, "TPP: not a ParentPool");
     }
 
     modifier onlyTraderAdmin() {
@@ -81,7 +81,7 @@ abstract contract TraderPoolProposal is
 
     function _onlyTraderAdmin() internal view {
         require(
-            TraderPool(_parentTraderPoolInfo.parentPoolAddress).isTraderAdmin(_msgSender()),
+            TraderPool(_parentTraderPoolInfo.parentPoolAddress).isTraderAdmin(msg.sender),
             "TPP: not a trader admin"
         );
     }

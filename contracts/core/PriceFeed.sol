@@ -72,7 +72,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         }
 
         if (optionalPath.length == 0) {
-            optionalPath = _savedPaths[_msgSender()][inToken][outToken];
+            optionalPath = _savedPaths[msg.sender][inToken][outToken];
         }
 
         FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceOut(
@@ -99,7 +99,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         }
 
         if (optionalPath.length == 0) {
-            optionalPath = _savedPaths[_msgSender()][inToken][outToken];
+            optionalPath = _savedPaths[msg.sender][inToken][outToken];
         }
 
         FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceIn(
@@ -157,7 +157,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
                 inToken,
                 outToken,
                 amountIn,
-                _savedPaths[_msgSender()][inToken][outToken]
+                _savedPaths[msg.sender][inToken][outToken]
             );
     }
 
@@ -171,7 +171,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
                 inToken,
                 outToken,
                 amountOut,
-                _savedPaths[_msgSender()][inToken][outToken]
+                _savedPaths[msg.sender][inToken][outToken]
             );
     }
 
@@ -218,15 +218,15 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     ) internal {
         if (
             keccak256(abi.encode(path)) !=
-            keccak256(abi.encode(_savedPaths[_msgSender()][inToken][outToken]))
+            keccak256(abi.encode(_savedPaths[msg.sender][inToken][outToken]))
         ) {
-            _savedPaths[_msgSender()][inToken][outToken] = path;
-            _savedPaths[_msgSender()][outToken][inToken] = path.reverse();
+            _savedPaths[msg.sender][inToken][outToken] = path;
+            _savedPaths[msg.sender][outToken][inToken] = path.reverse();
         }
     }
 
     function _grabTokens(address token, uint256 amount) internal {
-        IERC20(token).safeTransferFrom(_msgSender(), address(this), amount);
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 
         if (IERC20(token).allowance(address(this), address(uniswapV2Router)) == 0) {
             IERC20(token).safeApprove(address(uniswapV2Router), MAX_UINT);
@@ -249,7 +249,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         }
 
         if (optionalPath.length == 0) {
-            optionalPath = _savedPaths[_msgSender()][inToken][outToken];
+            optionalPath = _savedPaths[msg.sender][inToken][outToken];
         }
 
         FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceOut(
@@ -271,7 +271,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             amountIn,
             minAmountOut,
             foundPath.path,
-            _msgSender(),
+            msg.sender,
             block.timestamp
         );
 
@@ -294,7 +294,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         }
 
         if (optionalPath.length == 0) {
-            optionalPath = _savedPaths[_msgSender()][inToken][outToken];
+            optionalPath = _savedPaths[msg.sender][inToken][outToken];
         }
 
         FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceIn(
@@ -316,11 +316,11 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             amountOut,
             maxAmountIn,
             foundPath.path,
-            _msgSender(),
+            msg.sender,
             block.timestamp
         );
 
-        IERC20(inToken).safeTransfer(_msgSender(), maxAmountIn - ins[0]);
+        IERC20(inToken).safeTransfer(msg.sender, maxAmountIn - ins[0]);
 
         return ins[0];
     }

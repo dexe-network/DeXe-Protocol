@@ -31,7 +31,7 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     mapping(address => mapping(string => EnumerableSet.AddressSet)) internal _ownerPools; // pool owner => name => pool
 
     modifier onlyPoolFactory() {
-        require(_poolFactory == _msgSender(), "PoolRegistry: Caller is not a factory");
+        require(_poolFactory == msg.sender, "PoolRegistry: Caller is not a factory");
         _;
     }
 

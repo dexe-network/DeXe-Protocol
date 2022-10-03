@@ -15,6 +15,7 @@ import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
 import "../libs/math/MathHelper.sol";
+import "../libs/utils/TokenBalance.sol";
 
 import "../core/Globals.sol";
 
@@ -23,10 +24,12 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
     using Paginator for StringSet.Set;
     using Math for uint256;
     using MathHelper for uint256;
+    using TokenBalance for address;
 
-    IPoolRegistry internal _poolRegistry;
     ERC20 internal _dexe;
     ICoreProperties internal _coreProperties;
+
+    uint256 internal _poolReserved;
 
     mapping(address => UserInfo) public userInfos;
     mapping(string => FinishedClaims) internal _finishedClaimsInfo;
@@ -34,17 +37,10 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
     StringSet.Set internal _finishedClaims;
     StringSet.Set internal _ongoingClaims;
 
-    uint256 public totalPool; // tokens only from pools
-
     event ProposedClaim(address sender, string url);
     event Deposited(uint256 amount, address investor);
     event Withdrawn(uint256 amount, address investor);
     event Paidout(uint256 insurancePayout, uint256 userStakePayout, address investor);
-
-    modifier onlyTraderPool() {
-        require(_poolRegistry.isTraderPool(_msgSender()), "Insurance: Not a trader pool");
-        _;
-    }
 
     modifier onlyOncePerDay(address user) {
         require(
@@ -62,13 +58,8 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
     function setDependencies(address contractsRegistry) external override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
-        _poolRegistry = IPoolRegistry(registry.getPoolRegistryContract());
         _dexe = ERC20(registry.getDEXEContract());
         _coreProperties = ICoreProperties(registry.getCorePropertiesContract());
-    }
-
-    function receiveDexeFromPools(uint256 amount) external override onlyTraderPool {
-        totalPool += amount;
     }
 
     function buyInsurance(uint256 deposit) external override {
@@ -77,20 +68,22 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
             "Insurance: deposit is less than min"
         );
 
-        userInfos[_msgSender()].stake += deposit;
-        userInfos[_msgSender()].lastDepositTimestamp = block.timestamp;
+        _poolReserved += deposit;
 
-        _dexe.transferFrom(_msgSender(), address(this), deposit);
+        userInfos[msg.sender].stake += deposit;
+        userInfos[msg.sender].lastDepositTimestamp = block.timestamp;
 
-        emit Deposited(deposit, _msgSender());
+        _dexe.transferFrom(msg.sender, address(this), deposit);
+
+        emit Deposited(deposit, msg.sender);
     }
 
-    function getReceivedInsurance(uint256 deposit) external view override returns (uint256) {
+    function getReceivedInsurance(uint256 deposit) public view override returns (uint256) {
         return deposit * _coreProperties.getInsuranceFactor();
     }
 
     function withdraw(uint256 amountToWithdraw) external override {
-        UserInfo storage userInfo = userInfos[_msgSender()];
+        UserInfo storage userInfo = userInfos[msg.sender];
 
         require(
             userInfo.lastDepositTimestamp + _coreProperties.getInsuranceWithdrawalLock() <
@@ -99,16 +92,18 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         );
         require(userInfo.stake >= amountToWithdraw, "Insurance: out of available amount");
 
+        _poolReserved -= amountToWithdraw;
+
         userInfo.stake -= amountToWithdraw;
 
-        _dexe.transfer(_msgSender(), amountToWithdraw);
+        _dexe.transfer(msg.sender, amountToWithdraw);
 
-        emit Withdrawn(amountToWithdraw, _msgSender());
+        emit Withdrawn(amountToWithdraw, msg.sender);
     }
 
-    function proposeClaim(string calldata url) external override onlyOncePerDay(_msgSender()) {
+    function proposeClaim(string calldata url) external override onlyOncePerDay(msg.sender) {
         require(
-            userInfos[_msgSender()].stake >= _coreProperties.getMinInsuranceProposalAmount(),
+            userInfos[msg.sender].stake >= _coreProperties.getMinInsuranceProposalAmount(),
             "Insurance: not enough deposit"
         );
         require(
@@ -118,7 +113,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
 
         _ongoingClaims.add(url);
 
-        emit ProposedClaim(_msgSender(), url);
+        emit ProposedClaim(msg.sender, url);
     }
 
     function ongoingClaimsCount() external view override returns (uint256) {
@@ -161,28 +156,24 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         require(_ongoingClaims.contains(url), "Insurance: invalid claim url");
         require(users.length == amounts.length, "Insurance: length mismatch");
 
-        uint256 totalToPay;
+        uint256 insuranceToPay;
 
         for (uint256 i = 0; i < amounts.length; i++) {
-            uint256 userBalance = userInfos[users[i]].stake * _coreProperties.getInsuranceFactor();
-
-            amounts[i] = amounts[i].min(userBalance);
-            totalToPay += amounts[i];
+            amounts[i] = amounts[i].min(
+                userInfos[users[i]].stake * _coreProperties.getInsuranceFactor()
+            );
+            insuranceToPay += amounts[i];
         }
 
         uint256 accessiblePool = getMaxTreasuryPayout();
 
-        if (totalToPay >= accessiblePool) {
-            for (uint256 i = 0; i < amounts.length; i++) {
-                amounts[i] = _payout(users[i], accessiblePool.ratio(amounts[i], totalToPay));
+        for (uint256 i = 0; i < amounts.length; i++) {
+            if (insuranceToPay >= accessiblePool) {
+                amounts[i] = accessiblePool.ratio(amounts[i], insuranceToPay);
             }
-        } else {
-            for (uint256 i = 0; i < amounts.length; i++) {
-                amounts[i] = _payout(users[i], amounts[i]);
-            }
-        }
 
-        totalPool -= totalToPay.min(accessiblePool);
+            amounts[i] = _payout(users[i], amounts[i]);
+        }
 
         _finishedClaims.add(url);
         _finishedClaimsInfo[url] = FinishedClaims(users, amounts, ClaimStatus.ACCEPTED);
@@ -206,23 +197,26 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
     function getInsurance(address user) external view override returns (uint256, uint256) {
         uint256 deposit = userInfos[user].stake;
 
-        return (deposit, deposit * _coreProperties.getInsuranceFactor());
+        return (deposit, getReceivedInsurance(deposit));
     }
 
     function getMaxTreasuryPayout() public view override returns (uint256) {
-        return totalPool / _coreProperties.getMaxInsurancePoolShare();
+        return
+            (address(_dexe).thisBalance() - _poolReserved).percentage(
+                _coreProperties.getMaxInsurancePoolShare()
+            );
     }
 
-    function _payout(address user, uint256 toPayFromPool) internal returns (uint256) {
-        uint256 userStakePayout = toPayFromPool / _coreProperties.getInsuranceFactor();
-        uint256 payout = toPayFromPool + userStakePayout;
+    function _payout(address user, uint256 insurancePayout) internal returns (uint256 payout) {
+        uint256 stakePayout = insurancePayout / _coreProperties.getInsuranceFactor();
+        payout = stakePayout + insurancePayout;
+
+        _poolReserved -= stakePayout;
+
+        userInfos[user].stake -= stakePayout;
 
         _dexe.transfer(user, payout);
 
-        userInfos[user].stake -= userStakePayout;
-
-        emit Paidout(payout, userStakePayout, user);
-
-        return payout;
+        emit Paidout(payout, stakePayout, user);
     }
 }
