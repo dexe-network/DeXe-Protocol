@@ -66,7 +66,12 @@ contract GovPool is
 
     mapping(uint256 => mapping(address => uint256)) public pendingRewards; // proposalId => user => tokens amount
 
-    event ProposalCreated(uint256 proposalId, address sender, uint256 quorum);
+    event ProposalCreated(
+        uint256 proposalId,
+        address sender,
+        uint256 quorum,
+        IGovSettings.ExecutorType executorType
+    );
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
     event Voted(uint256 proposalId, address sender, uint256 personalVote, uint256 delegatedVote);
     event DPCreated(uint256 proposalId, address sender, address token, uint256 amount);
@@ -158,7 +163,7 @@ contract GovPool is
 
         _updateRewards(proposalId, settings.creationReward, PRECISION);
 
-        emit ProposalCreated(proposalId, msg.sender, settings.quorum);
+        emit ProposalCreated(proposalId, msg.sender, settings.quorum, executorType);
     }
 
     function vote(
