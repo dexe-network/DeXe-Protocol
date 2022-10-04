@@ -43,6 +43,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         address[] tokens
     );
     event ProposalClaimed(uint256 proposalId, address user, uint256[] amounts, address[] tokens);
+    event ProposalConvertToDividends(uint256 proposalId, address user, uint256 amount);
 
     function __TraderPoolInvestProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         public
@@ -349,6 +350,8 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         );
 
         delete _proposalInfos[proposalId].newInvestedBase;
+
+        emit ProposalConvertToDividends(proposalId, msg.sender, newInvestedBase);
     }
 
     function _updateFrom(
