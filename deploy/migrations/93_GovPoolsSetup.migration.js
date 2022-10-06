@@ -9,6 +9,7 @@ const GovPool = artifacts.require("GovPool");
 const GovSettings = artifacts.require("GovSettings");
 const GovValidators = artifacts.require("GovValidators");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
+const DistributionProposal = artifacts.require("DistributionProposal");
 
 module.exports = async (deployer) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
@@ -19,16 +20,18 @@ module.exports = async (deployer) => {
   const govSettings = await deployer.deploy(GovSettings);
   const govValidators = await deployer.deploy(GovValidators);
   const govUserKeeper = await deployer.deploy(GovUserKeeper);
+  const distributionProposal = await deployer.deploy(DistributionProposal);
 
   const govPoolName = await poolRegistry.GOV_POOL_NAME();
   const govSettingsName = await poolRegistry.SETTINGS_NAME();
   const govValidatorsName = await poolRegistry.VALIDATORS_NAME();
   const govUserKeeperName = await poolRegistry.USER_KEEPER_NAME();
+  const distributionProposalName = await poolRegistry.DISTRIBUTION_PROPOSAL_NAME();
 
   logTransaction(
     await poolRegistry.setNewImplementations(
-      [govPoolName, govSettingsName, govValidatorsName, govUserKeeperName],
-      [govPool.address, govSettings.address, govValidators.address, govUserKeeper.address]
+      [govPoolName, govSettingsName, govValidatorsName, govUserKeeperName, distributionProposalName],
+      [govPool.address, govSettings.address, govValidators.address, govUserKeeper.address, distributionProposal.address]
     ),
     "Set GovPools implementations"
   );
