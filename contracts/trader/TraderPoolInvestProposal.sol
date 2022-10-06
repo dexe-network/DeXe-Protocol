@@ -20,8 +20,6 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
     using DecimalsConverter for uint256;
-    using ArrayHelper for uint256;
-    using ArrayHelper for address;
     using MathHelper for uint256;
     using Math for uint256;
     using TraderPoolInvestProposalView for ParentTraderPoolInfo;
