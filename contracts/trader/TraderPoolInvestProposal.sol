@@ -20,8 +20,6 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
     using DecimalsConverter for uint256;
-    using ArrayHelper for uint256;
-    using ArrayHelper for address;
     using MathHelper for uint256;
     using Math for uint256;
     using TraderPoolInvestProposalView for ParentTraderPoolInfo;
@@ -43,6 +41,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         address[] tokens
     );
     event ProposalClaimed(uint256 proposalId, address user, uint256[] amounts, address[] tokens);
+    event ProposalConverted(uint256 proposalId, address user, uint256 amount, address baseToken);
 
     function __TraderPoolInvestProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
         public
@@ -340,15 +339,9 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
         _updateCumulativeSum(proposalId, newInvestedBase, baseToken);
 
-        emit ProposalWithdrawn(proposalId, msg.sender, newInvestedBase);
-        emit ProposalSupplied(
-            proposalId,
-            msg.sender,
-            newInvestedBase.asArray(),
-            baseToken.asArray()
-        );
-
         delete _proposalInfos[proposalId].newInvestedBase;
+
+        emit ProposalConverted(proposalId, msg.sender, newInvestedBase, baseToken);
     }
 
     function _updateFrom(
