@@ -84,10 +84,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             address(dpProxy),
             address(validatorsProxy),
             address(userKeeperProxy),
-            parameters.settingsParams.internalProposalSettings,
-            parameters.settingsParams.distributionProposalSettings,
-            parameters.settingsParams.validatorsBalancesSettings,
-            parameters.settingsParams.defaultProposalSettings
+            parameters.settingsParams.proposalSettings,
+            parameters.settingsParams.additionalProposalExecutors
         );
         GovPool(payable(poolProxy)).__GovPool_init(
             settingsProxy,
@@ -103,6 +101,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         _register(poolType, poolProxy);
         _injectDependencies(poolProxy);
+
+        emit DaoPoolDeployed(poolProxy, dpProxy, validatorsProxy);
     }
 
     function deployBasicPool(

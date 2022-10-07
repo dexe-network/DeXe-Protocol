@@ -13,6 +13,13 @@ const ExchangeType = {
   TO_EXACT: 1,
 };
 
+const ExecutorType = {
+  DEFAULT: 0,
+  INTERNAL: 1,
+  DISTRIBUTION: 2,
+  VALIDATORS: 3,
+};
+
 const InsuranceStatus = {
   NULL: 0,
   ACCEPTED: 1,
@@ -74,6 +81,7 @@ module.exports = {
   PRECISION,
   DECIMAL,
   ExchangeType,
+  ExecutorType,
   InsuranceStatus,
   ComissionPeriods,
   ProposalState,

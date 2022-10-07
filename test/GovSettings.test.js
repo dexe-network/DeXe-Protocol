@@ -1,11 +1,28 @@
 const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../scripts/helpers/utils");
-const { ZERO, PRECISION } = require("./utils/constants");
+const { ZERO, PRECISION, ExecutorType } = require("./utils/constants");
 const truffleAssert = require("truffle-assertions");
 
 const GovSettings = artifacts.require("GovSettings");
 
 GovSettings.numberFormat = "BigNumber";
+
+const DEFAULT_SETTINGS = {
+  earlyCompletion: false,
+  delegatedVotingAllowed: true,
+  validatorsVote: true,
+  duration: 700,
+  durationValidators: 800,
+  quorum: PRECISION.times("71").toFixed(),
+  quorumValidators: PRECISION.times("100").toFixed(),
+  minVotesForVoting: wei("20"),
+  minVotesForCreating: wei("3"),
+  rewardToken: ZERO,
+  creationReward: 0,
+  executionReward: 0,
+  voteRewardsCoefficient: 0,
+  executorDescription: "default",
+};
 
 const INTERNAL_SETTINGS = {
   earlyCompletion: true,
@@ -58,23 +75,6 @@ const VALIDATORS_BALANCES_SETTINGS = {
   executorDescription: "validators",
 };
 
-const DEFAULT_SETTINGS = {
-  earlyCompletion: false,
-  delegatedVotingAllowed: true,
-  validatorsVote: true,
-  duration: 700,
-  durationValidators: 800,
-  quorum: PRECISION.times("71").toFixed(),
-  quorumValidators: PRECISION.times("100").toFixed(),
-  minVotesForVoting: wei("20"),
-  minVotesForCreating: wei("3"),
-  rewardToken: ZERO,
-  creationReward: 0,
-  executionReward: 0,
-  voteRewardsCoefficient: 0,
-  executorDescription: "default",
-};
-
 function toPercent(num) {
   return PRECISION.times(num).toFixed();
 }
@@ -116,10 +116,8 @@ describe("GovSettings", () => {
           DP_ADDRESS,
           VALIDATORS_ADDRESS,
           USER_KEEPER_ADDRESS,
-          INTERNAL_SETTINGS,
-          DEFAULT_SETTINGS,
-          VALIDATORS_BALANCES_SETTINGS,
-          DEFAULT_SETTINGS
+          [DEFAULT_SETTINGS, INTERNAL_SETTINGS, DEFAULT_SETTINGS, VALIDATORS_BALANCES_SETTINGS],
+          []
         ),
         "GovSettings: invalid distribution settings"
       );
@@ -132,13 +130,66 @@ describe("GovSettings", () => {
           DP_ADDRESS,
           VALIDATORS_ADDRESS,
           USER_KEEPER_ADDRESS,
-          INTERNAL_SETTINGS,
-          VALIDATORS_BALANCES_SETTINGS,
-          VALIDATORS_BALANCES_SETTINGS,
-          DEFAULT_SETTINGS
+          [DEFAULT_SETTINGS, INTERNAL_SETTINGS, VALIDATORS_BALANCES_SETTINGS, VALIDATORS_BALANCES_SETTINGS],
+          []
         ),
         "GovSettings: invalid distribution settings"
       );
+    });
+  });
+
+  describe("correct settings with custom settings", () => {
+    const newSettings1 = {
+      earlyCompletion: false,
+      delegatedVotingAllowed: true,
+      validatorsVote: true,
+      duration: 50,
+      durationValidators: 100,
+      quorum: toPercent("1"),
+      quorumValidators: toPercent("2"),
+      minVotesForVoting: wei("3"),
+      minVotesForCreating: wei("4"),
+      rewardToken: ZERO,
+      creationReward: 0,
+      executionReward: 0,
+      voteRewardsCoefficient: 0,
+      executorDescription: "new_settings_1",
+    };
+
+    const newSettings2 = {
+      earlyCompletion: true,
+      delegatedVotingAllowed: false,
+      validatorsVote: true,
+      duration: 150,
+      durationValidators: 120,
+      quorum: toPercent("2"),
+      quorumValidators: toPercent("3"),
+      minVotesForVoting: wei("4"),
+      minVotesForCreating: wei("4"),
+      rewardToken: ZERO,
+      creationReward: 0,
+      executionReward: 0,
+      voteRewardsCoefficient: 0,
+      executorDescription: "new_settings_2",
+    };
+
+    it("should add custom executors", async () => {
+      await settings.__GovSettings_init(
+        GOV_POOL_ADDRESS,
+        DP_ADDRESS,
+        VALIDATORS_ADDRESS,
+        USER_KEEPER_ADDRESS,
+        [DEFAULT_SETTINGS, INTERNAL_SETTINGS, DP_SETTINGS, VALIDATORS_BALANCES_SETTINGS, newSettings1, newSettings2],
+        [OWNER, SECOND]
+      );
+
+      const settings1 = await settings.settings(4);
+      const settings2 = await settings.settings(5);
+
+      assert.equal(settings1.executorDescription, newSettings1.executorDescription);
+      assert.equal(settings2.executorDescription, newSettings2.executorDescription);
+      assert.equal(await settings.executorToSettings(OWNER), 4);
+      assert.equal(await settings.executorToSettings(SECOND), 5);
     });
   });
 
@@ -149,43 +200,18 @@ describe("GovSettings", () => {
         DP_ADDRESS,
         VALIDATORS_ADDRESS,
         USER_KEEPER_ADDRESS,
-        INTERNAL_SETTINGS,
-        DP_SETTINGS,
-        VALIDATORS_BALANCES_SETTINGS,
-        DEFAULT_SETTINGS
+        [DEFAULT_SETTINGS, INTERNAL_SETTINGS, DP_SETTINGS, VALIDATORS_BALANCES_SETTINGS],
+        []
       );
     });
 
     describe("init", () => {
       it("should set initial parameters correctly", async () => {
-        const internalSettings = await settings.settings(1);
-
-        assert.isTrue(internalSettings.earlyCompletion);
-        assert.isTrue(internalSettings.delegatedVotingAllowed);
-        assert.equal(internalSettings.duration, 500);
-        assert.equal(internalSettings.durationValidators, 600);
-        assert.equal(internalSettings.quorum.toFixed(), PRECISION.times("51").toFixed());
-        assert.equal(internalSettings.quorumValidators.toFixed(), PRECISION.times("61").toFixed());
-        assert.equal(internalSettings.minVotesForVoting.toFixed(), wei("10"));
-        assert.equal(internalSettings.minVotesForCreating.toFixed(), wei("2"));
-        assert.equal(internalSettings.executorDescription, "internal");
-
-        const defaultProposalSettings = await settings.settings(2);
-
-        assert.isFalse(defaultProposalSettings.earlyCompletion);
-        assert.isFalse(defaultProposalSettings.delegatedVotingAllowed);
-        assert.equal(defaultProposalSettings.duration, 600);
-        assert.equal(defaultProposalSettings.durationValidators, 800);
-        assert.equal(defaultProposalSettings.quorum.toFixed(), PRECISION.times("71").toFixed());
-        assert.equal(defaultProposalSettings.quorumValidators.toFixed(), PRECISION.times("100").toFixed());
-        assert.equal(defaultProposalSettings.minVotesForVoting.toFixed(), wei("20"));
-        assert.equal(defaultProposalSettings.minVotesForCreating.toFixed(), wei("3"));
-        assert.equal(defaultProposalSettings.executorDescription, "DP");
-
-        const defaultSettings = await settings.settings(4);
+        const defaultSettings = await settings.settings(ExecutorType.DEFAULT);
 
         assert.isFalse(defaultSettings.earlyCompletion);
-        assert.isTrue(internalSettings.delegatedVotingAllowed);
+        assert.isTrue(defaultSettings.delegatedVotingAllowed);
+        assert.isTrue(defaultSettings.validatorsVote);
         assert.equal(defaultSettings.duration, 700);
         assert.equal(defaultSettings.durationValidators, 800);
         assert.equal(defaultSettings.quorum.toFixed(), PRECISION.times("71").toFixed());
@@ -194,7 +220,46 @@ describe("GovSettings", () => {
         assert.equal(defaultSettings.minVotesForCreating.toFixed(), wei("3"));
         assert.equal(defaultSettings.executorDescription, "default");
 
-        assert.equal(await settings.executorToSettings(settings.address), 1);
+        const internalSettings = await settings.settings(ExecutorType.INTERNAL);
+
+        assert.isTrue(internalSettings.earlyCompletion);
+        assert.isTrue(internalSettings.delegatedVotingAllowed);
+        assert.isTrue(internalSettings.validatorsVote);
+        assert.equal(internalSettings.duration, 500);
+        assert.equal(internalSettings.durationValidators, 600);
+        assert.equal(internalSettings.quorum.toFixed(), PRECISION.times("51").toFixed());
+        assert.equal(internalSettings.quorumValidators.toFixed(), PRECISION.times("61").toFixed());
+        assert.equal(internalSettings.minVotesForVoting.toFixed(), wei("10"));
+        assert.equal(internalSettings.minVotesForCreating.toFixed(), wei("2"));
+        assert.equal(internalSettings.executorDescription, "internal");
+
+        const dpSettings = await settings.settings(ExecutorType.DISTRIBUTION);
+
+        assert.isFalse(dpSettings.earlyCompletion);
+        assert.isFalse(dpSettings.delegatedVotingAllowed);
+        assert.isTrue(dpSettings.validatorsVote);
+        assert.equal(dpSettings.duration, 600);
+        assert.equal(dpSettings.durationValidators, 800);
+        assert.equal(dpSettings.quorum.toFixed(), PRECISION.times("71").toFixed());
+        assert.equal(dpSettings.quorumValidators.toFixed(), PRECISION.times("100").toFixed());
+        assert.equal(dpSettings.minVotesForVoting.toFixed(), wei("20"));
+        assert.equal(dpSettings.minVotesForCreating.toFixed(), wei("3"));
+        assert.equal(dpSettings.executorDescription, "DP");
+
+        const validatorsSettings = await settings.settings(ExecutorType.VALIDATORS);
+
+        assert.isTrue(validatorsSettings.earlyCompletion);
+        assert.isFalse(validatorsSettings.delegatedVotingAllowed);
+        assert.isTrue(validatorsSettings.validatorsVote);
+        assert.equal(validatorsSettings.duration, 600);
+        assert.equal(validatorsSettings.durationValidators, 800);
+        assert.equal(validatorsSettings.quorum.toFixed(), PRECISION.times("71").toFixed());
+        assert.equal(validatorsSettings.quorumValidators.toFixed(), PRECISION.times("100").toFixed());
+        assert.equal(validatorsSettings.minVotesForVoting.toFixed(), wei("20"));
+        assert.equal(validatorsSettings.minVotesForCreating.toFixed(), wei("3"));
+        assert.equal(validatorsSettings.executorDescription, "validators");
+
+        assert.equal(await settings.executorToSettings(settings.address), ExecutorType.INTERNAL);
       });
     });
 
@@ -206,10 +271,8 @@ describe("GovSettings", () => {
             DP_ADDRESS,
             VALIDATORS_ADDRESS,
             USER_KEEPER_ADDRESS,
-            INTERNAL_SETTINGS,
-            DP_SETTINGS,
-            VALIDATORS_BALANCES_SETTINGS,
-            DEFAULT_SETTINGS
+            [DEFAULT_SETTINGS, INTERNAL_SETTINGS, DP_SETTINGS, VALIDATORS_BALANCES_SETTINGS],
+            []
           ),
           "Initializable: contract is already initialized"
         );
@@ -271,8 +334,8 @@ describe("GovSettings", () => {
 
         await settings.addSettings([newSettings1, newSettings2]);
 
-        const settings1 = await settings.settings(5);
-        const settings2 = await settings.settings(6);
+        const settings1 = await settings.settings(4);
+        const settings2 = await settings.settings(5);
 
         assert.equal(settings1.earlyCompletion, newSettings1.earlyCompletion);
         assert.equal(settings1.delegatedVotingAllowed, newSettings1.delegatedVotingAllowed);
@@ -404,7 +467,19 @@ describe("GovSettings", () => {
           executorDescription: "new_settings",
         };
 
-        await settings.editSettings([1, 2], [newSettings1, newSettings1]);
+        await settings.editSettings([0, 1], [newSettings1, newSettings1]);
+
+        const defaultSettings = await settings.settings(0);
+
+        assert.isFalse(defaultSettings.earlyCompletion);
+        assert.isFalse(defaultSettings.delegatedVotingAllowed);
+        assert.equal(defaultSettings.duration, newSettings1.duration);
+        assert.equal(defaultSettings.durationValidators, newSettings1.durationValidators);
+        assert.equal(defaultSettings.quorum.toFixed(), newSettings1.quorum);
+        assert.equal(defaultSettings.quorumValidators.toFixed(), newSettings1.quorumValidators);
+        assert.equal(defaultSettings.minVotesForVoting.toFixed(), newSettings1.minVotesForVoting);
+        assert.equal(defaultSettings.minVotesForCreating, newSettings1.minVotesForCreating);
+        assert.equal(defaultSettings.executorDescription, newSettings1.executorDescription);
 
         const internalSettings = await settings.settings(1);
 
@@ -417,18 +492,6 @@ describe("GovSettings", () => {
         assert.equal(internalSettings.minVotesForVoting.toFixed(), newSettings1.minVotesForVoting);
         assert.equal(internalSettings.minVotesForCreating, newSettings1.minVotesForCreating);
         assert.equal(internalSettings.executorDescription, newSettings1.executorDescription);
-
-        const defaultSettings = await settings.settings(2);
-
-        assert.isFalse(defaultSettings.earlyCompletion);
-        assert.isFalse(defaultSettings.delegatedVotingAllowed);
-        assert.equal(defaultSettings.duration, newSettings1.duration);
-        assert.equal(defaultSettings.durationValidators, newSettings1.durationValidators);
-        assert.equal(defaultSettings.quorum.toFixed(), newSettings1.quorum);
-        assert.equal(defaultSettings.quorumValidators.toFixed(), newSettings1.quorumValidators);
-        assert.equal(defaultSettings.minVotesForVoting.toFixed(), newSettings1.minVotesForVoting);
-        assert.equal(defaultSettings.minVotesForCreating, newSettings1.minVotesForCreating);
-        assert.equal(defaultSettings.executorDescription, newSettings1.executorDescription);
       });
 
       it("should skip editing nonexistent settings", async () => {
@@ -470,48 +533,9 @@ describe("GovSettings", () => {
         assert.equal(await settings.executorToSettings(EXECUTOR1), 2);
         assert.equal(await settings.executorToSettings(EXECUTOR2), 1);
       });
-    });
 
-    describe("executorInfo()", () => {
-      it("should return info about executor", async () => {
-        const newSettings1 = {
-          earlyCompletion: false,
-          delegatedVotingAllowed: false,
-          validatorsVote: true,
-          duration: 50,
-          durationValidators: 100,
-          quorum: toPercent("1"),
-          quorumValidators: toPercent("2"),
-          minVotesForVoting: wei("3"),
-          minVotesForCreating: wei("4"),
-          rewardToken: ZERO,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
-          executorDescription: "new_settings",
-        };
-
-        await settings.addSettings([newSettings1]);
-        await settings.changeExecutors([EXECUTOR1], [3]);
-
-        const executorInfo = await settings.executorInfo(EXECUTOR1);
-
-        assert.equal(executorInfo[0].toString(), 3);
-        assert.equal(executorInfo[1].toFixed(), "3");
-      });
-
-      it("should return info about internal executor", async () => {
-        const executorInfo = await settings.executorInfo(settings.address);
-
-        assert.equal(executorInfo[0].toString(), 1);
-        assert.equal(executorInfo[1].toFixed(), "1");
-      });
-
-      it("should return info about nonexistent executor", async () => {
-        const executorInfo = await settings.executorInfo(EXECUTOR1);
-
-        assert.equal(executorInfo[0].toString(), 0);
-        assert.equal(executorInfo[1].toFixed(), "0");
+      it("should not change executors to nonexisting settings", async () => {
+        await truffleAssert.reverts(settings.changeExecutors([EXECUTOR1], [100]), "GovSettings: settings do not exist");
       });
     });
 
@@ -535,7 +559,7 @@ describe("GovSettings", () => {
         };
 
         await settings.addSettings([newSettings1]);
-        await settings.changeExecutors([EXECUTOR1], [5]);
+        await settings.changeExecutors([EXECUTOR1], [4]);
 
         const executorSettings = await settings.getSettings(EXECUTOR1);
 

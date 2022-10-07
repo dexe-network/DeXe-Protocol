@@ -116,10 +116,8 @@ describe("GovPool", () => {
       dp.address,
       validators.address,
       userKeeper.address,
-      poolParams.settingsParams.internalProposalSettings,
-      poolParams.settingsParams.distributionProposalSettings,
-      poolParams.settingsParams.validatorsBalancesSettings,
-      poolParams.settingsParams.defaultProposalSettings
+      poolParams.settingsParams.proposalSettings,
+      poolParams.settingsParams.additionalProposalExecutors
     );
 
     await validators.__GovValidators_init(
@@ -175,70 +173,73 @@ describe("GovPool", () => {
     beforeEach("setup", async () => {
       POOL_PARAMETERS = {
         settingsParams: {
-          internalProposalSettings: {
-            earlyCompletion: true,
-            delegatedVotingAllowed: true,
-            validatorsVote: true,
-            duration: 500,
-            durationValidators: 600,
-            quorum: PRECISION.times("51").toFixed(),
-            quorumValidators: PRECISION.times("61").toFixed(),
-            minVotesForVoting: wei("10"),
-            minVotesForCreating: wei("2"),
-            rewardToken: rewardToken.address,
-            creationReward: wei("10"),
-            executionReward: wei("5"),
-            voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
-            executorDescription: "internal",
-          },
-          distributionProposalSettings: {
-            earlyCompletion: false,
-            delegatedVotingAllowed: false,
-            validatorsVote: true,
-            duration: 600,
-            durationValidators: 800,
-            quorum: PRECISION.times("71").toFixed(),
-            quorumValidators: PRECISION.times("100").toFixed(),
-            minVotesForVoting: wei("20"),
-            minVotesForCreating: wei("3"),
-            rewardToken: rewardToken.address,
-            creationReward: wei("10"),
-            executionReward: wei("5"),
-            voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
-            executorDescription: "DP",
-          },
-          validatorsBalancesSettings: {
-            earlyCompletion: true,
-            delegatedVotingAllowed: true,
-            validatorsVote: true,
-            duration: 500,
-            durationValidators: 600,
-            quorum: PRECISION.times("51").toFixed(),
-            quorumValidators: PRECISION.times("61").toFixed(),
-            minVotesForVoting: wei("10"),
-            minVotesForCreating: wei("2"),
-            rewardToken: rewardToken.address,
-            creationReward: wei("10"),
-            executionReward: wei("5"),
-            voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
-            executorDescription: "validators",
-          },
-          defaultProposalSettings: {
-            earlyCompletion: false,
-            delegatedVotingAllowed: true,
-            validatorsVote: true,
-            duration: 700,
-            durationValidators: 800,
-            quorum: PRECISION.times("71").toFixed(),
-            quorumValidators: PRECISION.times("100").toFixed(),
-            minVotesForVoting: wei("20"),
-            minVotesForCreating: wei("3"),
-            rewardToken: rewardToken.address,
-            creationReward: wei("10"),
-            executionReward: wei("5"),
-            voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
-            executorDescription: "default",
-          },
+          proposalSettings: [
+            {
+              earlyCompletion: false,
+              delegatedVotingAllowed: true,
+              validatorsVote: true,
+              duration: 700,
+              durationValidators: 800,
+              quorum: PRECISION.times("71").toFixed(),
+              quorumValidators: PRECISION.times("100").toFixed(),
+              minVotesForVoting: wei("20"),
+              minVotesForCreating: wei("3"),
+              rewardToken: rewardToken.address,
+              creationReward: wei("10"),
+              executionReward: wei("5"),
+              voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
+              executorDescription: "default",
+            },
+            {
+              earlyCompletion: true,
+              delegatedVotingAllowed: true,
+              validatorsVote: true,
+              duration: 500,
+              durationValidators: 600,
+              quorum: PRECISION.times("51").toFixed(),
+              quorumValidators: PRECISION.times("61").toFixed(),
+              minVotesForVoting: wei("10"),
+              minVotesForCreating: wei("2"),
+              rewardToken: rewardToken.address,
+              creationReward: wei("10"),
+              executionReward: wei("5"),
+              voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
+              executorDescription: "internal",
+            },
+            {
+              earlyCompletion: false,
+              delegatedVotingAllowed: false,
+              validatorsVote: true,
+              duration: 600,
+              durationValidators: 800,
+              quorum: PRECISION.times("71").toFixed(),
+              quorumValidators: PRECISION.times("100").toFixed(),
+              minVotesForVoting: wei("20"),
+              minVotesForCreating: wei("3"),
+              rewardToken: rewardToken.address,
+              creationReward: wei("10"),
+              executionReward: wei("5"),
+              voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
+              executorDescription: "DP",
+            },
+            {
+              earlyCompletion: true,
+              delegatedVotingAllowed: true,
+              validatorsVote: true,
+              duration: 500,
+              durationValidators: 600,
+              quorum: PRECISION.times("51").toFixed(),
+              quorumValidators: PRECISION.times("61").toFixed(),
+              minVotesForVoting: wei("10"),
+              minVotesForCreating: wei("2"),
+              rewardToken: rewardToken.address,
+              creationReward: wei("10"),
+              executionReward: wei("5"),
+              voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
+              executorDescription: "validators",
+            },
+          ],
+          additionalProposalExecutors: [],
         },
         validatorsParams: {
           name: "Validator Token",
@@ -365,7 +366,7 @@ describe("GovPool", () => {
         await govPool.createProposal("example.com", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
 
         let proposal = await govPool.proposals(1);
-        let defaultSettings = POOL_PARAMETERS.settingsParams.defaultProposalSettings;
+        let defaultSettings = POOL_PARAMETERS.settingsParams.proposalSettings[0];
 
         assert.equal(proposal.core.settings[0], defaultSettings.earlyCompletion);
         assert.equal(proposal.core.settings[1], defaultSettings.delegatedVotingAllowed);
@@ -429,7 +430,7 @@ describe("GovPool", () => {
               [settings.address, validators.address],
               [0, 0],
               [
-                getBytesAddSettings([POOL_PARAMETERS.settingsParams.distributionProposalSettings]),
+                getBytesAddSettings([POOL_PARAMETERS.settingsParams.proposalSettings[2]]),
                 getBytesChangeBalances([wei("10")], [THIRD]),
               ]
             ),
@@ -484,7 +485,7 @@ describe("GovPool", () => {
               [settings.address, userKeeper.address, userKeeper.address],
               [0, 0, 0],
               [
-                getBytesAddSettings([POOL_PARAMETERS.settingsParams.distributionProposalSettings]),
+                getBytesAddSettings([POOL_PARAMETERS.settingsParams.proposalSettings[2]]),
                 getBytesSetERC20Address(token.address),
                 getBytesSetERC721Address(token.address, wei("1"), 1),
               ]
@@ -499,7 +500,7 @@ describe("GovPool", () => {
               "example.com",
               [settings.address],
               [1],
-              [getBytesEditSettings([4], [POOL_PARAMETERS.settingsParams.defaultProposalSettings])]
+              [getBytesEditSettings([4], [POOL_PARAMETERS.settingsParams.proposalSettings[0]])]
             ),
             "Gov: invalid internal data"
           );
@@ -509,7 +510,7 @@ describe("GovPool", () => {
               "example.com",
               [settings.address],
               [0],
-              [getBytesEditSettings([4], [POOL_PARAMETERS.settingsParams.defaultProposalSettings])]
+              [getBytesEditSettings([4], [POOL_PARAMETERS.settingsParams.proposalSettings[0]])]
             ),
             "Created"
           );
@@ -539,7 +540,7 @@ describe("GovPool", () => {
             "example.com",
             [settings.address, settings.address],
             [0, 0],
-            [getBytesAddSettings([NEW_SETTINGS]), getBytesChangeExecutors([THIRD], [5])]
+            [getBytesAddSettings([NEW_SETTINGS]), getBytesChangeExecutors([THIRD], [4])]
           );
 
           await token.mint(SECOND, wei("100000000000000000000"));
@@ -582,7 +583,7 @@ describe("GovPool", () => {
 
           assert.equal(
             toBN(proposal.core.settings.quorum).toFixed(),
-            POOL_PARAMETERS.settingsParams.defaultProposalSettings.quorum
+            POOL_PARAMETERS.settingsParams.proposalSettings[0].quorum
           );
         });
       });
@@ -987,7 +988,7 @@ describe("GovPool", () => {
         creationReward: 0,
         executionReward: 0,
         voteRewardsCoefficient: 0,
-        executorDescription: "new_settings",
+        executorDescription: "new_internal_settings",
       };
 
       beforeEach(async () => {
@@ -1012,7 +1013,7 @@ describe("GovPool", () => {
 
         await govPool.execute(1);
 
-        const addedSettings = await settings.settings(5);
+        const addedSettings = await settings.settings(4);
 
         assert.isTrue(addedSettings.earlyCompletion);
         assert.isFalse(addedSettings.delegatedVotingAllowed);
@@ -1097,7 +1098,7 @@ describe("GovPool", () => {
       it("should add new settings, change executors and create default trusted proposal", async () => {
         const executorTransfer = await ExecutorTransferMock.new(govPool.address, token.address);
 
-        const settingsBytes = getBytesAddSettings([NEW_SETTINGS]);
+        const addSettingsBytes = getBytesAddSettings([NEW_SETTINGS]);
         const changeExecutorBytes = getBytesChangeExecutors([executorTransfer.address], [4]);
 
         assert.equal(await govPool.getProposalState(1), ProposalState.Undefined);
@@ -1106,7 +1107,7 @@ describe("GovPool", () => {
           "example.com",
           [settings.address, settings.address],
           [0, 0],
-          [settingsBytes, changeExecutorBytes]
+          [addSettingsBytes, changeExecutorBytes]
         );
 
         await govPool.vote(1, 0, [], wei("1000"), []);
@@ -1131,7 +1132,7 @@ describe("GovPool", () => {
         assert.deepEqual(proposals.unlockedIds[0], ["1"]);
 
         assert.equal(await govPool.getProposalState(1), ProposalState.Executed);
-        assert.equal((await settings.executorInfo(executorTransfer.address))[0], 4);
+        assert.equal(toBN(await settings.executorToSettings(executorTransfer.address)).toFixed(), "4");
 
         const bytesExecute = getBytesExecute();
         const bytesApprove = getBytesApprove(executorTransfer.address, wei("99"));
@@ -1144,8 +1145,8 @@ describe("GovPool", () => {
         );
 
         assert.equal(
-          (await govPool.proposals(2)).core.settings[3],
-          POOL_PARAMETERS.settingsParams.defaultProposalSettings.duration
+          (await govPool.proposals(2)).core.settings.executorDescription,
+          POOL_PARAMETERS.settingsParams.proposalSettings[0].executorDescription
         );
 
         await govPool.createProposal(
@@ -1155,7 +1156,7 @@ describe("GovPool", () => {
           [bytesApprove, bytesExecute]
         );
 
-        assert.equal((await govPool.proposals(3)).core.settings[2], NEW_SETTINGS.duration);
+        assert.equal((await govPool.proposals(3)).core.settings.executorDescription, NEW_SETTINGS.executorDescription);
       });
 
       it("should execute proposal and send ether", async () => {

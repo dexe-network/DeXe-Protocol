@@ -10,10 +10,8 @@ import "../core/ICoreProperties.sol";
  */
 interface IPoolFactory {
     struct SettingsDeployParams {
-        IGovSettings.ProposalSettings internalProposalSettings;
-        IGovSettings.ProposalSettings distributionProposalSettings;
-        IGovSettings.ProposalSettings validatorsBalancesSettings;
-        IGovSettings.ProposalSettings defaultProposalSettings;
+        IGovSettings.ProposalSettings[] proposalSettings;
+        address[] additionalProposalExecutors;
     }
 
     struct ValidatorsDeployParams {

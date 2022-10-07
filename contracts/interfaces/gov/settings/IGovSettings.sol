@@ -5,6 +5,13 @@ pragma solidity ^0.8.4;
  * This is the contract that stores proposal settings that will be used by the governance pool
  */
 interface IGovSettings {
+    enum ExecutorType {
+        DEFAULT,
+        INTERNAL,
+        DISTRIBUTION,
+        VALIDATORS
+    }
+
     struct ProposalSettings {
         bool earlyCompletion;
         bool delegatedVotingAllowed;
@@ -22,13 +29,10 @@ interface IGovSettings {
         string executorDescription;
     }
 
-    enum ExecutorType {
-        NONE,
-        INTERNAL,
-        DISTRIBUTION,
-        VALIDATORS,
-        TRUSTED
-    }
+    /// @notice The function to get settings of this executor
+    /// @param executor the executor
+    /// @return setting id of the executor
+    function executorToSettings(address executor) external view returns (uint256);
 
     /// @notice Add new types to contract
     /// @param _settings New settings
@@ -45,12 +49,6 @@ interface IGovSettings {
     /// @param settingsIds New types
     function changeExecutors(address[] calldata executors, uint256[] calldata settingsIds)
         external;
-
-    /// @notice The function the get executor's info
-    /// @param executor Executor address
-    /// @return settings ID for `executor`
-    /// @return ExecutorType enum item
-    function executorInfo(address executor) external view returns (uint256, ExecutorType);
 
     /// @notice The function to get default settings
     /// @return default setting

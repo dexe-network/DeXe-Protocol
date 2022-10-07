@@ -80,4 +80,9 @@ interface IPoolRegistry {
     /// @param potentialPool the address to inspect
     /// @return true if the address is a TraderPool, false otherwise
     function isTraderPool(address potentialPool) external view returns (bool);
+
+    /// @notice The function to check if the given address is a valid GovPool
+    /// @param potentialPool the address to inspect
+    /// @return true if the address is a GovPool, false otherwise
+    function isGovPool(address potentialPool) external view returns (bool);
 }

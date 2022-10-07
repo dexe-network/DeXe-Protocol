@@ -382,70 +382,73 @@ describe("PoolFactory", () => {
     it("should deploy pool with DP", async () => {
       POOL_PARAMETERS = {
         settingsParams: {
-          internalProposalSettings: {
-            earlyCompletion: true,
-            delegatedVotingAllowed: true,
-            validatorsVote: false,
-            duration: 500,
-            durationValidators: 600,
-            quorum: PRECISION.times("51").toFixed(),
-            quorumValidators: PRECISION.times("61").toFixed(),
-            minVotesForVoting: wei("10"),
-            minVotesForCreating: wei("5"),
-            rewardToken: ZERO,
-            creationReward: 0,
-            executionReward: 0,
-            voteRewardsCoefficient: 0,
-            executorDescription: "internal",
-          },
-          distributionProposalSettings: {
-            earlyCompletion: false,
-            delegatedVotingAllowed: false,
-            validatorsVote: false,
-            duration: 500,
-            durationValidators: 600,
-            quorum: PRECISION.times("51").toFixed(),
-            quorumValidators: PRECISION.times("61").toFixed(),
-            minVotesForVoting: wei("10"),
-            minVotesForCreating: wei("5"),
-            rewardToken: ZERO,
-            creationReward: 0,
-            executionReward: 0,
-            voteRewardsCoefficient: 0,
-            executorDescription: "DP",
-          },
-          validatorsBalancesSettings: {
-            earlyCompletion: true,
-            delegatedVotingAllowed: false,
-            validatorsVote: true,
-            duration: 500,
-            durationValidators: 600,
-            quorum: PRECISION.times("51").toFixed(),
-            quorumValidators: PRECISION.times("61").toFixed(),
-            minVotesForVoting: wei("10"),
-            minVotesForCreating: wei("5"),
-            rewardToken: ZERO,
-            creationReward: 0,
-            executionReward: 0,
-            voteRewardsCoefficient: 0,
-            executorDescription: "validators",
-          },
-          defaultProposalSettings: {
-            earlyCompletion: false,
-            delegatedVotingAllowed: true,
-            validatorsVote: true,
-            duration: 700,
-            durationValidators: 800,
-            quorum: PRECISION.times("71").toFixed(),
-            quorumValidators: PRECISION.times("100").toFixed(),
-            minVotesForVoting: wei("20"),
-            minVotesForCreating: wei("5"),
-            rewardToken: ZERO,
-            creationReward: 0,
-            executionReward: 0,
-            voteRewardsCoefficient: 0,
-            executorDescription: "default",
-          },
+          proposalSettings: [
+            {
+              earlyCompletion: false,
+              delegatedVotingAllowed: true,
+              validatorsVote: true,
+              duration: 700,
+              durationValidators: 800,
+              quorum: PRECISION.times("71").toFixed(),
+              quorumValidators: PRECISION.times("100").toFixed(),
+              minVotesForVoting: wei("20"),
+              minVotesForCreating: wei("5"),
+              rewardToken: ZERO,
+              creationReward: 0,
+              executionReward: 0,
+              voteRewardsCoefficient: 0,
+              executorDescription: "default",
+            },
+            {
+              earlyCompletion: true,
+              delegatedVotingAllowed: true,
+              validatorsVote: false,
+              duration: 500,
+              durationValidators: 600,
+              quorum: PRECISION.times("51").toFixed(),
+              quorumValidators: PRECISION.times("61").toFixed(),
+              minVotesForVoting: wei("10"),
+              minVotesForCreating: wei("5"),
+              rewardToken: ZERO,
+              creationReward: 0,
+              executionReward: 0,
+              voteRewardsCoefficient: 0,
+              executorDescription: "internal",
+            },
+            {
+              earlyCompletion: false,
+              delegatedVotingAllowed: false,
+              validatorsVote: false,
+              duration: 500,
+              durationValidators: 600,
+              quorum: PRECISION.times("51").toFixed(),
+              quorumValidators: PRECISION.times("61").toFixed(),
+              minVotesForVoting: wei("10"),
+              minVotesForCreating: wei("5"),
+              rewardToken: ZERO,
+              creationReward: 0,
+              executionReward: 0,
+              voteRewardsCoefficient: 0,
+              executorDescription: "DP",
+            },
+            {
+              earlyCompletion: true,
+              delegatedVotingAllowed: false,
+              validatorsVote: true,
+              duration: 500,
+              durationValidators: 600,
+              quorum: PRECISION.times("51").toFixed(),
+              quorumValidators: PRECISION.times("61").toFixed(),
+              minVotesForVoting: wei("10"),
+              minVotesForCreating: wei("5"),
+              rewardToken: ZERO,
+              creationReward: 0,
+              executionReward: 0,
+              voteRewardsCoefficient: 0,
+              executorDescription: "validators",
+            },
+          ],
+          additionalProposalExecutors: [],
         },
         validatorsParams: {
           name: "Validator Token",
@@ -464,8 +467,10 @@ describe("PoolFactory", () => {
         descriptionURL: "example.com",
       };
 
-      await poolFactory.deployGovPool(POOL_PARAMETERS);
+      let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);
+      let event = tx.receipt.logs[0];
 
+      assert.isTrue(await poolRegistry.isGovPool(event.args.govPool));
       assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
 
       let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
@@ -477,15 +482,7 @@ describe("PoolFactory", () => {
 
       assert.equal((await govValidators.validatorsCount()).toFixed(), 1);
 
-      assert.equal(settings[0], POOL_PARAMETERS.settingsParams.distributionProposalSettings.earlyCompletion);
-      assert.equal(settings[1], POOL_PARAMETERS.settingsParams.distributionProposalSettings.delegatedVotingAllowed);
-      assert.equal(settings[2], POOL_PARAMETERS.settingsParams.distributionProposalSettings.validatorsVote);
-      assert.equal(settings[3], POOL_PARAMETERS.settingsParams.distributionProposalSettings.duration);
-      assert.equal(settings[4], POOL_PARAMETERS.settingsParams.distributionProposalSettings.durationValidators);
-      assert.equal(settings[5], POOL_PARAMETERS.settingsParams.distributionProposalSettings.quorum);
-      assert.equal(settings[6], POOL_PARAMETERS.settingsParams.distributionProposalSettings.quorumValidators);
-      assert.equal(settings[7], POOL_PARAMETERS.settingsParams.distributionProposalSettings.minVotesForVoting);
-      assert.equal(settings[8], POOL_PARAMETERS.settingsParams.distributionProposalSettings.minVotesForCreating);
+      assert.equal(settings[0], POOL_PARAMETERS.settingsParams.proposalSettings[2].earlyCompletion);
     });
   });
 });

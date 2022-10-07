@@ -120,18 +120,18 @@ contract GovPool is
         uint256 proposalId = ++_latestProposalId;
 
         address mainExecutor = executors[executors.length - 1];
-        (, IGovSettings.ExecutorType executorType) = govSetting.executorInfo(mainExecutor);
+        uint256 executorSettings = govSetting.executorToSettings(mainExecutor);
 
         bool forceDefaultSettings;
         IGovSettings.ProposalSettings memory settings;
 
-        if (executorType == IGovSettings.ExecutorType.INTERNAL) {
+        if (executorSettings == uint256(IGovSettings.ExecutorType.INTERNAL)) {
             _handleExecutorsAndDataForInternalProposal(executors, values, data);
-        } else if (executorType == IGovSettings.ExecutorType.VALIDATORS) {
+        } else if (executorSettings == uint256(IGovSettings.ExecutorType.VALIDATORS)) {
             _handleDataForValidatorBalanceProposal(executors, values, data);
-        } else if (executorType == IGovSettings.ExecutorType.DISTRIBUTION) {
+        } else if (executorSettings == uint256(IGovSettings.ExecutorType.DISTRIBUTION)) {
             _handleDataForDistributionProposal(values, data);
-        } else if (executorType == IGovSettings.ExecutorType.TRUSTED) {
+        } else if (executorSettings != uint256(IGovSettings.ExecutorType.DEFAULT)) {
             forceDefaultSettings = _handleDataForExistingSettingsProposal(values, data);
         }
 
@@ -508,11 +508,11 @@ contract GovPool is
     ) internal view {
         for (uint256 i; i < data.length; i++) {
             bytes4 selector = data[i].getSelector();
-            (, IGovSettings.ExecutorType executorType) = govSetting.executorInfo(executors[i]);
+            uint256 executorSettings = govSetting.executorToSettings(executors[i]);
 
             require(
                 values[i] == 0 &&
-                    executorType == IGovSettings.ExecutorType.INTERNAL &&
+                    executorSettings == uint256(IGovSettings.ExecutorType.INTERNAL) &&
                     (selector == IGovSettings.addSettings.selector ||
                         selector == IGovSettings.editSettings.selector ||
                         selector == IGovSettings.changeExecutors.selector ||
