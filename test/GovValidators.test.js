@@ -1,7 +1,7 @@
 const { assert } = require("chai");
-const { toBN, accounts, wei } = require("../scripts/helpers/utils");
+const { toBN, accounts, wei } = require("../scripts/utils/utils");
 const truffleAssert = require("truffle-assertions");
-const { ZERO, PRECISION } = require("./utils/constants");
+const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
 const { getCurrentBlockTime, setTime } = require("./helpers/block-helper");
 
 const GovValidators = artifacts.require("GovValidators");
@@ -207,7 +207,7 @@ describe("GovValidators", () => {
 
       it("should revert if invalid address", async () => {
         await truffleAssert.reverts(
-          validators.createInternalProposal(3, [0], [ZERO], { from: SECOND }),
+          validators.createInternalProposal(3, [0], [ZERO_ADDR], { from: SECOND }),
           "Validators: invalid address"
         );
       });

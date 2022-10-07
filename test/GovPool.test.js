@@ -1,4 +1,4 @@
-const { toBN, accounts, wei } = require("../scripts/helpers/utils");
+const { toBN, accounts, wei } = require("../scripts/utils/utils");
 const {
   getBytesExecute,
   getBytesEditUrl,
@@ -12,7 +12,8 @@ const {
   getBytesApprove,
   getBytesApproveAll,
 } = require("./utils/gov-pool-utils");
-const { ZERO, ETHER, PRECISION, ProposalState, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
+const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../scripts/utils/constants");
+const { ProposalState, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("./helpers/block-helper");
 const { impersonate } = require("./helpers/impersonator");
@@ -88,7 +89,7 @@ describe("GovPool", () => {
 
     await contractsRegistry.addContract(await contractsRegistry.POOL_FACTORY_NAME(), FACTORY);
 
-    await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), ETHER);
+    await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), ETHER_ADDR);
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.INSURANCE_NAME(), NOTHING);
 
@@ -187,7 +188,7 @@ describe("GovPool", () => {
               rewardToken: rewardToken.address,
               creationReward: wei("10"),
               executionReward: wei("5"),
-              voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
+              voteRewardsCoefficient: PRECISION.toFixed(),
               executorDescription: "default",
             },
             {
@@ -203,7 +204,7 @@ describe("GovPool", () => {
               rewardToken: rewardToken.address,
               creationReward: wei("10"),
               executionReward: wei("5"),
-              voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
+              voteRewardsCoefficient: PRECISION.toFixed(),
               executorDescription: "internal",
             },
             {
@@ -219,7 +220,7 @@ describe("GovPool", () => {
               rewardToken: rewardToken.address,
               creationReward: wei("10"),
               executionReward: wei("5"),
-              voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
+              voteRewardsCoefficient: PRECISION.toFixed(),
               executorDescription: "DP",
             },
             {
@@ -235,7 +236,7 @@ describe("GovPool", () => {
               rewardToken: rewardToken.address,
               creationReward: wei("10"),
               executionReward: wei("5"),
-              voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
+              voteRewardsCoefficient: PRECISION.toFixed(),
               executorDescription: "validators",
             },
           ],
@@ -528,7 +529,7 @@ describe("GovPool", () => {
           quorumValidators: PRECISION.times("1").toFixed(),
           minVotesForVoting: 0,
           minVotesForCreating: 0,
-          rewardToken: ZERO,
+          rewardToken: ZERO_ADDR,
           creationReward: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
@@ -765,7 +766,7 @@ describe("GovPool", () => {
           quorumValidators: PRECISION.times("100").toFixed(),
           minVotesForVoting: wei("20"),
           minVotesForCreating: wei("3"),
-          rewardToken: ZERO,
+          rewardToken: ZERO_ADDR,
           creationReward: 0,
           executionReward: 0,
           voteRewardsCoefficient: 0,
@@ -967,7 +968,7 @@ describe("GovPool", () => {
         quorumValidators: 1,
         minVotesForVoting: 1,
         minVotesForCreating: 1,
-        rewardToken: ZERO,
+        rewardToken: ZERO_ADDR,
         creationReward: 0,
         executionReward: 0,
         voteRewardsCoefficient: 0,
@@ -984,7 +985,7 @@ describe("GovPool", () => {
         quorumValidators: PRECISION.times("1").toFixed(),
         minVotesForVoting: wei("1"),
         minVotesForCreating: wei("1"),
-        rewardToken: ZERO,
+        rewardToken: ZERO_ADDR,
         creationReward: 0,
         executionReward: 0,
         voteRewardsCoefficient: 0,
@@ -1254,10 +1255,10 @@ describe("GovPool", () => {
         quorumValidators: 1,
         minVotesForVoting: 1,
         minVotesForCreating: 1,
-        rewardToken: ETHER,
+        rewardToken: ETHER_ADDR,
         creationReward: wei("10"),
         executionReward: wei("5"),
-        voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
+        voteRewardsCoefficient: PRECISION.toFixed(),
         executorDescription: "new_settings",
       };
 
@@ -1399,10 +1400,10 @@ describe("GovPool", () => {
           quorumValidators: 1,
           minVotesForVoting: 1,
           minVotesForCreating: 1,
-          rewardToken: ZERO,
+          rewardToken: ZERO_ADDR,
           creationReward: wei("10"),
           executionReward: wei("5"),
-          voteRewardsCoefficient: toBN("10").pow("25").toFixed(),
+          voteRewardsCoefficient: PRECISION.toFixed(),
           executorDescription: "new_settings",
         };
 

@@ -1,6 +1,7 @@
-const { toBN, accounts, wei } = require("../scripts/helpers/utils");
+const { toBN, accounts, wei } = require("../scripts/utils/utils");
 const truffleAssert = require("truffle-assertions");
-const { SECONDS_IN_DAY, DEFAULT_CORE_PROPERTIES, InsuranceStatus } = require("./utils/constants");
+const { SECONDS_IN_DAY } = require("../scripts/utils/constants");
+const { DEFAULT_CORE_PROPERTIES, InsuranceStatus } = require("./utils/constants");
 const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
 const { assert } = require("chai");
 

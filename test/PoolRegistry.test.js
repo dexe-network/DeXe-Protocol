@@ -1,7 +1,8 @@
 const { assert } = require("chai");
-const { toBN, accounts } = require("../scripts/helpers/utils");
+const { toBN, accounts } = require("../scripts/utils/utils");
 const truffleAssert = require("truffle-assertions");
-const { PRECISION, ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
+const { PRECISION } = require("../scripts/utils/constants");
+const { ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");

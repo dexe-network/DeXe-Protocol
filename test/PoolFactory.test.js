@@ -1,7 +1,8 @@
 const { assert } = require("chai");
-const { toBN, accounts, wei } = require("../scripts/helpers/utils");
+const { toBN, accounts, wei } = require("../scripts/utils/utils");
 const truffleAssert = require("truffle-assertions");
-const { ZERO, PRECISION, ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
+const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
+const { ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const ERC20Mock = artifacts.require("ERC20Mock");
@@ -360,7 +361,7 @@ describe("PoolFactory", () => {
     it("should revert when deploying pool with trader = address(0)", async () => {
       let POOL_PARAMETERS = {
         descriptionURL: "placeholder.com",
-        trader: ZERO,
+        trader: ZERO_ADDR,
         privatePool: false,
         totalLPEmission: 0,
         baseToken: testERC20.address,
@@ -393,7 +394,7 @@ describe("PoolFactory", () => {
               quorumValidators: PRECISION.times("100").toFixed(),
               minVotesForVoting: wei("20"),
               minVotesForCreating: wei("5"),
-              rewardToken: ZERO,
+              rewardToken: ZERO_ADDR,
               creationReward: 0,
               executionReward: 0,
               voteRewardsCoefficient: 0,
@@ -409,7 +410,7 @@ describe("PoolFactory", () => {
               quorumValidators: PRECISION.times("61").toFixed(),
               minVotesForVoting: wei("10"),
               minVotesForCreating: wei("5"),
-              rewardToken: ZERO,
+              rewardToken: ZERO_ADDR,
               creationReward: 0,
               executionReward: 0,
               voteRewardsCoefficient: 0,
@@ -425,7 +426,7 @@ describe("PoolFactory", () => {
               quorumValidators: PRECISION.times("61").toFixed(),
               minVotesForVoting: wei("10"),
               minVotesForCreating: wei("5"),
-              rewardToken: ZERO,
+              rewardToken: ZERO_ADDR,
               creationReward: 0,
               executionReward: 0,
               voteRewardsCoefficient: 0,
@@ -441,7 +442,7 @@ describe("PoolFactory", () => {
               quorumValidators: PRECISION.times("61").toFixed(),
               minVotesForVoting: wei("10"),
               minVotesForCreating: wei("5"),
-              rewardToken: ZERO,
+              rewardToken: ZERO_ADDR,
               creationReward: 0,
               executionReward: 0,
               voteRewardsCoefficient: 0,

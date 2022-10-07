@@ -1,7 +1,7 @@
 const { assert } = require("chai");
-const { toBN, accounts, wei } = require("../scripts/helpers/utils");
+const { toBN, accounts, wei } = require("../scripts/utils/utils");
 const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
-const { PRECISION, ZERO } = require("./utils/constants");
+const { PRECISION, ZERO_ADDR } = require("../scripts/utils/constants");
 const truffleAssert = require("truffle-assertions");
 
 const ERC721Power = artifacts.require("ERC721Power");
@@ -208,7 +208,7 @@ describe("ERC721Power", () => {
 
   describe("setCollateralToken", () => {
     it("should revert if token is address 0", async () => {
-      await truffleAssert.reverts(nft.setCollateralToken(ZERO), "ERC721Power: zero address");
+      await truffleAssert.reverts(nft.setCollateralToken(ZERO_ADDR), "ERC721Power: zero address");
     });
 
     it("should revert if setting after calculation start", async () => {
