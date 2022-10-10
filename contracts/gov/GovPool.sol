@@ -66,6 +66,18 @@ contract GovPool is
 
     mapping(uint256 => mapping(address => uint256)) public pendingRewards; // proposalId => user => tokens amount
 
+    event ProposalCreated(
+        uint256 proposalId,
+        address sender,
+        uint256 quorum,
+        address mainExecutor
+    );
+    event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
+    event Voted(uint256 proposalId, address sender, uint256 personalVote, uint256 delegatedVote);
+    event DPCreated(uint256 proposalId, address sender, address token, uint256 amount);
+    event ProposalExecuted(uint256 proposalId, address sender);
+    event RewardClaimed(uint256 proposalId, address sender, address token, uint256 amount);
+
     modifier onlyThis() {
         require(address(this) == msg.sender, "Gov: not this contract");
         _;
@@ -108,18 +120,18 @@ contract GovPool is
         uint256 proposalId = ++_latestProposalId;
 
         address mainExecutor = executors[executors.length - 1];
-        (, IGovSettings.ExecutorType executorType) = govSetting.executorInfo(mainExecutor);
+        uint256 executorSettings = govSetting.executorToSettings(mainExecutor);
 
         bool forceDefaultSettings;
         IGovSettings.ProposalSettings memory settings;
 
-        if (executorType == IGovSettings.ExecutorType.INTERNAL) {
+        if (executorSettings == uint256(IGovSettings.ExecutorType.INTERNAL)) {
             _handleExecutorsAndDataForInternalProposal(executors, values, data);
-        } else if (executorType == IGovSettings.ExecutorType.VALIDATORS) {
+        } else if (executorSettings == uint256(IGovSettings.ExecutorType.VALIDATORS)) {
             _handleDataForValidatorBalanceProposal(executors, values, data);
-        } else if (executorType == IGovSettings.ExecutorType.DISTRIBUTION) {
+        } else if (executorSettings == uint256(IGovSettings.ExecutorType.DISTRIBUTION)) {
             _handleDataForDistributionProposal(values, data);
-        } else if (executorType == IGovSettings.ExecutorType.TRUSTED) {
+        } else if (executorSettings != uint256(IGovSettings.ExecutorType.DEFAULT)) {
             forceDefaultSettings = _handleDataForExistingSettingsProposal(values, data);
         }
 
@@ -129,26 +141,13 @@ contract GovPool is
             settings = govSetting.getSettings(mainExecutor);
         }
 
-        uint256 nftSnapshot = govUserKeeper.createNftPowerSnapshot();
-
-        require(
-            govUserKeeper.canParticipate(
-                msg.sender,
-                false,
-                !settings.delegatedVotingAllowed,
-                settings.minVotesForCreating,
-                nftSnapshot
-            ),
-            "Gov: low voting power"
-        );
-
         proposals[proposalId] = Proposal({
             core: ProposalCore({
                 settings: settings,
                 executed: false,
                 voteEnd: uint64(block.timestamp + settings.duration),
                 votesFor: 0,
-                nftPowerSnapshotId: nftSnapshot,
+                nftPowerSnapshotId: govUserKeeper.createNftPowerSnapshot(),
                 proposalId: proposalId
             }),
             descriptionURL: _descriptionURL,
@@ -157,7 +156,14 @@ contract GovPool is
             data: data
         });
 
+        require(
+            _canParticipate(proposals[proposalId].core, false, !settings.delegatedVotingAllowed),
+            "Gov: low voting power"
+        );
+
         _updateRewards(proposalId, settings.creationReward, PRECISION);
+
+        emit ProposalCreated(proposalId, msg.sender, settings.quorum, mainExecutor);
     }
 
     function vote(
@@ -175,8 +181,7 @@ contract GovPool is
         bool useDelegated = !proposals[proposalId].core.settings.delegatedVotingAllowed;
         ProposalCore storage core = _beforeVote(proposalId, false, useDelegated);
 
-        _voteTokens(core, proposalId, voteAmount, false, useDelegated);
-        _voteNfts(core, proposalId, voteNftIds, false, useDelegated);
+        _vote(core, proposalId, voteAmount, voteNftIds, false, useDelegated);
     }
 
     function voteDelegated(
@@ -192,8 +197,7 @@ contract GovPool is
 
         ProposalCore storage core = _beforeVote(proposalId, true, false);
 
-        _voteTokens(core, proposalId, voteAmount, true, false);
-        _voteNfts(core, proposalId, voteNftIds, true, false);
+        _vote(core, proposalId, voteAmount, voteNftIds, true, false);
     }
 
     function deposit(
@@ -231,6 +235,8 @@ contract GovPool is
 
         govUserKeeper.delegateTokens.exec(delegatee, amount);
         govUserKeeper.delegateNfts.exec(delegatee, nftIds);
+
+        _emitDelegated(delegatee, amount, nftIds, true);
     }
 
     function undelegate(
@@ -244,6 +250,8 @@ contract GovPool is
 
         govUserKeeper.undelegateTokens.exec(delegatee, amount);
         govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
+
+        _emitDelegated(delegatee, amount, nftIds, false);
     }
 
     function unlock(address user, bool isMicropool) public override {
@@ -298,6 +306,8 @@ contract GovPool is
     function execute(uint256 proposalId) public override {
         _execute(proposalId);
         _payCommission(proposalId);
+
+        emit ProposalExecuted(proposalId, msg.sender);
     }
 
     function moveProposalToValidators(uint256 proposalId) external override {
@@ -495,14 +505,14 @@ contract GovPool is
         address[] calldata executors,
         uint256[] calldata values,
         bytes[] calldata data
-    ) private view {
+    ) internal view {
         for (uint256 i; i < data.length; i++) {
             bytes4 selector = data[i].getSelector();
-            (, IGovSettings.ExecutorType executorType) = govSetting.executorInfo(executors[i]);
+            uint256 executorSettings = govSetting.executorToSettings(executors[i]);
 
             require(
                 values[i] == 0 &&
-                    executorType == IGovSettings.ExecutorType.INTERNAL &&
+                    executorSettings == uint256(IGovSettings.ExecutorType.INTERNAL) &&
                     (selector == IGovSettings.addSettings.selector ||
                         selector == IGovSettings.editSettings.selector ||
                         selector == IGovSettings.changeExecutors.selector ||
@@ -518,7 +528,7 @@ contract GovPool is
         address[] calldata executors,
         uint256[] calldata values,
         bytes[] calldata data
-    ) private pure {
+    ) internal pure {
         require(executors.length == 1, "Gov: invalid executors length");
 
         for (uint256 i; i < data.length; i++) {
@@ -532,10 +542,9 @@ contract GovPool is
     }
 
     function _handleDataForDistributionProposal(uint256[] calldata values, bytes[] calldata data)
-        private
-        view
+        internal
     {
-        (uint256 decodedId, , ) = abi.decode(
+        (uint256 decodedId, address token, uint256 amount) = abi.decode(
             data[data.length - 1][4:],
             (uint256, address, uint256)
         );
@@ -551,12 +560,14 @@ contract GovPool is
                 "Gov: invalid internal data"
             );
         }
+
+        emit DPCreated(decodedId, msg.sender, token, amount);
     }
 
     function _handleDataForExistingSettingsProposal(
         uint256[] calldata values,
         bytes[] calldata data
-    ) private pure returns (bool) {
+    ) internal pure returns (bool) {
         for (uint256 i; i < data.length - 1; i++) {
             bytes4 selector = data[i].getSelector();
 
@@ -572,13 +583,32 @@ contract GovPool is
         return false;
     }
 
+    function _vote(
+        ProposalCore storage core,
+        uint256 proposalId,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds,
+        bool isMicropool,
+        bool useDelegated
+    ) internal {
+        _voteTokens(core, proposalId, voteAmount, isMicropool, useDelegated);
+        uint256 nftVoteAmount = _voteNfts(core, proposalId, voteNftIds, isMicropool, useDelegated);
+
+        emit Voted(
+            proposalId,
+            msg.sender,
+            isMicropool ? 0 : voteAmount + nftVoteAmount,
+            isMicropool ? voteAmount + nftVoteAmount : 0
+        );
+    }
+
     function _voteTokens(
         ProposalCore storage core,
         uint256 proposalId,
         uint256 amount,
         bool isMicropool,
         bool useDelegated
-    ) private {
+    ) internal {
         VoteInfo storage voteInfo = _voteInfos[proposalId][msg.sender][isMicropool];
 
         IGovUserKeeper userKeeper = govUserKeeper;
@@ -602,22 +632,17 @@ contract GovPool is
         uint256[] calldata nftIds,
         bool isMicropool,
         bool useDelegated
-    ) private {
+    ) internal returns (uint256 voteAmount) {
         VoteInfo storage voteInfo = _voteInfos[proposalId][msg.sender][isMicropool];
 
         for (uint256 i; i < nftIds.length; i++) {
-            require(i == 0 || nftIds[i] > nftIds[i - 1], "Gov: wrong NFT order");
-            require(!voteInfo.nftsVoted.contains(nftIds[i]), "Gov: NFT already voted");
+            require(voteInfo.nftsVoted.add(nftIds[i]), "Gov: NFT already voted");
         }
 
         IGovUserKeeper userKeeper = govUserKeeper;
 
         userKeeper.lockNfts(msg.sender, isMicropool, useDelegated, nftIds);
-        uint256 voteAmount = userKeeper.getNftsPowerInTokens(nftIds, core.nftPowerSnapshotId);
-
-        for (uint256 i; i < nftIds.length; i++) {
-            voteInfo.nftsVoted.add(nftIds[i]);
-        }
+        voteAmount = userKeeper.getNftsPowerInTokens(nftIds, core.nftPowerSnapshotId);
 
         voteInfo.totalVoted += voteAmount;
 
@@ -630,8 +655,10 @@ contract GovPool is
         uint256 proposalId,
         bool isMicropool,
         bool useDelegated
-    ) private returns (ProposalCore storage) {
-        ProposalCore storage core = proposals[proposalId].core;
+    ) internal returns (ProposalCore storage core) {
+        core = proposals[proposalId].core;
+
+        unlock(msg.sender, isMicropool);
 
         _votedInProposals[msg.sender][isMicropool].add(proposalId);
 
@@ -641,18 +668,7 @@ contract GovPool is
             "Gov: vote limit reached"
         );
         require(_getProposalState(core) == ProposalState.Voting, "Gov: vote unavailable");
-        require(
-            govUserKeeper.canParticipate(
-                msg.sender,
-                isMicropool,
-                useDelegated,
-                core.settings.minVotesForVoting,
-                core.nftPowerSnapshotId
-            ),
-            "Gov: low voting power"
-        );
-
-        return core;
+        require(_canParticipate(core, isMicropool, useDelegated), "Gov: low voting power");
     }
 
     function _getProposalState(ProposalCore storage core) internal view returns (ProposalState) {
@@ -700,10 +716,25 @@ contract GovPool is
         return ProposalState.Voting;
     }
 
-    function _quorumReached(ProposalCore storage core) private view returns (bool) {
+    function _quorumReached(ProposalCore storage core) internal view returns (bool) {
         return
             PERCENTAGE_100.ratio(core.votesFor, govUserKeeper.getTotalVoteWeight()) >=
             core.settings.quorum;
+    }
+
+    function _canParticipate(
+        ProposalCore storage core,
+        bool isMicropool,
+        bool useDelegated
+    ) internal view returns (bool) {
+        return
+            govUserKeeper.canParticipate(
+                msg.sender,
+                isMicropool,
+                useDelegated,
+                core.settings.minVotesForVoting,
+                core.nftPowerSnapshotId
+            );
     }
 
     function _updateRewards(
@@ -727,6 +758,8 @@ contract GovPool is
         delete pendingRewards[proposalId][msg.sender];
 
         _sendFunds(msg.sender, rewardToken, rewards);
+
+        emit RewardClaimed(proposalId, msg.sender, rewardToken, rewards);
     }
 
     function _sendFunds(
@@ -740,5 +773,14 @@ contract GovPool is
         } else {
             IERC20(token).safeTransfer(receiver, amount.from18(ERC20(token).decimals()));
         }
+    }
+
+    function _emitDelegated(
+        address to,
+        uint256 amount,
+        uint256[] calldata nfts,
+        bool isDelegate
+    ) internal {
+        emit Delegated(msg.sender, to, amount, nfts, isDelegate);
     }
 }

@@ -1,16 +1,21 @@
-const { toBN } = require("../../scripts/helpers/utils");
-
-const ZERO = "0x0000000000000000000000000000000000000000";
-const ETHER = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-
-const SECONDS_IN_DAY = 86400;
-const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
-const PRECISION = toBN(10).pow(25);
-const DECIMAL = toBN(10).pow(18);
+const { PRECISION, SECONDS_IN_DAY, SECONDS_IN_MONTH, DECIMAL } = require("../../scripts/utils/constants");
 
 const ExchangeType = {
   FROM_EXACT: 0,
   TO_EXACT: 1,
+};
+
+const ExecutorType = {
+  DEFAULT: 0,
+  INTERNAL: 1,
+  DISTRIBUTION: 2,
+  VALIDATORS: 3,
+};
+
+const InsuranceStatus = {
+  NULL: 0,
+  ACCEPTED: 1,
+  REJECTED: 2,
 };
 
 const ComissionPeriods = {
@@ -49,7 +54,7 @@ const DEFAULT_CORE_PROPERTIES = {
   },
   insuranceParams: {
     insuranceFactor: 10,
-    maxInsurancePoolShare: 3,
+    maxInsurancePoolShare: PRECISION.times(33.3333).toFixed(),
     minInsuranceDeposit: DECIMAL.times(10).toFixed(),
     minInsuranceProposalAmount: DECIMAL.times(100).toFixed(),
     insuranceWithdrawalLock: SECONDS_IN_DAY,
@@ -61,13 +66,9 @@ const DEFAULT_CORE_PROPERTIES = {
 };
 
 module.exports = {
-  ZERO,
-  ETHER,
-  SECONDS_IN_DAY,
-  SECONDS_IN_MONTH,
-  PRECISION,
-  DECIMAL,
   ExchangeType,
+  ExecutorType,
+  InsuranceStatus,
   ComissionPeriods,
   ProposalState,
   DEFAULT_CORE_PROPERTIES,

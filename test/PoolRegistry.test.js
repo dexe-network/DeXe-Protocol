@@ -1,7 +1,8 @@
 const { assert } = require("chai");
-const { toBN, accounts } = require("../scripts/helpers/utils");
+const { toBN, accounts } = require("../scripts/utils/utils");
 const truffleAssert = require("truffle-assertions");
-const { PRECISION, ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
+const { PRECISION } = require("../scripts/utils/constants");
+const { ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
@@ -33,6 +34,7 @@ describe("PoolRegistry", () => {
 
   let BASIC_NAME;
   let INVEST_NAME;
+  let GOV_NAME;
 
   let DEXE;
   let poolRegistry;
@@ -106,6 +108,7 @@ describe("PoolRegistry", () => {
 
     BASIC_NAME = await poolRegistry.BASIC_POOL_NAME();
     INVEST_NAME = await poolRegistry.INVEST_POOL_NAME();
+    GOV_NAME = await poolRegistry.GOV_POOL_NAME();
   });
 
   async function deployPool(poolParameters) {
@@ -188,6 +191,16 @@ describe("PoolRegistry", () => {
 
       assert.isFalse(await poolRegistry.isTraderPool(POOL_3));
       assert.isTrue(await poolRegistry.isTraderPool(POOL_2));
+    });
+
+    it("should successfully add new GOV pool", async () => {
+      assert.isFalse(await poolRegistry.isGovPool(POOL_2));
+
+      await poolRegistry.addProxyPool(GOV_NAME, POOL_2, { from: FACTORY });
+
+      assert.equal((await poolRegistry.countPools(GOV_NAME)).toFixed(), "1");
+
+      assert.isTrue(await poolRegistry.isGovPool(POOL_2));
     });
 
     it("should successfully associate new pools", async () => {

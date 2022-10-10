@@ -28,6 +28,9 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     mapping(uint256 => mapping(address => uint256)) public addressVotedInternal; // proposalId => user => voted amount
     mapping(uint256 => mapping(address => uint256)) public addressVotedExternal; // proposalId => user => voted amount
 
+    event Voted(uint256 proposalId, address sender, uint256 vote);
+    event ChangedValidatorsBalances(address[] validators, uint256[] newBalance);
+
     /// @dev Access only for addresses that have validator tokens
     modifier onlyValidatorHolder() {
         require(
@@ -142,6 +145,8 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         }
 
         core.votesFor += voteAmount;
+
+        emit Voted(proposalId, msg.sender, voteAmount);
     }
 
     function execute(uint256 proposalId) external override {
@@ -186,7 +191,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
                 : _getProposalState(externalProposals[proposalId].core);
     }
 
-    function _getProposalState(ProposalCore storage core) private view returns (ProposalState) {
+    function _getProposalState(ProposalCore storage core) internal view returns (ProposalState) {
         if (core.executed) {
             return ProposalState.Executed;
         }
@@ -218,14 +223,14 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
                 : _isQuorumReached(externalProposals[proposalId].core);
     }
 
-    function _isQuorumReached(ProposalCore storage core) private view returns (bool) {
+    function _isQuorumReached(ProposalCore storage core) internal view returns (bool) {
         uint256 totalSupply = govValidatorsToken.totalSupplyAt(core.snapshotId);
         uint256 currentQuorum = PERCENTAGE_100.ratio(core.votesFor, totalSupply);
 
         return currentQuorum >= core.quorum;
     }
 
-    function _proposalExists(uint256 proposalId, bool isInternal) private view returns (bool) {
+    function _proposalExists(uint256 proposalId, bool isInternal) internal view returns (bool) {
         return
             isInternal
                 ? internalProposals[proposalId].core.voteEnd != 0
@@ -240,7 +245,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         _changeBalances(newValues, userAddresses);
     }
 
-    function _changeBalances(uint256[] memory newValues, address[] memory userAddresses) private {
+    function _changeBalances(uint256[] memory newValues, address[] memory userAddresses) internal {
         GovValidatorsToken validatorsToken = govValidatorsToken;
         uint256 length = newValues.length;
 
@@ -267,5 +272,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         }
 
         validatorsCount = validatorsCount_;
+
+        emit ChangedValidatorsBalances(userAddresses, newValues);
     }
 }

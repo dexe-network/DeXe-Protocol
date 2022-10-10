@@ -1,14 +1,8 @@
-const { toBN, accounts, wei } = require("../scripts/helpers/utils");
+const { toBN, accounts, wei } = require("../scripts/utils/utils");
 const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
 const truffleAssert = require("truffle-assertions");
-const {
-  SECONDS_IN_DAY,
-  SECONDS_IN_MONTH,
-  PRECISION,
-  ExchangeType,
-  ComissionPeriods,
-  DEFAULT_CORE_PROPERTIES,
-} = require("./utils/constants");
+const { SECONDS_IN_DAY, SECONDS_IN_MONTH, PRECISION } = require("../scripts/utils/constants");
+const { ExchangeType, ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
 const { assert } = require("chai");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");

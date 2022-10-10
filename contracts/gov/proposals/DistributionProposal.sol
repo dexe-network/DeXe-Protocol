@@ -25,6 +25,8 @@ contract DistributionProposal is IDistributionProposal, Initializable {
 
     mapping(uint256 => IDistributionProposal.DistributionProposalStruct) public proposals;
 
+    event DistributionProposalClaimed(uint256 proposalId, address sender, uint256 amount);
+
     modifier onlyGov() {
         require(msg.sender == govAddress, "DP: not a Gov contract");
         _;
@@ -75,6 +77,8 @@ contract DistributionProposal is IDistributionProposal, Initializable {
 
                 rewardToken.safeTransfer(voter, reward);
             }
+
+            emit DistributionProposalClaimed(proposalIds[i], voter, reward);
         }
     }
 

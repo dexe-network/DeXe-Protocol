@@ -71,7 +71,7 @@ contract PriceFeedMock is PriceFeed {
             amountIn,
             minAmountOut,
             path,
-            _msgSender(),
+            msg.sender,
             block.timestamp
         );
 
@@ -100,11 +100,11 @@ contract PriceFeedMock is PriceFeed {
             amountOut,
             maxAmountIn,
             path,
-            _msgSender(),
+            msg.sender,
             block.timestamp
         );
 
-        IERC20(inToken).safeTransfer(_msgSender(), maxAmountIn - ins[0]);
+        IERC20(inToken).safeTransfer(msg.sender, maxAmountIn - ins[0]);
 
         return ins[0];
     }

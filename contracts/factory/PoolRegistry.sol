@@ -31,7 +31,7 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     mapping(address => mapping(string => EnumerableSet.AddressSet)) internal _ownerPools; // pool owner => name => pool
 
     modifier onlyPoolFactory() {
-        require(_poolFactory == _msgSender(), "PoolRegistry: Caller is not a factory");
+        require(_poolFactory == msg.sender, "PoolRegistry: Caller is not a factory");
         _;
     }
 
@@ -101,14 +101,22 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     }
 
     function isBasicPool(address potentialPool) public view override returns (bool) {
-        return _pools[BASIC_POOL_NAME].contains(potentialPool);
+        return _isPool(BASIC_POOL_NAME, potentialPool);
     }
 
     function isInvestPool(address potentialPool) public view override returns (bool) {
-        return _pools[INVEST_POOL_NAME].contains(potentialPool);
+        return _isPool(INVEST_POOL_NAME, potentialPool);
     }
 
     function isTraderPool(address potentialPool) external view override returns (bool) {
         return isBasicPool(potentialPool) || isInvestPool(potentialPool);
+    }
+
+    function isGovPool(address potentialPool) external view override returns (bool) {
+        return _isPool(GOV_POOL_NAME, potentialPool);
+    }
+
+    function _isPool(string memory name, address potentialPool) internal view returns (bool) {
+        return _pools[name].contains(potentialPool);
     }
 }

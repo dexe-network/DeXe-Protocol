@@ -1,5 +1,5 @@
 const { logTransaction, logContracts } = require("../runners/logger/logger.js");
-const { toBN } = require("../../scripts/helpers/utils");
+const { SECONDS_IN_DAY, SECONDS_IN_MONTH, PRECISION, DECIMAL } = require("../../scripts/utils/constants");
 
 const Proxy = artifacts.require("TransparentUpgradeableProxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -13,11 +13,6 @@ const Insurance = artifacts.require("Insurance");
 
 const PoolFactory = artifacts.require("PoolFactory");
 const PoolRegistry = artifacts.require("PoolRegistry");
-
-const SECONDS_IN_DAY = 86400;
-const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
-const PRECISION = toBN(10).pow(25);
-const DECIMAL = toBN(10).pow(18);
 
 const DEFAULT_CORE_PROPERTIES = {
   traderParams: {
@@ -39,7 +34,7 @@ const DEFAULT_CORE_PROPERTIES = {
   },
   insuranceParams: {
     insuranceFactor: 10,
-    maxInsurancePoolShare: 3,
+    maxInsurancePoolShare: PRECISION.times(33.3333).toFixed(),
     minInsuranceDeposit: DECIMAL.times(10).toFixed(),
     minInsuranceProposalAmount: DECIMAL.times(100).toFixed(),
     insuranceWithdrawalLock: SECONDS_IN_DAY,

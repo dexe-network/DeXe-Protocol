@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
-import "../../interfaces/insurance/IInsurance.sol";
 import "../../interfaces/trader/ITraderPool.sol";
 import "../../interfaces/core/ICoreProperties.sol";
 
@@ -109,21 +108,11 @@ library TraderPoolCommission {
         uint256[] calldata poolPercentages,
         address[3] calldata commissionReceivers
     ) external {
-        uint256[] memory receivedCommissions = new uint256[](3);
-        uint256 dexeDecimals = ERC20(address(dexeToken)).decimals();
-
         for (uint256 i = 0; i < commissionReceivers.length; i++) {
-            receivedCommissions[i] = dexeCommission.percentage(poolPercentages[i]);
             dexeToken.safeTransfer(
                 commissionReceivers[i],
-                receivedCommissions[i].from18(dexeDecimals)
+                dexeCommission.percentage(poolPercentages[i])
             );
         }
-
-        uint256 insurance = uint256(ICoreProperties.CommissionTypes.INSURANCE);
-
-        IInsurance(commissionReceivers[insurance]).receiveDexeFromPools(
-            receivedCommissions[insurance]
-        );
     }
 }

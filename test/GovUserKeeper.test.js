@@ -1,7 +1,7 @@
 const { assert } = require("chai");
-const { toBN, accounts, wei } = require("../scripts/helpers/utils");
+const { toBN, accounts, wei } = require("../scripts/utils/utils");
 const truffleAssert = require("truffle-assertions");
-const { ZERO, PRECISION } = require("./utils/constants");
+const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
 const { getCurrentBlockTime, setTime } = require("./helpers/block-helper");
 
 const GovUserKeeper = artifacts.require("GovUserKeeper");
@@ -42,21 +42,21 @@ describe("GovUserKeeper", () => {
     describe("init", () => {
       it("should not init with both zero tokens", async () => {
         await truffleAssert.reverts(
-          userKeeper.__GovUserKeeper_init(ZERO, ZERO, wei("33000"), 33),
+          userKeeper.__GovUserKeeper_init(ZERO_ADDR, ZERO_ADDR, wei("33000"), 33),
           "GovUK: zero addresses"
         );
       });
 
       it("should revert if NFT power == 0", async () => {
         await truffleAssert.reverts(
-          userKeeper.__GovUserKeeper_init(ZERO, token.address, 0, 33),
+          userKeeper.__GovUserKeeper_init(ZERO_ADDR, token.address, 0, 33),
           "GovUK: the equivalent is zero"
         );
       });
 
       it("should revert if NFT total supply == 0", async () => {
         await truffleAssert.reverts(
-          userKeeper.__GovUserKeeper_init(ZERO, nft.address, wei("1"), 0),
+          userKeeper.__GovUserKeeper_init(ZERO_ADDR, nft.address, wei("1"), 0),
           "GovUK: total supply is zero"
         );
       });
@@ -648,7 +648,7 @@ describe("GovUserKeeper", () => {
 
   describe("No ERC20 GovUserKeeper", () => {
     beforeEach("setup", async () => {
-      await userKeeper.__GovUserKeeper_init(ZERO, nft.address, wei("33000"), 33);
+      await userKeeper.__GovUserKeeper_init(ZERO_ADDR, nft.address, wei("33000"), 33);
     });
 
     it("should revert if token is not supported", async () => {
@@ -671,7 +671,7 @@ describe("GovUserKeeper", () => {
     });
 
     it("should revert, when new token address is 0", async () => {
-      await truffleAssert.reverts(userKeeper.setERC20Address(ZERO), "GovUK: new token address is zero");
+      await truffleAssert.reverts(userKeeper.setERC20Address(ZERO_ADDR), "GovUK: new token address is zero");
     });
 
     it("should revert, when token address already set", async () => {
@@ -700,7 +700,7 @@ describe("GovUserKeeper", () => {
 
   describe("No NFT GovUserKeeper", () => {
     beforeEach("setup", async () => {
-      await userKeeper.__GovUserKeeper_init(token.address, ZERO, wei("33000"), 33);
+      await userKeeper.__GovUserKeeper_init(token.address, ZERO_ADDR, wei("33000"), 33);
     });
 
     it("should revert if nft is not supported", async () => {
@@ -728,7 +728,7 @@ describe("GovUserKeeper", () => {
 
     it("should revert, when new token address is 0", async () => {
       await truffleAssert.reverts(
-        userKeeper.setERC721Address(ZERO, wei("33000"), 33),
+        userKeeper.setERC721Address(ZERO_ADDR, wei("33000"), 33),
         "GovUK: new token address is zero"
       );
     });

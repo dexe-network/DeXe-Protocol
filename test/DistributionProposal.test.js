@@ -1,9 +1,10 @@
-const { toBN, accounts, wei } = require("../scripts/helpers/utils");
+const { toBN, accounts, wei } = require("../scripts/utils/utils");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("./helpers/block-helper");
 const { impersonate } = require("./helpers/impersonator");
 const { getBytesApprove, getBytesTransfer, getBytesDistributionProposal } = require("./utils/gov-pool-utils");
-const { ZERO, ETHER, PRECISION, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
+const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../scripts/utils/constants");
+const { DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
 const { assert } = require("chai");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -97,10 +98,8 @@ describe("DistributionProposal", () => {
       dp.address,
       validators.address,
       userKeeper.address,
-      poolParams.settingsParams.internalProposalSettings,
-      poolParams.settingsParams.distributionProposalSettings,
-      poolParams.settingsParams.validatorsBalancesSettings,
-      poolParams.settingsParams.defaultProposalSettings
+      poolParams.settingsParams.proposalSettings,
+      poolParams.settingsParams.additionalProposalExecutors
     );
 
     await validators.__GovValidators_init(
@@ -152,7 +151,7 @@ describe("DistributionProposal", () => {
     it("should revert if _govAddress is zero", async () => {
       dp = await DistributionProposal.new();
 
-      await truffleAssert.reverts(dp.__DistributionProposal_init(ZERO), "DP: _govAddress is zero");
+      await truffleAssert.reverts(dp.__DistributionProposal_init(ZERO_ADDR), "DP: _govAddress is zero");
     });
   });
 
@@ -162,70 +161,73 @@ describe("DistributionProposal", () => {
     beforeEach("setup", async () => {
       POOL_PARAMETERS = {
         settingsParams: {
-          internalProposalSettings: {
-            earlyCompletion: true,
-            delegatedVotingAllowed: true,
-            validatorsVote: true,
-            duration: 500,
-            durationValidators: 600,
-            quorum: PRECISION.times("51").toFixed(),
-            quorumValidators: PRECISION.times("61").toFixed(),
-            minVotesForVoting: wei("10"),
-            minVotesForCreating: wei("2"),
-            rewardToken: ZERO,
-            creationReward: 0,
-            executionReward: 0,
-            voteRewardsCoefficient: 0,
-            executorDescription: "internal",
-          },
-          distributionProposalSettings: {
-            earlyCompletion: false,
-            delegatedVotingAllowed: false,
-            validatorsVote: false,
-            duration: 700,
-            durationValidators: 800,
-            quorum: PRECISION.times("71").toFixed(),
-            quorumValidators: PRECISION.times("100").toFixed(),
-            minVotesForVoting: wei("20"),
-            minVotesForCreating: wei("3"),
-            rewardToken: ZERO,
-            creationReward: 0,
-            executionReward: 0,
-            voteRewardsCoefficient: 0,
-            executorDescription: "DP",
-          },
-          validatorsBalancesSettings: {
-            earlyCompletion: true,
-            delegatedVotingAllowed: true,
-            validatorsVote: true,
-            duration: 500,
-            durationValidators: 600,
-            quorum: PRECISION.times("51").toFixed(),
-            quorumValidators: PRECISION.times("61").toFixed(),
-            minVotesForVoting: wei("10"),
-            minVotesForCreating: wei("2"),
-            rewardToken: ZERO,
-            creationReward: 0,
-            executionReward: 0,
-            voteRewardsCoefficient: 0,
-            executorDescription: "validators",
-          },
-          defaultProposalSettings: {
-            earlyCompletion: false,
-            delegatedVotingAllowed: true,
-            validatorsVote: true,
-            duration: 700,
-            durationValidators: 800,
-            quorum: PRECISION.times("71").toFixed(),
-            quorumValidators: PRECISION.times("100").toFixed(),
-            minVotesForVoting: wei("20"),
-            minVotesForCreating: wei("3"),
-            rewardToken: ZERO,
-            creationReward: 0,
-            executionReward: 0,
-            voteRewardsCoefficient: 0,
-            executorDescription: "default",
-          },
+          proposalSettings: [
+            {
+              earlyCompletion: false,
+              delegatedVotingAllowed: true,
+              validatorsVote: true,
+              duration: 700,
+              durationValidators: 800,
+              quorum: PRECISION.times("71").toFixed(),
+              quorumValidators: PRECISION.times("100").toFixed(),
+              minVotesForVoting: wei("20"),
+              minVotesForCreating: wei("3"),
+              rewardToken: ZERO_ADDR,
+              creationReward: 0,
+              executionReward: 0,
+              voteRewardsCoefficient: 0,
+              executorDescription: "default",
+            },
+            {
+              earlyCompletion: true,
+              delegatedVotingAllowed: true,
+              validatorsVote: true,
+              duration: 500,
+              durationValidators: 600,
+              quorum: PRECISION.times("51").toFixed(),
+              quorumValidators: PRECISION.times("61").toFixed(),
+              minVotesForVoting: wei("10"),
+              minVotesForCreating: wei("2"),
+              rewardToken: ZERO_ADDR,
+              creationReward: 0,
+              executionReward: 0,
+              voteRewardsCoefficient: 0,
+              executorDescription: "internal",
+            },
+            {
+              earlyCompletion: false,
+              delegatedVotingAllowed: false,
+              validatorsVote: false,
+              duration: 700,
+              durationValidators: 800,
+              quorum: PRECISION.times("71").toFixed(),
+              quorumValidators: PRECISION.times("100").toFixed(),
+              minVotesForVoting: wei("20"),
+              minVotesForCreating: wei("3"),
+              rewardToken: ZERO_ADDR,
+              creationReward: 0,
+              executionReward: 0,
+              voteRewardsCoefficient: 0,
+              executorDescription: "DP",
+            },
+            {
+              earlyCompletion: true,
+              delegatedVotingAllowed: true,
+              validatorsVote: true,
+              duration: 500,
+              durationValidators: 600,
+              quorum: PRECISION.times("51").toFixed(),
+              quorumValidators: PRECISION.times("61").toFixed(),
+              minVotesForVoting: wei("10"),
+              minVotesForCreating: wei("2"),
+              rewardToken: ZERO_ADDR,
+              creationReward: 0,
+              executionReward: 0,
+              voteRewardsCoefficient: 0,
+              executorDescription: "validators",
+            },
+          ],
+          additionalProposalExecutors: [],
         },
         validatorsParams: {
           name: "Validator Token",
@@ -236,7 +238,7 @@ describe("DistributionProposal", () => {
           balances: [wei("100"), wei("1000000000000")],
         },
         userKeeperParams: {
-          tokenAddress: ZERO,
+          tokenAddress: ZERO_ADDR,
           nftAddress: nft.address,
           totalPowerInTokens: wei("33000"),
           nftsTotalSupply: 33,
@@ -310,7 +312,10 @@ describe("DistributionProposal", () => {
       it("should revert when address is zero", async () => {
         await impersonate(govPool.address);
 
-        await truffleAssert.reverts(dp.execute(1, ZERO, wei("100"), { from: govPool.address }), "DP: zero address");
+        await truffleAssert.reverts(
+          dp.execute(1, ZERO_ADDR, wei("100"), { from: govPool.address }),
+          "DP: zero address"
+        );
       });
 
       it("should revert when amount is zero", async () => {
@@ -366,7 +371,7 @@ describe("DistributionProposal", () => {
           "example.com",
           [dp.address],
           [wei("1")],
-          [getBytesDistributionProposal(1, ETHER, wei("1"))],
+          [getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))],
           { from: SECOND }
         );
 
@@ -396,7 +401,7 @@ describe("DistributionProposal", () => {
           "example.com",
           [dp.address],
           [0],
-          [getBytesDistributionProposal(1, ETHER, wei("1"))],
+          [getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))],
           { from: SECOND }
         );
 
@@ -462,7 +467,7 @@ describe("DistributionProposal", () => {
       });
 
       it("should revert when address is zero", async () => {
-        await truffleAssert.reverts(dp.claim(ZERO, [1]), "DP: zero address");
+        await truffleAssert.reverts(dp.claim(ZERO_ADDR, [1]), "DP: zero address");
       });
     });
   });

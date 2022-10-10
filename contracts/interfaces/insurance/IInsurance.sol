@@ -37,10 +37,6 @@ interface IInsurance {
         uint256 lastProposalTimestamp;
     }
 
-    /// @notice The "callback" function that is called from the TraderPools when the commission is sent to the insurance
-    /// @param amount the received amount of DEXE tokens
-    function receiveDexeFromPools(uint256 amount) external;
-
     /// @notice The function to buy an insurance for the deposited DEXE tokens. Minimal insurance is specified by the DAO
     /// @param deposit the amount of DEXE tokens to be deposited
     function buyInsurance(uint256 deposit) external;
