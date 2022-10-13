@@ -17,6 +17,7 @@ const GovValidators = artifacts.require("GovValidators");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const GovPoolViewLib = artifacts.require("GovPoolView");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -54,6 +55,9 @@ describe("DistributionProposal", () => {
     THIRD = await accounts(2);
     FACTORY = await accounts(4);
     NOTHING = await accounts(9);
+
+    const govPoolViewLib = await GovPoolViewLib.new();
+    await GovPool.link(govPoolViewLib);
   });
 
   beforeEach("setup", async () => {

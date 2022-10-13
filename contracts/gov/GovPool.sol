@@ -23,6 +23,7 @@ import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
 
 import "../libs/gov-user-keeper/GovUserKeeperLocal.sol";
+import "../libs/gov-pool/GovPoolView.sol";
 import "../libs/math/MathHelper.sol";
 import "../libs/utils/DataHelper.sol";
 import "../libs/utils/TokenBalance.sol";
@@ -373,94 +374,21 @@ contract GovPool is
         );
     }
 
-    function getWithdrawableAssets(address user)
+    function getAssets(address delegator, address delegatee)
         external
         view
         override
-        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts)
+        returns (uint256 tokens, ShrinkableArray.UintArray memory nfts)
     {
-        (
-            ShrinkableArray.UintArray memory unlockedIds,
-            ShrinkableArray.UintArray memory lockedIds
-        ) = getUserProposals(user, false);
-
-        uint256[] memory unlockedNfts = getUnlockedNfts(unlockedIds, user, false);
-
-        return _govUserKeeper.getWithdrawableAssets(user, lockedIds, unlockedNfts);
-    }
-
-    function getUndelegateableAssets(address delegator, address delegatee)
-        external
-        view
-        override
-        returns (uint256 undelegateableTokens, ShrinkableArray.UintArray memory undelegateableNfts)
-    {
-        (
-            ShrinkableArray.UintArray memory unlockedIds,
-            ShrinkableArray.UintArray memory lockedIds
-        ) = getUserProposals(delegatee, true);
-
-        uint256[] memory unlockedNfts = getUnlockedNfts(unlockedIds, delegatee, true);
-
         return
-            _govUserKeeper.getUndelegateableAssets(delegator, delegatee, lockedIds, unlockedNfts);
-    }
-
-    function getUserProposals(address user, bool isMicropool)
-        public
-        view
-        override
-        returns (
-            ShrinkableArray.UintArray memory unlockedIds,
-            ShrinkableArray.UintArray memory lockedIds
-        )
-    {
-        uint256 proposalsLength = _votedInProposals[user][isMicropool].length();
-
-        uint256[] memory unlockedProposals = new uint256[](proposalsLength);
-        uint256[] memory lockedProposals = new uint256[](proposalsLength);
-        uint256 unlockedLength;
-        uint256 lockedLength;
-
-        for (uint256 i; i < proposalsLength; i++) {
-            uint256 proposalId = _votedInProposals[user][isMicropool].at(i);
-
-            ProposalState state = _getProposalState(proposals[proposalId].core);
-
-            if (
-                state == ProposalState.Executed ||
-                state == ProposalState.Succeeded ||
-                state == ProposalState.Defeated
-            ) {
-                unlockedProposals[unlockedLength++] = proposalId;
-            } else {
-                lockedProposals[lockedLength++] = proposalId;
-            }
-        }
-
-        unlockedIds = unlockedProposals.transform().crop(unlockedLength);
-        lockedIds = lockedProposals.transform().crop(lockedLength);
-    }
-
-    function getUnlockedNfts(
-        ShrinkableArray.UintArray memory unlockedIds,
-        address user,
-        bool isMicropool
-    ) public view override returns (uint256[] memory unlockedNfts) {
-        uint256 totalLength;
-
-        for (uint256 i; i < unlockedIds.length; i++) {
-            totalLength += _voteInfos[unlockedIds.values[i]][user][isMicropool].nftsVoted.length();
-        }
-
-        unlockedNfts = new uint256[](totalLength);
-        totalLength = 0;
-
-        for (uint256 i; i < unlockedIds.length; i++) {
-            VoteInfo storage voteInfo = _voteInfos[unlockedIds.values[i]][user][isMicropool];
-
-            totalLength = unlockedNfts.insert(totalLength, voteInfo.nftsVoted.values());
-        }
+            delegatee == address(0)
+                ? GovPoolView.getWithdrawableAssets(delegator, _votedInProposals, _voteInfos)
+                : GovPoolView.getUndelegateableAssets(
+                    delegator,
+                    delegatee,
+                    _votedInProposals,
+                    _voteInfos
+                );
     }
 
     function _execute(uint256 proposalId) internal {

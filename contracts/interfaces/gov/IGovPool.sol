@@ -149,27 +149,8 @@ interface IGovPool {
         bool isMicropool
     ) external view returns (uint256, uint256);
 
-    function getWithdrawableAssets(address user)
+    function getAssets(address delegator, address delegatee)
         external
         view
-        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts);
-
-    function getUndelegateableAssets(address delegator, address delegatee)
-        external
-        view
-        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts);
-
-    function getUserProposals(address user, bool isMicropool)
-        external
-        view
-        returns (
-            ShrinkableArray.UintArray memory unlockedIds,
-            ShrinkableArray.UintArray memory lockedIds
-        );
-
-    function getUnlockedNfts(
-        ShrinkableArray.UintArray memory unlockedIds,
-        address user,
-        bool isMicropool
-    ) external view returns (uint256[] memory unlockedNfts);
+        returns (uint256, ShrinkableArray.UintArray memory);
 }

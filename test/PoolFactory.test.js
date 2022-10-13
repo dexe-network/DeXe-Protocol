@@ -29,6 +29,7 @@ const DistributionProposal = artifacts.require("DistributionProposal");
 const UniswapV2PathFinderLib = artifacts.require("UniswapV2PathFinder");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const PoolFactory = artifacts.require("PoolFactory");
+const GovPoolViewLib = artifacts.require("GovPoolView");
 
 ContractsRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
@@ -61,6 +62,9 @@ describe("PoolFactory", () => {
   before("setup", async () => {
     OWNER = await accounts(0);
     NOTHING = await accounts(3);
+
+    const govPoolViewLib = await GovPoolViewLib.new();
+    await GovPool.link(govPoolViewLib);
 
     const traderPoolPriceLib = await TraderPoolPriceLib.new();
 
