@@ -32,24 +32,13 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
     uint256 internal _poolReserved;
 
     mapping(address => UserInfo) public userInfos;
-    mapping(string => FinishedClaims) internal _finishedClaimsInfo;
+    mapping(string => AcceptedClaims) internal _acceptedClaimsInfo;
 
-    StringSet.Set internal _finishedClaims;
-    StringSet.Set internal _ongoingClaims;
+    StringSet.Set internal _acceptedClaims;
 
-    event ProposedClaim(address sender, string url);
     event Deposited(uint256 amount, address investor);
     event Withdrawn(uint256 amount, address investor);
     event Paidout(uint256 insurancePayout, uint256 userStakePayout, address investor);
-
-    modifier onlyOncePerDay(address user) {
-        require(
-            userInfos[user].lastProposalTimestamp + 1 days <= block.timestamp,
-            "Insurance: Proposal once per day"
-        );
-        _;
-        userInfos[user].lastProposalTimestamp = block.timestamp;
-    }
 
     function __Insurance_init() external initializer {
         __Ownable_init();
@@ -101,50 +90,22 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         emit Withdrawn(amountToWithdraw, msg.sender);
     }
 
-    function proposeClaim(string calldata url) external override onlyOncePerDay(msg.sender) {
-        require(
-            userInfos[msg.sender].stake >= _coreProperties.getMinInsuranceProposalAmount(),
-            "Insurance: not enough deposit"
-        );
-        require(
-            !_ongoingClaims.contains(url) && !_finishedClaims.contains(url),
-            "Insurance: Url is not unique"
-        );
-
-        _ongoingClaims.add(url);
-
-        emit ProposedClaim(msg.sender, url);
+    function acceptedClaimsCount() external view override returns (uint256) {
+        return _acceptedClaims.length();
     }
 
-    function ongoingClaimsCount() external view override returns (uint256) {
-        return _ongoingClaims.length();
-    }
-
-    function listOngoingClaims(uint256 offset, uint256 limit)
+    function listAcceptedClaims(uint256 offset, uint256 limit)
         external
         view
         override
-        returns (string[] memory urls)
+        returns (string[] memory urls, AcceptedClaims[] memory info)
     {
-        return _ongoingClaims.part(offset, limit);
-    }
+        urls = _acceptedClaims.part(offset, limit);
 
-    function finishedClaimsCount() external view override returns (uint256) {
-        return _finishedClaims.length();
-    }
-
-    function listFinishedClaims(uint256 offset, uint256 limit)
-        external
-        view
-        override
-        returns (string[] memory urls, FinishedClaims[] memory info)
-    {
-        urls = _finishedClaims.part(offset, limit);
-
-        info = new FinishedClaims[](urls.length);
+        info = new AcceptedClaims[](urls.length);
 
         for (uint256 i = 0; i < urls.length; i++) {
-            info[i] = _finishedClaimsInfo[urls[i]];
+            info[i] = _acceptedClaimsInfo[urls[i]];
         }
     }
 
@@ -153,15 +114,12 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         address[] calldata users,
         uint256[] memory amounts
     ) external override onlyOwner {
-        require(_ongoingClaims.contains(url), "Insurance: invalid claim url");
+        require(!_acceptedClaims.contains(url), "Insurance: claim already accepted");
         require(users.length == amounts.length, "Insurance: length mismatch");
 
         uint256 insuranceToPay;
 
         for (uint256 i = 0; i < amounts.length; i++) {
-            amounts[i] = amounts[i].min(
-                userInfos[users[i]].stake * _coreProperties.getInsuranceFactor()
-            );
             insuranceToPay += amounts[i];
         }
 
@@ -169,29 +127,14 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
 
         for (uint256 i = 0; i < amounts.length; i++) {
             if (insuranceToPay >= accessiblePool) {
-                amounts[i] = accessiblePool.ratio(amounts[i], insuranceToPay);
+                amounts[i] = amounts[i].ratio(accessiblePool, insuranceToPay);
             }
 
             amounts[i] = _payout(users[i], amounts[i]);
         }
 
-        _finishedClaims.add(url);
-        _finishedClaimsInfo[url] = FinishedClaims(users, amounts, ClaimStatus.ACCEPTED);
-
-        _ongoingClaims.remove(url);
-    }
-
-    function rejectClaim(string calldata url) external override onlyOwner {
-        require(_ongoingClaims.contains(url), "Insurance: url is not ongoing");
-
-        _finishedClaims.add(url);
-        _finishedClaimsInfo[url] = FinishedClaims(
-            new address[](0),
-            new uint256[](0),
-            ClaimStatus.REJECTED
-        );
-
-        _ongoingClaims.remove(url);
+        _acceptedClaims.add(url);
+        _acceptedClaimsInfo[url] = AcceptedClaims(users, amounts);
     }
 
     function getInsurance(address user) external view override returns (uint256, uint256) {
@@ -208,12 +151,16 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
     }
 
     function _payout(address user, uint256 insurancePayout) internal returns (uint256 payout) {
-        uint256 stakePayout = insurancePayout / _coreProperties.getInsuranceFactor();
+        UserInfo storage userInfo = userInfos[user];
+
+        uint256 stakePayout = (insurancePayout / _coreProperties.getInsuranceFactor()).min(
+            userInfo.stake
+        );
         payout = stakePayout + insurancePayout;
 
         _poolReserved -= stakePayout;
 
-        userInfos[user].stake -= stakePayout;
+        userInfo.stake -= stakePayout;
 
         _dexe.transfer(user, payout);
 

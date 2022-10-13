@@ -45,6 +45,10 @@ interface IGovPool {
         EnumerableSet.UintSet nftsVoted;
     }
 
+    /// @notice The function to get helper contract of this pool
+    /// @return the array of [settings, user keeper, validators, distribution proposal] contracts
+    function getHelperContracts() external view returns (address[4] memory);
+
     /// @notice Create proposal
     /// @notice For internal proposal, last executor should be `GovSetting` contract
     /// @notice For typed proposal, last executor should be typed contract

@@ -48,10 +48,10 @@ contract GovPool is
     using DecimalsConverter for uint256;
     using GovUserKeeperLocal for *;
 
-    IGovSettings public govSetting;
-    IGovUserKeeper public govUserKeeper;
-    IGovValidators public govValidators;
-    address public distributionProposal;
+    IGovSettings internal _govSettings;
+    IGovUserKeeper internal _govUserKeeper;
+    IGovValidators internal _govValidators;
+    address internal _distributionProposal;
 
     ICoreProperties internal _coreProperties;
 
@@ -90,10 +90,10 @@ contract GovPool is
         address validatorsAddress,
         string calldata _descriptionURL
     ) external initializer {
-        govSetting = IGovSettings(govSettingAddress);
-        govUserKeeper = IGovUserKeeper(govUserKeeperAddress);
-        govValidators = IGovValidators(validatorsAddress);
-        distributionProposal = distributionProposalAddress;
+        _govSettings = IGovSettings(govSettingAddress);
+        _govUserKeeper = IGovUserKeeper(govUserKeeperAddress);
+        _govValidators = IGovValidators(validatorsAddress);
+        _distributionProposal = distributionProposalAddress;
 
         descriptionURL = _descriptionURL;
     }
@@ -102,6 +102,15 @@ contract GovPool is
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         _coreProperties = ICoreProperties(registry.getCorePropertiesContract());
+    }
+
+    function getHelperContracts() external view override returns (address[4] memory) {
+        return [
+            address(_govSettings),
+            address(_govUserKeeper),
+            address(_govValidators),
+            _distributionProposal
+        ];
     }
 
     function createProposal(
@@ -120,7 +129,7 @@ contract GovPool is
         uint256 proposalId = ++_latestProposalId;
 
         address mainExecutor = executors[executors.length - 1];
-        uint256 executorSettings = govSetting.executorToSettings(mainExecutor);
+        uint256 executorSettings = _govSettings.executorToSettings(mainExecutor);
 
         bool forceDefaultSettings;
         IGovSettings.ProposalSettings memory settings;
@@ -136,9 +145,9 @@ contract GovPool is
         }
 
         if (forceDefaultSettings) {
-            settings = govSetting.getDefaultSettings();
+            settings = _govSettings.getDefaultSettings();
         } else {
-            settings = govSetting.getSettings(mainExecutor);
+            settings = _govSettings.getSettings(mainExecutor);
         }
 
         proposals[proposalId] = Proposal({
@@ -147,7 +156,7 @@ contract GovPool is
                 executed: false,
                 voteEnd: uint64(block.timestamp + settings.duration),
                 votesFor: 0,
-                nftPowerSnapshotId: govUserKeeper.createNftPowerSnapshot(),
+                nftPowerSnapshotId: _govUserKeeper.createNftPowerSnapshot(),
                 proposalId: proposalId
             }),
             descriptionURL: _descriptionURL,
@@ -175,8 +184,8 @@ contract GovPool is
     ) external override {
         require(voteAmount > 0 || voteNftIds.length > 0, "Gov: empty vote");
 
-        govUserKeeper.depositTokens.exec(msg.sender, depositAmount);
-        govUserKeeper.depositNfts.exec(msg.sender, depositNftIds);
+        _govUserKeeper.depositTokens.exec(msg.sender, depositAmount);
+        _govUserKeeper.depositNfts.exec(msg.sender, depositNftIds);
 
         bool useDelegated = !proposals[proposalId].core.settings.delegatedVotingAllowed;
         ProposalCore storage core = _beforeVote(proposalId, false, useDelegated);
@@ -207,8 +216,8 @@ contract GovPool is
     ) public override {
         require(amount > 0 || nftIds.length > 0, "Gov: empty deposit");
 
-        govUserKeeper.depositTokens.exec(receiver, amount);
-        govUserKeeper.depositNfts.exec(receiver, nftIds);
+        _govUserKeeper.depositTokens.exec(receiver, amount);
+        _govUserKeeper.depositNfts.exec(receiver, nftIds);
     }
 
     function withdraw(
@@ -220,8 +229,8 @@ contract GovPool is
 
         unlock(msg.sender, false);
 
-        govUserKeeper.withdrawTokens.exec(receiver, amount);
-        govUserKeeper.withdrawNfts.exec(receiver, nftIds);
+        _govUserKeeper.withdrawTokens.exec(receiver, amount);
+        _govUserKeeper.withdrawNfts.exec(receiver, nftIds);
     }
 
     function delegate(
@@ -233,8 +242,8 @@ contract GovPool is
 
         unlock(msg.sender, false);
 
-        govUserKeeper.delegateTokens.exec(delegatee, amount);
-        govUserKeeper.delegateNfts.exec(delegatee, nftIds);
+        _govUserKeeper.delegateTokens.exec(delegatee, amount);
+        _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
 
         _emitDelegated(delegatee, amount, nftIds, true);
     }
@@ -248,8 +257,8 @@ contract GovPool is
 
         unlock(delegatee, true);
 
-        govUserKeeper.undelegateTokens.exec(delegatee, amount);
-        govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
+        _govUserKeeper.undelegateTokens.exec(delegatee, amount);
+        _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
 
         _emitDelegated(delegatee, amount, nftIds, false);
     }
@@ -263,7 +272,7 @@ contract GovPool is
         address user,
         bool isMicropool
     ) public override {
-        IGovUserKeeper userKeeper = govUserKeeper;
+        IGovUserKeeper userKeeper = _govUserKeeper;
 
         uint256 maxLockedAmount = userKeeper.maxLockedAmount(user, isMicropool);
         uint256 maxUnlocked;
@@ -316,7 +325,7 @@ contract GovPool is
 
         require(state == ProposalState.WaitingForVotingTransfer, "Gov: can't be moved");
 
-        govValidators.createExternalProposal(
+        _govValidators.createExternalProposal(
             proposalId,
             core.settings.durationValidators,
             core.settings.quorumValidators
@@ -377,7 +386,7 @@ contract GovPool is
 
         uint256[] memory unlockedNfts = getUnlockedNfts(unlockedIds, user, false);
 
-        return govUserKeeper.getWithdrawableAssets(user, lockedIds, unlockedNfts);
+        return _govUserKeeper.getWithdrawableAssets(user, lockedIds, unlockedNfts);
     }
 
     function getUndelegateableAssets(address delegator, address delegatee)
@@ -394,7 +403,7 @@ contract GovPool is
         uint256[] memory unlockedNfts = getUnlockedNfts(unlockedIds, delegatee, true);
 
         return
-            govUserKeeper.getUndelegateableAssets(delegator, delegatee, lockedIds, unlockedNfts);
+            _govUserKeeper.getUndelegateableAssets(delegator, delegatee, lockedIds, unlockedNfts);
     }
 
     function getUserProposals(address user, bool isMicropool)
@@ -508,7 +517,7 @@ contract GovPool is
     ) internal view {
         for (uint256 i; i < data.length; i++) {
             bytes4 selector = data[i].getSelector();
-            uint256 executorSettings = govSetting.executorToSettings(executors[i]);
+            uint256 executorSettings = _govSettings.executorToSettings(executors[i]);
 
             require(
                 values[i] == 0 &&
@@ -617,7 +626,7 @@ contract GovPool is
     ) internal {
         VoteInfo storage voteInfo = _voteInfos[proposalId][msg.sender][isMicropool];
 
-        IGovUserKeeper userKeeper = govUserKeeper;
+        IGovUserKeeper userKeeper = _govUserKeeper;
 
         userKeeper.lockTokens(proposalId, msg.sender, isMicropool, amount);
         uint256 tokenBalance = userKeeper.tokenBalance(msg.sender, isMicropool, useDelegated);
@@ -643,7 +652,7 @@ contract GovPool is
             require(voteInfo.nftsVoted.add(nftIds[i]), "Gov: NFT already voted");
         }
 
-        IGovUserKeeper userKeeper = govUserKeeper;
+        IGovUserKeeper userKeeper = _govUserKeeper;
 
         userKeeper.lockNfts(msg.sender, isMicropool, useDelegated, nftIds);
         voteAmount = userKeeper.getNftsPowerInTokens(nftIds, core.nftPowerSnapshotId);
@@ -686,8 +695,8 @@ contract GovPool is
 
         if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
             if (_quorumReached(core)) {
-                if (core.settings.validatorsVote && govValidators.validatorsCount() > 0) {
-                    IGovValidators.ProposalState status = govValidators.getProposalState(
+                if (core.settings.validatorsVote && _govValidators.validatorsCount() > 0) {
+                    IGovValidators.ProposalState status = _govValidators.getProposalState(
                         core.proposalId,
                         false
                     );
@@ -720,7 +729,7 @@ contract GovPool is
 
     function _quorumReached(ProposalCore storage core) internal view returns (bool) {
         return
-            PERCENTAGE_100.ratio(core.votesFor, govUserKeeper.getTotalVoteWeight()) >=
+            PERCENTAGE_100.ratio(core.votesFor, _govUserKeeper.getTotalVoteWeight()) >=
             core.settings.quorum;
     }
 
@@ -730,7 +739,7 @@ contract GovPool is
         bool useDelegated
     ) internal view returns (bool) {
         return
-            govUserKeeper.canParticipate(
+            _govUserKeeper.canParticipate(
                 msg.sender,
                 isMicropool,
                 useDelegated,

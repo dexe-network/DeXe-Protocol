@@ -7,34 +7,21 @@ pragma solidity ^0.8.4;
  * DAO. The insurance is paid in DEXE tokens to all the provided addresses and backed by the commissions the protocol receives
  */
 interface IInsurance {
-    /// @notice Possible statuses of the proposed claim
-    /// @param NULL the claim is either not created or pending
-    /// @param ACCEPTED the claim is accepted and paid
-    /// @param REJECTED the claim is rejected
-    enum ClaimStatus {
-        NULL,
-        ACCEPTED,
-        REJECTED
-    }
-
-    /// @notice The struct that holds finished claims info
+    /// @notice The struct that holds accepted claims info
     /// @param claimers the addresses that received the payout
     /// @param amounts the amounts in DEXE tokens paid to the claimers
     /// @param status the final status of the claim
-    struct FinishedClaims {
+    struct AcceptedClaims {
         address[] claimers;
         uint256[] amounts;
-        ClaimStatus status;
     }
 
     /// @notice The struct that holds information about the user
     /// @param stake the amount of tokens the user staked (bought the insurance for)
     /// @param lastDepositTimestamp the timestamp of user's last deposit
-    /// @param lastProposalTimestamp the timestamp of user's last proposal creation
     struct UserInfo {
         uint256 stake;
         uint256 lastDepositTimestamp;
-        uint256 lastProposalTimestamp;
     }
 
     /// @notice The function to buy an insurance for the deposited DEXE tokens. Minimal insurance is specified by the DAO
@@ -50,36 +37,19 @@ interface IInsurance {
     /// @param amountToWithdraw the amount of DEXE tokens to withdraw
     function withdraw(uint256 amountToWithdraw) external;
 
-    /// @notice The function to propose the claim for the DAO review. Only the insurance holder can do that
-    /// @param url the IPFS url to the claim evidence. Used as a claim key
-    function proposeClaim(string calldata url) external;
+    /// @notice The function to get the total number of accepted claims
+    /// @return the number of accepted claims
+    function acceptedClaimsCount() external view returns (uint256);
 
-    /// @notice The function to get the total count of ongoing claims
-    /// @return the number of currently ongoing claims
-    function ongoingClaimsCount() external view returns (uint256);
-
-    /// @notice The paginated function to fetch currently going claims
-    /// @param offset the starting index of the array
-    /// @param limit the length of the observed window
-    /// @return urls the IPFS URLs of the claims' evidence
-    function listOngoingClaims(uint256 offset, uint256 limit)
-        external
-        view
-        returns (string[] memory urls);
-
-    /// @notice The function to get the total number of finished claims
-    /// @return the number of finished claims
-    function finishedClaimsCount() external view returns (uint256);
-
-    /// @notice The paginated function to list finished claims
+    /// @notice The paginated function to list accepted claims
     /// @param offset the starting index of the array
     /// @param limit the length of the observed window
     /// @return urls the IPFS URLs of the claims' evidence
     /// @return info the extended info of the claims
-    function listFinishedClaims(uint256 offset, uint256 limit)
+    function listAcceptedClaims(uint256 offset, uint256 limit)
         external
         view
-        returns (string[] memory urls, FinishedClaims[] memory info);
+        returns (string[] memory urls, AcceptedClaims[] memory info);
 
     /// @notice The function called by the DAO to accept the claim
     /// @param url the IPFS URL of the claim to accept
@@ -90,10 +60,6 @@ interface IInsurance {
         address[] calldata users,
         uint256[] memory amounts
     ) external;
-
-    /// @notice The function to reject the provided claim
-    /// @param url the IPFS URL of the claim to be rejected
-    function rejectClaim(string calldata url) external;
 
     /// @notice The function to get the maximum insurance payout
     /// @return the maximum insurance payout in dexe

@@ -12,12 +12,6 @@ const ExecutorType = {
   VALIDATORS: 3,
 };
 
-const InsuranceStatus = {
-  NULL: 0,
-  ACCEPTED: 1,
-  REJECTED: 2,
-};
-
 const ComissionPeriods = {
   PERIOD_1: 0,
   PERIOD_2: 1,
@@ -56,7 +50,6 @@ const DEFAULT_CORE_PROPERTIES = {
     insuranceFactor: 10,
     maxInsurancePoolShare: PRECISION.times(33.3333).toFixed(),
     minInsuranceDeposit: DECIMAL.times(10).toFixed(),
-    minInsuranceProposalAmount: DECIMAL.times(100).toFixed(),
     insuranceWithdrawalLock: SECONDS_IN_DAY,
   },
   govParams: {
@@ -68,7 +61,6 @@ const DEFAULT_CORE_PROPERTIES = {
 module.exports = {
   ExchangeType,
   ExecutorType,
-  InsuranceStatus,
   ComissionPeriods,
   ProposalState,
   DEFAULT_CORE_PROPERTIES,

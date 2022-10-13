@@ -50,13 +50,11 @@ interface ICoreProperties {
     /// @param insuranceFactor the deposit insurance multiplier. Means how many insurance tokens is received per deposited token
     /// @param maxInsurancePoolShare the maximal share of the pool which can be used to pay out the insurance. 3 = 1/3 of the pool
     /// @param minInsuranceDeposit the minimal required deposit in DEXE tokens to receive an insurance
-    /// @param minInsuranceProposalAmount the minimal amount of DEXE to be on insurance deposit to propose claims
     /// @param insuranceWithdrawalLock the time needed to wait to withdraw tokens from the insurance after the deposit
     struct InsuranceParameters {
         uint256 insuranceFactor;
         uint256 maxInsurancePoolShare;
         uint256 minInsuranceDeposit;
-        uint256 minInsuranceProposalAmount;
         uint256 insuranceWithdrawalLock;
     }
 
@@ -254,10 +252,6 @@ interface ICoreProperties {
     /// @notice The function to get the min allowed insurance deposit
     /// @return the min allowed insurance deposit in DEXE tokens
     function getMinInsuranceDeposit() external view returns (uint256);
-
-    /// @notice The function to get the min amount of tokens required to be able to propose claims
-    /// @return the min amount of tokens required to propose claims
-    function getMinInsuranceProposalAmount() external view returns (uint256);
 
     /// @notice The function to get insurance withdrawal lock duration
     /// @return the duration of insurance lock

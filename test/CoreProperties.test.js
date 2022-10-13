@@ -112,7 +112,6 @@ describe("CoreProperties", () => {
             insuranceFactor: 10,
             maxInsurancePoolShare: 20,
             minInsuranceDeposit: 30,
-            minInsuranceProposalAmount: 40,
             insuranceWithdrawalLock: 50,
           },
           { from: SECOND }
@@ -219,7 +218,6 @@ describe("CoreProperties", () => {
         insuranceFactor: 10,
         maxInsurancePoolShare: 20,
         minInsuranceDeposit: 30,
-        minInsuranceProposalAmount: 40,
         insuranceWithdrawalLock: 50,
       };
 
@@ -228,7 +226,6 @@ describe("CoreProperties", () => {
       assert.equal(toBN(await coreProperties.getInsuranceFactor()).toFixed(), "10");
       assert.equal(toBN(await coreProperties.getMaxInsurancePoolShare()).toFixed(), "20");
       assert.equal(toBN(await coreProperties.getMinInsuranceDeposit()).toFixed(), "30");
-      assert.equal(toBN(await coreProperties.getMinInsuranceProposalAmount()).toFixed(), "40");
       assert.equal(toBN(await coreProperties.getInsuranceWithdrawalLock()).toFixed(), "50");
     });
 

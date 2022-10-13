@@ -1,7 +1,7 @@
 const { toBN, accounts, wei } = require("../scripts/utils/utils");
 const truffleAssert = require("truffle-assertions");
 const { SECONDS_IN_DAY } = require("../scripts/utils/constants");
-const { DEFAULT_CORE_PROPERTIES, InsuranceStatus } = require("./utils/constants");
+const { DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
 const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
 const { assert } = require("chai");
 
@@ -81,11 +81,6 @@ describe("Insurance", () => {
     it("only owner should call these methods", async () => {
       await truffleAssert.reverts(
         insurance.acceptClaim("placeholder", [OWNER], [wei("1")], { from: SECOND }),
-        "Ownable: caller is not the owner"
-      );
-
-      await truffleAssert.reverts(
-        insurance.rejectClaim("placeholder", { from: SECOND }),
         "Ownable: caller is not the owner"
       );
     });
@@ -188,164 +183,7 @@ describe("Insurance", () => {
     });
   });
 
-  describe("proposeClaim", () => {
-    const deposit = toBN(wei("100"));
-
-    it("should not propose claim", async () => {
-      const url = "url";
-
-      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
-
-      await insurance.buyInsurance(wei("10"), { from: SECOND });
-      await truffleAssert.reverts(insurance.proposeClaim(url, { from: SECOND }), "Insurance: not enough deposit");
-    });
-
-    it("should propose claim", async () => {
-      const url = "url";
-
-      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
-
-      await insurance.buyInsurance(deposit, { from: SECOND });
-      await insurance.proposeClaim(url, { from: SECOND });
-
-      let ongoingClaims = await insurance.listOngoingClaims(0, 100);
-      assert.equal(1, ongoingClaims.length);
-      assert.equal(url, ongoingClaims[0]);
-
-      let finishedClaims = await insurance.listFinishedClaims(0, 100);
-      assert.equal(0, finishedClaims.urls.length);
-    });
-
-    it("should not proposal 2 claims in one day", async () => {
-      const url = "url";
-
-      await insurance.buyInsurance(deposit, { from: SECOND });
-
-      await insurance.proposeClaim(url, { from: SECOND });
-      await truffleAssert.reverts(insurance.proposeClaim(url, { from: SECOND }), "Insurance: Proposal once per day");
-    });
-
-    it("should propose two urls", async () => {
-      const url1 = "url1";
-      const url2 = "url2";
-
-      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
-
-      await insurance.buyInsurance(deposit, { from: SECOND });
-      await insurance.proposeClaim(url1, { from: SECOND });
-
-      let ongoingClaims = await insurance.listOngoingClaims(0, 100);
-      assert.equal(1, ongoingClaims.length);
-      assert.equal(url1, ongoingClaims[0]);
-
-      let finishedClaims = await insurance.listFinishedClaims(0, 100);
-      assert.equal(0, finishedClaims.urls.length);
-
-      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
-
-      await insurance.proposeClaim(url2, { from: SECOND });
-
-      ongoingClaims = await insurance.listOngoingClaims(0, 100);
-      assert.equal(2, ongoingClaims.length);
-      assert.equal(url2, ongoingClaims[1]);
-      assert.equal(url1, ongoingClaims[0]);
-
-      finishedClaims = await insurance.listFinishedClaims(0, 100);
-      assert.equal(0, finishedClaims.urls.length);
-    });
-
-    it("should revert when try to add same urls", async () => {
-      const url = "url";
-
-      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
-
-      await insurance.buyInsurance(deposit, { from: SECOND });
-      await insurance.proposeClaim(url, { from: SECOND });
-
-      let ongoingClaims = await insurance.listOngoingClaims(0, 100);
-      assert.equal(1, ongoingClaims.length);
-      assert.equal(url, ongoingClaims[0]);
-
-      let finishedClaims = await insurance.listFinishedClaims(0, 100);
-      assert.equal(0, finishedClaims.urls.length);
-
-      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
-
-      await truffleAssert.reverts(insurance.proposeClaim(url, { from: SECOND }), "Insurance: Url is not unique");
-
-      ongoingClaims = await insurance.listOngoingClaims(0, 100);
-      assert.equal(1, ongoingClaims.length);
-      assert.equal(url, ongoingClaims[0]);
-
-      finishedClaims = await insurance.listFinishedClaims(0, 100);
-      assert.equal(0, finishedClaims.urls.length);
-    });
-
-    it("should revert when try to propose finished claim", async () => {
-      const url = "url";
-
-      await insurance.buyInsurance(deposit, { from: SECOND });
-
-      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
-
-      await insurance.proposeClaim(url, { from: SECOND });
-      await insurance.rejectClaim(url);
-
-      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
-
-      await truffleAssert.reverts(insurance.proposeClaim(url, { from: SECOND }), "Insurance: Url is not unique");
-
-      let ongoingClaims = await insurance.listOngoingClaims(0, 100);
-      assert.equal(0, ongoingClaims.length);
-    });
-  });
-
-  describe("listOngoingClaims", () => {
-    const len = 10;
-    const deposit = toBN(wei("100"));
-
-    beforeEach("make ongoing claim", async () => {
-      const url = "url";
-
-      await insurance.buyInsurance(deposit, { from: SECOND });
-
-      for (i = 0; i < len; i++) {
-        await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
-        await insurance.proposeClaim(url + i, { from: SECOND });
-      }
-    });
-
-    it("should correctly return list", async () => {
-      let ongoingClaims = await insurance.listOngoingClaims(0, 100);
-      let ongoingClaims1 = await insurance.listOngoingClaims(0, 10);
-
-      assert.deepEqual(ongoingClaims, ongoingClaims1);
-      assert.equal(len, await insurance.ongoingClaimsCount());
-      assert.equal(len, ongoingClaims.length);
-      assert.equal(len, ongoingClaims1.length);
-    });
-
-    it("should return first 5 elements", async () => {
-      let localLen = 5;
-      let ongoingClaims = await insurance.listOngoingClaims(0, localLen);
-
-      assert.equal(localLen, ongoingClaims.length);
-      assert.equal("url0", ongoingClaims[0]);
-      assert.equal("url4", ongoingClaims[localLen - 1]);
-    });
-
-    it("should return last 5 elements", async () => {
-      let localLen = 5;
-      let ongoingClaims = await insurance.listOngoingClaims(5, 5 + localLen);
-
-      assert.equal(localLen, ongoingClaims.length);
-      assert.equal("url5", ongoingClaims[0]);
-      assert.equal("url9", ongoingClaims[localLen - 1]);
-    });
-  });
-
   describe("acceptClaim", () => {
-    const baseURL = "url";
     const deposit = wei("100");
 
     beforeEach("make ongoing claim", async () => {
@@ -361,11 +199,6 @@ describe("Insurance", () => {
       await insurance.buyInsurance(deposit, { from: ALICE });
       await insurance.buyInsurance(deposit, { from: RON });
       await insurance.buyInsurance(deposit, { from: BOB });
-
-      for (i = 0; i < 10; i++) {
-        await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
-        await insurance.proposeClaim(baseURL + i, { from: SECOND });
-      }
     });
 
     it("should accept claim", async () => {
@@ -383,33 +216,31 @@ describe("Insurance", () => {
 
       await insurance.acceptClaim("url0", users, amounts);
 
-      let finishedClaims = await insurance.listFinishedClaims(0, 100);
+      let acceptedClaims = await insurance.listAcceptedClaims(0, 100);
 
-      assert.equal(1, finishedClaims.urls.length);
+      assert.equal(1, acceptedClaims.urls.length);
 
-      assert.equal(amount + amount / insuranceFactor, finishedClaims.info[0].amounts[0]);
-      assert.equal(amount + amount / insuranceFactor, finishedClaims.info[0].amounts[1]);
-      assert.equal(amount + amount / insuranceFactor, finishedClaims.info[0].amounts[2]);
+      assert.equal(amount + amount / insuranceFactor, acceptedClaims.info[0].amounts[0]);
+      assert.equal(amount + amount / insuranceFactor, acceptedClaims.info[0].amounts[1]);
+      assert.equal(amount + amount / insuranceFactor, acceptedClaims.info[0].amounts[2]);
 
-      assert.equal(ALICE, finishedClaims.info[0].claimers[0]);
-      assert.equal(RON, finishedClaims.info[0].claimers[1]);
-      assert.equal(BOB, finishedClaims.info[0].claimers[2]);
+      assert.equal(ALICE, acceptedClaims.info[0].claimers[0]);
+      assert.equal(RON, acceptedClaims.info[0].claimers[1]);
+      assert.equal(BOB, acceptedClaims.info[0].claimers[2]);
 
       assert.equal(
-        balanceAlice.plus(finishedClaims.info[0].amounts[0]).toFixed(),
+        balanceAlice.plus(acceptedClaims.info[0].amounts[0]).toFixed(),
         (await dexe.balanceOf(ALICE)).toFixed()
       );
-      assert.equal(balanceRon.plus(finishedClaims.info[0].amounts[1]).toFixed(), (await dexe.balanceOf(RON)).toFixed());
-      assert.equal(balanceBob.plus(finishedClaims.info[0].amounts[2]).toFixed(), (await dexe.balanceOf(BOB)).toFixed());
-
-      assert.equal(InsuranceStatus.ACCEPTED, finishedClaims.info[0].status);
+      assert.equal(balanceRon.plus(acceptedClaims.info[0].amounts[1]).toFixed(), (await dexe.balanceOf(RON)).toFixed());
+      assert.equal(balanceBob.plus(acceptedClaims.info[0].amounts[2]).toFixed(), (await dexe.balanceOf(BOB)).toFixed());
     });
 
     it("should not accept claim if length mismatches", async () => {
       await truffleAssert.reverts(insurance.acceptClaim("url0", [OWNER], []), "Insurance: length mismatch");
     });
 
-    it("should accept claim when totalBalance lower then amounts", async () => {
+    it("should accept claim when totalBalance is less than amounts", async () => {
       await dexe.transfer(insurance.address, 100);
 
       const amount = 100;
@@ -418,20 +249,14 @@ describe("Insurance", () => {
 
       await insurance.acceptClaim("url0", users, amounts);
 
-      let finishedClaims = await insurance.listFinishedClaims(0, 100);
+      let acceptedClaims = await insurance.listAcceptedClaims(0, 100);
 
-      assert.equal(users.length, finishedClaims.info[0].claimers.length);
-      assert.equal(amounts.length, finishedClaims.info[0].amounts.length);
+      assert.equal(users.length, acceptedClaims.info[0].claimers.length);
+      assert.equal(amounts.length, acceptedClaims.info[0].amounts.length);
 
-      assert.equal(12, finishedClaims.info[0].amounts[0]);
-      assert.equal(12, finishedClaims.info[0].amounts[1]);
-      assert.equal(12, finishedClaims.info[0].amounts[2]);
-
-      assert.equal(ALICE, finishedClaims.info[0].claimers[0]);
-      assert.equal(RON, finishedClaims.info[0].claimers[1]);
-      assert.equal(BOB, finishedClaims.info[0].claimers[2]);
-
-      assert.equal(InsuranceStatus.ACCEPTED, finishedClaims.info[0].status);
+      assert.equal(12, acceptedClaims.info[0].amounts[0]);
+      assert.equal(12, acceptedClaims.info[0].amounts[1]);
+      assert.equal(12, acceptedClaims.info[0].amounts[2]);
     });
 
     it("should accept claim when user's amounts is [66, 33, 1]", async () => {
@@ -446,24 +271,18 @@ describe("Insurance", () => {
 
       await insurance.acceptClaim("url0", users, amounts);
 
-      let finishedClaims = await insurance.listFinishedClaims(0, 100);
+      let acceptedClaims = await insurance.listAcceptedClaims(0, 100);
 
-      assert.equal(Math.floor(amounts[0] + amounts[0] / insuranceFactor), finishedClaims.info[0].amounts[0]);
-      assert.equal(Math.floor(amounts[1] + amounts[1] / insuranceFactor), finishedClaims.info[0].amounts[1]);
-      assert.equal(Math.floor(amounts[2] + amounts[2] / insuranceFactor), finishedClaims.info[0].amounts[2]);
-
-      assert.equal(ALICE, finishedClaims.info[0].claimers[0]);
-      assert.equal(RON, finishedClaims.info[0].claimers[1]);
-      assert.equal(BOB, finishedClaims.info[0].claimers[2]);
+      assert.equal(Math.floor(amounts[0] + amounts[0] / insuranceFactor), acceptedClaims.info[0].amounts[0]);
+      assert.equal(Math.floor(amounts[1] + amounts[1] / insuranceFactor), acceptedClaims.info[0].amounts[1]);
+      assert.equal(Math.floor(amounts[2] + amounts[2] / insuranceFactor), acceptedClaims.info[0].amounts[2]);
 
       assert.equal(
-        balanceAlice.plus(finishedClaims.info[0].amounts[0]).toFixed(),
+        balanceAlice.plus(acceptedClaims.info[0].amounts[0]).toFixed(),
         (await dexe.balanceOf(ALICE)).toFixed()
       );
-      assert.equal(balanceRon.plus(finishedClaims.info[0].amounts[1]).toFixed(), (await dexe.balanceOf(RON)).toFixed());
-      assert.equal(balanceBob.plus(finishedClaims.info[0].amounts[2]).toFixed(), (await dexe.balanceOf(BOB)).toFixed());
-
-      assert.equal(InsuranceStatus.ACCEPTED, finishedClaims.info[0].status);
+      assert.equal(balanceRon.plus(acceptedClaims.info[0].amounts[1]).toFixed(), (await dexe.balanceOf(RON)).toFixed());
+      assert.equal(balanceBob.plus(acceptedClaims.info[0].amounts[2]).toFixed(), (await dexe.balanceOf(BOB)).toFixed());
     });
 
     it("should accept claim when user's amounts is [66, 33, 1] and total amount is 100", async () => {
@@ -478,24 +297,18 @@ describe("Insurance", () => {
 
       await insurance.acceptClaim("url0", users, amounts);
 
-      let finishedClaims = await insurance.listFinishedClaims(0, 100);
+      let acceptedClaims = await insurance.listAcceptedClaims(0, 100);
 
-      assert.equal(23, finishedClaims.info[0].amounts[0]);
-      assert.equal(11, finishedClaims.info[0].amounts[1]);
-      assert.equal(0, finishedClaims.info[0].amounts[2]);
-
-      assert.equal(ALICE, finishedClaims.info[0].claimers[0]);
-      assert.equal(RON, finishedClaims.info[0].claimers[1]);
-      assert.equal(BOB, finishedClaims.info[0].claimers[2]);
+      assert.equal(23, acceptedClaims.info[0].amounts[0]);
+      assert.equal(11, acceptedClaims.info[0].amounts[1]);
+      assert.equal(0, acceptedClaims.info[0].amounts[2]);
 
       assert.equal(
-        balanceAlice.plus(finishedClaims.info[0].amounts[0]).toFixed(),
+        balanceAlice.plus(acceptedClaims.info[0].amounts[0]).toFixed(),
         (await dexe.balanceOf(ALICE)).toFixed()
       );
-      assert.equal(balanceRon.plus(finishedClaims.info[0].amounts[1]).toFixed(), (await dexe.balanceOf(RON)).toFixed());
-      assert.equal(balanceBob.plus(finishedClaims.info[0].amounts[2]).toFixed(), (await dexe.balanceOf(BOB)).toFixed());
-
-      assert.equal(InsuranceStatus.ACCEPTED, finishedClaims.info[0].status);
+      assert.equal(balanceRon.plus(acceptedClaims.info[0].amounts[1]).toFixed(), (await dexe.balanceOf(RON)).toFixed());
+      assert.equal(balanceBob.plus(acceptedClaims.info[0].amounts[2]).toFixed(), (await dexe.balanceOf(BOB)).toFixed());
     });
 
     it("should correctly pay when user's amounts is [60, 20, 0]", async () => {
@@ -510,81 +323,65 @@ describe("Insurance", () => {
 
       await insurance.acceptClaim("url0", users, amounts);
 
-      let finishedClaims = await insurance.listFinishedClaims(0, 100);
+      let acceptedClaims = await insurance.listAcceptedClaims(0, 100);
 
-      assert.equal(Math.floor(amounts[0] + amounts[0] / insuranceFactor), finishedClaims.info[0].amounts[0]);
-      assert.equal(Math.floor(amounts[1] + amounts[1] / insuranceFactor), finishedClaims.info[0].amounts[1]);
-      assert.equal(0, finishedClaims.info[0].amounts[2]);
-
-      assert.equal(ALICE, finishedClaims.info[0].claimers[0]);
-      assert.equal(RON, finishedClaims.info[0].claimers[1]);
-      assert.equal(BOB, finishedClaims.info[0].claimers[2]);
+      assert.equal(Math.floor(amounts[0] + amounts[0] / insuranceFactor), acceptedClaims.info[0].amounts[0]);
+      assert.equal(Math.floor(amounts[1] + amounts[1] / insuranceFactor), acceptedClaims.info[0].amounts[1]);
+      assert.equal(0, acceptedClaims.info[0].amounts[2]);
 
       assert.equal(
-        balanceAlice.plus(finishedClaims.info[0].amounts[0]).toFixed(),
+        balanceAlice.plus(acceptedClaims.info[0].amounts[0]).toFixed(),
         (await dexe.balanceOf(ALICE)).toFixed()
       );
-      assert.equal(balanceRon.plus(finishedClaims.info[0].amounts[1]).toFixed(), (await dexe.balanceOf(RON)).toFixed());
-      assert.equal(balanceBob.plus(finishedClaims.info[0].amounts[2]).toFixed(), (await dexe.balanceOf(BOB)).toFixed());
-
-      assert.equal(InsuranceStatus.ACCEPTED, finishedClaims.info[0].status);
+      assert.equal(balanceRon.plus(acceptedClaims.info[0].amounts[1]).toFixed(), (await dexe.balanceOf(RON)).toFixed());
+      assert.equal(balanceBob.plus(acceptedClaims.info[0].amounts[2]).toFixed(), (await dexe.balanceOf(BOB)).toFixed());
     });
 
-    it("should revert when try to accept unproposed claim", async () => {
+    it("should accept claim even if user withdrew insurance", async () => {
+      await dexe.transfer(insurance.address, wei("90"));
+
+      const amount = wei("80");
+      const users = [ALICE];
+      const amounts = [amount];
+
+      let balanceAlice = await dexe.balanceOf(ALICE);
+
+      await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY + 10);
+
+      await insurance.withdraw(wei("99"), { from: ALICE });
+
+      assert.equal((await insurance.getMaxTreasuryPayout()).toFixed(), wei("29.99997"));
+
+      await insurance.acceptClaim("url0", users, amounts);
+
+      let acceptedClaims = await insurance.listAcceptedClaims(0, 100);
+
+      assert.equal(1, acceptedClaims.urls.length);
+
+      assert.equal(toBN(wei("29.99997")).plus(wei("1")).toFixed(), toBN(acceptedClaims.info[0].amounts[0]).toFixed());
+      assert.equal(
+        balanceAlice.plus(wei("99")).plus(acceptedClaims.info[0].amounts[0]).toFixed(),
+        (await dexe.balanceOf(ALICE)).toFixed()
+      );
+    });
+
+    it("should revert when accepting the same claim twice", async () => {
       const amount = 100;
       const users = [ALICE, RON, BOB];
       const amounts = [amount, amount, amount];
 
-      await truffleAssert.reverts(insurance.acceptClaim("url10", users, amounts), "Insurance: invalid claim url");
+      await insurance.acceptClaim("url10", users, amounts);
+
+      await truffleAssert.reverts(insurance.acceptClaim("url10", users, amounts), "Insurance: claim already accepted");
     });
   });
 
-  describe("rejectClaim", () => {
-    const baseURL = "url";
-    const deposit = toBN(wei("100"));
-
-    beforeEach("make ongoing claim", async () => {
-      await dexe.mint(ALICE, deposit);
-      await dexe.mint(RON, deposit);
-      await dexe.mint(BOB, deposit);
-
-      await dexe.approve(insurance.address, deposit, { from: ALICE });
-      await dexe.approve(insurance.address, deposit, { from: RON });
-      await dexe.approve(insurance.address, deposit, { from: BOB });
-
-      await insurance.buyInsurance(deposit, { from: SECOND });
-      await insurance.buyInsurance(deposit, { from: ALICE });
-      await insurance.buyInsurance(deposit, { from: RON });
-      await insurance.buyInsurance(deposit, { from: BOB });
-
-      for (i = 0; i < 10; i++) {
-        await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
-        await insurance.proposeClaim(baseURL + i, { from: SECOND });
-      }
-    });
-
-    it("should reject claim", async () => {
-      await insurance.rejectClaim("url0");
-
-      let finishedClaims = await insurance.listFinishedClaims(0, 100);
-
-      assert.equal(0, finishedClaims.info[0].claimers.length);
-      assert.equal(0, finishedClaims.info[0].amounts.length);
-
-      assert.equal(InsuranceStatus.REJECTED, finishedClaims.info[0].status);
-    });
-
-    it("should revert when try to reject unongoing url", async () => {
-      await truffleAssert.reverts(insurance.rejectClaim("url10"), "Insurance: url is not ongoing");
-    });
-  });
-
-  describe("listFinishedClaims", () => {
+  describe("listAcceptedClaims", () => {
     const len = 10;
     const baseURL = "url";
     const deposit = toBN(wei("100"));
 
-    beforeEach("make finished claims", async () => {
+    beforeEach("setup", async () => {
       await dexe.mint(ALICE, deposit);
       await dexe.mint(RON, deposit);
       await dexe.mint(BOB, deposit);
@@ -597,11 +394,6 @@ describe("Insurance", () => {
       await insurance.buyInsurance(deposit, { from: ALICE });
       await insurance.buyInsurance(deposit, { from: RON });
       await insurance.buyInsurance(deposit, { from: BOB });
-
-      for (i = 0; i < len; i++) {
-        await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY);
-        await insurance.proposeClaim(baseURL + i, { from: SECOND });
-      }
 
       await dexe.transfer(insurance.address, wei("1000000"));
 
@@ -609,43 +401,36 @@ describe("Insurance", () => {
       const users = [ALICE, RON, BOB];
       const amounts = [amount, amount, amount];
 
-      for (i = 0; i < len / 2; i++) {
+      for (i = 0; i < len; i++) {
         await insurance.acceptClaim(baseURL + i, users, amounts);
-      }
-
-      for (i = len / 2; i < len; i++) {
-        await insurance.rejectClaim(baseURL + i);
       }
     });
 
     it("should correctly return list", async () => {
-      let finishedClaims = await insurance.listFinishedClaims(0, len);
+      let acceptedClaims = await insurance.listAcceptedClaims(0, len);
 
-      assert.equal(await insurance.finishedClaimsCount(), len);
-      assert.equal(finishedClaims.urls.length, len);
-      assert.equal(finishedClaims.info.length, len);
-      assert.equal(finishedClaims.urls[0], baseURL + 0);
-      assert.equal(finishedClaims.urls[len - 1], baseURL + (len - 1));
+      assert.equal(await insurance.acceptedClaimsCount(), len);
+
+      assert.equal(acceptedClaims.urls.length, len);
+      assert.equal(acceptedClaims.info.length, len);
+      assert.equal(acceptedClaims.urls[0], baseURL + 0);
+      assert.equal(acceptedClaims.urls[len - 1], baseURL + (len - 1));
     });
 
     it("should return first 5 elements", async () => {
-      let localLen = 5;
-      let finishedClaims = await insurance.listFinishedClaims(0, localLen);
+      let acceptedClaims = await insurance.listAcceptedClaims(0, 5);
 
-      assert.equal(finishedClaims.urls.length, localLen);
-      assert.equal(finishedClaims.info.length, localLen);
-      assert.equal(finishedClaims.urls[0], baseURL + 0);
-      assert.equal(finishedClaims.urls[localLen - 1], baseURL + (localLen - 1));
+      assert.equal(acceptedClaims.urls.length, 5);
+      assert.equal(acceptedClaims.info.length, 5);
+      assert.equal(acceptedClaims.urls[0], baseURL + 0);
+      assert.equal(acceptedClaims.urls[4], baseURL + 4);
     });
 
-    it("should return first 5 elements", async () => {
-      let localLen = 5;
-      let finishedClaims = await insurance.listFinishedClaims(localLen, len);
+    it("should return an empty list", async () => {
+      let acceptedClaims = await insurance.listAcceptedClaims(len, len);
 
-      assert.equal(finishedClaims.urls.length, localLen);
-      assert.equal(finishedClaims.info.length, localLen);
-      assert.equal(finishedClaims.urls[0], baseURL + localLen);
-      assert.equal(finishedClaims.urls[localLen - 1], baseURL + (len - 1));
+      assert.equal(acceptedClaims.urls.length, 0);
+      assert.equal(acceptedClaims.info.length, 0);
     });
   });
 });

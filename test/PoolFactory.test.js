@@ -475,9 +475,11 @@ describe("PoolFactory", () => {
       assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
 
       let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
-      let govValidators = await GovValidators.at(await govPool.govValidators());
-      let govSettings = await GovSettings.at(await govPool.govSetting());
-      let settings = await govSettings.getSettings(await govPool.distributionProposal());
+      let helperContracts = await govPool.getHelperContracts();
+
+      let govSettings = await GovSettings.at(helperContracts[0]);
+      let govValidators = await GovValidators.at(helperContracts[2]);
+      let settings = await govSettings.getSettings(helperContracts[3]);
 
       assert.equal(await govPool.descriptionURL(), "example.com");
 

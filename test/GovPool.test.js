@@ -265,9 +265,12 @@ describe("GovPool", () => {
 
     describe("init()", () => {
       it("should correctly set all parameters", async () => {
-        assert.equal(await govPool.govSetting(), settings.address);
-        assert.equal(await govPool.govUserKeeper(), userKeeper.address);
-        assert.equal(await govPool.govValidators(), validators.address);
+        assert.deepEqual(await govPool.getHelperContracts(), [
+          settings.address,
+          userKeeper.address,
+          validators.address,
+          dp.address,
+        ]);
       });
     });
 
