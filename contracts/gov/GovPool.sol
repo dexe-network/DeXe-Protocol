@@ -594,6 +594,12 @@ contract GovPool is
         _voteTokens(core, proposalId, voteAmount, isMicropool, useDelegated);
         uint256 nftVoteAmount = _voteNfts(core, proposalId, voteNftIds, isMicropool, useDelegated);
 
+        _updateRewards(
+            proposalId,
+            voteAmount + nftVoteAmount,
+            core.settings.voteRewardsCoefficient
+        );
+
         emit Voted(
             proposalId,
             msg.sender,
@@ -622,8 +628,6 @@ contract GovPool is
         voteInfo.tokensVoted += amount;
 
         core.votesFor += amount;
-
-        _updateRewards(proposalId, amount, core.settings.voteRewardsCoefficient);
     }
 
     function _voteNfts(
@@ -647,8 +651,6 @@ contract GovPool is
         voteInfo.totalVoted += voteAmount;
 
         core.votesFor += voteAmount;
-
-        _updateRewards(proposalId, voteAmount, core.settings.voteRewardsCoefficient);
     }
 
     function _beforeVote(

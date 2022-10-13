@@ -8,7 +8,7 @@ import "../../interfaces/gov/settings/IGovSettings.sol";
 import "../../core/Globals.sol";
 
 contract GovSettings is IGovSettings, OwnableUpgradeable {
-    uint256 internal _newSettingsId;
+    uint256 public newSettingsId;
 
     mapping(uint256 => ProposalSettings) public settings; // settingsId => info
     mapping(address => uint256) public executorToSettings; // executor => seetingsId
@@ -55,11 +55,11 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
             settingsId++;
         }
 
-        _newSettingsId = settingsId;
+        newSettingsId = settingsId;
     }
 
     function addSettings(ProposalSettings[] calldata _settings) external override onlyOwner {
-        uint256 settingsId = _newSettingsId;
+        uint256 settingsId = newSettingsId;
 
         for (uint256 i; i < _settings.length; i++) {
             _validateProposalSettings(_settings[i]);
@@ -67,7 +67,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
             settings[settingsId++] = _settings[i];
         }
 
-        _newSettingsId = settingsId;
+        newSettingsId = settingsId;
     }
 
     function editSettings(uint256[] calldata settingsIds, ProposalSettings[] calldata _settings)
