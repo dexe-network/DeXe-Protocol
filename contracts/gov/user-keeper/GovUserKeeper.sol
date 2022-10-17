@@ -264,17 +264,28 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address voter,
         bool isMicropool,
         bool useDelegated
-    ) public view override returns (uint256 balance) {
-        balance = _getBalanceInfoStorage(voter, isMicropool).tokenBalance;
+    ) public view override returns (uint256 totalBalance, uint256 ownedBalance) {
+        if (tokenAddress == address(0)) {
+            return (0, 0);
+        }
 
-        if (!isMicropool && useDelegated) {
-            UserInfo storage userInfo = _usersInfo[voter];
+        totalBalance = _getBalanceInfoStorage(voter, isMicropool).tokenBalance;
 
-            uint256 delegateeLength = userInfo.delegatees.length();
+        if (!isMicropool) {
+            if (useDelegated) {
+                UserInfo storage userInfo = _usersInfo[voter];
 
-            for (uint256 i; i < delegateeLength; i++) {
-                balance += userInfo.delegatedTokens[userInfo.delegatees.at(i)];
+                uint256 delegateeLength = userInfo.delegatees.length();
+
+                for (uint256 i; i < delegateeLength; i++) {
+                    totalBalance += userInfo.delegatedTokens[userInfo.delegatees.at(i)];
+                }
             }
+
+            ownedBalance = ERC20(tokenAddress).balanceOf(voter).to18(
+                ERC20(tokenAddress).decimals()
+            );
+            totalBalance += ownedBalance;
         }
     }
 
@@ -282,17 +293,26 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address voter,
         bool isMicropool,
         bool useDelegated
-    ) public view override returns (uint256 balance) {
-        balance = _getBalanceInfoStorage(voter, isMicropool).nftBalance.length();
+    ) public view override returns (uint256 totalBalance, uint256 ownedBalance) {
+        if (nftAddress == address(0)) {
+            return (0, 0);
+        }
 
-        if (!isMicropool && useDelegated) {
-            UserInfo storage userInfo = _usersInfo[voter];
+        totalBalance = _getBalanceInfoStorage(voter, isMicropool).nftBalance.length();
 
-            uint256 delegateeLength = userInfo.delegatees.length();
+        if (!isMicropool) {
+            if (useDelegated) {
+                UserInfo storage userInfo = _usersInfo[voter];
 
-            for (uint256 i; i < delegateeLength; i++) {
-                balance += userInfo.delegatedNfts[userInfo.delegatees.at(i)].length();
+                uint256 delegateeLength = userInfo.delegatees.length();
+
+                for (uint256 i; i < delegateeLength; i++) {
+                    totalBalance += userInfo.delegatedNfts[userInfo.delegatees.at(i)].length();
+                }
             }
+
+            ownedBalance = ERC721(nftAddress).balanceOf(voter);
+            totalBalance += ownedBalance;
         }
     }
 
@@ -301,7 +321,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         bool isMicropool,
         bool useDelegated
     ) public view override returns (uint256[] memory nfts) {
-        uint256 length = nftBalance(voter, isMicropool, useDelegated);
+        (uint256 length, uint256 ownedLength) = nftBalance(voter, isMicropool, useDelegated);
+
+        if (length == 0) {
+            return nfts;
+        }
+
         uint256 currentLength;
 
         nfts = new uint256[](length);
@@ -311,21 +336,31 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             _getBalanceInfoStorage(voter, isMicropool).nftBalance.values()
         );
 
-        if (!isMicropool && useDelegated) {
-            UserInfo storage userInfo = _usersInfo[voter];
+        if (!isMicropool) {
+            if (useDelegated) {
+                UserInfo storage userInfo = _usersInfo[voter];
 
-            uint256 delegateeLength = userInfo.delegatees.length();
+                uint256 delegateeLength = userInfo.delegatees.length();
 
-            for (uint256 i; i < delegateeLength; i++) {
-                currentLength = nfts.insert(
-                    currentLength,
-                    userInfo.delegatedNfts[userInfo.delegatees.at(i)].values()
-                );
+                for (uint256 i; i < delegateeLength; i++) {
+                    currentLength = nfts.insert(
+                        currentLength,
+                        userInfo.delegatedNfts[userInfo.delegatees.at(i)].values()
+                    );
+                }
+            }
+
+            if (nftInfo.totalSupply == 0) {
+                ERC721Power nftContract = ERC721Power(nftAddress);
+
+                for (uint256 i; i < ownedLength; i++) {
+                    nfts[currentLength++] = nftContract.tokenOfOwnerByIndex(voter, i);
+                }
             }
         }
     }
 
-    function getNftsPowerInTokens(uint256[] memory nftIds, uint256 snapshotId)
+    function getNftsPowerInTokensBySnapshot(uint256[] memory nftIds, uint256 snapshotId)
         public
         view
         override
@@ -338,19 +373,15 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         NFTSnapshot storage snapshot = nftSnapshot[snapshotId];
 
         uint256 totalNftsPower = snapshot.totalNftsPower;
+        uint256 nftsPower;
 
         if (!nftInfo.isSupportPower) {
             uint256 totalSupply = nftInfo.totalSupply == 0 ? totalNftsPower : nftInfo.totalSupply;
 
-            return
-                totalSupply == 0
-                    ? 0
-                    : nftIds.length.ratio(nftInfo.totalPowerInTokens, totalSupply);
-        }
-
-        uint256 nftsPower;
-
-        if (totalNftsPower != 0) {
+            nftsPower = totalSupply == 0
+                ? 0
+                : nftIds.length.ratio(nftInfo.totalPowerInTokens, totalSupply);
+        } else if (totalNftsPower != 0) {
             uint256 totalPowerInTokens = nftInfo.totalPowerInTokens;
 
             for (uint256 i; i < nftIds.length; i++) {
@@ -369,7 +400,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             return 0;
         }
 
-        IERC721Power nftContract = IERC721Power(nftAddress);
+        ERC721Power nftContract = ERC721Power(nftAddress);
         uint256 supply = nftContract.totalSupply();
         uint256 totalNftsPower;
 
@@ -381,13 +412,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             totalNftsPower = supply;
         } else {
             for (uint256 i; i < supply; i++) {
-                uint256 index = nftContract.tokenByIndex(i);
-                (, , uint256 collateralAmount, , ) = ERC721Power(address(nftContract)).nftInfos(
-                    index
-                );
-                uint256 power = nftContract.recalculateNftPower(index) + collateralAmount;
+                uint256 tokenId = nftContract.tokenByIndex(i);
+                (uint256 solePower, uint256 collateral) = nftContract.recalculateNftPower(tokenId);
+                uint256 power = solePower + collateral;
 
-                snapshot.nftPower[index] = power;
+                snapshot.nftPower[tokenId] = power;
                 totalNftsPower += power;
             }
         }
@@ -412,16 +441,63 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 requiredVotes,
         uint256 snapshotId
     ) external view override returns (bool) {
-        uint256 tokens = tokenBalance(voter, isMicropool, useDelegated);
+        (uint256 tokens, ) = tokenBalance(voter, isMicropool, useDelegated);
 
         if (tokens >= requiredVotes) {
             return true;
         }
 
         uint256[] memory nftIds = nftExactBalance(voter, isMicropool, useDelegated);
-        uint256 nftPower = getNftsPowerInTokens(nftIds, snapshotId);
+        uint256 nftPower = getNftsPowerInTokensBySnapshot(nftIds, snapshotId);
 
         return tokens + nftPower >= requiredVotes;
+    }
+
+    function votingPower(
+        address user,
+        bool isMicropool,
+        bool useDelegated
+    ) external view override returns (uint256 power) {
+        if (tokenAddress != address(0)) {
+            (power, ) = tokenBalance(user, isMicropool, useDelegated);
+        }
+
+        if (nftAddress != address(0)) {
+            ERC721Power nftContract = ERC721Power(nftAddress);
+            uint256[] memory nftIds = nftExactBalance(user, isMicropool, useDelegated);
+
+            if (!nftInfo.isSupportPower) {
+                uint256 totalSupply = nftInfo.totalSupply == 0
+                    ? nftContract.totalSupply()
+                    : nftInfo.totalSupply;
+
+                power += totalSupply == 0
+                    ? 0
+                    : nftIds.length.ratio(nftInfo.totalPowerInTokens, totalSupply);
+            } else {
+                uint256 totalSupply = nftContract.totalSupply();
+                uint256 totalNftsPower;
+
+                for (uint256 i; i < totalSupply; i++) {
+                    uint256 tokenId = nftContract.tokenByIndex(i);
+                    (uint256 solePower, uint256 collateral) = nftContract.getNftPower(tokenId);
+
+                    totalNftsPower += solePower + collateral;
+                }
+
+                if (totalNftsPower > 0) {
+                    uint256 totalPowerInTokens = nftInfo.totalPowerInTokens;
+
+                    for (uint256 i; i < nftIds.length; i++) {
+                        (uint256 solePower, uint256 collateral) = nftContract.getNftPower(
+                            nftIds[i]
+                        );
+
+                        power += totalPowerInTokens.ratio(solePower + collateral, totalNftsPower);
+                    }
+                }
+            }
+        }
     }
 
     function getUndelegateableAssets(

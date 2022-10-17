@@ -629,9 +629,16 @@ contract GovPool is
         IGovUserKeeper userKeeper = _govUserKeeper;
 
         userKeeper.lockTokens(proposalId, msg.sender, isMicropool, amount);
-        uint256 tokenBalance = userKeeper.tokenBalance(msg.sender, isMicropool, useDelegated);
+        (uint256 tokenBalance, uint256 ownedBalance) = userKeeper.tokenBalance(
+            msg.sender,
+            isMicropool,
+            useDelegated
+        );
 
-        require(amount <= tokenBalance - voteInfo.tokensVoted, "Gov: wrong vote amount");
+        require(
+            amount <= tokenBalance - ownedBalance - voteInfo.tokensVoted,
+            "Gov: wrong vote amount"
+        );
 
         voteInfo.totalVoted += amount;
         voteInfo.tokensVoted += amount;
@@ -655,7 +662,7 @@ contract GovPool is
         IGovUserKeeper userKeeper = _govUserKeeper;
 
         userKeeper.lockNfts(msg.sender, isMicropool, useDelegated, nftIds);
-        voteAmount = userKeeper.getNftsPowerInTokens(nftIds, core.nftPowerSnapshotId);
+        voteAmount = userKeeper.getNftsPowerInTokensBySnapshot(nftIds, core.nftPowerSnapshotId);
 
         voteInfo.totalVoted += voteAmount;
 

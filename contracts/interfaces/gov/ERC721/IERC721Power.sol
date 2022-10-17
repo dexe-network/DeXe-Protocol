@@ -15,37 +15,6 @@ interface IERC721Power is IERC721Enumerable {
         uint256 requiredCollateral;
     }
 
-    /// @notice Set reduction percent. 100% = 10^27
-    /// @param _reductionPercent Decimals
-    function setReductionPercent(uint256 _reductionPercent) external;
-
-    /// @notice Set max possible power (coefficient) for all nfts
-    /// @param _maxPower Decimals
-    function setMaxPower(uint256 _maxPower) external;
-
-    /// @notice Set max possible power (coefficient) for certain nft
-    /// @param _maxPower Decimals
-    /// @param tokenId Nft number
-    function setNftMaxPower(uint256 _maxPower, uint256 tokenId) external;
-
-    /// @notice Set collateral token address
-    /// @param _collateralToken Address
-    function setCollateralToken(address _collateralToken) external;
-
-    /// @notice Set required collateral amount for all nfts
-    /// @param amount Wei
-    function setRequiredCollateral(uint256 amount) external;
-
-    /// @notice Set required collateral amount for certain nft
-    /// @param amount Wei
-    /// @param tokenId Nft number
-    function setNftRequiredCollateral(uint256 amount, uint256 tokenId) external;
-
-    /// @notice Mint new nft
-    /// @param to Address
-    /// @param tokenId Nft number
-    function safeMint(address to, uint256 tokenId) external;
-
     /// @notice Add collateral amount to certain nft
     /// @param amount Wei
     /// @param tokenId Nft number
@@ -58,22 +27,23 @@ interface IERC721Power is IERC721Enumerable {
 
     /// @notice Recalculate nft power (coefficient)
     /// @param tokenId Nft number
-    function recalculateNftPower(uint256 tokenId) external returns (uint256);
+    /// @return new Nft power
+    /// @return collateral amount under the Nft
+    function recalculateNftPower(uint256 tokenId) external returns (uint256, uint256);
 
     /// @notice Return max possible power (coefficient) for nft
     /// @param tokenId Nft number
+    /// @return max power for Nft
     function getMaxPowerForNft(uint256 tokenId) external view returns (uint256);
 
     /// @notice Return required collateral amount for nft
     /// @param tokenId Nft number
+    /// @return required collateral for Nft
     function getRequiredCollateralForNft(uint256 tokenId) external view returns (uint256);
 
-    /// @notice Sets collection URI
-    /// @param uri the collection URI
-    function setBaseUri(string calldata uri) external;
-
-    /// @notice Withdraws stuck tokens
-    /// @param token token address of 0 in case of ether
-    /// @param to the destination address
-    function withdrawStuckERC20(address token, address to) external;
+    /// @notice The function to get current NFT power
+    /// @param tokenId the Nft number
+    /// @return current power of the Nft
+    /// @return collateral amount under the Nft
+    function getNftPower(uint256 tokenId) external view returns (uint256, uint256);
 }
