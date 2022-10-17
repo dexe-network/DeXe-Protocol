@@ -26,13 +26,11 @@ interface IGovUserKeeper {
 
     struct NFTInfo {
         bool isSupportPower;
-        bool isSupportTotalSupply;
         uint256 totalPowerInTokens;
         uint256 totalSupply;
     }
 
     struct NFTSnapshot {
-        uint256 totalSupply;
         uint256 totalNftsPower;
         mapping(uint256 => uint256) nftPower;
     }

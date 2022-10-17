@@ -335,14 +335,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             return 0;
         }
 
-        if (!nftInfo.isSupportPower) {
-            uint256 totalSupply;
+        NFTSnapshot storage snapshot = nftSnapshot[snapshotId];
 
-            if (nftInfo.isSupportTotalSupply) {
-                totalSupply = nftSnapshot[snapshotId].totalSupply;
-            } else {
-                totalSupply = nftInfo.totalSupply;
-            }
+        uint256 totalNftsPower = snapshot.totalNftsPower;
+
+        if (!nftInfo.isSupportPower) {
+            uint256 totalSupply = nftInfo.totalSupply == 0 ? totalNftsPower : nftInfo.totalSupply;
 
             return
                 totalSupply == 0
@@ -351,14 +349,13 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
 
         uint256 nftsPower;
-        uint256 totalNftsPower = nftSnapshot[snapshotId].totalNftsPower;
 
         if (totalNftsPower != 0) {
             uint256 totalPowerInTokens = nftInfo.totalPowerInTokens;
 
             for (uint256 i; i < nftIds.length; i++) {
                 nftsPower += totalPowerInTokens.ratio(
-                    nftSnapshot[snapshotId].nftPower[nftIds[i]],
+                    snapshot.nftPower[nftIds[i]],
                     totalNftsPower
                 );
             }
@@ -368,36 +365,34 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function createNftPowerSnapshot() external override onlyOwner returns (uint256) {
-        bool isSupportPower = nftInfo.isSupportPower;
-        bool isSupportTotalSupply = nftInfo.isSupportTotalSupply;
-
-        if (!isSupportTotalSupply) {
+        if (nftInfo.totalSupply > 0) {
             return 0;
         }
 
         IERC721Power nftContract = IERC721Power(nftAddress);
         uint256 supply = nftContract.totalSupply();
+        uint256 totalNftsPower;
 
         uint256 currentPowerSnapshotId = ++_latestPowerSnapshotId;
 
-        if (!isSupportPower) {
-            nftSnapshot[currentPowerSnapshotId].totalSupply = supply;
+        NFTSnapshot storage snapshot = nftSnapshot[currentPowerSnapshotId];
 
-            return currentPowerSnapshotId;
+        if (!nftInfo.isSupportPower) {
+            totalNftsPower = supply;
+        } else {
+            for (uint256 i; i < supply; i++) {
+                uint256 index = nftContract.tokenByIndex(i);
+                (, , uint256 collateralAmount, , ) = ERC721Power(address(nftContract)).nftInfos(
+                    index
+                );
+                uint256 power = nftContract.recalculateNftPower(index) + collateralAmount;
+
+                snapshot.nftPower[index] = power;
+                totalNftsPower += power;
+            }
         }
 
-        uint256 totalNftsPower;
-
-        for (uint256 i; i < supply; i++) {
-            uint256 index = nftContract.tokenByIndex(i);
-            (, , uint256 collateralAmount, , ) = ERC721Power(nftAddress).nftInfos(index);
-            uint256 power = nftContract.recalculateNftPower(index) + collateralAmount;
-
-            nftSnapshot[currentPowerSnapshotId].nftPower[index] = power;
-            totalNftsPower += power;
-        }
-
-        nftSnapshot[currentPowerSnapshotId].totalNftsPower = totalNftsPower;
+        snapshot.totalNftsPower = totalNftsPower;
 
         return currentPowerSnapshotId;
     }
@@ -640,20 +635,18 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     ) internal {
         require(nftAddress == address(0), "GovUK: current token address isn't zero");
         require(_nftAddress != address(0), "GovUK: new token address is zero");
-
         require(totalPowerInTokens > 0, "GovUK: the equivalent is zero");
 
         nftInfo.totalPowerInTokens = totalPowerInTokens;
 
-        if (IERC165(_nftAddress).supportsInterface(type(IERC721Power).interfaceId)) {
-            nftInfo.isSupportPower = true;
-            nftInfo.isSupportTotalSupply = true;
-        } else if (IERC165(_nftAddress).supportsInterface(type(IERC721Enumerable).interfaceId)) {
-            nftInfo.isSupportTotalSupply = true;
-        } else {
-            require(nftsTotalSupply > 0, "GovUK: total supply is zero");
+        if (!IERC165(_nftAddress).supportsInterface(type(IERC721Power).interfaceId)) {
+            if (!IERC165(_nftAddress).supportsInterface(type(IERC721Enumerable).interfaceId)) {
+                require(nftsTotalSupply > 0, "GovUK: total supply is zero");
 
-            nftInfo.totalSupply = nftsTotalSupply;
+                nftInfo.totalSupply = uint128(nftsTotalSupply);
+            }
+        } else {
+            nftInfo.isSupportPower = true;
         }
 
         nftAddress = _nftAddress;
