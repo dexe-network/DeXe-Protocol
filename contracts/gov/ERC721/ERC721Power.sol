@@ -147,7 +147,7 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     function removeCollateral(uint256 amount, uint256 tokenId) external override {
         require(ownerOf(tokenId) == msg.sender, "ERC721Power: sender isn't an nft owner");
         require(
-            amount > 0 && amount >= nftInfos[tokenId].currentCollateral,
+            amount > 0 && amount <= nftInfos[tokenId].currentCollateral,
             "ERC721Power: wrong collateral amount"
         );
 
@@ -167,6 +167,10 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         override
         returns (uint256 newPower, uint256 collateral)
     {
+        if (block.timestamp <= powerCalcStartTimestamp) {
+            return (0, 0);
+        }
+
         (newPower, collateral) = getNftPower(tokenId);
 
         nftInfos[tokenId].lastUpdate = uint64(block.timestamp);
@@ -210,17 +214,16 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         uint256 powerReductionPercent = reductionPercent * (block.timestamp - lastUpdate);
         uint256 powerReduction = currentPower.min(maxNftPower.percentage(powerReductionPercent));
         uint256 newPotentialPower = currentPower - powerReduction;
-        uint256 power = currentPower;
 
         if (minNftPower <= newPotentialPower) {
-            power = newPotentialPower;
+            return (newPotentialPower, collateral);
         }
 
         if (minNftPower <= currentPower) {
-            power = minNftPower;
+            return (minNftPower, collateral);
         }
 
-        return (power, collateral);
+        return (currentPower, collateral);
     }
 
     function _baseURI() internal view override returns (string memory) {
