@@ -295,13 +295,19 @@ describe("GovPool", () => {
 
     describe("deposit()", () => {
       it("should deposit tokens", async () => {
-        assert.equal(await userKeeper.tokenBalance(OWNER, false, false), "0");
-        assert.equal(await userKeeper.nftBalance(OWNER, false, false), "0");
+        assert.equal((await userKeeper.tokenBalance(OWNER, false, false)).totalBalance.toFixed(), wei("100000000000"));
+        assert.equal((await userKeeper.tokenBalance(OWNER, false, false)).ownedBalance.toFixed(), wei("100000000000"));
+
+        assert.equal((await userKeeper.nftBalance(OWNER, false, false)).totalBalance.toFixed(), "9");
+        assert.equal((await userKeeper.nftBalance(OWNER, false, false)).ownedBalance.toFixed(), "9");
 
         await govPool.deposit(OWNER, wei("100"), [1, 2, 3]);
 
-        assert.equal(await userKeeper.tokenBalance(OWNER, false, false), wei("100"));
-        assert.equal(await userKeeper.nftBalance(OWNER, false, false), "3");
+        assert.equal((await userKeeper.tokenBalance(OWNER, false, false)).totalBalance.toFixed(), wei("100000000000"));
+        assert.equal((await userKeeper.tokenBalance(OWNER, false, false)).ownedBalance.toFixed(), wei("99999999900"));
+
+        assert.equal((await userKeeper.nftBalance(OWNER, false, false)).totalBalance.toFixed(), "9");
+        assert.equal((await userKeeper.nftBalance(OWNER, false, false)).ownedBalance.toFixed(), "6");
       });
     });
 

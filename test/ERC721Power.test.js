@@ -69,17 +69,12 @@ describe("ERC721Power", () => {
       await truffleAssert.reverts(nft.safeMint(OWNER, 1, { from: SECOND }), "Ownable: caller is not the owner");
 
       await truffleAssert.reverts(nft.setBaseUri("", { from: SECOND }), "Ownable: caller is not the owner");
-
-      await truffleAssert.reverts(
-        nft.withdrawStuckERC20(OWNER, OWNER, { from: SECOND }),
-        "Ownable: caller is not the owner"
-      );
     });
   });
 
   describe("ERC165", () => {
     it("should support these interfaces", async () => {
-      assert.isTrue(await nft.supportsInterface("0x51b1433e"));
+      assert.isTrue(await nft.supportsInterface("0x14483d74"));
       assert.isTrue(await nft.supportsInterface("0x780e9d63"));
     });
   });
@@ -123,7 +118,7 @@ describe("ERC721Power", () => {
 
     it("should revert if try to set max power to zero", async () => {
       await setTime(startTime + 200);
-      await truffleAssert.reverts(nft.setMaxPower("0"), "ERC721Power: max power can't be zero (1)");
+      await truffleAssert.reverts(nft.setMaxPower("0"), "ERC721Power: max power can't be zero");
     });
 
     it("should revert if try to set max power after calculation start", async () => {
@@ -144,7 +139,7 @@ describe("ERC721Power", () => {
 
     it("should revert if try to set max power to zero", async () => {
       await setTime(startTime + 200);
-      await truffleAssert.reverts(nft.setNftMaxPower("0", "1"), "ERC721Power: max power can't be zero (2)");
+      await truffleAssert.reverts(nft.setNftMaxPower("0", "1"), "ERC721Power: max power can't be zero");
     });
 
     it("should revert if try to set max power for nft after calculation start", async () => {
@@ -168,7 +163,7 @@ describe("ERC721Power", () => {
 
       await truffleAssert.reverts(
         nft.setRequiredCollateral("0"),
-        "ERC721Power: required collateral amount can't be zero (1)"
+        "ERC721Power: required collateral amount can't be zero"
       );
     });
 
@@ -193,7 +188,7 @@ describe("ERC721Power", () => {
 
       await truffleAssert.reverts(
         nft.setNftRequiredCollateral("0", "1"),
-        "ERC721Power: required collateral amount can't be zero (2)"
+        "ERC721Power: required collateral amount can't be zero"
       );
     });
 
@@ -344,7 +339,7 @@ describe("ERC721Power", () => {
     it("should revert if try to add collateral from not a nft owner", async () => {
       await truffleAssert.reverts(
         nft.addCollateral("1", "1", { from: THIRD }),
-        "ERC721Power: sender isn't an nft owner (1)"
+        "ERC721Power: sender isn't an nft owner"
       );
     });
   });
@@ -373,7 +368,7 @@ describe("ERC721Power", () => {
       await nft.removeCollateral(wei("50"), "1", { from: SECOND });
       await truffleAssert.reverts(
         nft.removeCollateral(wei("1"), "1", { from: SECOND }),
-        "ERC721Power: nothing to remove"
+        "ERC721Power: wrong collateral amount"
       );
     });
 
@@ -418,48 +413,7 @@ describe("ERC721Power", () => {
     });
 
     it("should revert if try to remove collateral from not a nft owner", async () => {
-      await truffleAssert.reverts(nft.removeCollateral("1", "1"), "ERC721Power: sender isn't an nft owner (2)");
-    });
-  });
-
-  describe("withdrawStuckERC20()", () => {
-    beforeEach("setup", async () => {
-      await nft.setCollateralToken(token.address);
-
-      await nft.setRequiredCollateral(wei("500"));
-      await nft.setMaxPower(toPercent("110"));
-
-      await nft.safeMint(SECOND, 1);
-
-      await nft.setReductionPercent(toPercent("0.01"));
-    });
-
-    it("should withdraw another erc20", async () => {
-      const anotherERC20 = await ERC20Mock.new("Mock", "Mock", 18);
-
-      await anotherERC20.mint(nft.address, wei("300"));
-      await nft.addCollateral(wei("200"), "1", { from: SECOND });
-
-      await nft.withdrawStuckERC20(anotherERC20.address, SECOND);
-
-      assert.equal((await anotherERC20.balanceOf(SECOND)).toFixed(), wei("300"));
-    });
-
-    it("should withdraw collateral token", async () => {
-      await nft.addCollateral(wei("200"), "1", { from: SECOND });
-      await token.mint(nft.address, wei("500"));
-
-      await nft.withdrawStuckERC20(token.address, SECOND);
-      assert.equal(await token.balanceOf(nft.address), wei("200"));
-    });
-
-    it("should revert when try to withdraw with zero balance", async () => {
-      const anotherERC20 = await ERC20Mock.new("Mock", "Mock", 18);
-
-      await truffleAssert.reverts(
-        nft.withdrawStuckERC20(anotherERC20.address, SECOND),
-        "ERC721Power: nothing to withdraw"
-      );
+      await truffleAssert.reverts(nft.removeCollateral("1", "1"), "ERC721Power: sender isn't an nft owner");
     });
   });
 });
