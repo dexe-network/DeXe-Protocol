@@ -169,7 +169,12 @@ describe("GovUserKeeper", () => {
 
     describe("depositTokens()", () => {
       it("should correctly add tokens to balance", async () => {
+        assert.equal((await userKeeper.votingPower(SECOND, false, false)).toFixed(), "0");
+
         await userKeeper.depositTokens(OWNER, SECOND, wei("100"));
+
+        assert.equal((await userKeeper.votingPower(SECOND, false, false)).toFixed(), wei("100"));
+
         assert.equal((await userKeeper.tokenBalance(SECOND, false, false)).totalBalance.toFixed(), wei("100"));
         assert.equal((await userKeeper.tokenBalance(SECOND, false, false)).ownedBalance.toFixed(), "0");
 
@@ -185,7 +190,11 @@ describe("GovUserKeeper", () => {
 
     describe("depositNfts()", () => {
       it("should correctly add tokens to balance", async () => {
+        assert.equal((await userKeeper.votingPower(SECOND, false, false)).toFixed(), "0");
+
         await userKeeper.depositNfts(OWNER, SECOND, [1, 3, 5]);
+
+        assert.equal((await userKeeper.votingPower(SECOND, false, false)).toFixed(), wei("3000"));
 
         assert.deepEqual(
           (await userKeeper.nftExactBalance(SECOND, false, false)).map((e) => e.toFixed()),
@@ -684,6 +693,15 @@ describe("GovUserKeeper", () => {
       );
     });
 
+    it("should calculate voting power", async () => {
+      assert.equal((await userKeeper.votingPower(OWNER, false, true)).toFixed(), "0");
+
+      const tokenBalance = await userKeeper.tokenBalance(OWNER, false, false);
+
+      assert.equal(tokenBalance.totalBalance, "0");
+      assert.equal(tokenBalance.ownedBalance, "0");
+    });
+
     it("should set erc20", async () => {
       await userKeeper.setERC20Address(token.address);
 
@@ -733,11 +751,20 @@ describe("GovUserKeeper", () => {
       await truffleAssert.reverts(userKeeper.undelegateNfts(OWNER, OWNER, [1]), "GovUK: nft is not supported");
     });
 
+    it("should calculate voting power", async () => {
+      assert.equal((await userKeeper.votingPower(OWNER, false, true)).toFixed(), "0");
+
+      const nftBalance = await userKeeper.nftBalance(OWNER, false, false);
+
+      assert.equal(nftBalance.totalBalance, "0");
+      assert.equal(nftBalance.ownedBalance, "0");
+    });
+
     it("should correctly calculate NFT weight if NFT contract is not added", async () => {
-      expect((await userKeeper.getNftsPowerInTokensBySnapshot([0], 0)).toFixed(), "0");
-      expect((await userKeeper.getNftsPowerInTokensBySnapshot([1], 0)).toFixed(), "0");
-      expect((await userKeeper.getNftsPowerInTokensBySnapshot([1], 1)).toFixed(), "0");
-      expect((await userKeeper.getNftsPowerInTokensBySnapshot([0], 1)).toFixed(), "0");
+      assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([0], 0)).toFixed(), "0");
+      assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([1], 0)).toFixed(), "0");
+      assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([1], 1)).toFixed(), "0");
+      assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([0], 1)).toFixed(), "0");
     });
 
     it("should set erc721", async () => {
@@ -774,6 +801,21 @@ describe("GovUserKeeper", () => {
       nft = await ERC721EnumMock.new("Enum", "Enum");
 
       await userKeeper.__GovUserKeeper_init(token.address, nft.address, wei("33000"), 0);
+    });
+
+    describe("voting power", () => {
+      it("should calculate voting power", async () => {
+        assert.equal((await userKeeper.votingPower(OWNER, false, true)).toFixed(), "0");
+
+        await token.mint(OWNER, wei("10000"));
+
+        for (let i = 1; i < 10; i++) {
+          await nft.safeMint(OWNER, i);
+        }
+
+        assert.equal((await userKeeper.votingPower(OWNER, false, false)).toFixed(), wei("43000"));
+        assert.equal((await userKeeper.votingPower(OWNER, true, false)).toFixed(), "0");
+      });
     });
 
     describe("snapshot", () => {
@@ -821,8 +863,15 @@ describe("GovUserKeeper", () => {
       });
 
       it("should correctly calculate NFT power after snapshot", async () => {
+        assert.equal((await userKeeper.votingPower(OWNER, false, false)).toFixed(), wei("400"));
+
         await setTime(startTime + 999);
         await userKeeper.createNftPowerSnapshot();
+
+        assert.equal(
+          (await userKeeper.votingPower(OWNER, false, false)).toFixed(),
+          (await userKeeper.getNftsPowerInTokensBySnapshot([2, 3, 4, 5, 6, 7, 9], 1)).plus(wei("400")).toFixed()
+        );
 
         await setTime(startTime + 1999);
         await userKeeper.createNftPowerSnapshot();
