@@ -104,7 +104,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         uint64 duration,
         uint128 quorum
     ) external override onlyOwner {
-        require(!_proposalExists(proposalId, false), "Validators: proposal already exist");
+        require(!_proposalExists(proposalId, false), "Validators: proposal already exists");
 
         externalProposals[proposalId] = ExternalProposal({
             core: ProposalCore({
@@ -136,7 +136,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             : addressVotedExternal[proposalId][msg.sender];
         uint256 voteAmount = amount.min(balanceAt - voted);
 
-        require(voteAmount > 0, "Validators: vote amount can't be a zero");
+        require(voteAmount > 0, "Validators: vote amount can't be zero");
 
         if (isInternal) {
             addressVotedInternal[proposalId][msg.sender] = voted + voteAmount;

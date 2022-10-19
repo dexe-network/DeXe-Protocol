@@ -68,7 +68,7 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         onlyOwner
         onlyBeforePowerCalc
     {
-        require(_reductionPercent > 0, "ERC721Power: reduction percent can't be a zero");
+        require(_reductionPercent > 0, "ERC721Power: reduction percent can't be zero");
         require(
             _reductionPercent < PERCENTAGE_100,
             "ERC721Power: reduction percent can't be a 100%"

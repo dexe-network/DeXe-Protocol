@@ -89,7 +89,7 @@ describe("ERC721Power", () => {
 
     it("should revert if try to set reduction percent to zero", async () => {
       await setTime(startTime + 200);
-      await truffleAssert.reverts(nft.setReductionPercent("0"), "ERC721Power: reduction percent can't be a zero");
+      await truffleAssert.reverts(nft.setReductionPercent("0"), "ERC721Power: reduction percent can't be zero");
     });
 
     it("should revert if try to set reduction percent to 100%", async () => {

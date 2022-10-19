@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "../../../libs/data-structures/ShrinkableArray.sol";
 
 /**
- * This contract is responsible for securely storing user's funds that are used during the voting. This are either
+ * This contract is responsible for securely storing user's funds that are used during the voting. These are either
  * ERC20 tokens or NFTs
  */
 interface IGovUserKeeper {

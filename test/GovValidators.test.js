@@ -240,7 +240,7 @@ describe("GovValidators", () => {
 
       it("should revert if proposal already exists", async () => {
         await validators.createExternalProposal(1, 1, 1);
-        await truffleAssert.reverts(validators.createExternalProposal(1, 1, 1), "Validators: proposal already exist");
+        await truffleAssert.reverts(validators.createExternalProposal(1, 1, 1), "Validators: proposal already exists");
       });
     });
 
@@ -341,13 +341,13 @@ describe("GovValidators", () => {
         await truffleAssert.reverts(validators.vote(1, 1, true), "Validators: not Voting state");
       });
 
-      it("should revert if vote amount can't be a zero", async () => {
+      it("should revert if vote amount can't be zero", async () => {
         await validators.createInternalProposal(0, [100], [], { from: SECOND });
         await validators.vote(1, wei("1000"), true, { from: SECOND });
 
         await truffleAssert.reverts(
           validators.vote(1, 1, true, { from: SECOND }),
-          "Validators: vote amount can't be a zero"
+          "Validators: vote amount can't be zero"
         );
       });
     });
