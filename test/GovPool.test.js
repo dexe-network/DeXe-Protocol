@@ -30,6 +30,7 @@ const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const ExecutorTransferMock = artifacts.require("ExecutorTransferMock");
+const GovPoolViewLib = artifacts.require("GovPoolView");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -72,6 +73,10 @@ describe("GovPool", () => {
     FOURTH = await accounts(3);
     FACTORY = await accounts(4);
     NOTHING = await accounts(9);
+
+    const govPoolViewLib = await GovPoolViewLib.new();
+
+    await GovPool.link(govPoolViewLib);
   });
 
   beforeEach("setup", async () => {
@@ -327,43 +332,33 @@ describe("GovPool", () => {
       });
 
       it("should unlock in first proposal", async () => {
-        const beforeUnlock = await govPool.getWithdrawableAssets(OWNER);
+        const beforeUnlock = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
-        assert.equal(beforeUnlock.withdrawableTokens.toFixed(), wei("900"));
-        assert.deepEqual(beforeUnlock.withdrawableNfts[0].slice(0, beforeUnlock.withdrawableNfts[1]), ["1", "3", "4"]);
+        assert.equal(beforeUnlock.tokens.toFixed(), wei("900"));
+        assert.deepEqual(beforeUnlock.nfts[0].slice(0, beforeUnlock.nfts[1]), ["1", "3", "4"]);
 
         await setTime(startTime + 1000);
         await govPool.unlockInProposals([1], OWNER, false);
 
-        const afterUnlock = await govPool.getWithdrawableAssets(OWNER);
+        const afterUnlock = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
-        assert.equal(afterUnlock.withdrawableTokens.toFixed(), wei("1000"));
-        assert.deepEqual(afterUnlock.withdrawableNfts[0].slice(0, afterUnlock.withdrawableNfts[1]), [
-          "1",
-          "2",
-          "3",
-          "4",
-        ]);
+        assert.equal(afterUnlock.tokens.toFixed(), wei("1000"));
+        assert.deepEqual(afterUnlock.nfts[0].slice(0, afterUnlock.nfts[1]), ["1", "2", "3", "4"]);
       });
 
       it("should unlock all", async () => {
-        const beforeUnlock = await govPool.getWithdrawableAssets(OWNER);
+        const beforeUnlock = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
-        assert.equal(beforeUnlock.withdrawableTokens.toFixed(), wei("900"));
-        assert.deepEqual(beforeUnlock.withdrawableNfts[0].slice(0, beforeUnlock.withdrawableNfts[1]), ["1", "3", "4"]);
+        assert.equal(beforeUnlock.tokens.toFixed(), wei("900"));
+        assert.deepEqual(beforeUnlock.nfts[0].slice(0, beforeUnlock.nfts[1]), ["1", "3", "4"]);
 
         await setTime(startTime + 1000);
         await govPool.unlock(OWNER, false);
 
-        const afterUnlock = await govPool.getWithdrawableAssets(OWNER);
+        const afterUnlock = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
-        assert.equal(afterUnlock.withdrawableTokens.toFixed(), wei("1000"));
-        assert.deepEqual(afterUnlock.withdrawableNfts[0].slice(0, afterUnlock.withdrawableNfts[1]), [
-          "1",
-          "2",
-          "3",
-          "4",
-        ]);
+        assert.equal(afterUnlock.tokens.toFixed(), wei("1000"));
+        assert.deepEqual(afterUnlock.nfts[0].slice(0, afterUnlock.nfts[1]), ["1", "2", "3", "4"]);
       });
     });
 
@@ -599,27 +594,6 @@ describe("GovPool", () => {
       });
     });
 
-    describe("getProposalInfo()", () => {
-      beforeEach("", async () => {
-        await govPool.deposit(OWNER, 1, [1]);
-
-        await govPool.createProposal("example.com", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
-        await govPool.createProposal("example.com", [THIRD], [0], [getBytesApprove(SECOND, 1)]);
-      });
-
-      it("should get info from 2 proposals", async () => {
-        let info = await govPool.getProposalInfo(1);
-
-        assert.equal(info[0], SECOND);
-        assert.equal(info[1], getBytesApprove(SECOND, 1));
-
-        info = await govPool.getProposalInfo(2);
-
-        assert.equal(info[0], THIRD);
-        assert.equal(info[1], getBytesApprove(SECOND, 1));
-      });
-    });
-
     describe("voting", () => {
       beforeEach("setup", async () => {
         await govPool.deposit(OWNER, wei("1000"), [1, 2, 3, 4]);
@@ -844,13 +818,10 @@ describe("GovPool", () => {
 
         await govPool.vote(1, wei("1000"), [], wei("500"), [], { from: SECOND });
 
-        let proposals = await govPool.getUserProposals(SECOND, false);
-        let withdrawable = await govPool.getWithdrawableAssets(SECOND);
+        let withdrawable = await govPool.getWithdrawableAssets(SECOND, ZERO_ADDR);
 
-        assert.deepEqual(proposals.unlockedIds[0], ["0"]);
-        assert.deepEqual(proposals.lockedIds[0], ["1"]);
-        assert.equal(toBN(withdrawable.withdrawableTokens).toFixed(), wei("500"));
-        assert.equal(withdrawable.withdrawableNfts[1], "0");
+        assert.equal(toBN(withdrawable.tokens).toFixed(), wei("500"));
+        assert.equal(withdrawable.nfts[1], "0");
 
         await govPool.vote(1, 0, [], wei("1000"), [1, 2, 3, 4]);
 
@@ -858,13 +829,10 @@ describe("GovPool", () => {
 
         await setTime((await getCurrentBlockTime()) + 10000);
 
-        proposals = await govPool.getUserProposals(SECOND, false);
-        withdrawable = await govPool.getWithdrawableAssets(SECOND);
+        withdrawable = await govPool.getWithdrawableAssets(SECOND, ZERO_ADDR);
 
-        assert.deepEqual(proposals.unlockedIds[0], ["1"]);
-        assert.deepEqual(proposals.lockedIds[0], ["0"]);
-        assert.equal(toBN(withdrawable.withdrawableTokens).toFixed(), wei("1000"));
-        assert.equal(withdrawable.withdrawableNfts[1], "0");
+        assert.equal(toBN(withdrawable.tokens).toFixed(), wei("1000"));
+        assert.equal(withdrawable.nfts[1], "0");
 
         assert.equal(toBN(await token.balanceOf(SECOND)).toFixed(), "0");
 
@@ -884,17 +852,17 @@ describe("GovPool", () => {
         await govPool.vote(1, 0, [], wei("1000"), [1, 2, 3, 4]);
         await govPool.vote(2, 0, [], wei("510"), [1, 2]);
 
-        let withdrawable = await govPool.getWithdrawableAssets(OWNER);
+        let withdrawable = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
-        assert.equal(toBN(withdrawable.withdrawableTokens).toFixed(), "0");
-        assert.equal(withdrawable.withdrawableNfts[1], "0");
+        assert.equal(toBN(withdrawable.tokens).toFixed(), "0");
+        assert.equal(withdrawable.nfts[1], "0");
 
         await govPool.unlockInProposals([1], OWNER, false);
 
-        withdrawable = await govPool.getWithdrawableAssets(OWNER);
+        withdrawable = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
-        assert.equal(toBN(withdrawable.withdrawableTokens).toFixed(), "0");
-        assert.equal(withdrawable.withdrawableNfts[1], "0");
+        assert.equal(toBN(withdrawable.tokens).toFixed(), "0");
+        assert.equal(withdrawable.nfts[1], "0");
 
         await setTime((await getCurrentBlockTime()) + 10000);
 
@@ -938,25 +906,19 @@ describe("GovPool", () => {
 
         await govPool.voteDelegated(1, wei("400"), [4], { from: SECOND });
 
-        let proposals = await govPool.getUserProposals(SECOND, true);
-        let undelegateable = await govPool.getUndelegateableAssets(OWNER, SECOND);
+        let undelegateable = await govPool.getWithdrawableAssets(OWNER, SECOND);
 
-        assert.deepEqual(proposals.unlockedIds[0], ["0"]);
-        assert.deepEqual(proposals.lockedIds[0], ["1"]);
-        assert.equal(toBN(undelegateable.undelegateableTokens).toFixed(), wei("100"));
-        assert.deepEqual(undelegateable.undelegateableNfts[0], ["2"]);
+        assert.equal(toBN(undelegateable.tokens).toFixed(), wei("100"));
+        assert.deepEqual(undelegateable.nfts[0], ["2"]);
 
         await govPool.vote(1, 0, [], wei("500"), [1, 3]);
 
         await setTime((await getCurrentBlockTime()) + 10000);
 
-        proposals = await govPool.getUserProposals(SECOND, true);
-        undelegateable = await govPool.getUndelegateableAssets(OWNER, SECOND);
+        undelegateable = await govPool.getWithdrawableAssets(OWNER, SECOND);
 
-        assert.deepEqual(proposals.unlockedIds[0], ["1"]);
-        assert.deepEqual(proposals.lockedIds[0], ["0"]);
-        assert.equal(toBN(undelegateable.undelegateableTokens).toFixed(), wei("500"));
-        assert.deepEqual(undelegateable.undelegateableNfts[0], ["2", "4"]);
+        assert.equal(toBN(undelegateable.tokens).toFixed(), wei("500"));
+        assert.deepEqual(undelegateable.nfts[0], ["2", "4"]);
 
         await govPool.undelegate(SECOND, wei("250"), [2]);
         await govPool.undelegate(SECOND, wei("250"), []);
@@ -1017,11 +979,17 @@ describe("GovPool", () => {
         await govPool.vote(1, 0, [], wei("1000"), []);
         await govPool.vote(1, 0, [], wei("100000000000000000000"), [], { from: SECOND });
 
+        assert.equal((await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR)).tokens.toFixed(), "0");
+
         await govPool.moveProposalToValidators(1);
         await validators.vote(1, wei("100"), false);
         await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
+        assert.equal((await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR)).tokens.toFixed(), wei("1000"));
+
         await govPool.execute(1);
+
+        assert.equal((await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR)).tokens.toFixed(), wei("1000"));
 
         const addedSettings = await settings.settings(4);
 
@@ -1098,10 +1066,6 @@ describe("GovPool", () => {
 
         await setTime((await getCurrentBlockTime()) + 100000);
 
-        const proposals = await govPool.getUserProposals(OWNER, false);
-
-        assert.deepEqual(proposals.unlockedIds[0], ["1"]);
-
         await truffleAssert.reverts(govPool.execute(1), "Gov: invalid status");
       });
 
@@ -1123,23 +1087,11 @@ describe("GovPool", () => {
         await govPool.vote(1, 0, [], wei("1000"), []);
         await govPool.vote(1, 0, [], wei("100000000000000000000"), [], { from: SECOND });
 
-        let proposals = await govPool.getUserProposals(OWNER, false);
-
-        assert.deepEqual(proposals.lockedIds[0], ["1"]);
-
         await govPool.moveProposalToValidators(1);
         await validators.vote(1, wei("100"), false);
         await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
-        proposals = await govPool.getUserProposals(OWNER, false);
-
-        assert.deepEqual(proposals.unlockedIds[0], ["1"]);
-
         await govPool.execute(1);
-
-        proposals = await govPool.getUserProposals(OWNER, false);
-
-        assert.deepEqual(proposals.unlockedIds[0], ["1"]);
 
         assert.equal(await govPool.getProposalState(1), ProposalState.Executed);
         assert.equal(toBN(await settings.executorToSettings(executorTransfer.address)).toFixed(), "4");

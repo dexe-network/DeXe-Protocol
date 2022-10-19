@@ -23,6 +23,7 @@ import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
 
 import "../libs/gov-user-keeper/GovUserKeeperLocal.sol";
+import "../libs/gov-pool/GovPoolView.sol";
 import "../libs/math/MathHelper.sol";
 import "../libs/utils/DataHelper.sol";
 import "../libs/utils/TokenBalance.sol";
@@ -47,6 +48,7 @@ contract GovPool is
     using TokenBalance for address;
     using DecimalsConverter for uint256;
     using GovUserKeeperLocal for *;
+    using GovPoolView for address;
 
     IGovSettings internal _govSettings;
     IGovUserKeeper internal _govUserKeeper;
@@ -135,7 +137,7 @@ contract GovPool is
         IGovSettings.ProposalSettings memory settings;
 
         if (executorSettings == uint256(IGovSettings.ExecutorType.INTERNAL)) {
-            _handleExecutorsAndDataForInternalProposal(executors, values, data);
+            _handleDataForInternalProposal(executors, values, data);
         } else if (executorSettings == uint256(IGovSettings.ExecutorType.VALIDATORS)) {
             _handleDataForValidatorBalanceProposal(executors, values, data);
         } else if (executorSettings == uint256(IGovSettings.ExecutorType.DISTRIBUTION)) {
@@ -188,9 +190,8 @@ contract GovPool is
         _govUserKeeper.depositNfts.exec(msg.sender, depositNftIds);
 
         bool useDelegated = !proposals[proposalId].core.settings.delegatedVotingAllowed;
-        ProposalCore storage core = _beforeVote(proposalId, false, useDelegated);
 
-        _vote(core, proposalId, voteAmount, voteNftIds, false, useDelegated);
+        _vote(proposalId, voteAmount, voteNftIds, false, useDelegated);
     }
 
     function voteDelegated(
@@ -204,9 +205,7 @@ contract GovPool is
             "Gov: delegated voting off"
         );
 
-        ProposalCore storage core = _beforeVote(proposalId, true, false);
-
-        _vote(core, proposalId, voteAmount, voteNftIds, true, false);
+        _vote(proposalId, voteAmount, voteNftIds, true, false);
     }
 
     function deposit(
@@ -273,15 +272,13 @@ contract GovPool is
         bool isMicropool
     ) public override {
         IGovUserKeeper userKeeper = _govUserKeeper;
+        EnumerableSet.UintSet storage userProposals = _votedInProposals[user][isMicropool];
 
         uint256 maxLockedAmount = userKeeper.maxLockedAmount(user, isMicropool);
         uint256 maxUnlocked;
 
         for (uint256 i; i < proposalIds.length; i++) {
-            require(
-                _votedInProposals[user][isMicropool].contains(proposalIds[i]),
-                "Gov: no vote for this proposal"
-            );
+            require(userProposals.contains(proposalIds[i]), "Gov: no vote for this proposal");
 
             ProposalState state = _getProposalState(proposals[proposalIds[i]].core);
 
@@ -300,15 +297,11 @@ contract GovPool is
                 _voteInfos[proposalIds[i]][user][isMicropool].nftsVoted.values()
             );
 
-            _votedInProposals[user][isMicropool].remove(proposalIds[i]);
+            userProposals.remove(proposalIds[i]);
         }
 
         if (maxLockedAmount <= maxUnlocked) {
-            userKeeper.updateMaxTokenLockedAmount(
-                _votedInProposals[user][isMicropool].values(),
-                user,
-                isMicropool
-            );
+            userKeeper.updateMaxTokenLockedAmount(userProposals.values(), user, isMicropool);
         }
     }
 
@@ -321,9 +314,11 @@ contract GovPool is
 
     function moveProposalToValidators(uint256 proposalId) external override {
         ProposalCore storage core = proposals[proposalId].core;
-        ProposalState state = _getProposalState(core);
 
-        require(state == ProposalState.WaitingForVotingTransfer, "Gov: can't be moved");
+        require(
+            _getProposalState(core) == ProposalState.WaitingForVotingTransfer,
+            "Gov: can't be moved"
+        );
 
         _govValidators.createExternalProposal(
             proposalId,
@@ -349,15 +344,6 @@ contract GovPool is
 
     receive() external payable {}
 
-    function getProposalInfo(uint256 proposalId)
-        external
-        view
-        override
-        returns (address[] memory, bytes[] memory)
-    {
-        return (proposals[proposalId].executors, proposals[proposalId].data);
-    }
-
     function getProposalState(uint256 proposalId) external view override returns (ProposalState) {
         return _getProposalState(proposals[proposalId].core);
     }
@@ -373,94 +359,16 @@ contract GovPool is
         );
     }
 
-    function getWithdrawableAssets(address user)
+    function getWithdrawableAssets(address delegator, address delegatee)
         external
         view
         override
-        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts)
+        returns (uint256 tokens, ShrinkableArray.UintArray memory nfts)
     {
-        (
-            ShrinkableArray.UintArray memory unlockedIds,
-            ShrinkableArray.UintArray memory lockedIds
-        ) = getUserProposals(user, false);
-
-        uint256[] memory unlockedNfts = getUnlockedNfts(unlockedIds, user, false);
-
-        return _govUserKeeper.getWithdrawableAssets(user, lockedIds, unlockedNfts);
-    }
-
-    function getUndelegateableAssets(address delegator, address delegatee)
-        external
-        view
-        override
-        returns (uint256 undelegateableTokens, ShrinkableArray.UintArray memory undelegateableNfts)
-    {
-        (
-            ShrinkableArray.UintArray memory unlockedIds,
-            ShrinkableArray.UintArray memory lockedIds
-        ) = getUserProposals(delegatee, true);
-
-        uint256[] memory unlockedNfts = getUnlockedNfts(unlockedIds, delegatee, true);
-
         return
-            _govUserKeeper.getUndelegateableAssets(delegator, delegatee, lockedIds, unlockedNfts);
-    }
-
-    function getUserProposals(address user, bool isMicropool)
-        public
-        view
-        override
-        returns (
-            ShrinkableArray.UintArray memory unlockedIds,
-            ShrinkableArray.UintArray memory lockedIds
-        )
-    {
-        uint256 proposalsLength = _votedInProposals[user][isMicropool].length();
-
-        uint256[] memory unlockedProposals = new uint256[](proposalsLength);
-        uint256[] memory lockedProposals = new uint256[](proposalsLength);
-        uint256 unlockedLength;
-        uint256 lockedLength;
-
-        for (uint256 i; i < proposalsLength; i++) {
-            uint256 proposalId = _votedInProposals[user][isMicropool].at(i);
-
-            ProposalState state = _getProposalState(proposals[proposalId].core);
-
-            if (
-                state == ProposalState.Executed ||
-                state == ProposalState.Succeeded ||
-                state == ProposalState.Defeated
-            ) {
-                unlockedProposals[unlockedLength++] = proposalId;
-            } else {
-                lockedProposals[lockedLength++] = proposalId;
-            }
-        }
-
-        unlockedIds = unlockedProposals.transform().crop(unlockedLength);
-        lockedIds = lockedProposals.transform().crop(lockedLength);
-    }
-
-    function getUnlockedNfts(
-        ShrinkableArray.UintArray memory unlockedIds,
-        address user,
-        bool isMicropool
-    ) public view override returns (uint256[] memory unlockedNfts) {
-        uint256 totalLength;
-
-        for (uint256 i; i < unlockedIds.length; i++) {
-            totalLength += _voteInfos[unlockedIds.values[i]][user][isMicropool].nftsVoted.length();
-        }
-
-        unlockedNfts = new uint256[](totalLength);
-        totalLength = 0;
-
-        for (uint256 i; i < unlockedIds.length; i++) {
-            VoteInfo storage voteInfo = _voteInfos[unlockedIds.values[i]][user][isMicropool];
-
-            totalLength = unlockedNfts.insert(totalLength, voteInfo.nftsVoted.values());
-        }
+            delegatee == address(0)
+                ? delegator.getWithdrawableAssets(_votedInProposals, _voteInfos)
+                : delegator.getUndelegateableAssets(delegatee, _votedInProposals, _voteInfos);
     }
 
     function _execute(uint256 proposalId) internal {
@@ -510,7 +418,7 @@ contract GovPool is
         _sendFunds(commissionReceivers[1], rewardToken, commission);
     }
 
-    function _handleExecutorsAndDataForInternalProposal(
+    function _handleDataForInternalProposal(
         address[] calldata executors,
         uint256[] calldata values,
         bytes[] calldata data
@@ -593,13 +501,24 @@ contract GovPool is
     }
 
     function _vote(
-        ProposalCore storage core,
         uint256 proposalId,
         uint256 voteAmount,
         uint256[] calldata voteNftIds,
         bool isMicropool,
         bool useDelegated
     ) internal {
+        ProposalCore storage core = proposals[proposalId].core;
+        EnumerableSet.UintSet storage votes = _votedInProposals[msg.sender][isMicropool];
+
+        require(_getProposalState(core) == ProposalState.Voting, "Gov: vote unavailable");
+        require(_canParticipate(core, isMicropool, useDelegated), "Gov: low voting power");
+
+        unlock(msg.sender, isMicropool);
+
+        votes.add(proposalId);
+
+        require(votes.length() <= _coreProperties.getGovVotesLimit(), "Gov: vote limit reached");
+
         _voteTokens(core, proposalId, voteAmount, isMicropool, useDelegated);
         uint256 nftVoteAmount = _voteNfts(core, proposalId, voteNftIds, isMicropool, useDelegated);
 
@@ -667,26 +586,6 @@ contract GovPool is
         voteInfo.totalVoted += voteAmount;
 
         core.votesFor += voteAmount;
-    }
-
-    function _beforeVote(
-        uint256 proposalId,
-        bool isMicropool,
-        bool useDelegated
-    ) internal returns (ProposalCore storage core) {
-        core = proposals[proposalId].core;
-
-        unlock(msg.sender, isMicropool);
-
-        _votedInProposals[msg.sender][isMicropool].add(proposalId);
-
-        require(
-            _votedInProposals[msg.sender][isMicropool].length() <=
-                _coreProperties.getGovVotesLimit(),
-            "Gov: vote limit reached"
-        );
-        require(_getProposalState(core) == ProposalState.Voting, "Gov: vote unavailable");
-        require(_canParticipate(core, isMicropool, useDelegated), "Gov: low voting power");
     }
 
     function _getProposalState(ProposalCore storage core) internal view returns (ProposalState) {

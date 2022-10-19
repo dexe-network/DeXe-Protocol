@@ -125,14 +125,6 @@ interface IGovPool {
     function editDescriptionURL(string calldata newDescriptionURL) external;
 
     /// @param proposalId Proposal ID
-    /// @return Executor addresses
-    /// @return Data for each address
-    function getProposalInfo(uint256 proposalId)
-        external
-        view
-        returns (address[] memory, bytes[] memory);
-
-    /// @param proposalId Proposal ID
     /// @return `ProposalState`:
     /// 0 -`Voting`, proposal where addresses can vote
     /// 1 -`WaitingForVotingTransfer`, approved proposal that waiting `moveProposalToValidators()` call
@@ -149,27 +141,8 @@ interface IGovPool {
         bool isMicropool
     ) external view returns (uint256, uint256);
 
-    function getWithdrawableAssets(address user)
+    function getWithdrawableAssets(address delegator, address delegatee)
         external
         view
-        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts);
-
-    function getUndelegateableAssets(address delegator, address delegatee)
-        external
-        view
-        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts);
-
-    function getUserProposals(address user, bool isMicropool)
-        external
-        view
-        returns (
-            ShrinkableArray.UintArray memory unlockedIds,
-            ShrinkableArray.UintArray memory lockedIds
-        );
-
-    function getUnlockedNfts(
-        ShrinkableArray.UintArray memory unlockedIds,
-        address user,
-        bool isMicropool
-    ) external view returns (uint256[] memory unlockedNfts);
+        returns (uint256, ShrinkableArray.UintArray memory);
 }
