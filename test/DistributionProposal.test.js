@@ -57,6 +57,7 @@ describe("DistributionProposal", () => {
     NOTHING = await accounts(9);
 
     const govPoolViewLib = await GovPoolViewLib.new();
+
     await GovPool.link(govPoolViewLib);
   });
 
