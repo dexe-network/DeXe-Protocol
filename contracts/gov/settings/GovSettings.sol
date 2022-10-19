@@ -13,6 +13,9 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
     mapping(uint256 => ProposalSettings) public settings; // settingsId => info
     mapping(address => uint256) public executorToSettings; // executor => seetingsId
 
+    event SettingsChanged(uint256 settingsId, string description);
+    event ExecutorChanged(uint256 settingsId, address executor);
+
     function __GovSettings_init(
         address govPoolAddress,
         address distributionProposalAddress,
@@ -34,27 +37,26 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
             settings[settingsId] = executorSettings;
 
             if (settingsId == uint256(ExecutorType.INTERNAL)) {
-                executorToSettings[address(this)] = settingsId;
-                executorToSettings[govPoolAddress] = settingsId;
-                executorToSettings[govUserKeeperAddress] = settingsId;
+                _setExecutor(address(this), settingsId);
+                _setExecutor(govPoolAddress, settingsId);
+                _setExecutor(govUserKeeperAddress, settingsId);
             } else if (settingsId == uint256(ExecutorType.DISTRIBUTION)) {
                 require(
                     !executorSettings.delegatedVotingAllowed && !executorSettings.earlyCompletion,
                     "GovSettings: invalid distribution settings"
                 );
-
-                executorToSettings[distributionProposalAddress] = settingsId;
+                _setExecutor(distributionProposalAddress, settingsId);
             } else if (settingsId == uint256(ExecutorType.VALIDATORS)) {
-                executorToSettings[validatorsAddress] = settingsId;
+                _setExecutor(validatorsAddress, settingsId);
             } else if (settingsId > systemExecutors) {
-                executorToSettings[
-                    additionalProposalExecutors[settingsId - systemExecutors - 1]
-                ] = settingsId;
+                _setExecutor(
+                    additionalProposalExecutors[settingsId - systemExecutors - 1],
+                    settingsId
+                );
             }
 
             settingsId++;
         }
-
         newSettingsId = settingsId;
     }
 
@@ -63,8 +65,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
 
         for (uint256 i; i < _settings.length; i++) {
             _validateProposalSettings(_settings[i]);
-
-            settings[settingsId++] = _settings[i];
+            _setSettings(_settings[i], settingsId++);
         }
 
         newSettingsId = settingsId;
@@ -79,8 +80,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
             require(_settingsExist(settingsIds[i]), "GovSettings: settings do not exist");
 
             _validateProposalSettings(_settings[i]);
-
-            settings[settingsIds[i]] = _settings[i];
+            _setSettings(_settings[i], settingsIds[i]);
         }
     }
 
@@ -92,7 +92,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         for (uint256 i; i < executors.length; i++) {
             require(_settingsExist(settingsIds[i]), "GovSettings: settings do not exist");
 
-            executorToSettings[executors[i]] = settingsIds[i];
+            _setExecutor(executors[i], settingsIds[i]);
         }
     }
 
@@ -124,5 +124,17 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         returns (ProposalSettings memory)
     {
         return settings[executorToSettings[executor]];
+    }
+
+    function _setExecutor(address executor, uint256 settingsId) internal {
+        executorToSettings[executor] = settingsId;
+
+        emit ExecutorChanged(settingsId, executor);
+    }
+
+    function _setSettings(ProposalSettings calldata _settings, uint256 settingsId) internal {
+        settings[settingsId] = _settings;
+
+        emit SettingsChanged(settingsId, _settings.executorDescription);
     }
 }
