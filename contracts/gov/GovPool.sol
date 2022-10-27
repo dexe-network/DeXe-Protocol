@@ -72,7 +72,8 @@ contract GovPool is
         uint256 proposalId,
         address sender,
         uint256 quorum,
-        address mainExecutor
+        address mainExecutor,
+        string proposalDescription
     );
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
     event Voted(uint256 proposalId, address sender, uint256 personalVote, uint256 delegatedVote);
@@ -174,7 +175,13 @@ contract GovPool is
 
         _updateRewards(proposalId, settings.creationReward, PRECISION);
 
-        emit ProposalCreated(proposalId, msg.sender, settings.quorum, mainExecutor);
+        emit ProposalCreated(
+            proposalId,
+            msg.sender,
+            settings.quorum,
+            mainExecutor,
+            proposals[proposalId].descriptionURL
+        );
     }
 
     function vote(
