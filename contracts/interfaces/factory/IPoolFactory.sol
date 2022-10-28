@@ -34,8 +34,8 @@ interface IPoolFactory {
         SettingsDeployParams settingsParams;
         ValidatorsDeployParams validatorsParams;
         UserKeeperDeployParams userKeeperParams;
-        string descriptionURL;
         string name;
+        string descriptionURL;
     }
 
     /// @notice The parameters one can specify on the trader pool's creation
