@@ -57,6 +57,7 @@ contract GovPool is
 
     ICoreProperties internal _coreProperties;
 
+    string public name;
     string public descriptionURL;
 
     uint256 internal _latestProposalId;
@@ -91,6 +92,7 @@ contract GovPool is
         address govUserKeeperAddress,
         address distributionProposalAddress,
         address validatorsAddress,
+        string calldata _name,
         string calldata _descriptionURL
     ) external initializer {
         _govSettings = IGovSettings(govSettingAddress);
@@ -98,6 +100,7 @@ contract GovPool is
         _govValidators = IGovValidators(validatorsAddress);
         _distributionProposal = distributionProposalAddress;
 
+        name = _name;
         descriptionURL = _descriptionURL;
     }
 

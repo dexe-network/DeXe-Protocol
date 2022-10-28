@@ -42,7 +42,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
     event DaoPoolDeployed(
         string name,
-        string symbol,
         address govPool,
         address DP,
         address validators,
@@ -99,6 +98,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             userKeeperProxy,
             dpProxy,
             validatorsProxy,
+            parameters.name,
             parameters.descriptionURL
         );
 
@@ -109,14 +109,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _register(poolType, poolProxy);
         _injectDependencies(poolProxy);
 
-        emit DaoPoolDeployed(
-            parameters.validatorsParams.name,
-            parameters.validatorsParams.symbol,
-            poolProxy,
-            dpProxy,
-            validatorsProxy,
-            settingsProxy
-        );
+        emit DaoPoolDeployed(parameters.name, poolProxy, dpProxy, validatorsProxy, settingsProxy);
     }
 
     function deployBasicPool(
