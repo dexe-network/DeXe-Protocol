@@ -128,6 +128,7 @@ describe("DistributionProposal", () => {
       userKeeper.address,
       dp.address,
       validators.address,
+      poolParams.name,
       poolParams.descriptionURL
     );
 
@@ -248,6 +249,7 @@ describe("DistributionProposal", () => {
           totalPowerInTokens: wei("33000"),
           nftsTotalSupply: 33,
         },
+        name: "Pool name",
         descriptionURL: "example.com",
       };
 

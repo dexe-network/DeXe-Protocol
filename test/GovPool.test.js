@@ -147,6 +147,7 @@ describe("GovPool", () => {
       userKeeper.address,
       dp.address,
       validators.address,
+      poolParams.name,
       poolParams.descriptionURL
     );
 
@@ -261,6 +262,7 @@ describe("GovPool", () => {
           totalPowerInTokens: wei("33000"),
           nftsTotalSupply: 33,
         },
+        name: "Pool name",
         descriptionURL: "example.com",
       };
 
@@ -287,6 +289,7 @@ describe("GovPool", () => {
             userKeeper.address,
             dp.address,
             validators.address,
+            POOL_PARAMETERS.name,
             POOL_PARAMETERS.descriptionURL
           ),
           "Initializable: contract is already initialized"
