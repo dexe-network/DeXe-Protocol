@@ -469,8 +469,8 @@ describe("PoolFactory", () => {
           totalPowerInTokens: wei("33000"),
           nftsTotalSupply: 33,
         },
-        name: "Pool name",
         descriptionURL: "example.com",
+        name: "Pool name",
       };
 
       let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);

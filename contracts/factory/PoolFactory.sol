@@ -98,8 +98,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             userKeeperProxy,
             dpProxy,
             validatorsProxy,
-            parameters.name,
-            parameters.descriptionURL
+            parameters.descriptionURL,
+            parameters.name
         );
 
         GovSettings(settingsProxy).transferOwnership(poolProxy);
