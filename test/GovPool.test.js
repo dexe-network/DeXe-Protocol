@@ -147,7 +147,8 @@ describe("GovPool", () => {
       userKeeper.address,
       dp.address,
       validators.address,
-      poolParams.descriptionURL
+      poolParams.descriptionURL,
+      poolParams.name
     );
 
     await settings.transferOwnership(govPool.address);
@@ -262,6 +263,7 @@ describe("GovPool", () => {
           nftsTotalSupply: 33,
         },
         descriptionURL: "example.com",
+        name: "Pool name",
       };
 
       await deployPool(POOL_PARAMETERS);
@@ -287,7 +289,8 @@ describe("GovPool", () => {
             userKeeper.address,
             dp.address,
             validators.address,
-            POOL_PARAMETERS.descriptionURL
+            POOL_PARAMETERS.descriptionURL,
+            POOL_PARAMETERS.name
           ),
           "Initializable: contract is already initialized"
         );

@@ -58,6 +58,7 @@ contract GovPool is
     ICoreProperties internal _coreProperties;
 
     string public descriptionURL;
+    string public name;
 
     uint256 internal _latestProposalId;
 
@@ -91,7 +92,8 @@ contract GovPool is
         address govUserKeeperAddress,
         address distributionProposalAddress,
         address validatorsAddress,
-        string calldata _descriptionURL
+        string calldata _descriptionURL,
+        string calldata _name
     ) external initializer {
         _govSettings = IGovSettings(govSettingAddress);
         _govUserKeeper = IGovUserKeeper(govUserKeeperAddress);
@@ -99,6 +101,7 @@ contract GovPool is
         _distributionProposal = distributionProposalAddress;
 
         descriptionURL = _descriptionURL;
+        name = _name;
     }
 
     function setDependencies(address contractsRegistry) public virtual override dependant {

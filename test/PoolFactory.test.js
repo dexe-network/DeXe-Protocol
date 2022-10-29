@@ -470,6 +470,7 @@ describe("PoolFactory", () => {
           nftsTotalSupply: 33,
         },
         descriptionURL: "example.com",
+        name: "Pool name",
       };
 
       let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);

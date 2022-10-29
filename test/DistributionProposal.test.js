@@ -128,7 +128,8 @@ describe("DistributionProposal", () => {
       userKeeper.address,
       dp.address,
       validators.address,
-      poolParams.descriptionURL
+      poolParams.descriptionURL,
+      poolParams.name
     );
 
     await settings.transferOwnership(govPool.address);
@@ -249,6 +250,7 @@ describe("DistributionProposal", () => {
           nftsTotalSupply: 33,
         },
         descriptionURL: "example.com",
+        name: "Pool name",
       };
 
       await deployPool(POOL_PARAMETERS);

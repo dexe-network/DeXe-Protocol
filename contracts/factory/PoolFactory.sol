@@ -40,7 +40,13 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         string descriptionURL
     );
 
-    event DaoPoolDeployed(address govPool, address DP, address validators, address settings);
+    event DaoPoolDeployed(
+        string name,
+        address govPool,
+        address DP,
+        address validators,
+        address settings
+    );
 
     function setDependencies(address contractsRegistry) public override {
         super.setDependencies(contractsRegistry);
@@ -92,7 +98,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             userKeeperProxy,
             dpProxy,
             validatorsProxy,
-            parameters.descriptionURL
+            parameters.descriptionURL,
+            parameters.name
         );
 
         GovSettings(settingsProxy).transferOwnership(poolProxy);
@@ -102,7 +109,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _register(poolType, poolProxy);
         _injectDependencies(poolProxy);
 
-        emit DaoPoolDeployed(poolProxy, dpProxy, validatorsProxy, settingsProxy);
+        emit DaoPoolDeployed(parameters.name, poolProxy, dpProxy, validatorsProxy, settingsProxy);
     }
 
     function deployBasicPool(
