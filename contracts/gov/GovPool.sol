@@ -388,7 +388,7 @@ contract GovPool is
         override
         returns (
             Proposal[] memory proposals,
-            IGovValidators.ExternalProposal[] memory externalProposals
+            IGovValidators.ExternalProposal[] memory validatorProposals
         )
     {
         uint256 to = (offset + limit).min(latestProposalId).max(offset);
@@ -398,7 +398,7 @@ contract GovPool is
             proposals[i] = _proposals[i];
         }
 
-        (, externalProposals) = _govValidators.getProposals(offset, limit, false);
+        (, validatorProposals) = _govValidators.getProposals(offset, limit, false);
     }
 
     function _execute(uint256 proposalId) internal {
