@@ -19,7 +19,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
     InternalProposalSettings public internalProposalSettings;
 
-    uint256 internal _latestInternalProposalId;
+    uint256 public latestInternalProposalId;
     uint256 public validatorsCount;
 
     mapping(uint256 => InternalProposal) public internalProposals; // proposalId => info
@@ -85,7 +85,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             }
         }
 
-        internalProposals[++_latestInternalProposalId] = InternalProposal({
+        internalProposals[++latestInternalProposalId] = InternalProposal({
             proposalType: proposalType,
             core: ProposalCore({
                 voteEnd: uint64(block.timestamp + internalProposalSettings.duration),

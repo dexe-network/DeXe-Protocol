@@ -60,7 +60,7 @@ contract GovPool is
     string public descriptionURL;
     string public name;
 
-    uint256 internal _latestProposalId;
+    uint256 public latestProposalId;
 
     mapping(uint256 => Proposal) public proposals; // proposalId => info
 
@@ -132,7 +132,7 @@ contract GovPool is
             "Gov: invalid array length"
         );
 
-        uint256 proposalId = ++_latestProposalId;
+        uint256 proposalId = ++latestProposalId;
 
         address mainExecutor = executors[executors.length - 1];
         uint256 executorSettings = _govSettings.executorToSettings(mainExecutor);
@@ -477,7 +477,7 @@ contract GovPool is
             (uint256, address, uint256)
         );
 
-        require(decodedId == _latestProposalId, "Gov: invalid proposalId");
+        require(decodedId == latestProposalId, "Gov: invalid proposalId");
 
         for (uint256 i; i < data.length - 1; i++) {
             bytes4 selector = data[i].getSelector();
