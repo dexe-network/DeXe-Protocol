@@ -9,6 +9,10 @@ import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
 
 import "../interfaces/factory/IPoolRegistry.sol";
 import "../interfaces/core/IContractsRegistry.sol";
+import "../interfaces/gov/IGovPool.sol";
+
+import "../gov/GovPool.sol";
+import "../gov/validators/GovValidators.sol";
 
 contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -97,6 +101,55 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         for (uint256 i = 0; i < pools.length; i++) {
             poolInfos[i] = ITraderPool(pools[i]).getPoolInfo();
             leverageInfos[i] = ITraderPool(pools[i]).getLeverageInfo();
+        }
+    }
+
+    function getGovProposalsCount(address govAddress, bool validators)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        return
+            validators
+                ? GovPool(payable(govAddress)).latestProposalId()
+                : GovValidators(govAddress).latestInternalProposalId();
+    }
+
+    function getGovProposals(
+        address govPool,
+        uint256 offset,
+        uint256 limit,
+        bool validators
+    )
+        external
+        view
+        override
+        returns (
+            IGovPool.ProposalView[] memory proposalViews,
+            IGovValidators.InternalProposal[] memory internalProposals
+        )
+    {
+        GovPool govPoolContract = GovPool(payable(govPool));
+        GovValidators govValidatorsContract = GovValidators(
+            govPoolContract.getHelperContracts()[2]
+        );
+
+        uint256 to = (offset + limit).min(getGovProposalsCount(govPool, validators)).max(offset);
+
+        if (validators) {
+            internalProposals = new IGovValidators.InternalProposal[](to - offset);
+            for (uint256 i = offset; i < to; ++i) {
+                internalProposals[i - offset] = govValidatorsContract.getInternalProposal(i);
+            }
+        } else {
+            proposalViews = new IGovPool.ProposalView[](to - offset);
+            for (uint256 i = offset; i < to; ++i) {
+                proposalViews[i - offset] = IGovPool.ProposalView({
+                    proposal: govPoolContract.getProposal(i),
+                    validatorProposal: govValidatorsContract.getExternalProposal(i)
+                });
+            }
         }
     }
 

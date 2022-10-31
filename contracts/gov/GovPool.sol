@@ -355,6 +355,10 @@ contract GovPool is
 
     receive() external payable {}
 
+    function getProposal(uint256 index) external view returns (Proposal memory) {
+        return proposals[index];
+    }
+
     function getProposalState(uint256 proposalId) external view override returns (ProposalState) {
         return _getProposalState(proposals[proposalId].core);
     }

@@ -22,8 +22,8 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     uint256 public latestInternalProposalId;
     uint256 public validatorsCount;
 
-    mapping(uint256 => InternalProposal) public internalProposals; // proposalId => info
-    mapping(uint256 => ExternalProposal) public externalProposals; // proposalId => info
+    mapping(uint256 => InternalProposal) internal _internalProposals; // proposalId => info
+    mapping(uint256 => ExternalProposal) internal _externalProposals; // proposalId => info
 
     mapping(uint256 => mapping(address => uint256)) public addressVotedInternal; // proposalId => user => voted amount
     mapping(uint256 => mapping(address => uint256)) public addressVotedExternal; // proposalId => user => voted amount
@@ -85,7 +85,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             }
         }
 
-        internalProposals[++latestInternalProposalId] = InternalProposal({
+        _internalProposals[++latestInternalProposalId] = InternalProposal({
             proposalType: proposalType,
             core: ProposalCore({
                 voteEnd: uint64(block.timestamp + internalProposalSettings.duration),
@@ -106,7 +106,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     ) external override onlyOwner {
         require(!_proposalExists(proposalId, false), "Validators: proposal already exists");
 
-        externalProposals[proposalId] = ExternalProposal({
+        _externalProposals[proposalId] = ExternalProposal({
             core: ProposalCore({
                 voteEnd: uint64(block.timestamp + duration),
                 executed: false,
@@ -125,8 +125,8 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         require(_proposalExists(proposalId, isInternal), "Validators: proposal does not exist");
 
         ProposalCore storage core = isInternal
-            ? internalProposals[proposalId].core
-            : externalProposals[proposalId].core;
+            ? _internalProposals[proposalId].core
+            : _externalProposals[proposalId].core;
 
         require(_getProposalState(core) == ProposalState.Voting, "Validators: not Voting state");
 
@@ -152,7 +152,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     function execute(uint256 proposalId) external override {
         require(_proposalExists(proposalId, true), "Validators: proposal does not exist");
 
-        InternalProposal storage proposal = internalProposals[proposalId];
+        InternalProposal storage proposal = _internalProposals[proposalId];
 
         require(
             _getProposalState(proposal.core) == ProposalState.Succeeded,
@@ -175,6 +175,14 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         }
     }
 
+    function getInternalProposal(uint256 index) external view returns (InternalProposal memory) {
+        return _internalProposals[index];
+    }
+
+    function getExternalProposal(uint256 index) external view returns (ExternalProposal memory) {
+        return _externalProposals[index];
+    }
+
     function getProposalState(uint256 proposalId, bool isInternal)
         external
         view
@@ -187,8 +195,8 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         return
             isInternal
-                ? _getProposalState(internalProposals[proposalId].core)
-                : _getProposalState(externalProposals[proposalId].core);
+                ? _getProposalState(_internalProposals[proposalId].core)
+                : _getProposalState(_externalProposals[proposalId].core);
     }
 
     function _getProposalState(ProposalCore storage core) internal view returns (ProposalState) {
@@ -219,8 +227,8 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         return
             isInternal
-                ? _isQuorumReached(internalProposals[proposalId].core)
-                : _isQuorumReached(externalProposals[proposalId].core);
+                ? _isQuorumReached(_internalProposals[proposalId].core)
+                : _isQuorumReached(_externalProposals[proposalId].core);
     }
 
     function _isQuorumReached(ProposalCore storage core) internal view returns (bool) {
@@ -233,8 +241,8 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     function _proposalExists(uint256 proposalId, bool isInternal) internal view returns (bool) {
         return
             isInternal
-                ? internalProposals[proposalId].core.voteEnd != 0
-                : externalProposals[proposalId].core.voteEnd != 0;
+                ? _internalProposals[proposalId].core.voteEnd != 0
+                : _externalProposals[proposalId].core.voteEnd != 0;
     }
 
     function changeBalances(uint256[] calldata newValues, address[] calldata userAddresses)

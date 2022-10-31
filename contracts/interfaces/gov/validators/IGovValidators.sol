@@ -103,4 +103,8 @@ interface IGovValidators {
         external;
 
     function validatorsCount() external view returns (uint256);
+
+    function getInternalProposal(uint256 index) external view returns (InternalProposal memory);
+
+    function getExternalProposal(uint256 index) external view returns (ExternalProposal memory);
 }

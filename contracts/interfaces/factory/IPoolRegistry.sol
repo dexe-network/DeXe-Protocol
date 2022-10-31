@@ -2,6 +2,8 @@
 pragma solidity ^0.8.4;
 
 import "../trader/ITraderPool.sol";
+import "../gov/validators/IGovValidators.sol";
+import "../gov/IGovPool.sol";
 
 /**
  * This is the PoolRegistry contract, a tuned ContractsRegistry contract. Its purpose is the management of
@@ -65,6 +67,21 @@ interface IPoolRegistry {
             ITraderPool.PoolInfo[] memory poolInfos,
             ITraderPool.LeverageInfo[] memory leverageInfos
         );
+
+    function getGovProposalsCount(address govAddress, bool validators)
+        external
+        view
+        returns (uint256);
+
+    function getGovProposals(
+        address govPool,
+        uint256 offset,
+        uint256 limit,
+        bool validators
+    )
+        external
+        view
+        returns (IGovPool.ProposalView[] memory, IGovValidators.InternalProposal[] memory);
 
     /// @notice The function to check if the given address is a valid BasicTraderPool
     /// @param potentialPool the address to inspect
