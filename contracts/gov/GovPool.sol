@@ -71,10 +71,10 @@ contract GovPool is
 
     event ProposalCreated(
         uint256 proposalId,
-        address sender,
+        string proposalDescription,
         uint256 quorum,
-        address mainExecutor,
-        string proposalDescription
+        uint256 proposalSettings,
+        address sender
     );
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
     event Voted(uint256 proposalId, address sender, uint256 personalVote, uint256 delegatedVote);
@@ -151,6 +151,7 @@ contract GovPool is
         }
 
         if (forceDefaultSettings) {
+            executorSettings = uint256(IGovSettings.ExecutorType.DEFAULT);
             settings = _govSettings.getDefaultSettings();
         } else {
             settings = _govSettings.getSettings(mainExecutor);
@@ -180,10 +181,10 @@ contract GovPool is
 
         emit ProposalCreated(
             proposalId,
-            msg.sender,
+            _descriptionURL,
             settings.quorum,
-            mainExecutor,
-            proposals[proposalId].descriptionURL
+            executorSettings,
+            msg.sender
         );
     }
 

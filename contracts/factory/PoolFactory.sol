@@ -84,6 +84,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address settingsProxy = _deploy(_poolRegistry.SETTINGS_NAME());
         address poolProxy = _deploy(poolType);
 
+        emit DaoPoolDeployed(parameters.name, poolProxy, dpProxy, validatorsProxy, settingsProxy);
+
         DistributionProposal(payable(dpProxy)).__DistributionProposal_init(poolProxy);
         GovSettings(settingsProxy).__GovSettings_init(
             address(poolProxy),
@@ -108,8 +110,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         _register(poolType, poolProxy);
         _injectDependencies(poolProxy);
-
-        emit DaoPoolDeployed(parameters.name, poolProxy, dpProxy, validatorsProxy, settingsProxy);
     }
 
     function deployBasicPool(
