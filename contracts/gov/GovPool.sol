@@ -62,7 +62,7 @@ contract GovPool is
 
     uint256 internal _latestProposalId;
 
-    mapping(uint256 => Proposal) public proposals; // proposalId => info
+    mapping(uint256 => Proposal) internal _proposals; // proposalId => info
 
     mapping(uint256 => mapping(address => mapping(bool => VoteInfo))) internal _voteInfos; // proposalId => voter => isMicropool => info
     mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
@@ -157,7 +157,7 @@ contract GovPool is
             settings = _govSettings.getSettings(mainExecutor);
         }
 
-        proposals[proposalId] = Proposal({
+        _proposals[proposalId] = Proposal({
             core: ProposalCore({
                 settings: settings,
                 executed: false,
@@ -173,7 +173,7 @@ contract GovPool is
         });
 
         require(
-            _canParticipate(proposals[proposalId].core, false, !settings.delegatedVotingAllowed),
+            _canParticipate(_proposals[proposalId].core, false, !settings.delegatedVotingAllowed),
             "Gov: low voting power"
         );
 
@@ -200,7 +200,7 @@ contract GovPool is
         _govUserKeeper.depositTokens.exec(msg.sender, depositAmount);
         _govUserKeeper.depositNfts.exec(msg.sender, depositNftIds);
 
-        bool useDelegated = !proposals[proposalId].core.settings.delegatedVotingAllowed;
+        bool useDelegated = !_proposals[proposalId].core.settings.delegatedVotingAllowed;
 
         _vote(proposalId, voteAmount, voteNftIds, false, useDelegated);
     }
@@ -212,7 +212,7 @@ contract GovPool is
     ) external override {
         require(voteAmount > 0 || voteNftIds.length > 0, "Gov: empty delegated vote");
         require(
-            proposals[proposalId].core.settings.delegatedVotingAllowed,
+            _proposals[proposalId].core.settings.delegatedVotingAllowed,
             "Gov: delegated voting off"
         );
 
@@ -291,7 +291,7 @@ contract GovPool is
         for (uint256 i; i < proposalIds.length; i++) {
             require(userProposals.contains(proposalIds[i]), "Gov: no vote for this proposal");
 
-            ProposalState state = _getProposalState(proposals[proposalIds[i]].core);
+            ProposalState state = _getProposalState(_proposals[proposalIds[i]].core);
 
             if (
                 state != ProposalState.Executed &&
@@ -324,7 +324,7 @@ contract GovPool is
     }
 
     function moveProposalToValidators(uint256 proposalId) external override {
-        ProposalCore storage core = proposals[proposalId].core;
+        ProposalCore storage core = _proposals[proposalId].core;
 
         require(
             _getProposalState(core) == ProposalState.WaitingForVotingTransfer,
@@ -356,7 +356,7 @@ contract GovPool is
     receive() external payable {}
 
     function getProposalState(uint256 proposalId) external view override returns (ProposalState) {
-        return _getProposalState(proposals[proposalId].core);
+        return _getProposalState(_proposals[proposalId].core);
     }
 
     function getTotalVotes(
@@ -365,7 +365,7 @@ contract GovPool is
         bool isMicropool
     ) external view override returns (uint256, uint256) {
         return (
-            proposals[proposalId].core.votesFor,
+            _proposals[proposalId].core.votesFor,
             _voteInfos[proposalId][voter][isMicropool].totalVoted
         );
     }
@@ -383,7 +383,7 @@ contract GovPool is
     }
 
     function _execute(uint256 proposalId) internal {
-        Proposal storage proposal = proposals[proposalId];
+        Proposal storage proposal = _proposals[proposalId];
         ProposalCore storage core = proposal.core;
 
         require(_getProposalState(core) == ProposalState.Succeeded, "Gov: invalid status");
@@ -406,7 +406,7 @@ contract GovPool is
     }
 
     function _payCommission(uint256 proposalId) internal {
-        ProposalCore storage core = proposals[proposalId].core;
+        ProposalCore storage core = _proposals[proposalId].core;
         IGovSettings.ProposalSettings storage settings = core.settings;
 
         address rewardToken = settings.rewardToken;
@@ -518,7 +518,7 @@ contract GovPool is
         bool isMicropool,
         bool useDelegated
     ) internal {
-        ProposalCore storage core = proposals[proposalId].core;
+        ProposalCore storage core = _proposals[proposalId].core;
         EnumerableSet.UintSet storage votes = _votedInProposals[msg.sender][isMicropool];
 
         require(_getProposalState(core) == ProposalState.Voting, "Gov: vote unavailable");
@@ -674,10 +674,10 @@ contract GovPool is
     }
 
     function _claimReward(uint256 proposalId) internal {
-        address rewardToken = proposals[proposalId].core.settings.rewardToken;
+        address rewardToken = _proposals[proposalId].core.settings.rewardToken;
 
         require(rewardToken != address(0), "Gov: rewards off");
-        require(proposals[proposalId].core.executed, "Gov: proposal not executed");
+        require(_proposals[proposalId].core.executed, "Gov: proposal not executed");
 
         uint256 rewards = pendingRewards[proposalId][msg.sender];
 
