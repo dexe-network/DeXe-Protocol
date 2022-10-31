@@ -35,12 +35,9 @@ library GovPoolView {
 
         uint256[] memory unlockedNfts = getUnlockedNfts(unlockedIds, user, false, _voteInfos);
 
-        return
-            IGovUserKeeper(IGovPool(address(this)).getHelperContracts()[1]).getWithdrawableAssets(
-                user,
-                lockedIds,
-                unlockedNfts
-            );
+        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
+
+        return IGovUserKeeper(userKeeper).getWithdrawableAssets(user, lockedIds, unlockedNfts);
     }
 
     function getUndelegateableAssets(
@@ -61,9 +58,15 @@ library GovPoolView {
 
         uint256[] memory unlockedNfts = getUnlockedNfts(unlockedIds, delegatee, true, _voteInfos);
 
+        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
+
         return
-            IGovUserKeeper(IGovPool(address(this)).getHelperContracts()[1])
-                .getUndelegateableAssets(delegator, delegatee, lockedIds, unlockedNfts);
+            IGovUserKeeper(userKeeper).getUndelegateableAssets(
+                delegator,
+                delegatee,
+                lockedIds,
+                unlockedNfts
+            );
     }
 
     function getUnlockedNfts(

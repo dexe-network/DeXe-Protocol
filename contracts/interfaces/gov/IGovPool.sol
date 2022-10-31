@@ -28,7 +28,6 @@ interface IGovPool {
         uint64 voteEnd;
         uint256 votesFor;
         uint256 nftPowerSnapshotId;
-        uint256 proposalId;
     }
 
     struct Proposal {
@@ -46,8 +45,19 @@ interface IGovPool {
     }
 
     /// @notice The function to get helper contract of this pool
-    /// @return the array of [settings, user keeper, validators, distribution proposal] contracts
-    function getHelperContracts() external view returns (address[4] memory);
+    /// @return settings settings address
+    /// @return userKeeper user keeper address
+    /// @return validators validators address
+    /// @return distributionProposal distribution proposal address
+    function getHelperContracts()
+        external
+        view
+        returns (
+            address settings,
+            address userKeeper,
+            address validators,
+            address distributionProposal
+        );
 
     /// @notice Create proposal
     /// @notice For internal proposal, last executor should be `GovSetting` contract
@@ -63,6 +73,10 @@ interface IGovPool {
         uint256[] calldata values,
         bytes[] calldata data
     ) external;
+
+    /// @notice Move proposal from internal voting to `Validators` contract
+    /// @param proposalId Proposal ID
+    function moveProposalToValidators(uint256 proposalId) external;
 
     function vote(
         uint256 proposalId,
@@ -113,10 +127,6 @@ interface IGovPool {
     /// @notice Execute proposal
     /// @param proposalId Proposal ID
     function execute(uint256 proposalId) external;
-
-    /// @notice Move proposal from internal voting to `Validators` contract
-    /// @param proposalId Proposal ID
-    function moveProposalToValidators(uint256 proposalId) external;
 
     function claimRewards(uint256[] calldata proposalIds) external;
 
