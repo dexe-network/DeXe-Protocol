@@ -382,6 +382,25 @@ contract GovPool is
                 : delegator.getUndelegateableAssets(delegatee, _votedInProposals, _voteInfos);
     }
 
+    function getProposals(uint256 offset, uint256 limit)
+        external
+        view
+        override
+        returns (
+            Proposal[] memory proposals,
+            IGovValidators.ExternalProposal[] memory externalProposals
+        )
+    {
+        uint256 to = (offset + limit).min(_latestProposalId).max(offset);
+
+        proposals = new Proposal[](to - offset);
+        for (uint256 i = offset; i < to; ++i) {
+            proposals[i] = _proposals[i];
+        }
+
+        (, externalProposals) = _govValidators.getProposals(offset, limit, false);
+    }
+
     function _execute(uint256 proposalId) internal {
         Proposal storage proposal = _proposals[proposalId];
         ProposalCore storage core = proposal.core;
