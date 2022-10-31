@@ -28,7 +28,6 @@ interface IGovPool {
         uint64 voteEnd;
         uint256 votesFor;
         uint256 nftPowerSnapshotId;
-        uint256 proposalId;
     }
 
     struct Proposal {
@@ -47,7 +46,15 @@ interface IGovPool {
 
     /// @notice The function to get helper contract of this pool
     /// @return the array of [settings, user keeper, validators, distribution proposal] contracts
-    function getHelperContracts() external view returns (address[4] memory);
+    function getHelperContracts()
+        external
+        view
+        returns (
+            address,
+            address,
+            address,
+            address
+        );
 
     /// @notice Create proposal
     /// @notice For internal proposal, last executor should be `GovSetting` contract
