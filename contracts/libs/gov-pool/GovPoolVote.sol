@@ -66,12 +66,7 @@ library GovPoolVote {
         bool isMicropool,
         bool useDelegated
     ) internal returns (uint256 reward) {
-        require(
-            IGovPool(payable(address(this))).getProposalState(proposalId) ==
-                IGovPool.ProposalState.Voting,
-            "Gov: vote unavailable"
-        );
-        _canParticipate(core, isMicropool, useDelegated);
+        _canParticipate(core, proposalId, isMicropool, useDelegated);
 
         votes.add(proposalId);
 
@@ -88,11 +83,17 @@ library GovPoolVote {
 
     function _canParticipate(
         IGovPool.ProposalCore storage core,
+        uint256 proposalId,
         bool isMicropool,
         bool useDelegated
     ) internal view {
-        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
+        IGovPool govPool = IGovPool(address(this));
+        (, address userKeeper, , ) = govPool.getHelperContracts();
 
+        require(
+            govPool.getProposalState(proposalId) == IGovPool.ProposalState.Voting,
+            "Gov: vote unavailable"
+        );
         require(
             IGovUserKeeper(userKeeper).canParticipate(
                 msg.sender,

@@ -287,12 +287,12 @@ describe("GovPool", () => {
 
     describe("init()", () => {
       it("should correctly set all parameters", async () => {
-        assert.deepEqual(await govPool.getHelperContracts(), [
-          settings.address,
-          userKeeper.address,
-          validators.address,
-          dp.address,
-        ]);
+        const contracts = await govPool.getHelperContracts();
+
+        assert.equal(contracts.settings, settings.address);
+        assert.equal(contracts.userKeeper, userKeeper.address);
+        assert.equal(contracts.validators, validators.address);
+        assert.equal(contracts.distributionProposal, dp.address);
       });
     });
 
@@ -402,7 +402,6 @@ describe("GovPool", () => {
         assert.equal(proposal.core.settings[8], defaultSettings.minVotesForCreating);
 
         assert.isFalse(proposal.core.executed);
-        assert.equal(proposal.core.proposalId, 1);
         assert.equal(proposal.descriptionURL, "example.com");
 
         await govPool.createProposal("example2.com", [THIRD], [0], [getBytesApprove(SECOND, 1)]);
@@ -419,14 +418,13 @@ describe("GovPool", () => {
         assert.equal(proposal.core.settings[8], defaultSettings.minVotesForCreating);
 
         assert.isFalse(proposal.core.executed);
-        assert.equal(proposal.core.proposalId, 2);
         assert.equal(proposal.descriptionURL, "example2.com");
       });
 
       it("should not create proposal due to low voting power", async () => {
         await truffleAssert.reverts(
           govPool.createProposal("", [SECOND], [0], [getBytesApprove(SECOND, 1)], { from: SECOND }),
-          "Gov: low voting power"
+          "Gov: low creating power"
         );
       });
 
@@ -1269,11 +1267,11 @@ describe("GovPool", () => {
 
         await govPool.execute(1);
 
-        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("20000000000000000003.2"));
+        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("20000000000000000005.2"));
 
         await govPool.claimRewards([1]);
 
-        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("16"));
+        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("26"));
       });
 
       it("should execute and claim", async () => {
@@ -1291,8 +1289,8 @@ describe("GovPool", () => {
 
         await govPool.executeAndClaim(1);
 
-        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("20000000000000000003.2"));
-        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("16"));
+        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("20000000000000000005.2"));
+        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("26"));
       });
 
       it("should claim reward in native", async () => {

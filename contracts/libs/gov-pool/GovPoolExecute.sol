@@ -52,29 +52,11 @@ library GovPoolExecute {
         _payCommission(core);
     }
 
-    function moveProposalToValidators(
-        mapping(uint256 => IGovPool.Proposal) storage proposals,
-        uint256 proposalId
-    ) external {
-        IGovPool.ProposalCore storage core = proposals[proposalId].core;
-        (, , address govValidators, ) = IGovPool(address(this)).getHelperContracts();
-
-        require(
-            IGovPool(address(this)).getProposalState(proposalId) ==
-                IGovPool.ProposalState.WaitingForVotingTransfer,
-            "Gov: can't be moved"
-        );
-
-        IGovValidators(govValidators).createExternalProposal(
-            proposalId,
-            core.settings.durationValidators,
-            core.settings.quorumValidators
-        );
-    }
-
     function _payCommission(IGovPool.ProposalCore storage core) internal {
         IGovSettings.ProposalSettings storage settings = core.settings;
-        (, , address govValidators, ) = IGovPool(address(this)).getHelperContracts();
+
+        GovPool govPool = GovPool(payable(address(this)));
+        (, , address govValidators, ) = govPool.getHelperContracts();
 
         address rewardToken = settings.rewardToken;
 
@@ -82,17 +64,20 @@ library GovPoolExecute {
             return;
         }
 
-        uint256 totalRewards = settings.creationReward *
-            IGovValidators(govValidators).validatorsCount() >
-            0
-            ? 2
-            : 1 +
-                settings.executionReward +
-                core.votesFor.ratio(settings.voteRewardsCoefficient, PRECISION);
+        uint256 creationRewards = settings.creationReward *
+            (
+                settings.validatorsVote && IGovValidators(govValidators).validatorsCount() > 0
+                    ? 2
+                    : 1
+            );
 
-        (, uint256 commissionPercentage, , address[3] memory commissionReceivers) = GovPool(
-            payable(address(this))
-        ).coreProperties().getDEXECommissionPercentages();
+        uint256 totalRewards = creationRewards +
+            settings.executionReward +
+            core.votesFor.ratio(settings.voteRewardsCoefficient, PRECISION);
+
+        (, uint256 commissionPercentage, , address[3] memory commissionReceivers) = govPool
+            .coreProperties()
+            .getDEXECommissionPercentages();
 
         uint256 commission = rewardToken.normThisBalance().min(
             totalRewards.percentage(commissionPercentage)

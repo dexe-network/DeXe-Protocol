@@ -66,6 +66,26 @@ library GovPoolCreate {
         emit ProposalCreated(proposalId, _descriptionURL, settings.quorum, settingsId, msg.sender);
     }
 
+    function moveProposalToValidators(
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        uint256 proposalId
+    ) external {
+        IGovPool.ProposalCore storage core = proposals[proposalId].core;
+        (, , address govValidators, ) = IGovPool(address(this)).getHelperContracts();
+
+        require(
+            IGovPool(address(this)).getProposalState(proposalId) ==
+                IGovPool.ProposalState.WaitingForVotingTransfer,
+            "Gov: can't be moved"
+        );
+
+        IGovValidators(govValidators).createExternalProposal(
+            proposalId,
+            core.settings.durationValidators,
+            core.settings.quorumValidators
+        );
+    }
+
     function _canParticipate(IGovSettings.ProposalSettings memory settings, uint256 snapshotId)
         internal
         view
@@ -80,7 +100,7 @@ library GovPoolCreate {
                 settings.minVotesForCreating,
                 snapshotId
             ),
-            "Gov: low voting power"
+            "Gov: low creating power"
         );
     }
 

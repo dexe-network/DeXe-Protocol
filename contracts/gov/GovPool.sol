@@ -11,7 +11,6 @@ import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
 import "../interfaces/gov/IGovPool.sol";
-import "../interfaces/gov/validators/IGovValidators.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
 
@@ -36,9 +35,8 @@ contract GovPool is
     using EnumerableSet for EnumerableSet.UintSet;
     using ShrinkableArray for uint256[];
     using ShrinkableArray for ShrinkableArray.UintArray;
-    using DecimalsConverter for uint256;
     using GovUserKeeperLocal for *;
-    using GovPoolView for address;
+    using GovPoolView for *;
     using GovPoolCreate for *;
     using GovPoolRewards for *;
     using GovPoolVote for *;
@@ -99,10 +97,10 @@ contract GovPool is
         view
         override
         returns (
-            address,
-            address,
-            address,
-            address
+            address settings,
+            address userKeeper,
+            address validators,
+            address distributionProposal
         )
     {
         return (
@@ -124,8 +122,18 @@ contract GovPool is
         proposals.createProposal(_descriptionURL, executors, values, data);
 
         pendingRewards.updateRewards(
-            latestProposalId - 1,
-            proposals[latestProposalId - 1].core.settings.creationReward,
+            latestProposalId,
+            proposals[latestProposalId].core.settings.creationReward,
+            PRECISION
+        );
+    }
+
+    function moveProposalToValidators(uint256 proposalId) external override {
+        proposals.moveProposalToValidators(proposalId);
+
+        pendingRewards.updateRewards(
+            proposalId,
+            proposals[proposalId].core.settings.creationReward,
             PRECISION
         );
     }
@@ -251,16 +259,6 @@ contract GovPool is
         pendingRewards.updateRewards(
             proposalId,
             proposals[proposalId].core.settings.executionReward,
-            PRECISION
-        );
-    }
-
-    function moveProposalToValidators(uint256 proposalId) external override {
-        proposals.moveProposalToValidators(proposalId);
-
-        pendingRewards.updateRewards(
-            proposalId,
-            proposals[proposalId].core.settings.creationReward,
             PRECISION
         );
     }
