@@ -44,6 +44,10 @@ interface IGovValidators {
         ProposalCore core;
     }
 
+    function latestInternalProposalId() external view returns (uint256);
+
+    function validatorsCount() external view returns (uint256);
+
     /// @notice Create internal proposal for changing validators balances, base quorum, base duration
     /// @param proposalType `ProposalType`
     /// 0 - `ChangeInternalDuration`, change base duration
@@ -87,6 +91,13 @@ interface IGovValidators {
 
     function isValidator(address user) external view returns (bool);
 
+    function getExternalProposal(uint256 index) external view returns (ExternalProposal memory);
+
+    function getInternalProposals(uint256 offset, uint256 limit)
+        external
+        view
+        returns (InternalProposal[] memory);
+
     /// @notice Return proposal state
     /// @dev Options:
     /// `Voting` - proposal where addresses can vote.
@@ -98,6 +109,4 @@ interface IGovValidators {
         external
         view
         returns (ProposalState);
-
-    function validatorsCount() external view returns (uint256);
 }
