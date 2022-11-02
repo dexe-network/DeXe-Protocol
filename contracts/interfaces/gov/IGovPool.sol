@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "../../libs/data-structures/ShrinkableArray.sol";
 
 import "./settings/IGovSettings.sol";
+import "./validators/IGovValidators.sol";
 
 /**
  * This is the Governance pool contract. This contract is the third contract the user can deploy through
@@ -38,11 +39,18 @@ interface IGovPool {
         bytes[] data;
     }
 
+    struct ProposalView {
+        Proposal proposal;
+        IGovValidators.ExternalProposal validatorProposal;
+    }
+
     struct VoteInfo {
         uint256 totalVoted;
         uint256 tokensVoted;
         EnumerableSet.UintSet nftsVoted;
     }
+
+    function latestProposalId() external view returns (uint256);
 
     /// @notice The function to get helper contract of this pool
     /// @return settings settings address
@@ -133,6 +141,11 @@ interface IGovPool {
     function executeAndClaim(uint256 proposalId) external;
 
     function editDescriptionURL(string calldata newDescriptionURL) external;
+
+    function getProposals(uint256 offset, uint256 limit)
+        external
+        view
+        returns (ProposalView[] memory);
 
     /// @param proposalId Proposal ID
     /// @return `ProposalState`:

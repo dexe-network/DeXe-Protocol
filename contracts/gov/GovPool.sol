@@ -53,9 +53,9 @@ contract GovPool is
     string public descriptionURL;
     string public name;
 
-    uint256 public latestProposalId;
+    uint256 public override latestProposalId;
 
-    mapping(uint256 => Proposal) public proposals; // proposalId => info
+    mapping(uint256 => Proposal) internal _proposals; // proposalId => info
 
     mapping(uint256 => mapping(address => mapping(bool => VoteInfo))) internal _voteInfos; // proposalId => voter => isMicropool => info
     mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
@@ -119,21 +119,21 @@ contract GovPool is
     ) external override {
         latestProposalId++;
 
-        proposals.createProposal(_descriptionURL, executors, values, data);
+        _proposals.createProposal(_descriptionURL, executors, values, data);
 
         pendingRewards.updateRewards(
             latestProposalId,
-            proposals[latestProposalId].core.settings.creationReward,
+            _proposals[latestProposalId].core.settings.creationReward,
             PRECISION
         );
     }
 
     function moveProposalToValidators(uint256 proposalId) external override {
-        proposals.moveProposalToValidators(proposalId);
+        _proposals.moveProposalToValidators(proposalId);
 
         pendingRewards.updateRewards(
             proposalId,
-            proposals[proposalId].core.settings.creationReward,
+            _proposals[proposalId].core.settings.creationReward,
             PRECISION
         );
     }
@@ -150,7 +150,7 @@ contract GovPool is
 
         unlock(msg.sender, false);
 
-        uint256 reward = proposals.vote(
+        uint256 reward = _proposals.vote(
             _votedInProposals,
             _voteInfos,
             proposalId,
@@ -161,7 +161,7 @@ contract GovPool is
         pendingRewards.updateRewards(
             proposalId,
             reward,
-            proposals[proposalId].core.settings.voteRewardsCoefficient
+            _proposals[proposalId].core.settings.voteRewardsCoefficient
         );
     }
 
@@ -172,7 +172,7 @@ contract GovPool is
     ) external override {
         unlock(msg.sender, true);
 
-        uint256 reward = proposals.voteDelegated(
+        uint256 reward = _proposals.voteDelegated(
             _votedInProposals,
             _voteInfos,
             proposalId,
@@ -183,7 +183,7 @@ contract GovPool is
         pendingRewards.updateRewards(
             proposalId,
             reward,
-            proposals[proposalId].core.settings.voteRewardsCoefficient
+            _proposals[proposalId].core.settings.voteRewardsCoefficient
         );
     }
 
@@ -254,24 +254,24 @@ contract GovPool is
     }
 
     function execute(uint256 proposalId) public override {
-        proposals.execute(proposalId);
+        _proposals.execute(proposalId);
 
         pendingRewards.updateRewards(
             proposalId,
-            proposals[proposalId].core.settings.executionReward,
+            _proposals[proposalId].core.settings.executionReward,
             PRECISION
         );
     }
 
     function claimRewards(uint256[] calldata proposalIds) external override {
         for (uint256 i; i < proposalIds.length; i++) {
-            pendingRewards.claimReward(proposals, proposalIds[i]);
+            pendingRewards.claimReward(_proposals, proposalIds[i]);
         }
     }
 
     function executeAndClaim(uint256 proposalId) external override {
         execute(proposalId);
-        pendingRewards.claimReward(proposals, proposalId);
+        pendingRewards.claimReward(_proposals, proposalId);
     }
 
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
@@ -280,8 +280,16 @@ contract GovPool is
 
     receive() external payable {}
 
+    function getProposals(uint256 offset, uint256 limit)
+        external
+        view
+        returns (ProposalView[] memory)
+    {
+        return _proposals.getProposals(offset, limit);
+    }
+
     function getProposalState(uint256 proposalId) public view override returns (ProposalState) {
-        ProposalCore storage core = proposals[proposalId].core;
+        ProposalCore storage core = _proposals[proposalId].core;
 
         uint64 voteEnd = core.voteEnd;
 
@@ -333,7 +341,7 @@ contract GovPool is
         bool isMicropool
     ) external view override returns (uint256, uint256) {
         return (
-            proposals[proposalId].core.votesFor,
+            _proposals[proposalId].core.votesFor,
             _voteInfos[proposalId][voter][isMicropool].totalVoted
         );
     }

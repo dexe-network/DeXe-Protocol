@@ -2,11 +2,13 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@dlsl/dev-modules/libs/arrays/ArrayHelper.sol";
 
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/IGovPool.sol";
+import "../../interfaces/gov/validators/IGovValidators.sol";
 
 import "../data-structures/ShrinkableArray.sol";
 
@@ -17,6 +19,7 @@ library GovPoolView {
     using ArrayHelper for uint256[];
     using ShrinkableArray for uint256[];
     using ShrinkableArray for ShrinkableArray.UintArray;
+    using Math for uint256;
 
     function getWithdrawableAssets(
         address user,
@@ -132,5 +135,25 @@ library GovPoolView {
 
         unlockedIds = unlockedProposals.transform().crop(unlockedLength);
         lockedIds = lockedProposals.transform().crop(lockedLength);
+    }
+
+    function getProposals(
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        uint256 offset,
+        uint256 limit
+    ) internal view returns (IGovPool.ProposalView[] memory proposalViews) {
+        IGovPool govPool = IGovPool(address(this));
+
+        uint256 to = (offset + limit).min(govPool.latestProposalId()).max(offset);
+
+        (, , address validators, ) = govPool.getHelperContracts();
+
+        proposalViews = new IGovPool.ProposalView[](to - offset);
+        for (uint256 i = offset; i < to; ++i) {
+            proposalViews[i - offset] = IGovPool.ProposalView({
+                proposal: proposals[i + 1],
+                validatorProposal: IGovValidators(validators).getExternalProposal(i + 1)
+            });
+        }
     }
 }
