@@ -68,6 +68,9 @@ interface IGovValidators {
         uint128 quorum
     ) external;
 
+    function changeBalances(uint256[] calldata newValues, address[] calldata userAddresses)
+        external;
+
     /// @notice Vote in proposal
     /// @param proposalId Proposal ID, internal or external
     /// @param amount Amount of tokens to vote
@@ -82,6 +85,8 @@ interface IGovValidators {
     /// @param proposalId Internal proposal ID
     function execute(uint256 proposalId) external;
 
+    function isValidator(address user) external view returns (bool);
+
     /// @notice Return proposal state
     /// @dev Options:
     /// `Voting` - proposal where addresses can vote.
@@ -93,14 +98,6 @@ interface IGovValidators {
         external
         view
         returns (ProposalState);
-
-    /// @param proposalId Proposal ID
-    /// @param isInternal If `true`, check internal proposal
-    /// @return `true` if quorum reached. Return `false` if not or proposal isn't exist.
-    function isQuorumReached(uint256 proposalId, bool isInternal) external view returns (bool);
-
-    function changeBalances(uint256[] calldata newValues, address[] calldata userAddresses)
-        external;
 
     function validatorsCount() external view returns (uint256);
 }
