@@ -27,6 +27,10 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
     mapping(uint256 => mapping(bool => mapping(address => uint256))) public addressVoted; // proposalId => isInternal => user => voted amount
 
+    event ExternalProposalCreated(uint256 proposalId, string proposalDescription, uint256 quorum);
+    event InternalProposalCreated(uint256 proposalId, uint256 quorum, address sender);
+    event InternalProposalExecuted(uint256 proposalId, address executor);
+
     event Voted(uint256 proposalId, address sender, uint256 vote);
     event ChangedValidatorsBalances(address[] validators, uint256[] newBalance);
 
@@ -94,6 +98,12 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             newValues: newValues,
             userAddresses: users
         });
+
+        emit InternalProposalCreated(
+            latestInternalProposalId,
+            internalProposalSettings.quorum,
+            msg.sender
+        );
     }
 
     function createExternalProposal(
@@ -112,6 +122,8 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
                 snapshotId: govValidatorsToken.snapshot()
             })
         });
+
+        emit ExternalProposalCreated(proposalId, "", quorum);
     }
 
     function changeBalances(uint256[] calldata newValues, address[] calldata userAddresses)
@@ -171,6 +183,8 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         } else {
             _changeBalances(proposal.newValues, proposal.userAddresses);
         }
+
+        emit InternalProposalExecuted(proposalId, msg.sender);
     }
 
     function isValidator(address user) public view override returns (bool) {
