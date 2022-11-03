@@ -60,6 +60,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
     function createInternalProposal(
         ProposalType proposalType,
+        string calldata descriptionURL,
         uint256[] calldata newValues,
         address[] calldata users
     ) external override onlyValidator {
@@ -89,6 +90,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
                 votesFor: 0,
                 snapshotId: govValidatorsToken.snapshot()
             }),
+            descriptionURL: descriptionURL,
             newValues: newValues,
             userAddresses: users
         });
