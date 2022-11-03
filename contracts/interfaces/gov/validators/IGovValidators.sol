@@ -36,6 +36,7 @@ interface IGovValidators {
     struct InternalProposal {
         ProposalType proposalType;
         ProposalCore core;
+        string descriptionURL;
         uint256[] newValues;
         address[] userAddresses;
     }
@@ -58,6 +59,7 @@ interface IGovValidators {
     /// @param userAddresses Validators addresses, set it if `proposalType` == `ChangeBalances`
     function createInternalProposal(
         ProposalType proposalType,
+        string calldata descriptionURL,
         uint256[] calldata newValues,
         address[] calldata userAddresses
     ) external;
