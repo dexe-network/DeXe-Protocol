@@ -27,11 +27,16 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
     mapping(uint256 => mapping(bool => mapping(address => uint256))) public addressVoted; // proposalId => isInternal => user => voted amount
 
-    event ExternalProposalCreated(uint256 proposalId, string proposalDescription, uint256 quorum);
-    event InternalProposalCreated(uint256 proposalId, uint256 quorum, address sender);
+    event ExternalProposalCreated(uint256 proposalId, uint256 quorum);
+    event InternalProposalCreated(
+        uint256 proposalId,
+        string proposalDescription,
+        uint256 quorum,
+        address sender
+    );
     event InternalProposalExecuted(uint256 proposalId, address executor);
 
-    event Voted(uint256 proposalId, address sender, uint256 vote);
+    event Voted(uint256 proposalId, address sender, uint256 vote, bool isInternal);
     event ChangedValidatorsBalances(address[] validators, uint256[] newBalance);
 
     /// @dev Access only for addresses that have validator tokens
@@ -101,6 +106,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         emit InternalProposalCreated(
             latestInternalProposalId,
+            descriptionURL,
             internalProposalSettings.quorum,
             msg.sender
         );
@@ -123,7 +129,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             })
         });
 
-        emit ExternalProposalCreated(proposalId, "", quorum);
+        emit ExternalProposalCreated(proposalId, quorum);
     }
 
     function changeBalances(uint256[] calldata newValues, address[] calldata userAddresses)
@@ -156,7 +162,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         core.votesFor += amount;
 
-        emit Voted(proposalId, msg.sender, amount);
+        emit Voted(proposalId, msg.sender, amount, isInternal);
     }
 
     function execute(uint256 proposalId) external override {
