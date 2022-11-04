@@ -101,7 +101,7 @@ interface IGovUserKeeper {
         address voter,
         bool isMicropool,
         bool useDelegated
-    ) external view returns (uint256[] memory nfts);
+    ) external view returns (uint256[] memory nfts, uint256 ownedLength);
 
     function getNftsPowerInTokensBySnapshot(uint256[] calldata nftIds, uint256 snapshotId)
         external
@@ -124,7 +124,7 @@ interface IGovUserKeeper {
         address user,
         bool isMicropool,
         bool useDelegated
-    ) external view returns (uint256 power);
+    ) external view returns (uint256 power, uint256[] memory nftPower);
 
     function getUndelegateableAssets(
         address delegator,

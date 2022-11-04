@@ -1272,7 +1272,7 @@ describe("GovPool", () => {
 
         let proposalViews;
 
-        beforeEach(async () => {
+        beforeEach("setup", async () => {
           const { durationValidators, quorumValidators } = POOL_PARAMETERS.settingsParams.proposalSettings[3];
           const startTime = await getCurrentBlockTime();
 

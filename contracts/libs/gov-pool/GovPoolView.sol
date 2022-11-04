@@ -143,13 +143,13 @@ library GovPoolView {
         uint256 limit
     ) internal view returns (IGovPool.ProposalView[] memory proposalViews) {
         IGovPool govPool = IGovPool(address(this));
+        (, , address validators, ) = govPool.getHelperContracts();
 
         uint256 to = (offset + limit).min(govPool.latestProposalId()).max(offset);
 
-        (, , address validators, ) = govPool.getHelperContracts();
-
         proposalViews = new IGovPool.ProposalView[](to - offset);
-        for (uint256 i = offset; i < to; ++i) {
+
+        for (uint256 i = offset; i < to; i++) {
             proposalViews[i - offset] = IGovPool.ProposalView({
                 proposal: proposals[i + 1],
                 validatorProposal: IGovValidators(validators).getExternalProposal(i + 1)

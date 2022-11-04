@@ -215,7 +215,8 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         uint256 to = (offset + limit).min(latestInternalProposalId).max(offset);
 
         internalProposals = new InternalProposal[](to - offset);
-        for (uint256 i = offset; i < to; ++i) {
+
+        for (uint256 i = offset; i < to; i++) {
             internalProposals[i - offset] = _internalProposals[i + 1];
         }
     }

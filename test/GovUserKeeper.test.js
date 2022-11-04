@@ -169,11 +169,14 @@ describe("GovUserKeeper", () => {
 
     describe("depositTokens()", () => {
       it("should correctly add tokens to balance", async () => {
-        assert.equal((await userKeeper.votingPower(SECOND, false, false)).toFixed(), "0");
+        assert.equal((await userKeeper.votingPower(SECOND, false, false)).power.toFixed(), "0");
 
         await userKeeper.depositTokens(OWNER, SECOND, wei("100"));
 
-        assert.equal((await userKeeper.votingPower(SECOND, false, false)).toFixed(), wei("100"));
+        const power = await userKeeper.votingPower(SECOND, false, false);
+
+        assert.equal(power.power.toFixed(), wei("100"));
+        assert.deepEqual(power.nftPower, []);
 
         assert.equal((await userKeeper.tokenBalance(SECOND, false, false)).totalBalance.toFixed(), wei("100"));
         assert.equal((await userKeeper.tokenBalance(SECOND, false, false)).ownedBalance.toFixed(), "0");
@@ -190,28 +193,34 @@ describe("GovUserKeeper", () => {
 
     describe("depositNfts()", () => {
       it("should correctly add tokens to balance", async () => {
-        assert.equal((await userKeeper.votingPower(SECOND, false, false)).toFixed(), "0");
+        assert.equal((await userKeeper.votingPower(SECOND, false, false)).power.toFixed(), "0");
 
         await userKeeper.depositNfts(OWNER, SECOND, [1, 3, 5]);
 
-        assert.equal((await userKeeper.votingPower(SECOND, false, false)).toFixed(), wei("3000"));
+        const power = await userKeeper.votingPower(SECOND, false, false);
+
+        assert.equal(power.power.toFixed(), wei("3000"));
+        assert.deepEqual(
+          power.nftPower.map((e) => e.toFixed()),
+          [wei("1000"), wei("1000"), wei("1000")]
+        );
 
         assert.deepEqual(
-          (await userKeeper.nftExactBalance(SECOND, false, false)).map((e) => e.toFixed()),
+          (await userKeeper.nftExactBalance(SECOND, false, false)).nfts.map((e) => e.toFixed()),
           ["1", "3", "5"]
         );
 
         await userKeeper.depositNfts(OWNER, SECOND, [2, 4]);
 
         assert.deepEqual(
-          (await userKeeper.nftExactBalance(SECOND, false, false)).map((e) => e.toFixed()),
+          (await userKeeper.nftExactBalance(SECOND, false, false)).nfts.map((e) => e.toFixed()),
           ["1", "3", "5", "2", "4"]
         );
 
         await userKeeper.depositNfts(OWNER, OWNER, [6, 9]);
 
         assert.deepEqual(
-          (await userKeeper.nftExactBalance(OWNER, false, false)).map((e) => e.toFixed()),
+          (await userKeeper.nftExactBalance(OWNER, false, false)).nfts.map((e) => e.toFixed()),
           ["6", "9", "0", "0"]
         );
       });
@@ -301,27 +310,31 @@ describe("GovUserKeeper", () => {
         await userKeeper.delegateNfts(OWNER, THIRD, [2, 4]);
 
         assert.deepEqual(
-          (await userKeeper.nftExactBalance(SECOND, true, false)).map((e) => e.toFixed()),
+          (await userKeeper.nftExactBalance(SECOND, true, false)).nfts.map((e) => e.toFixed()),
           ["1", "3"]
         );
         assert.deepEqual(
-          (await userKeeper.nftExactBalance(THIRD, true, false)).map((e) => e.toFixed()),
+          (await userKeeper.nftExactBalance(THIRD, true, false)).nfts.map((e) => e.toFixed()),
           ["2", "4"]
         );
 
         assert.deepEqual(
-          (await userKeeper.nftExactBalance(OWNER, false, false)).map((e) => e.toFixed()),
+          (await userKeeper.nftExactBalance(OWNER, false, false)).nfts.map((e) => e.toFixed()),
           ["5", "0", "0", "0", "0"]
         );
+
+        const balanceOwner = await userKeeper.nftExactBalance(OWNER, false, true);
+
         assert.deepEqual(
-          (await userKeeper.nftExactBalance(OWNER, false, true)).map((e) => e.toFixed()),
+          balanceOwner.nfts.map((e) => e.toFixed()),
           ["5", "1", "3", "2", "4", "0", "0", "0", "0"]
         );
+        assert.equal(balanceOwner.ownedLength, "4");
 
         await userKeeper.delegateNfts(OWNER, SECOND, [5]);
 
         assert.deepEqual(
-          (await userKeeper.nftExactBalance(SECOND, true, false)).map((e) => e.toFixed()),
+          (await userKeeper.nftExactBalance(SECOND, true, false)).nfts.map((e) => e.toFixed()),
           ["1", "3", "5"]
         );
       });
@@ -337,43 +350,55 @@ describe("GovUserKeeper", () => {
       it("should undelegate nfts", async () => {
         await userKeeper.delegateNfts(OWNER, SECOND, [1, 3]);
 
+        const balance1 = await userKeeper.nftExactBalance(SECOND, true, false);
+
         assert.deepEqual(
-          (await userKeeper.nftExactBalance(SECOND, true, false)).map((e) => e.toFixed()),
+          balance1.nfts.map((e) => e.toFixed()),
           ["1", "3"]
         );
+        assert.equal(balance1.ownedLength, "0");
 
         await userKeeper.undelegateNfts(OWNER, SECOND, [1]);
 
+        const balance2 = await userKeeper.nftExactBalance(SECOND, true, false);
+
         assert.deepEqual(
-          (await userKeeper.nftExactBalance(SECOND, true, false)).map((e) => e.toFixed()),
+          balance2.nfts.map((e) => e.toFixed()),
           ["3"]
         );
+        assert.equal(balance2.ownedLength, "0");
       });
 
       it("should undelegate all nfts", async () => {
         await userKeeper.delegateNfts(OWNER, SECOND, [1, 3]);
 
-        assert.deepEqual(
-          (await userKeeper.nftExactBalance(SECOND, true, false)).map((e) => e.toFixed()),
-          ["1", "3"]
-        );
+        const balanceSecond = await userKeeper.nftExactBalance(SECOND, true, false);
 
         assert.deepEqual(
-          (await userKeeper.nftExactBalance(OWNER, false, false)).map((e) => e.toFixed()),
+          balanceSecond.nfts.map((e) => e.toFixed()),
+          ["1", "3"]
+        );
+        assert.equal(balanceSecond.ownedLength, "0");
+
+        assert.deepEqual(
+          (await userKeeper.nftExactBalance(OWNER, false, false)).nfts.map((e) => e.toFixed()),
           ["5", "2", "4", "0", "0", "0", "0"]
         );
 
         await userKeeper.undelegateNfts(OWNER, SECOND, [1, 3]);
 
         assert.deepEqual(
-          (await userKeeper.nftExactBalance(SECOND, true, false)).map((e) => e.toFixed()),
+          (await userKeeper.nftExactBalance(SECOND, true, false)).nfts.map((e) => e.toFixed()),
           []
         );
 
+        const balanceOwner = await userKeeper.nftExactBalance(OWNER, false, false);
+
         assert.deepEqual(
-          (await userKeeper.nftExactBalance(OWNER, false, false)).map((e) => e.toFixed()),
+          balanceOwner.nfts.map((e) => e.toFixed()),
           ["5", "2", "4", "1", "3", "0", "0", "0", "0"]
         );
+        assert.equal(balanceOwner.ownedLength, "4");
       });
 
       it("should not undelegate unavailable NFTs", async () => {
@@ -694,7 +719,10 @@ describe("GovUserKeeper", () => {
     });
 
     it("should calculate voting power", async () => {
-      assert.equal((await userKeeper.votingPower(OWNER, false, true)).toFixed(), "0");
+      const power = await userKeeper.votingPower(OWNER, false, true);
+
+      assert.equal(power.power.toFixed(), "0");
+      assert.deepEqual(power.nftPower, []);
 
       const tokenBalance = await userKeeper.tokenBalance(OWNER, false, false);
 
@@ -752,7 +780,10 @@ describe("GovUserKeeper", () => {
     });
 
     it("should calculate voting power", async () => {
-      assert.equal((await userKeeper.votingPower(OWNER, false, true)).toFixed(), "0");
+      const power = await userKeeper.votingPower(OWNER, false, true);
+
+      assert.equal(power.power.toFixed(), "0");
+      assert.deepEqual(power.nftPower, []);
 
       const nftBalance = await userKeeper.nftBalance(OWNER, false, false);
 
@@ -805,16 +836,47 @@ describe("GovUserKeeper", () => {
 
     describe("voting power", () => {
       it("should calculate voting power", async () => {
-        assert.equal((await userKeeper.votingPower(OWNER, false, true)).toFixed(), "0");
+        assert.equal((await userKeeper.votingPower(OWNER, false, true)).power.toFixed(), "0");
 
         await token.mint(OWNER, wei("10000"));
+        await token.approve(userKeeper.address, wei("1000"));
 
         for (let i = 1; i < 10; i++) {
           await nft.safeMint(OWNER, i);
+          await nft.approve(userKeeper.address, i);
         }
 
-        assert.equal((await userKeeper.votingPower(OWNER, false, false)).toFixed(), wei("43000"));
-        assert.equal((await userKeeper.votingPower(OWNER, true, false)).toFixed(), "0");
+        await userKeeper.depositTokens(OWNER, OWNER, wei("1000"));
+        await userKeeper.depositNfts(OWNER, OWNER, [1, 3, 5]);
+
+        const power = await userKeeper.votingPower(OWNER, false, false);
+        const singleNFTPower = toBN(wei("33000")).idiv(9).toFixed();
+
+        assert.equal(power.power.toFixed(), wei("43000"));
+        assert.deepEqual(
+          power.nftPower.map((e) => e.toFixed()),
+          [
+            singleNFTPower,
+            singleNFTPower,
+            singleNFTPower,
+            singleNFTPower,
+            singleNFTPower,
+            singleNFTPower,
+            singleNFTPower,
+            singleNFTPower,
+            singleNFTPower,
+          ]
+        );
+
+        assert.equal((await userKeeper.votingPower(OWNER, true, false)).power.toFixed(), "0");
+
+        const balanceOwner = await userKeeper.nftExactBalance(OWNER, false, false);
+
+        assert.deepEqual(
+          balanceOwner.nfts.map((e) => e.toFixed()),
+          ["1", "3", "5", "9", "2", "8", "4", "7", "6"]
+        );
+        assert.equal(balanceOwner.ownedLength, "6");
       });
     });
 
@@ -863,25 +925,49 @@ describe("GovUserKeeper", () => {
       });
 
       it("should correctly calculate NFT power after snapshot", async () => {
-        assert.equal((await userKeeper.votingPower(OWNER, false, false)).toFixed(), wei("400"));
+        const power1 = await userKeeper.votingPower(OWNER, false, false);
+
+        assert.equal(power1.power.toFixed(), wei("400"));
+        assert.deepEqual(
+          power1.nftPower.map((e) => e.toFixed()),
+          ["0", "0", "0", "0", "0", "0", "0"]
+        );
 
         await setTime(startTime + 999);
         await userKeeper.createNftPowerSnapshot();
 
+        const power2 = await userKeeper.votingPower(OWNER, false, false);
+
         assert.equal(
-          (await userKeeper.votingPower(OWNER, false, false)).toFixed(),
+          power2.power.toFixed(),
           (await userKeeper.getNftsPowerInTokensBySnapshot([2, 3, 4, 5, 6, 7, 9], 1)).plus(wei("400")).toFixed()
+        );
+        assert.deepEqual(
+          power2.nftPower.map((e) => e.toFixed()),
+          [
+            "4626168224299065420560",
+            "4053404539385847797062",
+            "4053404539385847797062",
+            "4053404539385847797062",
+            "4053404539385847797062",
+            "4053404539385847797062",
+            "4053404539385847797062",
+          ]
         );
 
         await setTime(startTime + 1999);
         await userKeeper.createNftPowerSnapshot();
 
+        const balanceOwner = await userKeeper.nftExactBalance(OWNER, false, false);
+
         assert.deepEqual(
-          (await userKeeper.nftExactBalance(OWNER, false, false)).map((e) => e.toFixed()),
+          balanceOwner.nfts.map((e) => e.toFixed()),
           ["9", "2", "3", "4", "5", "6", "7"]
         );
+        assert.equal(balanceOwner.ownedLength.toFixed(), "7");
+
         assert.deepEqual(
-          (await userKeeper.nftExactBalance(SECOND, false, false)).map((e) => e.toFixed()),
+          (await userKeeper.nftExactBalance(SECOND, false, false)).nfts.map((e) => e.toFixed()),
           ["1"]
         );
 

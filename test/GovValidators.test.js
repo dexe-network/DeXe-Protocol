@@ -397,7 +397,7 @@ describe("GovValidators", () => {
       describe("after adding internal proposals", async () => {
         let internalProposals;
 
-        beforeEach(async () => {
+        beforeEach("setup", async () => {
           internalProposals = [
             {
               proposalType: "0",
