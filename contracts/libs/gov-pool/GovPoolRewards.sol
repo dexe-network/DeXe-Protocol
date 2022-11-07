@@ -33,6 +33,12 @@ library GovPoolRewards {
 
         uint256 rewards = pendingRewards[proposalId][msg.sender];
 
+        IERC721Multiplier nftMultiplier = IGovPool(address(this)).nftMultiplier();
+
+        if (address(nftMultiplier) != address(0)) {
+            rewards = nftMultiplier.multiplyRewards(msg.sender, rewards);
+        }
+
         require(rewardToken.normThisBalance() >= rewards, "Gov: not enough balance");
 
         delete pendingRewards[proposalId][msg.sender];

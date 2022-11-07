@@ -36,21 +36,21 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, ERC721URIStora
         emit Minted(to, tokenId, multiplier, duration);
     }
 
-    function getRewardMultiplier(address whose) external view override returns (uint256) {
+    function multiplyRewards(address whose, uint256 rewards)
+        external
+        view
+        override
+        returns (uint256)
+    {
         NftInfo memory info = _tokens[_latestLockedTokenIds[whose]];
 
-        return info.lockedAt + info.duration >= block.timestamp ? info.multiplier : 0;
+        return _isLocked(info) ? rewards * info.multiplier : rewards;
     }
 
     function lock(uint256 tokenId) external override {
         NftInfo memory info = _tokens[_latestLockedTokenIds[msg.sender]];
 
-        // If it is the first time the msg.sender locks the token,
-        // then lockedAt + duration is 0 < block.timestamp
-        require(
-            info.lockedAt + info.duration < block.timestamp,
-            "ERC721Multiplier: Cannot lock more than one nft"
-        );
+        require(!_isLocked(info), "ERC721Multiplier: Cannot lock more than one nft");
 
         _transfer(msg.sender, address(this), tokenId);
 
@@ -104,5 +104,11 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, ERC721URIStora
         return
             interfaceId == type(IERC721Multiplier).interfaceId ||
             ERC721Enumerable.supportsInterface(interfaceId);
+    }
+
+    function _isLocked(NftInfo memory info) private view returns (bool) {
+        // If it is the first time the msg.sender locks the token,
+        // then lockedAt + duration is 0 < block.timestamp
+        return info.lockedAt + info.duration >= block.timestamp;
     }
 }
