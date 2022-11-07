@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
 import "../../interfaces/gov/ERC721/IERC721Multiplier.sol";
+import {PRECISION} from "../../core/Globals.sol";
 
 contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
@@ -44,7 +45,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, ERC721URIStora
     {
         NftInfo memory info = _tokens[_latestLockedTokenIds[whose]];
 
-        return _isLocked(info) ? rewards * info.multiplier : rewards;
+        return _isLocked(info) ? (rewards * info.multiplier) / PRECISION : rewards;
     }
 
     function lock(uint256 tokenId) external override {
