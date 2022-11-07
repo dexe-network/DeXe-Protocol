@@ -7,7 +7,6 @@ import "../../libs/data-structures/ShrinkableArray.sol";
 
 import "./settings/IGovSettings.sol";
 import "./validators/IGovValidators.sol";
-import "./ERC721/IERC721Multiplier.sol";
 
 /**
  * This is the Governance pool contract. This contract is the third contract the user can deploy through
