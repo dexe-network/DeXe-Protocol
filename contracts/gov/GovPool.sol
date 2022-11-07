@@ -85,7 +85,9 @@ contract GovPool is
         _govValidators = IGovValidators(validatorsAddress);
         _distributionProposal = distributionProposalAddress;
 
-        nftMultiplier = nftMultiplierAddress;
+        if (nftMultiplierAddress != address(0)) {
+            _setNftMultiplierAddress(nftMultiplierAddress);
+        }
         descriptionURL = _descriptionURL;
         name = _name;
     }
@@ -287,7 +289,7 @@ contract GovPool is
     }
 
     function _setNftMultiplierAddress(address nftMultiplierAddress) internal {
-        require(nftMultiplierAddress == address(0), "Gov: current nft address isn't zero");
+        require(nftMultiplier == address(0), "Gov: current nft address isn't zero");
         require(nftMultiplierAddress != address(0), "Gov: new nft address is zero");
 
         nftMultiplier = nftMultiplierAddress;
