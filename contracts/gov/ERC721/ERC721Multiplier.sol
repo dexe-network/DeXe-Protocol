@@ -11,6 +11,7 @@ import "../../interfaces/gov/ERC721/IERC721Multiplier.sol";
 contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
 
+    string public baseURI;
     Counters.Counter private _tokenIds;
     mapping(uint256 => NftInfo) private _tokens;
     mapping(address => uint256) private _latestLockedTokenIds;
@@ -24,7 +25,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, ERC721URIStora
         address to,
         uint256 multiplier,
         uint256 duration
-    ) external onlyOwner {
+    ) external override onlyOwner {
         _tokenIds.increment();
 
         uint256 tokenId = _tokenIds.current();
@@ -35,13 +36,13 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, ERC721URIStora
         emit Minted(to, tokenId, multiplier, duration);
     }
 
-    function getRewardMultiplier(address whose) external view returns (uint256) {
+    function getRewardMultiplier(address whose) external view override returns (uint256) {
         NftInfo memory info = _tokens[_latestLockedTokenIds[whose]];
 
         return info.lockedAt + info.duration >= block.timestamp ? info.multiplier : 0;
     }
 
-    function lock(uint256 tokenId) external {
+    function lock(uint256 tokenId) external override {
         NftInfo memory info = _tokens[_latestLockedTokenIds[msg.sender]];
 
         // If it is the first time the msg.sender locks the token,
@@ -59,5 +60,49 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, ERC721URIStora
         _latestLockedTokenIds[msg.sender] = tokenId;
 
         emit Locked(msg.sender, tokenId, tokenToBeLocked.multiplier, tokenToBeLocked.duration);
+    }
+
+    function setBaseUri(string calldata uri) external onlyOwner {
+        baseURI = uri;
+    }
+
+    function setTokenURI(uint256 tokenId, string memory _tokenURI) external {
+        _setTokenURI(tokenId, _tokenURI);
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return baseURI;
+    }
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal override(ERC721, ERC721Enumerable) {
+        ERC721Enumerable._beforeTokenTransfer(from, to, tokenId);
+    }
+
+    function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
+        ERC721URIStorage._burn(tokenId);
+    }
+
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        override(ERC721, ERC721URIStorage)
+        returns (string memory)
+    {
+        return ERC721URIStorage.tokenURI(tokenId);
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721, ERC721Enumerable, IERC165)
+        returns (bool)
+    {
+        return
+            interfaceId == type(IERC721Multiplier).interfaceId ||
+            ERC721Enumerable.supportsInterface(interfaceId);
     }
 }
