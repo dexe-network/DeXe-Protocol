@@ -42,12 +42,12 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, ERC721URIStora
     }
 
     function lock(uint256 tokenId) external {
-        uint256 latestLockedTokenId = _latestLockedTokenIds[msg.sender];
+        NftInfo memory info = _tokens[_latestLockedTokenIds[msg.sender]];
 
-        NftInfo memory info = _tokens[latestLockedTokenId];
-
+        // If it is the first time the msg.sender locks the token,
+        // then lockedAt + duration is 0 < block.timestamp
         require(
-            latestLockedTokenId == 0 || info.lockedAt + info.duration < block.timestamp,
+            info.lockedAt + info.duration < block.timestamp,
             "ERC721Multiplier: Cannot lock more than one nft"
         );
 
@@ -55,6 +55,8 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, ERC721URIStora
 
         NftInfo storage tokenToBeLocked = _tokens[tokenId];
         tokenToBeLocked.lockedAt = block.timestamp;
+
+        _latestLockedTokenIds[msg.sender] = tokenId;
 
         emit Locked(msg.sender, tokenId, tokenToBeLocked.multiplier, tokenToBeLocked.duration);
     }
