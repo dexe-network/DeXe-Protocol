@@ -108,8 +108,6 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, ERC721URIStora
     }
 
     function _isLocked(NftInfo memory info) private view returns (bool) {
-        // If it is the first time the msg.sender locks the token,
-        // then lockedAt + duration is 0 < block.timestamp
-        return info.lockedAt + info.duration >= block.timestamp;
+        return info.lockedAt != 0 && info.lockedAt + info.duration >= block.timestamp;
     }
 }
