@@ -150,6 +150,8 @@ interface IGovPool {
 
     function editDescriptionURL(string calldata newDescriptionURL) external;
 
+    function setNftMultiplierAddress(address nftMultiplierAddress) external;
+
     function getProposals(uint256 offset, uint256 limit)
         external
         view

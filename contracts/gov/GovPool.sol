@@ -282,6 +282,17 @@ contract GovPool is
         descriptionURL = newDescriptionURL;
     }
 
+    function setNftMultiplierAddress(address nftMultiplierAddress) external override onlyThis {
+        _setNftMultiplierAddress(nftMultiplierAddress);
+    }
+
+    function _setNftMultiplierAddress(address nftMultiplierAddress) internal {
+        require(nftMultiplierAddress == address(0), "Gov: current nft address isn't zero");
+        require(nftMultiplierAddress != address(0), "Gov: new nft address is zero");
+
+        nftMultiplier = nftMultiplierAddress;
+    }
+
     receive() external payable {}
 
     function getProposals(uint256 offset, uint256 limit)

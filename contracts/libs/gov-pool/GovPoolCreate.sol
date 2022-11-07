@@ -162,7 +162,8 @@ library GovPoolCreate {
                         selector == IGovSettings.changeExecutors.selector ||
                         selector == IGovUserKeeper.setERC20Address.selector ||
                         selector == IGovUserKeeper.setERC721Address.selector ||
-                        selector == IGovPool.editDescriptionURL.selector),
+                        selector == IGovPool.editDescriptionURL.selector ||
+                        selector == IGovPool.setNftMultiplierAddress.selector),
                 "Gov: invalid internal data"
             );
         }
