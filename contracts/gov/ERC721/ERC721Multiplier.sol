@@ -67,7 +67,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, ERC721URIStora
         baseURI = uri;
     }
 
-    function setTokenURI(uint256 tokenId, string memory _tokenURI) external {
+    function setTokenURI(uint256 tokenId, string memory _tokenURI) external onlyOwner {
         _setTokenURI(tokenId, _tokenURI);
     }
 
