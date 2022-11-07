@@ -10,7 +10,6 @@ import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
 import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
-import "../interfaces/gov/ERC721/IERC721Multiplier.sol";
 import "../interfaces/gov/IGovPool.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
@@ -51,7 +50,7 @@ contract GovPool is
 
     ICoreProperties public coreProperties;
 
-    IERC721Multiplier public nftMultiplier;
+    address public nftMultiplier;
 
     string public descriptionURL;
     string public name;
@@ -84,9 +83,9 @@ contract GovPool is
         _govSettings = IGovSettings(govSettingAddress);
         _govUserKeeper = IGovUserKeeper(govUserKeeperAddress);
         _govValidators = IGovValidators(validatorsAddress);
-        nftMultiplier = IERC721Multiplier(nftMultiplierAddress);
         _distributionProposal = distributionProposalAddress;
 
+        nftMultiplier = nftMultiplierAddress;
         descriptionURL = _descriptionURL;
         name = _name;
     }

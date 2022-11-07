@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "../../interfaces/gov/IGovPool.sol";
+import "../../interfaces/gov/ERC721/IERC721Multiplier.sol";
 
 import "../utils/TokenBalance.sol";
 import "../math/MathHelper.sol";
@@ -33,10 +34,10 @@ library GovPoolRewards {
 
         uint256 rewards = pendingRewards[proposalId][msg.sender];
 
-        IERC721Multiplier nftMultiplier = IGovPool(address(this)).nftMultiplier();
+        address nftMultiplier = IGovPool(address(this)).nftMultiplier();
 
-        if (address(nftMultiplier) != address(0)) {
-            rewards = nftMultiplier.multiplyRewards(msg.sender, rewards);
+        if (nftMultiplier != address(0)) {
+            rewards = IERC721Multiplier(nftMultiplier).multiplyRewards(msg.sender, rewards);
         }
 
         require(rewardToken.normThisBalance() >= rewards, "Gov: not enough balance");

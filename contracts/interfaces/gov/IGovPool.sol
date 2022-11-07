@@ -57,7 +57,7 @@ interface IGovPool {
         uint256[] nftsVoted;
     }
 
-    function nftMultiplier() external view returns (IERC721Multiplier);
+    function nftMultiplier() external view returns (address);
 
     function latestProposalId() external view returns (uint256);
 
