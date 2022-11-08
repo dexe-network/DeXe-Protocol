@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "../../interfaces/gov/ERC721/IERC721Multiplier.sol";
 import "../../core/Globals.sol";
 
-contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, ERC721URIStorage, Ownable {
+contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
     using Counters for Counters.Counter;
 
     string public baseURI;
@@ -67,39 +67,14 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, ERC721URIStora
         baseURI = uri;
     }
 
-    function setTokenURI(uint256 tokenId, string calldata uri) external onlyOwner {
-        _setTokenURI(tokenId, uri);
-    }
-
     function _baseURI() internal view override returns (string memory) {
         return baseURI;
-    }
-
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) internal override(ERC721, ERC721Enumerable) {
-        ERC721Enumerable._beforeTokenTransfer(from, to, tokenId);
-    }
-
-    function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
-        ERC721URIStorage._burn(tokenId);
-    }
-
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override(ERC721, ERC721URIStorage)
-        returns (string memory)
-    {
-        return ERC721URIStorage.tokenURI(tokenId);
     }
 
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721, ERC721Enumerable, IERC165)
+        override(ERC721Enumerable, IERC165)
         returns (bool)
     {
         return
