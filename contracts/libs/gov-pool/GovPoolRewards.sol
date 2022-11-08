@@ -19,7 +19,17 @@ library GovPoolRewards {
         uint256 amount,
         uint256 coefficient
     ) external {
-        pendingRewards[proposalId][msg.sender] += amount.ratio(coefficient, PRECISION);
+        uint256 amountToAdd = amount.ratio(coefficient, PRECISION);
+
+        address nftMultiplier = IGovPool(address(this)).nftMultiplier();
+        if (nftMultiplier != address(0)) {
+            amountToAdd += IERC721Multiplier(nftMultiplier).getExtraRewards(
+                msg.sender,
+                amountToAdd
+            );
+        }
+
+        pendingRewards[proposalId][msg.sender] += amountToAdd;
     }
 
     function claimReward(
@@ -33,12 +43,6 @@ library GovPoolRewards {
         require(proposals[proposalId].core.executed, "Gov: proposal not executed");
 
         uint256 rewards = pendingRewards[proposalId][msg.sender];
-
-        address nftMultiplier = IGovPool(address(this)).nftMultiplier();
-
-        if (nftMultiplier != address(0)) {
-            rewards += IERC721Multiplier(nftMultiplier).getExtraRewards(msg.sender, rewards);
-        }
 
         require(rewardToken.normThisBalance() >= rewards, "Gov: not enough balance");
 
