@@ -14,7 +14,6 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
     using MathHelper for uint256;
 
     string public baseURI;
-    uint256 public latestTokenId;
     mapping(uint256 => NftInfo) private _tokens;
     mapping(address => uint256) private _latestLockedTokenIds;
 
@@ -28,7 +27,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
         uint256 multiplier,
         uint256 duration
     ) external override onlyOwner {
-        uint256 currentTokenId = ++latestTokenId;
+        uint256 currentTokenId = totalSupply() + 1;
 
         _mint(to, currentTokenId);
 
