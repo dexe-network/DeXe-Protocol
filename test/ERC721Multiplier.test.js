@@ -29,27 +29,27 @@ describe.only("ERC721Multiplier", () => {
 
     TOKENS = [
       {
-        id: 1,
+        id: "1",
         multiplier: toMultiplier("1337").toFixed(),
-        duration: 1000,
+        duration: "1000",
         owner: SECOND,
       },
       {
-        id: 2,
+        id: "2",
         multiplier: toMultiplier("20").toFixed(),
-        duration: 500,
+        duration: "500",
         owner: THIRD,
       },
       {
-        id: 3,
+        id: "3",
         multiplier: toMultiplier("1.5").toFixed(),
-        duration: 200,
+        duration: "200",
         owner: SECOND,
       },
       {
-        id: 4,
+        id: "4",
         multiplier: toMultiplier("5.125").toFixed(),
-        duration: 7050,
+        duration: "7050",
         owner: THIRD,
       },
     ];
@@ -68,7 +68,7 @@ describe.only("ERC721Multiplier", () => {
   describe("mint()", async () => {
     it("shouldn't mint if not the owner", async () => {
       await truffleAssert.reverts(
-        nft.mint(OWNER, toMultiplier(1337), 1000, { from: SECOND }),
+        nft.mint(OWNER, TOKENS[0].multiplier, TOKENS[0].duration, { from: SECOND }),
         "Ownable: caller is not the owner"
       );
     });
