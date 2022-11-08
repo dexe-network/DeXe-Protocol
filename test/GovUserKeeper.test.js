@@ -686,13 +686,13 @@ describe("GovUserKeeper", () => {
         await setTime(startTime + 1999 + 100);
         await userKeeper.createNftPowerSnapshot();
 
-        assert.equal((await userKeeper.nftSnapshot(1)).toFixed(), "0");
+        assert.equal((await userKeeper.nftSnapshot(1)).toFixed(), "33");
         assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([1], 1)).toFixed(), wei("1000"));
         assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([8], 1)).toFixed(), wei("1000"));
         assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([9], 1)).toFixed(), wei("1000"));
         assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([1, 8, 9], 1)).toFixed(), wei("3000"));
 
-        assert.equal((await userKeeper.nftSnapshot(2)).toFixed(), "0");
+        assert.equal((await userKeeper.nftSnapshot(2)).toFixed(), "33");
         assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([1], 2)).toFixed(), wei("1000"));
         assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([8], 2)).toFixed(), wei("1000"));
         assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([9], 2)).toFixed(), wei("1000"));
@@ -755,13 +755,6 @@ describe("GovUserKeeper", () => {
     it("should get total vote weight", async () => {
       assert.equal((await userKeeper.getTotalVoteWeight()).toFixed(), wei("33000"));
     });
-
-    it("should snapshot with no NFTs", async () => {
-      await userKeeper.createNftPowerSnapshot();
-
-      assert.equal((await userKeeper.nftSnapshot(1)).toFixed(), "0");
-      assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([], 1)).toFixed(), "0");
-    });
   });
 
   describe("No NFT GovUserKeeper", () => {
@@ -796,6 +789,13 @@ describe("GovUserKeeper", () => {
       assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([1], 0)).toFixed(), "0");
       assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([1], 1)).toFixed(), "0");
       assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([0], 1)).toFixed(), "0");
+    });
+
+    it("should snapshot with no NFTs", async () => {
+      await userKeeper.createNftPowerSnapshot();
+
+      assert.equal((await userKeeper.nftSnapshot(1)).toFixed(), "0");
+      assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([], 1)).toFixed(), "0");
     });
 
     it("should set erc721", async () => {

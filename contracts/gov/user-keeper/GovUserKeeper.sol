@@ -329,7 +329,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
 
         uint256 currentLength;
-
         nfts = new uint256[](length);
 
         currentLength = nfts.insert(
@@ -367,22 +366,18 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         override
         returns (uint256)
     {
-        if (nftAddress == address(0)) {
+        NFTSnapshot storage snapshot = nftSnapshot[snapshotId];
+        uint256 totalNftsPower = snapshot.totalNftsPower;
+
+        if (nftAddress == address(0) || totalNftsPower == 0) {
             return 0;
         }
 
-        NFTSnapshot storage snapshot = nftSnapshot[snapshotId];
-
-        uint256 totalNftsPower = snapshot.totalNftsPower;
         uint256 nftsPower;
 
         if (!nftInfo.isSupportPower) {
-            uint256 totalSupply = nftInfo.totalSupply == 0 ? totalNftsPower : nftInfo.totalSupply;
-
-            nftsPower = totalSupply == 0
-                ? 0
-                : nftIds.length.ratio(nftInfo.totalPowerInTokens, totalSupply);
-        } else if (totalNftsPower != 0) {
+            nftsPower = nftIds.length.ratio(nftInfo.totalPowerInTokens, totalNftsPower);
+        } else {
             uint256 totalPowerInTokens = nftInfo.totalPowerInTokens;
 
             for (uint256 i; i < nftIds.length; i++) {
@@ -397,17 +392,19 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function createNftPowerSnapshot() external override onlyOwner returns (uint256) {
-        if (nftInfo.totalSupply > 0) {
+        ERC721Power nftContract = ERC721Power(nftAddress);
+
+        if (address(nftContract) == address(0)) {
             return 0;
         }
 
-        ERC721Power nftContract = ERC721Power(nftAddress);
-        uint256 supply = nftContract.totalSupply();
-        uint256 totalNftsPower;
-
         uint256 currentPowerSnapshotId = ++_latestPowerSnapshotId;
-
         NFTSnapshot storage snapshot = nftSnapshot[currentPowerSnapshotId];
+
+        uint256 supply = nftInfo.totalSupply == 0
+            ? nftContract.totalSupply()
+            : nftInfo.totalSupply;
+        uint256 totalNftsPower;
 
         if (!nftInfo.isSupportPower) {
             totalNftsPower = supply;
