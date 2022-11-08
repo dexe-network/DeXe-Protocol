@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
@@ -16,7 +16,7 @@ import "../../libs/utils/TokenBalance.sol";
 import "../../core/Globals.sol";
 
 contract DistributionProposal is IDistributionProposal, Initializable {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
     using MathHelper for uint256;
     using DecimalsConverter for uint256;
     using TokenBalance for address;
@@ -57,7 +57,7 @@ contract DistributionProposal is IDistributionProposal, Initializable {
 
         for (uint256 i; i < proposalIds.length; i++) {
             DistributionProposalStruct storage dpInfo = proposals[proposalIds[i]];
-            IERC20 rewardToken = IERC20(dpInfo.rewardAddress);
+            IERC20Metadata rewardToken = IERC20Metadata(dpInfo.rewardAddress);
 
             require(address(rewardToken) != address(0), "DP: zero address");
             require(!dpInfo.claimed[voter], "DP: already claimed");
@@ -78,7 +78,11 @@ contract DistributionProposal is IDistributionProposal, Initializable {
                 rewardToken.safeTransfer(voter, reward);
             }
 
-            emit DistributionProposalClaimed(proposalIds[i], voter, reward);
+            emit DistributionProposalClaimed(
+                proposalIds[i],
+                voter,
+                reward.to18(rewardToken.decimals())
+            );
         }
     }
 
