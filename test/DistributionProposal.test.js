@@ -327,7 +327,7 @@ describe("DistributionProposal", () => {
 
         await truffleAssert.reverts(
           dp.execute(1, token.address, wei("100"), { from: govPool.address }),
-          "DP: proposal already exist"
+          "DP: proposal already exists"
         );
       });
 

@@ -43,7 +43,7 @@ contract DistributionProposal is IDistributionProposal, Initializable {
         address token,
         uint256 amount
     ) external payable override onlyGov {
-        require(proposals[proposalId].rewardAddress == address(0), "DP: proposal already exist");
+        require(proposals[proposalId].rewardAddress == address(0), "DP: proposal already exists");
         require(token != address(0), "DP: zero address");
         require(amount > 0, "DP: zero amount");
 
