@@ -113,5 +113,50 @@ describe.only("ERC721Multiplier", () => {
         assert.equal(await nft.tokenURI(4), "placeholder4");
       });
     });
+
+    describe("lock()", () => {
+      it("should not lock if not the owner of the token", async () => {
+        await truffleAssert.reverts(nft.lock(2, { from: SECOND }), "ERC721: transfer from incorrect owner");
+      });
+
+      it("should not lock more than one nft simultaneously", async () => {
+        const first = TOKENS[0];
+        const second = TOKENS[2];
+
+        await nft.lock(first.id, { from: first.owner });
+        await truffleAssert.reverts(
+          nft.lock(second.id, { from: second.owner }),
+          "ERC721Multiplier: Cannot lock more than one nft"
+        );
+      });
+
+      it("should lock properly if all conditions are met", async () => {
+        const { id, owner, multiplier, duration } = TOKENS[0];
+        const tx = await nft.lock(id, { from: owner });
+        truffleAssert.eventEmitted(tx, "Locked", (e) => {
+          return (
+            e.from === owner &&
+            e.tokenId.toFixed() === id &&
+            e.multiplier.toFixed() === multiplier &&
+            e.duration.toFixed() === duration
+          );
+        });
+        assert.equal(await nft.balanceOf(owner), 1);
+        assert.equal(await nft.balanceOf(nft.address), 1);
+      });
+
+      it("should lock the second nft if the first is expired", async () => {
+        const first = TOKENS[0];
+        const second = TOKENS[2];
+
+        const startTime = await getCurrentBlockTime();
+        await nft.lock(first.id, { from: first.owner });
+
+        await setTime(startTime + parseInt(first.duration) + 1);
+        await nft.lock(second.id, { from: second.owner });
+      });
+    });
+
+    describe("isLocked()", () => {});
   });
 });
