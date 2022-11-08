@@ -29,6 +29,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
         uint256 duration
     ) external override onlyOwner {
         uint256 currentTokenId = ++latestTokenId;
+
         _mint(to, currentTokenId);
 
         _tokens[currentTokenId] = NftInfo({
