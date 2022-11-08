@@ -4,16 +4,13 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 
 import "../../interfaces/gov/ERC721/IERC721Multiplier.sol";
 import "../../core/Globals.sol";
 
 contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
-    using Counters for Counters.Counter;
-
     string public baseURI;
-    Counters.Counter private _tokenIds;
+    uint256 public latestTokenId;
     mapping(uint256 => NftInfo) private _tokens;
     mapping(address => uint256) private _latestLockedTokenIds;
 
@@ -27,14 +24,16 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
         uint256 multiplier,
         uint256 duration
     ) external override onlyOwner {
-        _tokenIds.increment();
+        uint256 currentTokenId = ++latestTokenId;
+        _mint(to, currentTokenId);
 
-        uint256 tokenId = _tokenIds.current();
-        _mint(to, tokenId);
+        _tokens[currentTokenId] = NftInfo({
+            multiplier: multiplier,
+            duration: duration,
+            lockedAt: 0
+        });
 
-        _tokens[tokenId] = NftInfo({multiplier: multiplier, duration: duration, lockedAt: 0});
-
-        emit Minted(to, tokenId, multiplier, duration);
+        emit Minted(to, currentTokenId, multiplier, duration);
     }
 
     function getExtraRewards(address whose, uint256 rewards)
