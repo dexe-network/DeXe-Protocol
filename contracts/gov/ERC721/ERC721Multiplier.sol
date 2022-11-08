@@ -17,8 +17,8 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, ERC721URIStora
     mapping(uint256 => NftInfo) private _tokens;
     mapping(address => uint256) private _latestLockedTokenIds;
 
-    event Minted(address indexed to, uint256 tokenId, uint256 multiplier, uint256 duration);
-    event Locked(address indexed from, uint256 tokenId, uint256 multipier, uint256 duration);
+    event Minted(address to, uint256 tokenId, uint256 multiplier, uint256 duration);
+    event Locked(address from, uint256 tokenId, uint256 multipier, uint256 duration);
 
     constructor(string memory name, string memory symbol) ERC721(name, symbol) {}
 
