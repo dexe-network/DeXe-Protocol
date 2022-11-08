@@ -17,7 +17,7 @@ interface IERC721Multiplier is IERC721Enumerable {
         uint256 duration
     ) external;
 
-    function multiplyRewards(address whose, uint256 rewards) external view returns (uint256);
+    function getExtraRewards(address whose, uint256 rewards) external view returns (uint256);
 
     function lock(uint256 tokenId) external;
 }

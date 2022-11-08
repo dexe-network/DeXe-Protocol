@@ -37,7 +37,7 @@ library GovPoolRewards {
         address nftMultiplier = IGovPool(address(this)).nftMultiplier();
 
         if (nftMultiplier != address(0)) {
-            rewards = IERC721Multiplier(nftMultiplier).multiplyRewards(msg.sender, rewards);
+            rewards += IERC721Multiplier(nftMultiplier).getExtraRewards(msg.sender, rewards);
         }
 
         require(rewardToken.normThisBalance() >= rewards, "Gov: not enough balance");

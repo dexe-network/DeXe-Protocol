@@ -37,7 +37,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, ERC721URIStora
         emit Minted(to, tokenId, multiplier, duration);
     }
 
-    function multiplyRewards(address whose, uint256 rewards)
+    function getExtraRewards(address whose, uint256 rewards)
         external
         view
         override
@@ -45,7 +45,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, ERC721URIStora
     {
         NftInfo memory info = _tokens[_latestLockedTokenIds[whose]];
 
-        return _isLocked(info) ? (rewards * info.multiplier) / PRECISION : rewards;
+        return _isLocked(info) ? (rewards * info.multiplier) / PRECISION : 0;
     }
 
     function lock(uint256 tokenId) external override {
