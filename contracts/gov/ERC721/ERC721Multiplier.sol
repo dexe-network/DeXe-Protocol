@@ -8,7 +8,11 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "../../interfaces/gov/ERC721/IERC721Multiplier.sol";
 import "../../core/Globals.sol";
 
+import "../../libs/math/MathHelper.sol";
+
 contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
+    using MathHelper for uint256;
+
     string public baseURI;
     uint256 public latestTokenId;
     mapping(uint256 => NftInfo) private _tokens;
@@ -46,7 +50,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
 
         return
             isLocked(latestLockedTokenId)
-                ? (rewards * _tokens[latestLockedTokenId].multiplier) / PRECISION
+                ? rewards.ratio(_tokens[latestLockedTokenId].multiplier, PRECISION)
                 : 0;
     }
 
