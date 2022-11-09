@@ -1253,7 +1253,7 @@ describe.only("GovPool", () => {
           });
         });
 
-        describe.only("setNftMultiplierAddress()", () => {
+        describe("setNftMultiplierAddress()", () => {
           const prepareSetNftMultiplierAddress = async (addr, proposalId) => {
             const bytesSetAddress = getBytesSetNftMultiplierAddress(addr);
 
