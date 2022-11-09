@@ -1254,19 +1254,38 @@ describe.only("GovPool", () => {
         });
 
         describe.only("setNftMultiplierAddress()", () => {
-          it("should create proposal for setNftMultiplierAddress", async () => {
-            const bytesSetAddress = getBytesSetNftMultiplierAddress(nftMultiplier.address);
+          const prepareSetNftMultiplierAddress = async (addr, proposalId) => {
+            const bytesSetAddress = getBytesSetNftMultiplierAddress(addr);
 
             await govPool.createProposal("example.com", [govPool.address], [0], [bytesSetAddress]);
 
-            await govPool.vote(1, 0, [], wei("1000"), []);
-            await govPool.vote(1, 0, [], wei("100000000000000000000"), [], { from: SECOND });
+            await govPool.vote(proposalId, 0, [], wei("1000"), []);
+            await govPool.vote(proposalId, 0, [], wei("100000000000000000000"), [], { from: SECOND });
 
-            await govPool.moveProposalToValidators(1);
-            await validators.vote(1, wei("100"), false);
-            await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+            await govPool.moveProposalToValidators(proposalId);
+            await validators.vote(proposalId, wei("100"), false);
+            await validators.vote(proposalId, wei("1000000000000"), false, { from: SECOND });
+          };
 
+          it("should create proposal for setNftMultiplierAddress", async () => {
+            await prepareSetNftMultiplierAddress(nftMultiplier.address, 1);
             await govPool.execute(1);
+
+            assert.equal(await govPool.nftMultiplier(), nftMultiplier.address);
+          });
+
+          it("should not set zero address", async () => {
+            await prepareSetNftMultiplierAddress(ZERO_ADDR, 1);
+
+            await truffleAssert.reverts(govPool.execute(1), "Gov: new nft address is zero");
+          });
+
+          it("should revert setNftMultiplierAddress if it's already set", async () => {
+            await prepareSetNftMultiplierAddress(nftMultiplier.address, 1);
+            await govPool.execute(1);
+
+            await prepareSetNftMultiplierAddress(ETHER_ADDR, 2);
+            await truffleAssert.reverts(govPool.execute(2), "Gov: current nft address isn't zero");
 
             assert.equal(await govPool.nftMultiplier(), nftMultiplier.address);
           });
