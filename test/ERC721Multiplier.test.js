@@ -8,7 +8,7 @@ const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 
 ERC721Multiplier.numberFormat = "BigNumber";
 
-describe.only("ERC721Multiplier", () => {
+describe("ERC721Multiplier", () => {
   let OWNER;
   let SECOND;
   let THIRD;
