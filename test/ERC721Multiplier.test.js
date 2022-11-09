@@ -206,6 +206,15 @@ describe.only("ERC721Multiplier", () => {
         await setTime((await getCurrentBlockTime()) + parseInt(TOKENS[2].duration) + 1);
         assert.equal(await nft.getExtraRewards(SECOND, "1000"), "0");
       });
+
+      it("should change reward if the second nft is locked", async () => {
+        const startTime = await getCurrentBlockTime();
+        await nft.lock(TOKENS[0].id, { from: TOKENS[0].owner });
+        assert.equal(await nft.getExtraRewards(SECOND, "1000"), "1337000");
+        await setTime(startTime + parseInt(TOKENS[0].duration) + 1);
+        await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
+        assert.equal(await nft.getExtraRewards(SECOND, "1000"), "1500");
+      });
     });
   });
 });
