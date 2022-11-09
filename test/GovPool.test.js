@@ -1280,7 +1280,7 @@ describe.only("GovPool", () => {
             await truffleAssert.reverts(govPool.execute(1), "Gov: new nft address is zero");
           });
 
-          it("should revert setNftMultiplierAddress if it's already set", async () => {
+          it("should revert setNftMultiplierAddress if it's been already set", async () => {
             await prepareSetNftMultiplierAddress(nftMultiplier.address, 1);
             await govPool.execute(1);
 
