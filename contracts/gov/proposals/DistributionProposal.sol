@@ -76,13 +76,11 @@ contract DistributionProposal is IDistributionProposal, Initializable {
                 }
 
                 rewardToken.safeTransfer(voter, reward);
+
+                reward = reward.to18(rewardToken.decimals());
             }
 
-            emit DistributionProposalClaimed(
-                proposalIds[i],
-                voter,
-                reward.to18(rewardToken.decimals())
-            );
+            emit DistributionProposalClaimed(proposalIds[i], voter, reward);
         }
     }
 
