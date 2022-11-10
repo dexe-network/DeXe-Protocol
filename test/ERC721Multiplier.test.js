@@ -67,7 +67,7 @@ describe("ERC721Multiplier", () => {
 
   describe("interfaceId()", () => {
     it("should support ERC721Enumerable and ERC721Multiplier interfaces", async () => {
-      assert.isTrue(await nft.supportsInterface("0x2aabfe18"));
+      assert.isTrue(await nft.supportsInterface("0x204009ca"));
       assert.isTrue(await nft.supportsInterface("0x780e9d63"));
     });
   });
@@ -217,7 +217,7 @@ describe("ERC721Multiplier", () => {
       });
     });
 
-    describe.only("getCurrentMultiplier()", () => {
+    describe("getCurrentMultiplier()", () => {
       it("should return zeros if no nft locked", async () => {
         const info = await nft.getCurrentMultiplier(SECOND);
         assert.equal(info.multiplier, "0");
