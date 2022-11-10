@@ -34,7 +34,7 @@ interface IPoolFactory {
         SettingsDeployParams settingsParams;
         ValidatorsDeployParams validatorsParams;
         UserKeeperDeployParams userKeeperParams;
-        address nftMultiplier;
+        address nftMultiplierAddress;
         string descriptionURL;
         string name;
     }

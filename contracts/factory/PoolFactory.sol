@@ -108,7 +108,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             userKeeperProxy,
             dpProxy,
             validatorsProxy,
-            parameters.nftMultiplier,
+            parameters.nftMultiplierAddress,
             parameters.descriptionURL,
             parameters.name
         );
