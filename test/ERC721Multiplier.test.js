@@ -216,5 +216,37 @@ describe("ERC721Multiplier", () => {
         assert.equal(await nft.getExtraRewards(SECOND, "1000"), "1500");
       });
     });
+
+    describe.only("getCurrentMultiplier()", () => {
+      it("should return zeros if no nft locked", async () => {
+        const info = await nft.getCurrentMultiplier(SECOND);
+        assert.equal(info.multiplier, "0");
+        assert.equal(info.timeLeft, "0");
+      });
+
+      it("should return current multiplier and timeLeft properly if locked", async () => {
+        await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
+
+        let info = await nft.getCurrentMultiplier(SECOND);
+        assert.equal(info.multiplier.toFixed(), TOKENS[2].multiplier);
+        assert.equal(info.timeLeft.toFixed(), TOKENS[2].duration);
+
+        await setTime((await getCurrentBlockTime()) + parseInt(TOKENS[2].duration) - 1);
+
+        info = await nft.getCurrentMultiplier(SECOND);
+        assert.equal(info.multiplier.toFixed(), TOKENS[2].multiplier);
+        assert.equal(info.timeLeft.toFixed(), "1");
+      });
+
+      it("should return zeros if nft expired", async () => {
+        await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
+
+        await setTime((await getCurrentBlockTime()) + parseInt(TOKENS[2].duration) + 1);
+
+        const info = await nft.getCurrentMultiplier(SECOND);
+        assert.equal(info.multiplier.toFixed(), "0");
+        assert.equal(info.timeLeft.toFixed(), "0");
+      });
+    });
   });
 });
