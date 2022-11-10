@@ -75,6 +75,23 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
         return info.lockedAt != 0 && info.lockedAt + info.duration >= block.timestamp;
     }
 
+    function getCurrentMultiplier(address whose)
+        external
+        view
+        returns (uint256 multiplier, uint256 timeLeft)
+    {
+        uint256 latestLockedTokenId = _latestLockedTokenIds[whose];
+
+        if (!isLocked(latestLockedTokenId)) {
+            return (0, 0);
+        }
+
+        NftInfo memory info = _tokens[latestLockedTokenId];
+
+        multiplier = info.multiplier;
+        timeLeft = info.lockedAt + info.duration - block.timestamp;
+    }
+
     function setBaseUri(string calldata uri) external onlyOwner {
         baseURI = uri;
     }
