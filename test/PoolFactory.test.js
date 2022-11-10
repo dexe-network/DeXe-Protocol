@@ -485,7 +485,7 @@ describe("PoolFactory", () => {
           totalPowerInTokens: wei("33000"),
           nftsTotalSupply: 33,
         },
-        nftMultiplier: ZERO_ADDR,
+        nftMultiplierAddress: ZERO_ADDR,
         descriptionURL: "example.com",
         name: "Pool name",
       };

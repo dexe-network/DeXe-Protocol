@@ -51,7 +51,7 @@ ERC721EnumMock.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
-describe("GovPool", () => {
+describe.only("GovPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -168,7 +168,7 @@ describe("GovPool", () => {
       userKeeper.address,
       dp.address,
       validators.address,
-      poolParams.nftMultiplier,
+      poolParams.nftMultiplierAddress,
       poolParams.descriptionURL,
       poolParams.name
     );
@@ -301,7 +301,7 @@ describe("GovPool", () => {
           totalPowerInTokens: wei("33000"),
           nftsTotalSupply: 33,
         },
-        nftMultiplier: ZERO_ADDR,
+        nftMultiplierAddress: ZERO_ADDR,
         descriptionURL: "example.com",
         name: "Pool name",
       };
@@ -329,7 +329,7 @@ describe("GovPool", () => {
             userKeeper.address,
             dp.address,
             validators.address,
-            POOL_PARAMETERS.nftMultplier,
+            POOL_PARAMETERS.nftMultiplierAddress,
             POOL_PARAMETERS.descriptionURL,
             POOL_PARAMETERS.name
           ),
