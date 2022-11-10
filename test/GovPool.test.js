@@ -168,7 +168,7 @@ describe("GovPool", () => {
       userKeeper.address,
       dp.address,
       validators.address,
-      poolParams.nftMultiplierAddress,
+      poolParams.nftMultiplier,
       poolParams.descriptionURL,
       poolParams.name
     );
@@ -301,7 +301,7 @@ describe("GovPool", () => {
           totalPowerInTokens: wei("33000"),
           nftsTotalSupply: 33,
         },
-        nftMultiplierAddress: ZERO_ADDR,
+        nftMultiplier: ZERO_ADDR,
         descriptionURL: "example.com",
         name: "Pool name",
       };
@@ -329,7 +329,7 @@ describe("GovPool", () => {
             userKeeper.address,
             dp.address,
             validators.address,
-            ZERO_ADDR,
+            POOL_PARAMETERS.nftMultplier,
             POOL_PARAMETERS.descriptionURL,
             POOL_PARAMETERS.name
           ),

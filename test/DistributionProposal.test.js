@@ -143,6 +143,7 @@ describe("DistributionProposal", () => {
       userKeeper.address,
       dp.address,
       validators.address,
+      poolParams.nftMultiplier,
       poolParams.descriptionURL,
       poolParams.name
     );
@@ -264,6 +265,7 @@ describe("DistributionProposal", () => {
           totalPowerInTokens: wei("33000"),
           nftsTotalSupply: 33,
         },
+        nftMultiplier: ZERO_ADDR,
         descriptionURL: "example.com",
         name: "Pool name",
       };
