@@ -51,7 +51,7 @@ ERC721EnumMock.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
-describe.only("GovPool", () => {
+describe("GovPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -168,7 +168,7 @@ describe.only("GovPool", () => {
       userKeeper.address,
       dp.address,
       validators.address,
-      ZERO_ADDR,
+      poolParams.nftMultiplierAddress,
       poolParams.descriptionURL,
       poolParams.name
     );
@@ -194,6 +194,23 @@ describe.only("GovPool", () => {
     }
 
     await rewardToken.mint(govPool.address, wei("10000000000000000000000"));
+  }
+
+  async function setNftMultiplierAddress(addr) {
+    const bytesSetAddress = getBytesSetNftMultiplierAddress(addr);
+
+    await govPool.createProposal("example.com", [govPool.address], [0], [bytesSetAddress]);
+
+    const proposalId = await govPool.latestProposalId();
+
+    await govPool.vote(proposalId, 0, [], wei("1000"), []);
+    await govPool.vote(proposalId, 0, [], wei("100000000000000000000"), [], { from: SECOND });
+
+    await govPool.moveProposalToValidators(proposalId);
+    await validators.vote(proposalId, wei("100"), false);
+    await validators.vote(proposalId, wei("1000000000000"), false, { from: SECOND });
+
+    await govPool.execute(proposalId);
   }
 
   describe("Fullfat GovPool", () => {
@@ -284,6 +301,7 @@ describe.only("GovPool", () => {
           totalPowerInTokens: wei("33000"),
           nftsTotalSupply: 33,
         },
+        nftMultiplierAddress: ZERO_ADDR,
         descriptionURL: "example.com",
         name: "Pool name",
       };
@@ -1254,38 +1272,18 @@ describe.only("GovPool", () => {
         });
 
         describe("setNftMultiplierAddress()", () => {
-          const prepareSetNftMultiplierAddress = async (addr, proposalId) => {
-            const bytesSetAddress = getBytesSetNftMultiplierAddress(addr);
-
-            await govPool.createProposal("example.com", [govPool.address], [0], [bytesSetAddress]);
-
-            await govPool.vote(proposalId, 0, [], wei("1000"), []);
-            await govPool.vote(proposalId, 0, [], wei("100000000000000000000"), [], { from: SECOND });
-
-            await govPool.moveProposalToValidators(proposalId);
-            await validators.vote(proposalId, wei("100"), false);
-            await validators.vote(proposalId, wei("1000000000000"), false, { from: SECOND });
-          };
-
           it("should create proposal for setNftMultiplierAddress", async () => {
-            await prepareSetNftMultiplierAddress(nftMultiplier.address, 1);
-            await govPool.execute(1);
-
+            await setNftMultiplierAddress(nftMultiplier.address, 1);
             assert.equal(await govPool.nftMultiplier(), nftMultiplier.address);
           });
 
           it("should not set zero address", async () => {
-            await prepareSetNftMultiplierAddress(ZERO_ADDR, 1);
-
-            await truffleAssert.reverts(govPool.execute(1), "Gov: new nft address is zero");
+            await truffleAssert.reverts(setNftMultiplierAddress(ZERO_ADDR), "Gov: new nft address is zero");
           });
 
           it("should revert setNftMultiplierAddress if it's been already set", async () => {
-            await prepareSetNftMultiplierAddress(nftMultiplier.address, 1);
-            await govPool.execute(1);
-
-            await prepareSetNftMultiplierAddress(ETHER_ADDR, 2);
-            await truffleAssert.reverts(govPool.execute(2), "Gov: current nft address isn't zero");
+            await setNftMultiplierAddress(nftMultiplier.address);
+            await truffleAssert.reverts(setNftMultiplierAddress(ETHER_ADDR), "Gov: current nft address isn't zero");
 
             assert.equal(await govPool.nftMultiplier(), nftMultiplier.address);
           });
@@ -1487,6 +1485,28 @@ describe.only("GovPool", () => {
         await govPool.claimRewards([1]);
 
         assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("26"));
+      });
+
+      it("should claim reward properly if nft multiplier has been set", async () => {
+        await setNftMultiplierAddress(nftMultiplier.address);
+
+        await nftMultiplier.mint(OWNER, PRECISION.times("2.5"), 1000);
+        await nftMultiplier.lock(1);
+
+        const bytes = getBytesAddSettings([NEW_SETTINGS]);
+
+        await govPool.createProposal("example.com", [settings.address], [0], [bytes]);
+        await govPool.vote(2, 0, [], wei("1"), []);
+        await govPool.vote(2, 0, [], wei("100000000000000000000"), [], { from: SECOND });
+
+        await govPool.moveProposalToValidators(2);
+        await validators.vote(2, wei("100"), false);
+        await validators.vote(2, wei("1000000000000"), false, { from: SECOND });
+
+        await govPool.execute(2);
+        await govPool.claimRewards([2]);
+
+        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("91")); // 91 = 26 + 26 * 2.5
       });
 
       it("should execute and claim", async () => {
