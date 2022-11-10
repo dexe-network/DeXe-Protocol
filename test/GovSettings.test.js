@@ -540,7 +540,7 @@ describe("GovSettings", () => {
       });
     });
 
-    describe("getSettings()", () => {
+    describe("getExecutorSettings()", () => {
       it("should return setting for executor", async () => {
         const newSettings1 = {
           earlyCompletion: false,
@@ -562,7 +562,7 @@ describe("GovSettings", () => {
         await settings.addSettings([newSettings1]);
         await settings.changeExecutors([EXECUTOR1], [4]);
 
-        const executorSettings = await settings.getSettings(EXECUTOR1);
+        const executorSettings = await settings.getExecutorSettings(EXECUTOR1);
 
         assert.isFalse(executorSettings[0]);
         assert.isFalse(executorSettings[1]);
@@ -571,7 +571,7 @@ describe("GovSettings", () => {
       });
 
       it("should return setting for internal executor", async () => {
-        const internalSettings = await settings.getSettings(settings.address);
+        const internalSettings = await settings.getExecutorSettings(settings.address);
 
         assert.isTrue(internalSettings[0]);
         assert.isTrue(internalSettings[1]);
@@ -580,7 +580,7 @@ describe("GovSettings", () => {
       });
 
       it("should return settings for validators executor", async () => {
-        const validatorSettings = await settings.getSettings(VALIDATORS_ADDRESS);
+        const validatorSettings = await settings.getExecutorSettings(VALIDATORS_ADDRESS);
 
         assert.isTrue(validatorSettings[0]);
         assert.isFalse(validatorSettings[1]);
@@ -589,7 +589,7 @@ describe("GovSettings", () => {
       });
 
       it("should return setting for nonexistent executor", async () => {
-        const nonexistent = await settings.getSettings(EXECUTOR1);
+        const nonexistent = await settings.getExecutorSettings(EXECUTOR1);
 
         assert.isFalse(nonexistent[0]);
         assert.isTrue(nonexistent[1]);

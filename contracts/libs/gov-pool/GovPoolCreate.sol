@@ -138,7 +138,7 @@ library GovPoolCreate {
             settingsId = uint256(IGovSettings.ExecutorType.DEFAULT);
             settings = IGovSettings(govSettings).getDefaultSettings();
         } else {
-            settings = IGovSettings(govSettings).getSettings(mainExecutor);
+            settings = IGovSettings(govSettings).getExecutorSettings(mainExecutor);
         }
 
         snapshotId = IGovUserKeeper(userKeeper).createNftPowerSnapshot();

@@ -283,7 +283,7 @@ contract GovPool is
     function getProposals(uint256 offset, uint256 limit)
         external
         view
-        returns (ProposalView[] memory)
+        returns (ProposalView[] memory proposals)
     {
         return _proposals.getProposals(offset, limit);
     }
@@ -344,6 +344,21 @@ contract GovPool is
             _proposals[proposalId].core.votesFor,
             _voteInfos[proposalId][voter][isMicropool].totalVoted
         );
+    }
+
+    function getUserVotes(
+        uint256 proposalId,
+        address voter,
+        bool isMicropool
+    ) external view returns (VoteInfoView memory voteInfo) {
+        VoteInfo storage info = _voteInfos[proposalId][voter][isMicropool];
+
+        return
+            VoteInfoView({
+                totalVoted: info.totalVoted,
+                tokensVoted: info.tokensVoted,
+                nftsVoted: info.nftsVoted.values()
+            });
     }
 
     function getWithdrawableAssets(address delegator, address delegatee)

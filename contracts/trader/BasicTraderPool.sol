@@ -25,17 +25,6 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         _;
     }
 
-    function _onlyProposalPool() internal view {
-        require(msg.sender == address(_traderPoolProposal), "BTP: not a proposal");
-    }
-
-    function _canTrade(address token) internal view {
-        require(
-            token == _poolParameters.baseToken || coreProperties.isWhitelistedToken(token),
-            "BTP: invalid exchange"
-        );
-    }
-
     function __BasicTraderPool_init(
         string calldata name,
         string calldata symbol,
@@ -55,20 +44,6 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         AbstractDependant(address(_traderPoolProposal)).setDependencies(contractsRegistry);
     }
 
-    function canRemovePrivateInvestor(address investor) public view override returns (bool) {
-        return
-            balanceOf(investor) == 0 &&
-            _traderPoolProposal.getTotalActiveInvestments(investor) == 0;
-    }
-
-    function proposalPoolAddress() external view override returns (address) {
-        return address(_traderPoolProposal);
-    }
-
-    function totalEmission() public view override returns (uint256) {
-        return totalSupply() + _traderPoolProposal.totalLockedLP();
-    }
-
     function exchange(
         address from,
         address to,
@@ -77,7 +52,10 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         address[] calldata optionalPath,
         ExchangeType exType
     ) public override {
-        _canTrade(to);
+        require(
+            to == _poolParameters.baseToken || coreProperties.isWhitelistedToken(to),
+            "BTP: invalid exchange"
+        );
 
         super.exchange(from, to, amount, amountBound, optionalPath, exType);
     }
@@ -143,11 +121,29 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         emit ProposalDivested(proposalId, msg.sender, lp2Amount, lpMinted, receivedBase);
     }
 
+    function proposalPoolAddress() external view override returns (address) {
+        return address(_traderPoolProposal);
+    }
+
+    function totalEmission() public view override returns (uint256) {
+        return totalSupply() + _traderPoolProposal.totalLockedLP();
+    }
+
+    function canRemovePrivateInvestor(address investor) public view override returns (bool) {
+        return
+            balanceOf(investor) == 0 &&
+            _traderPoolProposal.getTotalActiveInvestments(investor) == 0;
+    }
+
     function checkRemoveInvestor(address user) external override onlyProposalPool {
         _checkRemoveInvestor(user, 0);
     }
 
     function checkNewInvestor(address user) external override onlyProposalPool {
         _checkNewInvestor(user);
+    }
+
+    function _onlyProposalPool() internal view {
+        require(msg.sender == address(_traderPoolProposal), "BTP: not a proposal");
     }
 }

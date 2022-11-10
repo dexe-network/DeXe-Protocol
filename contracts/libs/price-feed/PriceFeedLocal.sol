@@ -17,24 +17,6 @@ library PriceFeedLocal {
         }
     }
 
-    function getNormPriceOut(
-        IPriceFeed priceFeed,
-        address inToken,
-        address outToken,
-        uint256 amountIn
-    ) internal view returns (uint256 amountOut) {
-        (amountOut, ) = priceFeed.getNormalizedPriceOut(inToken, outToken, amountIn);
-    }
-
-    function getNormPriceIn(
-        IPriceFeed priceFeed,
-        address inToken,
-        address outToken,
-        uint256 amountOut
-    ) internal view returns (uint256 amountIn) {
-        (amountIn, ) = priceFeed.getNormalizedPriceIn(inToken, outToken, amountOut);
-    }
-
     function normExchangeFromExact(
         IPriceFeed priceFeed,
         address inToken,
@@ -69,5 +51,23 @@ library PriceFeedLocal {
                 optionalPath,
                 maxAmountIn
             );
+    }
+
+    function getNormPriceOut(
+        IPriceFeed priceFeed,
+        address inToken,
+        address outToken,
+        uint256 amountIn
+    ) internal view returns (uint256 amountOut) {
+        (amountOut, ) = priceFeed.getNormalizedPriceOut(inToken, outToken, amountIn);
+    }
+
+    function getNormPriceIn(
+        IPriceFeed priceFeed,
+        address inToken,
+        address outToken,
+        uint256 amountOut
+    ) internal view returns (uint256 amountIn) {
+        (amountIn, ) = priceFeed.getNormalizedPriceIn(inToken, outToken, amountOut);
     }
 }

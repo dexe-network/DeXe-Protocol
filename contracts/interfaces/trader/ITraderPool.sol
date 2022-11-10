@@ -179,11 +179,6 @@ interface ITraderPool {
     /// @param add if true the investors will be added, if false the investors will be removed
     function modifyPrivateInvestors(address[] calldata privateInvestors, bool add) external;
 
-    /// @notice The function that check if the private investor can be removed
-    /// @param investor private investor
-    /// @return true if can be removed, false otherwise
-    function canRemovePrivateInvestor(address investor) external view returns (bool);
-
     /// @notice The function to change certain parameters of the pool
     /// @param descriptionURL the IPFS URL to new description
     /// @param privatePool the new access for this pool
@@ -196,9 +191,45 @@ interface ITraderPool {
         uint256 minimalInvestment
     ) external;
 
-    /// @notice The function to get the total number of investors
-    /// @return the total number of investors
-    function totalInvestors() external view returns (uint256);
+    /// @notice The function to invest into the pool. The "getInvestTokens" function has to be called to receive minPositionsOut amounts
+    /// @param amountInBaseToInvest the amount of base tokens to be invested (normalized)
+    /// @param minPositionsOut the minimal amounts of position tokens to be received
+    function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut) external;
+
+    /// @notice The function that takes the commission from the users' income. This function should be called once per the
+    /// commission period. Use "getReinvestCommissions()" function to get minDexeCommissionOut parameter
+    /// @param offsetLimits the array of starting indexes and the lengths of the investors array.
+    /// Starting indexes are under even positions, lengths are under odd
+    /// @param minDexeCommissionOut the minimal amount of DEXE tokens the platform will receive
+    function reinvestCommission(uint256[] calldata offsetLimits, uint256 minDexeCommissionOut)
+        external;
+
+    /// @notice The function to divest from the pool. The "getDivestAmountsAndCommissions()" function should be called
+    /// to receive minPositionsOut and minDexeCommissionOut parameters
+    /// @param amountLP the amount of LP tokens to divest
+    /// @param minPositionsOut the amount of positions tokens to be converted into the base tokens and given to the user
+    /// @param minDexeCommissionOut the DEXE commission in DEXE tokens
+    function divest(
+        uint256 amountLP,
+        uint256[] calldata minPositionsOut,
+        uint256 minDexeCommissionOut
+    ) external;
+
+    /// @notice The function to exchange tokens for tokens
+    /// @param from the tokens to exchange from
+    /// @param to the token to exchange to
+    /// @param amount the amount of tokens to be exchanged (normalized). If fromExact, this should equal amountIn, else amountOut
+    /// @param amountBound this should be minAmountOut if fromExact, else maxAmountIn
+    /// @param optionalPath the optional path between from and to tokens used by the pathfinder
+    /// @param exType exchange type. Can be exchangeFromExact or exchangeToExact
+    function exchange(
+        address from,
+        address to,
+        uint256 amount,
+        uint256 amountBound,
+        address[] calldata optionalPath,
+        ExchangeType exType
+    ) external;
 
     /// @notice The function to get an address of a proposal pool used by this contract
     /// @return the address of the proposal pool
@@ -207,6 +238,15 @@ interface ITraderPool {
     /// @notice The function that returns the actual LP emission (the totalSupply() might be less)
     /// @return the actual LP tokens emission
     function totalEmission() external view returns (uint256);
+
+    /// @notice The function that check if the private investor can be removed
+    /// @param investor private investor
+    /// @return true if can be removed, false otherwise
+    function canRemovePrivateInvestor(address investor) external view returns (bool);
+
+    /// @notice The function to get the total number of investors
+    /// @return the total number of investors
+    function totalInvestors() external view returns (uint256);
 
     /// @notice The function that returns the filtered open positions list (filtered against the blacklist)
     /// @return the array of open positions
@@ -240,11 +280,6 @@ interface ITraderPool {
         view
         returns (Receptions memory receptions);
 
-    /// @notice The function to invest into the pool. The "getInvestTokens" function has to be called to receive minPositionsOut amounts
-    /// @param amountInBaseToInvest the amount of base tokens to be invested (normalized)
-    /// @param minPositionsOut the minimal amounts of position tokens to be received
-    function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut) external;
-
     /// @notice The function to get the received commissions from the users when the "reinvestCommission" function is called.
     /// This function also "projects" commissions to the current positions if they were to be closed
     /// @param offsetLimits the starting indexes and the lengths of the investors array
@@ -255,13 +290,9 @@ interface ITraderPool {
         view
         returns (Commissions memory commissions);
 
-    /// @notice The function that takes the commission from the users' income. This function should be called once per the
-    /// commission period. Use "getReinvestCommissions()" function to get minDexeCommissionOut parameter
-    /// @param offsetLimits the array of starting indexes and the lengths of the investors array.
-    /// Starting indexes are under even positions, lengths are under odd
-    /// @param minDexeCommissionOut the minimal amount of DEXE tokens the platform will receive
-    function reinvestCommission(uint256[] calldata offsetLimits, uint256 minDexeCommissionOut)
-        external;
+    /// @notice The function to get the next commission epoch
+    /// @return next commission epoch
+    function getNextCommissionEpoch() external view returns (uint256);
 
     /// @notice The function to get the commissions and received tokens when the "divest" function is called
     /// @param user the address of the user who is going to divest
@@ -272,33 +303,6 @@ interface ITraderPool {
         external
         view
         returns (Receptions memory receptions, Commissions memory commissions);
-
-    /// @notice The function to divest from the pool. The "getDivestAmountsAndCommissions()" function should be called
-    /// to receive minPositionsOut and minDexeCommissionOut parameters
-    /// @param amountLP the amount of LP tokens to divest
-    /// @param minPositionsOut the amount of positions tokens to be converted into the base tokens and given to the user
-    /// @param minDexeCommissionOut the DEXE commission in DEXE tokens
-    function divest(
-        uint256 amountLP,
-        uint256[] calldata minPositionsOut,
-        uint256 minDexeCommissionOut
-    ) external;
-
-    /// @notice The function to exchange tokens for tokens
-    /// @param from the tokens to exchange from
-    /// @param to the token to exchange to
-    /// @param amount the amount of tokens to be exchanged (normalized). If fromExact, this should equal amountIn, else amountOut
-    /// @param amountBound this should be minAmountOut if fromExact, else maxAmountIn
-    /// @param optionalPath the optional path between from and to tokens used by the pathfinder
-    /// @param exType exchange type. Can be exchangeFromExact or exchangeToExact
-    function exchange(
-        address from,
-        address to,
-        uint256 amount,
-        uint256 amountBound,
-        address[] calldata optionalPath,
-        ExchangeType exType
-    ) external;
 
     /// @notice The function to get token prices required for the slippage
     /// @param from the token to exchange from

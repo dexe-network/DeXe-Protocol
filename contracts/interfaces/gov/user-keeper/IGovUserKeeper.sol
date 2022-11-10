@@ -24,6 +24,12 @@ interface IGovUserKeeper {
         EnumerableSet.AddressSet delegatees;
     }
 
+    struct DelegationInfoView {
+        address delegatee;
+        uint256 delegatedTokens;
+        uint256[] delegatedNfts;
+    }
+
     struct NFTInfo {
         bool isSupportPower;
         uint256 totalPowerInTokens;
@@ -83,70 +89,7 @@ interface IGovUserKeeper {
         uint256[] calldata nftIds
     ) external;
 
-    function maxLockedAmount(address voter, bool isMicropool) external view returns (uint256);
-
-    function tokenBalance(
-        address voter,
-        bool isMicropool,
-        bool useDelegated
-    ) external view returns (uint256 balance, uint256 ownedBalance);
-
-    function nftBalance(
-        address voter,
-        bool isMicropool,
-        bool useDelegated
-    ) external view returns (uint256 balance, uint256 ownedBalance);
-
-    function nftExactBalance(
-        address voter,
-        bool isMicropool,
-        bool useDelegated
-    ) external view returns (uint256[] memory nfts, uint256 ownedLength);
-
-    function getNftsPowerInTokensBySnapshot(uint256[] calldata nftIds, uint256 snapshotId)
-        external
-        view
-        returns (uint256);
-
     function createNftPowerSnapshot() external returns (uint256);
-
-    function getTotalVoteWeight() external view returns (uint256);
-
-    function canParticipate(
-        address voter,
-        bool isMicropool,
-        bool useDelegated,
-        uint256 requiredVotes,
-        uint256 snapshotId
-    ) external view returns (bool);
-
-    function votingPower(
-        address user,
-        bool isMicropool,
-        bool useDelegated
-    ) external view returns (uint256 power, uint256[] memory nftPower);
-
-    function getUndelegateableAssets(
-        address delegator,
-        address delegatee,
-        ShrinkableArray.UintArray calldata lockedProposals,
-        uint256[] calldata unlockedNfts
-    )
-        external
-        view
-        returns (
-            uint256 undelegateableTokens,
-            ShrinkableArray.UintArray memory undelegateableNfts
-        );
-
-    function getWithdrawableAssets(
-        address voter,
-        ShrinkableArray.UintArray calldata lockedProposals,
-        uint256[] calldata unlockedNfts
-    )
-        external
-        view
-        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts);
 
     function updateMaxTokenLockedAmount(
         uint256[] calldata lockedProposals,
@@ -183,4 +126,72 @@ interface IGovUserKeeper {
         uint256 totalPowerInTokens,
         uint256 nftsTotalSupply
     ) external;
+
+    function maxLockedAmount(address voter, bool isMicropool) external view returns (uint256);
+
+    function tokenBalance(
+        address voter,
+        bool isMicropool,
+        bool useDelegated
+    ) external view returns (uint256 balance, uint256 ownedBalance);
+
+    function nftBalance(
+        address voter,
+        bool isMicropool,
+        bool useDelegated
+    ) external view returns (uint256 balance, uint256 ownedBalance);
+
+    function nftExactBalance(
+        address voter,
+        bool isMicropool,
+        bool useDelegated
+    ) external view returns (uint256[] memory nfts, uint256 ownedLength);
+
+    function getNftsPowerInTokensBySnapshot(uint256[] calldata nftIds, uint256 snapshotId)
+        external
+        view
+        returns (uint256);
+
+    function getTotalVoteWeight() external view returns (uint256);
+
+    function canParticipate(
+        address voter,
+        bool isMicropool,
+        bool useDelegated,
+        uint256 requiredVotes,
+        uint256 snapshotId
+    ) external view returns (bool);
+
+    function votingPower(
+        address user,
+        bool isMicropool,
+        bool useDelegated
+    ) external view returns (uint256 power, uint256[] memory nftPower);
+
+    function delegations(address user)
+        external
+        view
+        returns (DelegationInfoView[] memory delegationsInfo);
+
+    function getUndelegateableAssets(
+        address delegator,
+        address delegatee,
+        ShrinkableArray.UintArray calldata lockedProposals,
+        uint256[] calldata unlockedNfts
+    )
+        external
+        view
+        returns (
+            uint256 undelegateableTokens,
+            ShrinkableArray.UintArray memory undelegateableNfts
+        );
+
+    function getWithdrawableAssets(
+        address voter,
+        ShrinkableArray.UintArray calldata lockedProposals,
+        uint256[] calldata unlockedNfts
+    )
+        external
+        view
+        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts);
 }

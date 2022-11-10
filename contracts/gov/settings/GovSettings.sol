@@ -117,7 +117,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         return settings[uint256(ExecutorType.DEFAULT)];
     }
 
-    function getSettings(address executor)
+    function getExecutorSettings(address executor)
         external
         view
         override

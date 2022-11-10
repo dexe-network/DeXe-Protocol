@@ -20,30 +20,18 @@ library TraderPoolCommission {
     using SafeERC20 for IERC20;
     using TokenBalance for address;
 
-    function _calculateInvestorCommission(
-        ITraderPool.PoolParameters storage poolParameters,
-        uint256 investorBaseAmount,
-        uint256 investorLPAmount,
-        uint256 investedBaseAmount
-    ) internal view returns (uint256 baseCommission, uint256 lpCommission) {
-        if (investorBaseAmount > investedBaseAmount) {
-            baseCommission = (investorBaseAmount - investedBaseAmount).percentage(
-                poolParameters.commissionPercentage
+    function sendDexeCommission(
+        IERC20 dexeToken,
+        uint256 dexeCommission,
+        uint256[] calldata poolPercentages,
+        address[3] calldata commissionReceivers
+    ) external {
+        for (uint256 i = 0; i < commissionReceivers.length; i++) {
+            dexeToken.safeTransfer(
+                commissionReceivers[i],
+                dexeCommission.percentage(poolPercentages[i])
             );
-            lpCommission = investorLPAmount.ratio(baseCommission, investorBaseAmount);
         }
-    }
-
-    function nextCommissionEpoch(ITraderPool.PoolParameters storage poolParameters)
-        public
-        view
-        returns (uint256)
-    {
-        return
-            ITraderPool(address(this)).coreProperties().getCommissionEpochByTimestamp(
-                block.timestamp,
-                poolParameters.commissionPeriod
-            );
     }
 
     function calculateCommissionOnReinvest(
@@ -93,6 +81,18 @@ library TraderPoolCommission {
         }
     }
 
+    function nextCommissionEpoch(ITraderPool.PoolParameters storage poolParameters)
+        external
+        view
+        returns (uint256)
+    {
+        return
+            ITraderPool(address(this)).coreProperties().getCommissionEpochByTimestamp(
+                block.timestamp,
+                poolParameters.commissionPeriod
+            );
+    }
+
     function calculateDexeCommission(
         uint256 baseToDistribute,
         uint256 lpToDistribute,
@@ -102,17 +102,17 @@ library TraderPoolCommission {
         baseCommission = baseToDistribute.percentage(dexePercentage);
     }
 
-    function sendDexeCommission(
-        IERC20 dexeToken,
-        uint256 dexeCommission,
-        uint256[] calldata poolPercentages,
-        address[3] calldata commissionReceivers
-    ) external {
-        for (uint256 i = 0; i < commissionReceivers.length; i++) {
-            dexeToken.safeTransfer(
-                commissionReceivers[i],
-                dexeCommission.percentage(poolPercentages[i])
+    function _calculateInvestorCommission(
+        ITraderPool.PoolParameters storage poolParameters,
+        uint256 investorBaseAmount,
+        uint256 investorLPAmount,
+        uint256 investedBaseAmount
+    ) internal view returns (uint256 baseCommission, uint256 lpCommission) {
+        if (investorBaseAmount > investedBaseAmount) {
+            baseCommission = (investorBaseAmount - investedBaseAmount).percentage(
+                poolParameters.commissionPercentage
             );
+            lpCommission = investorLPAmount.ratio(baseCommission, investorBaseAmount);
         }
     }
 }

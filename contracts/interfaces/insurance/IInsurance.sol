@@ -28,14 +28,34 @@ interface IInsurance {
     /// @param deposit the amount of DEXE tokens to be deposited
     function buyInsurance(uint256 deposit) external;
 
+    /// @notice The function to withdraw deposited DEXE tokens back (the insurance will cover less tokens as well)
+    /// @param amountToWithdraw the amount of DEXE tokens to withdraw
+    function withdraw(uint256 amountToWithdraw) external;
+
+    /// @notice The function called by the DAO to accept the claim
+    /// @param url the IPFS URL of the claim to accept
+    /// @param users the receivers of the claim
+    /// @param amounts the amounts in DEXE tokens to be paid to the receivers (the contract will validate the payout amounts)
+    function acceptClaim(
+        string calldata url,
+        address[] calldata users,
+        uint256[] memory amounts
+    ) external;
+
     /// @notice The function that calculates received insurance from the deposited tokens
     /// @param deposit the amount of tokens to be deposited
     /// @return the received insurance tokens
     function getReceivedInsurance(uint256 deposit) external view returns (uint256);
 
-    /// @notice The function to withdraw deposited DEXE tokens back (the insurance will cover less tokens as well)
-    /// @param amountToWithdraw the amount of DEXE tokens to withdraw
-    function withdraw(uint256 amountToWithdraw) external;
+    /// @notice The function to get user's insurance info
+    /// @param user the user to get info about
+    /// @return deposit the total DEXE deposit of the provided user
+    /// @return insurance the total insurance of the provided user
+    function getInsurance(address user) external view returns (uint256 deposit, uint256 insurance);
+
+    /// @notice The function to get the maximum insurance payout
+    /// @return the maximum insurance payout in dexe
+    function getMaxTreasuryPayout() external view returns (uint256);
 
     /// @notice The function to get the total number of accepted claims
     /// @return the number of accepted claims
@@ -50,24 +70,4 @@ interface IInsurance {
         external
         view
         returns (string[] memory urls, AcceptedClaims[] memory info);
-
-    /// @notice The function called by the DAO to accept the claim
-    /// @param url the IPFS URL of the claim to accept
-    /// @param users the receivers of the claim
-    /// @param amounts the amounts in DEXE tokens to be paid to the receivers (the contract will validate the payout amounts)
-    function acceptClaim(
-        string calldata url,
-        address[] calldata users,
-        uint256[] memory amounts
-    ) external;
-
-    /// @notice The function to get the maximum insurance payout
-    /// @return the maximum insurance payout in dexe
-    function getMaxTreasuryPayout() external view returns (uint256);
-
-    /// @notice The function to get user's insurance info
-    /// @param user the user to get info about
-    /// @return deposit the total DEXE deposit of the provided user
-    /// @return insurance the total insurance of the provided user
-    function getInsurance(address user) external view returns (uint256 deposit, uint256 insurance);
 }

@@ -62,41 +62,6 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         emit ProposalRestrictionsChanged(proposalId, msg.sender);
     }
 
-    function getProposalInfos(uint256 offset, uint256 limit)
-        external
-        view
-        override
-        returns (ProposalInfoExtended[] memory proposals)
-    {
-        return
-            TraderPoolInvestProposalView.getProposalInfos(
-                _proposalInfos,
-                _investors,
-                offset,
-                limit
-            );
-    }
-
-    function getActiveInvestmentsInfo(
-        address user,
-        uint256 offset,
-        uint256 limit
-    ) external view override returns (ActiveInvestmentInfo[] memory investments) {
-        return
-            TraderPoolInvestProposalView.getActiveInvestmentsInfo(
-                _activeInvestments[user],
-                _baseBalances,
-                _lpBalances,
-                user,
-                offset,
-                limit
-            );
-    }
-
-    function _baseInProposal(uint256 proposalId) internal view override returns (uint256) {
-        return _proposalInfos[proposalId].investedBase;
-    }
-
     function create(
         string calldata descriptionURL,
         ProposalLimits calldata proposalLimits,
@@ -156,106 +121,6 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         info.lpLocked += lpInvestment;
         info.investedBase += baseInvestment;
         info.newInvestedBase += baseInvestment;
-    }
-
-    function getRewards(uint256[] calldata proposalIds, address user)
-        external
-        view
-        override
-        returns (Receptions memory receptions)
-    {
-        return
-            TraderPoolInvestProposalView.getRewards(
-                _rewardInfos,
-                _userRewardInfos,
-                proposalIds,
-                user
-            );
-    }
-
-    function _payout(
-        address user,
-        uint256[] memory claimed,
-        address[] memory addresses
-    ) internal {
-        for (uint256 i = 0; i < addresses.length; i++) {
-            address token = addresses[i];
-
-            if (token == address(0)) {
-                continue;
-            }
-
-            IERC20(token).safeTransfer(user, claimed[i].from18(ERC20(token).decimals()));
-        }
-    }
-
-    function _updateCumulativeSum(
-        uint256 proposalId,
-        uint256 amount,
-        address token
-    ) internal {
-        RewardInfo storage rewardInfo = _rewardInfos[proposalId];
-
-        rewardInfo.rewardTokens.add(token);
-        rewardInfo.cumulativeSums[token] += PRECISION.ratio(amount, totalSupply(proposalId));
-    }
-
-    function _updateRewards(uint256 proposalId, address user) internal {
-        UserRewardInfo storage userRewardInfo = _userRewardInfos[user][proposalId];
-        RewardInfo storage rewardInfo = _rewardInfos[proposalId];
-
-        uint256 length = rewardInfo.rewardTokens.length();
-
-        for (uint256 i = 0; i < length; i++) {
-            address token = rewardInfo.rewardTokens.at(i);
-            uint256 cumulativeSum = rewardInfo.cumulativeSums[token];
-
-            userRewardInfo.rewardsStored[token] +=
-                ((cumulativeSum - userRewardInfo.cumulativeSumsStored[token]) *
-                    balanceOf(user, proposalId)) /
-                PRECISION;
-            userRewardInfo.cumulativeSumsStored[token] = cumulativeSum;
-        }
-    }
-
-    function _calculateRewards(uint256 proposalId, address user)
-        internal
-        returns (
-            uint256 totalClaimed,
-            uint256[] memory claimed,
-            address[] memory addresses
-        )
-    {
-        _updateRewards(proposalId, user);
-
-        RewardInfo storage rewardInfo = _rewardInfos[proposalId];
-        uint256 length = rewardInfo.rewardTokens.length();
-
-        claimed = new uint256[](length);
-        addresses = new address[](length);
-
-        address baseToken = _parentTraderPoolInfo.baseToken;
-        uint256 baseIndex;
-
-        for (uint256 i = 0; i < length; i++) {
-            address token = rewardInfo.rewardTokens.at(i);
-
-            claimed[i] = _userRewardInfos[user][proposalId].rewardsStored[token];
-            addresses[i] = token;
-            totalClaimed += claimed[i];
-
-            delete _userRewardInfos[user][proposalId].rewardsStored[token];
-
-            if (token == baseToken) {
-                baseIndex = i;
-            }
-        }
-
-        if (length > 0) {
-            /// @dev make the base token first (if not found, do nothing)
-            (claimed[0], claimed[baseIndex]) = (claimed[baseIndex], claimed[0]);
-            (addresses[0], addresses[baseIndex]) = (addresses[baseIndex], addresses[0]);
-        }
     }
 
     function divest(uint256 proposalId, address user)
@@ -344,6 +209,137 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         emit ProposalConverted(proposalId, msg.sender, newInvestedBase, baseToken);
     }
 
+    function getProposalInfos(uint256 offset, uint256 limit)
+        external
+        view
+        override
+        returns (ProposalInfoExtended[] memory proposals)
+    {
+        return
+            TraderPoolInvestProposalView.getProposalInfos(
+                _proposalInfos,
+                _investors,
+                offset,
+                limit
+            );
+    }
+
+    function getActiveInvestmentsInfo(
+        address user,
+        uint256 offset,
+        uint256 limit
+    ) external view override returns (ActiveInvestmentInfo[] memory investments) {
+        return
+            TraderPoolInvestProposalView.getActiveInvestmentsInfo(
+                _activeInvestments[user],
+                _baseBalances,
+                _lpBalances,
+                user,
+                offset,
+                limit
+            );
+    }
+
+    function getRewards(uint256[] calldata proposalIds, address user)
+        external
+        view
+        override
+        returns (Receptions memory receptions)
+    {
+        return
+            TraderPoolInvestProposalView.getRewards(
+                _rewardInfos,
+                _userRewardInfos,
+                proposalIds,
+                user
+            );
+    }
+
+    function _updateCumulativeSum(
+        uint256 proposalId,
+        uint256 amount,
+        address token
+    ) internal {
+        RewardInfo storage rewardInfo = _rewardInfos[proposalId];
+
+        rewardInfo.rewardTokens.add(token);
+        rewardInfo.cumulativeSums[token] += PRECISION.ratio(amount, totalSupply(proposalId));
+    }
+
+    function _updateRewards(uint256 proposalId, address user) internal {
+        UserRewardInfo storage userRewardInfo = _userRewardInfos[user][proposalId];
+        RewardInfo storage rewardInfo = _rewardInfos[proposalId];
+
+        uint256 length = rewardInfo.rewardTokens.length();
+
+        for (uint256 i = 0; i < length; i++) {
+            address token = rewardInfo.rewardTokens.at(i);
+            uint256 cumulativeSum = rewardInfo.cumulativeSums[token];
+
+            userRewardInfo.rewardsStored[token] +=
+                ((cumulativeSum - userRewardInfo.cumulativeSumsStored[token]) *
+                    balanceOf(user, proposalId)) /
+                PRECISION;
+            userRewardInfo.cumulativeSumsStored[token] = cumulativeSum;
+        }
+    }
+
+    function _calculateRewards(uint256 proposalId, address user)
+        internal
+        returns (
+            uint256 totalClaimed,
+            uint256[] memory claimed,
+            address[] memory addresses
+        )
+    {
+        _updateRewards(proposalId, user);
+
+        RewardInfo storage rewardInfo = _rewardInfos[proposalId];
+        uint256 length = rewardInfo.rewardTokens.length();
+
+        claimed = new uint256[](length);
+        addresses = new address[](length);
+
+        address baseToken = _parentTraderPoolInfo.baseToken;
+        uint256 baseIndex;
+
+        for (uint256 i = 0; i < length; i++) {
+            address token = rewardInfo.rewardTokens.at(i);
+
+            claimed[i] = _userRewardInfos[user][proposalId].rewardsStored[token];
+            addresses[i] = token;
+            totalClaimed += claimed[i];
+
+            delete _userRewardInfos[user][proposalId].rewardsStored[token];
+
+            if (token == baseToken) {
+                baseIndex = i;
+            }
+        }
+
+        if (length > 0) {
+            /// @dev make the base token first (if not found, do nothing)
+            (claimed[0], claimed[baseIndex]) = (claimed[baseIndex], claimed[0]);
+            (addresses[0], addresses[baseIndex]) = (addresses[baseIndex], addresses[0]);
+        }
+    }
+
+    function _payout(
+        address user,
+        uint256[] memory claimed,
+        address[] memory addresses
+    ) internal {
+        for (uint256 i = 0; i < addresses.length; i++) {
+            address token = addresses[i];
+
+            if (token == address(0)) {
+                continue;
+            }
+
+            IERC20(token).safeTransfer(user, claimed[i].from18(ERC20(token).decimals()));
+        }
+    }
+
     function _updateFrom(
         address user,
         uint256 proposalId,
@@ -365,5 +361,9 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         _updateRewards(proposalId, user);
 
         super._updateTo(user, proposalId, lp2Amount, lpAmount, baseAmount);
+    }
+
+    function _baseInProposal(uint256 proposalId) internal view override returns (uint256) {
+        return _proposalInfos[proposalId].investedBase;
     }
 }

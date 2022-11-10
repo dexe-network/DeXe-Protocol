@@ -500,7 +500,7 @@ describe("PoolFactory", () => {
 
       let govSettings = await GovSettings.at(helperContracts[0]);
       let govValidators = await GovValidators.at(helperContracts[2]);
-      let settings = await govSettings.getSettings(helperContracts[3]);
+      let settings = await govSettings.getExecutorSettings(helperContracts[3]);
 
       assert.equal(await govPool.descriptionURL(), "example.com");
 

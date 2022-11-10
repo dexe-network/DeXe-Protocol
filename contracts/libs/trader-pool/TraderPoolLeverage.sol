@@ -15,26 +15,6 @@ library TraderPoolLeverage {
     using MathHelper for uint256;
     using TraderPoolPrice for ITraderPool.PoolParameters;
 
-    function _getNormalizedLeveragePoolPriceInUSD(
-        ITraderPool.PoolParameters storage poolParameters
-    ) internal view returns (uint256 totalInUSD, uint256 traderInUSD) {
-        address trader = poolParameters.trader;
-        address proposalPool = ITraderPool(address(this)).proposalPoolAddress();
-        uint256 totalEmission = ITraderPool(address(this)).totalEmission();
-        uint256 traderBalance = IERC20(address(this)).balanceOf(trader);
-
-        (, totalInUSD) = poolParameters.getNormalizedPoolPriceAndUSD();
-
-        if (proposalPool != address(0)) {
-            totalInUSD += ITraderPoolProposal(proposalPool).getInvestedBaseInUSD();
-            traderBalance += ITraderPoolProposal(proposalPool).totalLPBalances(trader);
-        }
-
-        if (totalEmission > 0) {
-            traderInUSD = totalInUSD.ratio(traderBalance, totalEmission);
-        }
-    }
-
     function getMaxTraderLeverage(ITraderPool.PoolParameters storage poolParameters)
         public
         view
@@ -76,5 +56,25 @@ library TraderPoolLeverage {
         );
 
         require(addInUSD + totalPriceInUSD <= maxTraderVolumeInUSD, "TP: leverage exceeded");
+    }
+
+    function _getNormalizedLeveragePoolPriceInUSD(
+        ITraderPool.PoolParameters storage poolParameters
+    ) internal view returns (uint256 totalInUSD, uint256 traderInUSD) {
+        address trader = poolParameters.trader;
+        address proposalPool = ITraderPool(address(this)).proposalPoolAddress();
+        uint256 totalEmission = ITraderPool(address(this)).totalEmission();
+        uint256 traderBalance = IERC20(address(this)).balanceOf(trader);
+
+        (, totalInUSD) = poolParameters.getNormalizedPoolPriceAndUSD();
+
+        if (proposalPool != address(0)) {
+            totalInUSD += ITraderPoolProposal(proposalPool).getInvestedBaseInUSD();
+            traderBalance += ITraderPoolProposal(proposalPool).totalLPBalances(trader);
+        }
+
+        if (totalEmission > 0) {
+            traderInUSD = totalInUSD.ratio(traderBalance, totalEmission);
+        }
     }
 }

@@ -193,10 +193,6 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         emit InternalProposalExecuted(proposalId, msg.sender);
     }
 
-    function isValidator(address user) public view override returns (bool) {
-        return govValidatorsToken.balanceOf(user) > 0;
-    }
-
     function getExternalProposal(uint256 index)
         external
         view
@@ -235,6 +231,10 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             isInternal
                 ? _getProposalState(_internalProposals[proposalId].core)
                 : _getProposalState(_externalProposals[proposalId].core);
+    }
+
+    function isValidator(address user) public view override returns (bool) {
+        return govValidatorsToken.balanceOf(user) > 0;
     }
 
     function _getProposalState(ProposalCore storage core) internal view returns (ProposalState) {

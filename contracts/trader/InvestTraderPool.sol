@@ -28,10 +28,6 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         _;
     }
 
-    function _onlyProposalPool() internal view {
-        require(msg.sender == address(_traderPoolProposal), "ITP: not a proposal");
-    }
-
     function __InvestTraderPool_init(
         string calldata name,
         string calldata symbol,
@@ -51,26 +47,6 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         AbstractDependant(address(_traderPoolProposal)).setDependencies(contractsRegistry);
     }
 
-    function canRemovePrivateInvestor(address investor) public view override returns (bool) {
-        return
-            balanceOf(investor) == 0 &&
-            _traderPoolProposal.getTotalActiveInvestments(investor) == 0;
-    }
-
-    function proposalPoolAddress() external view override returns (address) {
-        return address(_traderPoolProposal);
-    }
-
-    function totalEmission() public view override returns (uint256) {
-        return totalSupply() + _traderPoolProposal.totalLockedLP();
-    }
-
-    function getInvestDelayEnd() public view override returns (uint256) {
-        uint256 delay = coreProperties.getDelayForRiskyPool();
-
-        return delay != 0 ? (_firstExchange != 0 ? _firstExchange + delay : MAX_UINT) : 0;
-    }
-
     function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut)
         public
         override
@@ -81,12 +57,6 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         );
 
         super.invest(amountInBaseToInvest, minPositionsOut);
-    }
-
-    function _setFirstExchangeTime() internal {
-        if (_firstExchange == 0) {
-            _firstExchange = block.timestamp;
-        }
     }
 
     function exchange(
@@ -153,11 +123,41 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         emit ProposalDivested(proposalId, msg.sender, 0, lpMinted, receivedBase);
     }
 
+    function proposalPoolAddress() external view override returns (address) {
+        return address(_traderPoolProposal);
+    }
+
+    function totalEmission() public view override returns (uint256) {
+        return totalSupply() + _traderPoolProposal.totalLockedLP();
+    }
+
+    function canRemovePrivateInvestor(address investor) public view override returns (bool) {
+        return
+            balanceOf(investor) == 0 &&
+            _traderPoolProposal.getTotalActiveInvestments(investor) == 0;
+    }
+
+    function getInvestDelayEnd() public view override returns (uint256) {
+        uint256 delay = coreProperties.getDelayForRiskyPool();
+
+        return delay != 0 ? (_firstExchange != 0 ? _firstExchange + delay : MAX_UINT) : 0;
+    }
+
     function checkRemoveInvestor(address user) external override onlyProposalPool {
         _checkRemoveInvestor(user, 0);
     }
 
     function checkNewInvestor(address user) external override onlyProposalPool {
         _checkNewInvestor(user);
+    }
+
+    function _setFirstExchangeTime() internal {
+        if (_firstExchange == 0) {
+            _firstExchange = block.timestamp;
+        }
+    }
+
+    function _onlyProposalPool() internal view {
+        require(msg.sender == address(_traderPoolProposal), "ITP: not a proposal");
     }
 }

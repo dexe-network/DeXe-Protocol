@@ -67,10 +67,6 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         emit Deposited(deposit, msg.sender);
     }
 
-    function getReceivedInsurance(uint256 deposit) public view override returns (uint256) {
-        return deposit * _coreProperties.getInsuranceFactor();
-    }
-
     function withdraw(uint256 amountToWithdraw) external override {
         UserInfo storage userInfo = userInfos[msg.sender];
 
@@ -88,25 +84,6 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         _dexe.transfer(msg.sender, amountToWithdraw);
 
         emit Withdrawn(amountToWithdraw, msg.sender);
-    }
-
-    function acceptedClaimsCount() external view override returns (uint256) {
-        return _acceptedClaims.length();
-    }
-
-    function listAcceptedClaims(uint256 offset, uint256 limit)
-        external
-        view
-        override
-        returns (string[] memory urls, AcceptedClaims[] memory info)
-    {
-        urls = _acceptedClaims.part(offset, limit);
-
-        info = new AcceptedClaims[](urls.length);
-
-        for (uint256 i = 0; i < urls.length; i++) {
-            info[i] = _acceptedClaimsInfo[urls[i]];
-        }
     }
 
     function acceptClaim(
@@ -137,6 +114,10 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         _acceptedClaimsInfo[url] = AcceptedClaims(users, amounts);
     }
 
+    function getReceivedInsurance(uint256 deposit) public view override returns (uint256) {
+        return deposit * _coreProperties.getInsuranceFactor();
+    }
+
     function getInsurance(address user) external view override returns (uint256, uint256) {
         uint256 deposit = userInfos[user].stake;
 
@@ -148,6 +129,25 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
             (address(_dexe).thisBalance() - _poolReserved).percentage(
                 _coreProperties.getMaxInsurancePoolShare()
             );
+    }
+
+    function acceptedClaimsCount() external view override returns (uint256) {
+        return _acceptedClaims.length();
+    }
+
+    function listAcceptedClaims(uint256 offset, uint256 limit)
+        external
+        view
+        override
+        returns (string[] memory urls, AcceptedClaims[] memory info)
+    {
+        urls = _acceptedClaims.part(offset, limit);
+
+        info = new AcceptedClaims[](urls.length);
+
+        for (uint256 i = 0; i < urls.length; i++) {
+            info[i] = _acceptedClaimsInfo[urls[i]];
+        }
     }
 
     function _payout(address user, uint256 insurancePayout) internal returns (uint256 payout) {

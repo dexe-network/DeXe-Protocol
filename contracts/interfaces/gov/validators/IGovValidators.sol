@@ -91,8 +91,6 @@ interface IGovValidators {
     /// @param proposalId Internal proposal ID
     function execute(uint256 proposalId) external;
 
-    function isValidator(address user) external view returns (bool);
-
     function getExternalProposal(uint256 index) external view returns (ExternalProposal memory);
 
     function getInternalProposals(uint256 offset, uint256 limit)
@@ -111,4 +109,6 @@ interface IGovValidators {
         external
         view
         returns (ProposalState);
+
+    function isValidator(address user) external view returns (bool);
 }

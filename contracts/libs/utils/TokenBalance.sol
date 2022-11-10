@@ -13,20 +13,6 @@ library TokenBalance {
     using DecimalsConverter for uint256;
     using SafeERC20 for IERC20;
 
-    function normThisBalance(address token) internal view returns (uint256) {
-        return
-            token == ETHEREUM_ADDRESS
-                ? thisBalance(token)
-                : thisBalance(token).to18(ERC20(token).decimals());
-    }
-
-    function thisBalance(address token) internal view returns (uint256) {
-        return
-            token == ETHEREUM_ADDRESS
-                ? address(this).balance
-                : IERC20(token).balanceOf(address(this));
-    }
-
     function sendFunds(
         address token,
         address receiver,
@@ -38,5 +24,19 @@ library TokenBalance {
         } else {
             IERC20(token).safeTransfer(receiver, amount.from18(ERC20(token).decimals()));
         }
+    }
+
+    function thisBalance(address token) internal view returns (uint256) {
+        return
+            token == ETHEREUM_ADDRESS
+                ? address(this).balance
+                : IERC20(token).balanceOf(address(this));
+    }
+
+    function normThisBalance(address token) internal view returns (uint256) {
+        return
+            token == ETHEREUM_ADDRESS
+                ? thisBalance(token)
+                : thisBalance(token).to18(ERC20(token).decimals());
     }
 }

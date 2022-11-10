@@ -57,5 +57,5 @@ interface IGovSettings {
     /// @notice The function the get the settings of the executor
     /// @param executor Executor address
     /// @return `ProposalSettings` by `executor` address
-    function getSettings(address executor) external view returns (ProposalSettings memory);
+    function getExecutorSettings(address executor) external view returns (ProposalSettings memory);
 }

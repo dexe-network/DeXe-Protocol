@@ -50,6 +50,12 @@ interface IGovPool {
         EnumerableSet.UintSet nftsVoted;
     }
 
+    struct VoteInfoView {
+        uint256 totalVoted;
+        uint256 tokensVoted;
+        uint256[] nftsVoted;
+    }
+
     function latestProposalId() external view returns (uint256);
 
     /// @notice The function to get helper contract of this pool
@@ -163,6 +169,12 @@ interface IGovPool {
         address voter,
         bool isMicropool
     ) external view returns (uint256, uint256);
+
+    function getUserVotes(
+        uint256 proposalId,
+        address voter,
+        bool isMicropool
+    ) external view returns (VoteInfoView memory);
 
     function getWithdrawableAssets(address delegator, address delegatee)
         external

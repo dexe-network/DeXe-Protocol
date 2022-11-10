@@ -10,20 +10,42 @@ import "../../core/PriceFeed.sol";
 library UniswapV2PathFinder {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    function _uniswapLess(uint256[] memory first, uint256[] memory second)
-        internal
-        pure
-        returns (bool)
-    {
-        return first[0] < second[0];
+    function getUniV2PathWithPriceOut(
+        EnumerableSet.AddressSet storage pathTokens,
+        address inToken,
+        address outToken,
+        uint256 amountIn,
+        address[] calldata providedPath
+    ) external view returns (IPriceFeed.FoundPath memory foundPath) {
+        return
+            _getPathWithPrice(
+                pathTokens,
+                inToken,
+                outToken,
+                amountIn,
+                PriceFeed(address(this)).uniswapV2Router().getAmountsOut,
+                _uniswapMore,
+                providedPath
+            );
     }
 
-    function _uniswapMore(uint256[] memory first, uint256[] memory second)
-        internal
-        pure
-        returns (bool)
-    {
-        return first[first.length - 1] > second[second.length - 1];
+    function getUniV2PathWithPriceIn(
+        EnumerableSet.AddressSet storage pathTokens,
+        address inToken,
+        address outToken,
+        uint256 amountOut,
+        address[] calldata providedPath
+    ) external view returns (IPriceFeed.FoundPath memory foundPath) {
+        return
+            _getPathWithPrice(
+                pathTokens,
+                inToken,
+                outToken,
+                amountOut,
+                PriceFeed(address(this)).uniswapV2Router().getAmountsIn,
+                _uniswapLess,
+                providedPath
+            );
     }
 
     function _getPathWithPrice(
@@ -79,41 +101,19 @@ library UniswapV2PathFinder {
         }
     }
 
-    function getUniV2PathWithPriceOut(
-        EnumerableSet.AddressSet storage pathTokens,
-        address inToken,
-        address outToken,
-        uint256 amountIn,
-        address[] calldata providedPath
-    ) external view returns (IPriceFeed.FoundPath memory foundPath) {
-        return
-            _getPathWithPrice(
-                pathTokens,
-                inToken,
-                outToken,
-                amountIn,
-                PriceFeed(address(this)).uniswapV2Router().getAmountsOut,
-                _uniswapMore,
-                providedPath
-            );
+    function _uniswapLess(uint256[] memory first, uint256[] memory second)
+        internal
+        pure
+        returns (bool)
+    {
+        return first[0] < second[0];
     }
 
-    function getUniV2PathWithPriceIn(
-        EnumerableSet.AddressSet storage pathTokens,
-        address inToken,
-        address outToken,
-        uint256 amountOut,
-        address[] calldata providedPath
-    ) external view returns (IPriceFeed.FoundPath memory foundPath) {
-        return
-            _getPathWithPrice(
-                pathTokens,
-                inToken,
-                outToken,
-                amountOut,
-                PriceFeed(address(this)).uniswapV2Router().getAmountsIn,
-                _uniswapLess,
-                providedPath
-            );
+    function _uniswapMore(uint256[] memory first, uint256[] memory second)
+        internal
+        pure
+        returns (bool)
+    {
+        return first[first.length - 1] > second[second.length - 1];
     }
 }

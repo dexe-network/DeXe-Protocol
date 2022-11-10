@@ -38,30 +38,35 @@ contract UniswapV2RouterMock {
         }
     }
 
-    function _getReserves(address tokenA, address tokenB)
-        internal
-        view
-        returns (uint256 reserveA, uint256 reserveB)
-    {
-        require(tokenA != tokenB, "UniswapV2Library: IDENTICAL_ADDRESSES");
+    function swapExactTokensForTokens(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256
+    ) external returns (uint256[] memory amounts) {
+        amounts = getAmountsOut(amountIn, path);
+
         require(
-            pairs[tokenA][tokenB] != address(0) || pairs[tokenB][tokenA] != address(0),
-            "UniswapV2Library: PAIR_DOES_NOT_EXIST"
+            amounts[amounts.length - 1] >= amountOutMin,
+            "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
         );
 
-        return (reserves[tokenA], reserves[tokenB]);
+        _swap(amounts, path, to);
     }
 
-    /// @dev modified formula for simplicity
-    function _getAmountOut(
-        uint256 amountIn,
-        uint256 reserveIn,
-        uint256 reserveOut
-    ) internal pure returns (uint256 amountOut) {
-        require(amountIn > 0, "UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT");
-        require(reserveIn > 0 && reserveOut > 0, "UniswapV2Library: INSUFFICIENT_LIQUIDITY");
+    function swapTokensForExactTokens(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        address to,
+        uint256
+    ) external returns (uint256[] memory amounts) {
+        amounts = getAmountsIn(amountOut, path);
 
-        amountOut = (amountIn * reserveOut) / reserveIn;
+        require(amounts[0] <= amountInMax, "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT");
+
+        _swap(amounts, path, to);
     }
 
     function getAmountsOut(uint256 amountIn, address[] memory path)
@@ -80,18 +85,6 @@ contract UniswapV2RouterMock {
                 _getAmountOut(amounts[i], reserveIn, reserveOut) +
                 bonuses[path[i]][path[i + 1]];
         }
-    }
-
-    /// @dev modified formula for simplicity
-    function _getAmountIn(
-        uint256 amountOut,
-        uint256 reserveIn,
-        uint256 reserveOut
-    ) internal pure returns (uint256 amountIn) {
-        require(amountOut > 0, "UniswapV2Library: INSUFFICIENT_OUTPUT_AMOUNT");
-        require(reserveIn > 0 && reserveOut > 0, "UniswapV2Library: INSUFFICIENT_LIQUIDITY");
-
-        amountIn = (amountOut * reserveIn) / reserveOut;
     }
 
     function getAmountsIn(uint256 amountOut, address[] memory path)
@@ -129,34 +122,41 @@ contract UniswapV2RouterMock {
         }
     }
 
-    function swapExactTokensForTokens(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        address to,
-        uint256
-    ) external returns (uint256[] memory amounts) {
-        amounts = getAmountsOut(amountIn, path);
-
+    function _getReserves(address tokenA, address tokenB)
+        internal
+        view
+        returns (uint256 reserveA, uint256 reserveB)
+    {
+        require(tokenA != tokenB, "UniswapV2Library: IDENTICAL_ADDRESSES");
         require(
-            amounts[amounts.length - 1] >= amountOutMin,
-            "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
+            pairs[tokenA][tokenB] != address(0) || pairs[tokenB][tokenA] != address(0),
+            "UniswapV2Library: PAIR_DOES_NOT_EXIST"
         );
 
-        _swap(amounts, path, to);
+        return (reserves[tokenA], reserves[tokenB]);
     }
 
-    function swapTokensForExactTokens(
+    /// @dev modified formula for simplicity
+    function _getAmountIn(
         uint256 amountOut,
-        uint256 amountInMax,
-        address[] calldata path,
-        address to,
-        uint256
-    ) external returns (uint256[] memory amounts) {
-        amounts = getAmountsIn(amountOut, path);
+        uint256 reserveIn,
+        uint256 reserveOut
+    ) internal pure returns (uint256 amountIn) {
+        require(amountOut > 0, "UniswapV2Library: INSUFFICIENT_OUTPUT_AMOUNT");
+        require(reserveIn > 0 && reserveOut > 0, "UniswapV2Library: INSUFFICIENT_LIQUIDITY");
 
-        require(amounts[0] <= amountInMax, "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT");
+        amountIn = (amountOut * reserveIn) / reserveOut;
+    }
 
-        _swap(amounts, path, to);
+    /// @dev modified formula for simplicity
+    function _getAmountOut(
+        uint256 amountIn,
+        uint256 reserveIn,
+        uint256 reserveOut
+    ) internal pure returns (uint256 amountOut) {
+        require(amountIn > 0, "UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT");
+        require(reserveIn > 0 && reserveOut > 0, "UniswapV2Library: INSUFFICIENT_LIQUIDITY");
+
+        amountOut = (amountIn * reserveOut) / reserveIn;
     }
 }

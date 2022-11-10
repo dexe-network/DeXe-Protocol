@@ -61,6 +61,136 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         _pathTokens.remove(pathTokens);
     }
 
+    function exchangeFromExact(
+        address inToken,
+        address outToken,
+        uint256 amountIn,
+        address[] memory optionalPath,
+        uint256 minAmountOut
+    ) public virtual override returns (uint256) {
+        if (amountIn == 0) {
+            return 0;
+        }
+
+        if (inToken == outToken) {
+            return amountIn;
+        }
+
+        if (optionalPath.length == 0) {
+            optionalPath = _savedPaths[msg.sender][inToken][outToken];
+        }
+
+        FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceOut(
+            inToken,
+            outToken,
+            amountIn,
+            optionalPath
+        );
+
+        require(foundPath.path.length > 0, "PriceFeed: unreachable asset");
+
+        if (foundPath.withProvidedPath) {
+            _savePath(inToken, outToken, foundPath.path);
+        }
+
+        _grabTokens(inToken, amountIn);
+
+        uint256[] memory outs = uniswapV2Router.swapExactTokensForTokens(
+            amountIn,
+            minAmountOut,
+            foundPath.path,
+            msg.sender,
+            block.timestamp
+        );
+
+        return outs[outs.length - 1];
+    }
+
+    function exchangeToExact(
+        address inToken,
+        address outToken,
+        uint256 amountOut,
+        address[] memory optionalPath,
+        uint256 maxAmountIn
+    ) public virtual override returns (uint256) {
+        if (amountOut == 0) {
+            return 0;
+        }
+
+        if (inToken == outToken) {
+            return amountOut;
+        }
+
+        if (optionalPath.length == 0) {
+            optionalPath = _savedPaths[msg.sender][inToken][outToken];
+        }
+
+        FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceIn(
+            inToken,
+            outToken,
+            amountOut,
+            optionalPath
+        );
+
+        require(foundPath.path.length > 0, "PriceFeed: unreachable asset");
+
+        if (foundPath.withProvidedPath) {
+            _savePath(inToken, outToken, foundPath.path);
+        }
+
+        _grabTokens(inToken, maxAmountIn);
+
+        uint256[] memory ins = uniswapV2Router.swapTokensForExactTokens(
+            amountOut,
+            maxAmountIn,
+            foundPath.path,
+            msg.sender,
+            block.timestamp
+        );
+
+        IERC20(inToken).safeTransfer(msg.sender, maxAmountIn - ins[0]);
+
+        return ins[0];
+    }
+
+    function normalizedExchangeFromExact(
+        address inToken,
+        address outToken,
+        uint256 amountIn,
+        address[] calldata optionalPath,
+        uint256 minAmountOut
+    ) external virtual override returns (uint256) {
+        uint256 outDecimals = ERC20(outToken).decimals();
+
+        return
+            exchangeFromExact(
+                inToken,
+                outToken,
+                amountIn.from18(ERC20(inToken).decimals()),
+                optionalPath,
+                minAmountOut.from18(outDecimals)
+            ).to18(outDecimals);
+    }
+
+    function normalizedExchangeToExact(
+        address inToken,
+        address outToken,
+        uint256 amountOut,
+        address[] calldata optionalPath,
+        uint256 maxAmountIn
+    ) external virtual override returns (uint256) {
+        uint256 inDecimals = ERC20(inToken).decimals();
+
+        return
+            exchangeToExact(
+                inToken,
+                outToken,
+                amountOut.from18(ERC20(outToken).decimals()),
+                optionalPath,
+                maxAmountIn.from18(inDecimals)
+            ).to18(inDecimals);
+    }
+
     function getExtendedPriceOut(
         address inToken,
         address outToken,
@@ -211,6 +341,26 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         return getNormalizedPriceIn(inToken, _dexeAddress, amountOut);
     }
 
+    function totalPathTokens() external view override returns (uint256) {
+        return _pathTokens.length();
+    }
+
+    function getPathTokens() external view override returns (address[] memory) {
+        return _pathTokens.values();
+    }
+
+    function getSavedPaths(
+        address pool,
+        address from,
+        address to
+    ) external view override returns (address[] memory) {
+        return _savedPaths[pool][from][to];
+    }
+
+    function isSupportedPathToken(address token) external view override returns (bool) {
+        return _pathTokens.contains(token);
+    }
+
     function _savePath(
         address inToken,
         address outToken,
@@ -231,155 +381,5 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         if (IERC20(token).allowance(address(this), address(uniswapV2Router)) == 0) {
             IERC20(token).safeApprove(address(uniswapV2Router), MAX_UINT);
         }
-    }
-
-    function exchangeFromExact(
-        address inToken,
-        address outToken,
-        uint256 amountIn,
-        address[] memory optionalPath,
-        uint256 minAmountOut
-    ) public virtual override returns (uint256) {
-        if (amountIn == 0) {
-            return 0;
-        }
-
-        if (inToken == outToken) {
-            return amountIn;
-        }
-
-        if (optionalPath.length == 0) {
-            optionalPath = _savedPaths[msg.sender][inToken][outToken];
-        }
-
-        FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceOut(
-            inToken,
-            outToken,
-            amountIn,
-            optionalPath
-        );
-
-        require(foundPath.path.length > 0, "PriceFeed: unreachable asset");
-
-        if (foundPath.withProvidedPath) {
-            _savePath(inToken, outToken, foundPath.path);
-        }
-
-        _grabTokens(inToken, amountIn);
-
-        uint256[] memory outs = uniswapV2Router.swapExactTokensForTokens(
-            amountIn,
-            minAmountOut,
-            foundPath.path,
-            msg.sender,
-            block.timestamp
-        );
-
-        return outs[outs.length - 1];
-    }
-
-    function exchangeToExact(
-        address inToken,
-        address outToken,
-        uint256 amountOut,
-        address[] memory optionalPath,
-        uint256 maxAmountIn
-    ) public virtual override returns (uint256) {
-        if (amountOut == 0) {
-            return 0;
-        }
-
-        if (inToken == outToken) {
-            return amountOut;
-        }
-
-        if (optionalPath.length == 0) {
-            optionalPath = _savedPaths[msg.sender][inToken][outToken];
-        }
-
-        FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceIn(
-            inToken,
-            outToken,
-            amountOut,
-            optionalPath
-        );
-
-        require(foundPath.path.length > 0, "PriceFeed: unreachable asset");
-
-        if (foundPath.withProvidedPath) {
-            _savePath(inToken, outToken, foundPath.path);
-        }
-
-        _grabTokens(inToken, maxAmountIn);
-
-        uint256[] memory ins = uniswapV2Router.swapTokensForExactTokens(
-            amountOut,
-            maxAmountIn,
-            foundPath.path,
-            msg.sender,
-            block.timestamp
-        );
-
-        IERC20(inToken).safeTransfer(msg.sender, maxAmountIn - ins[0]);
-
-        return ins[0];
-    }
-
-    function normalizedExchangeFromExact(
-        address inToken,
-        address outToken,
-        uint256 amountIn,
-        address[] calldata optionalPath,
-        uint256 minAmountOut
-    ) external virtual override returns (uint256) {
-        uint256 outDecimals = ERC20(outToken).decimals();
-
-        return
-            exchangeFromExact(
-                inToken,
-                outToken,
-                amountIn.from18(ERC20(inToken).decimals()),
-                optionalPath,
-                minAmountOut.from18(outDecimals)
-            ).to18(outDecimals);
-    }
-
-    function normalizedExchangeToExact(
-        address inToken,
-        address outToken,
-        uint256 amountOut,
-        address[] calldata optionalPath,
-        uint256 maxAmountIn
-    ) external virtual override returns (uint256) {
-        uint256 inDecimals = ERC20(inToken).decimals();
-
-        return
-            exchangeToExact(
-                inToken,
-                outToken,
-                amountOut.from18(ERC20(outToken).decimals()),
-                optionalPath,
-                maxAmountIn.from18(inDecimals)
-            ).to18(inDecimals);
-    }
-
-    function totalPathTokens() external view override returns (uint256) {
-        return _pathTokens.length();
-    }
-
-    function getPathTokens() external view override returns (address[] memory) {
-        return _pathTokens.values();
-    }
-
-    function getSavedPaths(
-        address pool,
-        address from,
-        address to
-    ) external view override returns (address[] memory) {
-        return _savedPaths[pool][from][to];
-    }
-
-    function isSupportedPathToken(address token) external view override returns (bool) {
-        return _pathTokens.contains(token);
     }
 }

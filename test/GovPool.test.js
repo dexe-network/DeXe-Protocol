@@ -630,6 +630,12 @@ describe("GovPool", () => {
           assert.equal((await getProposalByIndex(1)).descriptionURL, "example.com");
           assert.equal((await getProposalByIndex(1)).core.votesFor, wei("100"));
           assert.equal((await getProposalByIndex(2)).core.votesFor, wei("50"));
+
+          const voteInfo = await govPool.getUserVotes(1, OWNER, false);
+
+          assert.equal(voteInfo.totalVoted, wei("100"));
+          assert.equal(voteInfo.tokensVoted, wei("100"));
+          assert.deepEqual(voteInfo.nftsVoted, []);
         });
 
         it("should not vote if votes limit is reached", async () => {
@@ -665,6 +671,12 @@ describe("GovPool", () => {
 
           assert.equal((await getProposalByIndex(1)).core.votesFor, wei("100"));
           assert.equal((await getProposalByIndex(2)).core.votesFor, wei("50"));
+
+          const voteInfo = await govPool.getUserVotes(1, SECOND, true);
+
+          assert.equal(voteInfo.totalVoted, wei("100"));
+          assert.equal(voteInfo.tokensVoted, wei("100"));
+          assert.deepEqual(voteInfo.nftsVoted, []);
         });
 
         it("should vote delegated tokens twice", async () => {
@@ -710,6 +722,12 @@ describe("GovPool", () => {
 
           assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.toFixed());
           assert.equal((await getProposalByIndex(2)).core.votesFor, SINGLE_NFT_COST.times(2).plus(1).toFixed());
+
+          const voteInfo = await govPool.getUserVotes(1, OWNER, false);
+
+          assert.equal(voteInfo.totalVoted, SINGLE_NFT_COST.toFixed());
+          assert.equal(voteInfo.tokensVoted, "0");
+          assert.deepEqual(voteInfo.nftsVoted, ["1"]);
         });
 
         it("should vote for proposal twice", async () => {
@@ -739,6 +757,12 @@ describe("GovPool", () => {
 
           assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.toFixed());
           assert.equal((await getProposalByIndex(2)).core.votesFor, SINGLE_NFT_COST.times(2).plus(1).toFixed());
+
+          const voteInfo = await govPool.getUserVotes(1, SECOND, true);
+
+          assert.equal(voteInfo.totalVoted, SINGLE_NFT_COST.toFixed());
+          assert.equal(voteInfo.tokensVoted, "0");
+          assert.deepEqual(voteInfo.nftsVoted, ["1"]);
         });
 
         it("should vote delegated nfts twice", async () => {

@@ -259,6 +259,18 @@ describe("GovUserKeeper", () => {
 
         assert.equal((await userKeeper.tokenBalance(OWNER, false, true)).totalBalance.toFixed(), wei("1000000"));
         assert.equal((await userKeeper.tokenBalance(OWNER, false, true)).ownedBalance.toFixed(), wei("999000"));
+
+        const delegationsInfo = await userKeeper.delegations(OWNER);
+
+        assert.equal(delegationsInfo.length, 2);
+
+        assert.equal(delegationsInfo[0].delegatee, SECOND);
+        assert.equal(delegationsInfo[0].delegatedTokens, wei("444"));
+        assert.deepEqual(delegationsInfo[0].delegatedNfts, []);
+
+        assert.equal(delegationsInfo[1].delegatee, THIRD);
+        assert.equal(delegationsInfo[1].delegatedTokens, wei("555"));
+        assert.deepEqual(delegationsInfo[1].delegatedNfts, []);
       });
 
       it("should not delegate more than balance", async () => {
@@ -337,6 +349,18 @@ describe("GovUserKeeper", () => {
           (await userKeeper.nftExactBalance(SECOND, true, false)).nfts.map((e) => e.toFixed()),
           ["1", "3", "5"]
         );
+
+        const delegationsInfo = await userKeeper.delegations(OWNER);
+
+        assert.equal(delegationsInfo.length, 2);
+
+        assert.equal(delegationsInfo[0].delegatee, SECOND);
+        assert.equal(delegationsInfo[0].delegatedTokens, "0");
+        assert.deepEqual(delegationsInfo[0].delegatedNfts, ["1", "3", "5"]);
+
+        assert.equal(delegationsInfo[1].delegatee, THIRD);
+        assert.equal(delegationsInfo[1].delegatedTokens, "0");
+        assert.deepEqual(delegationsInfo[1].delegatedNfts, ["2", "4"]);
       });
 
       it("should not delegate unavailable NFTs", async () => {

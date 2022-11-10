@@ -32,33 +32,109 @@ library TraderPoolView {
     using TokenBalance for address;
     using PriceFeedLocal for IPriceFeed;
 
-    function _getTraderAndPlatformCommissions(
+    function getUsersInfo(
         ITraderPool.PoolParameters storage poolParameters,
-        uint256 baseCommission,
-        uint256 lpCommission
-    ) internal view returns (ITraderPool.Commissions memory commissions) {
-        IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
-        (uint256 dexePercentage, , , ) = ITraderPool(address(this))
-            .coreProperties()
-            .getDEXECommissionPercentages();
+        EnumerableSet.AddressSet storage investors,
+        address user,
+        uint256 offset,
+        uint256 limit
+    ) external view returns (ITraderPool.UserInfo[] memory usersInfo) {
+        uint256 to = (offset + limit).min(investors.length()).max(offset);
 
-        (uint256 usdCommission, ) = priceFeed.getNormalizedPriceOutUSD(
-            poolParameters.baseToken,
-            baseCommission
+        (uint256 totalPoolBase, uint256 totalPoolUSD) = poolParameters
+            .getNormalizedPoolPriceAndUSD();
+        uint256 totalSupply = IERC20(address(this)).totalSupply();
+
+        usersInfo = new ITraderPool.UserInfo[](to - offset + 2);
+
+        if (investors.contains(user)) {
+            usersInfo[0] = _getUserInfo(
+                poolParameters,
+                user,
+                totalPoolBase,
+                totalPoolUSD,
+                totalSupply
+            );
+        }
+
+        usersInfo[1] = _getUserInfo(
+            poolParameters,
+            poolParameters.trader,
+            totalPoolBase,
+            totalPoolUSD,
+            totalSupply
         );
 
-        commissions.dexeBaseCommission = baseCommission.percentage(dexePercentage);
-        commissions.dexeLPCommission = lpCommission.percentage(dexePercentage);
-        commissions.dexeUSDCommission = usdCommission.percentage(dexePercentage);
+        for (uint256 i = offset; i < to; i++) {
+            usersInfo[i - offset + 2] = _getUserInfo(
+                poolParameters,
+                investors.at(i),
+                totalPoolBase,
+                totalPoolUSD,
+                totalSupply
+            );
+        }
+    }
 
-        commissions.traderBaseCommission = baseCommission - commissions.dexeBaseCommission;
-        commissions.traderLPCommission = lpCommission - commissions.dexeLPCommission;
-        commissions.traderUSDCommission = usdCommission - commissions.dexeUSDCommission;
+    function getPoolInfo(
+        ITraderPool.PoolParameters storage poolParameters,
+        EnumerableSet.AddressSet storage positions
+    ) external view returns (ITraderPool.PoolInfo memory poolInfo) {
+        poolInfo.ticker = ERC20(address(this)).symbol();
+        poolInfo.name = ERC20(address(this)).name();
 
-        (commissions.dexeDexeCommission, ) = priceFeed.getNormalizedPriceOutDEXE(
-            poolParameters.baseToken,
-            commissions.dexeBaseCommission
-        );
+        poolInfo.parameters = poolParameters;
+        poolInfo.openPositions = ITraderPool(address(this)).openPositions();
+
+        poolInfo.baseAndPositionBalances = new uint256[](poolInfo.openPositions.length + 1);
+        poolInfo.baseAndPositionBalances[0] = poolInfo.parameters.baseToken.normThisBalance();
+
+        for (uint256 i = 0; i < poolInfo.openPositions.length; i++) {
+            poolInfo.baseAndPositionBalances[i + 1] = poolInfo.openPositions[i].normThisBalance();
+        }
+
+        poolInfo.totalBlacklistedPositions = positions.length() - poolInfo.openPositions.length;
+        poolInfo.totalInvestors = ITraderPool(address(this)).totalInvestors();
+
+        (poolInfo.totalPoolBase, poolInfo.totalPoolUSD) = poolParameters
+            .getNormalizedPoolPriceAndUSD();
+
+        poolInfo.lpSupply = IERC20(address(this)).totalSupply();
+        poolInfo.lpLockedInProposals =
+            ITraderPool(address(this)).totalEmission() -
+            poolInfo.lpSupply;
+
+        if (poolInfo.lpSupply > 0) {
+            poolInfo.traderLPBalance = IERC20(address(this)).balanceOf(poolParameters.trader);
+            poolInfo.traderUSD = poolInfo.totalPoolUSD.ratio(
+                poolInfo.traderLPBalance,
+                poolInfo.lpSupply
+            );
+            poolInfo.traderBase = poolInfo.totalPoolBase.ratio(
+                poolInfo.traderLPBalance,
+                poolInfo.lpSupply
+            );
+        }
+    }
+
+    function getLeverageInfo(ITraderPool.PoolParameters storage poolParameters)
+        external
+        view
+        returns (ITraderPool.LeverageInfo memory leverageInfo)
+    {
+        (
+            leverageInfo.totalPoolUSDWithProposals,
+            leverageInfo.traderLeverageUSDTokens
+        ) = poolParameters.getMaxTraderLeverage();
+
+        if (leverageInfo.traderLeverageUSDTokens > leverageInfo.totalPoolUSDWithProposals) {
+            leverageInfo.freeLeverageUSD =
+                leverageInfo.traderLeverageUSDTokens -
+                leverageInfo.totalPoolUSDWithProposals;
+            (leverageInfo.freeLeverageBase, ) = ITraderPool(address(this))
+                .priceFeed()
+                .getNormalizedPriceInUSD(poolParameters.baseToken, leverageInfo.freeLeverageUSD);
+        }
     }
 
     function getInvestTokens(
@@ -97,26 +173,6 @@ library TraderPoolView {
                     receptions.givenAmounts[i]
                 );
             }
-        }
-    }
-
-    function _getReinvestCommission(
-        ITraderPool.PoolParameters storage poolParameters,
-        address investor,
-        uint256 totalPoolBase,
-        uint256 totalSupply
-    ) internal view returns (uint256 baseCommission, uint256 lpCommission) {
-        (, uint256 commissionUnlockEpoch) = TraderPool(address(this)).investorsInfo(investor);
-
-        if (poolParameters.nextCommissionEpoch() > commissionUnlockEpoch) {
-            uint256 lpBalance = IERC20(address(this)).balanceOf(investor);
-            uint256 baseShare = totalPoolBase.ratio(lpBalance, totalSupply);
-
-            (baseCommission, lpCommission) = poolParameters.calculateCommissionOnDivest(
-                investor,
-                baseShare,
-                lpBalance
-            );
         }
     }
 
@@ -211,26 +267,6 @@ library TraderPoolView {
         }
     }
 
-    function getLeverageInfo(ITraderPool.PoolParameters storage poolParameters)
-        public
-        view
-        returns (ITraderPool.LeverageInfo memory leverageInfo)
-    {
-        (
-            leverageInfo.totalPoolUSDWithProposals,
-            leverageInfo.traderLeverageUSDTokens
-        ) = poolParameters.getMaxTraderLeverage();
-
-        if (leverageInfo.traderLeverageUSDTokens > leverageInfo.totalPoolUSDWithProposals) {
-            leverageInfo.freeLeverageUSD =
-                leverageInfo.traderLeverageUSDTokens -
-                leverageInfo.totalPoolUSDWithProposals;
-            (leverageInfo.freeLeverageBase, ) = ITraderPool(address(this))
-                .priceFeed()
-                .getNormalizedPriceInUSD(poolParameters.baseToken, leverageInfo.freeLeverageUSD);
-        }
-    }
-
     function _getUserInfo(
         ITraderPool.PoolParameters storage poolParameters,
         address user,
@@ -272,88 +308,52 @@ library TraderPoolView {
         );
     }
 
-    function getUsersInfo(
+    function _getReinvestCommission(
         ITraderPool.PoolParameters storage poolParameters,
-        EnumerableSet.AddressSet storage investors,
-        address user,
-        uint256 offset,
-        uint256 limit
-    ) external view returns (ITraderPool.UserInfo[] memory usersInfo) {
-        uint256 to = (offset + limit).min(investors.length()).max(offset);
+        address investor,
+        uint256 totalPoolBase,
+        uint256 totalSupply
+    ) internal view returns (uint256 baseCommission, uint256 lpCommission) {
+        (, uint256 commissionUnlockEpoch) = TraderPool(address(this)).investorsInfo(investor);
 
-        (uint256 totalPoolBase, uint256 totalPoolUSD) = poolParameters
-            .getNormalizedPoolPriceAndUSD();
-        uint256 totalSupply = IERC20(address(this)).totalSupply();
+        if (poolParameters.nextCommissionEpoch() > commissionUnlockEpoch) {
+            uint256 lpBalance = IERC20(address(this)).balanceOf(investor);
+            uint256 baseShare = totalPoolBase.ratio(lpBalance, totalSupply);
 
-        usersInfo = new ITraderPool.UserInfo[](to - offset + 2);
-
-        if (investors.contains(user)) {
-            usersInfo[0] = _getUserInfo(
-                poolParameters,
-                user,
-                totalPoolBase,
-                totalPoolUSD,
-                totalSupply
-            );
-        }
-
-        usersInfo[1] = _getUserInfo(
-            poolParameters,
-            poolParameters.trader,
-            totalPoolBase,
-            totalPoolUSD,
-            totalSupply
-        );
-
-        for (uint256 i = offset; i < to; i++) {
-            usersInfo[i - offset + 2] = _getUserInfo(
-                poolParameters,
-                investors.at(i),
-                totalPoolBase,
-                totalPoolUSD,
-                totalSupply
+            (baseCommission, lpCommission) = poolParameters.calculateCommissionOnDivest(
+                investor,
+                baseShare,
+                lpBalance
             );
         }
     }
 
-    function getPoolInfo(
+    function _getTraderAndPlatformCommissions(
         ITraderPool.PoolParameters storage poolParameters,
-        EnumerableSet.AddressSet storage positions
-    ) external view returns (ITraderPool.PoolInfo memory poolInfo) {
-        poolInfo.ticker = ERC20(address(this)).symbol();
-        poolInfo.name = ERC20(address(this)).name();
+        uint256 baseCommission,
+        uint256 lpCommission
+    ) internal view returns (ITraderPool.Commissions memory commissions) {
+        IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
+        (uint256 dexePercentage, , , ) = ITraderPool(address(this))
+            .coreProperties()
+            .getDEXECommissionPercentages();
 
-        poolInfo.parameters = poolParameters;
-        poolInfo.openPositions = ITraderPool(address(this)).openPositions();
+        (uint256 usdCommission, ) = priceFeed.getNormalizedPriceOutUSD(
+            poolParameters.baseToken,
+            baseCommission
+        );
 
-        poolInfo.baseAndPositionBalances = new uint256[](poolInfo.openPositions.length + 1);
-        poolInfo.baseAndPositionBalances[0] = poolInfo.parameters.baseToken.normThisBalance();
+        commissions.dexeBaseCommission = baseCommission.percentage(dexePercentage);
+        commissions.dexeLPCommission = lpCommission.percentage(dexePercentage);
+        commissions.dexeUSDCommission = usdCommission.percentage(dexePercentage);
 
-        for (uint256 i = 0; i < poolInfo.openPositions.length; i++) {
-            poolInfo.baseAndPositionBalances[i + 1] = poolInfo.openPositions[i].normThisBalance();
-        }
+        commissions.traderBaseCommission = baseCommission - commissions.dexeBaseCommission;
+        commissions.traderLPCommission = lpCommission - commissions.dexeLPCommission;
+        commissions.traderUSDCommission = usdCommission - commissions.dexeUSDCommission;
 
-        poolInfo.totalBlacklistedPositions = positions.length() - poolInfo.openPositions.length;
-        poolInfo.totalInvestors = ITraderPool(address(this)).totalInvestors();
-
-        (poolInfo.totalPoolBase, poolInfo.totalPoolUSD) = poolParameters
-            .getNormalizedPoolPriceAndUSD();
-
-        poolInfo.lpSupply = IERC20(address(this)).totalSupply();
-        poolInfo.lpLockedInProposals =
-            ITraderPool(address(this)).totalEmission() -
-            poolInfo.lpSupply;
-
-        if (poolInfo.lpSupply > 0) {
-            poolInfo.traderLPBalance = IERC20(address(this)).balanceOf(poolParameters.trader);
-            poolInfo.traderUSD = poolInfo.totalPoolUSD.ratio(
-                poolInfo.traderLPBalance,
-                poolInfo.lpSupply
-            );
-            poolInfo.traderBase = poolInfo.totalPoolBase.ratio(
-                poolInfo.traderLPBalance,
-                poolInfo.lpSupply
-            );
-        }
+        (commissions.dexeDexeCommission, ) = priceFeed.getNormalizedPriceOutDEXE(
+            poolParameters.baseToken,
+            commissions.dexeBaseCommission
+        );
     }
 }

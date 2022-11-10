@@ -24,10 +24,6 @@ library TraderPoolExchange {
     );
     event PositionClosed(address position);
 
-    function _checkThisBalance(uint256 amount, address token) internal view {
-        require(amount <= token.normThisBalance(), "TP: invalid exchange amount");
-    }
-
     function exchange(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage positions,
@@ -114,5 +110,9 @@ library TraderPoolExchange {
             exType == ITraderPool.ExchangeType.FROM_EXACT
                 ? priceFeed.getNormalizedExtendedPriceOut(from, to, amount, optionalPath)
                 : priceFeed.getNormalizedExtendedPriceIn(from, to, amount, optionalPath);
+    }
+
+    function _checkThisBalance(uint256 amount, address token) internal view {
+        require(amount <= token.normThisBalance(), "TP: invalid exchange amount");
     }
 }

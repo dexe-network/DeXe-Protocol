@@ -9,7 +9,6 @@ interface IDistributionProposal {
     struct DistributionProposalStruct {
         address rewardAddress;
         uint256 rewardAmount;
-        /// @dev If claimed, return `true`
         mapping(address => bool) claimed;
     }
 
@@ -24,7 +23,7 @@ interface IDistributionProposal {
     /// @param voter Voter address
     function claim(address voter, uint256[] calldata proposalIds) external;
 
-    /// @notice Return potential reward. If user isn't vote, or `getTotalVotesWeight` is zero, return zero
+    /// @notice Return potential reward. If user hasn't voted, or `getTotalVotesWeight` is zero, return zero
     /// @param voter Voter address
     function getPotentialReward(
         uint256 proposalId,

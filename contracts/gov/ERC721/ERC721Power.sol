@@ -52,17 +52,6 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         powerCalcStartTimestamp = startTimestamp;
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(IERC165, ERC721Enumerable)
-        returns (bool)
-    {
-        return
-            interfaceId == type(IERC721Power).interfaceId || super.supportsInterface(interfaceId);
-    }
-
     function setReductionPercent(uint256 _reductionPercent)
         external
         onlyOwner
@@ -224,6 +213,17 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         }
 
         return (currentPower, collateral);
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(IERC165, ERC721Enumerable)
+        returns (bool)
+    {
+        return
+            interfaceId == type(IERC721Power).interfaceId || super.supportsInterface(interfaceId);
     }
 
     function _baseURI() internal view override returns (string memory) {
