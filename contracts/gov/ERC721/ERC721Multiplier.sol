@@ -22,6 +22,22 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
 
     constructor(string memory name, string memory symbol) ERC721(name, symbol) {}
 
+    function lock(uint256 tokenId) external override {
+        require(
+            !isLocked(_latestLockedTokenIds[msg.sender]),
+            "ERC721Multiplier: Cannot lock more than one nft"
+        );
+
+        _transfer(msg.sender, address(this), tokenId);
+
+        NftInfo storage tokenToBeLocked = _tokens[tokenId];
+        tokenToBeLocked.lockedAt = block.timestamp;
+
+        _latestLockedTokenIds[msg.sender] = tokenId;
+
+        emit Locked(msg.sender, tokenId, tokenToBeLocked.multiplier, tokenToBeLocked.duration);
+    }
+
     function mint(
         address to,
         uint256 multiplier,
@@ -40,6 +56,10 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
         emit Minted(to, currentTokenId, multiplier, duration);
     }
 
+    function setBaseUri(string calldata uri) external onlyOwner {
+        baseURI = uri;
+    }
+
     function getExtraRewards(address whose, uint256 rewards)
         external
         view
@@ -52,27 +72,6 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
             isLocked(latestLockedTokenId)
                 ? rewards.ratio(_tokens[latestLockedTokenId].multiplier, PRECISION)
                 : 0;
-    }
-
-    function lock(uint256 tokenId) external override {
-        require(
-            !isLocked(_latestLockedTokenIds[msg.sender]),
-            "ERC721Multiplier: Cannot lock more than one nft"
-        );
-
-        _transfer(msg.sender, address(this), tokenId);
-
-        NftInfo storage tokenToBeLocked = _tokens[tokenId];
-        tokenToBeLocked.lockedAt = block.timestamp;
-
-        _latestLockedTokenIds[msg.sender] = tokenId;
-
-        emit Locked(msg.sender, tokenId, tokenToBeLocked.multiplier, tokenToBeLocked.duration);
-    }
-
-    function isLocked(uint256 tokenId) public view override returns (bool) {
-        NftInfo memory info = _tokens[tokenId];
-        return info.lockedAt != 0 && info.lockedAt + info.duration >= block.timestamp;
     }
 
     function getCurrentMultiplier(address whose)
@@ -92,12 +91,9 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
         timeLeft = info.lockedAt + info.duration - block.timestamp;
     }
 
-    function setBaseUri(string calldata uri) external onlyOwner {
-        baseURI = uri;
-    }
-
-    function _baseURI() internal view override returns (string memory) {
-        return baseURI;
+    function isLocked(uint256 tokenId) public view override returns (bool) {
+        NftInfo memory info = _tokens[tokenId];
+        return info.lockedAt != 0 && info.lockedAt + info.duration >= block.timestamp;
     }
 
     function supportsInterface(bytes4 interfaceId)
@@ -109,5 +105,9 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
         return
             interfaceId == type(IERC721Multiplier).interfaceId ||
             ERC721Enumerable.supportsInterface(interfaceId);
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return baseURI;
     }
 }
