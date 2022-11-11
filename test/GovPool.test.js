@@ -1273,7 +1273,7 @@ describe("GovPool", () => {
 
         describe("setNftMultiplierAddress()", () => {
           it("should create proposal for setNftMultiplierAddress", async () => {
-            await setNftMultiplierAddress(nftMultiplier.address, 1);
+            await setNftMultiplierAddress(nftMultiplier.address);
             assert.equal(await govPool.nftMultiplier(), nftMultiplier.address);
           });
 
