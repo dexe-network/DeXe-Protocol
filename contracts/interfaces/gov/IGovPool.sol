@@ -56,6 +56,8 @@ interface IGovPool {
         uint256[] nftsVoted;
     }
 
+    function nftMultiplier() external view returns (address);
+
     function latestProposalId() external view returns (uint256);
 
     /// @notice The function to get helper contract of this pool
@@ -147,6 +149,8 @@ interface IGovPool {
     function executeAndClaim(uint256 proposalId) external;
 
     function editDescriptionURL(string calldata newDescriptionURL) external;
+
+    function setNftMultiplierAddress(address nftMultiplierAddress) external;
 
     function getProposals(uint256 offset, uint256 limit)
         external

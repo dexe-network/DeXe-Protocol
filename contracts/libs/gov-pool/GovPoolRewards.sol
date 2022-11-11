@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "../../interfaces/gov/IGovPool.sol";
+import "../../interfaces/gov/ERC721/IERC721Multiplier.sol";
 
 import "../utils/TokenBalance.sol";
 import "../math/MathHelper.sol";
@@ -18,7 +19,17 @@ library GovPoolRewards {
         uint256 amount,
         uint256 coefficient
     ) external {
-        pendingRewards[proposalId][msg.sender] += amount.ratio(coefficient, PRECISION);
+        uint256 amountToAdd = amount.ratio(coefficient, PRECISION);
+
+        address nftMultiplier = IGovPool(address(this)).nftMultiplier();
+        if (nftMultiplier != address(0)) {
+            amountToAdd += IERC721Multiplier(nftMultiplier).getExtraRewards(
+                msg.sender,
+                amountToAdd
+            );
+        }
+
+        pendingRewards[proposalId][msg.sender] += amountToAdd;
     }
 
     function claimReward(

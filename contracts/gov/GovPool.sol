@@ -50,6 +50,8 @@ contract GovPool is
 
     ICoreProperties public coreProperties;
 
+    address public nftMultiplier;
+
     string public descriptionURL;
     string public name;
 
@@ -74,6 +76,7 @@ contract GovPool is
         address govUserKeeperAddress,
         address distributionProposalAddress,
         address validatorsAddress,
+        address nftMultiplierAddress,
         string calldata _descriptionURL,
         string calldata _name
     ) external initializer {
@@ -82,6 +85,9 @@ contract GovPool is
         _govValidators = IGovValidators(validatorsAddress);
         _distributionProposal = distributionProposalAddress;
 
+        if (nftMultiplierAddress != address(0)) {
+            _setNftMultiplierAddress(nftMultiplierAddress);
+        }
         descriptionURL = _descriptionURL;
         name = _name;
     }
@@ -276,6 +282,17 @@ contract GovPool is
 
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
         descriptionURL = newDescriptionURL;
+    }
+
+    function setNftMultiplierAddress(address nftMultiplierAddress) external override onlyThis {
+        _setNftMultiplierAddress(nftMultiplierAddress);
+    }
+
+    function _setNftMultiplierAddress(address nftMultiplierAddress) internal {
+        require(nftMultiplier == address(0), "Gov: current nft address isn't zero");
+        require(nftMultiplierAddress != address(0), "Gov: new nft address is zero");
+
+        nftMultiplier = nftMultiplierAddress;
     }
 
     receive() external payable {}

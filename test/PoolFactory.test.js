@@ -7,6 +7,7 @@ const { ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("./utils/constants
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC721Mock = artifacts.require("ERC721Mock");
+const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
 const PoolRegistry = artifacts.require("PoolRegistry");
@@ -63,6 +64,7 @@ describe("PoolFactory", () => {
 
   let testERC20;
   let testERC721;
+  let testERC721Multiplier;
 
   before("setup", async () => {
     OWNER = await accounts(0);
@@ -122,6 +124,7 @@ describe("PoolFactory", () => {
   beforeEach("setup", async () => {
     testERC20 = await ERC20Mock.new("TestERC20", "TS", 18);
     testERC721 = await ERC721Mock.new("TestERC721", "TS");
+    testERC721Multiplier = await ERC721Multiplier.new("TestERC721Multiplier", "TSM");
 
     const contractsRegistry = await ContractsRegistry.new();
     const DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
@@ -485,6 +488,7 @@ describe("PoolFactory", () => {
           totalPowerInTokens: wei("33000"),
           nftsTotalSupply: 33,
         },
+        nftMultiplierAddress: testERC721Multiplier.address,
         descriptionURL: "example.com",
         name: "Pool name",
       };
@@ -507,6 +511,8 @@ describe("PoolFactory", () => {
       assert.equal((await govValidators.validatorsCount()).toFixed(), 1);
 
       assert.equal(settings[0], POOL_PARAMETERS.settingsParams.proposalSettings[2].earlyCompletion);
+
+      assert.equal(await govPool.nftMultiplier(), testERC721Multiplier.address);
     });
   });
 });

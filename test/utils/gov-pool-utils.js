@@ -78,6 +78,22 @@ const getBytesEditUrl = (url) => {
   );
 };
 
+const getBytesSetNftMultiplierAddress = (addr) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      name: "setNftMultiplierAddress",
+      type: "function",
+      inputs: [
+        {
+          name: "nftMultiplierAddress",
+          type: "address",
+        },
+      ],
+    },
+    [addr]
+  );
+};
+
 const getBytesDistributionProposal = (proposalId, token, amount) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -345,6 +361,7 @@ module.exports = {
   getBytesApproveAll,
   getBytesTransfer,
   getBytesEditUrl,
+  getBytesSetNftMultiplierAddress,
   getBytesDistributionProposal,
   getBytesChangeBalances,
   getBytesSetERC20Address,
