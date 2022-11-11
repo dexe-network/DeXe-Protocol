@@ -80,10 +80,6 @@ describe("ERC721Multiplier", () => {
       );
     });
 
-    it("should be zero totalSupply before minting", async () => {
-      assert.equal(await nft.totalSupply(), "0");
-    });
-
     it("should mint properly", async () => {
       for (const token of TOKENS) {
         const tx = await nft.mint(token.owner, token.multiplier, token.duration);
