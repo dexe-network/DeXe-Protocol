@@ -45,7 +45,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address govPool,
         address DP,
         address validators,
-        address settings
+        address settings,
+        address sender
     );
 
     function setDependencies(address contractsRegistry) public override {
@@ -84,7 +85,14 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address settingsProxy = _deploy(_poolRegistry.SETTINGS_NAME());
         address poolProxy = _deploy(poolType);
 
-        emit DaoPoolDeployed(parameters.name, poolProxy, dpProxy, validatorsProxy, settingsProxy);
+        emit DaoPoolDeployed(
+            parameters.name,
+            poolProxy,
+            dpProxy,
+            validatorsProxy,
+            settingsProxy,
+            msg.sender
+        );
 
         DistributionProposal(payable(dpProxy)).__DistributionProposal_init(poolProxy);
         GovSettings(settingsProxy).__GovSettings_init(
