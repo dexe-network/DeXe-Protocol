@@ -164,10 +164,10 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
 
         (newPower, collateral) = getNftPower(tokenId);
 
-        nftInfos[tokenId].lastUpdate = uint64(block.timestamp);
-
         totalPower -= nftInfos[tokenId].currentPower;
         totalPower += newPower;
+
+        nftInfos[tokenId].lastUpdate = uint64(block.timestamp);
         nftInfos[tokenId].currentPower = newPower;
     }
 
