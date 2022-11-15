@@ -36,6 +36,8 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     uint256 public maxPower;
     uint256 public requiredCollateral;
 
+    uint256 public totalPower;
+
     modifier onlyBeforePowerCalc() {
         require(
             block.timestamp < powerCalcStartTimestamp,
@@ -163,6 +165,9 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         (newPower, collateral) = getNftPower(tokenId);
 
         nftInfos[tokenId].lastUpdate = uint64(block.timestamp);
+
+        totalPower -= nftInfos[tokenId].currentPower;
+        totalPower += newPower;
         nftInfos[tokenId].currentPower = newPower;
     }
 
@@ -228,5 +233,15 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
 
     function _baseURI() internal view override returns (string memory) {
         return baseURI;
+    }
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal override {
+        recalculateNftPower(tokenId);
+
+        super._beforeTokenTransfer(from, to, tokenId);
     }
 }

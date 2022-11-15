@@ -15,6 +15,10 @@ interface IERC721Power is IERC721Enumerable {
         uint256 requiredCollateral;
     }
 
+    /// @notice Get total power
+    /// @return totalPower
+    function totalPower() external view returns (uint256);
+
     /// @notice Add collateral amount to certain nft
     /// @param amount Wei
     /// @param tokenId Nft number

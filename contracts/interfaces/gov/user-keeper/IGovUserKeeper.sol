@@ -119,6 +119,8 @@ interface IGovUserKeeper {
 
     function unlockNfts(uint256[] calldata nftIds) external;
 
+    function updateNftPowers(uint256[] calldata nftIds) external;
+
     function setERC20Address(address _tokenAddress) external;
 
     function setERC721Address(

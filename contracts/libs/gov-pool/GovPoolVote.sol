@@ -148,6 +148,9 @@ library GovPoolVote {
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
         IGovUserKeeper(userKeeper).lockNfts(msg.sender, isMicropool, useDelegated, nftIds);
+
+        IGovUserKeeper(userKeeper).updateNftPowers(nftIds);
+
         voteAmount = IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(
             nftIds,
             core.nftPowerSnapshotId

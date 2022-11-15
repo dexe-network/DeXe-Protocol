@@ -252,7 +252,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function createNftPowerSnapshot() external override onlyOwner returns (uint256) {
-        ERC721Power nftContract = ERC721Power(nftAddress);
+        IERC721Power nftContract = IERC721Power(nftAddress);
 
         if (address(nftContract) == address(0)) {
             return 0;
@@ -266,20 +266,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             : nftInfo.totalSupply;
         uint256 totalNftsPower;
 
-        if (!nftInfo.isSupportPower) {
-            totalNftsPower = supply;
-        } else {
-            for (uint256 i; i < supply; i++) {
-                uint256 tokenId = nftContract.tokenByIndex(i);
-                (uint256 solePower, uint256 collateral) = nftContract.recalculateNftPower(tokenId);
-                uint256 power = solePower + collateral;
-
-                snapshot.nftPower[tokenId] = power;
-                totalNftsPower += power;
-            }
-        }
-
-        snapshot.totalNftsPower = totalNftsPower;
+        snapshot.totalNftsPower = nftInfo.isSupportPower ? nftContract.totalPower() : supply;
 
         return currentPowerSnapshotId;
     }
@@ -368,6 +355,14 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             require(_nftLockedNums[nftIds[i]] > 0, "GovUK: NFT is not locked");
 
             _nftLockedNums[nftIds[i]]--;
+        }
+    }
+
+    function updateNftPowers(uint256[] calldata nftIds) external override onlyOwner {
+        ERC721Power nftPower = ERC721Power(nftAddress);
+
+        for (uint256 i = 0; i < nftIds.length; i++) {
+            nftPower.recalculateNftPower(nftIds[i]);
         }
     }
 
@@ -505,6 +500,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             return 0;
         }
 
+        ERC721Power nftContract = ERC721Power(nftAddress);
+
         uint256 nftsPower;
 
         if (!nftInfo.isSupportPower) {
@@ -513,10 +510,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             uint256 totalPowerInTokens = nftInfo.totalPowerInTokens;
 
             for (uint256 i; i < nftIds.length; i++) {
-                nftsPower += totalPowerInTokens.ratio(
-                    snapshot.nftPower[nftIds[i]],
-                    totalNftsPower
-                );
+                (uint256 power, ) = nftContract.getNftPower(nftIds[i]);
+                nftsPower += totalPowerInTokens.ratio(power, totalNftsPower);
             }
         }
 
