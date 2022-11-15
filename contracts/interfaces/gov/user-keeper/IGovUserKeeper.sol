@@ -38,7 +38,6 @@ interface IGovUserKeeper {
 
     struct NFTSnapshot {
         uint256 totalNftsPower;
-        mapping(uint256 => uint256) nftPower;
     }
 
     function depositTokens(
