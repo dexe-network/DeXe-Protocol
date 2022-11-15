@@ -14,6 +14,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
     using MathHelper for uint256;
 
     string public baseURI;
+
     mapping(uint256 => NftInfo) private _tokens;
     mapping(address => uint256) private _latestLockedTokenIds;
 
@@ -93,6 +94,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
 
     function isLocked(uint256 tokenId) public view override returns (bool) {
         NftInfo memory info = _tokens[tokenId];
+
         return info.lockedAt != 0 && info.lockedAt + info.duration >= block.timestamp;
     }
 

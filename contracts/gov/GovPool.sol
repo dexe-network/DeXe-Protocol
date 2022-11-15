@@ -352,6 +352,21 @@ contract GovPool is
         return ProposalState.Voting;
     }
 
+    function getProposalRequiredQuorum(uint256 proposalId)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        ProposalCore storage core = _proposals[proposalId].core;
+
+        if (core.voteEnd == 0) {
+            return 0;
+        }
+
+        return _govUserKeeper.getTotalVoteWeight().ratio(core.settings.quorum, PERCENTAGE_100);
+    }
+
     function getTotalVotes(
         uint256 proposalId,
         address voter,

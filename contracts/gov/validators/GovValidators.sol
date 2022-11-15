@@ -206,19 +206,23 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         external
         view
         override
-        returns (InternalProposal[] memory internalProposals)
+        returns (InternalProposalView[] memory internalProposals)
     {
         uint256 to = (offset + limit).min(latestInternalProposalId).max(offset);
 
-        internalProposals = new InternalProposal[](to - offset);
+        internalProposals = new InternalProposalView[](to - offset);
 
         for (uint256 i = offset; i < to; i++) {
-            internalProposals[i - offset] = _internalProposals[i + 1];
+            internalProposals[i - offset] = InternalProposalView({
+                proposal: _internalProposals[i + 1],
+                proposalState: getProposalState(i + 1, true),
+                requiredQuorum: getProposalRequiredQuorum(i + 1, true)
+            });
         }
     }
 
     function getProposalState(uint256 proposalId, bool isInternal)
-        external
+        public
         view
         override
         returns (ProposalState)
@@ -231,6 +235,24 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             isInternal
                 ? _getProposalState(_internalProposals[proposalId].core)
                 : _getProposalState(_externalProposals[proposalId].core);
+    }
+
+    function getProposalRequiredQuorum(uint256 proposalId, bool isInternal)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        ProposalCore storage core = isInternal
+            ? _internalProposals[proposalId].core
+            : _externalProposals[proposalId].core;
+
+        if (core.voteEnd == 0) {
+            return 0;
+        }
+
+        return
+            govValidatorsToken.totalSupplyAt(core.snapshotId).ratio(core.quorum, PERCENTAGE_100);
     }
 
     function isValidator(address user) public view override returns (bool) {

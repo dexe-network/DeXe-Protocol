@@ -45,6 +45,12 @@ interface IGovValidators {
         ProposalCore core;
     }
 
+    struct InternalProposalView {
+        InternalProposal proposal;
+        ProposalState proposalState;
+        uint256 requiredQuorum;
+    }
+
     function latestInternalProposalId() external view returns (uint256);
 
     function validatorsCount() external view returns (uint256);
@@ -96,7 +102,7 @@ interface IGovValidators {
     function getInternalProposals(uint256 offset, uint256 limit)
         external
         view
-        returns (InternalProposal[] memory);
+        returns (InternalProposalView[] memory);
 
     /// @notice Return proposal state
     /// @dev Options:
@@ -109,6 +115,11 @@ interface IGovValidators {
         external
         view
         returns (ProposalState);
+
+    function getProposalRequiredQuorum(uint256 proposalId, bool isInternal)
+        external
+        view
+        returns (uint256);
 
     function isValidator(address user) external view returns (bool);
 }

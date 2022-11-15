@@ -430,6 +430,7 @@ describe("GovPool", () => {
         assert.isFalse(proposal.core.executed);
         assert.equal(proposal.descriptionURL, "example.com");
         assert.deepEqual(proposal.data, [getBytesApprove(SECOND, 1)]);
+        assert.equal((await govPool.getProposalRequiredQuorum(1)).toFixed(), wei("71000023430"));
 
         await govPool.createProposal("example2.com", [THIRD], [0], [getBytesApprove(SECOND, 2)]);
         proposal = await getProposalByIndex(2);
@@ -447,6 +448,9 @@ describe("GovPool", () => {
         assert.isFalse(proposal.core.executed);
         assert.equal(proposal.descriptionURL, "example2.com");
         assert.deepEqual(proposal.data, [getBytesApprove(SECOND, 2)]);
+        assert.equal((await govPool.getProposalRequiredQuorum(2)).toFixed(), wei("71000023430"));
+
+        assert.equal((await govPool.getProposalRequiredQuorum(3)).toFixed(), "0");
       });
 
       it("should not create proposal due to low voting power", async () => {

@@ -19,9 +19,9 @@ library GovPoolRewards {
         uint256 amount,
         uint256 coefficient
     ) external {
+        address nftMultiplier = IGovPool(address(this)).nftMultiplier();
         uint256 amountToAdd = amount.ratio(coefficient, PRECISION);
 
-        address nftMultiplier = IGovPool(address(this)).nftMultiplier();
         if (nftMultiplier != address(0)) {
             amountToAdd += IERC721Multiplier(nftMultiplier).getExtraRewards(
                 msg.sender,

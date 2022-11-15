@@ -42,6 +42,9 @@ interface IGovPool {
     struct ProposalView {
         Proposal proposal;
         IGovValidators.ExternalProposal validatorProposal;
+        ProposalState proposalState;
+        uint256 requiredQuorum;
+        uint256 requiredValidatorsQuorum;
     }
 
     struct VoteInfo {
@@ -173,6 +176,8 @@ interface IGovPool {
         address voter,
         bool isMicropool
     ) external view returns (uint256, uint256);
+
+    function getProposalRequiredQuorum(uint256 proposalId) external view returns (uint256);
 
     function getUserVotes(
         uint256 proposalId,
