@@ -360,6 +360,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function updateNftPowers(uint256[] calldata nftIds) external override onlyOwner {
+        if (!nftInfo.isSupportPower) {
+            return;
+        }
+
         ERC721Power nftContract = ERC721Power(nftAddress);
 
         for (uint256 i = 0; i < nftIds.length; i++) {
