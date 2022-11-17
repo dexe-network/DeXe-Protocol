@@ -49,29 +49,27 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     constructor(
         string memory name,
         string memory symbol,
-        uint64 startTimestamp
+        uint64 startTimestamp,
+        address _collateralToken,
+        uint256 _maxPower,
+        uint256 _reductionPercent,
+        uint256 _requiredCollateral
     ) ERC721(name, symbol) {
-        powerCalcStartTimestamp = startTimestamp;
-    }
-
-    function setReductionPercent(uint256 _reductionPercent)
-        external
-        onlyOwner
-        onlyBeforePowerCalc
-    {
+        require(_collateralToken != address(0), "ERC721Power: zero address");
+        require(_maxPower > 0, "ERC721Power: max power can't be zero");
         require(_reductionPercent > 0, "ERC721Power: reduction percent can't be zero");
         require(
             _reductionPercent < PERCENTAGE_100,
             "ERC721Power: reduction percent can't be a 100%"
         );
+        require(_requiredCollateral > 0, "ERC721Power: required collateral amount can't be zero");
 
-        reductionPercent = _reductionPercent;
-    }
+        powerCalcStartTimestamp = startTimestamp;
 
-    function setMaxPower(uint256 _maxPower) external onlyOwner onlyBeforePowerCalc {
-        require(_maxPower > 0, "ERC721Power: max power can't be zero");
-
+        collateralToken = _collateralToken;
         maxPower = _maxPower;
+        reductionPercent = _reductionPercent;
+        requiredCollateral = _requiredCollateral;
     }
 
     function setNftMaxPower(uint256 _maxPower, uint256 tokenId)
@@ -82,18 +80,6 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         require(_maxPower > 0, "ERC721Power: max power can't be zero");
 
         nftInfos[tokenId].maxPower = _maxPower;
-    }
-
-    function setCollateralToken(address _collateralToken) external onlyOwner onlyBeforePowerCalc {
-        require(_collateralToken != address(0), "ERC721Power: zero address");
-
-        collateralToken = _collateralToken;
-    }
-
-    function setRequiredCollateral(uint256 amount) external onlyOwner onlyBeforePowerCalc {
-        require(amount > 0, "ERC721Power: required collateral amount can't be zero");
-
-        requiredCollateral = amount;
     }
 
     function setNftRequiredCollateral(uint256 amount, uint256 tokenId)
