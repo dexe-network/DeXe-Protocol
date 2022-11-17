@@ -240,8 +240,8 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         address to,
         uint256 tokenId
     ) internal override {
-        recalculateNftPower(tokenId);
-
         super._beforeTokenTransfer(from, to, tokenId);
+
+        recalculateNftPower(tokenId);
     }
 }
