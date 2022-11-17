@@ -153,16 +153,12 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         );
     }
 
-    function recalculateNftPower(uint256 tokenId)
-        public
-        override
-        returns (uint256 newPower, uint256 collateral)
-    {
+    function recalculateNftPower(uint256 tokenId) public override returns (uint256 newPower) {
         if (block.timestamp <= powerCalcStartTimestamp) {
-            return (0, 0);
+            return 0;
         }
 
-        (newPower, collateral) = getNftPower(tokenId);
+        newPower = getNftPower(tokenId);
 
         totalPower -= nftInfos[tokenId].currentPower;
         totalPower += newPower;
@@ -183,9 +179,9 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         return requiredCollateralForNft == 0 ? requiredCollateral : requiredCollateralForNft;
     }
 
-    function getNftPower(uint256 tokenId) public view override returns (uint256, uint256) {
+    function getNftPower(uint256 tokenId) public view override returns (uint256) {
         if (block.timestamp <= powerCalcStartTimestamp) {
-            return (0, 0);
+            return 0;
         }
 
         uint256 collateral = nftInfos[tokenId].currentCollateral;
@@ -210,14 +206,14 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         uint256 newPotentialPower = currentPower - powerReduction;
 
         if (minNftPower <= newPotentialPower) {
-            return (newPotentialPower, collateral);
+            return newPotentialPower;
         }
 
         if (minNftPower <= currentPower) {
-            return (minNftPower, collateral);
+            return minNftPower;
         }
 
-        return (currentPower, collateral);
+        return currentPower;
     }
 
     function supportsInterface(bytes4 interfaceId)
