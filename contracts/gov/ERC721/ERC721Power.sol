@@ -79,6 +79,11 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     {
         require(_maxPower > 0, "ERC721Power: max power can't be zero");
 
+        if (_exists(tokenId)) {
+            totalPower -= getMaxPowerForNft(tokenId);
+            totalPower += _maxPower;
+        }
+
         nftInfos[tokenId].maxPower = _maxPower;
     }
 
@@ -100,6 +105,8 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         );
 
         _safeMint(to, tokenId, "");
+
+        totalPower += getMaxPowerForNft(tokenId);
     }
 
     function setBaseUri(string calldata uri) external onlyOwner {
@@ -146,11 +153,13 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
 
         newPower = getNftPower(tokenId);
 
-        totalPower -= nftInfos[tokenId].currentPower;
+        NftInfo storage nftInfo = nftInfos[tokenId];
+
+        totalPower -= nftInfo.lastUpdate != 0 ? nftInfo.currentPower : getNftMaxPower(tokenId);
         totalPower += newPower;
 
-        nftInfos[tokenId].lastUpdate = uint64(block.timestamp);
-        nftInfos[tokenId].currentPower = newPower;
+        nftInfo.lastUpdate = uint64(block.timestamp);
+        nftInfo.currentPower = newPower;
     }
 
     function getMaxPowerForNft(uint256 tokenId) public view override returns (uint256) {
@@ -224,6 +233,8 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     ) internal override {
         super._beforeTokenTransfer(from, to, tokenId);
 
-        recalculateNftPower(tokenId);
+        if (from != address(0)) {
+            recalculateNftPower(tokenId);
+        }
     }
 }
