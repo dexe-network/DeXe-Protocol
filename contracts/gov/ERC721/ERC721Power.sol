@@ -155,7 +155,7 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
 
         NftInfo storage nftInfo = nftInfos[tokenId];
 
-        totalPower -= nftInfo.lastUpdate != 0 ? nftInfo.currentPower : getNftMaxPower(tokenId);
+        totalPower -= nftInfo.lastUpdate != 0 ? nftInfo.currentPower : getMaxPowerForNft(tokenId);
         totalPower += newPower;
 
         nftInfo.lastUpdate = uint64(block.timestamp);
@@ -233,8 +233,6 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     ) internal override {
         super._beforeTokenTransfer(from, to, tokenId);
 
-        if (from != address(0)) {
-            recalculateNftPower(tokenId);
-        }
+        recalculateNftPower(tokenId);
     }
 }
