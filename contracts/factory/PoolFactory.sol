@@ -46,6 +46,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address DP,
         address validators,
         address settings,
+        address govUserKeeper,
         address sender
     );
 
@@ -73,14 +74,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         );
 
         address userKeeperProxy = _deploy(_poolRegistry.USER_KEEPER_NAME());
-
-        GovUserKeeper(userKeeperProxy).__GovUserKeeper_init(
-            parameters.userKeeperParams.tokenAddress,
-            parameters.userKeeperParams.nftAddress,
-            parameters.userKeeperParams.totalPowerInTokens,
-            parameters.userKeeperParams.nftsTotalSupply
-        );
-
         address dpProxy = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
         address settingsProxy = _deploy(_poolRegistry.SETTINGS_NAME());
         address poolProxy = _deploy(poolType);
@@ -91,7 +84,15 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             dpProxy,
             validatorsProxy,
             settingsProxy,
+            userKeeperProxy,
             msg.sender
+        );
+
+        GovUserKeeper(userKeeperProxy).__GovUserKeeper_init(
+            parameters.userKeeperParams.tokenAddress,
+            parameters.userKeeperParams.nftAddress,
+            parameters.userKeeperParams.totalPowerInTokens,
+            parameters.userKeeperParams.nftsTotalSupply
         );
 
         DistributionProposal(payable(dpProxy)).__DistributionProposal_init(poolProxy);

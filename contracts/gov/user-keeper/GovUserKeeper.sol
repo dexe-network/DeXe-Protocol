@@ -46,6 +46,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     mapping(uint256 => NFTSnapshot) public nftSnapshot; // snapshot id => snapshot info
 
+    event SetERC20(address token);
+    event SetERC721(address token);
+
     modifier withSupportedToken() {
         require(tokenAddress != address(0), "GovUK: token is not supported");
         _;
@@ -732,6 +735,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         require(_tokenAddress != address(0), "GovUK: new token address is zero");
 
         tokenAddress = _tokenAddress;
+
+        emit SetERC20(_tokenAddress);
     }
 
     function _setERC721Address(
@@ -756,5 +761,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
 
         nftAddress = _nftAddress;
+
+        emit SetERC721(_nftAddress);
     }
 }
