@@ -28,10 +28,10 @@ interface IPoolRegistry {
     /// @param user the owner of the pool
     /// @param name the type of the pool
     /// @return the total number of pools with the specified type
-    function countAssociatedPools(address user, string calldata name)
-        external
-        view
-        returns (uint256);
+    function countAssociatedPools(
+        address user,
+        string calldata name
+    ) external view returns (uint256);
 
     /// @notice The function that lists associated pools by the provided type and user
     /// @param user the trader

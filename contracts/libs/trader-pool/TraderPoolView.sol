@@ -117,11 +117,9 @@ library TraderPoolView {
         }
     }
 
-    function getLeverageInfo(ITraderPool.PoolParameters storage poolParameters)
-        external
-        view
-        returns (ITraderPool.LeverageInfo memory leverageInfo)
-    {
+    function getLeverageInfo(
+        ITraderPool.PoolParameters storage poolParameters
+    ) external view returns (ITraderPool.LeverageInfo memory leverageInfo) {
         (
             leverageInfo.totalPoolUSDWithProposals,
             leverageInfo.traderLeverageUSDTokens

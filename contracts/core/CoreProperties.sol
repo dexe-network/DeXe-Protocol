@@ -44,11 +44,9 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         _dividendsAddress = registry.getDividendsContract();
     }
 
-    function setCoreParameters(CoreParameters calldata _coreParameters)
-        external
-        override
-        onlyOwner
-    {
+    function setCoreParameters(
+        CoreParameters calldata _coreParameters
+    ) external override onlyOwner {
         coreParameters = _coreParameters;
     }
 
@@ -76,11 +74,10 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         coreParameters.traderParams.maxOpenPositions = count;
     }
 
-    function setTraderLeverageParams(uint256 threshold, uint256 slope)
-        external
-        override
-        onlyOwner
-    {
+    function setTraderLeverageParams(
+        uint256 threshold,
+        uint256 slope
+    ) external override onlyOwner {
         coreParameters.traderParams.leverageThreshold = threshold;
         coreParameters.traderParams.leverageSlope = slope;
     }
@@ -117,11 +114,9 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         coreParameters.traderParams.delayForRiskyPool = delayForRiskyPool;
     }
 
-    function setInsuranceParameters(InsuranceParameters calldata insuranceParams)
-        external
-        override
-        onlyOwner
-    {
+    function setInsuranceParameters(
+        InsuranceParameters calldata insuranceParams
+    ) external override onlyOwner {
         coreParameters.insuranceParams = insuranceParams;
     }
 
@@ -137,21 +132,17 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         return _blacklistTokens.length();
     }
 
-    function getWhitelistTokens(uint256 offset, uint256 limit)
-        external
-        view
-        override
-        returns (address[] memory tokens)
-    {
+    function getWhitelistTokens(
+        uint256 offset,
+        uint256 limit
+    ) external view override returns (address[] memory tokens) {
         return _whitelistTokens.part(offset, limit);
     }
 
-    function getBlacklistTokens(uint256 offset, uint256 limit)
-        external
-        view
-        override
-        returns (address[] memory tokens)
-    {
+    function getBlacklistTokens(
+        uint256 offset,
+        uint256 limit
+    ) external view override returns (address[] memory tokens) {
         return _blacklistTokens.part(offset, limit);
     }
 
@@ -163,12 +154,9 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         return _blacklistTokens.contains(token);
     }
 
-    function getFilteredPositions(address[] memory positions)
-        external
-        view
-        override
-        returns (address[] memory filteredPositions)
-    {
+    function getFilteredPositions(
+        address[] memory positions
+    ) external view override returns (address[] memory filteredPositions) {
         uint256 newLength = positions.length;
 
         for (uint256 i = positions.length; i > 0; i--) {
@@ -207,12 +195,9 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         return coreParameters.traderParams.commissionInitTimestamp;
     }
 
-    function getCommissionDuration(CommissionPeriod period)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function getCommissionDuration(
+        CommissionPeriod period
+    ) public view override returns (uint256) {
         return coreParameters.traderParams.commissionDurations[uint256(period)];
     }
 
@@ -220,12 +205,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         external
         view
         override
-        returns (
-            uint256,
-            uint256,
-            uint256[] memory,
-            address[3] memory
-        )
+        returns (uint256, uint256, uint256[] memory, address[3] memory)
     {
         return (
             coreParameters.traderParams.dexeCommissionPercentage,
@@ -266,24 +246,20 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         return coreParameters.govParams.govVotesLimit;
     }
 
-    function getCommissionEpochByTimestamp(uint256 timestamp, CommissionPeriod commissionPeriod)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getCommissionEpochByTimestamp(
+        uint256 timestamp,
+        CommissionPeriod commissionPeriod
+    ) external view override returns (uint256) {
         return
             (timestamp - getCommissionInitTimestamp()) /
             getCommissionDuration(commissionPeriod) +
             1;
     }
 
-    function getCommissionTimestampByEpoch(uint256 epoch, CommissionPeriod commissionPeriod)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getCommissionTimestampByEpoch(
+        uint256 epoch,
+        CommissionPeriod commissionPeriod
+    ) external view override returns (uint256) {
         return getCommissionInitTimestamp() + epoch * getCommissionDuration(commissionPeriod) - 1;
     }
 }

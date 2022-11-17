@@ -41,14 +41,18 @@ interface IGovSettings {
     /// @notice Edit existed type
     /// @param settingsIds Existed settings IDs
     /// @param _settings New settings
-    function editSettings(uint256[] calldata settingsIds, ProposalSettings[] calldata _settings)
-        external;
+    function editSettings(
+        uint256[] calldata settingsIds,
+        ProposalSettings[] calldata _settings
+    ) external;
 
     /// @notice Change executors association
     /// @param executors Addresses
     /// @param settingsIds New types
-    function changeExecutors(address[] calldata executors, uint256[] calldata settingsIds)
-        external;
+    function changeExecutors(
+        address[] calldata executors,
+        uint256[] calldata settingsIds
+    ) external;
 
     /// @notice The function to get default settings
     /// @return default setting

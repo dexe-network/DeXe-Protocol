@@ -18,11 +18,7 @@ contract UniswapV2RouterMock {
         pairs[tokenB][tokenA] = address(1);
     }
 
-    function setBonuses(
-        address tokenA,
-        address tokenB,
-        uint256 amount
-    ) external {
+    function setBonuses(address tokenA, address tokenB, uint256 amount) external {
         bonuses[tokenA][tokenB] = amount;
     }
 
@@ -69,11 +65,10 @@ contract UniswapV2RouterMock {
         _swap(amounts, path, to);
     }
 
-    function getAmountsOut(uint256 amountIn, address[] memory path)
-        public
-        view
-        returns (uint256[] memory amounts)
-    {
+    function getAmountsOut(
+        uint256 amountIn,
+        address[] memory path
+    ) public view returns (uint256[] memory amounts) {
         require(path.length >= 2, "UniswapV2Library: INVALID_PATH");
 
         amounts = new uint256[](path.length);
@@ -87,11 +82,10 @@ contract UniswapV2RouterMock {
         }
     }
 
-    function getAmountsIn(uint256 amountOut, address[] memory path)
-        public
-        view
-        returns (uint256[] memory amounts)
-    {
+    function getAmountsIn(
+        uint256 amountOut,
+        address[] memory path
+    ) public view returns (uint256[] memory amounts) {
         require(path.length >= 2, "UniswapV2Library: INVALID_PATH");
 
         amounts = new uint256[](path.length);
@@ -109,11 +103,7 @@ contract UniswapV2RouterMock {
         return pairs[tokenA][tokenB];
     }
 
-    function _swap(
-        uint256[] memory amounts,
-        address[] memory path,
-        address _to
-    ) internal virtual {
+    function _swap(uint256[] memory amounts, address[] memory path, address _to) internal virtual {
         IERC20(path[0]).safeTransferFrom(msg.sender, address(this), amounts[0]);
         IERC20(path[path.length - 1]).safeTransfer(_to, amounts[amounts.length - 1]);
 
@@ -122,11 +112,10 @@ contract UniswapV2RouterMock {
         }
     }
 
-    function _getReserves(address tokenA, address tokenB)
-        internal
-        view
-        returns (uint256 reserveA, uint256 reserveB)
-    {
+    function _getReserves(
+        address tokenA,
+        address tokenB
+    ) internal view returns (uint256 reserveA, uint256 reserveB) {
         require(tokenA != tokenB, "UniswapV2Library: IDENTICAL_ADDRESSES");
         require(
             pairs[tokenA][tokenB] != address(0) || pairs[tokenB][tokenA] != address(0),

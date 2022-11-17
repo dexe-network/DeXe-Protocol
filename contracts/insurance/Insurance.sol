@@ -135,12 +135,10 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         return _acceptedClaims.length();
     }
 
-    function listAcceptedClaims(uint256 offset, uint256 limit)
-        external
-        view
-        override
-        returns (string[] memory urls, AcceptedClaims[] memory info)
-    {
+    function listAcceptedClaims(
+        uint256 offset,
+        uint256 limit
+    ) external view override returns (string[] memory urls, AcceptedClaims[] memory info) {
         urls = _acceptedClaims.part(offset, limit);
 
         info = new AcceptedClaims[](urls.length);

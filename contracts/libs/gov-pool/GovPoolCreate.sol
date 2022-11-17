@@ -86,10 +86,10 @@ library GovPoolCreate {
         );
     }
 
-    function _canParticipate(IGovSettings.ProposalSettings memory settings, uint256 snapshotId)
-        internal
-        view
-    {
+    function _canParticipate(
+        IGovSettings.ProposalSettings memory settings,
+        uint256 snapshotId
+    ) internal view {
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
         require(
@@ -186,9 +186,10 @@ library GovPoolCreate {
         }
     }
 
-    function _handleDataForDistributionProposal(uint256[] calldata values, bytes[] calldata data)
-        internal
-    {
+    function _handleDataForDistributionProposal(
+        uint256[] calldata values,
+        bytes[] calldata data
+    ) internal {
         (uint256 decodedId, address token, uint256 amount) = abi.decode(
             data[data.length - 1][4:],
             (uint256, address, uint256)

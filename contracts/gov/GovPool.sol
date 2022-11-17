@@ -193,11 +193,7 @@ contract GovPool is
         );
     }
 
-    function deposit(
-        address receiver,
-        uint256 amount,
-        uint256[] calldata nftIds
-    ) public override {
+    function deposit(address receiver, uint256 amount, uint256[] calldata nftIds) public override {
         require(amount > 0 || nftIds.length > 0, "Gov: empty deposit");
 
         _govUserKeeper.depositTokens.exec(receiver, amount);
@@ -297,11 +293,10 @@ contract GovPool is
 
     receive() external payable {}
 
-    function getProposals(uint256 offset, uint256 limit)
-        external
-        view
-        returns (ProposalView[] memory proposals)
-    {
+    function getProposals(
+        uint256 offset,
+        uint256 limit
+    ) external view returns (ProposalView[] memory proposals) {
         return _proposals.getProposals(offset, limit);
     }
 
@@ -352,12 +347,9 @@ contract GovPool is
         return ProposalState.Voting;
     }
 
-    function getProposalRequiredQuorum(uint256 proposalId)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getProposalRequiredQuorum(
+        uint256 proposalId
+    ) external view override returns (uint256) {
         ProposalCore storage core = _proposals[proposalId].core;
 
         if (core.voteEnd == 0) {
@@ -393,12 +385,10 @@ contract GovPool is
             });
     }
 
-    function getWithdrawableAssets(address delegator, address delegatee)
-        external
-        view
-        override
-        returns (uint256 tokens, ShrinkableArray.UintArray memory nfts)
-    {
+    function getWithdrawableAssets(
+        address delegator,
+        address delegatee
+    ) external view override returns (uint256 tokens, ShrinkableArray.UintArray memory nfts) {
         return
             delegatee == address(0)
                 ? delegator.getWithdrawableAssets(_votedInProposals, _voteInfos)

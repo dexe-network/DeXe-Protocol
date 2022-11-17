@@ -13,11 +13,7 @@ library TokenBalance {
     using DecimalsConverter for uint256;
     using SafeERC20 for IERC20;
 
-    function sendFunds(
-        address token,
-        address receiver,
-        uint256 amount
-    ) internal {
+    function sendFunds(address token, address receiver, uint256 amount) internal {
         if (token == ETHEREUM_ADDRESS) {
             (bool status, ) = payable(receiver).call{value: amount}("");
             require(status, "Gov: failed to send eth");

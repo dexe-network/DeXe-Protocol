@@ -39,11 +39,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
         emit Locked(msg.sender, tokenId, tokenToBeLocked.multiplier, tokenToBeLocked.duration);
     }
 
-    function mint(
-        address to,
-        uint256 multiplier,
-        uint256 duration
-    ) external override onlyOwner {
+    function mint(address to, uint256 multiplier, uint256 duration) external override onlyOwner {
         uint256 currentTokenId = totalSupply() + 1;
 
         _mint(to, currentTokenId);
@@ -61,12 +57,10 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
         baseURI = uri;
     }
 
-    function getExtraRewards(address whose, uint256 rewards)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getExtraRewards(
+        address whose,
+        uint256 rewards
+    ) external view override returns (uint256) {
         uint256 latestLockedTokenId = _latestLockedTokenIds[whose];
 
         return
@@ -75,11 +69,9 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
                 : 0;
     }
 
-    function getCurrentMultiplier(address whose)
-        external
-        view
-        returns (uint256 multiplier, uint256 timeLeft)
-    {
+    function getCurrentMultiplier(
+        address whose
+    ) external view returns (uint256 multiplier, uint256 timeLeft) {
         uint256 latestLockedTokenId = _latestLockedTokenIds[whose];
 
         if (!isLocked(latestLockedTokenId)) {
@@ -98,12 +90,9 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
         return info.lockedAt != 0 && info.lockedAt + info.duration >= block.timestamp;
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC721Enumerable, IERC165)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC721Enumerable, IERC165) returns (bool) {
         return
             interfaceId == type(IERC721Multiplier).interfaceId ||
             ERC721Enumerable.supportsInterface(interfaceId);

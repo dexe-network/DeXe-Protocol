@@ -12,9 +12,10 @@ library AddressSetHelper {
         }
     }
 
-    function remove(EnumerableSet.AddressSet storage addressSet, address[] calldata array)
-        internal
-    {
+    function remove(
+        EnumerableSet.AddressSet storage addressSet,
+        address[] calldata array
+    ) internal {
         for (uint256 i = 0; i < array.length; i++) {
             addressSet.remove(array[i]);
         }

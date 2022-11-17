@@ -74,24 +74,18 @@ interface IGovValidators {
     /// @param proposalId Proposal ID from `Gov` contract
     /// @param duration Duration from `Gov` contract
     /// @param quorum Quorum from `Gov` contract
-    function createExternalProposal(
-        uint256 proposalId,
-        uint64 duration,
-        uint128 quorum
-    ) external;
+    function createExternalProposal(uint256 proposalId, uint64 duration, uint128 quorum) external;
 
-    function changeBalances(uint256[] calldata newValues, address[] calldata userAddresses)
-        external;
+    function changeBalances(
+        uint256[] calldata newValues,
+        address[] calldata userAddresses
+    ) external;
 
     /// @notice Vote in proposal
     /// @param proposalId Proposal ID, internal or external
     /// @param amount Amount of tokens to vote
     /// @param isInternal If `true`, you will vote in internal proposal
-    function vote(
-        uint256 proposalId,
-        uint256 amount,
-        bool isInternal
-    ) external;
+    function vote(uint256 proposalId, uint256 amount, bool isInternal) external;
 
     /// @notice Only for internal proposals. External proposals should be executed from governance.
     /// @param proposalId Internal proposal ID
@@ -99,10 +93,10 @@ interface IGovValidators {
 
     function getExternalProposal(uint256 index) external view returns (ExternalProposal memory);
 
-    function getInternalProposals(uint256 offset, uint256 limit)
-        external
-        view
-        returns (InternalProposalView[] memory);
+    function getInternalProposals(
+        uint256 offset,
+        uint256 limit
+    ) external view returns (InternalProposalView[] memory);
 
     /// @notice Return proposal state
     /// @dev Options:
@@ -111,15 +105,15 @@ interface IGovValidators {
     /// `Succeeded` - proposal with the required number of votes.
     /// `Executed` - executed proposal (only for internal proposal).
     /// `Undefined` - nonexistent proposal.
-    function getProposalState(uint256 proposalId, bool isInternal)
-        external
-        view
-        returns (ProposalState);
+    function getProposalState(
+        uint256 proposalId,
+        bool isInternal
+    ) external view returns (ProposalState);
 
-    function getProposalRequiredQuorum(uint256 proposalId, bool isInternal)
-        external
-        view
-        returns (uint256);
+    function getProposalRequiredQuorum(
+        uint256 proposalId,
+        bool isInternal
+    ) external view returns (uint256);
 
     function isValidator(address user) external view returns (bool);
 }

@@ -101,19 +101,17 @@ library UniswapV2PathFinder {
         }
     }
 
-    function _uniswapLess(uint256[] memory first, uint256[] memory second)
-        internal
-        pure
-        returns (bool)
-    {
+    function _uniswapLess(
+        uint256[] memory first,
+        uint256[] memory second
+    ) internal pure returns (bool) {
         return first[0] < second[0];
     }
 
-    function _uniswapMore(uint256[] memory first, uint256[] memory second)
-        internal
-        pure
-        returns (bool)
-    {
+    function _uniswapMore(
+        uint256[] memory first,
+        uint256[] memory second
+    ) internal pure returns (bool) {
         return first[first.length - 1] > second[second.length - 1];
     }
 }

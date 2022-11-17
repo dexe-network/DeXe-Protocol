@@ -47,10 +47,10 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         AbstractDependant(address(_traderPoolProposal)).setDependencies(contractsRegistry);
     }
 
-    function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut)
-        public
-        override
-    {
+    function invest(
+        uint256 amountInBaseToInvest,
+        uint256[] calldata minPositionsOut
+    ) public override {
         require(
             isTraderAdmin(msg.sender) || getInvestDelayEnd() <= block.timestamp,
             "ITP: investment delay"
@@ -103,10 +103,10 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         _burn(msg.sender, lpAmount);
     }
 
-    function reinvestProposal(uint256 proposalId, uint256[] calldata minPositionsOut)
-        external
-        override
-    {
+    function reinvestProposal(
+        uint256 proposalId,
+        uint256[] calldata minPositionsOut
+    ) external override {
         uint256 receivedBase = _traderPoolProposal.divest(proposalId, msg.sender);
 
         if (receivedBase == 0) {

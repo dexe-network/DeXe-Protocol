@@ -386,12 +386,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         _setERC721Address(_nftAddress, totalPowerInTokens, nftsTotalSupply);
     }
 
-    function maxLockedAmount(address voter, bool isMicropool)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function maxLockedAmount(
+        address voter,
+        bool isMicropool
+    ) external view override returns (uint256) {
         return _getBalanceInfoStorage(voter, isMicropool).maxTokensLocked;
     }
 
@@ -495,12 +493,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
     }
 
-    function getNftsPowerInTokensBySnapshot(uint256[] memory nftIds, uint256 snapshotId)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function getNftsPowerInTokensBySnapshot(
+        uint256[] memory nftIds,
+        uint256 snapshotId
+    ) public view override returns (uint256) {
         NFTSnapshot storage snapshot = nftSnapshot[snapshotId];
         uint256 totalNftsPower = snapshot.totalNftsPower;
 
@@ -611,12 +607,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
     }
 
-    function delegations(address user)
-        external
-        view
-        override
-        returns (DelegationInfoView[] memory delegationsInfo)
-    {
+    function delegations(
+        address user
+    ) external view override returns (DelegationInfoView[] memory delegationsInfo) {
         UserInfo storage userInfo = _usersInfo[user];
 
         delegationsInfo = new DelegationInfoView[](userInfo.delegatees.length());
@@ -722,11 +715,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         withdrawableNfts = nfts.transform().crop(nftsLength);
     }
 
-    function _getBalanceInfoStorage(address voter, bool isMicropool)
-        internal
-        view
-        returns (BalanceInfo storage)
-    {
+    function _getBalanceInfoStorage(
+        address voter,
+        bool isMicropool
+    ) internal view returns (BalanceInfo storage) {
         return isMicropool ? _micropoolsInfo[voter] : _usersInfo[voter].balanceInfo;
     }
 

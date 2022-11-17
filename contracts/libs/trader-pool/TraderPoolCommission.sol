@@ -41,11 +41,7 @@ library TraderPoolCommission {
     )
         external
         view
-        returns (
-            uint256 investorBaseAmount,
-            uint256 baseCommission,
-            uint256 lpCommission
-        )
+        returns (uint256 investorBaseAmount, uint256 baseCommission, uint256 lpCommission)
     {
         uint256 investorBalance = IERC20(address(this)).balanceOf(investor);
         uint256 baseTokenBalance = poolParameters.baseToken.normThisBalance();
@@ -81,11 +77,9 @@ library TraderPoolCommission {
         }
     }
 
-    function nextCommissionEpoch(ITraderPool.PoolParameters storage poolParameters)
-        external
-        view
-        returns (uint256)
-    {
+    function nextCommissionEpoch(
+        ITraderPool.PoolParameters storage poolParameters
+    ) external view returns (uint256) {
         return
             ITraderPool(address(this)).coreProperties().getCommissionEpochByTimestamp(
                 block.timestamp,

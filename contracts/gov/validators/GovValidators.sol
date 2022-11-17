@@ -132,11 +132,10 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         emit ExternalProposalCreated(proposalId, quorum);
     }
 
-    function changeBalances(uint256[] calldata newValues, address[] calldata userAddresses)
-        external
-        override
-        onlyOwner
-    {
+    function changeBalances(
+        uint256[] calldata newValues,
+        address[] calldata userAddresses
+    ) external override onlyOwner {
         _changeBalances(newValues, userAddresses);
     }
 
@@ -193,21 +192,16 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         emit InternalProposalExecuted(proposalId, msg.sender);
     }
 
-    function getExternalProposal(uint256 index)
-        external
-        view
-        override
-        returns (ExternalProposal memory)
-    {
+    function getExternalProposal(
+        uint256 index
+    ) external view override returns (ExternalProposal memory) {
         return _externalProposals[index];
     }
 
-    function getInternalProposals(uint256 offset, uint256 limit)
-        external
-        view
-        override
-        returns (InternalProposalView[] memory internalProposals)
-    {
+    function getInternalProposals(
+        uint256 offset,
+        uint256 limit
+    ) external view override returns (InternalProposalView[] memory internalProposals) {
         uint256 to = (offset + limit).min(latestInternalProposalId).max(offset);
 
         internalProposals = new InternalProposalView[](to - offset);
@@ -221,12 +215,10 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         }
     }
 
-    function getProposalState(uint256 proposalId, bool isInternal)
-        public
-        view
-        override
-        returns (ProposalState)
-    {
+    function getProposalState(
+        uint256 proposalId,
+        bool isInternal
+    ) public view override returns (ProposalState) {
         if (!_proposalExists(proposalId, isInternal)) {
             return ProposalState.Undefined;
         }
@@ -237,12 +229,10 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
                 : _getProposalState(_externalProposals[proposalId].core);
     }
 
-    function getProposalRequiredQuorum(uint256 proposalId, bool isInternal)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function getProposalRequiredQuorum(
+        uint256 proposalId,
+        bool isInternal
+    ) public view override returns (uint256) {
         ProposalCore storage core = isInternal
             ? _internalProposals[proposalId].core
             : _externalProposals[proposalId].core;

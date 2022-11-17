@@ -13,18 +13,13 @@ interface IERC721Multiplier is IERC721Enumerable {
 
     function lock(uint256 tokenId) external;
 
-    function mint(
-        address to,
-        uint256 multiplier,
-        uint256 duration
-    ) external;
+    function mint(address to, uint256 multiplier, uint256 duration) external;
 
     function getExtraRewards(address whose, uint256 rewards) external view returns (uint256);
 
-    function getCurrentMultiplier(address whose)
-        external
-        view
-        returns (uint256 multiplier, uint256 timeLeft);
+    function getCurrentMultiplier(
+        address whose
+    ) external view returns (uint256 multiplier, uint256 timeLeft);
 
     function isLocked(uint256 tokenId) external view returns (bool);
 }

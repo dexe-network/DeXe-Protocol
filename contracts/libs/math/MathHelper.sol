@@ -9,11 +9,7 @@ library MathHelper {
         return (num * percent) / PERCENTAGE_100;
     }
 
-    function ratio(
-        uint256 base,
-        uint256 num,
-        uint256 denom
-    ) internal pure returns (uint256) {
+    function ratio(uint256 base, uint256 num, uint256 denom) internal pure returns (uint256) {
         return (base * num) / denom;
     }
 }

@@ -52,11 +52,9 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         powerCalcStartTimestamp = startTimestamp;
     }
 
-    function setReductionPercent(uint256 _reductionPercent)
-        external
-        onlyOwner
-        onlyBeforePowerCalc
-    {
+    function setReductionPercent(
+        uint256 _reductionPercent
+    ) external onlyOwner onlyBeforePowerCalc {
         require(_reductionPercent > 0, "ERC721Power: reduction percent can't be zero");
         require(
             _reductionPercent < PERCENTAGE_100,
@@ -72,11 +70,10 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         maxPower = _maxPower;
     }
 
-    function setNftMaxPower(uint256 _maxPower, uint256 tokenId)
-        external
-        onlyOwner
-        onlyBeforePowerCalc
-    {
+    function setNftMaxPower(
+        uint256 _maxPower,
+        uint256 tokenId
+    ) external onlyOwner onlyBeforePowerCalc {
         require(_maxPower > 0, "ERC721Power: max power can't be zero");
 
         nftInfos[tokenId].maxPower = _maxPower;
@@ -94,11 +91,10 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         requiredCollateral = amount;
     }
 
-    function setNftRequiredCollateral(uint256 amount, uint256 tokenId)
-        external
-        onlyOwner
-        onlyBeforePowerCalc
-    {
+    function setNftRequiredCollateral(
+        uint256 amount,
+        uint256 tokenId
+    ) external onlyOwner onlyBeforePowerCalc {
         require(amount > 0, "ERC721Power: required collateral amount can't be zero");
 
         nftInfos[tokenId].requiredCollateral = amount;
@@ -151,11 +147,9 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         );
     }
 
-    function recalculateNftPower(uint256 tokenId)
-        public
-        override
-        returns (uint256 newPower, uint256 collateral)
-    {
+    function recalculateNftPower(
+        uint256 tokenId
+    ) public override returns (uint256 newPower, uint256 collateral) {
         if (block.timestamp <= powerCalcStartTimestamp) {
             return (0, 0);
         }
@@ -215,13 +209,9 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         return (currentPower, collateral);
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(IERC165, ERC721Enumerable)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(IERC165, ERC721Enumerable) returns (bool) {
         return
             interfaceId == type(IERC721Power).interfaceId || super.supportsInterface(interfaceId);
     }
