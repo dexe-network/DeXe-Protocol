@@ -15,11 +15,11 @@ describe.only("ERC721Power", () => {
   let SECOND;
   let THIRD;
 
-  let startTime;
-  let DEFAULT_AMOUNT = wei("10000");
-
   let nft;
   let token;
+
+  let startTime;
+  let DEFAULT_AMOUNT = wei("10000");
 
   const deployNft = async function (startTime, maxPower, reductionPercent, requiredCollateral) {
     token = await ERC20Mock.new("Mock", "Mock", 18);
