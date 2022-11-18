@@ -1,7 +1,7 @@
 const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../scripts/utils/utils");
 const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
-const { PRECISION } = require("../scripts/utils/constants");
+const { PRECISION, ZERO_ADDR, PERCENTAGE_100 } = require("../scripts/utils/constants");
 const truffleAssert = require("truffle-assertions");
 
 const ERC721Power = artifacts.require("ERC721Power");
@@ -52,6 +52,38 @@ describe.only("ERC721Power", () => {
   function toPercent(num) {
     return PRECISION.times(num);
   }
+
+  describe("constructor", () => {
+    it("should revert with unavailable params", async () => {
+      await truffleAssert.reverts(
+        ERC721Power.new("", "", startTime, ZERO_ADDR, "1", "2", "3"),
+        "ERC721Power: zero address"
+      );
+
+      await truffleAssert.reverts(deployNft(startTime, "0", "2", "3"), "ERC721Power: max power can't be zero");
+
+      await truffleAssert.reverts(deployNft(startTime, "1", "0", "3"), "ERC721Power: reduction percent can't be zero");
+
+      await truffleAssert.reverts(
+        deployNft(startTime, "1", PERCENTAGE_100, "3"),
+        "ERC721Power: reduction percent can't be a 100%"
+      );
+
+      await truffleAssert.reverts(
+        deployNft(startTime, "1", "2", "0"),
+        "ERC721Power: required collateral amount can't be zero"
+      );
+    });
+
+    it("should initialize properly if all conditions are met", async () => {
+      await deployNft(startTime, "1", "2", "3");
+      assert.equal(await nft.powerCalcStartTimestamp(), startTime);
+      assert.equal(await nft.collateralToken(), token.address);
+      assert.equal(await nft.maxPower(), "1");
+      assert.equal(await nft.reductionPercent(), "2");
+      assert.equal(await nft.requiredCollateral(), "3");
+    });
+  });
 
   describe("access", () => {
     beforeEach("setup", async () => {
