@@ -10,7 +10,7 @@ const ERC20Mock = artifacts.require("ERC20Mock");
 ERC721Power.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 
-describe.only("ERC721Power", () => {
+describe("ERC721Power", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -145,7 +145,7 @@ describe.only("ERC721Power", () => {
         assert.equal((await nft.totalPower()).toFixed(), toPercent("90").plus(toPercent("100")).plus("1337").toFixed());
       });
 
-      it("should recalculate total power when nft is being transferred", async () => {
+      it("should recalculate total power when nft is being transferred and startTimestamp is reached", async () => {
         await setTime(startTime + 1000);
         await nft.transferFrom(SECOND, THIRD, 1, { from: SECOND });
 
