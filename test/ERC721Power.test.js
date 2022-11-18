@@ -15,8 +15,8 @@ describe.only("ERC721Power", () => {
   let SECOND;
   let THIRD;
 
-  let nft;
   let token;
+  let nft;
 
   let startTime;
   let DEFAULT_AMOUNT = wei("10000");
