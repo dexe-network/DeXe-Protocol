@@ -501,11 +501,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         NFTSnapshot storage snapshot = nftSnapshot[snapshotId];
         uint256 totalNftsPower = snapshot.totalNftsPower;
 
-        if (nftAddress == address(0) || totalNftsPower == 0) {
+        ERC721Power nftContract = ERC721Power(nftAddress);
+
+        if (address(nftContract) == address(0) || totalNftsPower == 0) {
             return 0;
         }
-
-        ERC721Power nftContract = ERC721Power(nftAddress);
 
         uint256 nftsPower;
 
