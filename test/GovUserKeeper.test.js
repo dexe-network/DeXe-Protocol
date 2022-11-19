@@ -919,16 +919,20 @@ describe("GovUserKeeper", () => {
     beforeEach("setup", async () => {
       startTime = await getCurrentBlockTime();
 
-      nft = await ERC721Power.new("Power", "Power", startTime + 200);
+      nft = await ERC721Power.new(
+        "Power",
+        "Power",
+        startTime + 200,
+        token.address,
+        wei("10000"),
+        PRECISION.times(toBN("0.01")),
+        wei("500")
+      );
 
       await userKeeper.__GovUserKeeper_init(token.address, nft.address, wei("33000"), 33);
 
       await token.mint(OWNER, wei("900"));
       await token.approve(nft.address, wei("500"));
-
-      await nft.setMaxPower(wei("10000"));
-      await nft.setRequiredCollateral(wei("500"));
-      await nft.setReductionPercent(PRECISION.times(toBN("0.01")));
 
       for (let i = 1; i <= 9; i++) {
         if (i === 8) {
@@ -939,7 +943,6 @@ describe("GovUserKeeper", () => {
         await nft.approve(userKeeper.address, i);
       }
 
-      await nft.setCollateralToken(token.address);
       await nft.addCollateral(wei("500"), "9");
     });
 
