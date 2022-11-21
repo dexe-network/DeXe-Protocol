@@ -10,7 +10,7 @@ const ERC20Mock = artifacts.require("ERC20Mock");
 ERC721Power.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 
-describe.only("ERC721Power", () => {
+describe("ERC721Power", () => {
   let OWNER;
   let SECOND;
   let THIRD;
