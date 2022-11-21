@@ -21,9 +21,10 @@ library GovPoolExecute {
 
     event ProposalExecuted(uint256 proposalId, address sender);
 
-    function execute(mapping(uint256 => IGovPool.Proposal) storage proposals, uint256 proposalId)
-        external
-    {
+    function execute(
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        uint256 proposalId
+    ) external {
         IGovPool.Proposal storage proposal = proposals[proposalId];
         IGovPool.ProposalCore storage core = proposal.core;
 

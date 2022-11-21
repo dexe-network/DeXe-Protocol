@@ -152,7 +152,13 @@ library GovPoolView {
         for (uint256 i = offset; i < to; i++) {
             proposalViews[i - offset] = IGovPool.ProposalView({
                 proposal: proposals[i + 1],
-                validatorProposal: IGovValidators(validators).getExternalProposal(i + 1)
+                validatorProposal: IGovValidators(validators).getExternalProposal(i + 1),
+                proposalState: govPool.getProposalState(i + 1),
+                requiredQuorum: govPool.getProposalRequiredQuorum(i + 1),
+                requiredValidatorsQuorum: IGovValidators(validators).getProposalRequiredQuorum(
+                    i + 1,
+                    false
+                )
             });
         }
     }

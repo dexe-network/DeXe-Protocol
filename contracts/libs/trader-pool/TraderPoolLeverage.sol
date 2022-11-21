@@ -15,11 +15,9 @@ library TraderPoolLeverage {
     using MathHelper for uint256;
     using TraderPoolPrice for ITraderPool.PoolParameters;
 
-    function getMaxTraderLeverage(ITraderPool.PoolParameters storage poolParameters)
-        public
-        view
-        returns (uint256 totalTokensUSD, uint256 maxTraderLeverageUSDTokens)
-    {
+    function getMaxTraderLeverage(
+        ITraderPool.PoolParameters storage poolParameters
+    ) public view returns (uint256 totalTokensUSD, uint256 maxTraderLeverageUSDTokens) {
         uint256 traderUSDTokens;
 
         (totalTokensUSD, traderUSDTokens) = _getNormalizedLeveragePoolPriceInUSD(poolParameters);

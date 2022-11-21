@@ -158,19 +158,19 @@ interface ICoreProperties {
     /// @param offset the starting index of the tokens array
     /// @param limit the length of the array to observe
     /// @return tokens requested whitelist array
-    function getWhitelistTokens(uint256 offset, uint256 limit)
-        external
-        view
-        returns (address[] memory tokens);
+    function getWhitelistTokens(
+        uint256 offset,
+        uint256 limit
+    ) external view returns (address[] memory tokens);
 
     /// @notice The paginated function to get addresses of blacklisted tokens
     /// @param offset the starting index of the tokens array
     /// @param limit the length of the array to observe
     /// @return tokens requested blacklist array
-    function getBlacklistTokens(uint256 offset, uint256 limit)
-        external
-        view
-        returns (address[] memory tokens);
+    function getBlacklistTokens(
+        uint256 offset,
+        uint256 limit
+    ) external view returns (address[] memory tokens);
 
     /// @notice This function checks if the provided token can be opened in the BasicTraderPool
     /// @param token the token to be checked
@@ -185,10 +185,9 @@ interface ICoreProperties {
     /// @notice The helper function that filters the provided positions tokens according to the blacklist
     /// @param positions the addresses of tokens
     /// @return filteredPositions the array of tokens without the ones in the blacklist
-    function getFilteredPositions(address[] memory positions)
-        external
-        view
-        returns (address[] memory filteredPositions);
+    function getFilteredPositions(
+        address[] memory positions
+    ) external view returns (address[] memory filteredPositions);
 
     /// @notice The function to fetch the maximum pool investors
     /// @return maximum pool investors
@@ -265,17 +264,17 @@ interface ICoreProperties {
     /// @param timestamp the timestamp (should not be less than the initial timestamp)
     /// @param commissionPeriod the enum of commission durations
     /// @return the number of the epoch
-    function getCommissionEpochByTimestamp(uint256 timestamp, CommissionPeriod commissionPeriod)
-        external
-        view
-        returns (uint256);
+    function getCommissionEpochByTimestamp(
+        uint256 timestamp,
+        CommissionPeriod commissionPeriod
+    ) external view returns (uint256);
 
     /// @notice The funcition to get the end timestamp of the provided commission epoch
     /// @param epoch the commission epoch to get the end timestamp for
     /// @param commissionPeriod the enum of commission durations
     /// @return the end timestamp of the provided commission epoch
-    function getCommissionTimestampByEpoch(uint256 epoch, CommissionPeriod commissionPeriod)
-        external
-        view
-        returns (uint256);
+    function getCommissionTimestampByEpoch(
+        uint256 epoch,
+        CommissionPeriod commissionPeriod
+    ) external view returns (uint256);
 }

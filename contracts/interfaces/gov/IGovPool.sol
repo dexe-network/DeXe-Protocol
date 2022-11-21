@@ -42,6 +42,9 @@ interface IGovPool {
     struct ProposalView {
         Proposal proposal;
         IGovValidators.ExternalProposal validatorProposal;
+        ProposalState proposalState;
+        uint256 requiredQuorum;
+        uint256 requiredValidatorsQuorum;
     }
 
     struct VoteInfo {
@@ -108,29 +111,13 @@ interface IGovPool {
         uint256[] calldata voteNftIds
     ) external;
 
-    function deposit(
-        address receiver,
-        uint256 amount,
-        uint256[] calldata nftIds
-    ) external;
+    function deposit(address receiver, uint256 amount, uint256[] calldata nftIds) external;
 
-    function withdraw(
-        address receiver,
-        uint256 amount,
-        uint256[] calldata nftIds
-    ) external;
+    function withdraw(address receiver, uint256 amount, uint256[] calldata nftIds) external;
 
-    function delegate(
-        address delegatee,
-        uint256 amount,
-        uint256[] calldata nftIds
-    ) external;
+    function delegate(address delegatee, uint256 amount, uint256[] calldata nftIds) external;
 
-    function undelegate(
-        address delegatee,
-        uint256 amount,
-        uint256[] calldata nftIds
-    ) external;
+    function undelegate(address delegatee, uint256 amount, uint256[] calldata nftIds) external;
 
     function unlock(address user, bool isMicropool) external;
 
@@ -152,10 +139,10 @@ interface IGovPool {
 
     function setNftMultiplierAddress(address nftMultiplierAddress) external;
 
-    function getProposals(uint256 offset, uint256 limit)
-        external
-        view
-        returns (ProposalView[] memory);
+    function getProposals(
+        uint256 offset,
+        uint256 limit
+    ) external view returns (ProposalView[] memory);
 
     /// @param proposalId Proposal ID
     /// @return `ProposalState`:
@@ -174,14 +161,16 @@ interface IGovPool {
         bool isMicropool
     ) external view returns (uint256, uint256);
 
+    function getProposalRequiredQuorum(uint256 proposalId) external view returns (uint256);
+
     function getUserVotes(
         uint256 proposalId,
         address voter,
         bool isMicropool
     ) external view returns (VoteInfoView memory);
 
-    function getWithdrawableAssets(address delegator, address delegatee)
-        external
-        view
-        returns (uint256, ShrinkableArray.UintArray memory);
+    function getWithdrawableAssets(
+        address delegator,
+        address delegatee
+    ) external view returns (uint256, ShrinkableArray.UintArray memory);
 }

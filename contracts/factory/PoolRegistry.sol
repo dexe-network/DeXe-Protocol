@@ -41,11 +41,10 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         _poolFactory = IContractsRegistry(contractsRegistry).getPoolFactoryContract();
     }
 
-    function addProxyPool(string calldata name, address poolAddress)
-        external
-        override
-        onlyPoolFactory
-    {
+    function addProxyPool(
+        string calldata name,
+        address poolAddress
+    ) external override onlyPoolFactory {
         _addProxyPool(name, poolAddress);
     }
 
@@ -57,12 +56,10 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         _ownerPools[user][name].add(poolAddress);
     }
 
-    function countAssociatedPools(address user, string calldata name)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function countAssociatedPools(
+        address user,
+        string calldata name
+    ) external view override returns (uint256) {
         return _ownerPools[user][name].length();
     }
 

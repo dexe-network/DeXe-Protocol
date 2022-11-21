@@ -6,11 +6,9 @@ import "../../../libs/data-structures/ShrinkableArray.sol";
 contract ShrinkableArrayMock {
     using ShrinkableArray for *;
 
-    function transform(uint256[] calldata arr)
-        external
-        pure
-        returns (ShrinkableArray.UintArray memory)
-    {
+    function transform(
+        uint256[] calldata arr
+    ) external pure returns (ShrinkableArray.UintArray memory) {
         return arr.transform();
     }
 
@@ -18,11 +16,10 @@ contract ShrinkableArrayMock {
         return length.create();
     }
 
-    function crop(ShrinkableArray.UintArray calldata arr, uint256 newLength)
-        external
-        pure
-        returns (ShrinkableArray.UintArray memory)
-    {
+    function crop(
+        ShrinkableArray.UintArray calldata arr,
+        uint256 newLength
+    ) external pure returns (ShrinkableArray.UintArray memory) {
         return arr.crop(newLength);
     }
 }

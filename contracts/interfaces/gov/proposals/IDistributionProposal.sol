@@ -13,11 +13,7 @@ interface IDistributionProposal {
     }
 
     /// @notice Executed by `Gov` contract, open 'claim'
-    function execute(
-        uint256 proposalId,
-        address token,
-        uint256 amount
-    ) external payable;
+    function execute(uint256 proposalId, address token, uint256 amount) external payable;
 
     /// @notice Distribute rewards
     /// @param voter Voter address

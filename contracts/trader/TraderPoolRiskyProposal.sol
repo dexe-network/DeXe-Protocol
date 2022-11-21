@@ -47,18 +47,16 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     );
     event ProposalPositionClosed(uint256 proposalId, address positionToken);
 
-    function __TraderPoolRiskyProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
-        public
-        initializer
-    {
+    function __TraderPoolRiskyProposal_init(
+        ParentTraderPoolInfo calldata parentTraderPoolInfo
+    ) public initializer {
         __TraderPoolProposal_init(parentTraderPoolInfo);
     }
 
-    function changeProposalRestrictions(uint256 proposalId, ProposalLimits calldata proposalLimits)
-        external
-        override
-        onlyTraderAdmin
-    {
+    function changeProposalRestrictions(
+        uint256 proposalId,
+        ProposalLimits calldata proposalLimits
+    ) external override onlyTraderAdmin {
         require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
 
         _proposalInfos[proposalId].proposalLimits = proposalLimits;
@@ -265,12 +263,10 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         }
     }
 
-    function getProposalInfos(uint256 offset, uint256 limit)
-        external
-        view
-        override
-        returns (ProposalInfoExtended[] memory proposals)
-    {
+    function getProposalInfos(
+        uint256 offset,
+        uint256 limit
+    ) external view override returns (ProposalInfoExtended[] memory proposals) {
         return
             TraderPoolRiskyProposalView.getProposalInfos(
                 _proposalInfos,
@@ -306,11 +302,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         external
         view
         override
-        returns (
-            uint256 positionTokens,
-            uint256 positionTokenPrice,
-            address[] memory path
-        )
+        returns (uint256 positionTokens, uint256 positionTokenPrice, address[] memory path)
     {
         return
             _parentTraderPoolInfo.getCreationTokens(
@@ -320,15 +312,14 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             );
     }
 
-    function getInvestTokens(uint256 proposalId, uint256 baseInvestment)
+    function getInvestTokens(
+        uint256 proposalId,
+        uint256 baseInvestment
+    )
         external
         view
         override
-        returns (
-            uint256 baseAmount,
-            uint256 positionAmount,
-            uint256 lp2Amount
-        )
+        returns (uint256 baseAmount, uint256 positionAmount, uint256 lp2Amount)
     {
         return
             _parentTraderPoolInfo.getInvestTokens(
@@ -352,21 +343,17 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
                 : PERCENTAGE_100;
     }
 
-    function getUserInvestmentsLimits(address user, uint256[] calldata proposalIds)
-        external
-        view
-        override
-        returns (uint256[] memory lps)
-    {
+    function getUserInvestmentsLimits(
+        address user,
+        uint256[] calldata proposalIds
+    ) external view override returns (uint256[] memory lps) {
         return _parentTraderPoolInfo.getUserInvestmentsLimits(_lpBalances, user, proposalIds);
     }
 
-    function getDivestAmounts(uint256[] calldata proposalIds, uint256[] calldata lp2s)
-        external
-        view
-        override
-        returns (Receptions memory receptions)
-    {
+    function getDivestAmounts(
+        uint256[] calldata proposalIds,
+        uint256[] calldata lp2s
+    ) external view override returns (Receptions memory receptions) {
         return _parentTraderPoolInfo.getDivestAmounts(_proposalInfos, proposalIds, lp2s);
     }
 

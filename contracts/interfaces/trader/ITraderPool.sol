@@ -201,8 +201,10 @@ interface ITraderPool {
     /// @param offsetLimits the array of starting indexes and the lengths of the investors array.
     /// Starting indexes are under even positions, lengths are under odd
     /// @param minDexeCommissionOut the minimal amount of DEXE tokens the platform will receive
-    function reinvestCommission(uint256[] calldata offsetLimits, uint256 minDexeCommissionOut)
-        external;
+    function reinvestCommission(
+        uint256[] calldata offsetLimits,
+        uint256 minDexeCommissionOut
+    ) external;
 
     /// @notice The function to divest from the pool. The "getDivestAmountsAndCommissions()" function should be called
     /// to receive minPositionsOut and minDexeCommissionOut parameters
@@ -275,20 +277,18 @@ interface ITraderPool {
     /// @notice The function to get the amounts of positions tokens that will be given to the investor on the investment
     /// @param amountInBaseToInvest normalized amount of base tokens to be invested
     /// @return receptions the information about the tokens received
-    function getInvestTokens(uint256 amountInBaseToInvest)
-        external
-        view
-        returns (Receptions memory receptions);
+    function getInvestTokens(
+        uint256 amountInBaseToInvest
+    ) external view returns (Receptions memory receptions);
 
     /// @notice The function to get the received commissions from the users when the "reinvestCommission" function is called.
     /// This function also "projects" commissions to the current positions if they were to be closed
     /// @param offsetLimits the starting indexes and the lengths of the investors array
     /// Starting indexes are under even positions, lengths are under odd
     /// @return commissions the received commissions info
-    function getReinvestCommissions(uint256[] calldata offsetLimits)
-        external
-        view
-        returns (Commissions memory commissions);
+    function getReinvestCommissions(
+        uint256[] calldata offsetLimits
+    ) external view returns (Commissions memory commissions);
 
     /// @notice The function to get the next commission epoch
     /// @return next commission epoch
@@ -299,10 +299,10 @@ interface ITraderPool {
     /// @param amountLP the amount of LP tokens the users is going to divest
     /// @return receptions the tokens that the user will receive
     /// @return commissions the commissions the user will have to pay
-    function getDivestAmountsAndCommissions(address user, uint256 amountLP)
-        external
-        view
-        returns (Receptions memory receptions, Commissions memory commissions);
+    function getDivestAmountsAndCommissions(
+        address user,
+        uint256 amountLP
+    ) external view returns (Receptions memory receptions, Commissions memory commissions);
 
     /// @notice The function to get token prices required for the slippage
     /// @param from the token to exchange from

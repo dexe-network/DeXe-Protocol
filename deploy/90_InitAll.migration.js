@@ -1,5 +1,6 @@
-const { logTransaction, logContracts } = require("../runners/logger/logger.js");
-const { SECONDS_IN_DAY, SECONDS_IN_MONTH, PRECISION, DECIMAL } = require("../../scripts/utils/constants");
+const { logTransaction, logContracts } = require("@dlsl/hardhat-migrate/dist/src/logger/logger.js");
+
+const { SECONDS_IN_DAY, SECONDS_IN_MONTH, PRECISION, DECIMAL } = require("../scripts/utils/constants");
 
 const Proxy = artifacts.require("TransparentUpgradeableProxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");

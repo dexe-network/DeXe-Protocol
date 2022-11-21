@@ -43,18 +43,16 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     event ProposalClaimed(uint256 proposalId, address user, uint256[] amounts, address[] tokens);
     event ProposalConverted(uint256 proposalId, address user, uint256 amount, address baseToken);
 
-    function __TraderPoolInvestProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
-        public
-        initializer
-    {
+    function __TraderPoolInvestProposal_init(
+        ParentTraderPoolInfo calldata parentTraderPoolInfo
+    ) public initializer {
         __TraderPoolProposal_init(parentTraderPoolInfo);
     }
 
-    function changeProposalRestrictions(uint256 proposalId, ProposalLimits calldata proposalLimits)
-        external
-        override
-        onlyTraderAdmin
-    {
+    function changeProposalRestrictions(
+        uint256 proposalId,
+        ProposalLimits calldata proposalLimits
+    ) external override onlyTraderAdmin {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
         _proposalInfos[proposalId].proposalLimits = proposalLimits;
@@ -123,12 +121,10 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         info.newInvestedBase += baseInvestment;
     }
 
-    function divest(uint256 proposalId, address user)
-        external
-        override
-        onlyParentTraderPool
-        returns (uint256 claimedBase)
-    {
+    function divest(
+        uint256 proposalId,
+        address user
+    ) external override onlyParentTraderPool returns (uint256 claimedBase) {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
         (
@@ -209,12 +205,10 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         emit ProposalConverted(proposalId, msg.sender, newInvestedBase, baseToken);
     }
 
-    function getProposalInfos(uint256 offset, uint256 limit)
-        external
-        view
-        override
-        returns (ProposalInfoExtended[] memory proposals)
-    {
+    function getProposalInfos(
+        uint256 offset,
+        uint256 limit
+    ) external view override returns (ProposalInfoExtended[] memory proposals) {
         return
             TraderPoolInvestProposalView.getProposalInfos(
                 _proposalInfos,
@@ -240,12 +234,10 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             );
     }
 
-    function getRewards(uint256[] calldata proposalIds, address user)
-        external
-        view
-        override
-        returns (Receptions memory receptions)
-    {
+    function getRewards(
+        uint256[] calldata proposalIds,
+        address user
+    ) external view override returns (Receptions memory receptions) {
         return
             TraderPoolInvestProposalView.getRewards(
                 _rewardInfos,
@@ -255,11 +247,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             );
     }
 
-    function _updateCumulativeSum(
-        uint256 proposalId,
-        uint256 amount,
-        address token
-    ) internal {
+    function _updateCumulativeSum(uint256 proposalId, uint256 amount, address token) internal {
         RewardInfo storage rewardInfo = _rewardInfos[proposalId];
 
         rewardInfo.rewardTokens.add(token);
@@ -284,13 +272,12 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         }
     }
 
-    function _calculateRewards(uint256 proposalId, address user)
+    function _calculateRewards(
+        uint256 proposalId,
+        address user
+    )
         internal
-        returns (
-            uint256 totalClaimed,
-            uint256[] memory claimed,
-            address[] memory addresses
-        )
+        returns (uint256 totalClaimed, uint256[] memory claimed, address[] memory addresses)
     {
         _updateRewards(proposalId, user);
 
@@ -324,11 +311,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         }
     }
 
-    function _payout(
-        address user,
-        uint256[] memory claimed,
-        address[] memory addresses
-    ) internal {
+    function _payout(address user, uint256[] memory claimed, address[] memory addresses) internal {
         for (uint256 i = 0; i < addresses.length; i++) {
             address token = addresses[i];
 

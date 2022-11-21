@@ -75,10 +75,9 @@ abstract contract TraderPoolProposal is
         _;
     }
 
-    function __TraderPoolProposal_init(ParentTraderPoolInfo calldata parentTraderPoolInfo)
-        public
-        onlyInitializing
-    {
+    function __TraderPoolProposal_init(
+        ParentTraderPoolInfo calldata parentTraderPoolInfo
+    ) public onlyInitializing {
         __ERC1155Supply_init();
 
         _parentTraderPoolInfo = parentTraderPoolInfo;
@@ -165,11 +164,7 @@ abstract contract TraderPoolProposal is
         totalLPBalances[user] += lpAmount;
     }
 
-    function _checkRemoveInvestor(
-        address user,
-        uint256 proposalId,
-        uint256 lp2Amount
-    ) internal {
+    function _checkRemoveInvestor(address user, uint256 proposalId, uint256 lp2Amount) internal {
         if (balanceOf(user, proposalId) == lp2Amount) {
             _activeInvestments[user].remove(proposalId);
 

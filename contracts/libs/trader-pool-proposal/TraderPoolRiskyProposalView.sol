@@ -129,11 +129,7 @@ library TraderPoolRiskyProposalView {
     )
         external
         view
-        returns (
-            uint256 positionTokens,
-            uint256 positionTokenPrice,
-            address[] memory path
-        )
+        returns (uint256 positionTokens, uint256 positionTokenPrice, address[] memory path)
     {
         address baseToken = parentTraderPoolInfo.baseToken;
 
@@ -162,15 +158,7 @@ library TraderPoolRiskyProposalView {
         ITraderPoolRiskyProposal.ProposalInfo storage info,
         uint256 proposalId,
         uint256 baseInvestment
-    )
-        external
-        view
-        returns (
-            uint256 baseAmount,
-            uint256 positionAmount,
-            uint256 lp2Amount
-        )
-    {
+    ) external view returns (uint256 baseAmount, uint256 positionAmount, uint256 lp2Amount) {
         if (
             proposalId == 0 ||
             proposalId > TraderPoolRiskyProposal(address(this)).proposalsTotalNum()

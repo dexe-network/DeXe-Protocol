@@ -92,8 +92,10 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// @notice The function to change the proposal investment restrictions
     /// @param proposalId the id of the proposal to change the restriction for
     /// @param proposalLimits the new limits for the proposal
-    function changeProposalRestrictions(uint256 proposalId, ProposalLimits calldata proposalLimits)
-        external;
+    function changeProposalRestrictions(
+        uint256 proposalId,
+        ProposalLimits calldata proposalLimits
+    ) external;
 
     /// @notice The function to create a proposal
     /// @param token the proposal token (the one that the trades are only allowed to)
@@ -161,10 +163,10 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// @param offset the starting index of the proposals array
     /// @param limit the number of proposals to observe
     /// @return proposals the information about the proposals
-    function getProposalInfos(uint256 offset, uint256 limit)
-        external
-        view
-        returns (ProposalInfoExtended[] memory proposals);
+    function getProposalInfos(
+        uint256 offset,
+        uint256 limit
+    ) external view returns (ProposalInfoExtended[] memory proposals);
 
     /// @notice The function to get the amount of position token on proposal creation
     /// @param token the proposal token
@@ -182,11 +184,7 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     )
         external
         view
-        returns (
-            uint256 positionTokens,
-            uint256 positionTokenPrice,
-            address[] memory path
-        );
+        returns (uint256 positionTokens, uint256 positionTokenPrice, address[] memory path);
 
     /// @notice The function to get the amount of base tokens and position tokens received on this proposal investment
     /// @param proposalId the id of the proposal to invest in
@@ -194,14 +192,10 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// @return baseAmount the received amount of base tokens (normalized)
     /// @return positionAmount the received amount of position tokens (normalized)
     /// @return lp2Amount the amount of LP2 tokens received
-    function getInvestTokens(uint256 proposalId, uint256 baseInvestment)
-        external
-        view
-        returns (
-            uint256 baseAmount,
-            uint256 positionAmount,
-            uint256 lp2Amount
-        );
+    function getInvestTokens(
+        uint256 proposalId,
+        uint256 baseInvestment
+    ) external view returns (uint256 baseAmount, uint256 positionAmount, uint256 lp2Amount);
 
     /// @notice The function to get the information about the active proposals of this user
     /// @param user the user to observe
@@ -218,10 +212,10 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// @param user the user to get the investment limit for
     /// @param proposalIds the ids of the proposals to investigate the limits for
     /// @return lps the array of numbers representing the maximum allowed investment in LP tokens
-    function getUserInvestmentsLimits(address user, uint256[] calldata proposalIds)
-        external
-        view
-        returns (uint256[] memory lps);
+    function getUserInvestmentsLimits(
+        address user,
+        uint256[] calldata proposalIds
+    ) external view returns (uint256[] memory lps);
 
     /// @notice The function that returns the percentage of invested LPs agains the user's LP balance
     /// @param proposalId the proposal the user invested in
@@ -238,10 +232,10 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// @param proposalIds the ids of the proposals to divest from
     /// @param lp2s the amounts of proposals LPs to be divested
     /// @return receptions the information about the received tokens
-    function getDivestAmounts(uint256[] calldata proposalIds, uint256[] calldata lp2s)
-        external
-        view
-        returns (Receptions memory receptions);
+    function getDivestAmounts(
+        uint256[] calldata proposalIds,
+        uint256[] calldata lp2s
+    ) external view returns (Receptions memory receptions);
 
     /// @notice The function to get token prices required for the slippage in the specified proposal
     /// @param proposalId the id of the proposal to get the prices in

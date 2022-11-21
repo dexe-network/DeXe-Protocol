@@ -128,11 +128,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         emit ModifiedAdmins(msg.sender, admins, add);
     }
 
-    function modifyPrivateInvestors(address[] calldata privateInvestors, bool add)
-        external
-        override
-        onlyTraderAdmin
-    {
+    function modifyPrivateInvestors(
+        address[] calldata privateInvestors,
+        bool add
+    ) external override onlyTraderAdmin {
         for (uint256 i = 0; i < privateInvestors.length; i++) {
             if (add) {
                 _privateInvestors.add(privateInvestors[i]);
@@ -172,11 +171,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         emit DescriptionURLChanged(msg.sender, descriptionURL);
     }
 
-    function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut)
-        public
-        virtual
-        override
-    {
+    function invest(
+        uint256 amountInBaseToInvest,
+        uint256[] calldata minPositionsOut
+    ) public virtual override {
         require(amountInBaseToInvest > 0, "TP: zero investment");
         require(amountInBaseToInvest >= _poolParameters.minimalInvestment, "TP: underinvestment");
 
@@ -186,12 +184,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _updateTo(msg.sender, lpMinted, amountInBaseToInvest);
     }
 
-    function reinvestCommission(uint256[] calldata offsetLimits, uint256 minDexeCommissionOut)
-        external
-        virtual
-        override
-        onlyTraderAdmin
-    {
+    function reinvestCommission(
+        uint256[] calldata offsetLimits,
+        uint256 minDexeCommissionOut
+    ) external virtual override onlyTraderAdmin {
         require(openPositions().length == 0, "TP: positions are open");
 
         uint256 investorsLength = _investors.length();
@@ -263,12 +259,9 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     function totalEmission() public view virtual override returns (uint256);
 
-    function canRemovePrivateInvestor(address investor)
-        public
-        view
-        virtual
-        override
-        returns (bool);
+    function canRemovePrivateInvestor(
+        address investor
+    ) public view virtual override returns (bool);
 
     function totalInvestors() external view override returns (uint256) {
         return _investors.length();
@@ -294,21 +287,15 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         return _poolParameters.getLeverageInfo();
     }
 
-    function getInvestTokens(uint256 amountInBaseToInvest)
-        external
-        view
-        override
-        returns (Receptions memory receptions)
-    {
+    function getInvestTokens(
+        uint256 amountInBaseToInvest
+    ) external view override returns (Receptions memory receptions) {
         return _poolParameters.getInvestTokens(amountInBaseToInvest);
     }
 
-    function getReinvestCommissions(uint256[] calldata offsetLimits)
-        external
-        view
-        override
-        returns (Commissions memory commissions)
-    {
+    function getReinvestCommissions(
+        uint256[] calldata offsetLimits
+    ) external view override returns (Commissions memory commissions) {
         return _poolParameters.getReinvestCommissions(_investors, offsetLimits);
     }
 
@@ -316,7 +303,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         return _poolParameters.nextCommissionEpoch();
     }
 
-    function getDivestAmountsAndCommissions(address user, uint256 amountLP)
+    function getDivestAmountsAndCommissions(
+        address user,
+        uint256 amountLP
+    )
         external
         view
         override
@@ -433,10 +423,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         );
     }
 
-    function _divestPositions(uint256 amountLP, uint256[] calldata minPositionsOut)
-        internal
-        returns (uint256 investorBaseAmount)
-    {
+    function _divestPositions(
+        uint256 amountLP,
+        uint256[] calldata minPositionsOut
+    ) internal returns (uint256 investorBaseAmount) {
         _checkUserBalance(amountLP);
 
         address[] memory _openPositions = openPositions();
@@ -496,10 +486,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         baseToken.safeTransfer(msg.sender, receivedBase.from18(_poolParameters.baseTokenDecimals));
     }
 
-    function _updateFromData(address user, uint256 lpAmount)
-        internal
-        returns (uint256 baseTransfer)
-    {
+    function _updateFromData(
+        address user,
+        uint256 lpAmount
+    ) internal returns (uint256 baseTransfer) {
         if (!isTrader(user)) {
             InvestorInfo storage info = investorsInfo[user];
 
@@ -554,11 +544,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _checkRemoveInvestor(user, lpAmount);
     }
 
-    function _updateTo(
-        address user,
-        uint256 lpAmount,
-        uint256 baseAmount
-    ) internal {
+    function _updateTo(address user, uint256 lpAmount, uint256 baseAmount) internal {
         _checkNewInvestor(user);
         _updateToData(user, baseAmount);
 

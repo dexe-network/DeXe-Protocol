@@ -71,11 +71,10 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         newSettingsId = settingsId;
     }
 
-    function editSettings(uint256[] calldata settingsIds, ProposalSettings[] calldata _settings)
-        external
-        override
-        onlyOwner
-    {
+    function editSettings(
+        uint256[] calldata settingsIds,
+        ProposalSettings[] calldata _settings
+    ) external override onlyOwner {
         for (uint256 i; i < _settings.length; i++) {
             require(_settingsExist(settingsIds[i]), "GovSettings: settings do not exist");
 
@@ -84,11 +83,10 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         }
     }
 
-    function changeExecutors(address[] calldata executors, uint256[] calldata settingsIds)
-        external
-        override
-        onlyOwner
-    {
+    function changeExecutors(
+        address[] calldata executors,
+        uint256[] calldata settingsIds
+    ) external override onlyOwner {
         for (uint256 i; i < executors.length; i++) {
             require(_settingsExist(settingsIds[i]), "GovSettings: settings do not exist");
 
@@ -117,12 +115,9 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         return settings[uint256(ExecutorType.DEFAULT)];
     }
 
-    function getExecutorSettings(address executor)
-        external
-        view
-        override
-        returns (ProposalSettings memory)
-    {
+    function getExecutorSettings(
+        address executor
+    ) external view override returns (ProposalSettings memory) {
         return settings[executorToSettings[executor]];
     }
 

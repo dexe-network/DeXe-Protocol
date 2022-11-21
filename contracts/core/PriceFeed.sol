@@ -305,39 +305,31 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             );
     }
 
-    function getNormalizedPriceOutUSD(address inToken, uint256 amountIn)
-        external
-        view
-        override
-        returns (uint256 amountOut, address[] memory path)
-    {
+    function getNormalizedPriceOutUSD(
+        address inToken,
+        uint256 amountIn
+    ) external view override returns (uint256 amountOut, address[] memory path) {
         return getNormalizedPriceOut(inToken, _usdAddress, amountIn);
     }
 
-    function getNormalizedPriceInUSD(address inToken, uint256 amountOut)
-        external
-        view
-        override
-        returns (uint256 amountIn, address[] memory path)
-    {
+    function getNormalizedPriceInUSD(
+        address inToken,
+        uint256 amountOut
+    ) external view override returns (uint256 amountIn, address[] memory path) {
         return getNormalizedPriceIn(inToken, _usdAddress, amountOut);
     }
 
-    function getNormalizedPriceOutDEXE(address inToken, uint256 amountIn)
-        external
-        view
-        override
-        returns (uint256 amountOut, address[] memory path)
-    {
+    function getNormalizedPriceOutDEXE(
+        address inToken,
+        uint256 amountIn
+    ) external view override returns (uint256 amountOut, address[] memory path) {
         return getNormalizedPriceOut(inToken, _dexeAddress, amountIn);
     }
 
-    function getNormalizedPriceInDEXE(address inToken, uint256 amountOut)
-        external
-        view
-        override
-        returns (uint256 amountIn, address[] memory path)
-    {
+    function getNormalizedPriceInDEXE(
+        address inToken,
+        uint256 amountOut
+    ) external view override returns (uint256 amountIn, address[] memory path) {
         return getNormalizedPriceIn(inToken, _dexeAddress, amountOut);
     }
 
@@ -361,11 +353,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         return _pathTokens.contains(token);
     }
 
-    function _savePath(
-        address inToken,
-        address outToken,
-        address[] memory path
-    ) internal {
+    function _savePath(address inToken, address outToken, address[] memory path) internal {
         if (
             keccak256(abi.encode(path)) !=
             keccak256(abi.encode(_savedPaths[msg.sender][inToken][outToken]))

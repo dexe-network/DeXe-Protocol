@@ -40,41 +40,17 @@ interface IGovUserKeeper {
         uint256 totalNftsPower;
     }
 
-    function depositTokens(
-        address payer,
-        address receiver,
-        uint256 amount
-    ) external;
+    function depositTokens(address payer, address receiver, uint256 amount) external;
 
-    function withdrawTokens(
-        address payer,
-        address receiver,
-        uint256 amount
-    ) external;
+    function withdrawTokens(address payer, address receiver, uint256 amount) external;
 
-    function delegateTokens(
-        address delegator,
-        address delegatee,
-        uint256 amount
-    ) external;
+    function delegateTokens(address delegator, address delegatee, uint256 amount) external;
 
-    function undelegateTokens(
-        address delegator,
-        address delegatee,
-        uint256 amount
-    ) external;
+    function undelegateTokens(address delegator, address delegatee, uint256 amount) external;
 
-    function depositNfts(
-        address payer,
-        address receiver,
-        uint256[] calldata nftIds
-    ) external;
+    function depositNfts(address payer, address receiver, uint256[] calldata nftIds) external;
 
-    function withdrawNfts(
-        address payer,
-        address receiver,
-        uint256[] calldata nftIds
-    ) external;
+    function withdrawNfts(address payer, address receiver, uint256[] calldata nftIds) external;
 
     function delegateNfts(
         address delegator,
@@ -148,10 +124,10 @@ interface IGovUserKeeper {
         bool useDelegated
     ) external view returns (uint256[] memory nfts, uint256 ownedLength);
 
-    function getNftsPowerInTokensBySnapshot(uint256[] calldata nftIds, uint256 snapshotId)
-        external
-        view
-        returns (uint256);
+    function getNftsPowerInTokensBySnapshot(
+        uint256[] calldata nftIds,
+        uint256 snapshotId
+    ) external view returns (uint256);
 
     function getTotalVoteWeight() external view returns (uint256);
 
@@ -169,10 +145,9 @@ interface IGovUserKeeper {
         bool useDelegated
     ) external view returns (uint256 power, uint256[] memory nftPower);
 
-    function delegations(address user)
-        external
-        view
-        returns (DelegationInfoView[] memory delegationsInfo);
+    function delegations(
+        address user
+    ) external view returns (DelegationInfoView[] memory delegationsInfo);
 
     function getUndelegateableAssets(
         address delegator,

@@ -184,40 +184,40 @@ interface IPriceFeed {
     /// @param amountIn the amount of inToken to exchange (with 18 decimals)
     /// @return amountOut the received amount of native USD tokens after the swap (with 18 decimals)
     /// @return path the tokens path that will be used during the swap
-    function getNormalizedPriceOutUSD(address inToken, uint256 amountIn)
-        external
-        view
-        returns (uint256 amountOut, address[] memory path);
+    function getNormalizedPriceOutUSD(
+        address inToken,
+        uint256 amountIn
+    ) external view returns (uint256 amountOut, address[] memory path);
 
     /// @notice The same as "getPriceIn" with "outToken" being USD token
     /// @param inToken the token to get the price of
     /// @param amountOut the amount of USD to be received (with 18 decimals)
     /// @return amountIn the required amount of inToken to execute the swap (with 18 decimals)
     /// @return path the tokens path that will be used during the swap
-    function getNormalizedPriceInUSD(address inToken, uint256 amountOut)
-        external
-        view
-        returns (uint256 amountIn, address[] memory path);
+    function getNormalizedPriceInUSD(
+        address inToken,
+        uint256 amountOut
+    ) external view returns (uint256 amountIn, address[] memory path);
 
     /// @notice The same as "getPriceOut" with "outToken" being DEXE token
     /// @param inToken the token to be exchanged from
     /// @param amountIn the amount of inToken to exchange (with 18 decimals)
     /// @return amountOut the received amount of DEXE tokens after the swap (with 18 decimals)
     /// @return path the tokens path that will be used during the swap
-    function getNormalizedPriceOutDEXE(address inToken, uint256 amountIn)
-        external
-        view
-        returns (uint256 amountOut, address[] memory path);
+    function getNormalizedPriceOutDEXE(
+        address inToken,
+        uint256 amountIn
+    ) external view returns (uint256 amountOut, address[] memory path);
 
     /// @notice The same as "getPriceIn" with "outToken" being DEXE token
     /// @param inToken the token to get the price of
     /// @param amountOut the amount of DEXE to be received (with 18 decimals)
     /// @return amountIn the required amount of inToken to execute the swap (with 18 decimals)
     /// @return path the tokens path that will be used during the swap
-    function getNormalizedPriceInDEXE(address inToken, uint256 amountOut)
-        external
-        view
-        returns (uint256 amountIn, address[] memory path);
+    function getNormalizedPriceInDEXE(
+        address inToken,
+        uint256 amountOut
+    ) external view returns (uint256 amountIn, address[] memory path);
 
     /// @notice The function that returns the total number of path tokens (tokens used in the pathfinder)
     /// @return the number of path tokens

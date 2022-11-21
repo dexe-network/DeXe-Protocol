@@ -66,8 +66,8 @@ interface IInsurance {
     /// @param limit the length of the observed window
     /// @return urls the IPFS URLs of the claims' evidence
     /// @return info the extended info of the claims
-    function listAcceptedClaims(uint256 offset, uint256 limit)
-        external
-        view
-        returns (string[] memory urls, AcceptedClaims[] memory info);
+    function listAcceptedClaims(
+        uint256 offset,
+        uint256 limit
+    ) external view returns (string[] memory urls, AcceptedClaims[] memory info);
 }

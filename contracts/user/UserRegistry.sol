@@ -42,10 +42,10 @@ contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
         emit Agreed(msg.sender, documentHash);
     }
 
-    function changeProfileAndAgreeToPrivacyPolicy(string calldata url, bytes calldata signature)
-        external
-        override
-    {
+    function changeProfileAndAgreeToPrivacyPolicy(
+        string calldata url,
+        bytes calldata signature
+    ) external override {
         agreeToPrivacyPolicy(signature);
         changeProfile(url);
     }

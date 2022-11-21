@@ -25,8 +25,10 @@ interface IUserRegistry {
     /// @notice The function to change the profile and sign the privacy policy in a single transaction
     /// @param url the IPFS URL to the new profile settings
     /// @param signature the VRS packed parameters of the ECDSA signature
-    function changeProfileAndAgreeToPrivacyPolicy(string calldata url, bytes calldata signature)
-        external;
+    function changeProfileAndAgreeToPrivacyPolicy(
+        string calldata url,
+        bytes calldata signature
+    ) external;
 
     /// @notice The function to check whether the user signed the privacy policy
     /// @param user the user to check

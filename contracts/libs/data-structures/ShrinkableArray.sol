@@ -24,11 +24,10 @@ library ShrinkableArray {
     /**
      * @dev Change array length
      */
-    function crop(UintArray memory arr, uint256 newLength)
-        internal
-        pure
-        returns (UintArray memory)
-    {
+    function crop(
+        UintArray memory arr,
+        uint256 newLength
+    ) internal pure returns (UintArray memory) {
         arr.length = newLength;
 
         return arr;
