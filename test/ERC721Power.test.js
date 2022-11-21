@@ -159,7 +159,7 @@ describe("ERC721Power", () => {
         assert.equal((await nft.totalPower()).toFixed(), toPercent("90").times(2).plus(toPercent("89.991")).toFixed());
       });
 
-      it("should not recalculate total power when nft is being transferred and not startTimestamp is not reached", async () => {
+      it("should not recalculate total power when nft is being transferred and startTimestamp is not reached", async () => {
         await nft.transferFrom(SECOND, THIRD, 1, { from: SECOND });
 
         assert.equal((await nft.getNftPower(1)).toFixed(), toPercent("0").toFixed());
