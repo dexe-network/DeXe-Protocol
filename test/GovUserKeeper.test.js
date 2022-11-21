@@ -946,6 +946,15 @@ describe("GovUserKeeper", () => {
       await nft.addCollateral(wei("500"), "9");
     });
 
+    describe("updateNfts()", () => {
+      it("should not update if caller is not an owner", async () => {
+        await truffleAssert.reverts(
+          userKeeper.updateNftPowers([1, 2, 3, 4, 5, 6, 7, 9], { from: THIRD }),
+          "Ownable: caller is not the owner"
+        );
+      });
+    });
+
     describe("snapshot()", () => {
       beforeEach("setup", async () => {
         await userKeeper.depositNfts(OWNER, SECOND, [1]);
@@ -1052,6 +1061,14 @@ describe("GovUserKeeper", () => {
 
         assert.equal((await userKeeper.nftSnapshot(1)).toFixed(), "0");
         assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([1], 1)).toFixed(), "0");
+
+        const power = await userKeeper.votingPower(OWNER, false, false);
+
+        assert.equal(power.power.toFixed(), wei("900"));
+        assert.deepEqual(
+          power.nftPower.map((e) => e.toFixed()),
+          ["0", "0", "0", "0", "0", "0", "0"]
+        );
       });
     });
   });
