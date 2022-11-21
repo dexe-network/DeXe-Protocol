@@ -10,7 +10,7 @@ const ERC20Mock = artifacts.require("ERC20Mock");
 ERC721Power.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 
-describe("ERC721Power", () => {
+describe.only("ERC721Power", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -135,6 +135,12 @@ describe("ERC721Power", () => {
       });
 
       it("should return proper total power", async () => {
+        assert.equal((await nft.totalPower()).toFixed(), toPercent("90").times(3).toFixed());
+      });
+
+      it("should not change totalPower if power was set to an nft which does not exist", async () => {
+        await nft.setNftMaxPower(toPercent("100"), 4);
+
         assert.equal((await nft.totalPower()).toFixed(), toPercent("90").times(3).toFixed());
       });
 
@@ -276,6 +282,7 @@ describe("ERC721Power", () => {
       assert.equal(infos.lastUpdate, "0");
       assert.equal(infos.currentPower, "0");
       assert.equal(infos.currentCollateral, "0");
+      assert.equal((await nft.totalPower()).toFixed(), toPercent("90").times(3).toFixed());
 
       await setTime(startTime + 1000);
       await nft.recalculateNftPower("1");
@@ -284,6 +291,16 @@ describe("ERC721Power", () => {
       assert.equal(infos.lastUpdate.toFixed(), startTime + 1001);
       assert.equal(toBN(infos.currentPower).toFixed(), toPercent("89.991").toFixed());
       assert.equal(infos.currentCollateral.toFixed(), "0");
+      assert.equal((await nft.totalPower()).toFixed(), toPercent("90").times(2).plus(toPercent("89.991")).toFixed());
+
+      await setTime(startTime + 2000);
+      await nft.recalculateNftPower("1");
+
+      infos = await nft.nftInfos("1");
+      assert.equal(infos.lastUpdate.toFixed(), startTime + 2001);
+      assert.equal(toBN(infos.currentPower).toFixed(), toPercent("80.991").toFixed());
+      assert.equal(infos.currentCollateral.toFixed(), "0");
+      assert.equal((await nft.totalPower()).toFixed(), toPercent("90").times(2).plus(toPercent("80.991")).toFixed());
     });
   });
 

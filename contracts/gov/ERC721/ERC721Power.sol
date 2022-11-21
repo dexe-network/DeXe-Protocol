@@ -98,12 +98,6 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     }
 
     function safeMint(address to, uint256 tokenId) external onlyOwner onlyBeforePowerCalc {
-        require(getMaxPowerForNft(tokenId) > 0, "ERC721Power: max power for nft isn't set");
-        require(
-            getRequiredCollateralForNft(tokenId) > 0,
-            "ERC721Power: required collateral amount for nft isn't set"
-        );
-
         _safeMint(to, tokenId, "");
 
         totalPower += getMaxPowerForNft(tokenId);
