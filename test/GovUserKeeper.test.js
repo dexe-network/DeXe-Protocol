@@ -961,6 +961,8 @@ describe("GovUserKeeper", () => {
         );
 
         await setTime(startTime + 999);
+
+        await userKeeper.updateNftPowers([1, 2, 3, 4, 5, 6, 7, 9]);
         await userKeeper.createNftPowerSnapshot();
 
         const power2 = await userKeeper.votingPower(OWNER, false, false);
@@ -972,17 +974,18 @@ describe("GovUserKeeper", () => {
         assert.deepEqual(
           power2.nftPower.map((e) => e.toFixed()),
           [
-            "4626168224299065420560",
-            "4053404539385847797062",
-            "4053404539385847797062",
-            "4053404539385847797062",
-            "4053404539385847797062",
-            "4053404539385847797062",
-            "4053404539385847797062",
+            "4435483870967741935483",
+            "4080201612903225806451",
+            "4080201612903225806451",
+            "4080201612903225806451",
+            "4080201612903225806451",
+            "4080201612903225806451",
+            "4080201612903225806451",
           ]
         );
 
         await setTime(startTime + 1999);
+        await userKeeper.updateNftPowers([1, 2, 3, 4, 5, 6, 7, 9]);
         await userKeeper.createNftPowerSnapshot();
 
         const balanceOwner = await userKeeper.nftExactBalance(OWNER, false, false);
@@ -998,38 +1001,44 @@ describe("GovUserKeeper", () => {
           ["1"]
         );
 
-        assert.equal((await userKeeper.nftSnapshot(1)).toFixed(), wei("74900"));
+        assert.equal((await userKeeper.nftSnapshot(1)).toFixed(), wei("74400"));
         assert.equal(
           (await userKeeper.getNftsPowerInTokensBySnapshot([1], 1)).toFixed(),
-          wei("4053.404539385847797062")
+          wei("3636.653225806451612903")
         );
         assert.equal(
           (await userKeeper.getNftsPowerInTokensBySnapshot([2], 1)).toFixed(),
-          wei("4053.404539385847797062")
+          wei("3636.653225806451612903")
         );
-        assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([8], 1)).toFixed(), wei("0"));
+        assert.equal(
+          (await userKeeper.getNftsPowerInTokensBySnapshot([8], 1)).toFixed(),
+          wei("3636.653225806451612903")
+        );
         assert.equal(
           (await userKeeper.getNftsPowerInTokensBySnapshot([9], 1)).toFixed(),
-          wei("4626.168224299065420560")
+          wei("4435.483870967741935483")
         );
         assert.equal(
           (await userKeeper.getNftsPowerInTokensBySnapshot([1, 8, 9], 1)).toFixed(),
-          wei("8679.572763684913217622")
+          wei("11708.790322580645161289")
         );
 
-        assert.equal((await userKeeper.nftSnapshot(2)).toFixed(), wei("67900"));
+        assert.equal((await userKeeper.nftSnapshot(2)).toFixed(), wei("67400"));
         assert.equal(
           (await userKeeper.getNftsPowerInTokensBySnapshot([1], 2)).toFixed(),
-          wei("3985.272459499263622974")
+          wei("4014.347181008902077151")
         );
         assert.equal(
           (await userKeeper.getNftsPowerInTokensBySnapshot([2], 2)).toFixed(),
-          wei("3985.272459499263622974")
+          wei("4014.347181008902077151")
         );
-        assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([8], 2)).toFixed(), wei("0"));
+        assert.equal(
+          (await userKeeper.getNftsPowerInTokensBySnapshot([8], 2)).toFixed(),
+          wei("4014.347181008902077151")
+        );
         assert.equal(
           (await userKeeper.getNftsPowerInTokensBySnapshot([9], 2)).toFixed(),
-          wei("5103.092783505154639175")
+          wei("4896.142433234421364985")
         );
       });
 
@@ -1038,6 +1047,7 @@ describe("GovUserKeeper", () => {
 
         await setTime(startTime + 1000000000000);
 
+        await userKeeper.updateNftPowers([1, 2, 3, 4, 5, 6, 7, 9]);
         await userKeeper.createNftPowerSnapshot();
 
         assert.equal((await userKeeper.nftSnapshot(1)).toFixed(), "0");
