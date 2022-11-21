@@ -54,7 +54,7 @@ describe("ERC721Power", () => {
   }
 
   describe("constructor", () => {
-    it("should revert with unavailable params", async () => {
+    it("should revert when wrong params were passed", async () => {
       await truffleAssert.reverts(
         ERC721Power.new("", "", startTime, ZERO_ADDR, "1", "2", "3"),
         "ERC721Power: zero address"
