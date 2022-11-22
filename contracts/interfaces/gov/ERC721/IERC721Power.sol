@@ -15,6 +15,10 @@ interface IERC721Power is IERC721Enumerable {
         uint256 requiredCollateral;
     }
 
+    /// @notice Get total power
+    /// @return totalPower
+    function totalPower() external view returns (uint256);
+
     /// @notice Add collateral amount to certain nft
     /// @param amount Wei
     /// @param tokenId Nft number
@@ -28,8 +32,7 @@ interface IERC721Power is IERC721Enumerable {
     /// @notice Recalculate nft power (coefficient)
     /// @param tokenId Nft number
     /// @return new Nft power
-    /// @return collateral amount under the Nft
-    function recalculateNftPower(uint256 tokenId) external returns (uint256, uint256);
+    function recalculateNftPower(uint256 tokenId) external returns (uint256);
 
     /// @notice Return max possible power (coefficient) for nft
     /// @param tokenId Nft number
@@ -44,6 +47,5 @@ interface IERC721Power is IERC721Enumerable {
     /// @notice The function to get current NFT power
     /// @param tokenId the Nft number
     /// @return current power of the Nft
-    /// @return collateral amount under the Nft
-    function getNftPower(uint256 tokenId) external view returns (uint256, uint256);
+    function getNftPower(uint256 tokenId) external view returns (uint256);
 }

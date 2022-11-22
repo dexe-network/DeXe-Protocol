@@ -36,6 +36,8 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     uint256 public maxPower;
     uint256 public requiredCollateral;
 
+    uint256 public totalPower;
+
     modifier onlyBeforePowerCalc() {
         require(
             block.timestamp < powerCalcStartTimestamp,
@@ -47,27 +49,27 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     constructor(
         string memory name,
         string memory symbol,
-        uint64 startTimestamp
+        uint64 startTimestamp,
+        address _collateralToken,
+        uint256 _maxPower,
+        uint256 _reductionPercent,
+        uint256 _requiredCollateral
     ) ERC721(name, symbol) {
-        powerCalcStartTimestamp = startTimestamp;
-    }
-
-    function setReductionPercent(
-        uint256 _reductionPercent
-    ) external onlyOwner onlyBeforePowerCalc {
+        require(_collateralToken != address(0), "ERC721Power: zero address");
+        require(_maxPower > 0, "ERC721Power: max power can't be zero");
         require(_reductionPercent > 0, "ERC721Power: reduction percent can't be zero");
         require(
             _reductionPercent < PERCENTAGE_100,
             "ERC721Power: reduction percent can't be a 100%"
         );
+        require(_requiredCollateral > 0, "ERC721Power: required collateral amount can't be zero");
 
-        reductionPercent = _reductionPercent;
-    }
+        powerCalcStartTimestamp = startTimestamp;
 
-    function setMaxPower(uint256 _maxPower) external onlyOwner onlyBeforePowerCalc {
-        require(_maxPower > 0, "ERC721Power: max power can't be zero");
-
+        collateralToken = _collateralToken;
         maxPower = _maxPower;
+        reductionPercent = _reductionPercent;
+        requiredCollateral = _requiredCollateral;
     }
 
     function setNftMaxPower(
@@ -76,19 +78,12 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     ) external onlyOwner onlyBeforePowerCalc {
         require(_maxPower > 0, "ERC721Power: max power can't be zero");
 
+        if (_exists(tokenId)) {
+            totalPower -= getMaxPowerForNft(tokenId);
+            totalPower += _maxPower;
+        }
+
         nftInfos[tokenId].maxPower = _maxPower;
-    }
-
-    function setCollateralToken(address _collateralToken) external onlyOwner onlyBeforePowerCalc {
-        require(_collateralToken != address(0), "ERC721Power: zero address");
-
-        collateralToken = _collateralToken;
-    }
-
-    function setRequiredCollateral(uint256 amount) external onlyOwner onlyBeforePowerCalc {
-        require(amount > 0, "ERC721Power: required collateral amount can't be zero");
-
-        requiredCollateral = amount;
     }
 
     function setNftRequiredCollateral(
@@ -101,13 +96,9 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     }
 
     function safeMint(address to, uint256 tokenId) external onlyOwner onlyBeforePowerCalc {
-        require(getMaxPowerForNft(tokenId) > 0, "ERC721Power: max power for nft isn't set");
-        require(
-            getRequiredCollateralForNft(tokenId) > 0,
-            "ERC721Power: required collateral amount for nft isn't set"
-        );
-
         _safeMint(to, tokenId, "");
+
+        totalPower += getMaxPowerForNft(tokenId);
     }
 
     function setBaseUri(string calldata uri) external onlyOwner {
@@ -147,17 +138,20 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         );
     }
 
-    function recalculateNftPower(
-        uint256 tokenId
-    ) public override returns (uint256 newPower, uint256 collateral) {
+    function recalculateNftPower(uint256 tokenId) public override returns (uint256 newPower) {
         if (block.timestamp <= powerCalcStartTimestamp) {
-            return (0, 0);
+            return 0;
         }
 
-        (newPower, collateral) = getNftPower(tokenId);
+        newPower = getNftPower(tokenId);
 
-        nftInfos[tokenId].lastUpdate = uint64(block.timestamp);
-        nftInfos[tokenId].currentPower = newPower;
+        NftInfo storage nftInfo = nftInfos[tokenId];
+
+        totalPower -= nftInfo.lastUpdate != 0 ? nftInfo.currentPower : getMaxPowerForNft(tokenId);
+        totalPower += newPower;
+
+        nftInfo.lastUpdate = uint64(block.timestamp);
+        nftInfo.currentPower = newPower;
     }
 
     function getMaxPowerForNft(uint256 tokenId) public view override returns (uint256) {
@@ -172,9 +166,9 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         return requiredCollateralForNft == 0 ? requiredCollateral : requiredCollateralForNft;
     }
 
-    function getNftPower(uint256 tokenId) public view override returns (uint256, uint256) {
+    function getNftPower(uint256 tokenId) public view override returns (uint256) {
         if (block.timestamp <= powerCalcStartTimestamp) {
-            return (0, 0);
+            return 0;
         }
 
         uint256 collateral = nftInfos[tokenId].currentCollateral;
@@ -199,14 +193,14 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         uint256 newPotentialPower = currentPower - powerReduction;
 
         if (minNftPower <= newPotentialPower) {
-            return (newPotentialPower, collateral);
+            return newPotentialPower;
         }
 
         if (minNftPower <= currentPower) {
-            return (minNftPower, collateral);
+            return minNftPower;
         }
 
-        return (currentPower, collateral);
+        return currentPower;
     }
 
     function supportsInterface(
@@ -218,5 +212,11 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
 
     function _baseURI() internal view override returns (string memory) {
         return baseURI;
+    }
+
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal override {
+        super._beforeTokenTransfer(from, to, tokenId);
+
+        recalculateNftPower(tokenId);
     }
 }

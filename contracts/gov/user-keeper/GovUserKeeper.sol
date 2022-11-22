@@ -44,7 +44,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     mapping(uint256 => uint256) internal _nftLockedNums; // tokenId => locked num
 
-    mapping(uint256 => NFTSnapshot) public nftSnapshot; // snapshot id => snapshot info
+    mapping(uint256 => uint256) public nftSnapshot; // snapshot id => totalNftsPower
 
     event SetERC20(address token);
     event SetERC721(address token);
@@ -255,34 +255,21 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function createNftPowerSnapshot() external override onlyOwner returns (uint256) {
-        ERC721Power nftContract = ERC721Power(nftAddress);
+        IERC721Power nftContract = IERC721Power(nftAddress);
 
         if (address(nftContract) == address(0)) {
             return 0;
         }
 
         uint256 currentPowerSnapshotId = ++_latestPowerSnapshotId;
-        NFTSnapshot storage snapshot = nftSnapshot[currentPowerSnapshotId];
 
-        uint256 supply = nftInfo.totalSupply == 0
-            ? nftContract.totalSupply()
-            : nftInfo.totalSupply;
-        uint256 totalNftsPower;
-
-        if (!nftInfo.isSupportPower) {
-            totalNftsPower = supply;
+        if (nftInfo.isSupportPower) {
+            nftSnapshot[currentPowerSnapshotId] = nftContract.totalPower();
+        } else if (nftInfo.totalSupply == 0) {
+            nftSnapshot[currentPowerSnapshotId] = nftContract.totalSupply();
         } else {
-            for (uint256 i; i < supply; i++) {
-                uint256 tokenId = nftContract.tokenByIndex(i);
-                (uint256 solePower, uint256 collateral) = nftContract.recalculateNftPower(tokenId);
-                uint256 power = solePower + collateral;
-
-                snapshot.nftPower[tokenId] = power;
-                totalNftsPower += power;
-            }
+            nftSnapshot[currentPowerSnapshotId] = nftInfo.totalSupply;
         }
-
-        snapshot.totalNftsPower = totalNftsPower;
 
         return currentPowerSnapshotId;
     }
@@ -371,6 +358,18 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             require(_nftLockedNums[nftIds[i]] > 0, "GovUK: NFT is not locked");
 
             _nftLockedNums[nftIds[i]]--;
+        }
+    }
+
+    function updateNftPowers(uint256[] calldata nftIds) external override onlyOwner {
+        if (!nftInfo.isSupportPower) {
+            return;
+        }
+
+        ERC721Power nftContract = ERC721Power(nftAddress);
+
+        for (uint256 i = 0; i < nftIds.length; i++) {
+            nftContract.recalculateNftPower(nftIds[i]);
         }
     }
 
@@ -497,10 +496,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256[] memory nftIds,
         uint256 snapshotId
     ) public view override returns (uint256) {
-        NFTSnapshot storage snapshot = nftSnapshot[snapshotId];
-        uint256 totalNftsPower = snapshot.totalNftsPower;
+        uint256 totalNftsPower = nftSnapshot[snapshotId];
 
-        if (nftAddress == address(0) || totalNftsPower == 0) {
+        ERC721Power nftContract = ERC721Power(nftAddress);
+
+        if (address(nftContract) == address(0) || totalNftsPower == 0) {
             return 0;
         }
 
@@ -512,10 +512,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             uint256 totalPowerInTokens = nftInfo.totalPowerInTokens;
 
             for (uint256 i; i < nftIds.length; i++) {
-                nftsPower += totalPowerInTokens.ratio(
-                    snapshot.nftPower[nftIds[i]],
-                    totalNftsPower
-                );
+                uint256 power = nftContract.getNftPower(nftIds[i]);
+                nftsPower += totalPowerInTokens.ratio(power, totalNftsPower);
             }
         }
 
@@ -578,28 +576,16 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
                     power += nftIds.length.ratio(totalPower, totalSupply);
                 }
             } else {
-                uint256 totalSupply = nftContract.totalSupply();
-                uint256 totalNftsPower;
-
-                for (uint256 i; i < totalSupply; i++) {
-                    uint256 tokenId = nftContract.tokenByIndex(i);
-                    (uint256 solePower, uint256 collateral) = nftContract.getNftPower(tokenId);
-
-                    totalNftsPower += solePower + collateral;
-                }
+                uint256 totalNftsPower = nftContract.totalPower();
 
                 if (totalNftsPower > 0) {
                     uint256 totalPowerInTokens = nftInfo.totalPowerInTokens;
 
                     for (uint256 i; i < nftIds.length; i++) {
-                        (uint256 solePower, uint256 collateral) = nftContract.getNftPower(
-                            nftIds[i]
-                        );
                         nftPower[i] = totalPowerInTokens.ratio(
-                            solePower + collateral,
+                            nftContract.getNftPower(nftIds[i]),
                             totalNftsPower
                         );
-
                         power += nftPower[i];
                     }
                 }
