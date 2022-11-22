@@ -139,7 +139,7 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     }
 
     function recalculateNftPower(uint256 tokenId) public override returns (uint256 newPower) {
-        if (block.timestamp <= powerCalcStartTimestamp) {
+        if (block.timestamp < powerCalcStartTimestamp) {
             return 0;
         }
 

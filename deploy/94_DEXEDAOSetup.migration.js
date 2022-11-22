@@ -96,8 +96,8 @@ let POOL_PARAMETERS = {
     nftsTotalSupply: 0,
   },
   nftMultiplierAddress: ZERO_ADDR,
-  descriptionURL: "dexe_dao.com",
-  name: "Pool name",
+  descriptionURL: "",
+  name: "DEXE DAO",
 };
 
 async function setupInsuranceProposals(contractsRegistry) {

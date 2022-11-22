@@ -77,6 +77,7 @@ describe("ERC721Power", () => {
 
     it("should initialize properly if all conditions are met", async () => {
       await deployNft(startTime, "1", "2", "3");
+
       assert.equal(await nft.powerCalcStartTimestamp(), startTime);
       assert.equal(await nft.collateralToken(), token.address);
       assert.equal(await nft.maxPower(), "1");

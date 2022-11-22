@@ -262,14 +262,17 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
 
         uint256 currentPowerSnapshotId = ++_latestPowerSnapshotId;
+        uint256 power;
 
         if (nftInfo.isSupportPower) {
-            nftSnapshot[currentPowerSnapshotId] = nftContract.totalPower();
+            power = nftContract.totalPower();
         } else if (nftInfo.totalSupply == 0) {
-            nftSnapshot[currentPowerSnapshotId] = nftContract.totalSupply();
+            power = nftContract.totalSupply();
         } else {
-            nftSnapshot[currentPowerSnapshotId] = nftInfo.totalSupply;
+            power = nftInfo.totalSupply;
         }
+
+        nftSnapshot[currentPowerSnapshotId] = power;
 
         return currentPowerSnapshotId;
     }

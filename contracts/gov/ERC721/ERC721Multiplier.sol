@@ -32,8 +32,8 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
         _transfer(msg.sender, address(this), tokenId);
 
         NftInfo storage tokenToBeLocked = _tokens[tokenId];
-        tokenToBeLocked.lockedAt = block.timestamp;
 
+        tokenToBeLocked.lockedAt = block.timestamp;
         _latestLockedTokenIds[msg.sender] = tokenId;
 
         emit Locked(msg.sender, tokenId, tokenToBeLocked.multiplier, tokenToBeLocked.duration);
