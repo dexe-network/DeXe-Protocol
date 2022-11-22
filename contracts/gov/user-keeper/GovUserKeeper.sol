@@ -44,7 +44,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     mapping(uint256 => uint256) internal _nftLockedNums; // tokenId => locked num
 
-    mapping(uint256 => NFTSnapshot) public nftSnapshot; // snapshot id => snapshot info
+    mapping(uint256 => uint256) public nftSnapshot; // snapshot id => totalNftsPower
 
     event SetERC20(address token);
     event SetERC721(address token);
@@ -262,14 +262,13 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
 
         uint256 currentPowerSnapshotId = ++_latestPowerSnapshotId;
-        NFTSnapshot storage snapshot = nftSnapshot[currentPowerSnapshotId];
 
         if (nftInfo.isSupportPower) {
-            snapshot.totalNftsPower = nftContract.totalPower();
+            nftSnapshot[currentPowerSnapshotId] = nftContract.totalPower();
         } else if (nftInfo.totalSupply == 0) {
-            snapshot.totalNftsPower = nftContract.totalSupply();
+            nftSnapshot[currentPowerSnapshotId] = nftContract.totalSupply();
         } else {
-            snapshot.totalNftsPower = nftInfo.totalSupply;
+            nftSnapshot[currentPowerSnapshotId] = nftInfo.totalSupply;
         }
 
         return currentPowerSnapshotId;
@@ -497,8 +496,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256[] memory nftIds,
         uint256 snapshotId
     ) public view override returns (uint256) {
-        NFTSnapshot storage snapshot = nftSnapshot[snapshotId];
-        uint256 totalNftsPower = snapshot.totalNftsPower;
+        uint256 totalNftsPower = nftSnapshot[snapshotId];
 
         ERC721Power nftContract = ERC721Power(nftAddress);
 

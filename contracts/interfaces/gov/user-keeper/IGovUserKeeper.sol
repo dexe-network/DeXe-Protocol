@@ -36,10 +36,6 @@ interface IGovUserKeeper {
         uint256 totalSupply;
     }
 
-    struct NFTSnapshot {
-        uint256 totalNftsPower;
-    }
-
     function depositTokens(address payer, address receiver, uint256 amount) external;
 
     function withdrawTokens(address payer, address receiver, uint256 amount) external;
