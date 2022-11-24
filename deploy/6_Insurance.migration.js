@@ -1,4 +1,4 @@
-const { logTransaction } = require("@dlsl/hardhat-migrate/dist/src/logger/logger.js");
+const { logTransaction } = require("@dlsl/hardhat-migrate");
 
 const Proxy = artifacts.require("TransparentUpgradeableProxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");

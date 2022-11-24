@@ -1,4 +1,4 @@
-const { logTransaction, logContracts } = require("@dlsl/hardhat-migrate/dist/src/logger/logger.js");
+const { logTransaction, logContracts } = require("@dlsl/hardhat-migrate");
 
 const { SECONDS_IN_DAY, SECONDS_IN_MONTH, PRECISION, DECIMAL } = require("../scripts/utils/constants");
 
