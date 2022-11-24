@@ -9,7 +9,7 @@ contract GovValidatorsToken is IGovValidatorsToken, ERC20Snapshot {
     address public immutable validator;
 
     modifier onlyValidator() {
-        require(validator == msg.sender, "ValidatorsToken: caller is not the validator");
+        _onlyValidator();
         _;
     }
 
@@ -35,5 +35,9 @@ contract GovValidatorsToken is IGovValidatorsToken, ERC20Snapshot {
         uint256 amount
     ) internal override onlyValidator {
         super._beforeTokenTransfer(from, to, amount);
+    }
+
+    function _onlyValidator() internal view {
+        require(validator == msg.sender, "ValidatorsToken: caller is not the validator");
     }
 }

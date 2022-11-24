@@ -31,7 +31,7 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     mapping(address => mapping(string => EnumerableSet.AddressSet)) internal _ownerPools; // pool owner => name => pool
 
     modifier onlyPoolFactory() {
-        require(_poolFactory == msg.sender, "PoolRegistry: Caller is not a factory");
+        _onlyPoolFactory();
         _;
     }
 
@@ -115,5 +115,9 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
 
     function _isPool(string memory name, address potentialPool) internal view returns (bool) {
         return _pools[name].contains(potentialPool);
+    }
+
+    function _onlyPoolFactory() internal view {
+        require(_poolFactory == msg.sender, "PoolRegistry: Caller is not a factory");
     }
 }

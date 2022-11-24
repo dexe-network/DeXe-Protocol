@@ -67,7 +67,7 @@ contract GovPool is
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
 
     modifier onlyThis() {
-        require(address(this) == msg.sender, "Gov: not this contract");
+        _onlyThis();
         _;
     }
 
@@ -88,6 +88,7 @@ contract GovPool is
         if (nftMultiplierAddress != address(0)) {
             _setNftMultiplierAddress(nftMultiplierAddress);
         }
+
         descriptionURL = _descriptionURL;
         name = _name;
     }
@@ -284,13 +285,6 @@ contract GovPool is
         _setNftMultiplierAddress(nftMultiplierAddress);
     }
 
-    function _setNftMultiplierAddress(address nftMultiplierAddress) internal {
-        require(nftMultiplier == address(0), "Gov: current nft address isn't zero");
-        require(nftMultiplierAddress != address(0), "Gov: new nft address is zero");
-
-        nftMultiplier = nftMultiplierAddress;
-    }
-
     receive() external payable {}
 
     function getProposals(
@@ -395,9 +389,20 @@ contract GovPool is
                 : delegator.getUndelegateableAssets(delegatee, _votedInProposals, _voteInfos);
     }
 
+    function _setNftMultiplierAddress(address nftMultiplierAddress) internal {
+        require(nftMultiplier == address(0), "Gov: current nft address isn't zero");
+        require(nftMultiplierAddress != address(0), "Gov: new nft address is zero");
+
+        nftMultiplier = nftMultiplierAddress;
+    }
+
     function _quorumReached(ProposalCore storage core) internal view returns (bool) {
         return
             PERCENTAGE_100.ratio(core.votesFor, _govUserKeeper.getTotalVoteWeight()) >=
             core.settings.quorum;
+    }
+
+    function _onlyThis() internal view {
+        require(address(this) == msg.sender, "Gov: not this contract");
     }
 }

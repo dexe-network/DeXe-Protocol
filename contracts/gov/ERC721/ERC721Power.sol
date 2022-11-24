@@ -39,10 +39,7 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     uint256 public totalPower;
 
     modifier onlyBeforePowerCalc() {
-        require(
-            block.timestamp < powerCalcStartTimestamp,
-            "ERC721Power: power calculation already begun"
-        );
+        _onlyBeforePowerCalc();
         _;
     }
 
@@ -218,5 +215,12 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         super._beforeTokenTransfer(from, to, tokenId);
 
         recalculateNftPower(tokenId);
+    }
+
+    function _onlyBeforePowerCalc() internal view {
+        require(
+            block.timestamp < powerCalcStartTimestamp,
+            "ERC721Power: power calculation already begun"
+        );
     }
 }

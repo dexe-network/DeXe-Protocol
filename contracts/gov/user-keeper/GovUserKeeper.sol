@@ -50,12 +50,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     event SetERC721(address token);
 
     modifier withSupportedToken() {
-        require(tokenAddress != address(0), "GovUK: token is not supported");
+        _withSupportedToken();
         _;
     }
 
     modifier withSupportedNft() {
-        require(nftAddress != address(0), "GovUK: nft is not supported");
+        _withSupportedNft();
         _;
     }
 
@@ -659,6 +659,41 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         return _getFreeAssets(voter, false, lockedProposals, unlockedNfts);
     }
 
+    function _setERC20Address(address _tokenAddress) internal {
+        require(tokenAddress == address(0), "GovUK: current token address isn't zero");
+        require(_tokenAddress != address(0), "GovUK: new token address is zero");
+
+        tokenAddress = _tokenAddress;
+
+        emit SetERC20(_tokenAddress);
+    }
+
+    function _setERC721Address(
+        address _nftAddress,
+        uint256 totalPowerInTokens,
+        uint256 nftsTotalSupply
+    ) internal {
+        require(nftAddress == address(0), "GovUK: current token address isn't zero");
+        require(_nftAddress != address(0), "GovUK: new token address is zero");
+        require(totalPowerInTokens > 0, "GovUK: the equivalent is zero");
+
+        nftInfo.totalPowerInTokens = totalPowerInTokens;
+
+        if (!IERC165(_nftAddress).supportsInterface(type(IERC721Power).interfaceId)) {
+            if (!IERC165(_nftAddress).supportsInterface(type(IERC721Enumerable).interfaceId)) {
+                require(nftsTotalSupply > 0, "GovUK: total supply is zero");
+
+                nftInfo.totalSupply = uint128(nftsTotalSupply);
+            }
+        } else {
+            nftInfo.isSupportPower = true;
+        }
+
+        nftAddress = _nftAddress;
+
+        emit SetERC721(_nftAddress);
+    }
+
     function _getFreeAssets(
         address voter,
         bool isMicropool,
@@ -711,38 +746,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         return isMicropool ? _micropoolsInfo[voter] : _usersInfo[voter].balanceInfo;
     }
 
-    function _setERC20Address(address _tokenAddress) internal {
-        require(tokenAddress == address(0), "GovUK: current token address isn't zero");
-        require(_tokenAddress != address(0), "GovUK: new token address is zero");
-
-        tokenAddress = _tokenAddress;
-
-        emit SetERC20(_tokenAddress);
+    function _withSupportedToken() internal view {
+        require(tokenAddress != address(0), "GovUK: token is not supported");
     }
 
-    function _setERC721Address(
-        address _nftAddress,
-        uint256 totalPowerInTokens,
-        uint256 nftsTotalSupply
-    ) internal {
-        require(nftAddress == address(0), "GovUK: current token address isn't zero");
-        require(_nftAddress != address(0), "GovUK: new token address is zero");
-        require(totalPowerInTokens > 0, "GovUK: the equivalent is zero");
-
-        nftInfo.totalPowerInTokens = totalPowerInTokens;
-
-        if (!IERC165(_nftAddress).supportsInterface(type(IERC721Power).interfaceId)) {
-            if (!IERC165(_nftAddress).supportsInterface(type(IERC721Enumerable).interfaceId)) {
-                require(nftsTotalSupply > 0, "GovUK: total supply is zero");
-
-                nftInfo.totalSupply = uint128(nftsTotalSupply);
-            }
-        } else {
-            nftInfo.isSupportPower = true;
-        }
-
-        nftAddress = _nftAddress;
-
-        emit SetERC721(_nftAddress);
+    function _withSupportedNft() internal view {
+        require(nftAddress != address(0), "GovUK: nft is not supported");
     }
 }

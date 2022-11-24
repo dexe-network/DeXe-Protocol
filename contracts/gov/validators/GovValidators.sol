@@ -41,7 +41,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
     /// @dev Access only for addresses that have validator tokens
     modifier onlyValidator() {
-        require(isValidator(msg.sender), "Validators: caller is not the validator");
+        _onlyValidator();
         _;
     }
 
@@ -308,5 +308,9 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         validatorsCount = validatorsCount_;
 
         emit ChangedValidatorsBalances(userAddresses, newValues);
+    }
+
+    function _onlyValidator() internal view {
+        require(isValidator(msg.sender), "Validators: caller is not the validator");
     }
 }
