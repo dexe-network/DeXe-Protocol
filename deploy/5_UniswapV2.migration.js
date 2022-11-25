@@ -17,6 +17,6 @@ module.exports = async (deployer) => {
 
   logTransaction(
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), UniswapV2FactoryAddress),
-    "Add UniswapV2Router"
+    "Add UniswapV2Factory"
   );
 };
