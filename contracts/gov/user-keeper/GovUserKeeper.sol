@@ -659,6 +659,15 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         return _getFreeAssets(voter, false, lockedProposals, unlockedNfts);
     }
 
+    function getDelegatedAssetsAmount(
+        address delegator,
+        address delegatee
+    ) external view returns (uint256) {
+        UserInfo storage delegatorInfo = _usersInfo[delegator];
+
+        return delegatorInfo.delegatedTokens[delegatee];
+    }
+
     function _setERC20Address(address _tokenAddress) internal {
         require(tokenAddress == address(0), "GovUK: current token address isn't zero");
         require(_tokenAddress != address(0), "GovUK: new token address is zero");

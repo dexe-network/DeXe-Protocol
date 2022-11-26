@@ -33,6 +33,7 @@ contract GovPool is
 {
     using MathHelper for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
+    using EnumerableSet for EnumerableSet.AddressSet;
     using ShrinkableArray for uint256[];
     using ShrinkableArray for ShrinkableArray.UintArray;
     using GovUserKeeperLocal for *;
@@ -63,6 +64,11 @@ contract GovPool is
     mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
 
     mapping(uint256 => mapping(address => uint256)) public pendingRewards; // proposalId => user => tokens amount
+
+    mapping(address => EnumerableSet.AddressSet) internal _micropoolTokens;
+    mapping(address => mapping(address => mapping(address => DelegatorStakingInfo)))
+        internal _delegatorStakingInfos; // micropool => rewardToken => delegator => info
+    mapping(address => mapping(address => uint256)) internal _micropoolCumulativeSums; // micropool => rewardToken => cumulativeSum
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
 
@@ -223,6 +229,8 @@ contract GovPool is
 
         unlock(msg.sender, false);
 
+        _updateStakingState(delegatee);
+
         _govUserKeeper.delegateTokens.exec(delegatee, amount);
         _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
 
@@ -237,6 +245,8 @@ contract GovPool is
         require(amount > 0 || nftIds.length > 0, "Gov: empty undelegation");
 
         unlock(delegatee, true);
+
+        _updateStakingState(delegatee);
 
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
         _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
@@ -394,6 +404,26 @@ contract GovPool is
         require(nftMultiplierAddress != address(0), "Gov: new nft address is zero");
 
         nftMultiplier = nftMultiplierAddress;
+    }
+
+    function _updateStakingState(address delegatee) internal {
+        EnumerableSet.AddressSet storage rewardTokens = _micropoolTokens[delegatee];
+        for (uint256 i; i < rewardTokens.length(); i++) {
+            DelegatorStakingInfo storage delegatorInfo = _delegatorStakingInfos[delegatee][
+                rewardTokens.at(i)
+            ][msg.sender];
+
+            uint256 micropoolCumulativeSum = _micropoolCumulativeSums[delegatee][
+                rewardTokens.at(i)
+            ];
+
+            uint256 stakedAmount = _govUserKeeper.getDelegatedAssetsAmount(msg.sender, delegatee);
+
+            delegatorInfo.pendingRewards +=
+                (micropoolCumulativeSum - delegatorInfo.latestCumulativeSum) *
+                stakedAmount;
+            delegatorInfo.latestCumulativeSum = micropoolCumulativeSum;
+        }
     }
 
     function _quorumReached(ProposalCore storage core) internal view returns (bool) {

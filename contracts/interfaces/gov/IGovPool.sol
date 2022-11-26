@@ -59,6 +59,11 @@ interface IGovPool {
         uint256[] nftsVoted;
     }
 
+    struct DelegatorStakingInfo {
+        uint256 latestCumulativeSum;
+        uint256 pendingRewards;
+    }
+
     function nftMultiplier() external view returns (address);
 
     function latestProposalId() external view returns (uint256);
