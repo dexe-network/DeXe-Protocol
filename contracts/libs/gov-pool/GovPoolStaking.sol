@@ -48,15 +48,15 @@ library GovPoolStaking {
 
         address[] memory rewardTokens = micropool.rewardTokens.values();
 
+        uint256 stakedAmount = IGovUserKeeper(userKeeper).getDelegatedAssetsAmount(
+            msg.sender,
+            delegatee
+        );
+
         for (uint256 i; i < rewardTokens.length; i++) {
             uint256 micropoolCumulativeSum = micropool
                 .rewardTokenInfos[rewardTokens[i]]
                 .cumulativeSum;
-
-            uint256 stakedAmount = IGovUserKeeper(userKeeper).getDelegatedAssetsAmount(
-                msg.sender,
-                delegatee
-            );
 
             IGovPool.DelegatorInfo storage delegatorInfo = micropool
                 .rewardTokenInfos[rewardTokens[i]]
