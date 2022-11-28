@@ -34,7 +34,7 @@ library GovPoolStaking {
         uint256 amountToAdd = amount.ratio(coefficient, PRECISION);
 
         micropool.rewardTokens.add(rewardToken);
-        micropool.rewardTokenInfos[msg.sender].cumulativeSum += amountToAdd.ratio(
+        micropool.rewardTokenInfos[rewardToken].cumulativeSum += amountToAdd.ratio(
             PRECISION,
             totalStake
         );
