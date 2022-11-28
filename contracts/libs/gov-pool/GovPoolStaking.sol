@@ -73,8 +73,6 @@ library GovPoolStaking {
         address[] memory rewardTokens = micropool.rewardTokens.values();
 
         for (uint256 i; i < rewardTokens.length; i++) {
-            require(rewardTokens[i] != address(0), "Gov: rewards off");
-
             uint256 rewards = micropool
                 .rewardTokenInfos[rewardTokens[i]]
                 .delegators[msg.sender]
