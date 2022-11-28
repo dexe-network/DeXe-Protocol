@@ -36,15 +36,15 @@ library GovPoolStaking {
         IGovPool.MicropoolInfo storage micropool,
         address delegatee
     ) external {
+        IGovPool govPool = IGovPool(address(this));
+        (, address userKeeper, , ) = govPool.getHelperContracts();
+
         address[] memory rewardTokens = micropool.rewardTokens.values();
 
         for (uint256 i; i < rewardTokens.length; i++) {
             uint256 micropoolCumulativeSum = micropool
                 .rewardTokenInfos[rewardTokens[i]]
                 .cumulativeSum;
-
-            IGovPool govPool = IGovPool(address(this));
-            (, address userKeeper, , ) = govPool.getHelperContracts();
 
             uint256 stakedAmount = IGovUserKeeper(userKeeper).getDelegatedAssetsAmount(
                 msg.sender,
@@ -59,6 +59,21 @@ library GovPoolStaking {
                 (micropoolCumulativeSum - delegatorInfo.latestCumulativeSum) *
                 stakedAmount;
             delegatorInfo.latestCumulativeSum = micropoolCumulativeSum;
+        }
+    }
+
+    function claimDelegatedRewards(IGovPool.MicropoolInfo storage micropool) external {
+        IGovPool govPool = IGovPool(address(this));
+        (, address userKeeper, , ) = govPool.getHelperContracts();
+
+        address[] memory rewardTokens = micropool.rewardTokens.values();
+
+        for (uint256 i; i < rewardTokens.length; i++) {
+            require(rewardToken != address(0), "Gov: rewards off");
+
+            uint256 rewards = micropool.rewardTokenInfos[rewardTokens[i]].delegators[msg.sender];
+
+            rewardTokens[i].sendFunds(msg.sender, rewards / PRECISION);
         }
     }
 }
