@@ -25,14 +25,20 @@ library GovPoolStaking {
         uint256 coefficient,
         address rewardToken
     ) external {
-        uint256 amountToAdd = amount.ratio(coefficient, PRECISION);
+        uint256 totalStake = IGovUserKeeper(userKeeper).getMicropoolTotalStakeAmount(msg.sender);
+
+        if (totalStake == 0) {
+            return;
+        }
 
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
+
+        uint256 amountToAdd = amount.ratio(coefficient, PRECISION);
 
         micropool.rewardTokens.add(rewardToken);
         micropool.rewardTokenInfos[msg.sender].cumulativeSum += amountToAdd.ratio(
             PRECISION,
-            IGovUserKeeper(userKeeper).getMicropoolTotalStakeAmount(msg.sender)
+            totalStake
         );
     }
 
