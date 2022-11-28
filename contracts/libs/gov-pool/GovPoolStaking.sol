@@ -78,6 +78,8 @@ library GovPoolStaking {
                 .delegators[msg.sender]
                 .pendingRewards;
 
+            micropool.rewardTokenInfos[rewardTokens[i]].delegators[msg.sender].pendingRewards = 0;
+
             IERC20(rewardTokens[i]).safeTransfer(
                 msg.sender,
                 (rewards / PRECISION).from18(ERC20(rewardTokens[i]).decimals())
