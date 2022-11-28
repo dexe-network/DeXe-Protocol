@@ -10,7 +10,6 @@ import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
-import "../utils/TokenBalance.sol";
 import "../math/MathHelper.sol";
 
 library GovPoolStaking {
@@ -25,13 +24,12 @@ library GovPoolStaking {
         uint256 coefficient,
         address rewardToken
     ) external {
-        uint256 totalStake = IGovUserKeeper(userKeeper).getMicropoolTotalStakeAmount(msg.sender);
+        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
+        uint256 totalStake = IGovUserKeeper(userKeeper).getMicropoolTotalStakeAmount(msg.sender);
         if (totalStake == 0) {
             return;
         }
-
-        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
         uint256 amountToAdd = amount.ratio(coefficient, PRECISION);
 
