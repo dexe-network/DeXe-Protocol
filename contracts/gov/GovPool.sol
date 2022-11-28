@@ -231,7 +231,7 @@ contract GovPool is
         _govUserKeeper.delegateTokens.exec(delegatee, amount);
         _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
 
-        _micropoolInfos[delegatee].updateLocalState();
+        _micropoolInfos[delegatee].updateLocalState(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, true);
     }
@@ -248,7 +248,7 @@ contract GovPool is
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
         _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
 
-        _micropoolInfos[delegatee].updateLocalState();
+        _micropoolInfos[delegatee].updateLocalState(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, false);
     }
@@ -280,6 +280,8 @@ contract GovPool is
             pendingRewards.claimReward(_proposals, proposalIds[i]);
         }
     }
+
+    function claimDelegatedRewards() external override {}
 
     function executeAndClaim(uint256 proposalId) external override {
         execute(proposalId);
