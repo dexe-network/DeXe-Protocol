@@ -27,8 +27,7 @@ library GovPoolStaking {
     ) external {
         uint256 amountToAdd = amount.ratio(coefficient, PRECISION);
 
-        IGovPool govPool = IGovPool(address(this));
-        (, address userKeeper, , ) = govPool.getHelperContracts();
+        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
         micropool.rewardTokens.add(rewardToken);
         micropool.rewardTokenInfos[msg.sender].cumulativeSum += amountToAdd.ratio(
@@ -41,8 +40,7 @@ library GovPoolStaking {
         IGovPool.MicropoolInfo storage micropool,
         address delegatee
     ) external {
-        IGovPool govPool = IGovPool(address(this));
-        (, address userKeeper, , ) = govPool.getHelperContracts();
+        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
         address[] memory rewardTokens = micropool.rewardTokens.values();
 
