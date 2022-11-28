@@ -73,12 +73,13 @@ library GovPoolStaking {
         address[] memory rewardTokens = micropool.rewardTokens.values();
 
         for (uint256 i; i < rewardTokens.length; i++) {
-            uint256 rewards = micropool
+            IGovPool.DelegatorInfo storage delegatorInfo = micropool
                 .rewardTokenInfos[rewardTokens[i]]
-                .delegators[msg.sender]
-                .pendingRewards;
+                .delegators[msg.sender];
 
-            micropool.rewardTokenInfos[rewardTokens[i]].delegators[msg.sender].pendingRewards = 0;
+            uint256 rewards = delegatorInfo.pendingRewards;
+
+            delegatorInfo.pendingRewards = 0;
 
             IERC20(rewardTokens[i]).safeTransfer(
                 msg.sender,
