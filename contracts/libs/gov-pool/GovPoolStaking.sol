@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
+
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
@@ -12,8 +14,8 @@ import "../utils/TokenBalance.sol";
 import "../math/MathHelper.sol";
 
 library GovPoolStaking {
-    using TokenBalance for address;
     using MathHelper for uint256;
+    using DecimalsConverter for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
 
@@ -69,14 +71,16 @@ library GovPoolStaking {
         address[] memory rewardTokens = micropool.rewardTokens.values();
 
         for (uint256 i; i < rewardTokens.length; i++) {
-            require(rewardToken != address(0), "Gov: rewards off");
+            require(rewardTokens[i] != address(0), "Gov: rewards off");
 
-            uint256 rewards = micropool.rewardTokenInfos[rewardTokens[i]].delegators[msg.sender];
+            uint256 rewards = micropool
+                .rewardTokenInfos[rewardTokens[i]]
+                .delegators[msg.sender]
+                .pendingRewards;
 
             IERC20(rewardTokens[i]).safeTransfer(
-                address(this),
                 msg.sender,
-                (rewards / PRECISION).from18(IERC20(rewardTokens[i]).decimals())
+                (rewards / PRECISION).from18(ERC20(rewardTokens[i]).decimals())
             );
         }
     }
