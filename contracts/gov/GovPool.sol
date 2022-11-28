@@ -228,10 +228,10 @@ contract GovPool is
 
         unlock(msg.sender, false);
 
+        _micropoolInfos[delegatee].updateLocalState(delegatee);
+
         _govUserKeeper.delegateTokens.exec(delegatee, amount);
         _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
-
-        _micropoolInfos[delegatee].updateLocalState(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, true);
     }
@@ -245,10 +245,10 @@ contract GovPool is
 
         unlock(delegatee, true);
 
+        _micropoolInfos[delegatee].updateLocalState(delegatee);
+
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
         _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
-
-        _micropoolInfos[delegatee].updateLocalState(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, false);
     }
