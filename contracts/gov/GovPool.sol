@@ -281,7 +281,9 @@ contract GovPool is
         }
     }
 
-    function claimDelegatedRewards() external override {}
+    function claimDelegatedRewards(address delegatee) external override {
+        _micropoolInfos[delegatee].claimDelegatedRewards();
+    }
 
     function executeAndClaim(uint256 proposalId) external override {
         execute(proposalId);
