@@ -59,9 +59,19 @@ interface IGovPool {
         uint256[] nftsVoted;
     }
 
-    struct DelegatorStakingInfo {
+    struct DelegatorInfo {
         uint256 latestCumulativeSum;
         uint256 pendingRewards;
+    }
+
+    struct RewardTokenInfo {
+        mapping(address => DelegatorInfo) delegators;
+        uint256 cumulativeSum;
+    }
+
+    struct MicropoolInfo {
+        EnumerableSet.AddressSet rewardTokens;
+        mapping(address => RewardTokenInfo) rewardTokenInfos;
     }
 
     function nftMultiplier() external view returns (address);
@@ -137,6 +147,8 @@ interface IGovPool {
     function execute(uint256 proposalId) external;
 
     function claimRewards(uint256[] calldata proposalIds) external;
+
+    function claimDelegatedRewards() external;
 
     function executeAndClaim(uint256 proposalId) external;
 

@@ -662,10 +662,14 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function getDelegatedAssetsAmount(
         address delegator,
         address delegatee
-    ) external view returns (uint256) {
-        UserInfo storage delegatorInfo = _usersInfo[delegator];
+    ) external view override returns (uint256) {
+        return _usersInfo[delegator].delegatedTokens[delegatee];
+    }
 
-        return delegatorInfo.delegatedTokens[delegatee];
+    function getMicropoolTotalStakeAmount(
+        address delegatee
+    ) external view override returns (uint256) {
+        return _micropoolsInfo[delegatee].tokenBalance;
     }
 
     function _setERC20Address(address _tokenAddress) internal {

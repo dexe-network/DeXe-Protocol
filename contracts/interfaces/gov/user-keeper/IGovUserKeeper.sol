@@ -171,4 +171,6 @@ interface IGovUserKeeper {
         address delegator,
         address delegatee
     ) external view returns (uint256);
+
+    function getMicropoolTotalStakeAmount(address delegatee) external view returns (uint256);
 }
