@@ -78,6 +78,9 @@ library GovPoolStaking {
                 .delegators[msg.sender];
 
             uint256 rewards = delegatorInfo.pendingRewards;
+            if (rewards == 0) {
+                continue;
+            }
 
             delegatorInfo.pendingRewards = 0;
 
