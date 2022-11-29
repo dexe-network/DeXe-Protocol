@@ -46,20 +46,22 @@ library GovPoolStaking {
     ) external {
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
-        address[] memory rewardTokens = micropool.rewardTokens.values();
-
         uint256 stakedAmount = IGovUserKeeper(userKeeper).getDelegatedAssetsAmount(
             msg.sender,
             delegatee
         );
 
-        for (uint256 i; i < rewardTokens.length; i++) {
+        EnumerableSet.AddressSet storage rewardTokens = micropool.rewardTokens;
+
+        uint256 rewardTokensLength = micropool.rewardTokens.length();
+
+        for (uint256 i; i < rewardTokensLength; i++) {
             uint256 micropoolCumulativeSum = micropool
-                .rewardTokenInfos[rewardTokens[i]]
+                .rewardTokenInfos[rewardTokens.at(i)]
                 .cumulativeSum;
 
             IGovPool.DelegatorInfo storage delegatorInfo = micropool
-                .rewardTokenInfos[rewardTokens[i]]
+                .rewardTokenInfos[rewardTokens.at(i)]
                 .delegators[msg.sender];
 
             delegatorInfo.pendingRewards +=
@@ -70,11 +72,13 @@ library GovPoolStaking {
     }
 
     function claimDelegatedRewards(IGovPool.MicropoolInfo storage micropool) external {
-        address[] memory rewardTokens = micropool.rewardTokens.values();
+        EnumerableSet.AddressSet storage rewardTokens = micropool.rewardTokens;
 
-        for (uint256 i; i < rewardTokens.length; i++) {
+        uint256 rewardTokensLength = micropool.rewardTokens.length();
+
+        for (uint256 i; i < rewardTokensLength; i++) {
             IGovPool.DelegatorInfo storage delegatorInfo = micropool
-                .rewardTokenInfos[rewardTokens[i]]
+                .rewardTokenInfos[rewardTokens.at(i)]
                 .delegators[msg.sender];
 
             uint256 rewards = delegatorInfo.pendingRewards;
@@ -84,9 +88,9 @@ library GovPoolStaking {
 
             delegatorInfo.pendingRewards = 0;
 
-            IERC20(rewardTokens[i]).safeTransfer(
+            IERC20(rewardTokens.at(i)).safeTransfer(
                 msg.sender,
-                (rewards / PRECISION).from18(ERC20(rewardTokens[i]).decimals())
+                (rewards / PRECISION).from18(ERC20(rewardTokens.at(i)).decimals())
             );
         }
     }
