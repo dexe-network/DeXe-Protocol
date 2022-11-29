@@ -56,13 +56,13 @@ library GovPoolStaking {
         uint256 rewardTokensLength = micropool.rewardTokens.length();
 
         for (uint256 i; i < rewardTokensLength; i++) {
-            uint256 micropoolCumulativeSum = micropool
-                .rewardTokenInfos[rewardTokens.at(i)]
-                .cumulativeSum;
+            IGovPool.RewardTokenInfo storage rewardTokenInfo = micropool.rewardTokenInfos[
+                rewardTokens.at(i)
+            ];
 
-            IGovPool.DelegatorInfo storage delegatorInfo = micropool
-                .rewardTokenInfos[rewardTokens.at(i)]
-                .delegators[msg.sender];
+            uint256 micropoolCumulativeSum = rewardTokenInfo.cumulativeSum;
+
+            IGovPool.DelegatorInfo storage delegatorInfo = rewardTokenInfo.delegators[msg.sender];
 
             delegatorInfo.pendingRewards +=
                 (micropoolCumulativeSum - delegatorInfo.latestCumulativeSum) *
