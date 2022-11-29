@@ -18,7 +18,7 @@ library GovPoolStaking {
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
 
-    function updateGlobalState(
+    function updateRewards(
         IGovPool.MicropoolInfo storage micropool,
         uint256 amount,
         uint256 coefficient,

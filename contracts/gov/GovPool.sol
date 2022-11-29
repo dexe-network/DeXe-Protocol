@@ -192,7 +192,7 @@ contract GovPool is
             voteNftIds
         );
 
-        _micropoolInfos[msg.sender].updateGlobalState(
+        _micropoolInfos[msg.sender].updateRewards(
             reward,
             _proposals[proposalId].core.settings.voteRewardsCoefficient,
             _proposals[proposalId].core.settings.rewardToken
