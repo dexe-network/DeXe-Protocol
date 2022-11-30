@@ -40,10 +40,19 @@ library GovPoolStaking {
         );
     }
 
-    function updateLocalState(
+    function stake(IGovPool.MicropoolInfo storage micropool, address delegatee) external {
+        _recalculateStakingState(micropool, delegatee, false);
+    }
+
+    function unstake(IGovPool.MicropoolInfo storage micropool, address delegatee) external {
+        _recalculateStakingState(micropool, delegatee, true);
+    }
+
+    function _recalculateStakingState(
         IGovPool.MicropoolInfo storage micropool,
-        address delegatee
-    ) external {
+        address delegatee,
+        bool withdrawPendingRewards
+    ) private {
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
         uint256 stakedAmount = IGovUserKeeper(userKeeper).getDelegatedAssetsAmount(
@@ -56,30 +65,23 @@ library GovPoolStaking {
         uint256 rewardTokensLength = micropool.rewardTokens.length();
 
         for (uint256 i; i < rewardTokensLength; i++) {
+            address rewardToken = rewardTokens.at(i);
+
             IGovPool.RewardTokenInfo storage rewardTokenInfo = micropool.rewardTokenInfos[
-                rewardTokens.at(i)
+                rewardToken
             ];
 
             uint256 micropoolCumulativeSum = rewardTokenInfo.cumulativeSum;
 
             IGovPool.DelegatorInfo storage delegatorInfo = rewardTokenInfo.delegators[msg.sender];
 
-            delegatorInfo.pendingRewards +=
-                (micropoolCumulativeSum - delegatorInfo.latestCumulativeSum) *
-                stakedAmount;
+            delegatorInfo.pendingRewards += (micropoolCumulativeSum -
+                delegatorInfo.latestCumulativeSum).ratio(stakedAmount, PRECISION);
             delegatorInfo.latestCumulativeSum = micropoolCumulativeSum;
-        }
-    }
 
-    function claimDelegatedRewards(IGovPool.MicropoolInfo storage micropool) external {
-        EnumerableSet.AddressSet storage rewardTokens = micropool.rewardTokens;
-
-        uint256 rewardTokensLength = micropool.rewardTokens.length();
-
-        for (uint256 i; i < rewardTokensLength; i++) {
-            IGovPool.DelegatorInfo storage delegatorInfo = micropool
-                .rewardTokenInfos[rewardTokens.at(i)]
-                .delegators[msg.sender];
+            if (!withdrawPendingRewards) {
+                continue;
+            }
 
             uint256 rewards = delegatorInfo.pendingRewards;
             if (rewards == 0) {
@@ -88,9 +90,9 @@ library GovPoolStaking {
 
             delegatorInfo.pendingRewards = 0;
 
-            IERC20(rewardTokens.at(i)).safeTransfer(
+            IERC20(rewardToken).safeTransfer(
                 msg.sender,
-                (rewards / PRECISION).from18(ERC20(rewardTokens.at(i)).decimals())
+                rewards.from18(ERC20(rewardToken).decimals())
             );
         }
     }

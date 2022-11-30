@@ -228,7 +228,7 @@ contract GovPool is
 
         unlock(msg.sender, false);
 
-        _micropoolInfos[delegatee].updateLocalState(delegatee);
+        _micropoolInfos[delegatee].stake(delegatee);
 
         _govUserKeeper.delegateTokens.exec(delegatee, amount);
         _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
@@ -245,7 +245,7 @@ contract GovPool is
 
         unlock(delegatee, true);
 
-        _micropoolInfos[delegatee].updateLocalState(delegatee);
+        _micropoolInfos[delegatee].unstake(delegatee);
 
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
         _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
@@ -279,10 +279,6 @@ contract GovPool is
         for (uint256 i; i < proposalIds.length; i++) {
             pendingRewards.claimReward(_proposals, proposalIds[i]);
         }
-    }
-
-    function claimDelegatedRewards(address delegatee) external override {
-        _micropoolInfos[delegatee].claimDelegatedRewards();
     }
 
     function executeAndClaim(uint256 proposalId) external override {
