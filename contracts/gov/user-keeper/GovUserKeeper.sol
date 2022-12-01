@@ -599,11 +599,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function getTotalNftsPower(
         uint256[] memory nftIds
     ) public view override returns (uint256 totalPower) {
-        if (nftAddress == address(0)) {
+        ERC721Power nftContract = ERC721Power(nftAddress);
+
+        if (address(nftAddress) == address(0)) {
             return 0;
         }
-
-        ERC721Power nftContract = ERC721Power(nftAddress);
 
         if (!nftInfo.isSupportPower) {
             uint256 totalSupply = nftInfo.totalSupply == 0
