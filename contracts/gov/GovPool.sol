@@ -194,8 +194,20 @@ contract GovPool is
             voteNftIds
         );
 
+        uint256 delegatorsPercent = distributedRewardsPercentage[msg.sender];
+
+        pendingRewards.updateRewards(
+            proposalId,
+            reward.percentage(PERCENTAGE_100 - delegatorsPercent),
+            _proposals[proposalId].core.settings.voteRewardsCoefficient
+        );
+
+        if (delegatorsPercent == 0) {
+            return;
+        }
+
         _micropoolInfos[msg.sender].updateRewards(
-            reward,
+            reward.percentage(delegatorsPercent),
             _proposals[proposalId].core.settings.voteRewardsCoefficient,
             _proposals[proposalId].core.settings.rewardToken
         );
