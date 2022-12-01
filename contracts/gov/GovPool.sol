@@ -69,6 +69,8 @@ contract GovPool is
 
     mapping(address => MicropoolInfo) internal _micropoolInfos;
 
+    mapping(address => uint256) public override distributedRewardsPercentage; // delegatee => distributed rewards %
+
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
 
     modifier onlyThis() {
@@ -284,6 +286,12 @@ contract GovPool is
     function executeAndClaim(uint256 proposalId) external override {
         execute(proposalId);
         pendingRewards.claimReward(_proposals, proposalId);
+    }
+
+    function setDistributedRewardsPercentage(uint256 percentage) external {
+        require(percentage <= PERCENTAGE_100, "GovUK: percentage should be <= PERCENTAGE_100");
+
+        distributedRewardsPercentage[msg.sender] = percentage;
     }
 
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {

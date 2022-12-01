@@ -46,8 +46,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     mapping(uint256 => uint256) public nftSnapshot; // snapshot id => totalNftsPower
 
-    mapping(address => uint256) public override distributedRewardsPercentage; // delegatee => distributed rewards %
-
     event SetERC20(address token);
     event SetERC721(address token);
 
@@ -79,12 +77,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         if (_tokenAddress != address(0)) {
             _setERC20Address(_tokenAddress);
         }
-    }
-
-    function setDistributedRewardsPercentage(uint256 percentage) external {
-        require(percentage <= PERCENTAGE_100, "GovUK: percentage should be <= PERCENTAGE_100");
-
-        distributedRewardsPercentage[msg.sender] = percentage;
     }
 
     function depositTokens(

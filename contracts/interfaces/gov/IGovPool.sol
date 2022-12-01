@@ -78,6 +78,8 @@ interface IGovPool {
 
     function latestProposalId() external view returns (uint256);
 
+    function distributedRewardsPercentage(address delegatee) external view returns (uint256);
+
     /// @notice The function to get helper contract of this pool
     /// @return settings settings address
     /// @return userKeeper user keeper address
@@ -149,6 +151,8 @@ interface IGovPool {
     function claimRewards(uint256[] calldata proposalIds) external;
 
     function executeAndClaim(uint256 proposalId) external;
+
+    function setDistributedRewardsPercentage(uint256 percentage) external;
 
     function editDescriptionURL(string calldata newDescriptionURL) external;
 
