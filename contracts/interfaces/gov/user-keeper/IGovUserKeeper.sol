@@ -36,6 +36,10 @@ interface IGovUserKeeper {
         uint256 totalSupply;
     }
 
+    function distributedRewardsPercentage(address delegatee) external view returns (uint256);
+
+    function setDistributedRewardsPercentage(uint256 percentage) external;
+
     function depositTokens(address payer, address receiver, uint256 amount) external;
 
     function withdrawTokens(address payer, address receiver, uint256 amount) external;
