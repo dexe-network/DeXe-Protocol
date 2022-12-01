@@ -79,12 +79,9 @@ library GovPoolStaking {
                 delegatorInfo.latestCumulativeSum).ratio(stakedAmount, PRECISION);
             delegatorInfo.latestCumulativeSum = micropoolCumulativeSum;
 
-            if (!withdrawPendingRewards) {
-                continue;
-            }
-
             uint256 rewards = delegatorInfo.pendingRewards;
-            if (rewards == 0) {
+
+            if (!withdrawPendingRewards || rewards == 0) {
                 continue;
             }
 
