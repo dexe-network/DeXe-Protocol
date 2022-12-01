@@ -596,39 +596,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
     }
 
-    function getTotalNftsPower(
-        uint256[] memory nftIds
-    ) public view override returns (uint256 totalPower) {
-        ERC721Power nftContract = ERC721Power(nftAddress);
-
-        if (address(nftAddress) == address(0)) {
-            return 0;
-        }
-
-        if (!nftInfo.isSupportPower) {
-            uint256 totalSupply = nftInfo.totalSupply == 0
-                ? nftContract.totalSupply()
-                : nftInfo.totalSupply;
-
-            if (totalSupply > 0) {
-                totalPower += nftIds.length.ratio(nftInfo.totalPowerInTokens, totalSupply);
-            }
-        } else {
-            uint256 totalNftsPower = nftContract.totalPower();
-
-            if (totalNftsPower > 0) {
-                uint256 totalPowerInTokens = nftInfo.totalPowerInTokens;
-
-                for (uint256 i; i < nftIds.length; i++) {
-                    totalPower += totalPowerInTokens.ratio(
-                        nftContract.getNftPower(nftIds[i]),
-                        totalNftsPower
-                    );
-                }
-            }
-        }
-    }
-
     function delegations(
         address user
     ) external view override returns (DelegationInfoView[] memory delegationsInfo) {
@@ -696,11 +663,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address delegator,
         address delegatee
     ) external view override returns (uint256) {
-        UserInfo storage userInfo = _usersInfo[delegator];
-
         return
-            userInfo.delegatedTokens[delegatee] +
-            getTotalNftsPower(userInfo.delegatedNfts[delegatee].values());
+            _usersInfo[delegator].delegatedTokens[delegatee] +
+            _getTotalNftsPower(delegator, delegatee);
     }
 
     function getMicropoolTotalStakeAmount(
@@ -708,9 +673,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     ) external view override returns (uint256) {
         (uint256 totalStake, ) = tokenBalance(delegatee, true, false);
 
-        (uint256[] memory nftIds, ) = nftExactBalance(delegatee, true, false);
-
-        return totalStake + getTotalNftsPower(nftIds);
+        return totalStake + _getTotalNftsPower(address(0), delegatee);
     }
 
     function _setERC20Address(address _tokenAddress) internal {
@@ -791,6 +754,48 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
 
         withdrawableNfts = nfts.transform().crop(nftsLength);
+    }
+
+    function _getTotalNftsPower(
+        address delegator,
+        address delegatee
+    ) internal view returns (uint256 totalPower) {
+        ERC721Power nftContract = ERC721Power(nftAddress);
+
+        if (address(nftAddress) == address(0)) {
+            return 0;
+        }
+
+        if (!nftInfo.isSupportPower) {
+            (uint256 nftIdsLength, ) = delegator == address(0)
+                ? nftBalance(delegatee, true, false)
+                : (_usersInfo[delegator].delegatedNfts[delegatee].length(), 0);
+
+            uint256 totalSupply = nftInfo.totalSupply == 0
+                ? nftContract.totalSupply()
+                : nftInfo.totalSupply;
+
+            if (totalSupply > 0) {
+                totalPower += nftIdsLength.ratio(nftInfo.totalPowerInTokens, totalSupply);
+            }
+        } else {
+            (uint256[] memory nftIds, ) = delegator == address(0)
+                ? nftExactBalance(delegatee, true, false)
+                : (_usersInfo[delegator].delegatedNfts[delegatee].values(), 0);
+
+            uint256 totalNftsPower = nftContract.totalPower();
+
+            if (totalNftsPower > 0) {
+                uint256 totalPowerInTokens = nftInfo.totalPowerInTokens;
+
+                for (uint256 i; i < nftIds.length; i++) {
+                    totalPower += totalPowerInTokens.ratio(
+                        nftContract.getNftPower(nftIds[i]),
+                        totalNftsPower
+                    );
+                }
+            }
+        }
     }
 
     function _getBalanceInfoStorage(
