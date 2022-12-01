@@ -596,7 +596,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
     }
 
-    function calculateSubsetTotalPower(
+    function getTotalNftsPower(
         uint256[] memory nftIds
     ) public view override returns (uint256 totalPower) {
         if (nftAddress == address(0)) {
@@ -700,17 +700,17 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         return
             userInfo.delegatedTokens[delegatee] +
-            calculateSubsetTotalPower(userInfo.delegatedNfts[delegatee].values());
+            getTotalNftsPower(userInfo.delegatedNfts[delegatee].values());
     }
 
     function getMicropoolTotalStakeAmount(
         address delegatee
     ) external view override returns (uint256) {
-        (uint256 totalStake, ) = tokenBalance(msg.sender, true, false);
+        (uint256 totalStake, ) = tokenBalance(delegatee, true, false);
 
-        (uint256[] memory nftIds, ) = nftExactBalance(msg.sender, true, false);
+        (uint256[] memory nftIds, ) = nftExactBalance(delegatee, true, false);
 
-        return totalStake + calculateSubsetTotalPower(nftIds);
+        return totalStake + getTotalNftsPower(nftIds);
     }
 
     function _setERC20Address(address _tokenAddress) internal {
