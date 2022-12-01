@@ -70,6 +70,7 @@ interface IGovPool {
     }
 
     struct MicropoolInfo {
+        uint256 distributedRewardsPercentage;
         EnumerableSet.AddressSet rewardTokens;
         mapping(address => RewardTokenInfo) rewardTokenInfos;
     }
@@ -77,8 +78,6 @@ interface IGovPool {
     function nftMultiplier() external view returns (address);
 
     function latestProposalId() external view returns (uint256);
-
-    function distributedRewardsPercentage(address delegatee) external view returns (uint256);
 
     /// @notice The function to get helper contract of this pool
     /// @return settings settings address
