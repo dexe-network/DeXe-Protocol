@@ -141,6 +141,10 @@ interface IGovUserKeeper {
         bool useDelegated
     ) external view returns (uint256 power, uint256[] memory nftPower);
 
+    function calculateSubsetTotalPower(
+        uint256[] memory nftIds
+    ) external view returns (uint256 totalPower);
+
     function delegations(
         address user
     ) external view returns (DelegationInfoView[] memory delegationsInfo);
@@ -167,7 +171,7 @@ interface IGovUserKeeper {
         view
         returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts);
 
-    function getDelegatedAssetsAmount(
+    function getDelegatedStakeAmount(
         address delegator,
         address delegatee
     ) external view returns (uint256);

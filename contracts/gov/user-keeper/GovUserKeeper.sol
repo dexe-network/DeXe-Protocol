@@ -596,6 +596,39 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
     }
 
+    function calculateSubsetTotalPower(
+        uint256[] memory nftIds
+    ) public view override returns (uint256 totalPower) {
+        if (nftAddress == address(0)) {
+            return 0;
+        }
+
+        ERC721Power nftContract = ERC721Power(nftAddress);
+
+        if (!nftInfo.isSupportPower) {
+            uint256 totalSupply = nftInfo.totalSupply == 0
+                ? nftContract.totalSupply()
+                : nftInfo.totalSupply;
+
+            if (totalSupply > 0) {
+                totalPower += nftIds.length.ratio(nftInfo.totalPowerInTokens, totalSupply);
+            }
+        } else {
+            uint256 totalNftsPower = nftContract.totalPower();
+
+            if (totalNftsPower > 0) {
+                uint256 totalPowerInTokens = nftInfo.totalPowerInTokens;
+
+                for (uint256 i; i < nftIds.length; i++) {
+                    totalPower += totalPowerInTokens.ratio(
+                        nftContract.getNftPower(nftIds[i]),
+                        totalNftsPower
+                    );
+                }
+            }
+        }
+    }
+
     function delegations(
         address user
     ) external view override returns (DelegationInfoView[] memory delegationsInfo) {
@@ -659,17 +692,25 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         return _getFreeAssets(voter, false, lockedProposals, unlockedNfts);
     }
 
-    function getDelegatedAssetsAmount(
+    function getDelegatedStakeAmount(
         address delegator,
         address delegatee
     ) external view override returns (uint256) {
-        return _usersInfo[delegator].delegatedTokens[delegatee];
+        UserInfo storage userInfo = _usersInfo[delegator];
+
+        return
+            userInfo.delegatedTokens[delegatee] +
+            calculateSubsetTotalPower(userInfo.delegatedNfts[delegatee].values());
     }
 
     function getMicropoolTotalStakeAmount(
         address delegatee
     ) external view override returns (uint256) {
-        return _micropoolsInfo[delegatee].tokenBalance;
+        (uint256 totalStake, ) = tokenBalance(msg.sender, true, false);
+
+        (uint256[] memory nftIds, ) = nftExactBalance(msg.sender, true, false);
+
+        return totalStake + calculateSubsetTotalPower(nftIds);
     }
 
     function _setERC20Address(address _tokenAddress) internal {

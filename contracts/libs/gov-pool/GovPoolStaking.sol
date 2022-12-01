@@ -55,7 +55,7 @@ library GovPoolStaking {
     ) private {
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
-        uint256 stakedAmount = IGovUserKeeper(userKeeper).getDelegatedAssetsAmount(
+        uint256 stakedAmount = IGovUserKeeper(userKeeper).getDelegatedStakeAmount(
             msg.sender,
             delegatee
         );
