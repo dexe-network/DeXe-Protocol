@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
@@ -12,6 +13,7 @@ import "../math/MathHelper.sol";
 library GovPoolStaking {
     using TokenBalance for address;
     using MathHelper for uint256;
+    using Math for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
     function updateRewards(
@@ -83,7 +85,7 @@ library GovPoolStaking {
 
             delegatorInfo.pendingRewards = 0;
 
-            rewardToken.sendFunds(msg.sender, rewards);
+            rewardToken.sendFunds(msg.sender, rewards.min(rewardToken.normThisBalance()));
         }
     }
 }
