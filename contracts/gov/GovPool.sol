@@ -299,7 +299,7 @@ contract GovPool is
     }
 
     function setDistributedRewardsPercentage(uint256 percentage) external {
-        require(percentage <= PERCENTAGE_100, "GovUK: percentage should be <= PERCENTAGE_100");
+        require(percentage <= PERCENTAGE_100, "Gov: percentage should be <= PERCENTAGE_100");
 
         _micropoolInfos[msg.sender].distributedRewardsPercentage = percentage;
     }
