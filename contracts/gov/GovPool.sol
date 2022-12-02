@@ -65,6 +65,7 @@ contract GovPool is
     mapping(uint256 => mapping(address => uint256)) public pendingRewards; // proposalId => user => tokens amount
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
+    event MovedToValidators(uint256 proposalId, address sender);
 
     modifier onlyThis() {
         _onlyThis();
@@ -143,6 +144,8 @@ contract GovPool is
             _proposals[proposalId].core.settings.creationReward,
             PRECISION
         );
+
+        emit MovedToValidators(proposalId, msg.sender);
     }
 
     function vote(
