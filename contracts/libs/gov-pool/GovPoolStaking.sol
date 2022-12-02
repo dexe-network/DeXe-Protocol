@@ -24,7 +24,7 @@ library GovPoolStaking {
     ) external {
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
-        uint256 totalStake = IGovUserKeeper(userKeeper).getMicropoolTotalStakeAmount(msg.sender);
+        uint256 totalStake = micropool.totalStake;
         if (totalStake == 0) {
             return;
         }
@@ -38,17 +38,38 @@ library GovPoolStaking {
         );
     }
 
-    function stake(IGovPool.MicropoolInfo storage micropool, address delegatee) external {
-        _recalculateStakingState(micropool, delegatee, false);
+    function stake(
+        IGovPool.MicropoolInfo storage micropool,
+        address delegatee,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external {
+        _recalculateStakingState(
+            micropool,
+            delegatee,
+            int256(_getStakeDifference(amount, nftIds)),
+            false
+        );
     }
 
-    function unstake(IGovPool.MicropoolInfo storage micropool, address delegatee) external {
-        _recalculateStakingState(micropool, delegatee, true);
+    function unstake(
+        IGovPool.MicropoolInfo storage micropool,
+        address delegatee,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external {
+        _recalculateStakingState(
+            micropool,
+            delegatee,
+            -int256(_getStakeDifference(amount, nftIds)),
+            true
+        );
     }
 
     function _recalculateStakingState(
         IGovPool.MicropoolInfo storage micropool,
         address delegatee,
+        int256 stakeDifference,
         bool withdrawPendingRewards
     ) private {
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
@@ -57,6 +78,15 @@ library GovPoolStaking {
             msg.sender,
             delegatee
         );
+
+        uint256 previousDelegatorStake = micropool.latestDelegatorStake[msg.sender];
+        uint256 currentDelegatorStake = uint256(int256(previousDelegatorStake) + stakeDifference);
+
+        uint256 rewardsDeviation = _calculateDeviation(currentDelegatorStake, stakedAmount);
+
+        micropool.totalStake -= previousDelegatorStake;
+        micropool.totalStake += currentDelegatorStake;
+        micropool.latestDelegatorStake[msg.sender] = currentDelegatorStake;
 
         EnumerableSet.AddressSet storage rewardTokens = micropool.rewardTokens;
 
@@ -73,8 +103,12 @@ library GovPoolStaking {
 
             IGovPool.DelegatorInfo storage delegatorInfo = rewardTokenInfo.delegators[msg.sender];
 
-            delegatorInfo.pendingRewards += (micropoolCumulativeSum -
-                delegatorInfo.latestCumulativeSum).ratio(stakedAmount, PRECISION);
+            delegatorInfo.pendingRewards +=
+                (micropoolCumulativeSum - delegatorInfo.latestCumulativeSum).ratio(
+                    stakedAmount,
+                    PRECISION
+                ) /
+                rewardsDeviation;
             delegatorInfo.latestCumulativeSum = micropoolCumulativeSum;
 
             uint256 rewards = delegatorInfo.pendingRewards;
@@ -87,5 +121,29 @@ library GovPoolStaking {
 
             rewardToken.sendFunds(msg.sender, rewards.min(rewardToken.normThisBalance()));
         }
+    }
+
+    function _getStakeDifference(
+        uint256 amount,
+        uint256[] memory nftIds
+    ) private view returns (uint256) {
+        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
+
+        return amount + IGovUserKeeper(userKeeper).getTotalNftsPower(nftIds);
+    }
+
+    function _calculateDeviation(
+        uint256 numerator,
+        uint256 denominator
+    ) private pure returns (uint256) {
+        if (numerator < denominator) {
+            (numerator, denominator) = (denominator, numerator);
+        }
+
+        if (denominator == 0) {
+            return 1;
+        }
+
+        return numerator / denominator;
     }
 }

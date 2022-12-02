@@ -70,9 +70,11 @@ interface IGovPool {
     }
 
     struct MicropoolInfo {
+        uint256 totalStake;
         uint256 distributedRewardsPercentage;
         EnumerableSet.AddressSet rewardTokens;
         mapping(address => RewardTokenInfo) rewardTokenInfos;
+        mapping(address => uint256) latestDelegatorStake;
     }
 
     function nftMultiplier() external view returns (address);
