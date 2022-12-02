@@ -659,7 +659,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         return _getFreeAssets(voter, false, lockedProposals, unlockedNfts);
     }
 
-    function getTotalNftsPower(uint256[] memory nftIds) external view override returns (uint256) {
+    function getTotalNftsPower(
+        uint256[] calldata nftIds
+    ) external view override returns (uint256) {
         return
             nftInfo.isSupportPower
                 ? _getTotalPowerERC721Power(nftIds)

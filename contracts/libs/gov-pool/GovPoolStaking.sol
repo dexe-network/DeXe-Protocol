@@ -80,9 +80,9 @@ library GovPoolStaking {
         );
 
         uint256 previousDelegatorStake = micropool.latestDelegatorStake[msg.sender];
-        uint256 currentDelegatorStake = uint256(int256(previousDelegatorStake) + stakeDifference);
+        uint256 currentDelegatorStake = uint256(int256(stakedAmount) + stakeDifference);
 
-        uint256 rewardsDeviation = _calculateDeviation(currentDelegatorStake, stakedAmount);
+        uint256 rewardsDeviation = _calculateDeviation(previousDelegatorStake, stakedAmount);
 
         micropool.totalStake -= previousDelegatorStake;
         micropool.totalStake += currentDelegatorStake;
@@ -125,7 +125,7 @@ library GovPoolStaking {
 
     function _getStakeDifference(
         uint256 amount,
-        uint256[] memory nftIds
+        uint256[] calldata nftIds
     ) private view returns (uint256) {
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
