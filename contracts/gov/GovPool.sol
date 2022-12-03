@@ -240,10 +240,14 @@ contract GovPool is
 
         unlock(msg.sender, false);
 
-        _micropoolInfos[delegatee].stake(delegatee, amount, nftIds);
+        MicropoolInfo storage micropool = _micropoolInfos[delegatee];
+
+        micropool.stake(delegatee);
 
         _govUserKeeper.delegateTokens.exec(delegatee, amount);
         _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
+
+        micropool.updateStakingCache(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, true);
     }
@@ -257,10 +261,14 @@ contract GovPool is
 
         unlock(delegatee, true);
 
-        _micropoolInfos[delegatee].unstake(delegatee, amount, nftIds);
+        MicropoolInfo storage micropool = _micropoolInfos[delegatee];
+
+        micropool.unstake(delegatee);
 
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
         _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
+
+        micropool.updateStakingCache(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, false);
     }
