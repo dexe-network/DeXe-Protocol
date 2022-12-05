@@ -74,8 +74,10 @@ library GovPoolStaking {
             delegatee
         );
 
+        uint256 previousDelegatorStake = micropool.latestDelegatorStake[msg.sender];
+
         uint256 rewardsDeviation = _calculateDeviation(
-            micropool.latestDelegatorStake[msg.sender],
+            previousDelegatorStake,
             currentDelegatorStake
         );
 
@@ -96,7 +98,7 @@ library GovPoolStaking {
 
             delegatorInfo.pendingRewards +=
                 (micropoolCumulativeSum - delegatorInfo.latestCumulativeSum).ratio(
-                    currentDelegatorStake,
+                    previousDelegatorStake,
                     PRECISION
                 ) /
                 rewardsDeviation;
