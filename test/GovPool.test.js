@@ -38,6 +38,7 @@ const GovPoolRewardsLib = artifacts.require("GovPoolRewards");
 const GovPoolUnlockLib = artifacts.require("GovPoolUnlock");
 const GovPoolVoteLib = artifacts.require("GovPoolVote");
 const GovPoolViewLib = artifacts.require("GovPoolView");
+const GovPoolStakingLib = artifacts.require("GovPoolStaking");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -90,6 +91,7 @@ describe("GovPool", () => {
     const govPoolUnlockLib = await GovPoolUnlockLib.new();
     const govPoolVoteLib = await GovPoolVoteLib.new();
     const govPoolViewLib = await GovPoolViewLib.new();
+    const govPoolStakingLib = await GovPoolStakingLib.new();
 
     await GovPool.link(govPoolCreateLib);
     await GovPool.link(govPoolExecuteLib);
@@ -97,6 +99,7 @@ describe("GovPool", () => {
     await GovPool.link(govPoolUnlockLib);
     await GovPool.link(govPoolVoteLib);
     await GovPool.link(govPoolViewLib);
+    await GovPool.link(govPoolStakingLib);
   });
 
   beforeEach("setup", async () => {
