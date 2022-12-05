@@ -31,6 +31,7 @@ library GovPoolRewards {
         }
 
         pendingRewards[proposalId][msg.sender] += amountToAdd;
+
         emit RewardCredited(proposalId, amountToAdd, msg.sender);
     }
 
