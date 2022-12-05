@@ -19,6 +19,7 @@ library GovPoolCreate {
     event ProposalCreated(
         uint256 proposalId,
         string proposalDescription,
+        string misc,
         uint256 quorum,
         uint256 proposalSettings,
         address rewardToken,
@@ -29,6 +30,7 @@ library GovPoolCreate {
     function createProposal(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         string calldata _descriptionURL,
+        string calldata misc,
         address[] calldata executors,
         uint256[] calldata values,
         bytes[] calldata data
@@ -67,6 +69,7 @@ library GovPoolCreate {
         emit ProposalCreated(
             proposalId,
             _descriptionURL,
+            misc,
             settings.quorum,
             settingsId,
             settings.rewardToken,

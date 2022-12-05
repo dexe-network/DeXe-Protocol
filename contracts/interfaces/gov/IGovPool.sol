@@ -88,6 +88,7 @@ interface IGovPool {
     /// @param data data Bytes
     function createProposal(
         string calldata descriptionURL,
+        string calldata misc,
         address[] memory executors,
         uint256[] calldata values,
         bytes[] calldata data
