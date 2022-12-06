@@ -76,10 +76,10 @@ library GovPoolStaking {
 
         uint256 previousDelegatorStake = micropool.latestDelegatorStake[msg.sender];
 
-        uint256 rewardsDeviation = _calculateDeviation(
-            previousDelegatorStake,
-            currentDelegatorStake
-        );
+        uint256 rewardsDeviation = previousDelegatorStake <= currentDelegatorStake ||
+            currentDelegatorStake == 0
+            ? 1
+            : previousDelegatorStake / currentDelegatorStake;
 
         EnumerableSet.AddressSet storage rewardTokens = micropool.rewardTokens;
 
@@ -114,20 +114,5 @@ library GovPoolStaking {
 
             rewardToken.sendFunds(msg.sender, rewards.min(rewardToken.normThisBalance()));
         }
-    }
-
-    function _calculateDeviation(
-        uint256 numerator,
-        uint256 denominator
-    ) private pure returns (uint256) {
-        if (numerator < denominator) {
-            (numerator, denominator) = (denominator, numerator);
-        }
-
-        if (denominator == 0) {
-            return 1;
-        }
-
-        return numerator / denominator;
     }
 }
