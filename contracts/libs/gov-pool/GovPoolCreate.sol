@@ -21,6 +21,7 @@ library GovPoolCreate {
         string proposalDescription,
         uint256 quorum,
         uint256 proposalSettings,
+        address rewardToken,
         address sender
     );
     event DPCreated(uint256 proposalId, address sender, address token, uint256 amount);
@@ -63,7 +64,14 @@ library GovPoolCreate {
 
         _canParticipate(settings, snapshotId);
 
-        emit ProposalCreated(proposalId, _descriptionURL, settings.quorum, settingsId, msg.sender);
+        emit ProposalCreated(
+            proposalId,
+            _descriptionURL,
+            settings.quorum,
+            settingsId,
+            settings.rewardToken,
+            msg.sender
+        );
     }
 
     function moveProposalToValidators(
