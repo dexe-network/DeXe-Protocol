@@ -46,7 +46,7 @@ library GovPoolVote {
         require(voteAmount > 0 || voteNftIds.length > 0, "Gov: empty delegated vote");
         require(
             proposals[proposalId].core.settings.delegatedVotingAllowed,
-            "Gov: delegated voting off"
+            "Gov: delegated voting is off"
         );
 
         IGovPool.ProposalCore storage core = proposals[proposalId].core;

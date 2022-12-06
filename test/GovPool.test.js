@@ -1101,7 +1101,7 @@ describe("GovPool", () => {
         await govPool.vote(2, 0, [], wei("1000"), [1, 2, 3, 4]);
         await truffleAssert.reverts(
           govPool.voteDelegated(2, wei("1000"), [1, 2, 3, 4], { from: SECOND }),
-          "Gov: delegated voting off"
+          "Gov: delegated voting is off"
         );
       });
 
@@ -1638,7 +1638,7 @@ describe("GovPool", () => {
 
         await govPool.execute(2);
 
-        await truffleAssert.reverts(govPool.claimRewards([2]), "Gov: rewards off");
+        await truffleAssert.reverts(govPool.claimRewards([2]), "Gov: rewards are off");
       });
 
       it("should revert when try claim reward before execute", async () => {
@@ -1650,7 +1650,7 @@ describe("GovPool", () => {
         await govPool.moveProposalToValidators(1);
         await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
-        await truffleAssert.reverts(govPool.claimRewards([1]), "Gov: proposal not executed");
+        await truffleAssert.reverts(govPool.claimRewards([1]), "Gov: proposal is not executed");
       });
 
       it("should revert when balance < rewards", async () => {

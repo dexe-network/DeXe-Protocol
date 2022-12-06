@@ -42,8 +42,8 @@ library GovPoolRewards {
     ) external {
         address rewardToken = proposals[proposalId].core.settings.rewardToken;
 
-        require(rewardToken != address(0), "Gov: rewards off");
-        require(proposals[proposalId].core.executed, "Gov: proposal not executed");
+        require(rewardToken != address(0), "Gov: rewards are off");
+        require(proposals[proposalId].core.executed, "Gov: proposal is not executed");
 
         uint256 rewards = pendingRewards[proposalId][msg.sender];
 

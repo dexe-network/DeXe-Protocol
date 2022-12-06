@@ -55,10 +55,7 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         require(_collateralToken != address(0), "ERC721Power: zero address");
         require(_maxPower > 0, "ERC721Power: max power can't be zero");
         require(_reductionPercent > 0, "ERC721Power: reduction percent can't be zero");
-        require(
-            _reductionPercent < PERCENTAGE_100,
-            "ERC721Power: reduction percent can't be a 100%"
-        );
+        require(_reductionPercent < PERCENTAGE_100, "ERC721Power: reduction can't be 100%");
         require(_requiredCollateral > 0, "ERC721Power: required collateral amount can't be zero");
 
         powerCalcStartTimestamp = startTimestamp;
