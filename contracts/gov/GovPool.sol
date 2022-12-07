@@ -121,13 +121,14 @@ contract GovPool is
 
     function createProposal(
         string calldata _descriptionURL,
+        string calldata misc,
         address[] calldata executors,
         uint256[] calldata values,
         bytes[] calldata data
     ) external override {
         latestProposalId++;
 
-        _proposals.createProposal(_descriptionURL, executors, values, data);
+        _proposals.createProposal(_descriptionURL, misc, executors, values, data);
 
         pendingRewards.updateRewards(
             latestProposalId,
