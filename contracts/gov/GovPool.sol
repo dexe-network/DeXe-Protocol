@@ -66,6 +66,8 @@ contract GovPool is
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
     event MovedToValidators(uint256 proposalId, address sender);
+    event Deposited(uint256 amount, uint256[] nfts, address sender);
+    event Withdrawn(uint256 amount, uint256[] nfts, address sender);
 
     modifier onlyThis() {
         _onlyThis();
@@ -203,6 +205,8 @@ contract GovPool is
 
         _govUserKeeper.depositTokens.exec(receiver, amount);
         _govUserKeeper.depositNfts.exec(receiver, nftIds);
+
+        emit Deposited(amount, nftIds, receiver);
     }
 
     function withdraw(
@@ -216,6 +220,8 @@ contract GovPool is
 
         _govUserKeeper.withdrawTokens.exec(receiver, amount);
         _govUserKeeper.withdrawNfts.exec(receiver, nftIds);
+
+        emit Withdrawn(amount, nftIds, receiver);
     }
 
     function delegate(
