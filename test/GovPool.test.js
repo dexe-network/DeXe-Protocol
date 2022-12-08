@@ -13,7 +13,7 @@ const {
   getBytesApproveAll,
   getBytesSetNftMultiplierAddress,
 } = require("./utils/gov-pool-utils");
-const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../scripts/utils/constants");
+const { ZERO_ADDR, ETHER_ADDR, PRECISION, PERCENTAGE_100 } = require("../scripts/utils/constants");
 const { ProposalState, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("./helpers/block-helper");
@@ -57,6 +57,7 @@ describe("GovPool", () => {
   let SECOND;
   let THIRD;
   let FOURTH;
+  let FIFTH;
   let FACTORY;
   let NOTHING;
 
@@ -82,7 +83,8 @@ describe("GovPool", () => {
     SECOND = await accounts(1);
     THIRD = await accounts(2);
     FOURTH = await accounts(3);
-    FACTORY = await accounts(4);
+    FIFTH = await accounts(4);
+    FACTORY = await accounts(5);
     NOTHING = await accounts(9);
 
     const govPoolCreateLib = await GovPoolCreateLib.new();
@@ -1677,6 +1679,121 @@ describe("GovPool", () => {
         await govPool.execute(2);
 
         await truffleAssert.reverts(govPool.claimRewards([2]), "Gov: not enough balance");
+      });
+    });
+
+    describe("staking", () => {
+      let micropool;
+      let delegator1;
+      let delegator2;
+      let delegator3;
+
+      const assertBalanceDistribution = (balances, coefficients) => {
+        if (balances.length !== coefficients.length) {
+          assert.isTrue(false, "lengths mismatch");
+        }
+
+        for (let i = 0; i < balances.length - 1; i++) {
+          const epsilon = coefficients[i] + coefficients[i + 1];
+
+          const [lhs, rhs] = [balances[i].times(coefficients[i + 1]), balances[i + 1].times(coefficients[i])];
+          if (rhs.gt(lhs)) {
+            [lhs, rhs] = [rhs, lhs];
+          }
+
+          assert.isTrue(lhs.minus(rhs).lt(epsilon));
+        }
+      };
+
+      const noZerosBalanceDistribution = (balances, coefficients) => {
+        balances.forEach((balance) => assert.notEqual(balance.toFixed(), "0"));
+
+        assertBalanceDistribution(balances, coefficients);
+      };
+
+      beforeEach(async () => {
+        micropool = SECOND;
+        delegator1 = THIRD;
+        delegator2 = FOURTH;
+        delegator3 = FIFTH;
+
+        await token.mint(delegator1, wei("1000"));
+        await token.mint(delegator2, wei("1000"));
+        await token.mint(delegator3, wei("500"));
+
+        for (let i = 10; i <= 13; i++) {
+          await nft.safeMint(delegator1, i);
+          await nft.approve(userKeeper.address, i, { from: delegator1 });
+        }
+
+        for (let i = 20; i <= 23; i++) {
+          await nft.safeMint(delegator2, i);
+          await nft.approve(userKeeper.address, i, { from: delegator2 });
+        }
+
+        for (let i = 30; i <= 31; i++) {
+          await nft.safeMint(delegator3, i);
+          await nft.approve(userKeeper.address, i, { from: delegator3 });
+        }
+
+        await token.approve(userKeeper.address, wei("1000"), { from: delegator1 });
+        await token.approve(userKeeper.address, wei("1000"), { from: delegator2 });
+        await token.approve(userKeeper.address, wei("500"), { from: delegator3 });
+
+        await govPool.deposit(OWNER, wei("2000"), [1, 2, 3, 4]);
+
+        await govPool.deposit(delegator1, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
+        await govPool.deposit(delegator2, wei("1000"), [20, 21, 22, 23], { from: delegator2 });
+        await govPool.deposit(delegator3, wei("500"), [30, 31], { from: delegator3 });
+
+        await govPool.createProposal("example.com", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
+      });
+
+      it("should give the proportional rewards for delegated ERC20 + ERC721", async () => {
+        await govPool.setDistributedRewardsPercentage(PERCENTAGE_100, { from: micropool });
+
+        await govPool.delegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
+        await govPool.delegate(micropool, wei("1000"), [20, 21, 22, 23], { from: delegator2 });
+        await govPool.delegate(micropool, wei("500"), [30, 31], { from: delegator3 });
+
+        await govPool.voteDelegated(1, wei("2500"), [], { from: micropool });
+
+        await setTime((await getCurrentBlockTime()) + 10000);
+
+        await govPool.undelegate(micropool, wei("1000"), [], { from: delegator1 });
+        await govPool.undelegate(micropool, wei("1000"), [], { from: delegator2 });
+        await govPool.undelegate(micropool, wei("500"), [], { from: delegator3 });
+
+        const balance1 = await rewardToken.balanceOf(delegator1);
+        const balance2 = await rewardToken.balanceOf(delegator2);
+        const balance3 = await rewardToken.balanceOf(delegator3);
+
+        noZerosBalanceDistribution([balance1, balance2, balance3], [2, 2, 1]);
+      });
+
+      it("should give the proper rewards with multiple async delegates", async () => {
+        await govPool.setDistributedRewardsPercentage(PERCENTAGE_100.dividedBy(2), { from: micropool });
+
+        await govPool.delegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
+        await govPool.voteDelegated(1, wei("625"), [], { from: micropool });
+
+        await govPool.delegate(micropool, wei("1000"), [20, 21, 22, 23], { from: delegator2 });
+        await govPool.voteDelegated(1, wei("625"), [], { from: micropool });
+
+        await govPool.delegate(micropool, wei("500"), [30, 31], { from: delegator3 });
+        await govPool.voteDelegated(1, wei("625"), [], { from: micropool });
+
+        await setTime((await getCurrentBlockTime()) + 10000);
+
+        await govPool.undelegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
+        await govPool.undelegate(micropool, wei("1000"), [20, 21, 22, 23], { from: delegator2 });
+        await govPool.undelegate(micropool, wei("500"), [30, 31], { from: delegator3 });
+
+        const balance1 = await rewardToken.balanceOf(delegator1);
+        const balance2 = await rewardToken.balanceOf(delegator2);
+        const balance3 = await rewardToken.balanceOf(delegator3);
+
+        noZerosBalanceDistribution([balance1, balance2, balance3], [19, 9, 2]);
       });
     });
   });
