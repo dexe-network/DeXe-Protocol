@@ -57,14 +57,17 @@ library GovPoolExecute {
         IGovSettings.ProposalSettings storage settings = core.settings;
 
         GovPool govPool = GovPool(payable(address(this)));
-        (, , address govValidators, ) = govPool.getHelperContracts();
 
         address rewardToken = settings.rewardToken;
+        (, uint256 commissionPercentage, , address[3] memory commissionReceivers) = govPool
+            .coreProperties()
+            .getDEXECommissionPercentages();
 
-        if (rewardToken == address(0)) {
+        if (rewardToken == address(0) || commissionReceivers[1] == address(this)) {
             return;
         }
 
+        (, , address govValidators, ) = govPool.getHelperContracts();
         uint256 creationRewards = settings.creationReward *
             (
                 settings.validatorsVote && IGovValidators(govValidators).validatorsCount() > 0
@@ -75,10 +78,6 @@ library GovPoolExecute {
         uint256 totalRewards = creationRewards +
             settings.executionReward +
             core.votesFor.ratio(settings.voteRewardsCoefficient, PRECISION);
-
-        (, uint256 commissionPercentage, , address[3] memory commissionReceivers) = govPool
-            .coreProperties()
-            .getDEXECommissionPercentages();
 
         uint256 commission = rewardToken.normThisBalance().min(
             totalRewards.percentage(commissionPercentage)

@@ -139,7 +139,17 @@ interface IGovUserKeeper {
         address user,
         bool isMicropool,
         bool useDelegated
-    ) external view returns (uint256 power, uint256[] memory nftPower);
+    )
+        external
+        view
+        returns (
+            uint256 power,
+            uint256 nftPower,
+            uint256[] memory perNftPower,
+            uint256 ownedBalance,
+            uint256 ownedLength,
+            uint256[] memory nftIds
+        );
 
     function delegations(
         address user

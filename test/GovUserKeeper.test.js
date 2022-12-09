@@ -176,7 +176,11 @@ describe("GovUserKeeper", () => {
         const power = await userKeeper.votingPower(SECOND, false, false);
 
         assert.equal(power.power.toFixed(), wei("100"));
-        assert.deepEqual(power.nftPower, []);
+        assert.equal(power.nftPower.toFixed(), "0");
+        assert.deepEqual(power.perNftPower, []);
+        assert.equal(power.ownedBalance.toFixed(), "0");
+        assert.equal(power.ownedLength.toFixed(), "0");
+        assert.deepEqual(power.nftIds, []);
 
         assert.equal((await userKeeper.tokenBalance(SECOND, false, false)).totalBalance.toFixed(), wei("100"));
         assert.equal((await userKeeper.tokenBalance(SECOND, false, false)).ownedBalance.toFixed(), "0");
@@ -200,9 +204,16 @@ describe("GovUserKeeper", () => {
         const power = await userKeeper.votingPower(SECOND, false, false);
 
         assert.equal(power.power.toFixed(), wei("3000"));
+        assert.equal(power.nftPower.toFixed(), wei("3000"));
         assert.deepEqual(
-          power.nftPower.map((e) => e.toFixed()),
+          power.perNftPower.map((e) => e.toFixed()),
           [wei("1000"), wei("1000"), wei("1000")]
+        );
+        assert.equal(power.ownedBalance.toFixed(), "0");
+        assert.equal(power.ownedLength.toFixed(), "0");
+        assert.deepEqual(
+          power.nftIds.map((e) => e.toFixed()),
+          ["1", "3", "5"]
         );
 
         assert.deepEqual(
@@ -746,7 +757,8 @@ describe("GovUserKeeper", () => {
       const power = await userKeeper.votingPower(OWNER, false, true);
 
       assert.equal(power.power.toFixed(), "0");
-      assert.deepEqual(power.nftPower, []);
+      assert.equal(power.nftPower.toFixed(), "0");
+      assert.deepEqual(power.perNftPower, []);
 
       const tokenBalance = await userKeeper.tokenBalance(OWNER, false, false);
 
@@ -800,7 +812,8 @@ describe("GovUserKeeper", () => {
       const power = await userKeeper.votingPower(OWNER, false, true);
 
       assert.equal(power.power.toFixed(), "0");
-      assert.deepEqual(power.nftPower, []);
+      assert.equal(power.nftPower.toFixed(), "0");
+      assert.deepEqual(power.perNftPower, []);
 
       const nftBalance = await userKeeper.nftBalance(OWNER, false, false);
 
@@ -877,8 +890,9 @@ describe("GovUserKeeper", () => {
         const singleNFTPower = toBN(wei("33000")).idiv(9).toFixed();
 
         assert.equal(power.power.toFixed(), wei("43000"));
+        assert.equal(power.nftPower.toFixed(), wei("33000"));
         assert.deepEqual(
-          power.nftPower.map((e) => e.toFixed()),
+          power.perNftPower.map((e) => e.toFixed()),
           [
             singleNFTPower,
             singleNFTPower,
@@ -964,8 +978,9 @@ describe("GovUserKeeper", () => {
         const power1 = await userKeeper.votingPower(OWNER, false, false);
 
         assert.equal(power1.power.toFixed(), wei("400"));
+        assert.equal(power1.nftPower.toFixed(), "0");
         assert.deepEqual(
-          power1.nftPower.map((e) => e.toFixed()),
+          power1.perNftPower.map((e) => e.toFixed()),
           ["0", "0", "0", "0", "0", "0", "0"]
         );
 
@@ -980,8 +995,12 @@ describe("GovUserKeeper", () => {
           power2.power.toFixed(),
           (await userKeeper.getNftsPowerInTokensBySnapshot([2, 3, 4, 5, 6, 7, 9], 1)).plus(wei("400")).toFixed()
         );
+        assert.equal(
+          power2.nftPower.toFixed(),
+          (await userKeeper.getNftsPowerInTokensBySnapshot([2, 3, 4, 5, 6, 7, 9], 1)).toFixed()
+        );
         assert.deepEqual(
-          power2.nftPower.map((e) => e.toFixed()),
+          power2.perNftPower.map((e) => e.toFixed()),
           [
             "4435483870967741935483",
             "4080201612903225806451",
@@ -1051,7 +1070,7 @@ describe("GovUserKeeper", () => {
         );
       });
 
-      it("should calculate zero power", async () => {
+      it("should calculate zero NFT power", async () => {
         await nft.removeCollateral(wei("500"), "9");
 
         await setTime(startTime + 1000000000000);
@@ -1065,8 +1084,9 @@ describe("GovUserKeeper", () => {
         const power = await userKeeper.votingPower(OWNER, false, false);
 
         assert.equal(power.power.toFixed(), wei("900"));
+        assert.equal(power.nftPower.toFixed(), "0");
         assert.deepEqual(
-          power.nftPower.map((e) => e.toFixed()),
+          power.perNftPower.map((e) => e.toFixed()),
           ["0", "0", "0", "0", "0", "0", "0"]
         );
       });

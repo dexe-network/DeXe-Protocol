@@ -554,15 +554,27 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address user,
         bool isMicropool,
         bool useDelegated
-    ) external view override returns (uint256 power, uint256[] memory nftPower) {
+    )
+        external
+        view
+        override
+        returns (
+            uint256 power,
+            uint256 nftPower,
+            uint256[] memory perNftPower,
+            uint256 ownedBalance,
+            uint256 ownedLength,
+            uint256[] memory nftIds
+        )
+    {
         if (tokenAddress != address(0)) {
-            (power, ) = tokenBalance(user, isMicropool, useDelegated);
+            (power, ownedBalance) = tokenBalance(user, isMicropool, useDelegated);
         }
 
         if (nftAddress != address(0)) {
             ERC721Power nftContract = ERC721Power(nftAddress);
-            (uint256[] memory nftIds, ) = nftExactBalance(user, isMicropool, useDelegated);
-            nftPower = new uint256[](nftIds.length);
+            (nftIds, ownedLength) = nftExactBalance(user, isMicropool, useDelegated);
+            perNftPower = new uint256[](nftIds.length);
 
             if (!nftInfo.isSupportPower) {
                 uint256 totalSupply = nftInfo.totalSupply == 0
@@ -573,10 +585,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
                     uint256 totalPower = nftInfo.totalPowerInTokens;
 
                     for (uint256 i; i < nftIds.length; i++) {
-                        nftPower[i] = totalPower / totalSupply;
+                        perNftPower[i] = totalPower / totalSupply;
                     }
 
-                    power += nftIds.length.ratio(totalPower, totalSupply);
+                    nftPower = nftIds.length.ratio(totalPower, totalSupply);
                 }
             } else {
                 uint256 totalNftsPower = nftContract.totalPower();
@@ -585,14 +597,16 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
                     uint256 totalPowerInTokens = nftInfo.totalPowerInTokens;
 
                     for (uint256 i; i < nftIds.length; i++) {
-                        nftPower[i] = totalPowerInTokens.ratio(
+                        perNftPower[i] = totalPowerInTokens.ratio(
                             nftContract.getNftPower(nftIds[i]),
                             totalNftsPower
                         );
-                        power += nftPower[i];
+                        nftPower += perNftPower[i];
                     }
                 }
             }
+
+            power += nftPower;
         }
     }
 

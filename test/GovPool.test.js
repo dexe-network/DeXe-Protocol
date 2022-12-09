@@ -1589,6 +1589,30 @@ describe("GovPool", () => {
         );
       });
 
+      it("should not transfer commission if treasury is address(this)", async () => {
+        treasury = govPool.address;
+
+        await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), treasury);
+
+        await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
+
+        const bytes = getBytesAddSettings([NEW_SETTINGS]);
+
+        await govPool.createProposal("example.com", "misc", [settings.address], [0], [bytes]);
+        await govPool.vote(1, 0, [], wei("1"), []);
+        await govPool.vote(1, 0, [], wei("100000000000000000000"), [], { from: SECOND });
+
+        await govPool.moveProposalToValidators(1);
+        await validators.vote(1, wei("100"), false);
+        await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("10000000000000000000000"));
+
+        await govPool.execute(1);
+
+        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("10000000000000000000000"));
+      });
+
       it("should not claim rewards in native", async () => {
         const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
 
