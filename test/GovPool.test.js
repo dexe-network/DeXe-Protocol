@@ -1682,7 +1682,7 @@ describe("GovPool", () => {
       });
     });
 
-    describe.only("staking", () => {
+    describe("staking", () => {
       let micropool;
       let delegator1;
       let delegator2;
