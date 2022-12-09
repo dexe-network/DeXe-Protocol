@@ -1703,7 +1703,7 @@ describe("GovPool", () => {
             [lhs, rhs] = [rhs, lhs];
           }
 
-          assert.isTrue(lhs.minus(rhs).lt(epsilon));
+          assert.isTrue(lhs.minus(rhs).lte(epsilon));
         }
       };
 
