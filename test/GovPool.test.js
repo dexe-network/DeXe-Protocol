@@ -1696,7 +1696,9 @@ describe("GovPool", () => {
         for (let i = 0; i < balances.length - 1; i++) {
           const epsilon = coefficients[i] + coefficients[i + 1];
 
-          const [lhs, rhs] = [balances[i].times(coefficients[i + 1]), balances[i + 1].times(coefficients[i])];
+          const lhs = balances[i].times(coefficients[i + 1]);
+          const rhs = balances[i + 1].times(coefficients[i]);
+
           if (rhs.gt(lhs)) {
             [lhs, rhs] = [rhs, lhs];
           }
@@ -1749,51 +1751,53 @@ describe("GovPool", () => {
         await govPool.createProposal("example.com", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
       });
 
-      it("should give the proportional rewards for delegated ERC20 + ERC721", async () => {
-        await govPool.setDistributedRewardsPercentage(PERCENTAGE_100, { from: micropool });
+      describe("rewards", () => {
+        it("should give the proportional rewards for delegated ERC20 + ERC721", async () => {
+          await govPool.setDistributedRewardsPercentage(PERCENTAGE_100, { from: micropool });
 
-        await govPool.delegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
-        await govPool.delegate(micropool, wei("1000"), [20, 21, 22, 23], { from: delegator2 });
-        await govPool.delegate(micropool, wei("500"), [30, 31], { from: delegator3 });
+          await govPool.delegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
+          await govPool.delegate(micropool, wei("1000"), [20, 21, 22, 23], { from: delegator2 });
+          await govPool.delegate(micropool, wei("500"), [30, 31], { from: delegator3 });
 
-        await govPool.voteDelegated(1, wei("2500"), [], { from: micropool });
+          await govPool.voteDelegated(1, wei("2500"), [], { from: micropool });
 
-        await setTime((await getCurrentBlockTime()) + 10000);
+          await setTime((await getCurrentBlockTime()) + 10000);
 
-        await govPool.undelegate(micropool, wei("1000"), [], { from: delegator1 });
-        await govPool.undelegate(micropool, wei("1000"), [], { from: delegator2 });
-        await govPool.undelegate(micropool, wei("500"), [], { from: delegator3 });
+          await govPool.undelegate(micropool, wei("1000"), [], { from: delegator1 });
+          await govPool.undelegate(micropool, wei("1000"), [], { from: delegator2 });
+          await govPool.undelegate(micropool, wei("500"), [], { from: delegator3 });
 
-        const balance1 = await rewardToken.balanceOf(delegator1);
-        const balance2 = await rewardToken.balanceOf(delegator2);
-        const balance3 = await rewardToken.balanceOf(delegator3);
+          const balance1 = await rewardToken.balanceOf(delegator1);
+          const balance2 = await rewardToken.balanceOf(delegator2);
+          const balance3 = await rewardToken.balanceOf(delegator3);
 
-        noZerosBalanceDistribution([balance1, balance2, balance3], [2, 2, 1]);
-      });
+          noZerosBalanceDistribution([balance1, balance2, balance3], [2, 2, 1]);
+        });
 
-      it("should give the proper rewards with multiple async delegates", async () => {
-        await govPool.setDistributedRewardsPercentage(PERCENTAGE_100.dividedBy(2), { from: micropool });
+        it("should give the proper rewards with multiple async delegates", async () => {
+          await govPool.setDistributedRewardsPercentage(PERCENTAGE_100.dividedBy(2), { from: micropool });
 
-        await govPool.delegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
-        await govPool.voteDelegated(1, wei("625"), [], { from: micropool });
+          await govPool.delegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
+          await govPool.voteDelegated(1, wei("625"), [], { from: micropool });
 
-        await govPool.delegate(micropool, wei("1000"), [20, 21, 22, 23], { from: delegator2 });
-        await govPool.voteDelegated(1, wei("625"), [], { from: micropool });
+          await govPool.delegate(micropool, wei("1000"), [20, 21, 22, 23], { from: delegator2 });
+          await govPool.voteDelegated(1, wei("625"), [], { from: micropool });
 
-        await govPool.delegate(micropool, wei("500"), [30, 31], { from: delegator3 });
-        await govPool.voteDelegated(1, wei("625"), [], { from: micropool });
+          await govPool.delegate(micropool, wei("500"), [30, 31], { from: delegator3 });
+          await govPool.voteDelegated(1, wei("625"), [], { from: micropool });
 
-        await setTime((await getCurrentBlockTime()) + 10000);
+          await setTime((await getCurrentBlockTime()) + 10000);
 
-        await govPool.undelegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
-        await govPool.undelegate(micropool, wei("1000"), [20, 21, 22, 23], { from: delegator2 });
-        await govPool.undelegate(micropool, wei("500"), [30, 31], { from: delegator3 });
+          await govPool.undelegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
+          await govPool.undelegate(micropool, wei("1000"), [20, 21, 22, 23], { from: delegator2 });
+          await govPool.undelegate(micropool, wei("500"), [30, 31], { from: delegator3 });
 
-        const balance1 = await rewardToken.balanceOf(delegator1);
-        const balance2 = await rewardToken.balanceOf(delegator2);
-        const balance3 = await rewardToken.balanceOf(delegator3);
+          const balance1 = await rewardToken.balanceOf(delegator1);
+          const balance2 = await rewardToken.balanceOf(delegator2);
+          const balance3 = await rewardToken.balanceOf(delegator3);
 
-        noZerosBalanceDistribution([balance1, balance2, balance3], [19, 9, 2]);
+          noZerosBalanceDistribution([balance1, balance2, balance3], [19, 9, 2]);
+        });
       });
     });
   });
