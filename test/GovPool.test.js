@@ -1761,17 +1761,6 @@ describe("GovPool", () => {
       });
 
       describe("delegate() undelegate() voteDelegated()", () => {
-        it("test", async () => {
-          await govPool.delegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
-
-          await govPool.voteDelegated(1, wei("1000"), [], { from: micropool });
-
-          await setTime((await getCurrentBlockTime()) + 10000);
-          await govPool.undelegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
-
-          assert.equal((await rewardToken.balanceOf(delegator1)).toFixed(), "0");
-        });
-
         it("should not give rewards if distributed rewards percentage is zero (by default)", async () => {
           await govPool.delegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
 
