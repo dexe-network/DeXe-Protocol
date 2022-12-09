@@ -1682,7 +1682,7 @@ describe("GovPool", () => {
       });
     });
 
-    describe("staking", () => {
+    describe.only("staking", () => {
       let micropool;
       let delegator1;
       let delegator2;
@@ -1707,7 +1707,7 @@ describe("GovPool", () => {
         }
       };
 
-      const noZerosBalanceDistribution = (balances, coefficients) => {
+      const assertNoZerosBalanceDistribution = (balances, coefficients) => {
         balances.forEach((balance) => assert.notEqual(balance.toFixed(), "0"));
 
         assertBalanceDistribution(balances, coefficients);
@@ -1751,7 +1751,38 @@ describe("GovPool", () => {
         await govPool.createProposal("example.com", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
       });
 
-      describe("rewards", () => {
+      describe("setDistributedRewardsPercentage()", () => {
+        it("should revert if percentage greater than PERCENTAGE_100", async () => {
+          await truffleAssert.reverts(
+            govPool.setDistributedRewardsPercentage(PERCENTAGE_100.plus(1), { from: micropool }),
+            "Gov: percentage should be <= PERCENTAGE_100"
+          );
+        });
+      });
+
+      describe("delegate() undelegate() voteDelegated()", () => {
+        it("test", async () => {
+          await govPool.delegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
+
+          await govPool.voteDelegated(1, wei("1000"), [], { from: micropool });
+
+          await setTime((await getCurrentBlockTime()) + 10000);
+          await govPool.undelegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
+
+          assert.equal((await rewardToken.balanceOf(delegator1)).toFixed(), "0");
+        });
+
+        it("should not give rewards if distributed rewards percentage is zero (by default)", async () => {
+          await govPool.delegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
+
+          await govPool.voteDelegated(1, wei("1000"), [], { from: micropool });
+
+          await setTime((await getCurrentBlockTime()) + 10000);
+          await govPool.undelegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
+
+          assert.equal((await rewardToken.balanceOf(delegator1)).toFixed(), "0");
+        });
+
         it("should give the proportional rewards for delegated ERC20 + ERC721", async () => {
           await govPool.setDistributedRewardsPercentage(PERCENTAGE_100, { from: micropool });
 
@@ -1771,7 +1802,7 @@ describe("GovPool", () => {
           const balance2 = await rewardToken.balanceOf(delegator2);
           const balance3 = await rewardToken.balanceOf(delegator3);
 
-          noZerosBalanceDistribution([balance1, balance2, balance3], [2, 2, 1]);
+          assertNoZerosBalanceDistribution([balance1, balance2, balance3], [2, 2, 1]);
         });
 
         it("should give the proper rewards with multiple async delegates", async () => {
@@ -1796,7 +1827,7 @@ describe("GovPool", () => {
           const balance2 = await rewardToken.balanceOf(delegator2);
           const balance3 = await rewardToken.balanceOf(delegator3);
 
-          noZerosBalanceDistribution([balance1, balance2, balance3], [19, 9, 2]);
+          assertNoZerosBalanceDistribution([balance1, balance2, balance3], [19, 9, 2]);
         });
       });
     });
