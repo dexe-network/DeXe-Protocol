@@ -46,6 +46,9 @@ contract GovPool is
     using GovPoolExecute for *;
     using GovPoolStaking for *;
 
+    uint256 public constant PERCENTAGE_DELEGATORS_REWARDS = (4 * PERCENTAGE_100) / 5; // 80%
+    uint256 public constant PERCENTAGE_MICROPOOL_REWARDS = PERCENTAGE_100 / 5; // 20%
+
     IGovSettings internal _govSettings;
     IGovUserKeeper internal _govUserKeeper;
     IGovValidators internal _govValidators;
@@ -192,20 +195,14 @@ contract GovPool is
             voteNftIds
         );
 
-        uint256 delegatorsPercentage = _micropoolInfos[msg.sender].distributedRewardsPercentage;
-
         pendingRewards.updateRewards(
             proposalId,
-            reward.percentage(PERCENTAGE_100 - delegatorsPercentage),
+            reward.percentage(PERCENTAGE_MICROPOOL_REWARDS),
             _proposals[proposalId].core.settings.voteRewardsCoefficient
         );
 
-        if (delegatorsPercentage == 0) {
-            return;
-        }
-
         _micropoolInfos[msg.sender].updateRewards(
-            reward.percentage(delegatorsPercentage),
+            reward.percentage(PERCENTAGE_DELEGATORS_REWARDS),
             _proposals[proposalId].core.settings.voteRewardsCoefficient,
             _proposals[proposalId].core.settings.rewardToken
         );
@@ -304,12 +301,6 @@ contract GovPool is
     function executeAndClaim(uint256 proposalId) external override {
         execute(proposalId);
         pendingRewards.claimReward(_proposals, proposalId);
-    }
-
-    function setDistributedRewardsPercentage(uint256 percentage) external {
-        require(percentage <= PERCENTAGE_100, "Gov: percentage should be <= PERCENTAGE_100");
-
-        _micropoolInfos[msg.sender].distributedRewardsPercentage = percentage;
     }
 
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {

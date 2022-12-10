@@ -71,7 +71,6 @@ interface IGovPool {
 
     struct MicropoolInfo {
         uint256 totalStake;
-        uint256 distributedRewardsPercentage;
         EnumerableSet.AddressSet rewardTokens;
         mapping(address => RewardTokenInfo) rewardTokenInfos;
         mapping(address => uint256) latestDelegatorStake;
@@ -152,8 +151,6 @@ interface IGovPool {
     function claimRewards(uint256[] calldata proposalIds) external;
 
     function executeAndClaim(uint256 proposalId) external;
-
-    function setDistributedRewardsPercentage(uint256 percentage) external;
 
     function editDescriptionURL(string calldata newDescriptionURL) external;
 
