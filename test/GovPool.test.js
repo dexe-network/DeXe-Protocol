@@ -13,7 +13,7 @@ const {
   getBytesApproveAll,
   getBytesSetNftMultiplierAddress,
 } = require("./utils/gov-pool-utils");
-const { ZERO_ADDR, ETHER_ADDR, PRECISION, PERCENTAGE_100 } = require("../scripts/utils/constants");
+const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../scripts/utils/constants");
 const { ProposalState, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("./helpers/block-helper");
@@ -52,7 +52,7 @@ ERC721EnumMock.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
-describe("GovPool", () => {
+describe.only("GovPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -1751,30 +1751,8 @@ describe("GovPool", () => {
         await govPool.createProposal("example.com", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
       });
 
-      describe("setDistributedRewardsPercentage()", () => {
-        it("should revert if percentage greater than PERCENTAGE_100", async () => {
-          await truffleAssert.reverts(
-            govPool.setDistributedRewardsPercentage(PERCENTAGE_100.plus(1), { from: micropool }),
-            "Gov: percentage should be <= PERCENTAGE_100"
-          );
-        });
-      });
-
       describe("delegate() undelegate() voteDelegated()", () => {
-        it("should not give rewards if distributed rewards percentage is zero (by default)", async () => {
-          await govPool.delegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
-
-          await govPool.voteDelegated(1, wei("1000"), [], { from: micropool });
-
-          await setTime((await getCurrentBlockTime()) + 10000);
-          await govPool.undelegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
-
-          assert.equal((await rewardToken.balanceOf(delegator1)).toFixed(), "0");
-        });
-
         it("should give the proportional rewards for delegated ERC20 + ERC721", async () => {
-          await govPool.setDistributedRewardsPercentage(PERCENTAGE_100, { from: micropool });
-
           await govPool.delegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
           await govPool.delegate(micropool, wei("1000"), [20, 21, 22, 23], { from: delegator2 });
           await govPool.delegate(micropool, wei("500"), [30, 31], { from: delegator3 });
@@ -1795,8 +1773,6 @@ describe("GovPool", () => {
         });
 
         it("should give the proper rewards with multiple async delegates", async () => {
-          await govPool.setDistributedRewardsPercentage(PERCENTAGE_100.dividedBy(2), { from: micropool });
-
           await govPool.delegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
           await govPool.voteDelegated(1, wei("625"), [], { from: micropool });
 
@@ -1821,4 +1797,6 @@ describe("GovPool", () => {
       });
     });
   });
+
+  describe("ERC721Power", () => {});
 });
