@@ -189,6 +189,97 @@ describe.only("GovPool", () => {
     await poolRegistry.injectDependenciesToExistingPools(NAME, 0, 10);
   }
 
+  async function getPoolParameters(nftAddress) {
+    return {
+      settingsParams: {
+        proposalSettings: [
+          {
+            earlyCompletion: false,
+            delegatedVotingAllowed: true,
+            validatorsVote: true,
+            duration: 700,
+            durationValidators: 800,
+            quorum: PRECISION.times("71").toFixed(),
+            quorumValidators: PRECISION.times("100").toFixed(),
+            minVotesForVoting: wei("20"),
+            minVotesForCreating: wei("3"),
+            rewardToken: rewardToken.address,
+            creationReward: wei("10"),
+            executionReward: wei("5"),
+            voteRewardsCoefficient: PRECISION.toFixed(),
+            executorDescription: "default",
+          },
+          {
+            earlyCompletion: true,
+            delegatedVotingAllowed: true,
+            validatorsVote: true,
+            duration: 500,
+            durationValidators: 600,
+            quorum: PRECISION.times("51").toFixed(),
+            quorumValidators: PRECISION.times("61").toFixed(),
+            minVotesForVoting: wei("10"),
+            minVotesForCreating: wei("2"),
+            rewardToken: rewardToken.address,
+            creationReward: wei("10"),
+            executionReward: wei("5"),
+            voteRewardsCoefficient: PRECISION.toFixed(),
+            executorDescription: "internal",
+          },
+          {
+            earlyCompletion: false,
+            delegatedVotingAllowed: false,
+            validatorsVote: true,
+            duration: 600,
+            durationValidators: 800,
+            quorum: PRECISION.times("71").toFixed(),
+            quorumValidators: PRECISION.times("100").toFixed(),
+            minVotesForVoting: wei("20"),
+            minVotesForCreating: wei("3"),
+            rewardToken: rewardToken.address,
+            creationReward: wei("10"),
+            executionReward: wei("5"),
+            voteRewardsCoefficient: PRECISION.toFixed(),
+            executorDescription: "DP",
+          },
+          {
+            earlyCompletion: true,
+            delegatedVotingAllowed: true,
+            validatorsVote: true,
+            duration: 500,
+            durationValidators: 600,
+            quorum: PRECISION.times("51").toFixed(),
+            quorumValidators: PRECISION.times("61").toFixed(),
+            minVotesForVoting: wei("10"),
+            minVotesForCreating: wei("2"),
+            rewardToken: rewardToken.address,
+            creationReward: wei("10"),
+            executionReward: wei("5"),
+            voteRewardsCoefficient: PRECISION.toFixed(),
+            executorDescription: "validators",
+          },
+        ],
+        additionalProposalExecutors: [],
+      },
+      validatorsParams: {
+        name: "Validator Token",
+        symbol: "VT",
+        duration: 600,
+        quorum: PRECISION.times("51").toFixed(),
+        validators: [OWNER, SECOND],
+        balances: [wei("100"), wei("1000000000000")],
+      },
+      userKeeperParams: {
+        tokenAddress: token.address,
+        nftAddress: nftAddress,
+        totalPowerInTokens: wei("33000"),
+        nftsTotalSupply: 33,
+      },
+      nftMultiplierAddress: ZERO_ADDR,
+      descriptionURL: "example.com",
+      name: "Pool name",
+    };
+  }
+
   async function setupTokens() {
     await token.mint(OWNER, wei("100000000000"));
     await token.approve(userKeeper.address, wei("10000000000"));
@@ -222,94 +313,7 @@ describe.only("GovPool", () => {
     let POOL_PARAMETERS;
 
     beforeEach("setup", async () => {
-      POOL_PARAMETERS = {
-        settingsParams: {
-          proposalSettings: [
-            {
-              earlyCompletion: false,
-              delegatedVotingAllowed: true,
-              validatorsVote: true,
-              duration: 700,
-              durationValidators: 800,
-              quorum: PRECISION.times("71").toFixed(),
-              quorumValidators: PRECISION.times("100").toFixed(),
-              minVotesForVoting: wei("20"),
-              minVotesForCreating: wei("3"),
-              rewardToken: rewardToken.address,
-              creationReward: wei("10"),
-              executionReward: wei("5"),
-              voteRewardsCoefficient: PRECISION.toFixed(),
-              executorDescription: "default",
-            },
-            {
-              earlyCompletion: true,
-              delegatedVotingAllowed: true,
-              validatorsVote: true,
-              duration: 500,
-              durationValidators: 600,
-              quorum: PRECISION.times("51").toFixed(),
-              quorumValidators: PRECISION.times("61").toFixed(),
-              minVotesForVoting: wei("10"),
-              minVotesForCreating: wei("2"),
-              rewardToken: rewardToken.address,
-              creationReward: wei("10"),
-              executionReward: wei("5"),
-              voteRewardsCoefficient: PRECISION.toFixed(),
-              executorDescription: "internal",
-            },
-            {
-              earlyCompletion: false,
-              delegatedVotingAllowed: false,
-              validatorsVote: true,
-              duration: 600,
-              durationValidators: 800,
-              quorum: PRECISION.times("71").toFixed(),
-              quorumValidators: PRECISION.times("100").toFixed(),
-              minVotesForVoting: wei("20"),
-              minVotesForCreating: wei("3"),
-              rewardToken: rewardToken.address,
-              creationReward: wei("10"),
-              executionReward: wei("5"),
-              voteRewardsCoefficient: PRECISION.toFixed(),
-              executorDescription: "DP",
-            },
-            {
-              earlyCompletion: true,
-              delegatedVotingAllowed: true,
-              validatorsVote: true,
-              duration: 500,
-              durationValidators: 600,
-              quorum: PRECISION.times("51").toFixed(),
-              quorumValidators: PRECISION.times("61").toFixed(),
-              minVotesForVoting: wei("10"),
-              minVotesForCreating: wei("2"),
-              rewardToken: rewardToken.address,
-              creationReward: wei("10"),
-              executionReward: wei("5"),
-              voteRewardsCoefficient: PRECISION.toFixed(),
-              executorDescription: "validators",
-            },
-          ],
-          additionalProposalExecutors: [],
-        },
-        validatorsParams: {
-          name: "Validator Token",
-          symbol: "VT",
-          duration: 600,
-          quorum: PRECISION.times("51").toFixed(),
-          validators: [OWNER, SECOND],
-          balances: [wei("100"), wei("1000000000000")],
-        },
-        userKeeperParams: {
-          tokenAddress: token.address,
-          nftAddress: nft.address,
-          totalPowerInTokens: wei("33000"),
-          nftsTotalSupply: 33,
-        },
-        nftMultiplierAddress: ZERO_ADDR,
-        descriptionURL: "example.com",
-        name: "Pool name",
-      };
+      POOL_PARAMETERS = getPoolParameters(nft.address);
 
       await deployPool(POOL_PARAMETERS);
       await setupTokens();
@@ -1798,5 +1802,14 @@ describe.only("GovPool", () => {
     });
   });
 
-  describe("ERC721Power", () => {});
+  describe("ERC721Power", () => {
+    let POOL_PARAMETERS;
+
+    beforeEach("setup", async () => {
+      POOL_PARAMETERS = getPoolParameters(nft.address);
+
+      await deployPool(POOL_PARAMETERS);
+      await setupTokens();
+    });
+  });
 });
