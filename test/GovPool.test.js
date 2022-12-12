@@ -53,7 +53,7 @@ ERC721EnumMock.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
-describe.only("GovPool", () => {
+describe("GovPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
