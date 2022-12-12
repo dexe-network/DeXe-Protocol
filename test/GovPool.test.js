@@ -52,7 +52,7 @@ ERC721EnumMock.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
-describe.only("GovPool", () => {
+describe("GovPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -313,7 +313,7 @@ describe.only("GovPool", () => {
     let POOL_PARAMETERS;
 
     beforeEach("setup", async () => {
-      POOL_PARAMETERS = getPoolParameters(nft.address);
+      POOL_PARAMETERS = await getPoolParameters(nft.address);
 
       await deployPool(POOL_PARAMETERS);
       await setupTokens();
@@ -1806,7 +1806,7 @@ describe.only("GovPool", () => {
     let POOL_PARAMETERS;
 
     beforeEach("setup", async () => {
-      POOL_PARAMETERS = getPoolParameters(nft.address);
+      POOL_PARAMETERS = await getPoolParameters(nft.address);
 
       await deployPool(POOL_PARAMETERS);
       await setupTokens();
