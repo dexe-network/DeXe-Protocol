@@ -1713,11 +1713,10 @@ describe("GovPool", () => {
         }
 
         for (let i = 0; i < balances.length - 1; i++) {
-          // FIXME: how to implement it better?
           const epsilon = coefficients[i] + coefficients[i + 1];
 
-          let lhs = balances[i].div(PRECISION).times(coefficients[i + 1]);
-          let rhs = balances[i + 1].div(PRECISION).times(coefficients[i]);
+          let lhs = balances[i].div(wei(1)).times(coefficients[i + 1]);
+          let rhs = balances[i + 1].div(wei(1)).times(coefficients[i]);
 
           if (rhs.gt(lhs)) {
             [lhs, rhs] = [rhs, lhs];
@@ -1801,7 +1800,7 @@ describe("GovPool", () => {
           assertNoZerosBalanceDistribution([balance1, balance2, balance3, micropoolBalance], [32, 32, 16, 20]);
         });
 
-        it("should give the proper rewards with multiple async delegates", async () => {
+        it.only("should give the proper rewards with multiple async delegates", async () => {
           await govPool.delegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
           await govPool.voteDelegated(1, wei("800"), [], { from: micropool });
 
