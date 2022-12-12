@@ -76,10 +76,10 @@ library GovPoolStaking {
 
         uint256 previousDelegatorStake = micropool.latestDelegatorStake[msg.sender];
 
-        uint256 rewardsDeviation = previousDelegatorStake <= currentDelegatorStake ||
-            currentDelegatorStake == 0
-            ? 1
-            : previousDelegatorStake / currentDelegatorStake;
+        uint256 rewardsDeviation = previousDelegatorStake > currentDelegatorStake &&
+            currentDelegatorStake != 0
+            ? previousDelegatorStake / currentDelegatorStake
+            : 1;
 
         EnumerableSet.AddressSet storage rewardTokens = micropool.rewardTokens;
 
