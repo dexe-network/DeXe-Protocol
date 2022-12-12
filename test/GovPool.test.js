@@ -53,7 +53,7 @@ ERC721EnumMock.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
-describe("GovPool", () => {
+describe.only("GovPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -216,7 +216,7 @@ describe("GovPool", () => {
             durationValidators: 800,
             quorum: PRECISION.times("71").toFixed(),
             quorumValidators: PRECISION.times("100").toFixed(),
-            minVotesForVoting: wei("20"),
+            minVotesForVoting: nftAddress === nftPower.address ? 0 : wei("20"),
             minVotesForCreating: wei("3"),
             rewardToken: rewardToken.address,
             creationReward: wei("10"),
@@ -323,6 +323,31 @@ describe("GovPool", () => {
 
     await govPool.execute(proposalId);
   }
+
+  const assertBalanceDistribution = (balances, coefficients) => {
+    if (balances.length !== coefficients.length) {
+      assert.isTrue(false, "lengths mismatch");
+    }
+
+    for (let i = 0; i < balances.length - 1; i++) {
+      const epsilon = coefficients[i] + coefficients[i + 1];
+
+      let lhs = balances[i].div(wei(1)).times(coefficients[i + 1]);
+      let rhs = balances[i + 1].div(wei(1)).times(coefficients[i]);
+
+      if (rhs.gt(lhs)) {
+        [lhs, rhs] = [rhs, lhs];
+      }
+
+      assert.isTrue(lhs.minus(rhs).lte(epsilon));
+    }
+  };
+
+  const assertNoZerosBalanceDistribution = (balances, coefficients) => {
+    balances.forEach((balance) => assert.notEqual(balance.toFixed(), "0"));
+
+    assertBalanceDistribution(balances, coefficients);
+  };
 
   describe("Fullfat GovPool", () => {
     let POOL_PARAMETERS;
@@ -1707,31 +1732,6 @@ describe("GovPool", () => {
       let delegator2;
       let delegator3;
 
-      const assertBalanceDistribution = (balances, coefficients) => {
-        if (balances.length !== coefficients.length) {
-          assert.isTrue(false, "lengths mismatch");
-        }
-
-        for (let i = 0; i < balances.length - 1; i++) {
-          const epsilon = coefficients[i] + coefficients[i + 1];
-
-          let lhs = balances[i].div(wei(1)).times(coefficients[i + 1]);
-          let rhs = balances[i + 1].div(wei(1)).times(coefficients[i]);
-
-          if (rhs.gt(lhs)) {
-            [lhs, rhs] = [rhs, lhs];
-          }
-
-          assert.isTrue(lhs.minus(rhs).lte(epsilon));
-        }
-      };
-
-      const assertNoZerosBalanceDistribution = (balances, coefficients) => {
-        balances.forEach((balance) => assert.notEqual(balance.toFixed(), "0"));
-
-        assertBalanceDistribution(balances, coefficients);
-      };
-
       beforeEach(async () => {
         micropool = SECOND;
         delegator1 = THIRD;
@@ -1771,7 +1771,7 @@ describe("GovPool", () => {
       });
 
       describe("delegate() undelegate() voteDelegated()", () => {
-        it.only("should give the proportional rewards for delegated ERC20 + ERC721", async () => {
+        it("should give the proportional rewards for delegated ERC20 + ERC721", async () => {
           await govPool.delegate(micropool, wei("100000000000000000000"), [10, 11, 12, 13], { from: delegator1 });
           await govPool.delegate(micropool, wei("100000000000000000000"), [20, 21, 22, 23], { from: delegator2 });
           await govPool.delegate(micropool, wei("50000000000000000000"), [30, 31], { from: delegator3 });
@@ -1800,7 +1800,7 @@ describe("GovPool", () => {
           assertNoZerosBalanceDistribution([balance1, balance2, balance3, micropoolBalance], [32, 32, 16, 20]);
         });
 
-        it.only("should give the proper rewards with multiple async delegates", async () => {
+        it("should give the proper rewards with multiple async delegates", async () => {
           await govPool.delegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
           await govPool.voteDelegated(1, wei("800"), [], { from: micropool });
 
@@ -1864,7 +1864,43 @@ describe("GovPool", () => {
         await govPool.createProposal("example.com", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
       });
 
-      it("should properly distribute rewards for nft power staking", async () => {});
+      it("should not give rewards for zero power nfts staking", async () => {
+        await govPool.delegate(micropool, 0, [10, 11, 12], { from: delegator1 });
+        await govPool.delegate(micropool, 0, [20, 21, 22], { from: delegator2 });
+
+        await govPool.voteDelegated(1, 0, [10, 11, 12, 20, 21, 22], { from: micropool });
+
+        await setTime((await getCurrentBlockTime()) + 10000);
+
+        await govPool.undelegate(micropool, 0, [10, 11, 12], { from: delegator1 });
+        await govPool.undelegate(micropool, 0, [20, 21, 22], { from: delegator2 });
+
+        const balance1 = await rewardToken.balanceOf(delegator1);
+        const balance2 = await rewardToken.balanceOf(delegator2);
+
+        assert.equal(balance1.toFixed(), "0");
+        assert.equal(balance2.toFixed(), "0");
+      });
+
+      it("should properly divide rewards by deviation", async () => {
+        await setTime((await getCurrentBlockTime()) + 100);
+
+        await govPool.delegate(micropool, 0, [10, 11, 12], { from: delegator1 });
+        await govPool.delegate(micropool, 0, [20, 21, 22], { from: delegator2 });
+
+        await govPool.voteDelegated(1, 0, [10, 11, 12, 20, 21, 22], { from: micropool });
+
+        await setTime((await getCurrentBlockTime()) + 1000);
+        await govPool.undelegate(micropool, 0, [20, 21, 22], { from: delegator2 });
+
+        await setTime((await getCurrentBlockTime()) + 4000);
+        await govPool.undelegate(micropool, 0, [10, 11, 12], { from: delegator1 });
+
+        const balance1 = await rewardToken.balanceOf(delegator1);
+        const balance2 = await rewardToken.balanceOf(delegator2);
+
+        assertNoZerosBalanceDistribution([balance1, balance2], [1, 2]);
+      });
     });
   });
 });
