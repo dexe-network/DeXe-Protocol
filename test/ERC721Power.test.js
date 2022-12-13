@@ -66,7 +66,7 @@ describe("ERC721Power", () => {
 
       await truffleAssert.reverts(
         deployNft(startTime, "1", PERCENTAGE_100, "3"),
-        "ERC721Power: reduction percent can't be a 100%"
+        "ERC721Power: reduction can't be 100%"
       );
 
       await truffleAssert.reverts(

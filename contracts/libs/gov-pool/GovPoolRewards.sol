@@ -12,6 +12,7 @@ library GovPoolRewards {
     using MathHelper for uint256;
 
     event RewardClaimed(uint256 proposalId, address sender, address token, uint256 amount);
+    event RewardCredited(uint256 proposalId, uint256 amount, address sender);
 
     function updateRewards(
         mapping(uint256 => mapping(address => uint256)) storage pendingRewards,
@@ -30,6 +31,8 @@ library GovPoolRewards {
         }
 
         pendingRewards[proposalId][msg.sender] += amountToAdd;
+
+        emit RewardCredited(proposalId, amountToAdd, msg.sender);
     }
 
     function claimReward(
@@ -39,8 +42,8 @@ library GovPoolRewards {
     ) external {
         address rewardToken = proposals[proposalId].core.settings.rewardToken;
 
-        require(rewardToken != address(0), "Gov: rewards off");
-        require(proposals[proposalId].core.executed, "Gov: proposal not executed");
+        require(rewardToken != address(0), "Gov: rewards are off");
+        require(proposals[proposalId].core.executed, "Gov: proposal is not executed");
 
         uint256 rewards = pendingRewards[proposalId][msg.sender];
 

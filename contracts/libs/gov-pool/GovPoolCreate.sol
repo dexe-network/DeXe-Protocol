@@ -19,8 +19,10 @@ library GovPoolCreate {
     event ProposalCreated(
         uint256 proposalId,
         string proposalDescription,
+        string misc,
         uint256 quorum,
         uint256 proposalSettings,
+        address rewardToken,
         address sender
     );
     event DPCreated(uint256 proposalId, address sender, address token, uint256 amount);
@@ -28,6 +30,7 @@ library GovPoolCreate {
     function createProposal(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         string calldata _descriptionURL,
+        string calldata misc,
         address[] calldata executors,
         uint256[] calldata values,
         bytes[] calldata data
@@ -63,7 +66,15 @@ library GovPoolCreate {
 
         _canParticipate(settings, snapshotId);
 
-        emit ProposalCreated(proposalId, _descriptionURL, settings.quorum, settingsId, msg.sender);
+        emit ProposalCreated(
+            proposalId,
+            _descriptionURL,
+            misc,
+            settings.quorum,
+            settingsId,
+            settings.rewardToken,
+            msg.sender
+        );
     }
 
     function moveProposalToValidators(

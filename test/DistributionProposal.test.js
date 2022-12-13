@@ -304,6 +304,7 @@ describe("DistributionProposal", () => {
 
         await govPool.createProposal(
           "example.com",
+          "misc",
           [dp.address],
           [0],
           [getBytesDistributionProposal(1, token.address, wei("100"))]
@@ -374,6 +375,7 @@ describe("DistributionProposal", () => {
       it("should correctly claim", async () => {
         await govPool.createProposal(
           "example.com",
+          "misc",
           [token.address, dp.address],
           [0, 0],
           [getBytesTransfer(dp.address, wei("100000")), getBytesDistributionProposal(1, token.address, wei("100000"))],
@@ -396,6 +398,7 @@ describe("DistributionProposal", () => {
       it("should correctly claim ether", async () => {
         await govPool.createProposal(
           "example.com",
+          "misc",
           [dp.address],
           [wei("1")],
           [getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))],
@@ -426,6 +429,7 @@ describe("DistributionProposal", () => {
       it("should not claim if not enough ether", async () => {
         await govPool.createProposal(
           "example.com",
+          "misc",
           [dp.address],
           [0],
           [getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))],
@@ -444,6 +448,7 @@ describe("DistributionProposal", () => {
       it("should claim, when proposal amount < reward", async () => {
         await govPool.createProposal(
           "example.com",
+          "misc",
           [token.address, dp.address],
           [0, 0],
           [getBytesApprove(dp.address, wei("100000")), getBytesDistributionProposal(1, token.address, wei("100000"))],
@@ -468,6 +473,7 @@ describe("DistributionProposal", () => {
       it("should revert if already claimed", async () => {
         await govPool.createProposal(
           "example.com",
+          "misc",
           [token.address, dp.address],
           [0, 0],
           [getBytesTransfer(dp.address, wei("100000")), getBytesDistributionProposal(1, token.address, wei("100000"))],
