@@ -944,6 +944,8 @@ describe("GovUserKeeper", () => {
 
     describe("getDelegatedStakeAmount()", () => {
       it("should return delegated stake amount properly", async () => {
+        assert.equal((await userKeeper.getDelegatedStakeAmount(OWNER, SECOND)).toFixed(), wei("0"));
+
         await token.mint(OWNER, wei("400"));
         await token.approve(userKeeper.address, wei("400"));
 
