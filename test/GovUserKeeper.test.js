@@ -722,6 +722,30 @@ describe("GovUserKeeper", () => {
         assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([9], 2)).toFixed(), wei("1000"));
       });
     });
+
+    describe("getDelegatedStakeAmount()", () => {
+      it("should return delegated stake amount properly", async () => {
+        await userKeeper.depositTokens(OWNER, OWNER, wei("400"));
+        await userKeeper.depositNfts(OWNER, OWNER, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+        assert.equal((await userKeeper.getDelegatedStakeAmount(OWNER, SECOND)).toFixed(), wei("0"));
+
+        await userKeeper.delegateTokens(OWNER, SECOND, wei("400"));
+        await userKeeper.delegateNfts(OWNER, SECOND, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+        assert.equal(
+          (await userKeeper.getDelegatedStakeAmount(OWNER, SECOND)).toFixed(),
+          toBN(wei("400"))
+            .plus(toBN(9).times(wei("1000")))
+            .toFixed()
+        );
+
+        await userKeeper.undelegateTokens(OWNER, SECOND, wei("400"));
+        await userKeeper.undelegateNfts(OWNER, SECOND, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+        assert.equal((await userKeeper.getDelegatedStakeAmount(OWNER, SECOND)).toFixed(), wei("0"));
+      });
+    });
   });
 
   describe("No ERC20 GovUserKeeper", () => {
@@ -806,6 +830,12 @@ describe("GovUserKeeper", () => {
 
       assert.equal(nftBalance.totalBalance, "0");
       assert.equal(nftBalance.ownedBalance, "0");
+    });
+
+    it("should return zero delegated stake amount", async () => {
+      const delegatedAmount = await userKeeper.getDelegatedStakeAmount(OWNER, SECOND);
+
+      assert.equal(delegatedAmount, "0");
     });
 
     it("should correctly calculate NFT weight if NFT contract is not added", async () => {
@@ -911,6 +941,38 @@ describe("GovUserKeeper", () => {
         assert.equal((await userKeeper.getNftsPowerInTokensBySnapshot([], 1)).toFixed(), "0");
       });
     });
+
+    describe("getDelegatedStakeAmount()", () => {
+      it("should return delegated stake amount properly", async () => {
+        await token.mint(OWNER, wei("400"));
+        await token.approve(userKeeper.address, wei("400"));
+
+        for (let i = 1; i <= 3; i++) {
+          await nft.safeMint(OWNER, i);
+          await nft.approve(userKeeper.address, i);
+        }
+
+        await userKeeper.depositTokens(OWNER, OWNER, wei("400"));
+        await userKeeper.depositNfts(OWNER, OWNER, [1, 2, 3]);
+
+        assert.equal((await userKeeper.getDelegatedStakeAmount(OWNER, SECOND)).toFixed(), wei("0"));
+
+        await userKeeper.delegateTokens(OWNER, SECOND, wei("400"));
+        await userKeeper.delegateNfts(OWNER, SECOND, [1, 2, 3]);
+
+        assert.equal(
+          (await userKeeper.getDelegatedStakeAmount(OWNER, SECOND)).toFixed(),
+          toBN(wei("400"))
+            .plus(toBN(3).times(wei("11000")))
+            .toFixed()
+        );
+
+        await userKeeper.undelegateTokens(OWNER, SECOND, wei("400"));
+        await userKeeper.undelegateNfts(OWNER, SECOND, [1, 2, 3]);
+
+        assert.equal((await userKeeper.getDelegatedStakeAmount(OWNER, SECOND)).toFixed(), wei("0"));
+      });
+    });
   });
 
   describe("nft with power", () => {
@@ -931,8 +993,9 @@ describe("GovUserKeeper", () => {
 
       await userKeeper.__GovUserKeeper_init(token.address, nft.address, wei("33000"), 33);
 
-      await token.mint(OWNER, wei("900"));
+      await token.mint(OWNER, wei("1300"));
       await token.approve(nft.address, wei("500"));
+      await token.approve(userKeeper.address, wei("400"));
 
       for (let i = 1; i <= 9; i++) {
         if (i === 8) {
@@ -1069,6 +1132,29 @@ describe("GovUserKeeper", () => {
           power.nftPower.map((e) => e.toFixed()),
           ["0", "0", "0", "0", "0", "0", "0"]
         );
+      });
+    });
+
+    describe("getDelegatedStakeAmount()", () => {
+      it("should return delegated stake amount properly", async () => {
+        await userKeeper.depositTokens(OWNER, OWNER, wei("400"));
+        await userKeeper.depositNfts(OWNER, OWNER, [1, 2, 3, 4, 5, 6, 7, 9]);
+
+        assert.equal((await userKeeper.getDelegatedStakeAmount(OWNER, SECOND)).toFixed(), "0");
+
+        await userKeeper.delegateTokens(OWNER, SECOND, wei("400"));
+        await userKeeper.delegateNfts(OWNER, SECOND, [1, 2, 3, 4, 5, 6, 7, 9]);
+
+        assert.equal((await userKeeper.getDelegatedStakeAmount(OWNER, SECOND)).toFixed(), wei("400"));
+
+        await setTime(startTime + 201);
+
+        assert.isTrue((await userKeeper.getDelegatedStakeAmount(OWNER, SECOND)).gt(wei("400")));
+
+        await userKeeper.undelegateTokens(OWNER, SECOND, wei("400"));
+        await userKeeper.undelegateNfts(OWNER, SECOND, [1, 2, 3, 4, 5, 6, 7, 9]);
+
+        assert.equal((await userKeeper.getDelegatedStakeAmount(OWNER, SECOND)).toFixed(), "0");
       });
     });
   });
