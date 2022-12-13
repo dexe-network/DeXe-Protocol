@@ -30,6 +30,7 @@ const DistributionProposal = artifacts.require("DistributionProposal");
 const UniswapV2PathFinderLib = artifacts.require("UniswapV2PathFinder");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const PoolFactory = artifacts.require("PoolFactory");
+const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
 const GovPoolRewardsLib = artifacts.require("GovPoolRewards");
@@ -70,12 +71,16 @@ describe("PoolFactory", () => {
     OWNER = await accounts(0);
     NOTHING = await accounts(3);
 
+    const govUserKeeperViewLib = await GovUserKeeperViewLib.new();
+
     const govPoolCreateLib = await GovPoolCreateLib.new();
     const govPoolExecuteLib = await GovPoolExecuteLib.new();
     const govPoolRewardsLib = await GovPoolRewardsLib.new();
     const govPoolUnlockLib = await GovPoolUnlockLib.new();
     const govPoolVoteLib = await GovPoolVoteLib.new();
     const govPoolViewLib = await GovPoolViewLib.new();
+
+    await GovUserKeeper.link(govUserKeeperViewLib);
 
     await GovPool.link(govPoolCreateLib);
     await GovPool.link(govPoolExecuteLib);
