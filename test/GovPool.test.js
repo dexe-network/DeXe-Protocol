@@ -330,10 +330,6 @@ describe("GovPool", () => {
   }
 
   const assertBalanceDistribution = (balances, coefficients) => {
-    if (balances.length !== coefficients.length) {
-      assert.isTrue(false, "lengths mismatch");
-    }
-
     for (let i = 0; i < balances.length - 1; i++) {
       const epsilon = coefficients[i] + coefficients[i + 1];
 
