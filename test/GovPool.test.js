@@ -332,8 +332,8 @@ describe("GovPool", () => {
     for (let i = 0; i < balances.length - 1; i++) {
       const epsilon = coefficients[i] + coefficients[i + 1];
 
-      let lhs = balances[i].div(wei(1)).times(coefficients[i + 1]);
-      let rhs = balances[i + 1].div(wei(1)).times(coefficients[i]);
+      let lhs = balances[i].idiv(wei("1")).times(coefficients[i + 1]);
+      let rhs = balances[i + 1].idiv(wei("1")).times(coefficients[i]);
 
       if (rhs.gt(lhs)) {
         [lhs, rhs] = [rhs, lhs];

@@ -993,9 +993,8 @@ describe("GovUserKeeper", () => {
 
       await userKeeper.__GovUserKeeper_init(token.address, nft.address, wei("33000"), 33);
 
-      await token.mint(OWNER, wei("1300"));
+      await token.mint(OWNER, wei("900"));
       await token.approve(nft.address, wei("500"));
-      await token.approve(userKeeper.address, wei("400"));
 
       for (let i = 1; i <= 9; i++) {
         if (i === 8) {
@@ -1137,6 +1136,8 @@ describe("GovUserKeeper", () => {
 
     describe("getDelegatedStakeAmount()", () => {
       it("should return delegated stake amount properly", async () => {
+        await token.approve(userKeeper.address, wei("400"));
+
         await userKeeper.depositTokens(OWNER, OWNER, wei("400"));
         await userKeeper.depositNfts(OWNER, OWNER, [1, 2, 3, 4, 5, 6, 7, 9]);
 
