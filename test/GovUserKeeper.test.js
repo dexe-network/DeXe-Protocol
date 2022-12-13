@@ -1159,6 +1159,19 @@ describe("GovUserKeeper", () => {
 
         assert.equal((await userKeeper.getDelegatedStakeAmount(OWNER, SECOND)).toFixed(), "0");
       });
+
+      it("should return zero delegated stake amount", async () => {
+        await nft.removeCollateral(wei("500"), "9");
+
+        await userKeeper.depositNfts(OWNER, OWNER, [1, 2, 3, 4, 5, 6, 7, 9]);
+        await userKeeper.delegateNfts(OWNER, SECOND, [1, 2, 3, 4, 5, 6, 7, 9]);
+
+        await setTime(startTime + 1000000000000);
+
+        await userKeeper.updateNftPowers([1, 2, 3, 4, 5, 6, 7, 9]);
+
+        assert.equal((await userKeeper.getDelegatedStakeAmount(OWNER, SECOND)).toFixed(), "0");
+      });
     });
   });
 });
