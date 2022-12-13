@@ -1,4 +1,4 @@
-const { toBN, accounts, wei } = require("../scripts/utils/utils");
+const { toBN, accounts, wei, toPercent } = require("../scripts/utils/utils");
 const {
   getBytesExecute,
   getBytesEditUrl,
@@ -80,10 +80,6 @@ describe("GovPool", () => {
   let govPool;
 
   const getProposalByIndex = async (index) => (await govPool.getProposals(index - 1, 1))[0].proposal;
-
-  function toPercent(num) {
-    return PRECISION.times(num);
-  }
 
   before("setup", async () => {
     OWNER = await accounts(0);

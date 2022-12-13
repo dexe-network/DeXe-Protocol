@@ -1,5 +1,5 @@
 const { assert } = require("chai");
-const { toBN, accounts, wei } = require("../scripts/utils/utils");
+const { toBN, accounts, wei, toPercent } = require("../scripts/utils/utils");
 const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
 const { ExecutorType } = require("./utils/constants");
 const truffleAssert = require("truffle-assertions");
@@ -75,10 +75,6 @@ const VALIDATORS_BALANCES_SETTINGS = {
   voteRewardsCoefficient: 0,
   executorDescription: "validators",
 };
-
-function toPercent(num) {
-  return PRECISION.times(num).toFixed();
-}
 
 describe("GovSettings", () => {
   let OWNER;

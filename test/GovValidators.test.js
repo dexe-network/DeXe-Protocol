@@ -1,5 +1,5 @@
 const { assert } = require("chai");
-const { toBN, accounts, wei } = require("../scripts/utils/utils");
+const { toBN, accounts, wei, toPercent } = require("../scripts/utils/utils");
 const truffleAssert = require("truffle-assertions");
 const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
 const { ValidatorsProposalState } = require("./utils/constants");
@@ -10,10 +10,6 @@ const GovValidatorsToken = artifacts.require("GovValidatorsToken");
 
 GovValidators.numberFormat = "BigNumber";
 GovValidatorsToken.numberFormat = "BigNumber";
-
-function toPercent(num) {
-  return PRECISION.times(num).toFixed();
-}
 
 describe("GovValidators", () => {
   let OWNER;

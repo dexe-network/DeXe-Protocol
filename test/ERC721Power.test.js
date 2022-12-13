@@ -1,7 +1,7 @@
 const { assert } = require("chai");
-const { toBN, accounts, wei } = require("../scripts/utils/utils");
+const { toBN, accounts, wei, toPercent } = require("../scripts/utils/utils");
 const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
-const { PRECISION, ZERO_ADDR, PERCENTAGE_100 } = require("../scripts/utils/constants");
+const { ZERO_ADDR, PERCENTAGE_100 } = require("../scripts/utils/constants");
 const truffleAssert = require("truffle-assertions");
 
 const ERC721Power = artifacts.require("ERC721Power");
@@ -48,10 +48,6 @@ describe("ERC721Power", () => {
   beforeEach("setup", async () => {
     startTime = await getCurrentBlockTime();
   });
-
-  function toPercent(num) {
-    return PRECISION.times(num);
-  }
 
   describe("constructor", () => {
     it("should revert when wrong params were passed", async () => {
