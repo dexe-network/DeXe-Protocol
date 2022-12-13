@@ -1890,8 +1890,6 @@ describe("GovPool", () => {
 
           assertNoZerosBalanceDistribution([balance1, balance2, balance3], [19, 9, 2]);
         });
-
-        it("should properly share rewards between micropool and delegators", async () => {});
       });
     });
   });
