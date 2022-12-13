@@ -17,6 +17,7 @@ const GovValidators = artifacts.require("GovValidators");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
 const GovPoolRewardsLib = artifacts.require("GovPoolRewards");
@@ -62,6 +63,8 @@ describe("DistributionProposal", () => {
     FACTORY = await accounts(4);
     NOTHING = await accounts(9);
 
+    const govUserKeeperViewLib = await GovUserKeeperViewLib.new();
+
     const govPoolCreateLib = await GovPoolCreateLib.new();
     const govPoolExecuteLib = await GovPoolExecuteLib.new();
     const govPoolRewardsLib = await GovPoolRewardsLib.new();
@@ -69,6 +72,8 @@ describe("DistributionProposal", () => {
     const govPoolVoteLib = await GovPoolVoteLib.new();
     const govPoolViewLib = await GovPoolViewLib.new();
     const govPoolStakingLib = await GovPoolStakingLib.new();
+
+    await GovUserKeeper.link(govUserKeeperViewLib);
 
     await GovPool.link(govPoolCreateLib);
     await GovPool.link(govPoolExecuteLib);

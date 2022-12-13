@@ -5,6 +5,7 @@ const ContractsRegistry = artifacts.require("ContractsRegistry");
 
 const PoolRegistry = artifacts.require("PoolRegistry");
 
+const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
 const GovPoolRewardsLib = artifacts.require("GovPoolRewards");
@@ -19,12 +20,16 @@ const GovUserKeeper = artifacts.require("GovUserKeeper");
 const DistributionProposal = artifacts.require("DistributionProposal");
 
 async function link(deployer) {
+  await deployer.deploy(GovUserKeeperViewLib);
+
   await deployer.deploy(GovPoolCreateLib);
   await deployer.deploy(GovPoolExecuteLib);
   await deployer.deploy(GovPoolRewardsLib);
   await deployer.deploy(GovPoolUnlockLib);
   await deployer.deploy(GovPoolVoteLib);
   await deployer.deploy(GovPoolViewLib);
+
+  await deployer.link(GovUserKeeperViewLib, GovUserKeeper);
 
   await deployer.link(GovPoolCreateLib, GovPool);
   await deployer.link(GovPoolExecuteLib, GovPool);

@@ -24,16 +24,27 @@ interface IGovUserKeeper {
         EnumerableSet.AddressSet delegatees;
     }
 
-    struct DelegationInfoView {
-        address delegatee;
-        uint256 delegatedTokens;
-        uint256[] delegatedNfts;
-    }
-
     struct NFTInfo {
         bool isSupportPower;
         uint256 totalPowerInTokens;
         uint256 totalSupply;
+    }
+
+    struct VotingPowerView {
+        uint256 power;
+        uint256 nftPower;
+        uint256[] perNftPower;
+        uint256 ownedBalance;
+        uint256 ownedLength;
+        uint256[] nftIds;
+    }
+
+    struct DelegationInfoView {
+        address delegatee;
+        uint256 delegatedTokens;
+        uint256[] delegatedNfts;
+        uint256 nftPower;
+        uint256[] perNftPower;
     }
 
     function depositTokens(address payer, address receiver, uint256 amount) external;
@@ -100,6 +111,8 @@ interface IGovUserKeeper {
         uint256 nftsTotalSupply
     ) external;
 
+    function getNftInfo() external view returns (NFTInfo memory);
+
     function maxLockedAmount(address voter, bool isMicropool) external view returns (uint256);
 
     function tokenBalance(
@@ -136,24 +149,18 @@ interface IGovUserKeeper {
     ) external view returns (bool);
 
     function votingPower(
-        address user,
-        bool isMicropool,
-        bool useDelegated
-    )
-        external
-        view
-        returns (
-            uint256 power,
-            uint256 nftPower,
-            uint256[] memory perNftPower,
-            uint256 ownedBalance,
-            uint256 ownedLength,
-            uint256[] memory nftIds
-        );
+        address[] calldata users,
+        bool[] calldata isMicropools,
+        bool[] calldata useDelegated
+    ) external view returns (VotingPowerView[] memory votingPowers);
+
+    function nftVotingPower(
+        uint256[] memory nftIds
+    ) external view returns (uint256 nftPower, uint256[] memory perNftPower);
 
     function delegations(
         address user
-    ) external view returns (DelegationInfoView[] memory delegationsInfo);
+    ) external view returns (uint256 power, DelegationInfoView[] memory delegationsInfo);
 
     function getUndelegateableAssets(
         address delegator,
