@@ -1835,7 +1835,7 @@ describe("GovPool", () => {
         await govPool.deposit(delegator2, wei("100000000000000000000"), [20, 21, 22, 23], { from: delegator2 });
         await govPool.deposit(delegator3, wei("50000000000000000000"), [30, 31], { from: delegator3 });
 
-        await govPool.createProposal("example.com", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
+        await govPool.createProposal("example.com", "misc", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
       });
 
       describe("delegate() undelegate() voteDelegated()", () => {
@@ -1929,7 +1929,7 @@ describe("GovPool", () => {
         await govPool.deposit(delegator1, 0, [10, 11, 12], { from: delegator1 });
         await govPool.deposit(delegator2, 0, [20, 21, 22], { from: delegator2 });
 
-        await govPool.createProposal("example.com", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
+        await govPool.createProposal("example.com", "misc", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
       });
 
       it("should not give rewards for zero power nfts staking", async () => {
