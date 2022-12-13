@@ -669,13 +669,13 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             return 0;
         }
 
-        if (nftInfo.isSupportPower) {
+        if (_nftInfo.isSupportPower) {
             uint256 totalNftsPower = nftContract.totalPower();
 
             if (totalNftsPower > 0) {
                 uint256[] memory nftIds = _usersInfo[delegator].delegatedNfts[delegatee].values();
 
-                uint256 totalPowerInTokens = nftInfo.totalPowerInTokens;
+                uint256 totalPowerInTokens = _nftInfo.totalPowerInTokens;
 
                 for (uint256 i; i < nftIds.length; i++) {
                     totalPower += totalPowerInTokens.ratio(
@@ -685,13 +685,13 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
                 }
             }
         } else {
-            uint256 totalSupply = nftInfo.totalSupply == 0
+            uint256 totalSupply = _nftInfo.totalSupply == 0
                 ? nftContract.totalSupply()
-                : nftInfo.totalSupply;
+                : _nftInfo.totalSupply;
 
             if (totalSupply > 0) {
                 totalPower += _usersInfo[delegator].delegatedNfts[delegatee].length().ratio(
-                    nftInfo.totalPowerInTokens,
+                    _nftInfo.totalPowerInTokens,
                     totalSupply
                 );
             }
