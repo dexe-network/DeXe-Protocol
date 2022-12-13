@@ -754,7 +754,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     ) internal view returns (uint256 totalPower) {
         ERC721Power nftContract = ERC721Power(nftAddress);
 
-        if (address(nftAddress) == address(0)) {
+        if (address(nftContract) == address(0)) {
             return 0;
         }
 
