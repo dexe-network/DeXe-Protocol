@@ -1,5 +1,7 @@
 const { assert } = require("chai");
-const { toBN, accounts, wei, toPercent } = require("../scripts/utils/utils");
+const { toBN, accounts, wei } = require("../scripts/utils/utils");
+const toPercent = require("./utils/utils").toBNPercent;
+
 const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
 const { ZERO_ADDR, PERCENTAGE_100 } = require("../scripts/utils/constants");
 const truffleAssert = require("truffle-assertions");

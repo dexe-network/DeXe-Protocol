@@ -1,4 +1,5 @@
-const { toBN, accounts, wei, toPercent } = require("../scripts/utils/utils");
+const { toBN, accounts, wei } = require("../scripts/utils/utils");
+const { toPercent } = require("./utils/utils");
 const {
   getBytesExecute,
   getBytesEditUrl,

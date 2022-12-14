@@ -1,5 +1,6 @@
 const { assert } = require("chai");
-const { toBN, accounts, wei, toPercent } = require("../scripts/utils/utils");
+const { toBN, accounts, wei } = require("../scripts/utils/utils");
+const { toPercent } = require("./utils/utils");
 const truffleAssert = require("truffle-assertions");
 const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
 const { ValidatorsProposalState } = require("./utils/constants");
