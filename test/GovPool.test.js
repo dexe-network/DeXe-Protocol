@@ -1884,6 +1884,33 @@ describe("GovPool", () => {
 
           assertNoZerosBalanceDistribution([balance1, balance2, balance3], [19, 9, 2]);
         });
+
+        it("should give the proper rewards when the same user delegates twice", async () => {
+          await govPool.delegate(micropool, wei("250"), [], { from: delegator2 });
+          await govPool.delegate(micropool, wei("500"), [], { from: delegator1 });
+          await govPool.delegate(micropool, wei("1250"), [], { from: delegator2 });
+
+          await govPool.voteDelegated(1, wei("2000"), [], { from: micropool });
+
+          await govPool.delegate(micropool, wei("2500"), [], { from: delegator1 });
+          await govPool.delegate(micropool, wei("500"), [], { from: delegator2 });
+
+          await govPool.voteDelegated(1, wei("3000"), [], { from: micropool });
+
+          await setTime((await getCurrentBlockTime()) + 10000);
+
+          await govPool.undelegate(micropool, wei("3000"), [], { from: delegator1 });
+          await govPool.undelegate(micropool, wei("2000"), [], { from: delegator2 });
+
+          const balance1 = await rewardToken.balanceOf(delegator1);
+          const balance2 = await rewardToken.balanceOf(delegator2);
+
+          assertNoZerosBalanceDistribution([balance1, balance2], [23, 27]);
+        });
+
+        it("should give the proper rewards in native currency", async () => {});
+
+        it("should give the proper rewards in multiple reward tokens", async () => {});
       });
     });
   });
