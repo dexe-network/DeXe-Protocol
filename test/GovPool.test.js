@@ -1929,7 +1929,75 @@ describe("GovPool", () => {
           assertNoZerosBalanceDistribution([balance1, balance2], [23, 27]);
         });
 
-        it("should give the proper rewards in native currency", async () => {});
+        it("should give the proper rewards in native currency", async () => {
+          await network.provider.send("hardhat_setBalance", [govPool.address, "0x" + wei("250000000000000000000")]);
+
+          const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
+
+          await govPool.createProposal("example.com", "misc", [settings.address], [0], [bytes]);
+
+          await govPool.delegate(micropool, wei("100000000000000000000"), [], { from: delegator1 });
+          await govPool.delegate(micropool, wei("100000000000000000000"), [], { from: delegator2 });
+          await govPool.delegate(micropool, wei("50000000000000000000"), [], { from: delegator3 });
+
+          await govPool.voteDelegated(1, wei("250000000000000000000"), [], { from: micropool });
+
+          await govPool.moveProposalToValidators(1);
+
+          await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+          await govPool.execute(1);
+
+          await govPool.createProposal(
+            "example.com",
+            "misc",
+            [settings.address],
+            [0],
+            [getBytesAddSettings([NEW_SETTINGS])]
+          );
+
+          await govPool.voteDelegated(2, wei("250000000000000000000"), [], { from: micropool });
+
+          await govPool.execute(2);
+
+          const balancesBefore = [
+            toBN(await web3.eth.getBalance(micropool)),
+            toBN(await web3.eth.getBalance(delegator1)),
+            toBN(await web3.eth.getBalance(delegator2)),
+            toBN(await web3.eth.getBalance(delegator3)),
+          ];
+
+          const txs = [
+            await govPool.claimRewards([1, 2], { from: micropool }),
+            await govPool.undelegate(micropool, wei("100000000000000000000"), [], { from: delegator1 }),
+            await govPool.undelegate(micropool, wei("100000000000000000000"), [], { from: delegator2 }),
+            await govPool.undelegate(micropool, wei("50000000000000000000"), [], { from: delegator3 }),
+          ];
+
+          const etherRewards = [
+            toBN(await web3.eth.getBalance(micropool))
+              .plus(toBN(txs[0].receipt.gasUsed).times(txs[0].receipt.effectiveGasPrice))
+              .minus(balancesBefore[0]),
+            toBN(await web3.eth.getBalance(delegator1))
+              .plus(toBN(txs[1].receipt.gasUsed).times(txs[1].receipt.effectiveGasPrice))
+              .minus(balancesBefore[1]),
+            toBN(await web3.eth.getBalance(delegator2))
+              .plus(toBN(txs[2].receipt.gasUsed).times(txs[2].receipt.effectiveGasPrice))
+              .minus(balancesBefore[2]),
+            toBN(await web3.eth.getBalance(delegator3))
+              .plus(toBN(txs[3].receipt.gasUsed).times(txs[3].receipt.effectiveGasPrice))
+              .minus(balancesBefore[3]),
+          ];
+
+          const firstTokenBalances = [
+            await rewardToken.balanceOf(micropool),
+            await rewardToken.balanceOf(delegator1),
+            await rewardToken.balanceOf(delegator2),
+            await rewardToken.balanceOf(delegator3),
+          ];
+
+          assertNoZerosBalanceDistribution([...firstTokenBalances, ...etherRewards], [20, 32, 32, 16, 20, 32, 32, 16]);
+        });
 
         it("should give the proper rewards in multiple reward tokens", async () => {
           const newRewardToken = await ERC20Mock.new("Mock", "Mock", 18);
