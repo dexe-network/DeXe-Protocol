@@ -333,11 +333,7 @@ describe("GovPool", () => {
       let lhs = balances[i].idiv(wei("1")).times(coefficients[i + 1]);
       let rhs = balances[i + 1].idiv(wei("1")).times(coefficients[i]);
 
-      if (rhs.gt(lhs)) {
-        [lhs, rhs] = [rhs, lhs];
-      }
-
-      assert.isTrue(lhs.minus(rhs).lte(epsilon));
+      assert.closeTo(lhs.toNumber(), rhs.toNumber(), epsilon);
     }
   };
 
