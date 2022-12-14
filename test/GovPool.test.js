@@ -330,8 +330,8 @@ describe("GovPool", () => {
     for (let i = 0; i < balances.length - 1; i++) {
       const epsilon = coefficients[i] + coefficients[i + 1];
 
-      let lhs = balances[i].idiv(wei("1")).times(coefficients[i + 1]);
-      let rhs = balances[i + 1].idiv(wei("1")).times(coefficients[i]);
+      const lhs = balances[i].idiv(wei("1")).times(coefficients[i + 1]);
+      const rhs = balances[i + 1].idiv(wei("1")).times(coefficients[i]);
 
       assert.closeTo(lhs.toNumber(), rhs.toNumber(), epsilon);
     }
