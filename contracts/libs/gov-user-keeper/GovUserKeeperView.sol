@@ -45,7 +45,7 @@ library GovUserKeeperView {
                     isMicropools[i],
                     useDelegated[i]
                 );
-                (power.nftPower, power.perNftPower) = nftVotingPower(power.nftIds);
+                (power.nftPower, power.perNftPower) = nftVotingPower(power.nftIds, true);
 
                 power.power += power.nftPower;
             }
@@ -53,7 +53,8 @@ library GovUserKeeperView {
     }
 
     function nftVotingPower(
-        uint256[] memory nftIds
+        uint256[] memory nftIds,
+        bool calculatePowerArray
     ) public view returns (uint256 nftPower, uint256[] memory perNftPower) {
         GovUserKeeper userKeeper = GovUserKeeper(address(this));
 
@@ -64,7 +65,9 @@ library GovUserKeeperView {
         ERC721Power nftContract = ERC721Power(userKeeper.nftAddress());
         IGovUserKeeper.NFTInfo memory nftInfo = userKeeper.getNftInfo();
 
-        perNftPower = new uint256[](nftIds.length);
+        if (calculatePowerArray) {
+            perNftPower = new uint256[](nftIds.length);
+        }
 
         if (!nftInfo.isSupportPower) {
             uint256 totalSupply = nftInfo.totalSupply == 0
@@ -74,8 +77,10 @@ library GovUserKeeperView {
             if (totalSupply > 0) {
                 uint256 totalPower = nftInfo.totalPowerInTokens;
 
-                for (uint256 i; i < nftIds.length; i++) {
-                    perNftPower[i] = totalPower / totalSupply;
+                if (calculatePowerArray) {
+                    for (uint256 i; i < nftIds.length; i++) {
+                        perNftPower[i] = totalPower / totalSupply;
+                    }
                 }
 
                 nftPower = nftIds.length.ratio(totalPower, totalSupply);
@@ -87,11 +92,16 @@ library GovUserKeeperView {
                 uint256 totalPowerInTokens = nftInfo.totalPowerInTokens;
 
                 for (uint256 i; i < nftIds.length; i++) {
-                    perNftPower[i] = totalPowerInTokens.ratio(
+                    uint256 currentNftPower = totalPowerInTokens.ratio(
                         nftContract.getNftPower(nftIds[i]),
                         totalNftsPower
                     );
-                    nftPower += perNftPower[i];
+
+                    nftPower += currentNftPower;
+
+                    if (calculatePowerArray) {
+                        perNftPower[i] = currentNftPower;
+                    }
                 }
             }
         }
@@ -117,7 +127,8 @@ library GovUserKeeperView {
             delegation.delegatedTokens = userInfo.delegatedTokens[delegatee];
             delegation.delegatedNfts = userInfo.delegatedNfts[delegatee].values();
             (delegation.nftPower, delegation.perNftPower) = nftVotingPower(
-                delegation.delegatedNfts
+                delegation.delegatedNfts,
+                true
             );
 
             power += delegation.delegatedTokens + delegation.nftPower;

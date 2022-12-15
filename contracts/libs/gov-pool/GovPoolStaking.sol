@@ -22,8 +22,6 @@ library GovPoolStaking {
         uint256 coefficient,
         address rewardToken
     ) external {
-        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
-
         uint256 totalStake = micropool.totalStake;
         if (totalStake == 0) {
             return;

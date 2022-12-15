@@ -155,7 +155,8 @@ interface IGovUserKeeper {
     ) external view returns (VotingPowerView[] memory votingPowers);
 
     function nftVotingPower(
-        uint256[] memory nftIds
+        uint256[] memory nftIds,
+        bool calculatePowerArray
     ) external view returns (uint256 nftPower, uint256[] memory perNftPower);
 
     function delegations(
