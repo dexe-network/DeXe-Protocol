@@ -73,17 +73,24 @@ library GovPoolStaking {
         for (uint256 i = 0; i < delegatees.length; i++) {
             (
                 address[] memory rewardTokens,
-                uint256[] memory pendingRewards
+                uint256[] memory expectedRewards
             ) = _getMicropoolPendingRewards(
                     micropoolInfos[delegatees[i]],
                     delegator,
                     delegatees[i]
                 );
 
+            uint256[] memory realRewards = expectedRewards;
+
+            for (uint256 j = 0; j < realRewards.length; j++) {
+                realRewards[i] = realRewards[i].min(rewardTokens[i].normThisBalance());
+            }
+
             rewards[i] = IGovPool.UserStakeRewardsView({
                 micropool: delegatees[i],
                 rewardTokens: rewardTokens,
-                pendingRewards: pendingRewards
+                expectedRewards: expectedRewards,
+                realRewards: realRewards
             });
         }
     }

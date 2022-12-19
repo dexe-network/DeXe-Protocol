@@ -62,7 +62,8 @@ interface IGovPool {
     struct UserStakeRewardsView {
         address micropool;
         address[] rewardTokens;
-        uint256[] pendingRewards;
+        uint256[] expectedRewards;
+        uint256[] realRewards;
     }
 
     struct DelegatorInfo {
