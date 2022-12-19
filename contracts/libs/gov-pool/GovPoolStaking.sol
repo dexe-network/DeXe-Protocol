@@ -112,12 +112,10 @@ library GovPoolStaking {
                 rewardToken
             ];
 
-            uint256 micropoolCumulativeSum = rewardTokenInfo.cumulativeSum;
-
             IGovPool.DelegatorInfo storage delegatorInfo = rewardTokenInfo.delegators[msg.sender];
 
             delegatorInfo.pendingRewards = pendingRewards[i];
-            delegatorInfo.latestCumulativeSum = micropoolCumulativeSum;
+            delegatorInfo.latestCumulativeSum = rewardTokenInfo.cumulativeSum;
 
             uint256 rewards = delegatorInfo.pendingRewards;
 
@@ -160,13 +158,11 @@ library GovPoolStaking {
                 rewardToken
             ];
 
-            uint256 micropoolCumulativeSum = rewardTokenInfo.cumulativeSum;
-
-            IGovPool.DelegatorInfo storage delegatorInfo = rewardTokenInfo.delegators[msg.sender];
+            IGovPool.DelegatorInfo storage delegatorInfo = rewardTokenInfo.delegators[delegator];
 
             pendingRewards[i] =
                 delegatorInfo.pendingRewards +
-                (micropoolCumulativeSum - delegatorInfo.latestCumulativeSum).ratio(
+                (rewardTokenInfo.cumulativeSum - delegatorInfo.latestCumulativeSum).ratio(
                     previousDelegatorStake,
                     PRECISION
                 ) /
