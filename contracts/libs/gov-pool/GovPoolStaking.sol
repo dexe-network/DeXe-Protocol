@@ -114,10 +114,10 @@ library GovPoolStaking {
 
             IGovPool.DelegatorInfo storage delegatorInfo = rewardTokenInfo.delegators[msg.sender];
 
-            delegatorInfo.pendingRewards = pendingRewards[i];
-            delegatorInfo.latestCumulativeSum = rewardTokenInfo.cumulativeSum;
+            uint256 rewards = pendingRewards[i];
 
-            uint256 rewards = delegatorInfo.pendingRewards;
+            delegatorInfo.pendingRewards = rewards;
+            delegatorInfo.latestCumulativeSum = rewardTokenInfo.cumulativeSum;
 
             if (!withdrawPendingRewards || rewards == 0) {
                 continue;
