@@ -425,6 +425,12 @@ contract GovPool is
                 : delegator.getUndelegateableAssets(delegatee, _votedInProposals, _voteInfos);
     }
 
+    function getDelegatorStakingRewards(
+        address delegator
+    ) external view override returns (UserStakeRewardsView[] memory) {
+        return _micropoolInfos.getDelegatorStakingRewards(delegator);
+    }
+
     function _setNftMultiplierAddress(address nftMultiplierAddress) internal {
         require(nftMultiplier == address(0), "Gov: current nft address isn't zero");
         require(nftMultiplierAddress != address(0), "Gov: new nft address is zero");

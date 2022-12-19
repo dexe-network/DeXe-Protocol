@@ -59,6 +59,12 @@ interface IGovPool {
         uint256[] nftsVoted;
     }
 
+    struct UserStakeRewardsView {
+        address micropool;
+        address[] rewardTokens;
+        uint256[] pendingRewards;
+    }
+
     struct DelegatorInfo {
         uint256 latestCumulativeSum;
         uint256 pendingRewards;
@@ -191,4 +197,8 @@ interface IGovPool {
         address delegator,
         address delegatee
     ) external view returns (uint256, ShrinkableArray.UintArray memory);
+
+    function getDelegatorStakingRewards(
+        address delegator
+    ) external view returns (UserStakeRewardsView[] memory);
 }

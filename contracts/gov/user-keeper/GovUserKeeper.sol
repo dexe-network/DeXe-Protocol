@@ -615,6 +615,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             );
     }
 
+    function getDelegatees(address delegator) external view returns (address[] memory) {
+        return _usersInfo[delegator].delegatees.values();
+    }
+
     function getDelegatedStakeAmount(
         address delegator,
         address delegatee
