@@ -12,6 +12,7 @@ const GovPoolRewardsLib = artifacts.require("GovPoolRewards");
 const GovPoolUnlockLib = artifacts.require("GovPoolUnlock");
 const GovPoolVoteLib = artifacts.require("GovPoolVote");
 const GovPoolViewLib = artifacts.require("GovPoolView");
+const GovPoolStakingLib = artifacts.require("GovPoolStaking");
 
 const GovPool = artifacts.require("GovPool");
 const GovSettings = artifacts.require("GovSettings");
@@ -28,6 +29,7 @@ async function link(deployer) {
   await deployer.deploy(GovPoolUnlockLib);
   await deployer.deploy(GovPoolVoteLib);
   await deployer.deploy(GovPoolViewLib);
+  await deployer.deploy(GovPoolStakingLib);
 
   await deployer.link(GovUserKeeperViewLib, GovUserKeeper);
 
@@ -37,6 +39,7 @@ async function link(deployer) {
   await deployer.link(GovPoolUnlockLib, GovPool);
   await deployer.link(GovPoolVoteLib, GovPool);
   await deployer.link(GovPoolViewLib, GovPool);
+  await deployer.link(GovPoolStakingLib, GovPool);
 }
 
 module.exports = async (deployer) => {

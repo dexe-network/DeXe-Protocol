@@ -183,4 +183,11 @@ interface IGovUserKeeper {
         external
         view
         returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts);
+
+    function getDelegatees(address delegator) external view returns (address[] memory);
+
+    function getDelegatedStakeAmount(
+        address delegator,
+        address delegatee
+    ) external view returns (uint256);
 }

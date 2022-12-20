@@ -21,6 +21,7 @@ import "../libs/gov-pool/GovPoolRewards.sol";
 import "../libs/gov-pool/GovPoolVote.sol";
 import "../libs/gov-pool/GovPoolUnlock.sol";
 import "../libs/gov-pool/GovPoolExecute.sol";
+import "../libs/gov-pool/GovPoolStaking.sol";
 import "../libs/math/MathHelper.sol";
 
 import "../core/Globals.sol";
@@ -33,6 +34,7 @@ contract GovPool is
 {
     using MathHelper for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
+    using EnumerableSet for EnumerableSet.AddressSet;
     using ShrinkableArray for uint256[];
     using ShrinkableArray for ShrinkableArray.UintArray;
     using GovUserKeeperLocal for *;
@@ -42,6 +44,10 @@ contract GovPool is
     using GovPoolVote for *;
     using GovPoolUnlock for *;
     using GovPoolExecute for *;
+    using GovPoolStaking for *;
+
+    uint256 public constant PERCENTAGE_DELEGATORS_REWARDS = (4 * PERCENTAGE_100) / 5; // 80%
+    uint256 public constant PERCENTAGE_MICROPOOL_REWARDS = PERCENTAGE_100 / 5; // 20%
 
     IGovSettings internal _govSettings;
     IGovUserKeeper internal _govUserKeeper;
@@ -63,6 +69,8 @@ contract GovPool is
     mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
 
     mapping(uint256 => mapping(address => uint256)) public pendingRewards; // proposalId => user => tokens amount
+
+    mapping(address => MicropoolInfo) internal _micropoolInfos;
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
     event MovedToValidators(uint256 proposalId, address sender);
@@ -195,8 +203,14 @@ contract GovPool is
 
         pendingRewards.updateRewards(
             proposalId,
-            reward,
+            reward.percentage(PERCENTAGE_MICROPOOL_REWARDS),
             _proposals[proposalId].core.settings.voteRewardsCoefficient
+        );
+
+        _micropoolInfos[msg.sender].updateRewards(
+            reward.percentage(PERCENTAGE_DELEGATORS_REWARDS),
+            _proposals[proposalId].core.settings.voteRewardsCoefficient,
+            _proposals[proposalId].core.settings.rewardToken
         );
     }
 
@@ -233,8 +247,14 @@ contract GovPool is
 
         unlock(msg.sender, false);
 
+        MicropoolInfo storage micropool = _micropoolInfos[delegatee];
+
+        micropool.stake(delegatee);
+
         _govUserKeeper.delegateTokens.exec(delegatee, amount);
         _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
+
+        micropool.updateStakingCache(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, true);
     }
@@ -248,8 +268,14 @@ contract GovPool is
 
         unlock(delegatee, true);
 
+        MicropoolInfo storage micropool = _micropoolInfos[delegatee];
+
+        micropool.unstake(delegatee);
+
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
         _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
+
+        micropool.updateStakingCache(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, false);
     }
@@ -397,6 +423,12 @@ contract GovPool is
             delegatee == address(0)
                 ? delegator.getWithdrawableAssets(_votedInProposals, _voteInfos)
                 : delegator.getUndelegateableAssets(delegatee, _votedInProposals, _voteInfos);
+    }
+
+    function getDelegatorStakingRewards(
+        address delegator
+    ) external view override returns (UserStakeRewardsView[] memory) {
+        return _micropoolInfos.getDelegatorStakingRewards(delegator);
     }
 
     function _setNftMultiplierAddress(address nftMultiplierAddress) internal {

@@ -1,4 +1,5 @@
 const { toBN, accounts, wei } = require("../scripts/utils/utils");
+const { toPercent } = require("./utils/utils");
 const {
   getBytesExecute,
   getBytesEditUrl,
@@ -30,6 +31,7 @@ const GovSettings = artifacts.require("GovSettings");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
+const ERC721Power = artifacts.require("ERC721Power");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const ExecutorTransferMock = artifacts.require("ExecutorTransferMock");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
@@ -39,6 +41,7 @@ const GovPoolRewardsLib = artifacts.require("GovPoolRewards");
 const GovPoolUnlockLib = artifacts.require("GovPoolUnlock");
 const GovPoolVoteLib = artifacts.require("GovPoolVote");
 const GovPoolViewLib = artifacts.require("GovPoolView");
+const GovPoolStakingLib = artifacts.require("GovPoolStaking");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -57,6 +60,8 @@ describe("GovPool", () => {
   let SECOND;
   let THIRD;
   let FOURTH;
+  let FIFTH;
+  let SIXTH;
   let FACTORY;
   let NOTHING;
 
@@ -66,6 +71,7 @@ describe("GovPool", () => {
 
   let token;
   let nft;
+  let nftPower;
   let rewardToken;
   let nftMultiplier;
 
@@ -82,7 +88,9 @@ describe("GovPool", () => {
     SECOND = await accounts(1);
     THIRD = await accounts(2);
     FOURTH = await accounts(3);
-    FACTORY = await accounts(4);
+    FIFTH = await accounts(4);
+    SIXTH = await accounts(5);
+    FACTORY = await accounts(6);
     NOTHING = await accounts(9);
 
     const govUserKeeperViewLib = await GovUserKeeperViewLib.new();
@@ -93,6 +101,7 @@ describe("GovPool", () => {
     const govPoolUnlockLib = await GovPoolUnlockLib.new();
     const govPoolVoteLib = await GovPoolVoteLib.new();
     const govPoolViewLib = await GovPoolViewLib.new();
+    const govPoolStakingLib = await GovPoolStakingLib.new();
 
     await GovUserKeeper.link(govUserKeeperViewLib);
 
@@ -102,6 +111,7 @@ describe("GovPool", () => {
     await GovPool.link(govPoolUnlockLib);
     await GovPool.link(govPoolVoteLib);
     await GovPool.link(govPoolViewLib);
+    await GovPool.link(govPoolStakingLib);
   });
 
   beforeEach("setup", async () => {
@@ -111,6 +121,15 @@ describe("GovPool", () => {
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721EnumMock.new("Mock", "Mock");
     nftMultiplier = await ERC721Multiplier.new("NFTMultiplierMock", "NFTMM");
+    nftPower = await ERC721Power.new(
+      "NFTPowerMock",
+      "NFTPM",
+      (await getCurrentBlockTime()) + 100,
+      token.address,
+      toPercent("90"),
+      toPercent("0.01"),
+      "540"
+    );
     rewardToken = await ERC20Mock.new("REWARD", "RWD", 18);
 
     await contractsRegistry.__OwnableContractsRegistry_init();
@@ -189,6 +208,97 @@ describe("GovPool", () => {
     await poolRegistry.injectDependenciesToExistingPools(NAME, 0, 10);
   }
 
+  async function getPoolParameters(nftAddress) {
+    return {
+      settingsParams: {
+        proposalSettings: [
+          {
+            earlyCompletion: false,
+            delegatedVotingAllowed: true,
+            validatorsVote: true,
+            duration: 700,
+            durationValidators: 800,
+            quorum: PRECISION.times("71").toFixed(),
+            quorumValidators: PRECISION.times("100").toFixed(),
+            minVotesForVoting: nftAddress === nftPower.address ? 0 : wei("20"),
+            minVotesForCreating: wei("3"),
+            rewardToken: rewardToken.address,
+            creationReward: wei("10"),
+            executionReward: wei("5"),
+            voteRewardsCoefficient: PRECISION.toFixed(),
+            executorDescription: "default",
+          },
+          {
+            earlyCompletion: true,
+            delegatedVotingAllowed: true,
+            validatorsVote: true,
+            duration: 500,
+            durationValidators: 600,
+            quorum: PRECISION.times("51").toFixed(),
+            quorumValidators: PRECISION.times("61").toFixed(),
+            minVotesForVoting: wei("10"),
+            minVotesForCreating: wei("2"),
+            rewardToken: rewardToken.address,
+            creationReward: wei("10"),
+            executionReward: wei("5"),
+            voteRewardsCoefficient: PRECISION.toFixed(),
+            executorDescription: "internal",
+          },
+          {
+            earlyCompletion: false,
+            delegatedVotingAllowed: false,
+            validatorsVote: true,
+            duration: 600,
+            durationValidators: 800,
+            quorum: PRECISION.times("71").toFixed(),
+            quorumValidators: PRECISION.times("100").toFixed(),
+            minVotesForVoting: wei("20"),
+            minVotesForCreating: wei("3"),
+            rewardToken: rewardToken.address,
+            creationReward: wei("10"),
+            executionReward: wei("5"),
+            voteRewardsCoefficient: PRECISION.toFixed(),
+            executorDescription: "DP",
+          },
+          {
+            earlyCompletion: true,
+            delegatedVotingAllowed: true,
+            validatorsVote: true,
+            duration: 500,
+            durationValidators: 600,
+            quorum: PRECISION.times("51").toFixed(),
+            quorumValidators: PRECISION.times("61").toFixed(),
+            minVotesForVoting: wei("10"),
+            minVotesForCreating: wei("2"),
+            rewardToken: rewardToken.address,
+            creationReward: wei("10"),
+            executionReward: wei("5"),
+            voteRewardsCoefficient: PRECISION.toFixed(),
+            executorDescription: "validators",
+          },
+        ],
+        additionalProposalExecutors: [],
+      },
+      validatorsParams: {
+        name: "Validator Token",
+        symbol: "VT",
+        duration: 600,
+        quorum: PRECISION.times("51").toFixed(),
+        validators: [OWNER, SECOND],
+        balances: [wei("100"), wei("1000000000000")],
+      },
+      userKeeperParams: {
+        tokenAddress: token.address,
+        nftAddress: nftAddress,
+        totalPowerInTokens: wei("33000"),
+        nftsTotalSupply: 33,
+      },
+      nftMultiplierAddress: ZERO_ADDR,
+      descriptionURL: "example.com",
+      name: "Pool name",
+    };
+  }
+
   async function setupTokens() {
     await token.mint(OWNER, wei("100000000000"));
     await token.approve(userKeeper.address, wei("10000000000"));
@@ -218,98 +328,28 @@ describe("GovPool", () => {
     await govPool.execute(proposalId);
   }
 
+  const assertBalanceDistribution = (balances, coefficients) => {
+    for (let i = 0; i < balances.length - 1; i++) {
+      const epsilon = coefficients[i] + coefficients[i + 1];
+
+      const lhs = balances[i].idiv(wei("1")).times(coefficients[i + 1]);
+      const rhs = balances[i + 1].idiv(wei("1")).times(coefficients[i]);
+
+      assert.closeTo(lhs.toNumber(), rhs.toNumber(), epsilon);
+    }
+  };
+
+  const assertNoZerosBalanceDistribution = (balances, coefficients) => {
+    balances.forEach((balance) => assert.notEqual(balance.toFixed(), "0"));
+
+    assertBalanceDistribution(balances, coefficients);
+  };
+
   describe("Fullfat GovPool", () => {
     let POOL_PARAMETERS;
 
     beforeEach("setup", async () => {
-      POOL_PARAMETERS = {
-        settingsParams: {
-          proposalSettings: [
-            {
-              earlyCompletion: false,
-              delegatedVotingAllowed: true,
-              validatorsVote: true,
-              duration: 700,
-              durationValidators: 800,
-              quorum: PRECISION.times("71").toFixed(),
-              quorumValidators: PRECISION.times("100").toFixed(),
-              minVotesForVoting: wei("20"),
-              minVotesForCreating: wei("3"),
-              rewardToken: rewardToken.address,
-              creationReward: wei("10"),
-              executionReward: wei("5"),
-              voteRewardsCoefficient: PRECISION.toFixed(),
-              executorDescription: "default",
-            },
-            {
-              earlyCompletion: true,
-              delegatedVotingAllowed: true,
-              validatorsVote: true,
-              duration: 500,
-              durationValidators: 600,
-              quorum: PRECISION.times("51").toFixed(),
-              quorumValidators: PRECISION.times("61").toFixed(),
-              minVotesForVoting: wei("10"),
-              minVotesForCreating: wei("2"),
-              rewardToken: rewardToken.address,
-              creationReward: wei("10"),
-              executionReward: wei("5"),
-              voteRewardsCoefficient: PRECISION.toFixed(),
-              executorDescription: "internal",
-            },
-            {
-              earlyCompletion: false,
-              delegatedVotingAllowed: false,
-              validatorsVote: true,
-              duration: 600,
-              durationValidators: 800,
-              quorum: PRECISION.times("71").toFixed(),
-              quorumValidators: PRECISION.times("100").toFixed(),
-              minVotesForVoting: wei("20"),
-              minVotesForCreating: wei("3"),
-              rewardToken: rewardToken.address,
-              creationReward: wei("10"),
-              executionReward: wei("5"),
-              voteRewardsCoefficient: PRECISION.toFixed(),
-              executorDescription: "DP",
-            },
-            {
-              earlyCompletion: true,
-              delegatedVotingAllowed: true,
-              validatorsVote: true,
-              duration: 500,
-              durationValidators: 600,
-              quorum: PRECISION.times("51").toFixed(),
-              quorumValidators: PRECISION.times("61").toFixed(),
-              minVotesForVoting: wei("10"),
-              minVotesForCreating: wei("2"),
-              rewardToken: rewardToken.address,
-              creationReward: wei("10"),
-              executionReward: wei("5"),
-              voteRewardsCoefficient: PRECISION.toFixed(),
-              executorDescription: "validators",
-            },
-          ],
-          additionalProposalExecutors: [],
-        },
-        validatorsParams: {
-          name: "Validator Token",
-          symbol: "VT",
-          duration: 600,
-          quorum: PRECISION.times("51").toFixed(),
-          validators: [OWNER, SECOND],
-          balances: [wei("100"), wei("1000000000000")],
-        },
-        userKeeperParams: {
-          tokenAddress: token.address,
-          nftAddress: nft.address,
-          totalPowerInTokens: wei("33000"),
-          nftsTotalSupply: 33,
-        },
-        nftMultiplierAddress: ZERO_ADDR,
-        descriptionURL: "example.com",
-        name: "Pool name",
-      };
+      POOL_PARAMETERS = await getPoolParameters(nft.address);
 
       await deployPool(POOL_PARAMETERS);
       await setupTokens();
@@ -1747,6 +1787,463 @@ describe("GovPool", () => {
         await govPool.execute(2);
 
         await truffleAssert.reverts(govPool.claimRewards([2]), "Gov: not enough balance");
+      });
+    });
+
+    describe("staking", () => {
+      let NEW_SETTINGS = {
+        earlyCompletion: true,
+        delegatedVotingAllowed: true,
+        validatorsVote: false,
+        duration: 1,
+        durationValidators: 1,
+        quorum: 1,
+        quorumValidators: 1,
+        minVotesForVoting: 1,
+        minVotesForCreating: 1,
+        rewardToken: ETHER_ADDR,
+        creationReward: wei("10"),
+        executionReward: wei("5"),
+        voteRewardsCoefficient: PRECISION.toFixed(),
+        executorDescription: "new_settings",
+      };
+
+      let micropool;
+      let micropool2;
+      let delegator1;
+      let delegator2;
+      let delegator3;
+
+      beforeEach(async () => {
+        micropool = SECOND;
+        micropool2 = THIRD;
+        delegator1 = FOURTH;
+        delegator2 = FIFTH;
+        delegator3 = SIXTH;
+
+        await token.mint(delegator1, wei("100000000000000000000"));
+        await token.mint(delegator2, wei("100000000000000000000"));
+        await token.mint(delegator3, wei("50000000000000000000"));
+
+        for (let i = 10; i <= 13; i++) {
+          await nft.safeMint(delegator1, i);
+          await nft.approve(userKeeper.address, i, { from: delegator1 });
+        }
+
+        for (let i = 20; i <= 23; i++) {
+          await nft.safeMint(delegator2, i);
+          await nft.approve(userKeeper.address, i, { from: delegator2 });
+        }
+
+        for (let i = 30; i <= 31; i++) {
+          await nft.safeMint(delegator3, i);
+          await nft.approve(userKeeper.address, i, { from: delegator3 });
+        }
+
+        await token.approve(userKeeper.address, wei("100000000000000000000"), { from: delegator1 });
+        await token.approve(userKeeper.address, wei("100000000000000000000"), { from: delegator2 });
+        await token.approve(userKeeper.address, wei("50000000000000000000"), { from: delegator3 });
+
+        await govPool.deposit(OWNER, wei("2000"), [1, 2, 3, 4]);
+
+        await govPool.deposit(delegator1, wei("100000000000000000000"), [10, 11, 12, 13], { from: delegator1 });
+        await govPool.deposit(delegator2, wei("100000000000000000000"), [20, 21, 22, 23], { from: delegator2 });
+        await govPool.deposit(delegator3, wei("50000000000000000000"), [30, 31], { from: delegator3 });
+      });
+
+      describe("delegate() undelegate() voteDelegated()", () => {
+        it("should give the proportional rewards for delegated ERC20 + ERC721", async () => {
+          await govPool.createProposal("example.com", "misc", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
+
+          await govPool.delegate(micropool, wei("100000000000000000000"), [10, 11, 12, 13], { from: delegator1 });
+          await govPool.delegate(micropool, wei("100000000000000000000"), [20, 21, 22, 23], { from: delegator2 });
+          await govPool.delegate(micropool, wei("50000000000000000000"), [30, 31], { from: delegator3 });
+
+          await govPool.voteDelegated(1, wei("250000000000000000000"), [], { from: micropool });
+
+          await setTime((await getCurrentBlockTime()) + 10000);
+
+          await govPool.moveProposalToValidators(1);
+
+          await validators.vote(1, wei("100"), false);
+          await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+          await govPool.execute(1);
+          await govPool.claimRewards([1], { from: micropool });
+
+          await govPool.undelegate(micropool, wei("100000000000000000000"), [], { from: delegator1 });
+          await govPool.undelegate(micropool, wei("100000000000000000000"), [], { from: delegator2 });
+          await govPool.undelegate(micropool, wei("50000000000000000000"), [], { from: delegator3 });
+
+          const micropoolBalance = await rewardToken.balanceOf(micropool);
+          const balance1 = await rewardToken.balanceOf(delegator1);
+          const balance2 = await rewardToken.balanceOf(delegator2);
+          const balance3 = await rewardToken.balanceOf(delegator3);
+
+          assertNoZerosBalanceDistribution([balance1, balance2, balance3, micropoolBalance], [32, 32, 16, 20]);
+        });
+
+        it("should give the proper rewards with multiple async delegates", async () => {
+          await govPool.createProposal("example.com", "misc", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
+
+          await govPool.delegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
+          await govPool.voteDelegated(1, wei("800"), [], { from: micropool });
+
+          await govPool.delegate(micropool, wei("1000"), [20, 21, 22, 23], { from: delegator2 });
+          await govPool.voteDelegated(1, wei("800"), [], { from: micropool });
+
+          await govPool.delegate(micropool, wei("500"), [30, 31], { from: delegator3 });
+          await govPool.voteDelegated(1, wei("800"), [], { from: micropool });
+
+          await setTime((await getCurrentBlockTime()) + 10000);
+
+          await govPool.undelegate(micropool, wei("1000"), [10, 11, 12, 13], { from: delegator1 });
+          await govPool.undelegate(micropool, wei("1000"), [20, 21, 22, 23], { from: delegator2 });
+          await govPool.undelegate(micropool, wei("500"), [30, 31], { from: delegator3 });
+
+          const balance1 = await rewardToken.balanceOf(delegator1);
+          const balance2 = await rewardToken.balanceOf(delegator2);
+          const balance3 = await rewardToken.balanceOf(delegator3);
+
+          assertNoZerosBalanceDistribution([balance1, balance2, balance3], [19, 9, 2]);
+        });
+
+        it("should give the proper rewards when the same user delegates twice", async () => {
+          await govPool.createProposal("example.com", "misc", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
+
+          await govPool.delegate(micropool, wei("250"), [], { from: delegator2 });
+          await govPool.delegate(micropool, wei("500"), [], { from: delegator1 });
+          await govPool.delegate(micropool, wei("1250"), [], { from: delegator2 });
+
+          await govPool.voteDelegated(1, wei("2000"), [], { from: micropool });
+
+          await govPool.delegate(micropool, wei("2500"), [], { from: delegator1 });
+          await govPool.delegate(micropool, wei("500"), [], { from: delegator2 });
+
+          await govPool.voteDelegated(1, wei("3000"), [], { from: micropool });
+
+          await setTime((await getCurrentBlockTime()) + 10000);
+
+          await govPool.undelegate(micropool, wei("3000"), [], { from: delegator1 });
+          await govPool.undelegate(micropool, wei("2000"), [], { from: delegator2 });
+
+          const balance1 = await rewardToken.balanceOf(delegator1);
+          const balance2 = await rewardToken.balanceOf(delegator2);
+
+          assertNoZerosBalanceDistribution([balance1, balance2], [23, 27]);
+        });
+
+        it("should give the proper rewards in native currency", async () => {
+          await network.provider.send("hardhat_setBalance", [govPool.address, "0x" + wei("250000000000000000000")]);
+
+          const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
+
+          await govPool.createProposal("example.com", "misc", [settings.address], [0], [bytes]);
+
+          await govPool.delegate(micropool, wei("100000000000000000000"), [], { from: delegator1 });
+          await govPool.delegate(micropool, wei("100000000000000000000"), [], { from: delegator2 });
+          await govPool.delegate(micropool, wei("50000000000000000000"), [], { from: delegator3 });
+
+          await govPool.voteDelegated(1, wei("250000000000000000000"), [], { from: micropool });
+
+          await govPool.moveProposalToValidators(1);
+
+          await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+          await govPool.execute(1);
+
+          await govPool.createProposal(
+            "example.com",
+            "misc",
+            [settings.address],
+            [0],
+            [getBytesAddSettings([NEW_SETTINGS])]
+          );
+
+          await govPool.voteDelegated(2, wei("250000000000000000000"), [], { from: micropool });
+
+          await govPool.execute(2);
+
+          const balancesBefore = [
+            toBN(await web3.eth.getBalance(micropool)),
+            toBN(await web3.eth.getBalance(delegator1)),
+            toBN(await web3.eth.getBalance(delegator2)),
+            toBN(await web3.eth.getBalance(delegator3)),
+          ];
+
+          const txs = [
+            await govPool.claimRewards([1, 2], { from: micropool }),
+            await govPool.undelegate(micropool, wei("100000000000000000000"), [], { from: delegator1 }),
+            await govPool.undelegate(micropool, wei("100000000000000000000"), [], { from: delegator2 }),
+            await govPool.undelegate(micropool, wei("50000000000000000000"), [], { from: delegator3 }),
+          ];
+
+          const etherRewards = [
+            toBN(await web3.eth.getBalance(micropool))
+              .plus(toBN(txs[0].receipt.gasUsed).times(txs[0].receipt.effectiveGasPrice))
+              .minus(balancesBefore[0]),
+            toBN(await web3.eth.getBalance(delegator1))
+              .plus(toBN(txs[1].receipt.gasUsed).times(txs[1].receipt.effectiveGasPrice))
+              .minus(balancesBefore[1]),
+            toBN(await web3.eth.getBalance(delegator2))
+              .plus(toBN(txs[2].receipt.gasUsed).times(txs[2].receipt.effectiveGasPrice))
+              .minus(balancesBefore[2]),
+            toBN(await web3.eth.getBalance(delegator3))
+              .plus(toBN(txs[3].receipt.gasUsed).times(txs[3].receipt.effectiveGasPrice))
+              .minus(balancesBefore[3]),
+          ];
+
+          const firstTokenBalances = [
+            await rewardToken.balanceOf(micropool),
+            await rewardToken.balanceOf(delegator1),
+            await rewardToken.balanceOf(delegator2),
+            await rewardToken.balanceOf(delegator3),
+          ];
+
+          assertNoZerosBalanceDistribution([...firstTokenBalances, ...etherRewards], [20, 32, 32, 16, 20, 32, 32, 16]);
+        });
+
+        it("should give the proper rewards in multiple reward tokens", async () => {
+          const newRewardToken = await ERC20Mock.new("Mock", "Mock", 18);
+
+          await newRewardToken.mint(govPool.address, wei("10000000000000000000000"));
+
+          NEW_SETTINGS.rewardToken = newRewardToken.address;
+
+          const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
+
+          await govPool.createProposal("example.com", "misc", [settings.address], [0], [bytes]);
+
+          await govPool.delegate(micropool, wei("100000000000000000000"), [], { from: delegator1 });
+          await govPool.delegate(micropool, wei("100000000000000000000"), [], { from: delegator2 });
+          await govPool.delegate(micropool, wei("50000000000000000000"), [], { from: delegator3 });
+
+          await govPool.voteDelegated(1, wei("250000000000000000000"), [], { from: micropool });
+
+          await govPool.moveProposalToValidators(1);
+
+          await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+          await govPool.execute(1);
+
+          await govPool.createProposal(
+            "example.com",
+            "misc",
+            [settings.address],
+            [0],
+            [getBytesAddSettings([NEW_SETTINGS])]
+          );
+
+          await govPool.voteDelegated(2, wei("250000000000000000000"), [], { from: micropool });
+
+          await govPool.execute(2);
+
+          await govPool.undelegate(micropool, wei("100000000000000000000"), [], { from: delegator1 });
+          await govPool.undelegate(micropool, wei("100000000000000000000"), [], { from: delegator2 });
+          await govPool.undelegate(micropool, wei("50000000000000000000"), [], { from: delegator3 });
+
+          await govPool.claimRewards([1, 2], { from: micropool });
+
+          const firstTokenBalances = [
+            await rewardToken.balanceOf(micropool),
+            await rewardToken.balanceOf(delegator1),
+            await rewardToken.balanceOf(delegator2),
+            await rewardToken.balanceOf(delegator3),
+          ];
+
+          const secondTokenBalances = [
+            await newRewardToken.balanceOf(micropool),
+            await newRewardToken.balanceOf(delegator1),
+            await newRewardToken.balanceOf(delegator2),
+            await newRewardToken.balanceOf(delegator3),
+          ];
+
+          assertNoZerosBalanceDistribution(
+            [...firstTokenBalances, ...secondTokenBalances],
+            [20, 32, 32, 16, 20, 32, 32, 16]
+          );
+        });
+      });
+
+      describe("getDelegatorStakingRewards()", () => {
+        const userStakeRewardsViewToObject = (rewards) => {
+          return {
+            micropool: rewards.micropool,
+            rewardTokens: rewards.rewardTokens,
+            expectedRewards: rewards.expectedRewards,
+            realRewards: rewards.realRewards,
+          };
+        };
+
+        const userStakeRewardsArrayToObject = (rewardsArray) => {
+          return rewardsArray.map((rewards) => userStakeRewardsViewToObject(rewards));
+        };
+
+        it("should return delegator staking rewards properly", async () => {
+          const zeroRewards = await govPool.getDelegatorStakingRewards(delegator1);
+
+          assert.deepEqual(zeroRewards, []);
+
+          await govPool.delegate(micropool, wei("50000000000000000000"), [], { from: delegator1 });
+          await govPool.delegate(micropool, wei("50000000000000000000"), [], { from: delegator2 });
+          await govPool.delegate(micropool, wei("25000000000000000000"), [], { from: delegator3 });
+
+          await govPool.delegate(micropool2, wei("50000000000000000000"), [], { from: delegator1 });
+          await govPool.delegate(micropool2, wei("50000000000000000000"), [], { from: delegator2 });
+          await govPool.delegate(micropool2, wei("25000000000000000000"), [], { from: delegator3 });
+
+          const newRewardToken = await ERC20Mock.new("Mock", "Mock", 18);
+
+          await newRewardToken.mint(govPool.address, wei("80000000000000000000"));
+
+          NEW_SETTINGS.rewardToken = newRewardToken.address;
+          NEW_SETTINGS.earlyCompletion = false;
+          NEW_SETTINGS.duration = 2;
+          NEW_SETTINGS.creationReward = 0;
+          NEW_SETTINGS.executionReward = 0;
+
+          const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
+
+          await govPool.createProposal("example.com", "misc", [settings.address], [0], [bytes]);
+
+          await govPool.voteDelegated(1, wei("125000000000000000000"), [], { from: micropool });
+          await govPool.voteDelegated(1, wei("125000000000000000000"), [], { from: micropool2 });
+
+          await govPool.moveProposalToValidators(1);
+
+          await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+          await govPool.execute(1);
+
+          await govPool.createProposal(
+            "example.com",
+            "misc",
+            [settings.address],
+            [0],
+            [getBytesAddSettings([NEW_SETTINGS])]
+          );
+          await govPool.voteDelegated(2, wei("125000000000000000000"), [], { from: micropool });
+          await govPool.voteDelegated(2, wei("125000000000000000000"), [], { from: micropool2 });
+
+          await govPool.execute(2);
+
+          const rewards1 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator1));
+          const rewards2 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator2));
+          const rewards3 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator3));
+
+          await govPool.undelegate(micropool, wei("50000000000000000000"), [], { from: delegator1 });
+          await govPool.undelegate(micropool, wei("50000000000000000000"), [], { from: delegator2 });
+          await govPool.undelegate(micropool, wei("25000000000000000000"), [], { from: delegator3 });
+
+          await govPool.undelegate(micropool2, wei("50000000000000000000"), [], { from: delegator1 });
+          await govPool.undelegate(micropool2, wei("50000000000000000000"), [], { from: delegator2 });
+          await govPool.undelegate(micropool2, wei("25000000000000000000"), [], { from: delegator3 });
+
+          assert.deepEqual(rewards1, [
+            {
+              micropool: micropool,
+              rewardTokens: [rewardToken.address, newRewardToken.address],
+              expectedRewards: [wei("40000000000000000000"), wei("40000000000000000000")],
+              realRewards: [wei("40000000000000000000"), wei("30000000000000000000")],
+            },
+            {
+              micropool: micropool2,
+              rewardTokens: [rewardToken.address, newRewardToken.address],
+              expectedRewards: [wei("40000000000000000000"), wei("40000000000000000000")],
+              realRewards: [wei("40000000000000000000"), wei("30000000000000000000")],
+            },
+          ]);
+          assert.deepEqual(rewards2, rewards1);
+          assert.deepEqual(rewards3, [
+            {
+              micropool: micropool,
+              rewardTokens: [rewardToken.address, newRewardToken.address],
+              expectedRewards: [wei("20000000000000000000"), wei("20000000000000000000")],
+              realRewards: [wei("20000000000000000000"), wei("20000000000000000000")],
+            },
+            {
+              micropool: micropool2,
+              rewardTokens: [rewardToken.address, newRewardToken.address],
+              expectedRewards: [wei("20000000000000000000"), wei("20000000000000000000")],
+              realRewards: [wei("20000000000000000000"), wei("20000000000000000000")],
+            },
+          ]);
+        });
+      });
+    });
+  });
+
+  describe("ERC721Power", () => {
+    let POOL_PARAMETERS;
+
+    beforeEach("setup", async () => {
+      POOL_PARAMETERS = await getPoolParameters(nftPower.address);
+
+      await deployPool(POOL_PARAMETERS);
+      await setupTokens();
+    });
+
+    describe("staking", () => {
+      let micropool;
+      let delegator1;
+      let delegator2;
+
+      beforeEach(async () => {
+        micropool = SECOND;
+        delegator1 = THIRD;
+        delegator2 = FOURTH;
+
+        for (let i = 10; i <= 12; i++) {
+          await nftPower.safeMint(delegator1, i);
+          await nftPower.approve(userKeeper.address, i, { from: delegator1 });
+        }
+
+        for (let i = 20; i <= 22; i++) {
+          await nftPower.safeMint(delegator2, i);
+          await nftPower.approve(userKeeper.address, i, { from: delegator2 });
+        }
+
+        await govPool.deposit(delegator1, 0, [10, 11, 12], { from: delegator1 });
+        await govPool.deposit(delegator2, 0, [20, 21, 22], { from: delegator2 });
+
+        await govPool.createProposal("example.com", "misc", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
+      });
+
+      it("should not give rewards for zero power nfts staking", async () => {
+        await govPool.delegate(micropool, 0, [10, 11, 12], { from: delegator1 });
+        await govPool.delegate(micropool, 0, [20, 21, 22], { from: delegator2 });
+
+        await govPool.voteDelegated(1, 0, [10, 11, 12, 20, 21, 22], { from: micropool });
+
+        await setTime((await getCurrentBlockTime()) + 10000);
+
+        await govPool.undelegate(micropool, 0, [10, 11, 12], { from: delegator1 });
+        await govPool.undelegate(micropool, 0, [20, 21, 22], { from: delegator2 });
+
+        const balance1 = await rewardToken.balanceOf(delegator1);
+        const balance2 = await rewardToken.balanceOf(delegator2);
+
+        assert.equal(balance1.toFixed(), "0");
+        assert.equal(balance2.toFixed(), "0");
+      });
+
+      it("should properly divide rewards by deviation", async () => {
+        await setTime((await getCurrentBlockTime()) + 100);
+
+        await govPool.delegate(micropool, 0, [10, 11, 12], { from: delegator1 });
+        await govPool.delegate(micropool, 0, [20, 21, 22], { from: delegator2 });
+
+        await govPool.voteDelegated(1, 0, [10, 11, 12, 20, 21, 22], { from: micropool });
+
+        await setTime((await getCurrentBlockTime()) + 1000);
+        await govPool.undelegate(micropool, 0, [20, 21, 22], { from: delegator2 });
+
+        await setTime((await getCurrentBlockTime()) + 4000);
+        await govPool.undelegate(micropool, 0, [10, 11, 12], { from: delegator1 });
+
+        const balance1 = await rewardToken.balanceOf(delegator1);
+        const balance2 = await rewardToken.balanceOf(delegator2);
+
+        assertNoZerosBalanceDistribution([balance1, balance2], [1, 2]);
       });
     });
   });

@@ -567,7 +567,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function nftVotingPower(
         uint256[] memory nftIds
     ) external view override returns (uint256 nftPower, uint256[] memory perNftPower) {
-        return nftIds.nftVotingPower();
+        return nftIds.nftVotingPower(true);
     }
 
     function delegations(
@@ -613,6 +613,22 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
                 _getBalanceInfoStorage(voter, false),
                 _nftLockedNums
             );
+    }
+
+    function getDelegatees(address delegator) external view returns (address[] memory) {
+        return _usersInfo[delegator].delegatees.values();
+    }
+
+    function getDelegatedStakeAmount(
+        address delegator,
+        address delegatee
+    ) external view override returns (uint256) {
+        (uint256 delegatedNftsPower, ) = _usersInfo[delegator]
+            .delegatedNfts[delegatee]
+            .values()
+            .nftVotingPower(false);
+
+        return _usersInfo[delegator].delegatedTokens[delegatee] + delegatedNftsPower;
     }
 
     function _setERC20Address(address _tokenAddress) internal {
