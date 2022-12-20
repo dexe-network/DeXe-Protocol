@@ -2094,11 +2094,13 @@ describe("GovPool", () => {
 
           const newRewardToken = await ERC20Mock.new("Mock", "Mock", 18);
 
-          await newRewardToken.mint(govPool.address, wei("10000000000000000000000"));
+          await newRewardToken.mint(govPool.address, wei("80000000000000000000"));
 
           NEW_SETTINGS.rewardToken = newRewardToken.address;
           NEW_SETTINGS.earlyCompletion = false;
           NEW_SETTINGS.duration = 2;
+          NEW_SETTINGS.creationReward = 0;
+          NEW_SETTINGS.executionReward = 0;
 
           const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
 
@@ -2110,7 +2112,6 @@ describe("GovPool", () => {
           await govPool.moveProposalToValidators(1);
 
           await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
-
           await govPool.execute(1);
 
           await govPool.createProposal(
@@ -2120,7 +2121,6 @@ describe("GovPool", () => {
             [0],
             [getBytesAddSettings([NEW_SETTINGS])]
           );
-
           await govPool.voteDelegated(2, wei("125000000000000000000"), [], { from: micropool });
           await govPool.voteDelegated(2, wei("125000000000000000000"), [], { from: micropool2 });
 
@@ -2130,23 +2130,6 @@ describe("GovPool", () => {
           const rewards2 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator2));
           const rewards3 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator3));
 
-          assert.deepEqual(rewards1, rewards2);
-          assert.notDeepEqual(rewards2, rewards3);
-          assert.equal(rewards1.length, rewards3.length);
-          assert.equal(rewards1.length, 2);
-
-          for (let i = 0; i < 2; i++) {
-            assert.deepEqual(rewards1[i].rewardTokens, rewards3[i].rewardTokens);
-            assert.deepEqual(
-              rewards3[i].expectedRewards.map((reward) => toBN(reward).times(2).toFixed()),
-              rewards1[i].expectedRewards
-            );
-            assert.deepEqual(
-              rewards3[i].realRewards.map((reward) => toBN(reward).times(2).toFixed()),
-              rewards1[i].realRewards
-            );
-          }
-
           await govPool.undelegate(micropool, wei("50000000000000000000"), [], { from: delegator1 });
           await govPool.undelegate(micropool, wei("50000000000000000000"), [], { from: delegator2 });
           await govPool.undelegate(micropool, wei("25000000000000000000"), [], { from: delegator3 });
@@ -2154,6 +2137,36 @@ describe("GovPool", () => {
           await govPool.undelegate(micropool2, wei("50000000000000000000"), [], { from: delegator1 });
           await govPool.undelegate(micropool2, wei("50000000000000000000"), [], { from: delegator2 });
           await govPool.undelegate(micropool2, wei("25000000000000000000"), [], { from: delegator3 });
+
+          assert.deepEqual(rewards1, [
+            {
+              micropool: micropool,
+              rewardTokens: [rewardToken.address, newRewardToken.address],
+              expectedRewards: [wei("40000000000000000000"), wei("40000000000000000000")],
+              realRewards: [wei("40000000000000000000"), wei("30000000000000000000")],
+            },
+            {
+              micropool: micropool2,
+              rewardTokens: [rewardToken.address, newRewardToken.address],
+              expectedRewards: [wei("40000000000000000000"), wei("40000000000000000000")],
+              realRewards: [wei("40000000000000000000"), wei("30000000000000000000")],
+            },
+          ]);
+          assert.deepEqual(rewards2, rewards1);
+          assert.deepEqual(rewards3, [
+            {
+              micropool: micropool,
+              rewardTokens: [rewardToken.address, newRewardToken.address],
+              expectedRewards: [wei("20000000000000000000"), wei("20000000000000000000")],
+              realRewards: [wei("20000000000000000000"), wei("20000000000000000000")],
+            },
+            {
+              micropool: micropool2,
+              rewardTokens: [rewardToken.address, newRewardToken.address],
+              expectedRewards: [wei("20000000000000000000"), wei("20000000000000000000")],
+              realRewards: [wei("20000000000000000000"), wei("20000000000000000000")],
+            },
+          ]);
         });
       });
     });

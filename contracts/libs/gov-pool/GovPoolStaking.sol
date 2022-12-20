@@ -80,10 +80,10 @@ library GovPoolStaking {
                     delegatees[i]
                 );
 
-            uint256[] memory realRewards = expectedRewards;
+            uint256[] memory realRewards = new uint256[](expectedRewards.length);
 
             for (uint256 j = 0; j < realRewards.length; j++) {
-                realRewards[i] = realRewards[i].min(rewardTokens[i].normThisBalance());
+                realRewards[j] = expectedRewards[j].min(rewardTokens[j].normThisBalance());
             }
 
             rewards[i] = IGovPool.UserStakeRewardsView({
