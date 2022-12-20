@@ -2066,6 +2066,19 @@ describe("GovPool", () => {
       });
 
       describe.only("getDelegatorStakingRewards()", () => {
+        const userStakeRewardsViewToObject = (rewards) => {
+          return {
+            micropool: rewards.micropool,
+            rewardTokens: rewards.rewardTokens,
+            expectedRewards: rewards.expectedRewards,
+            realRewards: rewards.realRewards,
+          };
+        };
+
+        const userStakeRewardsArrayToObject = (rewardsArray) => {
+          return rewardsArray.map((rewards) => userStakeRewardsViewToObject(rewards));
+        };
+
         it("should return delegator staking rewards properly", async () => {
           const zeroRewards = await govPool.getDelegatorStakingRewards(delegator1);
 
@@ -2112,6 +2125,35 @@ describe("GovPool", () => {
           await govPool.voteDelegated(2, wei("125000000000000000000"), [], { from: micropool2 });
 
           await govPool.execute(2);
+
+          const rewards1 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator1));
+          const rewards2 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator2));
+          const rewards3 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator3));
+
+          assert.deepEqual(rewards1, rewards2);
+          assert.notDeepEqual(rewards2, rewards3);
+          assert.equal(rewards1.length, rewards3.length);
+          assert.equal(rewards1.length, 2);
+
+          for (let i = 0; i < 2; i++) {
+            assert.deepEqual(rewards1[i].rewardTokens, rewards3[i].rewardTokens);
+            assert.deepEqual(
+              rewards3[i].expectedRewards.map((reward) => toBN(reward).times(2).toFixed()),
+              rewards1[i].expectedRewards
+            );
+            assert.deepEqual(
+              rewards3[i].realRewards.map((reward) => toBN(reward).times(2).toFixed()),
+              rewards1[i].realRewards
+            );
+          }
+
+          await govPool.undelegate(micropool, wei("50000000000000000000"), [], { from: delegator1 });
+          await govPool.undelegate(micropool, wei("50000000000000000000"), [], { from: delegator2 });
+          await govPool.undelegate(micropool, wei("25000000000000000000"), [], { from: delegator3 });
+
+          await govPool.undelegate(micropool2, wei("50000000000000000000"), [], { from: delegator1 });
+          await govPool.undelegate(micropool2, wei("50000000000000000000"), [], { from: delegator2 });
+          await govPool.undelegate(micropool2, wei("25000000000000000000"), [], { from: delegator3 });
         });
       });
     });
