@@ -2065,7 +2065,7 @@ describe("GovPool", () => {
         });
       });
 
-      describe.only("getDelegatorStakingRewards()", () => {
+      describe("getDelegatorStakingRewards()", () => {
         const userStakeRewardsViewToObject = (rewards) => {
           return {
             micropool: rewards.micropool,
