@@ -61,6 +61,7 @@ describe("GovPool", () => {
   let THIRD;
   let FOURTH;
   let FIFTH;
+  let SIXTH;
   let FACTORY;
   let NOTHING;
 
@@ -88,7 +89,8 @@ describe("GovPool", () => {
     THIRD = await accounts(2);
     FOURTH = await accounts(3);
     FIFTH = await accounts(4);
-    FACTORY = await accounts(5);
+    SIXTH = await accounts(5);
+    FACTORY = await accounts(6);
     NOTHING = await accounts(9);
 
     const govUserKeeperViewLib = await GovUserKeeperViewLib.new();
@@ -1807,15 +1809,17 @@ describe("GovPool", () => {
       };
 
       let micropool;
+      let micropool2;
       let delegator1;
       let delegator2;
       let delegator3;
 
       beforeEach(async () => {
         micropool = SECOND;
-        delegator1 = THIRD;
-        delegator2 = FOURTH;
-        delegator3 = FIFTH;
+        micropool2 = THIRD;
+        delegator1 = FOURTH;
+        delegator2 = FIFTH;
+        delegator3 = SIXTH;
 
         await token.mint(delegator1, wei("100000000000000000000"));
         await token.mint(delegator2, wei("100000000000000000000"));
@@ -2058,6 +2062,56 @@ describe("GovPool", () => {
             [...firstTokenBalances, ...secondTokenBalances],
             [20, 32, 32, 16, 20, 32, 32, 16]
           );
+        });
+      });
+
+      describe.only("getDelegatorStakingRewards()", () => {
+        it("should return delegator staking rewards properly", async () => {
+          const zeroRewards = await govPool.getDelegatorStakingRewards(delegator1);
+
+          assert.deepEqual(zeroRewards, []);
+
+          await govPool.delegate(micropool, wei("50000000000000000000"), [], { from: delegator1 });
+          await govPool.delegate(micropool, wei("50000000000000000000"), [], { from: delegator2 });
+          await govPool.delegate(micropool, wei("25000000000000000000"), [], { from: delegator3 });
+
+          await govPool.delegate(micropool2, wei("50000000000000000000"), [], { from: delegator1 });
+          await govPool.delegate(micropool2, wei("50000000000000000000"), [], { from: delegator2 });
+          await govPool.delegate(micropool2, wei("25000000000000000000"), [], { from: delegator3 });
+
+          const newRewardToken = await ERC20Mock.new("Mock", "Mock", 18);
+
+          await newRewardToken.mint(govPool.address, wei("10000000000000000000000"));
+
+          NEW_SETTINGS.rewardToken = newRewardToken.address;
+          NEW_SETTINGS.earlyCompletion = false;
+          NEW_SETTINGS.duration = 2;
+
+          const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
+
+          await govPool.createProposal("example.com", "misc", [settings.address], [0], [bytes]);
+
+          await govPool.voteDelegated(1, wei("125000000000000000000"), [], { from: micropool });
+          await govPool.voteDelegated(1, wei("125000000000000000000"), [], { from: micropool2 });
+
+          await govPool.moveProposalToValidators(1);
+
+          await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+          await govPool.execute(1);
+
+          await govPool.createProposal(
+            "example.com",
+            "misc",
+            [settings.address],
+            [0],
+            [getBytesAddSettings([NEW_SETTINGS])]
+          );
+
+          await govPool.voteDelegated(2, wei("125000000000000000000"), [], { from: micropool });
+          await govPool.voteDelegated(2, wei("125000000000000000000"), [], { from: micropool2 });
+
+          await govPool.execute(2);
         });
       });
     });
