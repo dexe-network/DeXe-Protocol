@@ -2,20 +2,23 @@
 pragma solidity ^0.8.4;
 
 import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
+
 import "../../core/Globals.sol";
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
     address public govAddress;
 
-    uint256 internal _latestTierId;
+    uint256 public override latestTierId;
 
     mapping(uint256 => Tier) internal _tiers;
     mapping(uint256 => TierBackend) internal _tiersBackend;
+    mapping(address => uint256) internal _amountToSell;
 
     modifier onlyGov() {
-        require(msg.sender == govAddress, "TSP: not a Gov contract");
+        require(govAddress == address(0) || msg.sender == govAddress, "TSP: not a Gov contract");
         _;
     }
 
@@ -41,20 +44,52 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         }
     }
 
-    function addToWhitelist(
-        uint256 tierId,
-        address[] memory users
-    ) external override ifTierExists(tierId) {}
+    function addToWhitelist(WhitelistingRequest[] memory requests) external override {}
 
-    function offTier(uint256 tierId) external override ifTierExists(tierId) {}
+    function offTiers(uint256[] memory tierIds) external override onlyGov {}
 
-    function vestingWithdraw(uint256 tierId) external override ifTierExists(tierId) {}
+    function vestingWithdraw(uint256[] memory tierIds) external override {}
 
-    function buy(
+    function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable {
+        uint256 saleTokenAmount = getSaleTokenAmount(
+            tierId,
+            tokenToBuyWith,
+            tokenToBuyWith == ETHEREUM_ADDRESS ? amount : msg.value
+        );
+
+        if (tokenToBuyWith != ETHEREUM_ADDRESS) {
+            tokenToBuyWith.safeTransferFrom(msg.sender, govAddress, amount);
+        } else {
+            (bool success, ) = govAddress.call{value: msg.value}("");
+            require(success, "TSP: failed to transfer ether");
+        }
+
+        _tiers[tierId].sendFunds(msg.sender, saleTokenAmount);
+    }
+
+    function recover(RecoveringRequest[] memory requests) external {}
+
+    function getSaleTokenAmount(
         uint256 tierId,
         address tokenToBuyWith,
         uint256 amount
-    ) external payable ifTierExists(tierId) {}
+    ) public view ifTierExists(tierId) returns (uint256) {
+        uint256 exchangeRate = _tiersBackend[tierId].rates[tokenToBuyWith];
+
+        require(exchangeRate != 0, "TSP: incorrect token");
+
+        return amount.ratio(exchangeRate, PRECISION);
+    }
+
+    function getVestingWithdrawAmounts(
+        uint256[] memory tierIds
+    ) external view returns (uint256[] memory) {
+        return new uint256[](0);
+    }
+
+    function getTiers(uint256 offset, uint256 limit) external view returns (Tier[] memory) {
+        return new Tier[](0);
+    }
 
     function _createTier(Tier memory tier) private {
         require(tier.saleTokenAddress != address(0), "TSP: sale token cannot be zero");
@@ -75,11 +110,19 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
 
         require(tier.vestingSettings.unlockStep != 0, "TSP: unlockStep cannot be zero");
 
-        ++_latestTierId;
+        _amountToSell[tier.saleTokenAddress] += tier.totalTokenProvided;
 
-        _tiers[_latestTierId] = tier;
+        require(
+            _amountToSell[tier.saleTokenAddress] >=
+                IERC20(tier.saleTokenAddress).balanceOf(address(this)),
+            "TSP: insufficient TSP balance"
+        );
 
-        TierBackend storage tierBackend = _tiersBackend[_latestTierId];
+        ++latestTierId;
+
+        _tiers[latestTierId] = tier;
+
+        TierBackend storage tierBackend = _tiersBackend[latestTierId];
 
         tierBackend.exists = true;
 

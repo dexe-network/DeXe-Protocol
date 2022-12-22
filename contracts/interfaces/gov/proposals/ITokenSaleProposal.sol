@@ -36,13 +36,39 @@ interface ITokenSaleProposal {
         uint256 latestVestingWithdraw;
     }
 
+    struct WhitelistingRequest {
+        uint256 tierId;
+        address[] users;
+    }
+
+    struct RecoveringRequest {
+        uint256 tierId;
+        address[] tokens;
+    }
+
+    function latestTierId() external view returns (uint256);
+
     function createTiers(Tier[] memory tiers) external;
 
-    function addToWhitelist(uint256 tierId, address[] memory users) external;
+    function addToWhitelist(WhitelistingRequest[] memory requests) external;
 
-    function offTier(uint256 tierId) external;
+    function offTiers(uint256[] memory tierIds) external;
 
-    function vestingWithdraw(uint256 tierId) external;
+    function vestingWithdraw(uint256[] memory tierIds) external;
 
     function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable;
+
+    function recover(RecoveringRequest[] memory requests) external;
+
+    function getSaleTokenAmount(
+        uint256 tierId,
+        address tokenToBuyWith,
+        uint256 amount
+    ) external view returns (uint256);
+
+    function getVestingWithdrawAmounts(
+        uint256[] memory tierIds
+    ) external view returns (uint256[] memory);
+
+    function getTiers(uint256 offset, uint256 limit) external view returns (Tier[] memory);
 }
