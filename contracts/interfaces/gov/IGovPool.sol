@@ -24,9 +24,9 @@ interface IGovPool {
     }
 
     /// @notice The struct holds core properties of proposal
-    /// @param settongs the struct that hold information about settings of proposal
-    /// @param executed the boolean flag that sets to true when proposal executed
-    /// @param voteEnd the timestamp of ending of voting for proposal
+    /// @param settings the struct that holds information about settings of the proposal
+    /// @param executed the boolean flag that sets to true when the proposal gets executed
+    /// @param voteEnd the timestamp of voting end for the proposal
     /// @param votesFor the total number votes for proposal from all voters
     /// @param nftPowerSnapshotId the id of nft power snapshot
     struct ProposalCore {
@@ -51,12 +51,12 @@ interface IGovPool {
         bytes[] data;
     }
 
-    /// @notice The struct that used in view functs of contract as a returns arg
+    /// @notice The struct that is used in view functions of contract as a return argument
     /// @param proposal the `Proposal` struct
     /// @param validatorProposal the `ExternalProposal` struct
     /// @param proposalState the value from enum `ProposalState`, that shows proposal state at current time
-    /// @param requiredQuorum the percentage of total user's votes to confirm the proposal
-    /// @param requiredValidatorsQuorum the percentage of total validator's votes to confirm the proposal
+    /// @param requiredQuorum the required votes amount to confirm the proposal
+    /// @param requiredValidatorsQuorum the the required validator votes to confirm the proposal
     struct ProposalView {
         Proposal proposal;
         IGovValidators.ExternalProposal validatorProposal;
@@ -65,20 +65,20 @@ interface IGovPool {
         uint256 requiredValidatorsQuorum;
     }
 
-    /// @notice The struct that holds information about votes of user in one proposal
-    /// @param totalVoted the total power of votes from one user for proposal
-    /// @param tokensVoted the total erc20 amount voted from one user for proposal
-    /// @param nftsVoted the set of ids of nfts voted from one user for proposal
+    /// @notice The struct that holds information about the votes of the user in a single proposal
+    /// @param totalVoted the total power of votes from one user for the proposal
+    /// @param tokensVoted the total erc20 amount voted from one user for the proposal
+    /// @param nftsVoted the set of ids of nfts voted from one user for the  proposal
     struct VoteInfo {
         uint256 totalVoted;
         uint256 tokensVoted;
         EnumerableSet.UintSet nftsVoted;
     }
 
-    /// @notice The struct that used in view functs of contract as a return arg
-    /// @param totalVoted the total power of votes from one user for proposal
-    /// @param tokensVoted the total erc20 amount voted from one user for proposal
-    /// @param nftsVoted the array of ids of nfts voted from one user for proposal
+    /// @notice The struct that is used in view functions of contract as a return argument
+    /// @param totalVoted the total power of votes from one user for the proposal
+    /// @param tokensVoted the total erc20 amount voted from one user for the proposal
+    /// @param nftsVoted the array of ids of nfts voted from one user for the proposal
     struct VoteInfoView {
         uint256 totalVoted;
         uint256 tokensVoted;
@@ -113,7 +113,7 @@ interface IGovPool {
     /// @return `address` of nft multiplier
     function nftMultiplier() external view returns (address);
 
-    /// @notice The function to get latest id of proposal
+    /// @notice The function to get the latest proposal id
     /// @return `id` of latest proposal
     function latestProposalId() external view returns (uint256);
 
@@ -152,14 +152,14 @@ interface IGovPool {
     /// @param proposalId Proposal ID
     function moveProposalToValidators(uint256 proposalId) external;
 
-    /// @notice The function for voting for proposal with own liquids
-    /// @notice values `depositAmount`, `depositNftIds` may be zero if volumes were deposited before
-    /// @notice values `voteAmount`, `voteNftIds` should be more of equal to total deposit
+    /// @notice The function for voting for proposal with own tokens
+    /// @notice values `depositAmount`, `depositNftIds` may be zero if tokens were deposited before
+    /// @notice values `voteAmount`, `voteNftIds` should be less or equal to the total deposit
     /// @param proposalId the id of proposal
-    /// @param depositAmount the amount of deposit in erc20
-    /// @param depositNftIds the nft ids of deposit
-    /// @param voteAmount the amount of vote in erc20
-    /// @param voteNftIds the nft ids of vote
+    /// @param depositAmount the deposit amount in erc20
+    /// @param depositNftIds the deposit nft ids
+    /// @param voteAmount the erc20 vote amount
+    /// @param voteNftIds the nft ids that will be used in voting
     function vote(
         uint256 proposalId,
         uint256 depositAmount,
@@ -168,49 +168,49 @@ interface IGovPool {
         uint256[] calldata voteNftIds
     ) external;
 
-    /// @notice The function for voting for proposal with delegated liquids
+    /// @notice The function for voting for proposals with delegated tokens
     /// @param proposalId the id of proposal
-    /// @param voteAmount the amount of vote in erc20
-    /// @param voteNftIds the nft ids of vote
+    /// @param voteAmount the erc20 vote amount
+    /// @param voteNftIds the nft ids that will be used in delegated voting
     function voteDelegated(
         uint256 proposalId,
         uint256 voteAmount,
         uint256[] calldata voteNftIds
     ) external;
 
-    /// @notice The function for depositing liquids
-    /// @param receiver the address of target for deposit
-    /// @param amount the amount of deposit
+    /// @notice The function for depositing tokens to the pool
+    /// @param receiver the address of the deposit receiver
+    /// @param amount the erc20 deposit amount
     /// @param nftIds the array of nft ids to deposit
     function deposit(address receiver, uint256 amount, uint256[] calldata nftIds) external;
 
-    /// @notice The function for withdrawing deposited liquids
-    /// @param receiver the address of target for withdraw
-    /// @param amount the amount of withdraw
+    /// @notice The function for withdrawing deposited tokens
+    /// @param receiver the withdrawal receiver address
+    /// @param amount the erc20 withdrawal amount
     /// @param nftIds the array of nft ids to withdraw
     function withdraw(address receiver, uint256 amount, uint256[] calldata nftIds) external;
 
-    /// @notice The function for delegating liquids
-    /// @param delegatee the address of target for delegation (person who will get the delegation)
-    /// @param amount the amount of delegation
-    /// @param nftIds the array of nft ids to delegation
+    /// @notice The function for delegating tokens
+    /// @param delegatee the target address for delegation (person who will receive the delegation)
+    /// @param amount the erc20 delegation amount
+    /// @param nftIds the array of nft ids to delegate
     function delegate(address delegatee, uint256 amount, uint256[] calldata nftIds) external;
 
-    /// @notice The function for undelegating delegated liquids
-    /// @param delegatee the address of target for undelegation (person who got the delegation)
-    /// @param amount the amount of undelegation
-    /// @param nftIds the array of nft ids to undelegation
+    /// @notice The function for undelegating delegated tokens
+    /// @param delegatee the undelegation target address (person who will be undelegated)
+    /// @param amount the erc20 undelegation amount
+    /// @param nftIds the array of nft ids to undelegate
     function undelegate(address delegatee, uint256 amount, uint256[] calldata nftIds) external;
 
-    /// @notice The function call `unlockInProposals` for all proposals
-    /// @param user the target address to unlock
-    /// @param isMicropool the bool flag for micropool
+    /// @notice The function that unlocks user funds in completed proposals
+    /// @param user the user whose funds to unlock
+    /// @param isMicropool the bool flag for micropool (unlock personal or delegated funds)
     function unlock(address user, bool isMicropool) external;
 
-    /// @notice The function to unlock liquids from proposals
-    /// @param proposalIds the array of proposal ids
-    /// @param user the target address to unlock
-    /// @param isMicropool the bool flag for micropool
+    /// @notice The function to unlock user funds from completed proposals
+    /// @param proposalIds the array of proposals to unlock the funds in
+    /// @param user the user to unlock the funds of
+    /// @param isMicropool the bool flag for micropool (unlock personal or delegated funds)
     function unlockInProposals(
         uint256[] memory proposalIds,
         address user,
@@ -225,7 +225,7 @@ interface IGovPool {
     /// @param proposalIds the array of proposal ids
     function claimRewards(uint256[] calldata proposalIds) external;
 
-    /// @notice The function for execution proposal and then claiming reward
+    /// @notice The function for executing proposal and then claiming the reward
     /// @param proposalId the id of proposal
     function executeAndClaim(uint256 proposalId) external;
 
@@ -233,13 +233,13 @@ interface IGovPool {
     /// @param newDescriptionURL the string with new url
     function editDescriptionURL(string calldata newDescriptionURL) external;
 
-    /// @notice The function for setting address of nft multiplier
+    /// @notice The function for setting address of nft multiplier contract
     /// @param nftMultiplierAddress the address of nft multiplier
     function setNftMultiplierAddress(address nftMultiplierAddress) external;
 
-    /// @notice The function with paggination for getting proposal info list
-    /// @param offset the starting index of the investors array
-    /// @param limit the length of the observed array
+    /// @notice The paginated function for getting proposal info list
+    /// @param offset the proposal starting index
+    /// @param limit the number of proposals to observe
     /// @return `ProposalView` array
     function getProposals(
         uint256 offset,
@@ -257,10 +257,10 @@ interface IGovPool {
     /// 6 -`Undefined`, nonexistent proposal
     function getProposalState(uint256 proposalId) external view returns (ProposalState);
 
-    /// @notice The function for getting total votes for proposal from one voter
+    /// @notice The function for getting total votes in the proposal by one voter
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
-    /// @param isMicropool the bool flag for micropool
+    /// @param isMicropool the bool flag for micropool (personal or delegated votes)
     function getTotalVotes(
         uint256 proposalId,
         address voter,
@@ -269,12 +269,14 @@ interface IGovPool {
 
     /// @notice The function to get required quorum of proposal
     /// @param proposalId the id of proposal
+    /// @return the required number for votes to reach the quorum
+    /// @return the required number for votes to reach the quorum
     function getProposalRequiredQuorum(uint256 proposalId) external view returns (uint256);
 
     /// @notice The function to get information about user's votes
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
-    /// @param isMicropool the bool flag for micropool
+    /// @param isMicropool the bool flag for micropool (personal or delegated votes)
     /// @return `VoteInfoView` array
     function getUserVotes(
         uint256 proposalId,
@@ -283,8 +285,8 @@ interface IGovPool {
     ) external view returns (VoteInfoView memory);
 
     /// @notice The function to get withdrawable assets
-    /// @param delegator the address of delegator
-    /// @param delegatee the address of delegatee
+    /// @param delegator the delegator address
+    /// @param delegatee the delegatee address
     /// @return `Arguments`: erc20 amount, array nft ids
     function getWithdrawableAssets(
         address delegator,

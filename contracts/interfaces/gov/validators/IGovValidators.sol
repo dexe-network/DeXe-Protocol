@@ -20,19 +20,19 @@ interface IGovValidators {
         ChangeBalances
     }
 
-    /// @notice The struct holds information about settings for internal proposal
-    /// @param duration the duration of voting end
-    /// @param quorum the percentage of total user's votes to confirm the proposal
+    /// @notice The struct holds information about settings for internal validators proposal
+    /// @param duration the duration of voting
+    /// @param quorum the percentage of validators token supply to confirm the proposal
     struct InternalProposalSettings {
         uint64 duration;
         uint128 quorum;
     }
 
-    /// @notice The struct holds core properties of proposal
-    /// @param executed the boolean flag that sets to true when proposal executed
-    /// @param voteEnd the timestamp of ending of voting for proposal
-    /// @param quorum the percentage of total user's votes to confirm the proposal
-    /// @param votesFor the total number votes for proposal from all voters
+    /// @notice The struct holds core properties of a proposal
+    /// @param executed the boolean flag that indicated whether the proposal is executed or not
+    /// @param voteEnd the timestamp of voting end of the proposal
+    /// @param quorum the percentage of validators token supply to confirm the proposal
+    /// @param votesFor the total number of votes in proposal from all voters
     /// @param snapshotId the id of snapshot
     struct ProposalCore {
         bool executed;
@@ -42,11 +42,11 @@ interface IGovValidators {
         uint256 snapshotId;
     }
 
-    /// @notice The struct holds all information about internal proposal
+    /// @notice The struct holds information about the internal proposal
     /// @param proposalType the `ProposalType` enum
-    /// @param core the struct that holds information about core properties of proposal
+    /// @param core the struct that holds information about core properties of the proposal
     /// @param descriptionURL the string with link to IPFS doc with proposal description
-    /// @param newValues the array of new balances
+    /// @param newValues the array of new values. Usage varies by proposal type
     /// @param userAddresses the array of user addresses
     struct InternalProposal {
         ProposalType proposalType;
@@ -56,23 +56,23 @@ interface IGovValidators {
         address[] userAddresses;
     }
 
-    /// @notice The struct holds all information about external proposal
-    /// @param core the struct that holds information about core properties of proposal
+    /// @notice The struct holds information about the external proposal
+    /// @param core the struct that holds information about core properties of a proposal
     struct ExternalProposal {
         ProposalCore core;
     }
 
-    /// @notice The struct that used in view functs of contract as a returns arg
+    /// @notice The struct that is used in view functions of contract as a return argument
     /// @param proposal the `InternalProposal` struct
     /// @param proposalState the `ProposalState` enum
-    /// @param requiredQuorum the percentage of total user's votes to confirm the proposal
+    /// @param requiredQuorum the percentage of validators token supply to confirm the proposal
     struct InternalProposalView {
         InternalProposal proposal;
         ProposalState proposalState;
         uint256 requiredQuorum;
     }
 
-    /// @notice The function for getting latest id of internal proposal
+    /// @notice The function for getting the latest id of the internal proposal
     /// @return `id` of latest internal proposal
     function latestInternalProposalId() external view returns (uint256);
 
@@ -119,14 +119,14 @@ interface IGovValidators {
     /// @param proposalId Internal proposal ID
     function execute(uint256 proposalId) external;
 
-    /// @notice The function for getting information about external proposal
+    /// @notice The function for getting information about the external proposals
     /// @param index the index of proposal
     /// @return `ExternalProposal` struct
     function getExternalProposal(uint256 index) external view returns (ExternalProposal memory);
 
     /// @notice The function for getting information about internal proposals
-    /// @param offset the starting index of the investors array
-    /// @param limit the length of the observed array
+    /// @param offset the starting proposal index
+    /// @param limit the length of the observed proposals
     /// @return `InternalProposalView` struct array
     function getInternalProposals(
         uint256 offset,
@@ -148,14 +148,14 @@ interface IGovValidators {
     /// @notice The function for getting proposal required quorum
     /// @param proposalId the id of proposal
     /// @param isInternal the boolean flag, if true then proposal is internal
-    /// return `required quorum`
+    /// return the number of votes to reach the quorum 
     function getProposalRequiredQuorum(
         uint256 proposalId,
         bool isInternal
     ) external view returns (uint256);
 
-    /// @notice The function that defines is user a validator
-    /// @param user the address of user
+    /// @notice The function that checks if a user is a validator
+    /// @param user the address of a user
     /// @return `flag`, if true, than user is a validator
     function isValidator(address user) external view returns (bool);
 }
