@@ -374,7 +374,7 @@ describe("DistributionProposal", () => {
       });
 
       it("should not claim wrong proposal", async () => {
-        assert.equal(await dp.getPotentialReward(1, OWNER, 123), 0);
+        assert.equal(await dp.getPotentialReward(1, OWNER), 0);
       });
 
       it("should correctly claim", async () => {

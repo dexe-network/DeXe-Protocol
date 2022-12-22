@@ -16,6 +16,7 @@ interface IBasicTraderPool is ITraderPoolInvestorsHook {
     /// @notice This function is used to create risky proposals (basically subpools) and allow investors to invest into it.
     /// The proposals follow pretty much the same rules as the main pool except that the trade can happen with a specified token only.
     /// Investors can't fund the proposal more than the trader percentage wise
+    /// @param descriptionURL the IPFS URL of the proposal's description
     /// @param token the token the proposal will be opened to
     /// @param lpAmount the amount of LP tokens the trader would like to invest into the proposal at its creation
     /// @param proposalLimits the certain limits this proposal will have
@@ -24,6 +25,7 @@ interface IBasicTraderPool is ITraderPoolInvestorsHook {
     /// @param minProposalOut is a minimal received amount of proposal position on proposal creation (call getCreationTokens()) to fetch this value
     /// @param optionalPath is an optional path between the base token and proposal token that will be used by the pathfinder
     function createProposal(
+        string calldata descriptionURL,
         address token,
         uint256 lpAmount,
         ITraderPoolRiskyProposal.ProposalLimits calldata proposalLimits,

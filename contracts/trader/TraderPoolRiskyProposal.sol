@@ -65,6 +65,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     }
 
     function create(
+        string calldata descriptionURL,
         address token,
         ProposalLimits calldata proposalLimits,
         uint256 lpInvestment,
@@ -94,6 +95,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         priceFeed.checkAllowance(baseToken);
         priceFeed.checkAllowance(token);
 
+        _proposalInfos[proposalId].descriptionURL = descriptionURL;
         _proposalInfos[proposalId].token = token;
         _proposalInfos[proposalId].tokenDecimals = ERC20(token).decimals();
         _proposalInfos[proposalId].proposalLimits = proposalLimits;

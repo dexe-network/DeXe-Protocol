@@ -62,7 +62,7 @@ contract DistributionProposal is IDistributionProposal, Initializable {
             require(address(rewardToken) != address(0), "DP: zero address");
             require(!dpInfo.claimed[voter], "DP: already claimed");
 
-            uint256 reward = getPotentialReward(proposalIds[i], voter, dpInfo.rewardAmount);
+            uint256 reward = getPotentialReward(proposalIds[i], voter);
             uint256 balance = address(rewardToken).thisBalance();
 
             dpInfo.claimed[voter] = true;
@@ -88,8 +88,7 @@ contract DistributionProposal is IDistributionProposal, Initializable {
 
     function getPotentialReward(
         uint256 proposalId,
-        address voter,
-        uint256 rewardAmount
+        address voter
     ) public view override returns (uint256) {
         (uint256 totalVoteWeight, uint256 voteWeight) = IGovPool(govAddress).getTotalVotes(
             proposalId,
@@ -97,6 +96,9 @@ contract DistributionProposal is IDistributionProposal, Initializable {
             false
         );
 
-        return totalVoteWeight == 0 ? 0 : rewardAmount.ratio(voteWeight, totalVoteWeight);
+        return
+            totalVoteWeight == 0
+                ? 0
+                : proposals[proposalId].rewardAmount.ratio(voteWeight, totalVoteWeight);
     }
 }

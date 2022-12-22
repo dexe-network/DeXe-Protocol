@@ -210,13 +210,14 @@ describe("BasicTraderPool", () => {
     await traderPool.exchange(from, to, amount, exchange, [], ExchangeType.TO_EXACT);
   }
 
-  async function createProposal(token, value, limits, percentage) {
+  async function createProposal(description, token, value, limits, percentage) {
     const divests = await traderPool.getDivestAmountsAndCommissions(OWNER, value);
     const creationTokens = (
       await proposalPool.getCreationTokens(token, divests.receptions.baseAmount, percentage, [])
     )[0];
 
     await traderPool.createProposal(
+      description,
       token,
       value,
       limits,
@@ -326,6 +327,7 @@ describe("BasicTraderPool", () => {
 
         await truffleAssert.reverts(
           proposalPool.create(
+            "description",
             tokens.MANA.address,
             [time.plus(100000), wei("10000"), wei("2")],
             wei("100"),
@@ -347,6 +349,7 @@ describe("BasicTraderPool", () => {
 
         await truffleAssert.reverts(
           traderPool.createProposal(
+            "description",
             tokens.MANA.address,
             wei("100"),
             [time.plus(100000), wei("10000"), wei("2")],
@@ -442,7 +445,13 @@ describe("BasicTraderPool", () => {
       it("should create empty proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
 
-        await createProposal(tokens.MANA.address, wei("100"), [time.plus(100000), wei("10000"), wei("2")], 0);
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("100"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          0
+        );
         await reinvestProposal(1, await proposalPool.balanceOf(OWNER, 1), OWNER);
 
         await truffleAssert.passes(proposalPool.getDivestAmounts([1], [0]), "pass");
@@ -452,27 +461,33 @@ describe("BasicTraderPool", () => {
         const time = toBN(await getCurrentBlockTime());
 
         await truffleAssert.reverts(
-          createProposal(OWNER, wei("100"), [time.plus(100000), wei("10000"), wei("2")], 0),
+          createProposal("description", OWNER, wei("100"), [time.plus(100000), wei("10000"), wei("2")], 0),
           "TPRP: not a contract"
         );
 
         await truffleAssert.reverts(
-          createProposal(tokens.MANA.address, wei("100"), [time.minus(1), wei("10000"), wei("2")], 0),
+          createProposal("description", tokens.MANA.address, wei("100"), [time.minus(1), wei("10000"), wei("2")], 0),
           "TPRP: wrong timestamp"
         );
 
         await truffleAssert.reverts(
-          createProposal(tokens.MANA.address, wei("100"), [time.plus(100), wei("10"), wei("2")], 0),
+          createProposal("description", tokens.MANA.address, wei("100"), [time.plus(100), wei("10"), wei("2")], 0),
           "TPRP: wrong investment limit"
         );
 
         await truffleAssert.reverts(
-          createProposal(tokens.MANA.address, 0, [time.plus(100000), wei("10"), wei("2")], 0),
+          createProposal("description", tokens.MANA.address, 0, [time.plus(100000), wei("10"), wei("2")], 0),
           "TPRP: zero investment"
         );
 
         await truffleAssert.reverts(
-          createProposal(tokens.MANA.address, wei("1"), [time.plus(100000), wei("10"), wei("2")], wei(wei("10"))),
+          createProposal(
+            "description",
+            tokens.MANA.address,
+            wei("1"),
+            [time.plus(100000), wei("10"), wei("2")],
+            wei(wei("10"))
+          ),
           "TPRP: percantage is bigger than 100"
         );
       });
@@ -494,7 +509,13 @@ describe("BasicTraderPool", () => {
         assert.equal(toBN(creationTokens.positionTokens).toFixed(), "0");
         assert.equal(toBN(creationTokens.positionTokenPrice).toFixed(), wei("1"));
 
-        await createProposal(tokens.MANA.address, wei("100"), [time.plus(100000), wei("10000"), wei("2")], 0);
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("100"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          0
+        );
 
         assert.equal((await proposalPool.balanceOf(OWNER, 1)).toFixed(), wei("100"));
         assert.equal((await proposalPool.totalLockedLP()).toFixed(), wei("100"));
@@ -511,7 +532,13 @@ describe("BasicTraderPool", () => {
 
         const time = toBN(await getCurrentBlockTime());
 
-        await createProposal(tokens.MANA.address, wei("300"), [time.plus(100000), wei("10000"), wei("2")], 0);
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("300"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          0
+        );
 
         assert.equal((await proposalPool.balanceOf(OWNER, 1)).toFixed(), wei("300"));
         assert.equal((await proposalPool.totalLockedLP()).toFixed(), wei("300"));
@@ -529,6 +556,7 @@ describe("BasicTraderPool", () => {
         const time = toBN(await getCurrentBlockTime());
 
         await createProposal(
+          "description",
           tokens.WBTC.address,
           wei("500"),
           [time.plus(100000), wei("10000"), wei("2")],
@@ -562,11 +590,23 @@ describe("BasicTraderPool", () => {
       it("should create two proposals", async () => {
         const time = toBN(await getCurrentBlockTime());
 
-        await createProposal(tokens.MANA.address, wei("100"), [time.plus(100000), wei("10000"), wei("2")], 0);
-        await createProposal(tokens.WBTC.address, wei("100"), [time.plus(100000), wei("1000"), wei("20")], 0);
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("100"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          0
+        );
+        await createProposal(
+          "description",
+          tokens.WBTC.address,
+          wei("100"),
+          [time.plus(100000), wei("1000"), wei("20")],
+          0
+        );
 
         await truffleAssert.reverts(
-          createProposal(tokens.WETH.address, wei("100"), [time.plus(1000), wei("1000"), wei("2")], 0),
+          createProposal("description", tokens.WETH.address, wei("100"), [time.plus(1000), wei("1000"), wei("2")], 0),
           "TPRP: wrong proposal token"
         );
 
@@ -576,10 +616,17 @@ describe("BasicTraderPool", () => {
       it("should change proposal's restrictions", async () => {
         const time = toBN(await getCurrentBlockTime());
 
-        await createProposal(tokens.MANA.address, wei("300"), [time.plus(100000), wei("10000"), wei("2")], 0);
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("300"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          0
+        );
 
         let info = (await proposalPool.getProposalInfos(0, 1))[0];
 
+        assert.equal(info.proposalInfo.descriptionURL, "description");
         assert.equal(info.proposalInfo.proposalLimits.timestampLimit, time.plus(100000));
         assert.equal(info.proposalInfo.proposalLimits.maxTokenPriceLimit, wei("2"));
 
@@ -612,8 +659,20 @@ describe("BasicTraderPool", () => {
 
         await invest(wei("1000"), SECOND);
 
-        await createProposal(tokens.MANA.address, wei("500"), [time.plus(2), wei("5000"), wei("1.5")], 0);
-        await createProposal(tokens.MANA.address, wei("500"), [time.plus(1000), wei("500"), wei("1.5")], 0);
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("500"),
+          [time.plus(2), wei("5000"), wei("1.5")],
+          0
+        );
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("500"),
+          [time.plus(1000), wei("500"), wei("1.5")],
+          0
+        );
 
         await truffleAssert.reverts(investProposal(3, wei("100"), SECOND), "TPRP: proposal doesn't exist");
         await truffleAssert.reverts(investProposal(1, wei("100"), SECOND), "TPRP: proposal is closed");
@@ -622,7 +681,13 @@ describe("BasicTraderPool", () => {
 
       it("should invest into proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
-        await createProposal(tokens.MANA.address, wei("500"), [time.plus(10000), wei("5000"), wei("1.5")], 0);
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("500"),
+          [time.plus(10000), wei("5000"), wei("1.5")],
+          0
+        );
 
         await invest(wei("1000"), SECOND);
 
@@ -658,6 +723,7 @@ describe("BasicTraderPool", () => {
         const time = toBN(await getCurrentBlockTime());
 
         await createProposal(
+          "description",
           tokens.WBTC.address,
           wei("500"),
           [time.plus(100000), wei("20000"), wei("3")],
@@ -719,14 +785,20 @@ describe("BasicTraderPool", () => {
       });
 
       it("should be allowed to invest into proposal with no limits", async () => {
-        await createProposal(tokens.MANA.address, wei("500"), [0, 0, 0], 0);
+        await createProposal("description", tokens.MANA.address, wei("500"), [0, 0, 0], 0);
 
         await truffleAssert.passes(investProposal(1, wei("500"), OWNER), "pass");
       });
 
       it("trader should divest and then invest into the proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
-        await createProposal(tokens.MANA.address, wei("500"), [time.plus(10000), wei("5000"), wei("1.5")], 0);
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("500"),
+          [time.plus(10000), wei("5000"), wei("1.5")],
+          0
+        );
 
         await reinvestProposal(1, wei("500"), OWNER);
 
@@ -739,7 +811,13 @@ describe("BasicTraderPool", () => {
 
       it("investor should divest and then invest into the proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
-        await createProposal(tokens.MANA.address, wei("500"), [time.plus(10000), wei("5000"), wei("1.5")], 0);
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("500"),
+          [time.plus(10000), wei("5000"), wei("1.5")],
+          0
+        );
 
         await reinvestProposal(1, wei("500"), OWNER);
 
@@ -754,6 +832,7 @@ describe("BasicTraderPool", () => {
       it("should calculate the commission correctly after the proposal investment", async () => {
         const time = toBN(await getCurrentBlockTime());
         await createProposal(
+          "description",
           tokens.WBTC.address,
           wei("500"),
           [time.plus(100000), wei("10000"), wei("2")],
@@ -790,6 +869,7 @@ describe("BasicTraderPool", () => {
       it("should be able to invest 100% of the funds", async () => {
         const time = toBN(await getCurrentBlockTime());
         await createProposal(
+          "description",
           tokens.WBTC.address,
           wei("1000"),
           [time.plus(100000), wei("10000"), wei("2")],
@@ -829,7 +909,13 @@ describe("BasicTraderPool", () => {
 
       it("shouldn't invest into the proposal when the price is too high", async () => {
         const time = toBN(await getCurrentBlockTime());
-        await createProposal(tokens.MANA.address, wei("500"), [time.plus(100000), wei("10000"), wei("2")], 0);
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("500"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          0
+        );
 
         await uniswapV2Router.setReserve(tokens.MANA.address, wei("400000"));
         await uniswapV2Router.setReserve(tokens.WETH.address, wei("1000000"));
@@ -842,7 +928,7 @@ describe("BasicTraderPool", () => {
       it("shouldn't invest more than trader", async () => {
         const time = toBN(await getCurrentBlockTime());
 
-        await createProposal(tokens.MANA.address, wei("100"), [time.plus(100000), wei("1500"), 0], 0);
+        await createProposal("description", tokens.MANA.address, wei("100"), [time.plus(100000), wei("1500"), 0], 0);
 
         await invest(wei("1000"), SECOND);
 
@@ -863,6 +949,7 @@ describe("BasicTraderPool", () => {
       it("should not divest with wrong params", async () => {
         const time = toBN(await getCurrentBlockTime());
         await createProposal(
+          "description",
           tokens.WBTC.address,
           wei("500"),
           [time.plus(100000), wei("10000"), wei("2")],
@@ -880,7 +967,13 @@ describe("BasicTraderPool", () => {
         assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("1000"));
 
         const time = toBN(await getCurrentBlockTime());
-        await createProposal(tokens.MANA.address, wei("500"), [time.plus(100000), wei("10000"), wei("2")], 0);
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("500"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          0
+        );
 
         assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("500"));
 
@@ -914,6 +1007,7 @@ describe("BasicTraderPool", () => {
 
         const time = toBN(await getCurrentBlockTime());
         await createProposal(
+          "description",
           tokens.WBTC.address,
           wei("500"),
           [time.plus(100000), wei("10000"), wei("2")],
@@ -981,6 +1075,7 @@ describe("BasicTraderPool", () => {
 
         const time = toBN(await getCurrentBlockTime());
         await createProposal(
+          "description",
           tokens.WBTC.address,
           wei("500"),
           [time.plus(100000), wei("10000"), wei("2")],
@@ -990,6 +1085,7 @@ describe("BasicTraderPool", () => {
         await investProposal(1, wei("400"), SECOND);
 
         await createProposal(
+          "description",
           tokens.DEXE.address,
           wei("400"),
           [time.plus(10000), wei("1000"), wei("2")],
@@ -1082,7 +1178,13 @@ describe("BasicTraderPool", () => {
 
       it("should not exchange with wrong params", async () => {
         const time = toBN(await getCurrentBlockTime());
-        await createProposal(tokens.MANA.address, wei("500"), [time.plus(100000), wei("10000"), wei("2")], 0);
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("500"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          0
+        );
 
         await truffleAssert.reverts(
           exchangeFromExactProposal(2, tokens.WETH.address, wei("250")),
@@ -1112,7 +1214,13 @@ describe("BasicTraderPool", () => {
 
       it("should exchange from exact in proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
-        await createProposal(tokens.MANA.address, wei("500"), [time.plus(100000), wei("10000"), wei("2")], 0);
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("500"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          0
+        );
 
         let proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
 
@@ -1142,6 +1250,7 @@ describe("BasicTraderPool", () => {
       it("should exchange from exact from proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
         await createProposal(
+          "description",
           tokens.MANA.address,
           wei("500"),
           [time.plus(100000), wei("10000"), wei("2")],
@@ -1162,7 +1271,13 @@ describe("BasicTraderPool", () => {
 
       it("should exchange to exact in proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
-        await createProposal(tokens.MANA.address, wei("500"), [time.plus(100000), wei("10000"), wei("2")], 0);
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("500"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          0
+        );
 
         let proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
 
@@ -1191,7 +1306,13 @@ describe("BasicTraderPool", () => {
 
       it("should exchange half position", async () => {
         const time = toBN(await getCurrentBlockTime());
-        await createProposal(tokens.MANA.address, wei("500"), [time.plus(100000), wei("10000"), wei("2")], 0);
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("500"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          0
+        );
 
         await exchangeToExactProposal(1, tokens.WETH.address, wei("250"));
         await exchangeToExactProposal(1, tokens.MANA.address, wei("125"));
@@ -1213,6 +1334,7 @@ describe("BasicTraderPool", () => {
       it("should exchange to exact from proposal", async () => {
         const time = toBN(await getCurrentBlockTime());
         await createProposal(
+          "description",
           tokens.MANA.address,
           wei("500"),
           [time.plus(100000), wei("10000"), wei("2")],
@@ -1239,6 +1361,7 @@ describe("BasicTraderPool", () => {
       it("should not exchange random tokens", async () => {
         const time = toBN(await getCurrentBlockTime());
         await createProposal(
+          "description",
           tokens.MANA.address,
           wei("500"),
           [time.plus(100000), wei("10000"), wei("2")],
@@ -1272,7 +1395,13 @@ describe("BasicTraderPool", () => {
 
         const time = toBN(await getCurrentBlockTime());
 
-        await createProposal(tokens.MANA.address, wei("1000"), [time.plus(10000000), wei("10000"), wei("2")], 0);
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("1000"),
+          [time.plus(10000000), wei("10000"), wei("2")],
+          0
+        );
 
         await invest(wei("500"), SECOND);
         await investProposal(1, wei("500"), SECOND);
@@ -1371,7 +1500,13 @@ describe("BasicTraderPool", () => {
         await invest(wei("500"), SECOND);
 
         const time = toBN(await getCurrentBlockTime());
-        await createProposal(tokens.MANA.address, wei("1000"), [time.plus(100000), wei("10000"), wei("2")], 0);
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("1000"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          0
+        );
 
         await investProposal(1, wei("500"), SECOND);
 

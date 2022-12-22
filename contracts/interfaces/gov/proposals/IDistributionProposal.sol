@@ -21,9 +21,5 @@ interface IDistributionProposal {
 
     /// @notice Return potential reward. If user hasn't voted, or `getTotalVotesWeight` is zero, return zero
     /// @param voter Voter address
-    function getPotentialReward(
-        uint256 proposalId,
-        address voter,
-        uint256 rewardAmount
-    ) external view returns (uint256);
+    function getPotentialReward(uint256 proposalId, address voter) external view returns (uint256);
 }
