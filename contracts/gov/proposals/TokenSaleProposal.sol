@@ -61,11 +61,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         require(tier.saleTokenAddress != ETHEREUM_ADDRESS, "TSP: cannot sale native currency");
 
         require(
-            tier.purchaseTokenAddresses.length == tier.exchangeRates.length,
-            "TSP: tokens and rates lens mismatch"
-        );
-
-        require(
             tier.saleStartTime <= tier.saleEndTime,
             "TSP: saleEndTime is less than saleStartTime"
         );
@@ -75,17 +70,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
                 tier.maxAllocationPerUser <= tier.totalTokenProvided,
             "TSP: wrong allocation"
         );
-
-        for (uint256 i = 0; i < tier.purchaseTokenAddresses.length; i++) {
-            require(
-                tier.purchaseTokenAddresses[i] != address(0),
-                "TSP: purchase token cannot be zero"
-            );
-        }
-
-        for (uint256 i = 0; i < tier.exchangeRates.length; i++) {
-            require(tier.exchangeRates[i] != 0, "TSP: rate cannot be zero");
-        }
 
         require(tier.vestingPercentage <= PERCENTAGE_100, "TSP: vestingPercentage > 100%");
 
@@ -99,7 +83,19 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
 
         tierBackend.exists = true;
 
+        require(
+            tier.purchaseTokenAddresses.length == tier.exchangeRates.length,
+            "TSP: tokens and rates lens mismatch"
+        );
+
         for (uint256 i = 0; i < tier.purchaseTokenAddresses.length; i++) {
+            require(tier.exchangeRates[i] != 0, "TSP: rate cannot be zero");
+
+            require(
+                tier.purchaseTokenAddresses[i] != address(0),
+                "TSP: purchase token cannot be zero"
+            );
+
             require(
                 tierBackend.rates[tier.purchaseTokenAddresses[i]] == 0,
                 "TSP: purchase tokens are duplicated"
