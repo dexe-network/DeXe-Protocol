@@ -270,7 +270,6 @@ interface IGovPool {
     /// @notice The function to get required quorum of proposal
     /// @param proposalId the id of proposal
     /// @return the required number for votes to reach the quorum
-    /// @return the required number for votes to reach the quorum
     function getProposalRequiredQuorum(uint256 proposalId) external view returns (uint256);
 
     /// @notice The function to get information about user's votes

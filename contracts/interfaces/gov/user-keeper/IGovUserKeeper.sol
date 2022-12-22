@@ -10,9 +10,9 @@ import "../../../libs/data-structures/ShrinkableArray.sol";
  * ERC20 tokens or NFTs
  */
 interface IGovUserKeeper {
-    /// @notice The struct holds information about user deposited tokens 
+    /// @notice The struct holds information about user deposited tokens
     /// @param tokenBalance the amount of deposited tokens
-    /// @param maxTokensLocked the upper bound of currently locked tokens 
+    /// @param maxTokensLocked the upper bound of currently locked tokens
     /// @param lockedInProposals the amount of deposited tokens locked in proposals
     /// @param nftBalance the array of deposited nfts
     struct BalanceInfo {
@@ -26,8 +26,8 @@ interface IGovUserKeeper {
     /// @param balanceInfo the BalanceInfo struct
     /// @param delegatedTokens the mapping of delegated tokens (delegatee address => delegated amount)
     /// @param delegatedNfts the mapping of delegated nfts (delegatee address => array of delegated nft ids)
-    /// @param delegatees the array of delegatees 
-    /// @param delegatees the array of delegatees 
+    /// @param delegatees the array of delegatees
+    /// @param delegatees the array of delegatees
     struct UserInfo {
         BalanceInfo balanceInfo;
         mapping(address => uint256) delegatedTokens; // delegatee => amount
@@ -304,11 +304,8 @@ interface IGovUserKeeper {
 
     /// @notice The function for getting information about funds that can be undelegated
     /// @param delegator the delegator address
-    /// @param delegatee the delegatee address
     /// @param lockedProposals the array of ids of locked proposals
     /// @param unlockedNfts the array of unlocked nfts
-    /// @return undelegateableTokens the tokens that can be undelegated
-    /// @return undelegateableNfts the array of nfts that can be undelegated
     /// @return undelegateableTokens the tokens that can be undelegated
     /// @return undelegateableNfts the array of nfts that can be undelegated
     function getUndelegateableAssets(
@@ -328,9 +325,7 @@ interface IGovUserKeeper {
     /// @param voter the address of voter
     /// @param lockedProposals the array of ids of locked proposals
     /// @param unlockedNfts the array of unlocked nfts
-    /// @return withdrawableTokens the tokens that can we withdrawn 
-    /// @return withdrawableNfts the array of nfts that can we withdrawn
-    /// @return withdrawableTokens the tokens that can we withdrawn 
+    /// @return withdrawableTokens the tokens that can we withdrawn
     /// @return withdrawableNfts the array of nfts that can we withdrawn
     function getWithdrawableAssets(
         address voter,
