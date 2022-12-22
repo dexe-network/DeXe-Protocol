@@ -1,6 +1,6 @@
 # 💰 Investing
 
-###### Risky proposal investmenting methods
+###### Risky proposal investing methods
 
 To invest into a proposal, user needs to call the ***`investProposal()`*** function on the `BasicTraderPool`
 
