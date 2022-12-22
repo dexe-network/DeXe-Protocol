@@ -2,7 +2,7 @@
 
 To buy insurace for the deposited **DEXE** tokens user needs to call `buyInsurance()` function from `Insurance` contract. Minimal insurance is specified by the **DAO**.
 
-```js
+```solidity
 function buyInsurance(uint256 deposit) external;
 ```
 
