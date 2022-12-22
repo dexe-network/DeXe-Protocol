@@ -1,4 +1,4 @@
-# 💵Investing
+# 💵 Investing
 
 ❗ Before investing in a pool, you need to make sure that the investor has sufficient allowance on the underlying token of this pool.
 

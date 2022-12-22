@@ -1,4 +1,4 @@
-# 💰Commissions
+# 💰 Commissions
 
 The overall commission consists of trader and platform commissions.
 
