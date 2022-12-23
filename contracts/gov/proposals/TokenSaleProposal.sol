@@ -61,20 +61,23 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
     function vestingWithdraw(uint256[] memory tierIds) external override {}
 
     function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable {
+        bool isNativeCurrency = tokenToBuyWith == ETHEREUM_ADDRESS;
+
         uint256 saleTokenAmount = getSaleTokenAmount(
             tierId,
             tokenToBuyWith,
-            tokenToBuyWith == ETHEREUM_ADDRESS ? msg.value : amount
+            isNativeCurrency ? msg.value : amount
         );
 
-        if (tokenToBuyWith != ETHEREUM_ADDRESS) {
-            IERC20(tokenToBuyWith).safeTransferFrom(msg.sender, govAddress, amount);
-        } else {
+        if (isNativeCurrency) {
             (bool success, ) = govAddress.call{value: msg.value}("");
             require(success, "TSP: failed to transfer ether");
+        } else {
+            IERC20(tokenToBuyWith).safeTransferFrom(msg.sender, govAddress, amount);
         }
 
         _amountToSell[_tiers[tierId].saleTokenAddress] -= saleTokenAmount;
+
         _tiers[tierId].saleTokenAddress.sendFunds(msg.sender, saleTokenAmount);
     }
 
