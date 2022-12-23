@@ -56,7 +56,11 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
 
     function addToWhitelist(WhitelistingRequest[] memory requests) external override {}
 
-    function offTiers(uint256[] memory tierIds) external override onlyGov {}
+    function offTiers(uint256[] memory tierIds) external override onlyGov {
+        for (uint256 i = 0; i < tierIds.length; i++) {
+            _offTier(tierIds[i]);
+        }
+    }
 
     function vestingWithdraw(uint256[] memory tierIds) external override {}
 
@@ -161,5 +165,11 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
 
             tierBackend.rates[tier.purchaseTokenAddresses[i]] = tier.exchangeRates[i];
         }
+    }
+
+    function _offTier(uint256 tierId) private ifTierExists(tierId) {
+        require(!_tiersBackend[tierId].isOff, "TSP: tier is already off");
+
+        _tiersBackend[tierId].isOff = true;
     }
 }
