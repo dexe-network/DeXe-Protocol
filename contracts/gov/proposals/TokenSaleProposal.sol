@@ -1,14 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
+
 import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
 
 import "../../core/Globals.sol";
 
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../../libs/utils/TokenBalance.sol";
+import "../../libs/math/MathHelper.sol";
 
 contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
+    using TokenBalance for address;
+    using MathHelper for uint256;
+    using Math for uint256;
+    using SafeERC20 for IERC20;
+
     address public govAddress;
 
     uint256 public override latestTierId;
@@ -54,17 +64,18 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         uint256 saleTokenAmount = getSaleTokenAmount(
             tierId,
             tokenToBuyWith,
-            tokenToBuyWith == ETHEREUM_ADDRESS ? amount : msg.value
+            tokenToBuyWith == ETHEREUM_ADDRESS ? msg.value : amount
         );
 
         if (tokenToBuyWith != ETHEREUM_ADDRESS) {
-            tokenToBuyWith.safeTransferFrom(msg.sender, govAddress, amount);
+            IERC20(tokenToBuyWith).safeTransferFrom(msg.sender, govAddress, amount);
         } else {
             (bool success, ) = govAddress.call{value: msg.value}("");
             require(success, "TSP: failed to transfer ether");
         }
 
-        _tiers[tierId].sendFunds(msg.sender, saleTokenAmount);
+        _amountToSell[_tiers[tierId].saleTokenAddress] -= saleTokenAmount;
+        _tiers[tierId].saleTokenAddress.sendFunds(msg.sender, saleTokenAmount);
     }
 
     function recover(RecoveringRequest[] memory requests) external {}
@@ -74,8 +85,9 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         address tokenToBuyWith,
         uint256 amount
     ) public view ifTierExists(tierId) returns (uint256) {
-        uint256 exchangeRate = _tiersBackend[tierId].rates[tokenToBuyWith];
+        require(amount > 0, "TSP: zero amount");
 
+        uint256 exchangeRate = _tiersBackend[tierId].rates[tokenToBuyWith];
         require(exchangeRate != 0, "TSP: incorrect token");
 
         return amount.ratio(exchangeRate, PRECISION);
