@@ -12,8 +12,8 @@ Function `getReceivedInsurance()` can display how much insurance the user will r
 
 ```solidity
 function getReceivedInsurance(
-        uint256 deposit
-    ) external returns (uint256);
+    uint256 deposit
+) external returns (uint256);
 ```
 
 - ***deposit*** - the amount of tokens to be deposited
