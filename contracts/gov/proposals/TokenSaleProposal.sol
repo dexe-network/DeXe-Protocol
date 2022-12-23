@@ -81,17 +81,20 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
 
         Tier storage tier = _tiers[tierId];
 
-        _amountToSell[tier.tierView.saleTokenAddress] -= saleTokenAmount;
+        TierView memory tierView = tier.tierView;
+        TierInfo storage tierInfo = tier.tierInfo;
 
-        tier.tierView.saleTokenAddress.sendFunds(
+        _amountToSell[tierView.saleTokenAddress] -= saleTokenAmount;
+
+        tierView.saleTokenAddress.sendFunds(
             msg.sender,
-            saleTokenAmount.percentage(PERCENTAGE_100 - tier.tierView.vestingPercentage)
+            saleTokenAmount.percentage(PERCENTAGE_100 - tierView.vestingPercentage)
         );
 
-        tier.tierInfo.totalSold -= saleTokenAmount;
-        tier.tierInfo.customers[msg.sender] = Purchase({
+        tierInfo.totalSold -= saleTokenAmount;
+        tierInfo.customers[msg.sender] = Purchase({
             purchaseTime: block.timestamp,
-            vestingAmount: saleTokenAmount.percentage(tier.tierView.vestingPercentage),
+            vestingAmount: saleTokenAmount.percentage(tierView.vestingPercentage),
             latestVestingWithdraw: 0
         });
     }
@@ -107,21 +110,24 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
 
         Tier storage tier = _tiers[tierId];
 
-        require(tier.tierInfo.customers[msg.sender].purchaseTime == 0, "TSP: cannot buy twice");
+        TierView memory tierView = tier.tierView;
+        TierInfo storage tierInfo = tier.tierInfo;
 
-        uint256 exchangeRate = tier.tierInfo.rates[tokenToBuyWith];
+        require(tierInfo.customers[msg.sender].purchaseTime == 0, "TSP: cannot buy twice");
+
+        uint256 exchangeRate = tierInfo.rates[tokenToBuyWith];
         require(exchangeRate != 0, "TSP: incorrect token");
 
         uint256 saleTokenAmount = amount.ratio(exchangeRate, PRECISION);
 
         require(
-            tier.tierView.minAllocationPerUser <= saleTokenAmount &&
-                saleTokenAmount <= tier.tierView.maxAllocationPerUser,
+            tierView.minAllocationPerUser <= saleTokenAmount &&
+                saleTokenAmount <= tierView.maxAllocationPerUser,
             "TSP: wrong allocation"
         );
 
         require(
-            tier.tierInfo.totalSold + saleTokenAmount <= tier.tierView.totalTokenProvided,
+            tierInfo.totalSold + saleTokenAmount <= tierView.totalTokenProvided,
             "TSP: insufficient sale token amount"
         );
 
@@ -196,8 +202,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
     }
 
     function _offTier(uint256 tierId) private ifTierExists(tierId) {
-        require(!_tiers[tierId].tierInfo.isOff, "TSP: tier is already off");
+        TierInfo storage tierInfo = _tiers[tierId].tierInfo;
 
-        _tiers[tierId].tierInfo.isOff = true;
+        require(!tierInfo.isOff, "TSP: tier is already off");
+
+        tierInfo.isOff = true;
     }
 }
