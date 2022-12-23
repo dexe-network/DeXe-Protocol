@@ -181,7 +181,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
     }
 
     function getRecoveringAmounts(
-        uint256[] memory tierIds
+        uint256[] calldata tierIds
     ) public view returns (uint256[] memory recoveringAmounts) {
         recoveringAmounts = new uint256[](tierIds.length);
 

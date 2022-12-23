@@ -68,11 +68,11 @@ interface ITokenSaleProposal {
     ) external view returns (uint256);
 
     function getVestingWithdrawAmounts(
-        uint256[] memory tierIds
+        uint256[] calldata tierIds
     ) external view returns (uint256[] memory vestingWithdrawAmounts);
 
     function getRecoveringAmounts(
-        uint256[] memory tierIds
+        uint256[] calldata tierIds
     ) external view returns (uint256[] memory recoveringAmounts);
 
     function getTiers(
