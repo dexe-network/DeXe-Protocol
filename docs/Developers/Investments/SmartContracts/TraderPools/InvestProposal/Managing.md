@@ -10,6 +10,7 @@ function withdraw(uint256 proposalId, uint256 amount) external;
 - ***proposalId*** - the id of the proposal to withdraw the funds from
 - ***amount*** the amount of base tokens to withdraw (normalized)
 
+#
 Function ***`supply()`*** on `TraderPoolInvestProposal` is used to supply reward to the investors.
 
 ```solidity
@@ -23,6 +24,7 @@ function supply(
 - ***amounts*** - the amounts of tokens to be supplied (normalized)
 - ***addresses*** - the addresses of tokens to be supplied
 
+#
 Function ***`convertInvestedBaseToDividends()`*** on `TraderPoolInvestProposal` allows the trader (and admins) to convert invested funds into dividends.
 
 ```solidity

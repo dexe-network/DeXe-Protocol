@@ -8,6 +8,7 @@ function addPathTokens(address[] calldata pathTokens) external;
 ```
 - ***pathTokens*** - the array of tokens to be added into the path finder
 
+#
 Function ***`removePathTokens()`*** removes path tokens from the pathfinder.
 ```solidity
 function removePathTokens(address[] calldata pathTokens) external;

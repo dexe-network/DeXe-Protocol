@@ -6,6 +6,7 @@ function changeProfile(string calldata url) external;
 ```
 - ***url*** - the **IPFS** URL to the new profile settings
 
+#
 Function ***`agreeToPrivacyPolicy()`*** on `UserRegistry` is used to agree to the privacy policy of the **DEXE** platform.
 ```solidity
 function agreeToPrivacyPolicy(bytes calldata signature) external;
