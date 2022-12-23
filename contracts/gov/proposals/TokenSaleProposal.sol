@@ -91,7 +91,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
             saleTokenAmount.percentage(PERCENTAGE_100 - tierView.vestingPercentage)
         );
 
-        tierInfo.totalSold -= saleTokenAmount;
+        tierInfo.totalSold += saleTokenAmount;
         tierInfo.customers[msg.sender] = Purchase({
             purchaseTime: block.timestamp,
             vestingAmount: saleTokenAmount.percentage(tierView.vestingPercentage),
@@ -113,6 +113,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         TierView memory tierView = tier.tierView;
         TierInfo storage tierInfo = tier.tierInfo;
 
+        require(
+            tierView.saleStartTime <= block.timestamp && block.timestamp <= tierView.saleEndTime,
+            "TSP: cannot buy now"
+        );
         require(tierInfo.customers[msg.sender].purchaseTime == 0, "TSP: cannot buy twice");
 
         uint256 exchangeRate = tierInfo.rates[tokenToBuyWith];
