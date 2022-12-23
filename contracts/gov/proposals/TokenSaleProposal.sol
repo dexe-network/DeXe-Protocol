@@ -65,7 +65,16 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         }
     }
 
-    function vestingWithdraw(uint256[] calldata tierIds) external override {}
+    function vestingWithdraw(uint256[] calldata tierIds) external override {
+        uint256[] memory vestingWithdrawAmounts = getVestingWithdrawAmounts(tierIds);
+
+        for (uint256 i = 0; i < tierIds.length; i++) {
+            IERC20(_tiers[i].tierView.saleTokenAddress).safeTransfer(
+                msg.sender,
+                vestingWithdrawAmounts[i]
+            );
+        }
+    }
 
     function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable {
         bool isNativeCurrency = tokenToBuyWith == ETHEREUM_ADDRESS;
@@ -92,7 +101,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         tierInfo.customers[msg.sender] = Purchase({
             purchaseTime: block.timestamp,
             vestingAmount: saleTokenAmount.percentage(tierView.vestingPercentage),
-            latestVestingWithdraw: 0
+            latestVestingWithdraw: block.timestamp
         });
 
         if (isNativeCurrency) {
@@ -146,15 +155,19 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
 
     function getVestingWithdrawAmounts(
         uint256[] calldata tierIds
-    ) external view returns (uint256[] memory) {
-        return new uint256[](0);
+    ) public view returns (uint256[] memory vestingWithdrawAmounts) {
+        vestingWithdrawAmounts = new uint256[](tierIds.length);
+
+        for (uint256 i = 0; i < tierIds.length; i++) {
+            vestingWithdrawAmounts[i] = _getVestingWithdrawAmount(tierIds[i]);
+        }
     }
 
     function getTiers(uint256 offset, uint256 limit) external view returns (TierView[] memory) {
         return new TierView[](0);
     }
 
-    function _createTier(TierView calldata tierView) private {
+    function _createTier(TierView calldata tierView) internal {
         require(tierView.saleTokenAddress != address(0), "TSP: sale token cannot be zero");
         require(tierView.saleTokenAddress != ETHEREUM_ADDRESS, "TSP: cannot sale native currency");
 
@@ -213,18 +226,52 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
 
     function _addToWhitelist(
         WhitelistingRequest calldata request
-    ) private ifTierExists(request.tierId) {
+    ) internal ifTierExists(request.tierId) {
         for (uint256 i = 0; i < request.users.length; i++) {
             _mint(request.users[i], request.tierId, 1, "");
         }
     }
 
-    function _offTier(uint256 tierId) private ifTierExists(tierId) {
+    function _offTier(uint256 tierId) internal ifTierExists(tierId) {
         TierInfo storage tierInfo = _tiers[tierId].tierInfo;
 
         require(!tierInfo.isOff, "TSP: tier is already off");
 
         tierInfo.isOff = true;
+    }
+
+    function _getVestingWithdrawAmount(
+        uint256 tierId
+    ) internal view ifTierExists(tierId) returns (uint256) {
+        Tier storage tier = _tiers[tierId];
+
+        TierView memory tierView = tier.tierView;
+        TierInfo storage tierInfo = tier.tierInfo;
+
+        if (tierInfo.customers[msg.sender].purchaseTime == 0) {
+            return 0;
+        }
+
+        VestingSettings memory vestingSettings = tierView.vestingSettings;
+        Purchase memory purchase = tierInfo.customers[msg.sender];
+
+        uint256 startTime = purchase.purchaseTime + vestingSettings.cliffPeriod;
+
+        if (startTime > block.timestamp) {
+            return 0;
+        }
+
+        uint256 stepsCount = vestingSettings.vestingDuration / vestingSettings.unlockStep;
+        uint256 tokensPerStep = purchase.vestingAmount / stepsCount;
+
+        uint256 vestingWithdrawAmount = (block.timestamp - purchase.latestVestingWithdraw).ratio(
+            tokensPerStep,
+            vestingSettings.unlockStep
+        );
+
+        purchase.latestVestingWithdraw = block.timestamp;
+
+        return vestingWithdrawAmount;
     }
 
     function _beforeTokenTransfer(
@@ -233,7 +280,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         address to,
         uint256[] memory ids,
         uint256[] memory amounts,
-        bytes memory data
+        bytes memory
     ) internal override {
         require(from == address(0), "TSP: only for minting");
 
