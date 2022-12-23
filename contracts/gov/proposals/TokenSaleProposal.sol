@@ -53,7 +53,11 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         }
     }
 
-    function addToWhitelist(WhitelistingRequest[] calldata requests) external override {}
+    function addToWhitelist(WhitelistingRequest[] calldata requests) external override {
+        for (uint256 i = 0; i < requests.length; i++) {
+            _addToWhitelist(requests[i]);
+        }
+    }
 
     function offTiers(uint256[] calldata tierIds) external override onlyGov {
         for (uint256 i = 0; i < tierIds.length; i++) {
@@ -107,6 +111,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         uint256 amount
     ) public view ifTierExists(tierId) returns (uint256) {
         require(amount > 0, "TSP: zero amount");
+
+        require(balanceOf(msg.sender, tierId) == 1, "TSP: not whitelisted");
 
         Tier storage tier = _tiers[tierId];
 
@@ -205,11 +211,34 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         }
     }
 
+    function _addToWhitelist(
+        WhitelistingRequest calldata request
+    ) private ifTierExists(request.tierId) {
+        for (uint256 i = 0; i < request.users.length; i++) {
+            _mint(request.users[i], request.tierId, 1, "");
+        }
+    }
+
     function _offTier(uint256 tierId) private ifTierExists(tierId) {
         TierInfo storage tierInfo = _tiers[tierId].tierInfo;
 
         require(!tierInfo.isOff, "TSP: tier is already off");
 
         tierInfo.isOff = true;
+    }
+
+    function _beforeTokenTransfer(
+        address operator,
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) internal override {
+        require(from == address(0), "TSP: only for minting");
+
+        for (uint256 i = 0; i < ids.length; i++) {
+            require(balanceOf(to, ids[i]) == 0 && amounts[i] == 1, "TSP: balance could be 0 or 1");
+        }
     }
 }
