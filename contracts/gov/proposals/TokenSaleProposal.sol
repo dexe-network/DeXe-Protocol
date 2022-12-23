@@ -54,7 +54,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         }
     }
 
-    function addToWhitelist(WhitelistingRequest[] memory requests) external override {}
+    function addToWhitelist(WhitelistingRequest[] calldata requests) external override {}
 
     function offTiers(uint256[] calldata tierIds) external override onlyGov {
         for (uint256 i = 0; i < tierIds.length; i++) {
@@ -101,7 +101,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
     }
 
     function getVestingWithdrawAmounts(
-        uint256[] memory tierIds
+        uint256[] calldata tierIds
     ) external view returns (uint256[] memory) {
         return new uint256[](0);
     }
