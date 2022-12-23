@@ -2,9 +2,11 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+
+import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
 import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
 
@@ -17,7 +19,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
     using TokenBalance for address;
     using MathHelper for uint256;
     using Math for uint256;
-    using SafeERC20 for IERC20;
+    using DecimalsConverter for uint256;
+    using SafeERC20 for ERC20;
 
     address public govAddress;
 
@@ -69,9 +72,11 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         uint256[] memory vestingWithdrawAmounts = getVestingWithdrawAmounts(tierIds);
 
         for (uint256 i = 0; i < tierIds.length; i++) {
-            IERC20(_tiers[i].tierView.saleTokenAddress).safeTransfer(
+            ERC20 saleToken = ERC20(_tiers[i].tierView.saleTokenAddress);
+
+            saleToken.safeTransfer(
                 msg.sender,
-                vestingWithdrawAmounts[i]
+                vestingWithdrawAmounts[i].from18(saleToken.decimals())
             );
         }
     }
@@ -108,11 +113,23 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
             (bool success, ) = govAddress.call{value: msg.value}("");
             require(success, "TSP: failed to transfer ether");
         } else {
-            IERC20(tokenToBuyWith).safeTransferFrom(msg.sender, govAddress, amount);
+            ERC20(tokenToBuyWith).safeTransferFrom(
+                msg.sender,
+                govAddress,
+                amount.from18(ERC20(tokenToBuyWith).decimals())
+            );
         }
     }
 
-    function recover(RecoveringRequest[] calldata requests) external {}
+    function recover(uint256[] calldata tierIds) external {
+        uint256[] memory recoveringAmounts = getRecoveringAmounts(tierIds);
+
+        for (uint256 i = 0; i < recoveringAmounts.length; i++) {
+            ERC20 saleToken = ERC20(_tiers[tierIds[i]].tierView.saleTokenAddress);
+
+            saleToken.safeTransfer(govAddress, recoveringAmounts[i].from18(saleToken.decimals()));
+        }
+    }
 
     function getSaleTokenAmount(
         uint256 tierId,
@@ -160,6 +177,16 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
 
         for (uint256 i = 0; i < tierIds.length; i++) {
             vestingWithdrawAmounts[i] = _getVestingWithdrawAmount(tierIds[i]);
+        }
+    }
+
+    function getRecoveringAmounts(
+        uint256[] memory tierIds
+    ) public view returns (uint256[] memory recoveringAmounts) {
+        recoveringAmounts = new uint256[](tierIds.length);
+
+        for (uint256 i = 0; i < recoveringAmounts.length; i++) {
+            recoveringAmounts[i] = _getRecoveringAmount(tierIds[i]);
         }
     }
 
@@ -274,14 +301,32 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         return vestingWithdrawAmount;
     }
 
+    function _getRecoveringAmount(
+        uint256 tierId
+    ) internal view ifTierExists(tierId) returns (uint256) {
+        TierView memory tierView = _tiers[tierId].tierView;
+
+        if (block.timestamp <= tierView.saleEndTime) {
+            return 0;
+        }
+
+        uint256 balanceLeft = tierView.totalTokenProvided - _tiers[tierId].tierInfo.totalSold;
+
+        return
+            ERC20(tierView.saleTokenAddress)
+                .balanceOf(address(this))
+                .to18(ERC20(tierView.saleTokenAddress).decimals())
+                .min(balanceLeft);
+    }
+
     function _beforeTokenTransfer(
-        address operator,
+        address,
         address from,
         address to,
         uint256[] memory ids,
         uint256[] memory amounts,
         bytes memory
-    ) internal override {
+    ) internal view override {
         require(from == address(0), "TSP: only for minting");
 
         for (uint256 i = 0; i < ids.length; i++) {

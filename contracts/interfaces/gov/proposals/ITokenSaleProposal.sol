@@ -47,11 +47,6 @@ interface ITokenSaleProposal {
         address[] users;
     }
 
-    struct RecoveringRequest {
-        uint256 tierId;
-        address[] tokens;
-    }
-
     function latestTierId() external view returns (uint256);
 
     function createTiers(TierView[] calldata tiers) external;
@@ -64,7 +59,7 @@ interface ITokenSaleProposal {
 
     function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable;
 
-    function recover(RecoveringRequest[] calldata requests) external;
+    function recover(uint256[] calldata tierIds) external;
 
     function getSaleTokenAmount(
         uint256 tierId,
@@ -75,6 +70,10 @@ interface ITokenSaleProposal {
     function getVestingWithdrawAmounts(
         uint256[] memory tierIds
     ) external view returns (uint256[] memory vestingWithdrawAmounts);
+
+    function getRecoveringAmounts(
+        uint256[] memory tierIds
+    ) external view returns (uint256[] memory recoveringAmounts);
 
     function getTiers(
         uint256 offset,
