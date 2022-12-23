@@ -285,7 +285,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         require(from == address(0), "TSP: only for minting");
 
         for (uint256 i = 0; i < ids.length; i++) {
-            require(balanceOf(to, ids[i]) == 0 && amounts[i] == 1, "TSP: balance could be 0 or 1");
+            require(
+                balanceOf(to, ids[i]) == 0 && amounts[i] == 1,
+                "TSP: balance can be only 0 or 1"
+            );
         }
     }
 }
