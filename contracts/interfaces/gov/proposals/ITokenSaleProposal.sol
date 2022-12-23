@@ -48,17 +48,17 @@ interface ITokenSaleProposal {
 
     function latestTierId() external view returns (uint256);
 
-    function createTiers(Tier[] memory tiers) external;
+    function createTiers(Tier[] calldata tiers) external;
 
-    function addToWhitelist(WhitelistingRequest[] memory requests) external;
+    function addToWhitelist(WhitelistingRequest[] calldata requests) external;
 
-    function offTiers(uint256[] memory tierIds) external;
+    function offTiers(uint256[] calldata tierIds) external;
 
-    function vestingWithdraw(uint256[] memory tierIds) external;
+    function vestingWithdraw(uint256[] calldata tierIds) external;
 
     function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable;
 
-    function recover(RecoveringRequest[] memory requests) external;
+    function recover(RecoveringRequest[] calldata requests) external;
 
     function getSaleTokenAmount(
         uint256 tierId,

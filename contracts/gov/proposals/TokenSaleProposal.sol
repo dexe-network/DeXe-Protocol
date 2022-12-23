@@ -48,7 +48,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         govAddress = _govAddress;
     }
 
-    function createTiers(Tier[] memory tiers) external override onlyGov {
+    function createTiers(Tier[] calldata tiers) external override onlyGov {
         for (uint256 i = 0; i < tiers.length; i++) {
             _createTier(tiers[i]);
         }
@@ -56,13 +56,13 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
 
     function addToWhitelist(WhitelistingRequest[] memory requests) external override {}
 
-    function offTiers(uint256[] memory tierIds) external override onlyGov {
+    function offTiers(uint256[] calldata tierIds) external override onlyGov {
         for (uint256 i = 0; i < tierIds.length; i++) {
             _offTier(tierIds[i]);
         }
     }
 
-    function vestingWithdraw(uint256[] memory tierIds) external override {}
+    function vestingWithdraw(uint256[] calldata tierIds) external override {}
 
     function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable {
         bool isNativeCurrency = tokenToBuyWith == ETHEREUM_ADDRESS;
@@ -85,7 +85,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         _tiers[tierId].saleTokenAddress.sendFunds(msg.sender, saleTokenAmount);
     }
 
-    function recover(RecoveringRequest[] memory requests) external {}
+    function recover(RecoveringRequest[] calldata requests) external {}
 
     function getSaleTokenAmount(
         uint256 tierId,
@@ -110,7 +110,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         return new Tier[](0);
     }
 
-    function _createTier(Tier memory tier) private {
+    function _createTier(Tier calldata tier) private {
         require(tier.saleTokenAddress != address(0), "TSP: sale token cannot be zero");
         require(tier.saleTokenAddress != ETHEREUM_ADDRESS, "TSP: cannot sale native currency");
 
