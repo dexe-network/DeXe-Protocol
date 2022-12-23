@@ -8,7 +8,7 @@ interface ITokenSaleProposal {
         uint256 unlockStep;
     }
 
-    struct Tier {
+    struct TierView {
         string name;
         string description;
         uint256 totalTokenProvided;
@@ -23,17 +23,23 @@ interface ITokenSaleProposal {
         VestingSettings vestingSettings;
     }
 
-    struct TierBackend {
+    struct Purchase {
+        uint256 purchaseTime;
+        uint256 vestingAmount;
+        uint256 latestVestingWithdraw;
+    }
+
+    struct TierInfo {
         bool exists;
         bool isOff;
+        uint256 totalSold;
         mapping(address => uint256) rates;
         mapping(address => Purchase) customers;
     }
 
-    struct Purchase {
-        uint256 purchaseTime;
-        uint256 amount;
-        uint256 latestVestingWithdraw;
+    struct Tier {
+        TierView tierView;
+        TierInfo tierInfo;
     }
 
     struct WhitelistingRequest {
@@ -48,7 +54,7 @@ interface ITokenSaleProposal {
 
     function latestTierId() external view returns (uint256);
 
-    function createTiers(Tier[] calldata tiers) external;
+    function createTiers(TierView[] calldata tiers) external;
 
     function addToWhitelist(WhitelistingRequest[] calldata requests) external;
 
@@ -70,5 +76,5 @@ interface ITokenSaleProposal {
         uint256[] memory tierIds
     ) external view returns (uint256[] memory);
 
-    function getTiers(uint256 offset, uint256 limit) external view returns (Tier[] memory);
+    function getTiers(uint256 offset, uint256 limit) external view returns (TierView[] memory);
 }

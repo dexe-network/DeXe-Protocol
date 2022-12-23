@@ -24,7 +24,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
     uint256 public override latestTierId;
 
     mapping(uint256 => Tier) internal _tiers;
-    mapping(uint256 => TierBackend) internal _tiersBackend;
     mapping(address => uint256) internal _amountToSell;
 
     modifier onlyGov() {
@@ -33,7 +32,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
     }
 
     modifier ifTierExists(uint256 tierId) {
-        require(_tiersBackend[tierId].exists, "TSP: tier does not exist");
+        require(_tiers[tierId].tierInfo.exists, "TSP: tier does not exist");
         _;
     }
 
@@ -48,7 +47,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         govAddress = _govAddress;
     }
 
-    function createTiers(Tier[] calldata tiers) external override onlyGov {
+    function createTiers(TierView[] calldata tiers) external override onlyGov {
         for (uint256 i = 0; i < tiers.length; i++) {
             _createTier(tiers[i]);
         }
@@ -80,9 +79,21 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
             IERC20(tokenToBuyWith).safeTransferFrom(msg.sender, govAddress, amount);
         }
 
-        _amountToSell[_tiers[tierId].saleTokenAddress] -= saleTokenAmount;
+        Tier storage tier = _tiers[tierId];
 
-        _tiers[tierId].saleTokenAddress.sendFunds(msg.sender, saleTokenAmount);
+        _amountToSell[tier.tierView.saleTokenAddress] -= saleTokenAmount;
+
+        tier.tierView.saleTokenAddress.sendFunds(
+            msg.sender,
+            saleTokenAmount.percentage(PERCENTAGE_100 - tier.tierView.vestingPercentage)
+        );
+
+        tier.tierInfo.totalSold -= saleTokenAmount;
+        tier.tierInfo.customers[msg.sender] = Purchase({
+            purchaseTime: block.timestamp,
+            vestingAmount: saleTokenAmount.percentage(tier.tierView.vestingPercentage),
+            latestVestingWithdraw: 0
+        });
     }
 
     function recover(RecoveringRequest[] calldata requests) external {}
@@ -94,10 +105,27 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
     ) public view ifTierExists(tierId) returns (uint256) {
         require(amount > 0, "TSP: zero amount");
 
-        uint256 exchangeRate = _tiersBackend[tierId].rates[tokenToBuyWith];
+        Tier storage tier = _tiers[tierId];
+
+        require(tier.tierInfo.customers[msg.sender].purchaseTime == 0, "TSP: cannot buy twice");
+
+        uint256 exchangeRate = tier.tierInfo.rates[tokenToBuyWith];
         require(exchangeRate != 0, "TSP: incorrect token");
 
-        return amount.ratio(exchangeRate, PRECISION);
+        uint256 saleTokenAmount = amount.ratio(exchangeRate, PRECISION);
+
+        require(
+            tier.tierView.minAllocationPerUser <= saleTokenAmount &&
+                saleTokenAmount <= tier.tierView.maxAllocationPerUser,
+            "TSP: wrong allocation"
+        );
+
+        require(
+            tier.tierInfo.totalSold + saleTokenAmount <= tier.tierView.totalTokenProvided,
+            "TSP: insufficient sale token amount"
+        );
+
+        return saleTokenAmount;
     }
 
     function getVestingWithdrawAmounts(
@@ -106,70 +134,70 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         return new uint256[](0);
     }
 
-    function getTiers(uint256 offset, uint256 limit) external view returns (Tier[] memory) {
-        return new Tier[](0);
+    function getTiers(uint256 offset, uint256 limit) external view returns (TierView[] memory) {
+        return new TierView[](0);
     }
 
-    function _createTier(Tier calldata tier) private {
-        require(tier.saleTokenAddress != address(0), "TSP: sale token cannot be zero");
-        require(tier.saleTokenAddress != ETHEREUM_ADDRESS, "TSP: cannot sale native currency");
+    function _createTier(TierView calldata tierView) private {
+        require(tierView.saleTokenAddress != address(0), "TSP: sale token cannot be zero");
+        require(tierView.saleTokenAddress != ETHEREUM_ADDRESS, "TSP: cannot sale native currency");
 
         require(
-            tier.saleStartTime <= tier.saleEndTime,
+            tierView.saleStartTime <= tierView.saleEndTime,
             "TSP: saleEndTime is less than saleStartTime"
         );
 
         require(
-            tier.minAllocationPerUser <= tier.maxAllocationPerUser &&
-                tier.maxAllocationPerUser <= tier.totalTokenProvided,
+            tierView.minAllocationPerUser <= tierView.maxAllocationPerUser &&
+                tierView.maxAllocationPerUser <= tierView.totalTokenProvided,
             "TSP: wrong allocation"
         );
 
-        require(tier.vestingPercentage <= PERCENTAGE_100, "TSP: vestingPercentage > 100%");
+        require(tierView.vestingPercentage <= PERCENTAGE_100, "TSP: vestingPercentage > 100%");
 
-        require(tier.vestingSettings.unlockStep != 0, "TSP: unlockStep cannot be zero");
+        require(tierView.vestingSettings.unlockStep != 0, "TSP: unlockStep cannot be zero");
 
-        _amountToSell[tier.saleTokenAddress] += tier.totalTokenProvided;
+        _amountToSell[tierView.saleTokenAddress] += tierView.totalTokenProvided;
 
         require(
-            _amountToSell[tier.saleTokenAddress] >=
-                IERC20(tier.saleTokenAddress).balanceOf(address(this)),
+            _amountToSell[tierView.saleTokenAddress] >=
+                IERC20(tierView.saleTokenAddress).balanceOf(address(this)),
             "TSP: insufficient TSP balance"
         );
 
-        ++latestTierId;
+        Tier storage tier = _tiers[++latestTierId];
 
-        _tiers[latestTierId] = tier;
+        tier.tierView = tierView;
 
-        TierBackend storage tierBackend = _tiersBackend[latestTierId];
+        TierInfo storage tierInfo = tier.tierInfo;
 
-        tierBackend.exists = true;
+        tierInfo.exists = true;
 
         require(
-            tier.purchaseTokenAddresses.length == tier.exchangeRates.length,
+            tierView.purchaseTokenAddresses.length == tierView.exchangeRates.length,
             "TSP: tokens and rates lens mismatch"
         );
 
-        for (uint256 i = 0; i < tier.purchaseTokenAddresses.length; i++) {
-            require(tier.exchangeRates[i] != 0, "TSP: rate cannot be zero");
+        for (uint256 i = 0; i < tierView.purchaseTokenAddresses.length; i++) {
+            require(tierView.exchangeRates[i] != 0, "TSP: rate cannot be zero");
 
             require(
-                tier.purchaseTokenAddresses[i] != address(0),
+                tierView.purchaseTokenAddresses[i] != address(0),
                 "TSP: purchase token cannot be zero"
             );
 
             require(
-                tierBackend.rates[tier.purchaseTokenAddresses[i]] == 0,
+                tierInfo.rates[tierView.purchaseTokenAddresses[i]] == 0,
                 "TSP: purchase tokens are duplicated"
             );
 
-            tierBackend.rates[tier.purchaseTokenAddresses[i]] = tier.exchangeRates[i];
+            tierInfo.rates[tierView.purchaseTokenAddresses[i]] = tierView.exchangeRates[i];
         }
     }
 
     function _offTier(uint256 tierId) private ifTierExists(tierId) {
-        require(!_tiersBackend[tierId].isOff, "TSP: tier is already off");
+        require(!_tiers[tierId].tierInfo.isOff, "TSP: tier is already off");
 
-        _tiersBackend[tierId].isOff = true;
+        _tiers[tierId].tierInfo.isOff = true;
     }
 }
