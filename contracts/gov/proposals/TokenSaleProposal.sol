@@ -72,13 +72,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
             isNativeCurrency ? msg.value : amount
         );
 
-        if (isNativeCurrency) {
-            (bool success, ) = govAddress.call{value: msg.value}("");
-            require(success, "TSP: failed to transfer ether");
-        } else {
-            IERC20(tokenToBuyWith).safeTransferFrom(msg.sender, govAddress, amount);
-        }
-
         Tier storage tier = _tiers[tierId];
 
         TierView memory tierView = tier.tierView;
@@ -97,6 +90,13 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
             vestingAmount: saleTokenAmount.percentage(tierView.vestingPercentage),
             latestVestingWithdraw: 0
         });
+
+        if (isNativeCurrency) {
+            (bool success, ) = govAddress.call{value: msg.value}("");
+            require(success, "TSP: failed to transfer ether");
+        } else {
+            IERC20(tokenToBuyWith).safeTransferFrom(msg.sender, govAddress, amount);
+        }
     }
 
     function recover(RecoveringRequest[] calldata requests) external {}
