@@ -190,8 +190,17 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         }
     }
 
-    function getTiers(uint256 offset, uint256 limit) external view returns (TierView[] memory) {
-        return new TierView[](0);
+    function getTiers(
+        uint256 offset,
+        uint256 limit
+    ) external view returns (TierView[] memory tierViews) {
+        uint256 to = (offset + limit).min(latestTierId).max(offset);
+
+        tierViews = new TierView[](to - offset);
+
+        for (uint256 i = offset; i < to; i++) {
+            tierViews[i - offset] = _tiers[i + 1].tierView;
+        }
     }
 
     function _createTier(TierView calldata tierView) internal {

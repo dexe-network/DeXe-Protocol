@@ -78,5 +78,5 @@ interface ITokenSaleProposal {
     function getTiers(
         uint256 offset,
         uint256 limit
-    ) external view returns (TierView[] memory tiers);
+    ) external view returns (TierView[] memory tierViews);
 }
