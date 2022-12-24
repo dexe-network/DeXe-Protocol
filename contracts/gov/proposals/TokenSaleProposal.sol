@@ -35,7 +35,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
     }
 
     modifier ifTierExists(uint256 tierId) {
-        require(_tiers[tierId].tierInfo.exists, "TSP: tier does not exist");
+        require(
+            _tiers[tierId].tierView.saleTokenAddress != address(0),
+            "TSP: tier does not exist"
+        );
         _;
     }
 
@@ -235,8 +238,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         tier.tierView = tierView;
 
         TierInfo storage tierInfo = tier.tierInfo;
-
-        tierInfo.exists = true;
 
         require(
             tierView.purchaseTokenAddresses.length == tierView.exchangeRates.length,

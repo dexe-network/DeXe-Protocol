@@ -30,7 +30,6 @@ interface ITokenSaleProposal {
     }
 
     struct TierInfo {
-        bool exists;
         bool isOff;
         uint256 totalSold;
         mapping(address => uint256) rates;
