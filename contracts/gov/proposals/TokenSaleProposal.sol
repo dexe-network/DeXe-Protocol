@@ -74,24 +74,22 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     function vestingWithdraw(uint256[] calldata tierIds) external override {
         uint256[] memory vestingWithdrawAmounts = getVestingWithdrawAmounts(tierIds);
 
-        for (uint256 i = 0; i < tierIds.length; i++) {
+        for (uint256 i = 0; i < vestingWithdrawAmounts.length; i++) {
             if (vestingWithdrawAmounts[i] == 0) {
                 continue;
             }
 
-            TierView memory tierView = _tiers[i].tierView;
-            Purchase storage purchase = _tiers[i].tierInfo.customers[msg.sender];
+            TierView memory tierView = _tiers[tierIds[i]].tierView;
+            Purchase storage purchase = _tiers[tierIds[i]].tierInfo.customers[msg.sender];
 
             purchase.latestVestingWithdraw =
                 block.timestamp -
                 ((block.timestamp - purchase.latestVestingWithdraw) %
                     tierView.vestingSettings.unlockStep);
 
-            ERC20 saleToken = ERC20(tierView.saleTokenAddress);
-
-            saleToken.safeTransfer(
+            ERC20(tierView.saleTokenAddress).safeTransfer(
                 msg.sender,
-                vestingWithdrawAmounts[i].from18(saleToken.decimals())
+                vestingWithdrawAmounts[i].from18(ERC20(tierView.saleTokenAddress).decimals())
             );
         }
     }
@@ -112,7 +110,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
         _amountToSell[tierView.saleTokenAddress] -= saleTokenAmount;
 
-        tierView.saleTokenAddress.sendFunds(
+        ERC20(tierView.saleTokenAddress).safeTransfer(
             msg.sender,
             saleTokenAmount.percentage(PERCENTAGE_100 - tierView.vestingPercentage)
         );
