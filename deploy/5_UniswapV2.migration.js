@@ -20,6 +20,7 @@ module.exports = async (deployer) => {
   const WETH = await deployer.deploy(ERC20Mock, "WETH", "WETH", 18);
   const CAKE = await deployer.deploy(ERC20Mock, "CAKE", "CAKE", 18);
   const SAFEMOON = await deployer.deploy(ERC20Mock, "SAFEMOON", "SAFEMOON", 18);
+  const WBTC = await deployer.deploy(ERC20Mock, "WBTC", "WBTC", 18);
 
   await DEXE.mint(OWNER, wei(tokensToMint));
   await USD.mint(OWNER, wei(tokensToMint));
@@ -27,6 +28,7 @@ module.exports = async (deployer) => {
   await WETH.mint(OWNER, wei(tokensToMint));
   await CAKE.mint(OWNER, wei(tokensToMint));
   await SAFEMOON.mint(OWNER, wei(tokensToMint));
+  await WBTC.mint(OWNER, wei(tokensToMint));
 
   await DEXE.approve(uniswapMock.address, wei(reserveTokens));
   await uniswapMock.setReserve(DEXE.address, wei(reserveTokens));
@@ -46,25 +48,35 @@ module.exports = async (deployer) => {
   await SAFEMOON.approve(uniswapMock.address, wei(reserveTokens));
   await uniswapMock.setReserve(SAFEMOON.address, wei(reserveTokens));
 
+  await WBTC.approve(uniswapMock.address, wei(reserveTokens));
+  await uniswapMock.setReserve(WBTC.address, wei(reserveTokens.idiv(10)));
+
   await uniswapMock.enablePair(DEXE.address, USD.address);
   await uniswapMock.enablePair(DEXE.address, WBNB.address);
   await uniswapMock.enablePair(DEXE.address, WETH.address);
   await uniswapMock.enablePair(DEXE.address, CAKE.address);
   await uniswapMock.enablePair(DEXE.address, SAFEMOON.address);
+  await uniswapMock.enablePair(DEXE.address, WBTC.address);
 
   await uniswapMock.enablePair(WBNB.address, USD.address);
   await uniswapMock.enablePair(WBNB.address, WETH.address);
   await uniswapMock.enablePair(WBNB.address, CAKE.address);
   await uniswapMock.enablePair(WBNB.address, SAFEMOON.address);
+  await uniswapMock.enablePair(WBNB.address, WBTC.address);
 
   await uniswapMock.enablePair(WETH.address, USD.address);
   await uniswapMock.enablePair(WETH.address, CAKE.address);
   await uniswapMock.enablePair(WETH.address, SAFEMOON.address);
+  await uniswapMock.enablePair(WETH.address, WBTC.address);
 
   await uniswapMock.enablePair(CAKE.address, USD.address);
   await uniswapMock.enablePair(CAKE.address, SAFEMOON.address);
+  await uniswapMock.enablePair(CAKE.address, WBTC.address);
 
   await uniswapMock.enablePair(SAFEMOON.address, USD.address);
+  await uniswapMock.enablePair(SAFEMOON.address, WBTC.address);
+
+  await uniswapMock.enablePair(WBTC.address, USD.address);
 
   logTransaction(
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapMock.address),
@@ -82,6 +94,7 @@ module.exports = async (deployer) => {
     ["WBNB", WBNB.address],
     ["WETH", WETH.address],
     ["CAKE", CAKE.address],
-    ["SAFEMOON", SAFEMOON.address]
+    ["SAFEMOON", SAFEMOON.address],
+    ["WBTC", WBTC.address]
   );
 };

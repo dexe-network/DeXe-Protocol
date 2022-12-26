@@ -28,7 +28,7 @@ module.exports = async (deployer) => {
   let pathAddresses = [
     "0x0B306BF915C4d645ff596e518fAf3F9669b97016", // WBNB
     "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707", // USDT
-    "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE", // BUSD
+    "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE", // CAKE
   ];
 
   let documentHash = "0xdcf5635e2f38018583c7faa2aebd3361ed82c67c59c6a54de06b19181a596210";
