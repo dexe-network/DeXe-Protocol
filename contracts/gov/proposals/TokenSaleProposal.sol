@@ -333,12 +333,11 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         uint256 stepsCount = vestingSettings.vestingDuration / vestingSettings.unlockStep;
         uint256 tokensPerStep = purchase.vestingAmount / stepsCount;
 
-        uint256 vestingWithdrawAmount = (block.timestamp - purchase.latestVestingWithdraw).ratio(
-            tokensPerStep,
-            vestingSettings.unlockStep
-        );
-
-        return vestingWithdrawAmount;
+        return
+            tokensPerStep.ratio(
+                block.timestamp - purchase.latestVestingWithdraw,
+                vestingSettings.unlockStep
+            );
     }
 
     function _getRecoverAmount(
