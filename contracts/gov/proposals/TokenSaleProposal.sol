@@ -263,8 +263,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
         Tier storage tier = _tiers[++latestTierId];
 
-        tier.tierView = tierView;
-
         TierInfo storage tierInfo = tier.tierInfo;
 
         require(
@@ -291,6 +289,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
             tierInfo.rates[tierView.purchaseTokenAddresses[i]] = tierView.exchangeRates[i];
         }
+
+        tier.tierView = tierView;
     }
 
     function _addToWhitelist(
