@@ -138,6 +138,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         uint256[] memory recoveringAmounts = getRecoverAmounts(tierIds);
 
         for (uint256 i = 0; i < recoveringAmounts.length; i++) {
+            if (recoveringAmounts[i] == 0) {
+                continue;
+            }
+
             address saleToken = _tiers[tierIds[i]].tierView.saleTokenAddress;
 
             _amountToSell[saleToken] -= recoveringAmounts[i];
