@@ -87,10 +87,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
                 ((block.timestamp - purchase.latestVestingWithdraw) %
                     tierView.vestingSettings.unlockStep);
 
-            ERC20(tierView.saleTokenAddress).safeTransfer(
-                msg.sender,
-                vestingWithdrawAmounts[i].from18(ERC20(tierView.saleTokenAddress).decimals())
-            );
+            ERC20(tierView.saleTokenAddress).safeTransfer(msg.sender, vestingWithdrawAmounts[i]);
         }
     }
 
@@ -126,11 +123,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             (bool success, ) = govAddress.call{value: msg.value}("");
             require(success, "TSP: failed to transfer ether");
         } else {
-            ERC20(tokenToBuyWith).safeTransferFrom(
-                msg.sender,
-                govAddress,
-                amount.from18(ERC20(tokenToBuyWith).decimals())
-            );
+            ERC20(tokenToBuyWith).safeTransferFrom(msg.sender, govAddress, amount);
         }
     }
 
@@ -142,14 +135,12 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
                 continue;
             }
 
-            address saleToken = _tiers[tierIds[i]].tierView.saleTokenAddress;
+            Tier storage tier = _tiers[tierIds[i]];
+            tier.tierInfo.totalSold += recoveringAmounts[i];
 
+            address saleToken = tier.tierView.saleTokenAddress;
             _amountsToSell[saleToken] -= recoveringAmounts[i];
-
-            ERC20(saleToken).safeTransfer(
-                govAddress,
-                recoveringAmounts[i].from18(ERC20(saleToken).decimals())
-            );
+            ERC20(saleToken).safeTransfer(govAddress, recoveringAmounts[i]);
         }
     }
 
@@ -341,13 +332,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             return 0;
         }
 
-        uint256 balanceLeft = tierView.totalTokenProvided - _tiers[tierId].tierInfo.totalSold;
-
-        return
-            ERC20(tierView.saleTokenAddress)
-                .balanceOf(address(this))
-                .to18(ERC20(tierView.saleTokenAddress).decimals())
-                .min(balanceLeft);
+        return tierView.totalTokenProvided - _tiers[tierId].tierInfo.totalSold;
     }
 
     function _beforeTokenTransfer(
