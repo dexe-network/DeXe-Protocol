@@ -75,7 +75,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         uint256[] memory vestingWithdrawAmounts = getVestingWithdrawAmounts(tierIds);
 
         for (uint256 i = 0; i < tierIds.length; i++) {
-            if (vestingWithdraw[i] == 0) {
+            if (vestingWithdrawAmounts[i] == 0) {
                 continue;
             }
 
@@ -230,6 +230,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     function _createTier(TierView calldata tierView) internal {
         require(tierView.saleTokenAddress != address(0), "TSP: sale token cannot be zero");
         require(tierView.saleTokenAddress != ETHEREUM_ADDRESS, "TSP: cannot sale native currency");
+
+        require(tierView.totalTokenProvided != 0, "TSP: sale token is not provided");
 
         require(
             tierView.saleStartTime <= tierView.saleEndTime,
