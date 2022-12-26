@@ -1,5 +1,7 @@
 # 🌌 CoreProperties
 
+The purpose of this module is to store system constant parameters.
+
 #### TraderParameters
 `TraderParameters` struct stores `TraderPools` parameters.
 ```solidity

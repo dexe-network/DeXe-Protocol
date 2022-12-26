@@ -1,29 +1,5 @@
 # 📃 ContractsRegistry
 
-The purpose of this module is to provide an organized registry of the project's smartcontracts together with the upgradeability and dependency injection mechanisms.
-
-The `ContractsRegistry` should be used as the highest level smartcontract that is aware of any other
-contract present in the system. The contracts that demand other system's contracts would then inherit
-special `AbstractDependant` contract and override ***`setDependencies()`*** function to enable `ContractsRegistry`
-to inject dependencies into them.
-
-The `ContractsRegistry` will help with the following usecases:
-
-1) Making the system upgradeable
-2) Making the system contracts-interchangeable
-3) Simplifying the contracts management and deployment
-
-The `ContractsRegistry` acts as a Transparent proxy deployer. One can add proxy-compatible implementations to the registry
-and deploy proxies to them. Then these proxies can be upgraded easily using the `ContractsRegistry`.
-The `ContractsRegistry` itself can be deployed behind a proxy as well.
-
-The dependency injection system may come in handy when one wants to substitute a contract `A` with a contract `B`
-(for example contract `A` got exploited) without a necessity of redeploying the whole system. One would just add
-a new `B` contract to a `ContractsRegistry` and re-inject all the required dependencies. Dependency injection mechanism
-also works with factories.
-
-The management is simplified because all of the contracts are now located in a single place.
-#
 Function ***`injectDependencies()`*** injects the dependencies into the given contract.
 
 ```solidity
