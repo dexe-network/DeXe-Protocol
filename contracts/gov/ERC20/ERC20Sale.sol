@@ -39,7 +39,7 @@ contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
         _mint(params.govAddress, params.mintedTotal - totalSupply());
     }
 
-    function mint(address account, uint256 amount) public override onlyGov {
+    function mint(address account, uint256 amount) external override onlyGov {
         _mint(account, amount);
     }
 
