@@ -75,6 +75,12 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         uint256[] memory vestingWithdrawAmounts = getVestingWithdrawAmounts(tierIds);
 
         for (uint256 i = 0; i < tierIds.length; i++) {
+            if (vestingWithdraw[i] == 0) {
+                continue;
+            }
+
+            _tiers[i].tierInfo.customers[msg.sender].latestVestingWithdraw = block.timestamp;
+
             ERC20 saleToken = ERC20(_tiers[i].tierView.saleTokenAddress);
 
             saleToken.safeTransfer(
@@ -313,8 +319,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             tokensPerStep,
             vestingSettings.unlockStep
         );
-
-        purchase.latestVestingWithdraw = block.timestamp;
 
         return vestingWithdrawAmount;
     }
