@@ -25,7 +25,7 @@ contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
 
         govAddress = params.govAddress;
 
-        _mint(params.saleAddress, params.saleAmount);
+        ERC20._mint(params.saleAddress, params.saleAmount);
 
         require(
             params.users.length == params.amounts.length,
@@ -33,10 +33,10 @@ contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
         );
 
         for (uint256 i = 0; i < params.users.length; i++) {
-            _mint(params.users[i], params.amounts[i]);
+            ERC20._mint(params.users[i], params.amounts[i]);
         }
 
-        _mint(params.govAddress, params.mintedTotal - totalSupply());
+        ERC20._mint(params.govAddress, params.mintedTotal - totalSupply());
     }
 
     function mint(address account, uint256 amount) external override onlyGov {
