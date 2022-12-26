@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
@@ -15,7 +15,7 @@ import "../../core/Globals.sol";
 import "../../libs/utils/TokenBalance.sol";
 import "../../libs/math/MathHelper.sol";
 
-contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
+contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     using TokenBalance for address;
     using MathHelper for uint256;
     using Math for uint256;
@@ -128,11 +128,14 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         uint256[] memory recoveringAmounts = getRecoverAmounts(tierIds);
 
         for (uint256 i = 0; i < recoveringAmounts.length; i++) {
-            ERC20 saleToken = ERC20(_tiers[tierIds[i]].tierView.saleTokenAddress);
+            address saleToken = _tiers[tierIds[i]].tierView.saleTokenAddress;
 
             _amountToSell[saleToken] -= recoveringAmounts[i];
 
-            saleToken.safeTransfer(govAddress, recoveringAmounts[i].from18(saleToken.decimals()));
+            ERC20(saleToken).safeTransfer(
+                govAddress,
+                recoveringAmounts[i].from18(ERC20(saleToken).decimals())
+            );
         }
     }
 
@@ -143,7 +146,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
     ) public view ifTierExists(tierId) returns (uint256) {
         require(amount > 0, "TSP: zero amount");
 
-        require(balanceOf(msg.sender, tierId) == 1, "TSP: not whitelisted");
+        require(
+            totalSupply(tierId) == 0 || balanceOf(msg.sender, tierId) == 1,
+            "TSP: not whitelisted"
+        );
 
         Tier storage tier = _tiers[tierId];
 
