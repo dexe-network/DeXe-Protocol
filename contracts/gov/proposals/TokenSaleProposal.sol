@@ -244,6 +244,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         require(tierView.vestingPercentage <= PERCENTAGE_100, "TSP: vestingPercentage > 100%");
 
         require(tierView.vestingSettings.unlockStep != 0, "TSP: unlockStep cannot be zero");
+        require(
+            tierView.vestingSettings.vestingDuration >= tierView.vestingSettings.unlockStep,
+            "TSP: vestingDuration should greater than unlock step"
+        );
 
         _amountToSell[tierView.saleTokenAddress] += tierView.totalTokenProvided;
 
