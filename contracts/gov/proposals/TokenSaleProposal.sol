@@ -125,7 +125,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
     }
 
     function recover(uint256[] calldata tierIds) external {
-        uint256[] memory recoveringAmounts = getRecoveringAmounts(tierIds);
+        uint256[] memory recoveringAmounts = getRecoverAmounts(tierIds);
 
         for (uint256 i = 0; i < recoveringAmounts.length; i++) {
             ERC20 saleToken = ERC20(_tiers[tierIds[i]].tierView.saleTokenAddress);
@@ -183,13 +183,13 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         }
     }
 
-    function getRecoveringAmounts(
+    function getRecoverAmounts(
         uint256[] calldata tierIds
     ) public view returns (uint256[] memory recoveringAmounts) {
         recoveringAmounts = new uint256[](tierIds.length);
 
         for (uint256 i = 0; i < recoveringAmounts.length; i++) {
-            recoveringAmounts[i] = _getRecoveringAmount(tierIds[i]);
+            recoveringAmounts[i] = _getRecoverAmount(tierIds[i]);
         }
     }
 
@@ -311,7 +311,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         return vestingWithdrawAmount;
     }
 
-    function _getRecoveringAmount(
+    function _getRecoverAmount(
         uint256 tierId
     ) internal view ifTierExists(tierId) returns (uint256) {
         TierView memory tierView = _tiers[tierId].tierView;
