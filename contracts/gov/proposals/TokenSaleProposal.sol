@@ -261,10 +261,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             "TSP: insufficient TSP balance"
         );
 
-        Tier storage tier = _tiers[++latestTierId];
-
-        TierInfo storage tierInfo = tier.tierInfo;
-
         require(
             tierView.purchaseTokenAddresses.length != 0,
             "TSP: purchase tokens are not provided"
@@ -273,6 +269,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             tierView.purchaseTokenAddresses.length == tierView.exchangeRates.length,
             "TSP: tokens and rates lens mismatch"
         );
+
+        Tier storage tier = _tiers[++latestTierId];
+
+        TierInfo storage tierInfo = tier.tierInfo;
 
         for (uint256 i = 0; i < tierView.purchaseTokenAddresses.length; i++) {
             require(tierView.exchangeRates[i] != 0, "TSP: rate cannot be zero");
