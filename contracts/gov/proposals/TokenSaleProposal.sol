@@ -59,7 +59,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         }
     }
 
-    function addToWhitelist(WhitelistingRequest[] calldata requests) external override {
+    function addToWhitelist(WhitelistingRequest[] calldata requests) external override onlyGov {
         for (uint256 i = 0; i < requests.length; i++) {
             _addToWhitelist(requests[i]);
         }
