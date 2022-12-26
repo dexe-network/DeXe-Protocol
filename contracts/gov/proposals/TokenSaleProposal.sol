@@ -136,10 +136,12 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             }
 
             Tier storage tier = _tiers[tierIds[i]];
-            tier.tierInfo.totalSold += recoveringAmounts[i];
 
             address saleToken = tier.tierView.saleTokenAddress;
+
+            tier.tierInfo.totalSold += recoveringAmounts[i];
             _amountsToSell[saleToken] -= recoveringAmounts[i];
+
             ERC20(saleToken).safeTransfer(govAddress, recoveringAmounts[i]);
         }
     }
