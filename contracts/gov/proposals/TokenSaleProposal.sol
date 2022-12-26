@@ -232,21 +232,16 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     function _createTier(TierView calldata tierView) internal {
         require(tierView.saleTokenAddress != address(0), "TSP: sale token cannot be zero");
         require(tierView.saleTokenAddress != ETHEREUM_ADDRESS, "TSP: cannot sale native currency");
-
         require(tierView.totalTokenProvided != 0, "TSP: sale token is not provided");
-
         require(
             tierView.saleStartTime <= tierView.saleEndTime,
             "TSP: saleEndTime is less than saleStartTime"
         );
-
         require(
             tierView.minAllocationPerUser <= tierView.maxAllocationPerUser,
             "TSP: wrong allocation"
         );
-
         require(tierView.vestingPercentage <= PERCENTAGE_100, "TSP: vestingPercentage > 100%");
-
         require(tierView.vestingSettings.unlockStep != 0, "TSP: unlockStep cannot be zero");
         require(
             tierView.vestingSettings.vestingDuration >= tierView.vestingSettings.unlockStep,
@@ -260,7 +255,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
                 _amountsToSell[tierView.saleTokenAddress],
             "TSP: insufficient TSP balance"
         );
-
         require(
             tierView.purchaseTokenAddresses.length != 0,
             "TSP: purchase tokens are not provided"
@@ -276,12 +270,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
         for (uint256 i = 0; i < tierView.purchaseTokenAddresses.length; i++) {
             require(tierView.exchangeRates[i] != 0, "TSP: rate cannot be zero");
-
             require(
                 tierView.purchaseTokenAddresses[i] != address(0),
                 "TSP: purchase token cannot be zero"
             );
-
             require(
                 tierInfo.rates[tierView.purchaseTokenAddresses[i]] == 0,
                 "TSP: purchase tokens are duplicated"
