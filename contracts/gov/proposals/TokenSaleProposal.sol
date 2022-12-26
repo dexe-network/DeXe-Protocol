@@ -238,14 +238,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             tierView.vestingSettings.vestingDuration >= tierView.vestingSettings.unlockStep,
             "TSP: vestingDuration should greater than unlock step"
         );
-
-        _amountsToSell[tierView.saleTokenAddress] += tierView.totalTokenProvided;
-
-        require(
-            IERC20(tierView.saleTokenAddress).balanceOf(address(this)) >=
-                _amountsToSell[tierView.saleTokenAddress],
-            "TSP: insufficient TSP balance"
-        );
         require(
             tierView.purchaseTokenAddresses.length != 0,
             "TSP: purchase tokens are not provided"
@@ -253,6 +245,14 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         require(
             tierView.purchaseTokenAddresses.length == tierView.exchangeRates.length,
             "TSP: tokens and rates lens mismatch"
+        );
+
+        _amountsToSell[tierView.saleTokenAddress] += tierView.totalTokenProvided;
+
+        require(
+            IERC20(tierView.saleTokenAddress).balanceOf(address(this)) >=
+                _amountsToSell[tierView.saleTokenAddress],
+            "TSP: insufficient TSP balance"
         );
 
         Tier storage tier = _tiers[++latestTierId];
