@@ -36,6 +36,8 @@ contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
             ERC20._mint(params.users[i], params.amounts[i]);
         }
 
+        require(totalSupply() <= params.mintedTotal, "ERC20Sale: overminting");
+
         ERC20._mint(params.govAddress, params.mintedTotal - totalSupply());
     }
 
