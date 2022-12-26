@@ -17,7 +17,26 @@ contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
     constructor(
         ConstructorParams memory params
     ) ERC20(params.name, params.symbol) ERC20Capped(params.cap) {
+        require(params.govAddress != address(0), "ERC20Sale: govAddress is zero");
+        require(
+            params.mintedTotal <= params.cap,
+            "ERC20Sale: mintedTotal should be less than cap"
+        );
+
         govAddress = params.govAddress;
+
+        _mint(params.saleAddress, params.saleAmount);
+
+        require(
+            params.users.length == params.amounts.length,
+            "ERC20Sale: user and amount lengths mismatch"
+        );
+
+        for (uint256 i = 0; i < params.users.length; i++) {
+            _mint(params.users[i], params.amounts[i]);
+        }
+
+        _mint(params.govAddress, params.mintedTotal - totalSupply());
     }
 
     function mint(address account, uint256 amount) public override onlyGov {
