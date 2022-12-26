@@ -20,7 +20,7 @@ contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
         require(params.govAddress != address(0), "ERC20Sale: govAddress is zero");
         require(
             params.mintedTotal <= params.cap,
-            "ERC20Sale: mintedTotal should be less than cap"
+            "ERC20Sale: mintedTotal should not be greater than cap"
         );
 
         govAddress = params.govAddress;
