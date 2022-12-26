@@ -130,6 +130,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         for (uint256 i = 0; i < recoveringAmounts.length; i++) {
             ERC20 saleToken = ERC20(_tiers[tierIds[i]].tierView.saleTokenAddress);
 
+            _amountToSell[saleToken] -= recoveringAmounts[i];
+
             saleToken.safeTransfer(govAddress, recoveringAmounts[i].from18(saleToken.decimals()));
         }
     }
@@ -227,8 +229,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155Upgradeable {
         _amountToSell[tierView.saleTokenAddress] += tierView.totalTokenProvided;
 
         require(
-            _amountToSell[tierView.saleTokenAddress] >=
-                IERC20(tierView.saleTokenAddress).balanceOf(address(this)),
+            IERC20(tierView.saleTokenAddress).balanceOf(address(this)) >=
+                _amountToSell[tierView.saleTokenAddress],
             "TSP: insufficient TSP balance"
         );
 
