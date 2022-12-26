@@ -266,6 +266,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         TierInfo storage tierInfo = tier.tierInfo;
 
         require(
+            tierView.purchaseTokenAddresses.length != 0,
+            "TSP: purchase tokens are not provided"
+        );
+        require(
             tierView.purchaseTokenAddresses.length == tierView.exchangeRates.length,
             "TSP: tokens and rates lens mismatch"
         );
