@@ -27,7 +27,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     uint256 public override latestTierId;
 
     mapping(uint256 => Tier) internal _tiers;
-    mapping(address => uint256) internal _amountToSell;
+    mapping(address => uint256) internal _amountsToSell;
 
     modifier onlyGov() {
         require(govAddress == address(0) || msg.sender == govAddress, "TSP: not a Gov contract");
@@ -108,7 +108,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         TierView memory tierView = tier.tierView;
         TierInfo storage tierInfo = tier.tierInfo;
 
-        _amountToSell[tierView.saleTokenAddress] -= saleTokenAmount;
+        _amountsToSell[tierView.saleTokenAddress] -= saleTokenAmount;
 
         ERC20(tierView.saleTokenAddress).safeTransfer(
             msg.sender,
@@ -144,7 +144,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
             address saleToken = _tiers[tierIds[i]].tierView.saleTokenAddress;
 
-            _amountToSell[saleToken] -= recoveringAmounts[i];
+            _amountsToSell[saleToken] -= recoveringAmounts[i];
 
             ERC20(saleToken).safeTransfer(
                 govAddress,
@@ -253,11 +253,11 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             "TSP: vestingDuration should greater than unlock step"
         );
 
-        _amountToSell[tierView.saleTokenAddress] += tierView.totalTokenProvided;
+        _amountsToSell[tierView.saleTokenAddress] += tierView.totalTokenProvided;
 
         require(
             IERC20(tierView.saleTokenAddress).balanceOf(address(this)) >=
-                _amountToSell[tierView.saleTokenAddress],
+                _amountsToSell[tierView.saleTokenAddress],
             "TSP: insufficient TSP balance"
         );
 
