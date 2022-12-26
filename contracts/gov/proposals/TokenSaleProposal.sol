@@ -79,9 +79,15 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
                 continue;
             }
 
-            _tiers[i].tierInfo.customers[msg.sender].latestVestingWithdraw = block.timestamp;
+            TierView memory tierView = _tiers[i].tierView;
+            Purchase storage purchase = _tiers[i].tierInfo.customers[msg.sender];
 
-            ERC20 saleToken = ERC20(_tiers[i].tierView.saleTokenAddress);
+            purchase.latestVestingWithdraw =
+                block.timestamp -
+                ((block.timestamp - purchase.latestVestingWithdraw) %
+                    tierView.vestingSettings.unlockStep);
+
+            ERC20 saleToken = ERC20(tierView.saleTokenAddress);
 
             saleToken.safeTransfer(
                 msg.sender,
