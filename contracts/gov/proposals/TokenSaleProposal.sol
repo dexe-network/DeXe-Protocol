@@ -360,13 +360,15 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     }
 
     function _beforeTokenTransfer(
-        address,
+        address operator,
         address from,
         address to,
         uint256[] memory ids,
         uint256[] memory amounts,
-        bytes memory
-    ) internal view override {
+        bytes memory data
+    ) internal override {
+        super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+
         require(from == address(0), "TSP: only for minting");
 
         for (uint256 i = 0; i < ids.length; i++) {
