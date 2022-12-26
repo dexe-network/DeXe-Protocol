@@ -168,8 +168,9 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         uint256 saleTokenAmount = amount.ratio(exchangeRate, PRECISION);
 
         require(
-            tierView.minAllocationPerUser <= saleTokenAmount &&
-                saleTokenAmount <= tierView.maxAllocationPerUser,
+            tierView.maxAllocationPerUser == 0 ||
+                (tierView.minAllocationPerUser <= saleTokenAmount &&
+                    saleTokenAmount <= tierView.maxAllocationPerUser),
             "TSP: wrong allocation"
         );
 
