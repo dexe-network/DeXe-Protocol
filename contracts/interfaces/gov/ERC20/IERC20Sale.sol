@@ -5,13 +5,13 @@ interface IERC20Sale {
     struct ConstructorParams {
         string name;
         string symbol;
-        uint256 cap;
-        uint256 mintedTotal;
-        uint256 saleAmount;
-        uint256[] amounts;
         address[] users;
         address govAddress;
         address saleAddress;
+        uint256 saleAmount;
+        uint256 cap;
+        uint256 mintedTotal;
+        uint256[] amounts;
     }
 
     function mint(address account, uint256 amount) external;
