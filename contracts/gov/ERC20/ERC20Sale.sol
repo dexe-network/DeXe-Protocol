@@ -29,7 +29,7 @@ contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
 
         require(
             params.users.length == params.amounts.length,
-            "ERC20Sale: user and amount lengths mismatch"
+            "ERC20Sale: users and amounts lengths mismatch"
         );
 
         for (uint256 i = 0; i < params.users.length; i++) {
