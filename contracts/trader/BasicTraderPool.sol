@@ -61,6 +61,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
     }
 
     function createProposal(
+        string calldata descriptionURL,
         address token,
         uint256 lpAmount,
         ITraderPoolRiskyProposal.ProposalLimits calldata proposalLimits,
@@ -72,6 +73,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256 baseAmount = _divestPositions(lpAmount, minDivestOut);
 
         _traderPoolProposal.create(
+            descriptionURL,
             token,
             proposalLimits,
             lpAmount,

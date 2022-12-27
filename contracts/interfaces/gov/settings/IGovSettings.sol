@@ -12,6 +12,21 @@ interface IGovSettings {
         VALIDATORS
     }
 
+    /// @notice The struct holds information about settings for proposal type
+    /// @param earlyCompletion the boolean flag, if true the voting completes as soon as the quorum is reached
+    /// @param delegatedVotingAllowed the boolean flag, if true then delegators can vote with their own delegated tokens
+    /// @param validatorsVote the boolean flag, if true then voting will have an additional validators step
+    /// @param duration the duration of voting in seconds
+    /// @param durationValidators the duration of validators voting in seconds
+    /// @param quorum the percentage of total votes supply (erc20 + nft) to confirm the proposal
+    /// @param quorumValidators the percentage of total validator token supply to confirm the proposal
+    /// @param minVotesForVoting the minimal needed voting power to vote for the proposal
+    /// @param minVotesForCreating the minimal needed voting power to create the proposal
+    /// @param rewardToken the reward token address
+    /// @param creationReward the amount of reward for proposal creation
+    /// @param executionReward the amount of reward for proposal execution
+    /// @param voteRewardsCoefficient the reward multiplier for voting
+    /// @param executorDescription the settings description string
     struct ProposalSettings {
         bool earlyCompletion;
         bool delegatedVotingAllowed;

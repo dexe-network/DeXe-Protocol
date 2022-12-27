@@ -29,6 +29,7 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     }
 
     /// @notice The struct that holds the information of this proposal
+    /// @param descriptionURL the IPFS URL of the proposal's description
     /// @param token the address of the proposal token
     /// @param tokenDecimals the decimals of the proposal token
     /// @param proposalLimits the investment limits of this proposal
@@ -36,6 +37,7 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// @param balanceBase the base token balance of this proposal (normalized)
     /// @param balancePosition the position token balance of this proposal (normalized)
     struct ProposalInfo {
+        string descriptionURL;
         address token;
         uint256 tokenDecimals;
         ProposalLimits proposalLimits;
@@ -98,6 +100,7 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     ) external;
 
     /// @notice The function to create a proposal
+    /// @param descriptionURL the IPFS URL of proposal's description
     /// @param token the proposal token (the one that the trades are only allowed to)
     /// @param proposalLimits the investment limits for this proposal
     /// @param lpInvestment the amount of LP tokens invested rightaway
@@ -107,6 +110,7 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     /// @param optionalPath the optional path between base token and position token that will be used by the pathfinder
     /// @return proposalId the id of the created proposal
     function create(
+        string calldata descriptionURL,
         address token,
         ProposalLimits calldata proposalLimits,
         uint256 lpInvestment,

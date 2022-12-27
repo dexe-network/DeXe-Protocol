@@ -102,7 +102,7 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
     ) external;
 
     /// @notice The function that creates proposals
-    /// @param descriptionURL the IPFS URL of new description
+    /// @param descriptionURL the IPFS URL of proposal's description
     /// @param proposalLimits the certain limits of this proposal
     /// @param lpInvestment the amount of LP tokens invested on proposal's creation
     /// @param baseInvestment the equivalent amount of base tokens invested on proposal's creation
