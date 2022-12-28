@@ -1,5 +1,3 @@
-const { logTransaction, logContracts } = require("@dlsl/hardhat-migrate");
-
 const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
 const { wei } = require("../scripts/utils/utils");
 
@@ -120,7 +118,7 @@ async function setupInsuranceProposals(contractsRegistry) {
   POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(await contractsRegistry.getInsuranceContract());
 }
 
-module.exports = async (deployer) => {
+module.exports = async (deployer, logger) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
   const poolFactory = await PoolFactory.at(await contractsRegistry.getPoolFactoryContract());
@@ -129,7 +127,7 @@ module.exports = async (deployer) => {
 
   let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);
 
-  logTransaction(tx, "Deployed DEXE DAO");
+  logger.logTransaction(tx, "Deployed DEXE DAO");
 
-  logContracts(["DEXE DAO", tx.receipt.logs[0].args.govPool]);
+  logger.logContracts(["DEXE DAO", tx.receipt.logs[0].args.govPool]);
 };

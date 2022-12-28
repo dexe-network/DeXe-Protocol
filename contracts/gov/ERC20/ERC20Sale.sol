@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "../../interfaces/gov/ERC20/IERC20Sale.sol";
-
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
+
+import "../../interfaces/gov/ERC20/IERC20Sale.sol";
 
 contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
     address public govAddress;
@@ -15,22 +15,23 @@ contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
     }
 
     constructor(
+        address _govAddress,
+        address _saleAddress,
         ConstructorParams memory params
     ) ERC20(params.name, params.symbol) ERC20Capped(params.cap) {
-        require(params.govAddress != address(0), "ERC20Sale: govAddress is zero");
+        require(_govAddress != address(0), "ERC20Sale: govAddress is zero");
         require(
             params.mintedTotal <= params.cap,
             "ERC20Sale: mintedTotal should not be greater than cap"
         );
-
-        govAddress = params.govAddress;
-
-        ERC20._mint(params.saleAddress, params.saleAmount);
-
         require(
             params.users.length == params.amounts.length,
             "ERC20Sale: users and amounts lengths mismatch"
         );
+
+        govAddress = _govAddress;
+
+        ERC20._mint(_saleAddress, params.saleAmount);
 
         for (uint256 i = 0; i < params.users.length; i++) {
             ERC20._mint(params.users[i], params.amounts[i]);
@@ -38,7 +39,7 @@ contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
 
         require(totalSupply() <= params.mintedTotal, "ERC20Sale: overminting");
 
-        ERC20._mint(params.govAddress, params.mintedTotal - totalSupply());
+        ERC20._mint(_govAddress, params.mintedTotal - totalSupply());
     }
 
     function mint(address account, uint256 amount) external override onlyGov {

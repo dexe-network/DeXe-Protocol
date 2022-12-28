@@ -1,5 +1,3 @@
-const { logTransaction } = require("@dlsl/hardhat-migrate");
-
 const Proxy = artifacts.require("TransparentUpgradeableProxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 
@@ -7,7 +5,7 @@ const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
 const UserRegistry = artifacts.require("UserRegistry");
 
-module.exports = async (deployer) => {
+module.exports = async (deployer, logger) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
   const priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
@@ -35,10 +33,10 @@ module.exports = async (deployer) => {
 
   let documentHash = "0xdcf5635e2f38018583c7faa2aebd3361ed82c67c59c6a54de06b19181a596210";
 
-  logTransaction(await coreProperties.addWhitelistTokens(whitelistAddresses), "Add whitelist tokens");
-  logTransaction(await coreProperties.addBlacklistTokens(blacklistAddresses), "Add blacklist tokens");
+  logger.logTransaction(await coreProperties.addWhitelistTokens(whitelistAddresses), "Add whitelist tokens");
+  logger.logTransaction(await coreProperties.addBlacklistTokens(blacklistAddresses), "Add blacklist tokens");
 
-  logTransaction(await priceFeed.addPathTokens(pathAddresses), "Add supported path tokens");
+  logger.logTransaction(await priceFeed.addPathTokens(pathAddresses), "Add supported path tokens");
 
-  logTransaction(await userRegistry.setPrivacyPolicyDocumentHash(documentHash), "Add document hash");
+  logger.logTransaction(await userRegistry.setPrivacyPolicyDocumentHash(documentHash), "Add document hash");
 };

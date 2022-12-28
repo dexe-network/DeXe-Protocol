@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@dlsl/dev-modules/pool-contracts-registry/pool-factory/AbstractPoolFactory.sol";
+
 import "../interfaces/factory/IPoolFactory.sol";
 import "../interfaces/trader/ITraderPool.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "@dlsl/dev-modules/pool-contracts-registry/pool-factory/AbstractPoolFactory.sol";
-
 import {DistributionProposal} from "../gov/proposals/DistributionProposal.sol";
+import {TokenSaleProposal} from "../gov/proposals/TokenSaleProposal.sol";
 import "../gov/GovPool.sol";
 import "../gov/user-keeper/GovUserKeeper.sol";
 import "../gov/settings/GovSettings.sol";
@@ -21,11 +22,14 @@ import "../trader/TraderPoolInvestProposal.sol";
 import "../core/CoreProperties.sol";
 import "./PoolRegistry.sol";
 
+import "../libs/factory/GovTokenSaleDeployer.sol";
+
 import "../core/Globals.sol";
 
 contract PoolFactory is IPoolFactory, AbstractPoolFactory {
-    PoolRegistry internal _poolRegistry;
+    using GovTokenSaleDeployer for *;
 
+    PoolRegistry internal _poolRegistry;
     CoreProperties internal _coreProperties;
 
     event TraderPoolDeployed(
@@ -39,7 +43,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         uint256 commission,
         string descriptionURL
     );
-
     event DaoPoolDeployed(
         string name,
         address govPool,
@@ -63,16 +66,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         string memory poolType = _poolRegistry.GOV_POOL_NAME();
 
         address validatorsProxy = _deploy(_poolRegistry.VALIDATORS_NAME());
-
-        GovValidators(validatorsProxy).__GovValidators_init(
-            parameters.validatorsParams.name,
-            parameters.validatorsParams.symbol,
-            parameters.validatorsParams.duration,
-            parameters.validatorsParams.quorum,
-            parameters.validatorsParams.validators,
-            parameters.validatorsParams.balances
-        );
-
         address userKeeperProxy = _deploy(_poolRegistry.USER_KEEPER_NAME());
         address dpProxy = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
         address settingsProxy = _deploy(_poolRegistry.SETTINGS_NAME());
@@ -88,13 +81,162 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             msg.sender
         );
 
+        _initGovPool(
+            poolProxy,
+            settingsProxy,
+            dpProxy,
+            userKeeperProxy,
+            validatorsProxy,
+            parameters
+        );
+
+        GovSettings(settingsProxy).transferOwnership(poolProxy);
+        GovUserKeeper(userKeeperProxy).transferOwnership(poolProxy);
+        GovValidators(validatorsProxy).transferOwnership(poolProxy);
+
+        _register(poolType, poolProxy);
+        _injectDependencies(poolProxy);
+    }
+
+    function deployGovPoolWithTokenSale(
+        GovPoolDeployParams memory parameters,
+        GovTokenSaleProposalDeployParams calldata tokenSaleParams
+    ) external override {
+        _validateGovPoolWithTokenSaleParams(parameters);
+
+        string memory poolType = _poolRegistry.GOV_POOL_NAME();
+
+        address validatorsProxy = _deploy(_poolRegistry.VALIDATORS_NAME());
+        address userKeeperProxy = _deploy(_poolRegistry.USER_KEEPER_NAME());
+        address dpProxy = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
+        address settingsProxy = _deploy(_poolRegistry.SETTINGS_NAME());
+        address poolProxy = _deploy(poolType);
+
+        emit DaoPoolDeployed(
+            parameters.name,
+            poolProxy,
+            dpProxy,
+            validatorsProxy,
+            settingsProxy,
+            userKeeperProxy,
+            msg.sender
+        );
+
+        address tokenSaleProxy = _deploy(_poolRegistry.TOKEN_SALE_PROPOSAL_NAME());
+        address token = poolProxy.deploy(tokenSaleProxy, tokenSaleParams.tokenParams);
+
+        parameters.userKeeperParams.tokenAddress = token;
+        parameters.settingsParams.additionalProposalExecutors[0] = tokenSaleProxy;
+
+        TokenSaleProposal(tokenSaleProxy).createTiers(tokenSaleParams.tiersParams);
+        TokenSaleProposal(tokenSaleProxy).addToWhitelist(tokenSaleParams.whitelistParams);
+
+        _initGovPool(
+            poolProxy,
+            settingsProxy,
+            dpProxy,
+            userKeeperProxy,
+            validatorsProxy,
+            parameters
+        );
+        TokenSaleProposal(tokenSaleProxy).__TokenSaleProposal_init(poolProxy);
+
+        GovSettings(settingsProxy).transferOwnership(poolProxy);
+        GovUserKeeper(userKeeperProxy).transferOwnership(poolProxy);
+        GovValidators(validatorsProxy).transferOwnership(poolProxy);
+
+        _register(poolType, poolProxy);
+        _injectDependencies(poolProxy);
+    }
+
+    function deployBasicPool(
+        string calldata name,
+        string calldata symbol,
+        TraderPoolDeployParameters calldata parameters
+    ) external override {
+        string memory poolType = _poolRegistry.BASIC_POOL_NAME();
+        ITraderPool.PoolParameters memory poolParameters = _validateTraderPoolParameters(
+            parameters
+        );
+
+        address proposalProxy = _deploy(_poolRegistry.RISKY_PROPOSAL_NAME());
+        address poolProxy = _deploy(poolType);
+
+        emit TraderPoolDeployed(
+            poolType,
+            symbol,
+            name,
+            poolProxy,
+            proposalProxy,
+            poolParameters.trader,
+            poolParameters.baseToken,
+            poolParameters.commissionPercentage,
+            poolParameters.descriptionURL
+        );
+
+        _initBasicPool(poolProxy, proposalProxy, name, symbol, poolParameters);
+
+        _register(poolType, poolProxy);
+        _injectDependencies(poolProxy);
+
+        _poolRegistry.associateUserWithPool(poolParameters.trader, poolType, poolProxy);
+    }
+
+    function deployInvestPool(
+        string calldata name,
+        string calldata symbol,
+        TraderPoolDeployParameters calldata parameters
+    ) external override {
+        string memory poolType = _poolRegistry.INVEST_POOL_NAME();
+        ITraderPool.PoolParameters memory poolParameters = _validateTraderPoolParameters(
+            parameters
+        );
+
+        address proposalProxy = _deploy(_poolRegistry.INVEST_PROPOSAL_NAME());
+        address poolProxy = _deploy(poolType);
+
+        emit TraderPoolDeployed(
+            poolType,
+            symbol,
+            name,
+            poolProxy,
+            proposalProxy,
+            poolParameters.trader,
+            poolParameters.baseToken,
+            poolParameters.commissionPercentage,
+            poolParameters.descriptionURL
+        );
+
+        _initInvestPool(poolProxy, proposalProxy, name, symbol, poolParameters);
+
+        _register(poolType, poolProxy);
+        _injectDependencies(poolProxy);
+
+        _poolRegistry.associateUserWithPool(poolParameters.trader, poolType, poolProxy);
+    }
+
+    function _initGovPool(
+        address poolProxy,
+        address settingsProxy,
+        address dpProxy,
+        address userKeeperProxy,
+        address validatorsProxy,
+        GovPoolDeployParams memory parameters
+    ) internal {
+        GovValidators(validatorsProxy).__GovValidators_init(
+            parameters.validatorsParams.name,
+            parameters.validatorsParams.symbol,
+            parameters.validatorsParams.duration,
+            parameters.validatorsParams.quorum,
+            parameters.validatorsParams.validators,
+            parameters.validatorsParams.balances
+        );
         GovUserKeeper(userKeeperProxy).__GovUserKeeper_init(
             parameters.userKeeperParams.tokenAddress,
             parameters.userKeeperParams.nftAddress,
             parameters.userKeeperParams.totalPowerInTokens,
             parameters.userKeeperParams.nftsTotalSupply
         );
-
         DistributionProposal(payable(dpProxy)).__DistributionProposal_init(poolProxy);
         GovSettings(settingsProxy).__GovSettings_init(
             address(poolProxy),
@@ -113,27 +255,15 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.descriptionURL,
             parameters.name
         );
-
-        GovSettings(settingsProxy).transferOwnership(poolProxy);
-        GovUserKeeper(userKeeperProxy).transferOwnership(poolProxy);
-        GovValidators(validatorsProxy).transferOwnership(poolProxy);
-
-        _register(poolType, poolProxy);
-        _injectDependencies(poolProxy);
     }
 
-    function deployBasicPool(
+    function _initBasicPool(
+        address poolProxy,
+        address proposalProxy,
         string calldata name,
         string calldata symbol,
-        TraderPoolDeployParameters calldata parameters
-    ) external override {
-        string memory poolType = _poolRegistry.BASIC_POOL_NAME();
-        ITraderPool.PoolParameters
-            memory poolParameters = _validateAndConstructTraderPoolParameters(parameters);
-
-        address proposalProxy = _deploy(_poolRegistry.RISKY_PROPOSAL_NAME());
-        address poolProxy = _deploy(poolType);
-
+        ITraderPool.PoolParameters memory poolParameters
+    ) internal {
         BasicTraderPool(poolProxy).__BasicTraderPool_init(
             name,
             symbol,
@@ -148,37 +278,15 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
                 poolParameters.baseTokenDecimals
             )
         );
-
-        _register(poolType, poolProxy);
-        _injectDependencies(poolProxy);
-
-        _poolRegistry.associateUserWithPool(poolParameters.trader, poolType, poolProxy);
-
-        emit TraderPoolDeployed(
-            poolType,
-            symbol,
-            name,
-            poolProxy,
-            proposalProxy,
-            poolParameters.trader,
-            poolParameters.baseToken,
-            poolParameters.commissionPercentage,
-            poolParameters.descriptionURL
-        );
     }
 
-    function deployInvestPool(
+    function _initInvestPool(
+        address poolProxy,
+        address proposalProxy,
         string calldata name,
         string calldata symbol,
-        TraderPoolDeployParameters calldata parameters
-    ) external override {
-        string memory poolType = _poolRegistry.INVEST_POOL_NAME();
-        ITraderPool.PoolParameters
-            memory poolParameters = _validateAndConstructTraderPoolParameters(parameters);
-
-        address proposalProxy = _deploy(_poolRegistry.INVEST_PROPOSAL_NAME());
-        address poolProxy = _deploy(poolType);
-
+        ITraderPool.PoolParameters memory poolParameters
+    ) internal {
         InvestTraderPool(poolProxy).__InvestTraderPool_init(
             name,
             symbol,
@@ -192,23 +300,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
                 poolParameters.baseToken,
                 poolParameters.baseTokenDecimals
             )
-        );
-
-        _register(poolType, poolProxy);
-        _injectDependencies(poolProxy);
-
-        _poolRegistry.associateUserWithPool(poolParameters.trader, poolType, poolProxy);
-
-        emit TraderPoolDeployed(
-            poolType,
-            symbol,
-            name,
-            poolProxy,
-            proposalProxy,
-            poolParameters.trader,
-            poolParameters.baseToken,
-            poolParameters.commissionPercentage,
-            poolParameters.descriptionURL
         );
     }
 
@@ -224,7 +315,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _injectDependencies(address(_poolRegistry), proxy);
     }
 
-    function _validateAndConstructTraderPoolParameters(
+    function _validateTraderPoolParameters(
         TraderPoolDeployParameters calldata parameters
     ) internal view returns (ITraderPool.PoolParameters memory poolParameters) {
         (uint256 general, uint256[] memory byPeriod) = _coreProperties.getTraderCommissions();
@@ -250,6 +341,21 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.minimalInvestment,
             parameters.commissionPeriod,
             parameters.commissionPercentage
+        );
+    }
+
+    function _validateGovPoolWithTokenSaleParams(
+        GovPoolDeployParams memory parameters
+    ) internal pure {
+        require(
+            parameters.userKeeperParams.tokenAddress == address(0),
+            "PoolFactory: invalid token address"
+        );
+        require(
+            parameters.settingsParams.proposalSettings.length > 4 &&
+                parameters.settingsParams.additionalProposalExecutors.length > 0 &&
+                parameters.settingsParams.additionalProposalExecutors[0] == address(0),
+            "PoolFactory: invalid token sale executor"
         );
     }
 }

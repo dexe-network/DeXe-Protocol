@@ -6,8 +6,6 @@ interface IERC20Sale {
         string name;
         string symbol;
         address[] users;
-        address govAddress;
-        address saleAddress;
         uint256 saleAmount;
         uint256 cap;
         uint256 mintedTotal;

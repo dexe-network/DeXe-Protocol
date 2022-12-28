@@ -1,5 +1,3 @@
-const { logTransaction } = require("@dlsl/hardhat-migrate");
-
 const Proxy = artifacts.require("TransparentUpgradeableProxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 
@@ -19,10 +17,9 @@ const GovSettings = artifacts.require("GovSettings");
 const GovValidators = artifacts.require("GovValidators");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const DistributionProposal = artifacts.require("DistributionProposal");
+const TokenSaleProposal = artifacts.require("TokenSaleProposal");
 
-async function link(deployer) {
-  await deployer.deploy(GovUserKeeperViewLib);
-
+async function linkGovPool(deployer) {
   await deployer.deploy(GovPoolCreateLib);
   await deployer.deploy(GovPoolExecuteLib);
   await deployer.deploy(GovPoolRewardsLib);
@@ -30,8 +27,6 @@ async function link(deployer) {
   await deployer.deploy(GovPoolVoteLib);
   await deployer.deploy(GovPoolViewLib);
   await deployer.deploy(GovPoolStakingLib);
-
-  await deployer.link(GovUserKeeperViewLib, GovUserKeeper);
 
   await deployer.link(GovPoolCreateLib, GovPool);
   await deployer.link(GovPoolExecuteLib, GovPool);
@@ -42,7 +37,18 @@ async function link(deployer) {
   await deployer.link(GovPoolStakingLib, GovPool);
 }
 
-module.exports = async (deployer) => {
+async function linkGovUserKeeper(deployer) {
+  await deployer.deploy(GovUserKeeperViewLib);
+
+  await deployer.link(GovUserKeeperViewLib, GovUserKeeper);
+}
+
+async function link(deployer) {
+  await linkGovUserKeeper(deployer);
+  await linkGovPool(deployer);
+}
+
+module.exports = async (deployer, logger) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
   const poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
@@ -54,17 +60,33 @@ module.exports = async (deployer) => {
   const govValidators = await deployer.deploy(GovValidators);
   const govUserKeeper = await deployer.deploy(GovUserKeeper);
   const distributionProposal = await deployer.deploy(DistributionProposal);
+  const tokenSaleProposal = await deployer.deploy(TokenSaleProposal);
 
   const govPoolName = await poolRegistry.GOV_POOL_NAME();
   const govSettingsName = await poolRegistry.SETTINGS_NAME();
   const govValidatorsName = await poolRegistry.VALIDATORS_NAME();
   const govUserKeeperName = await poolRegistry.USER_KEEPER_NAME();
   const distributionProposalName = await poolRegistry.DISTRIBUTION_PROPOSAL_NAME();
+  const tokenSaleProposalName = await poolRegistry.TOKEN_SALE_PROPOSAL_NAME();
 
-  logTransaction(
+  logger.logTransaction(
     await poolRegistry.setNewImplementations(
-      [govPoolName, govSettingsName, govValidatorsName, govUserKeeperName, distributionProposalName],
-      [govPool.address, govSettings.address, govValidators.address, govUserKeeper.address, distributionProposal.address]
+      [
+        govPoolName,
+        govSettingsName,
+        govValidatorsName,
+        govUserKeeperName,
+        distributionProposalName,
+        tokenSaleProposalName,
+      ],
+      [
+        govPool.address,
+        govSettings.address,
+        govValidators.address,
+        govUserKeeper.address,
+        distributionProposal.address,
+        tokenSaleProposal.address,
+      ]
     ),
     "Set GovPools implementations"
   );

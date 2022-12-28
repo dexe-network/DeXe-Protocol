@@ -10,10 +10,10 @@ import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
 import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
 
-import "../../core/Globals.sol";
-
 import "../../libs/utils/TokenBalance.sol";
 import "../../libs/math/MathHelper.sol";
+
+import "../../core/Globals.sol";
 
 contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     using TokenBalance for address;
@@ -43,13 +43,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     }
 
     function __TokenSaleProposal_init(address _govAddress) external initializer {
-        govAddress = _govAddress;
-    }
-
-    function setGovAddress(address _govAddress) external {
-        require(govAddress == address(0), "TSP: govAddress is set");
-        require(_govAddress != address(0), "TSP: cannot set zero govAddress");
-
         govAddress = _govAddress;
     }
 
@@ -152,16 +145,15 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         uint256 amount
     ) public view ifTierExists(tierId) returns (uint256) {
         require(amount > 0, "TSP: zero amount");
-
         require(
             totalSupply(tierId) == 0 || balanceOf(msg.sender, tierId) == 1,
             "TSP: not whitelisted"
         );
 
         Tier storage tier = _tiers[tierId];
+        TierInfo storage tierInfo = tier.tierInfo;
 
         TierView memory tierView = tier.tierView;
-        TierInfo storage tierInfo = tier.tierInfo;
 
         require(
             tierView.saleStartTime <= block.timestamp && block.timestamp <= tierView.saleEndTime,
@@ -170,17 +162,15 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         require(tierInfo.customers[msg.sender].purchaseTime == 0, "TSP: cannot buy twice");
 
         uint256 exchangeRate = tierInfo.rates[tokenToBuyWith];
-        require(exchangeRate != 0, "TSP: incorrect token");
-
         uint256 saleTokenAmount = amount.ratio(exchangeRate, PRECISION);
 
+        require(exchangeRate != 0, "TSP: incorrect token");
         require(
             tierView.maxAllocationPerUser == 0 ||
                 (tierView.minAllocationPerUser <= saleTokenAmount &&
                     saleTokenAmount <= tierView.maxAllocationPerUser),
             "TSP: wrong allocation"
         );
-
         require(
             tierInfo.totalSold + saleTokenAmount <= tierView.totalTokenProvided,
             "TSP: insufficient sale token amount"
@@ -258,7 +248,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         );
 
         Tier storage tier = _tiers[++latestTierId];
-
         TierInfo storage tierInfo = tier.tierInfo;
 
         for (uint256 i = 0; i < tierView.purchaseTokenAddresses.length; i++) {
@@ -298,9 +287,9 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         uint256 tierId
     ) internal view ifTierExists(tierId) returns (uint256) {
         Tier storage tier = _tiers[tierId];
+        TierInfo storage tierInfo = tier.tierInfo;
 
         TierView memory tierView = tier.tierView;
-        TierInfo storage tierInfo = tier.tierInfo;
 
         if (tierInfo.customers[msg.sender].purchaseTime == 0) {
             return 0;

@@ -30,6 +30,7 @@ const DistributionProposal = artifacts.require("DistributionProposal");
 const UniswapV2PathFinderLib = artifacts.require("UniswapV2PathFinder");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const PoolFactory = artifacts.require("PoolFactory");
+const GovTokenSaleDeployerLib = artifacts.require("GovTokenSaleDeployer");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
@@ -71,6 +72,10 @@ describe("PoolFactory", () => {
   before("setup", async () => {
     OWNER = await accounts(0);
     NOTHING = await accounts(3);
+
+    const govTokenSaleDeployerLib = await GovTokenSaleDeployerLib.new();
+
+    await PoolFactory.link(govTokenSaleDeployerLib);
 
     const govUserKeeperViewLib = await GovUserKeeperViewLib.new();
 

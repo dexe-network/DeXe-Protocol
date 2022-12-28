@@ -25,6 +25,7 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     string public constant VALIDATORS_NAME = "VALIDATORS";
     string public constant USER_KEEPER_NAME = "USER_KEEPER";
     string public constant DISTRIBUTION_PROPOSAL_NAME = "DISTRIBUTION_PROPOSAL";
+    string public constant TOKEN_SALE_PROPOSAL_NAME = "TOKEN_SALE_PROPOSAL";
 
     address internal _poolFactory;
 

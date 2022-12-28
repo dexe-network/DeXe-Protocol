@@ -1,5 +1,3 @@
-const { logTransaction, logContracts } = require("@dlsl/hardhat-migrate");
-
 const { SECONDS_IN_DAY, SECONDS_IN_MONTH, PRECISION, DECIMAL } = require("../scripts/utils/constants");
 
 const Proxy = artifacts.require("TransparentUpgradeableProxy");
@@ -45,7 +43,7 @@ const DEFAULT_CORE_PROPERTIES = {
   },
 };
 
-module.exports = async (deployer) => {
+module.exports = async (deployer, logger) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
   const userRegistry = await UserRegistry.at(await contractsRegistry.getUserRegistryContract());
@@ -62,50 +60,50 @@ module.exports = async (deployer) => {
 
   console.log();
 
-  logTransaction(
+  logger.logTransaction(
     await userRegistry.__UserRegistry_init(await contractsRegistry.USER_REGISTRY_NAME()),
     "Init UserRegistry"
   );
 
-  logTransaction(await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES), "Init CoreProperties");
-  logTransaction(await priceFeed.__PriceFeed_init(), "Init PriceFeed");
+  logger.logTransaction(await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES), "Init CoreProperties");
+  logger.logTransaction(await priceFeed.__PriceFeed_init(), "Init PriceFeed");
 
-  logTransaction(await insurance.__Insurance_init(), "Init Insurance");
+  logger.logTransaction(await insurance.__Insurance_init(), "Init Insurance");
 
-  logTransaction(await poolRegistry.__OwnablePoolContractsRegistry_init(), "Init PoolRegistry");
+  logger.logTransaction(await poolRegistry.__OwnablePoolContractsRegistry_init(), "Init PoolRegistry");
 
   ////////////////////////////////////////////////////////////
 
   console.log();
 
-  logTransaction(
+  logger.logTransaction(
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME()),
     "Inject CoreProperties"
   );
 
-  logTransaction(
+  logger.logTransaction(
     await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME()),
     "Inject PriceFeed"
   );
 
-  logTransaction(
+  logger.logTransaction(
     await contractsRegistry.injectDependencies(await contractsRegistry.INSURANCE_NAME()),
     "Inject Insurance"
   );
 
-  logTransaction(
+  logger.logTransaction(
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_FACTORY_NAME()),
     "Inject PoolFactory"
   );
 
-  logTransaction(
+  logger.logTransaction(
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME()),
     "Inject PoolRegistry"
   );
 
   ////////////////////////////////////////////////////////////
 
-  logContracts(
+  logger.logContracts(
     ["ContractsRegistry", contractsRegistry.address],
     ["UserRegistry", userRegistry.address],
     ["CoreProperties", coreProperties.address],
