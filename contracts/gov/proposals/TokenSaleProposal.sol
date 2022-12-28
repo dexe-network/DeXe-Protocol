@@ -43,6 +43,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     }
 
     function __TokenSaleProposal_init(address _govAddress) external initializer {
+        require(_govAddress != address(0), "TSP: zero gov address");
+
         govAddress = _govAddress;
     }
 

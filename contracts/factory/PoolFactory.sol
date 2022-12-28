@@ -100,9 +100,9 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
     function deployGovPoolWithTokenSale(
         GovPoolDeployParams memory parameters,
-        GovTokenSaleProposalDeployParams calldata tokenSaleParams
+        GovTokenSaleProposalDeployParams calldata tokenSaleParameters
     ) external override {
-        _validateGovPoolWithTokenSaleParams(parameters);
+        _validateGovPoolWithTokenSaleParameters(parameters);
 
         string memory poolType = _poolRegistry.GOV_POOL_NAME();
 
@@ -123,13 +123,13 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         );
 
         address tokenSaleProxy = _deploy(_poolRegistry.TOKEN_SALE_PROPOSAL_NAME());
-        address token = poolProxy.deploy(tokenSaleProxy, tokenSaleParams.tokenParams);
+        address token = poolProxy.deploy(tokenSaleProxy, tokenSaleParameters.tokenParams);
 
         parameters.userKeeperParams.tokenAddress = token;
         parameters.settingsParams.additionalProposalExecutors[0] = tokenSaleProxy;
 
-        TokenSaleProposal(tokenSaleProxy).createTiers(tokenSaleParams.tiersParams);
-        TokenSaleProposal(tokenSaleProxy).addToWhitelist(tokenSaleParams.whitelistParams);
+        TokenSaleProposal(tokenSaleProxy).createTiers(tokenSaleParameters.tiersParams);
+        TokenSaleProposal(tokenSaleProxy).addToWhitelist(tokenSaleParameters.whitelistParams);
 
         _initGovPool(
             poolProxy,
@@ -344,7 +344,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         );
     }
 
-    function _validateGovPoolWithTokenSaleParams(
+    function _validateGovPoolWithTokenSaleParameters(
         GovPoolDeployParams memory parameters
     ) internal pure {
         require(
