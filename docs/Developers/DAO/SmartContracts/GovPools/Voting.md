@@ -1,4 +1,4 @@
-# Voting
+# 🗳 Voting
 
 Pool DAO members can vote on existing proposals with their own tokens or with delegated tokens.
 
