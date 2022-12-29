@@ -381,6 +381,24 @@ describe("ERC20Sale", () => {
       await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
     });
 
+    describe("onlyGov", () => {
+      it("should not mint if the caller is not a govPool", async () => {
+        await truffleAssert.reverts(erc20Sale.mint(SALE_ADDRESS, wei(1)), "ERC20Sale: not a Gov contract");
+      });
+
+      it("should not burn if the caller is not a govPool", async () => {
+        await truffleAssert.reverts(erc20Sale.burn(SALE_ADDRESS, wei(1)), "ERC20Sale: not a Gov contract");
+      });
+
+      it("should not pause if the caller is not a govPool", async () => {
+        await truffleAssert.reverts(erc20Sale.pause(), "ERC20Sale: not a Gov contract");
+      });
+
+      it("should not unpause if the caller is not a govPool", async () => {
+        await truffleAssert.reverts(erc20Sale.unpause(), "ERC20Sale: not a Gov contract");
+      });
+    });
+
     describe("mint", () => {
       it("should not mint if the cap is reached", async () => {
         await truffleAssert.reverts(
