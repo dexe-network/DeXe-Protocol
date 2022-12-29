@@ -41,6 +41,11 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         _;
     }
 
+    modifier ifTierNotOff(uint256 tierId) {
+        require(!_tiers[tierId].tierInfo.isOff, "TSP: tier is off");
+        _;
+    }
+
     function __TokenSaleProposal_init(address _govAddress) external initializer {
         require(_govAddress != address(0), "TSP: zero gov address");
 
@@ -141,7 +146,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         uint256 tierId,
         address tokenToBuyWith,
         uint256 amount
-    ) public view ifTierExists(tierId) returns (uint256) {
+    ) public view ifTierExists(tierId) ifTierNotOff(tierId) returns (uint256) {
         require(amount > 0, "TSP: zero amount");
         require(
             totalSupply(tierId) == 0 || balanceOf(msg.sender, tierId) == 1,
@@ -204,13 +209,21 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     function getTiers(
         uint256 offset,
         uint256 limit
-    ) external view returns (TierView[] memory tierViews) {
+    ) external view returns (TierView[] memory tierViews, TierInfoView[] memory tierInfoViews) {
         uint256 to = (offset + limit).min(latestTierId).max(offset);
 
         tierViews = new TierView[](to - offset);
+        tierInfoViews = new TierInfoView[](to - offset);
 
         for (uint256 i = offset; i < to; i++) {
             tierViews[i - offset] = _tiers[i + 1].tierView;
+
+            TierInfo storage tierInfo = _tiers[i + 1].tierInfo;
+
+            tierInfoViews[i - offset] = TierInfoView({
+                isOff: tierInfo.isOff,
+                totalSold: tierInfo.totalSold
+            });
         }
     }
 
@@ -230,7 +243,11 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             tierView.vestingSettings.vestingPercentage <= PERCENTAGE_100,
             "TSP: vestingPercentage > 100%"
         );
-        require(tierView.vestingSettings.unlockStep != 0, "TSP: unlockStep cannot be zero");
+        require(
+            tierView.vestingSettings.vestingDuration == 0 ||
+                tierView.vestingSettings.unlockStep != 0,
+            "TSP: unlockStep cannot be zero"
+        );
         require(
             tierView.vestingSettings.vestingDuration >= tierView.vestingSettings.unlockStep,
             "TSP: vestingDuration should greater than unlock step"
@@ -266,13 +283,13 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
     function _addToWhitelist(
         WhitelistingRequest calldata request
-    ) internal ifTierExists(request.tierId) {
+    ) internal ifTierExists(request.tierId) ifTierNotOff(request.tierId) {
         for (uint256 i = 0; i < request.users.length; i++) {
             _mint(request.users[i], request.tierId, 1, "");
         }
     }
 
-    function _offTier(uint256 tierId) internal ifTierExists(tierId) {
+    function _offTier(uint256 tierId) internal ifTierExists(tierId) ifTierNotOff(tierId) {
         TierInfo storage tierInfo = _tiers[tierId].tierInfo;
 
         require(!tierInfo.isOff, "TSP: tier is already off");
@@ -336,10 +353,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         require(from == address(0), "TSP: only for minting");
 
         for (uint256 i = 0; i < ids.length; i++) {
-            require(
-                balanceOf(to, ids[i]) == 0 && amounts[i] == 1,
-                "TSP: balance can be only 0 or 1"
-            );
+            require(balanceOf(to, ids[i]) == 0, "TSP: balance can be only 0 or 1");
         }
     }
 }

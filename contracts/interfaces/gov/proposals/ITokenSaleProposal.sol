@@ -27,6 +27,11 @@ interface ITokenSaleProposal {
         VestingSettings vestingSettings;
     }
 
+    struct TierInfoView {
+        bool isOff;
+        uint256 totalSold;
+    }
+
     struct Purchase {
         uint256 purchaseTime;
         uint256 vestingAmount;
@@ -81,5 +86,5 @@ interface ITokenSaleProposal {
     function getTiers(
         uint256 offset,
         uint256 limit
-    ) external view returns (TierView[] memory tierViews);
+    ) external view returns (TierView[] memory tierViews, TierInfoView[] memory tierInfoViews);
 }

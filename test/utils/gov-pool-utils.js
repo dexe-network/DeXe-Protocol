@@ -436,14 +436,21 @@ const getBytesCreateTiersTSP = (tiers) => {
         {
           components: [
             {
-              internalType: "string",
-              name: "name",
-              type: "string",
-            },
-            {
-              internalType: "string",
-              name: "description",
-              type: "string",
+              components: [
+                {
+                  internalType: "string",
+                  name: "name",
+                  type: "string",
+                },
+                {
+                  internalType: "string",
+                  name: "description",
+                  type: "string",
+                },
+              ],
+              internalType: "struct ITokenSaleProposal.TierMetadata",
+              name: "metadata",
+              type: "tuple",
             },
             {
               internalType: "uint256",
@@ -486,12 +493,12 @@ const getBytesCreateTiersTSP = (tiers) => {
               type: "uint256",
             },
             {
-              internalType: "uint256",
-              name: "vestingPercentage",
-              type: "uint256",
-            },
-            {
               components: [
+                {
+                  internalType: "uint256",
+                  name: "vestingPercentage",
+                  type: "uint256",
+                },
                 {
                   internalType: "uint256",
                   name: "vestingDuration",
