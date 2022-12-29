@@ -52,6 +52,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address govUserKeeper,
         address sender
     );
+    event DaoTokenSaleDeployed(address govPool, address tokenSale, address token);
 
     function setDependencies(address contractsRegistry) public override {
         super.setDependencies(contractsRegistry);
@@ -100,7 +101,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
     function deployGovPoolWithTokenSale(
         GovPoolDeployParams memory parameters,
-        GovTokenSaleProposalDeployParams calldata tokenSaleParameters
+        GovTokenSaleProposalDeployParams memory tokenSaleParameters
     ) external override {
         _validateGovPoolWithTokenSaleParameters(parameters);
 
@@ -125,8 +126,16 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address tokenSaleProxy = _deploy(_poolRegistry.TOKEN_SALE_PROPOSAL_NAME());
         address token = poolProxy.deploy(tokenSaleProxy, tokenSaleParameters.tokenParams);
 
+        emit DaoTokenSaleDeployed(poolProxy, tokenSaleProxy, token);
+
         parameters.userKeeperParams.tokenAddress = token;
         parameters.settingsParams.additionalProposalExecutors[0] = tokenSaleProxy;
+
+        for (uint256 i = 0; i < tokenSaleParameters.tiersParams.length; i++) {
+            if (tokenSaleParameters.tiersParams[i].saleTokenAddress == address(0)) {
+                tokenSaleParameters.tiersParams[i].saleTokenAddress = token;
+            }
+        }
 
         TokenSaleProposal(tokenSaleProxy).createTiers(tokenSaleParameters.tiersParams);
         TokenSaleProposal(tokenSaleProxy).addToWhitelist(tokenSaleParameters.whitelistParams);
