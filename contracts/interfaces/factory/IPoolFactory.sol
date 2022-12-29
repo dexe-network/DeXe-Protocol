@@ -72,7 +72,7 @@ interface IPoolFactory {
     function deployGovPool(GovPoolDeployParams calldata parameters) external;
 
     function deployGovPoolWithTokenSale(
-        GovPoolDeployParams memory parameters,
+        GovPoolDeployParams calldata parameters,
         GovTokenSaleProposalDeployParams calldata tokenSaleParams
     ) external;
 

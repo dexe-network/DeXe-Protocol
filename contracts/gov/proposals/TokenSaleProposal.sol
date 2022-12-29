@@ -104,13 +104,13 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
         ERC20(tierView.saleTokenAddress).safeTransfer(
             msg.sender,
-            saleTokenAmount.percentage(PERCENTAGE_100 - tierView.vestingPercentage)
+            saleTokenAmount.percentage(PERCENTAGE_100 - tierView.vestingSettings.vestingPercentage)
         );
 
         tierInfo.totalSold += saleTokenAmount;
         tierInfo.customers[msg.sender] = Purchase({
             purchaseTime: block.timestamp,
-            vestingAmount: saleTokenAmount.percentage(tierView.vestingPercentage),
+            vestingAmount: saleTokenAmount.percentage(tierView.vestingSettings.vestingPercentage),
             latestVestingWithdraw: block.timestamp
         });
 
@@ -226,7 +226,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             tierView.minAllocationPerUser <= tierView.maxAllocationPerUser,
             "TSP: wrong allocation"
         );
-        require(tierView.vestingPercentage <= PERCENTAGE_100, "TSP: vestingPercentage > 100%");
+        require(
+            tierView.vestingSettings.vestingPercentage <= PERCENTAGE_100,
+            "TSP: vestingPercentage > 100%"
+        );
         require(tierView.vestingSettings.unlockStep != 0, "TSP: unlockStep cannot be zero");
         require(
             tierView.vestingSettings.vestingDuration >= tierView.vestingSettings.unlockStep,
@@ -238,16 +241,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         );
         require(
             tierView.purchaseTokenAddresses.length == tierView.exchangeRates.length,
-            "TSP: tokens and rates lens mismatch"
+            "TSP: tokens and rates lengths mismatch"
         );
 
         _amountsToSell[tierView.saleTokenAddress] += tierView.totalTokenProvided;
-
-        require(
-            IERC20(tierView.saleTokenAddress).balanceOf(address(this)) >=
-                _amountsToSell[tierView.saleTokenAddress],
-            "TSP: insufficient TSP balance"
-        );
 
         Tier storage tier = _tiers[++latestTierId];
         TierInfo storage tierInfo = tier.tierInfo;

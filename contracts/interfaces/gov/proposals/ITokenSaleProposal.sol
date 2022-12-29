@@ -2,15 +2,20 @@
 pragma solidity ^0.8.4;
 
 interface ITokenSaleProposal {
+    struct TierMetadata {
+        string name;
+        string description;
+    }
+
     struct VestingSettings {
+        uint256 vestingPercentage;
         uint256 vestingDuration;
         uint256 cliffPeriod;
         uint256 unlockStep;
     }
 
     struct TierView {
-        string name;
-        string description;
+        TierMetadata metadata;
         uint256 totalTokenProvided;
         uint256 saleStartTime;
         uint256 saleEndTime;
@@ -19,7 +24,6 @@ interface ITokenSaleProposal {
         uint256[] exchangeRates;
         uint256 minAllocationPerUser;
         uint256 maxAllocationPerUser;
-        uint256 vestingPercentage;
         VestingSettings vestingSettings;
     }
 
