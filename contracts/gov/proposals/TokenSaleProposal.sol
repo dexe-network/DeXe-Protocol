@@ -27,7 +27,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     uint256 public override latestTierId;
 
     mapping(uint256 => Tier) internal _tiers;
-    mapping(address => uint256) internal _amountsToSell;
 
     modifier onlyGov() {
         require(govAddress == address(0) || msg.sender == govAddress, "TSP: not a Gov contract");
@@ -100,8 +99,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         TierView memory tierView = tier.tierView;
         TierInfo storage tierInfo = tier.tierInfo;
 
-        _amountsToSell[tierView.saleTokenAddress] -= saleTokenAmount;
-
         ERC20(tierView.saleTokenAddress).safeTransfer(
             msg.sender,
             saleTokenAmount.percentage(PERCENTAGE_100 - tierView.vestingSettings.vestingPercentage)
@@ -135,7 +132,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             address saleToken = tier.tierView.saleTokenAddress;
 
             tier.tierInfo.totalSold += recoveringAmounts[i];
-            _amountsToSell[saleToken] -= recoveringAmounts[i];
 
             ERC20(saleToken).safeTransfer(govAddress, recoveringAmounts[i]);
         }
@@ -172,6 +168,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
                 (tierView.minAllocationPerUser <= saleTokenAmount &&
                     saleTokenAmount <= tierView.maxAllocationPerUser),
             "TSP: wrong allocation"
+        );
+        require(
+            ERC20(tierView.saleTokenAddress).balanceOf(address(this)) >= saleTokenAmount,
+            "TSP: insufficient contract balance"
         );
         require(
             tierInfo.totalSold + saleTokenAmount <= tierView.totalTokenProvided,
@@ -243,8 +243,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             tierView.purchaseTokenAddresses.length == tierView.exchangeRates.length,
             "TSP: tokens and rates lengths mismatch"
         );
-
-        _amountsToSell[tierView.saleTokenAddress] += tierView.totalTokenProvided;
 
         Tier storage tier = _tiers[++latestTierId];
         TierInfo storage tierInfo = tier.tierInfo;
