@@ -93,7 +93,7 @@ describe("ERC20Sale", () => {
     });
   });
 
-  describe("proposals", () => {
+  describe("functionality", () => {
     beforeEach(async () => {
       erc20Sale = await ERC20Sale.new(
         DEFAULT_PARAMS.govAddress,
@@ -103,7 +103,7 @@ describe("ERC20Sale", () => {
     });
 
     describe("mint", () => {
-      it("should not mint if a caller is not the govPool", async () => {
+      it("should not mint if caller is not govPool", async () => {
         await truffleAssert.reverts(erc20Sale.mint(SALE_ADDRESS, wei(1)), "ERC20Sale: not a Gov contract");
       });
 
@@ -124,7 +124,7 @@ describe("ERC20Sale", () => {
     });
 
     describe("burn", () => {
-      it("should not burn if a caller is not the govPool", async () => {
+      it("should not burn if caller is not govPool", async () => {
         await truffleAssert.reverts(erc20Sale.burn(SALE_ADDRESS, wei(1)), "ERC20Sale: not a Gov contract");
       });
 
@@ -145,11 +145,11 @@ describe("ERC20Sale", () => {
     });
 
     describe("pause", () => {
-      it("should not pause if a caller is not the govPool", async () => {
+      it("should not pause if caller is not govPool", async () => {
         await truffleAssert.reverts(erc20Sale.pause(), "ERC20Sale: not a Gov contract");
       });
 
-      it("should not mint if the erc20Sale is paused", async () => {
+      it("should not mint if erc20Sale is paused", async () => {
         await erc20Sale.pause({ from: GOV_ADDRESS });
 
         await truffleAssert.reverts(
@@ -158,7 +158,7 @@ describe("ERC20Sale", () => {
         );
       });
 
-      it("should not transfer if the erc20Sale is paused", async () => {
+      it("should not transfer if erc20Sale is paused", async () => {
         await erc20Sale.pause({ from: GOV_ADDRESS });
 
         await truffleAssert.reverts(
@@ -174,11 +174,11 @@ describe("ERC20Sale", () => {
         await erc20Sale.unpause({ from: GOV_ADDRESS });
       });
 
-      it("should not unpause if a caller is not the govPool", async () => {
+      it("should not unpause if caller is not govPool", async () => {
         await truffleAssert.reverts(erc20Sale.unpause(), "ERC20Sale: not a Gov contract");
       });
 
-      it("should mint if the erc20Sale is unpaused", async () => {
+      it("should mint if erc20Sale is unpaused", async () => {
         assert.equal((await erc20Sale.balanceOf(SECOND)).toFixed(), wei(2));
 
         await erc20Sale.mint(SECOND, wei(1), { from: GOV_ADDRESS });
@@ -186,7 +186,7 @@ describe("ERC20Sale", () => {
         assert.equal((await erc20Sale.balanceOf(SECOND)).toFixed(), wei(3));
       });
 
-      it("should transfer if the erc20Sale is unpaused", async () => {
+      it("should transfer if erc20Sale is unpaused", async () => {
         assert.equal((await erc20Sale.balanceOf(SECOND)).toFixed(), wei(2));
         assert.equal((await erc20Sale.balanceOf(THIRD)).toFixed(), wei(3));
 

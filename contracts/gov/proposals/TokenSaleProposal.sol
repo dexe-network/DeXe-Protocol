@@ -6,20 +6,15 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
-
 import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
 
-import "../../libs/utils/TokenBalance.sol";
 import "../../libs/math/MathHelper.sol";
 
 import "../../core/Globals.sol";
 
 contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
-    using TokenBalance for address;
     using MathHelper for uint256;
     using Math for uint256;
-    using DecimalsConverter for uint256;
     using SafeERC20 for ERC20;
 
     address public govAddress;

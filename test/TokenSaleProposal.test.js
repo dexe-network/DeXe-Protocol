@@ -21,7 +21,6 @@ const ERC20Sale = artifacts.require("ERC20Sale");
 const GovSettings = artifacts.require("GovSettings");
 const GovValidators = artifacts.require("GovValidators");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
-const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
@@ -43,7 +42,7 @@ GovSettings.numberFormat = "BigNumber";
 GovValidators.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 
-describe.only("TokenSaleProposal", () => {
+describe("TokenSaleProposal", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -64,7 +63,6 @@ describe.only("TokenSaleProposal", () => {
   let poolRegistry;
 
   let token;
-  let nft;
 
   let settings;
   let validators;
@@ -105,7 +103,6 @@ describe.only("TokenSaleProposal", () => {
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
-    nft = await ERC721EnumMock.new("Mock", "Mock");
 
     await contractsRegistry.__OwnableContractsRegistry_init();
 
@@ -421,7 +418,7 @@ describe.only("TokenSaleProposal", () => {
     });
 
     describe("latestTierId", () => {
-      it("should be increased when tiers has been created", async () => {
+      it("latestTierId should increase when tiers are created", async () => {
         assert.equal(await tsp.latestTierId(), 0);
 
         await saleToken.mint(govPool.address, tiers[1].totalTokenProvided);
@@ -437,11 +434,11 @@ describe.only("TokenSaleProposal", () => {
     });
 
     describe("createTiers", () => {
-      it("should not create tiers if a caller is not the govPool", async () => {
+      it("should not create tiers if caller is not govPool", async () => {
         await truffleAssert.reverts(tsp.createTiers(tiers), "TSP: not a Gov contract");
       });
 
-      it("should not create tiers if the saleTokenAddress is zero", async () => {
+      it("should not create tiers if saleTokenAddress is zero", async () => {
         tiers[0].saleTokenAddress = ZERO_ADDR;
 
         await truffleAssert.reverts(
@@ -450,7 +447,7 @@ describe.only("TokenSaleProposal", () => {
         );
       });
 
-      it("should not create tiers if the saleTokenAddress is the ether address", async () => {
+      it("should not create tiers if saleTokenAddress is ether address", async () => {
         tiers[0].saleTokenAddress = ETHER_ADDR;
 
         await truffleAssert.reverts(
@@ -459,7 +456,7 @@ describe.only("TokenSaleProposal", () => {
         );
       });
 
-      it("should not create tiers if the sale token is not provided", async () => {
+      it("should not create tiers if sale token is not provided", async () => {
         tiers[0].totalTokenProvided = 0;
 
         await truffleAssert.reverts(
@@ -574,7 +571,7 @@ describe.only("TokenSaleProposal", () => {
       });
     });
 
-    describe("if tiers created", () => {
+    describe("if tiers are created", () => {
       beforeEach(async () => {
         // `getBytesCreateTiersTSP` modifies `tiers`, so it's needed to make a deep copy
         await acceptProposal([tsp.address], [0], [getBytesCreateTiersTSP(JSON.parse(JSON.stringify(tiers)))]);
@@ -585,7 +582,7 @@ describe.only("TokenSaleProposal", () => {
       });
 
       describe("addToWhitelist", () => {
-        it("should not whitelist if a caller is not the govPool", async () => {
+        it("should not whitelist if caller is not govPool", async () => {
           const whitelistingRequest = [
             {
               tierId: 1,
@@ -689,7 +686,7 @@ describe.only("TokenSaleProposal", () => {
       });
 
       describe("offTiers", () => {
-        it("should not off tiers if a caller is not the govPool", async () => {
+        it("should not off tiers if caller is not govPool", async () => {
           await truffleAssert.reverts(tsp.offTiers([1, 2]), "TSP: not a Gov contract");
         });
 
@@ -790,7 +787,7 @@ describe.only("TokenSaleProposal", () => {
           await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100)), "TSP: tier is off");
         });
 
-        it("should not buy if an amount is zero", async () => {
+        it("should not buy if amount is zero", async () => {
           await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, 0), "TSP: zero amount");
 
           await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, wei(1)), "TSP: zero amount");
@@ -809,7 +806,7 @@ describe.only("TokenSaleProposal", () => {
           await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100)), "TSP: not whitelisted");
         });
 
-        it("should not buy unless it's sale time", async () => {
+        it("should not buy unless it's the sale time", async () => {
           await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100)), "TSP: cannot buy now");
 
           await setTime(parseInt(tiers[0].saleEndTime + 1));
@@ -827,7 +824,7 @@ describe.only("TokenSaleProposal", () => {
           await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, 0, { value: wei(1) }), "TSP: cannot buy twice");
         });
 
-        it("should not buy if the incorrect purchase token was provided", async () => {
+        it("should not buy if incorrect purchase token was provided", async () => {
           await setTime(parseInt(tiers[0].saleStartTime));
 
           await truffleAssert.reverts(tsp.buy(1, purchaseToken2.address, wei(100)), "TSP: incorrect token");
@@ -906,7 +903,9 @@ describe.only("TokenSaleProposal", () => {
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
             ["0"]
           );
+
           await tsp.vestingWithdraw([1]);
+
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(480));
 
           await setTime(parseInt(tiers[0].saleStartTime) + 25);
@@ -916,7 +915,9 @@ describe.only("TokenSaleProposal", () => {
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
             ["0"]
           );
+
           await tsp.vestingWithdraw([1]);
+
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(480));
 
           await setTime(parseInt(tiers[0].saleStartTime) + 75);
@@ -925,7 +926,9 @@ describe.only("TokenSaleProposal", () => {
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
             [wei("88.8")]
           ); // tokensPerStep = 2.4, steps = 74 // 2 = 37, vestingWithdraw = 2.4 * 37 = 88.8
+
           await tsp.vestingWithdraw([1]);
+
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei("568.8"));
           assert.deepEqual(
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
@@ -938,7 +941,9 @@ describe.only("TokenSaleProposal", () => {
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
             [wei("31.2")]
           ); // tokensPerStep = 2.4, steps = (100-74) // 2 = 13 vestingWithdraw = 2.4 * 13 = 31.2
+
           await tsp.vestingWithdraw([1]);
+
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei("600"));
           assert.deepEqual(
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
@@ -951,7 +956,9 @@ describe.only("TokenSaleProposal", () => {
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
             ["0"]
           );
+
           await tsp.vestingWithdraw([1]);
+
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(600));
         });
       });
