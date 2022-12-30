@@ -789,7 +789,7 @@ describe("TokenSaleProposal", () => {
         });
       });
 
-      describe.only("vestingWithdraw", () => {
+      describe("vestingWithdraw", () => {
         it("should return zero vesting withdraw amount if the user has not purchased the sale token", async () => {
           assert.deepEqual(
             (await tsp.getVestingWithdrawAmounts(OWNER, [1, 2])).map((amount) => amount.toFixed()),
@@ -814,7 +814,7 @@ describe("TokenSaleProposal", () => {
           );
         });
 
-        it.only("should return non-zero vesting withdraw amount only if the cliff period is achieved", async () => {
+        it("should do multiple various time withdraws properly", async () => {
           await purchaseToken1.approve(tsp.address, wei(200));
 
           assert.equal((await sellToken.balanceOf(OWNER)).toFixed(), "0");
@@ -827,13 +827,53 @@ describe("TokenSaleProposal", () => {
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
             ["0"]
           );
+          await tsp.vestingWithdraw([1]);
+          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(480));
 
-          await setTime(parseInt(tiers[0].saleStartTime) + 1000);
+          await setTime(parseInt(tiers[0].saleStartTime) + 25);
+
+          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(480));
+          assert.deepEqual(
+            (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
+            ["0"]
+          );
+          await tsp.vestingWithdraw([1]);
+          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(480));
+
+          await setTime(parseInt(tiers[0].saleStartTime) + 75);
 
           assert.deepEqual(
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
-            ["120"]
+            [wei("88.8")]
+          ); // tokensPerStep = 2.4, steps = 74 // 2 = 37, vestingWithdraw = 2.4 * 37 = 88.8
+          await tsp.vestingWithdraw([1]);
+          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei("568.8"));
+          assert.deepEqual(
+            (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
+            ["0"]
           );
+
+          await setTime(parseInt(tiers[0].saleStartTime) + 101);
+
+          assert.deepEqual(
+            (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
+            [wei("31.2")]
+          ); // tokensPerStep = 2.4, steps = (100-74) // 2 = 13 vestingWithdraw = 2.4 * 13 = 31.2
+          await tsp.vestingWithdraw([1]);
+          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei("600"));
+          assert.deepEqual(
+            (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
+            ["0"]
+          );
+
+          await setTime(parseInt(tiers[0].saleStartTime) + 1001);
+
+          assert.deepEqual(
+            (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
+            ["0"]
+          );
+          await tsp.vestingWithdraw([1]);
+          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(600));
         });
       });
 
