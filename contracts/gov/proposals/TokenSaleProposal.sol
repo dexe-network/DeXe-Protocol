@@ -78,18 +78,20 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
                 continue;
             }
 
-            TierView memory tierView = _tiers[tierIds[i]].tierView;
-            Purchase storage purchase = _tiers[tierIds[i]].tierInfo.customers[msg.sender];
+            Tier storage tier = _tiers[tierIds[i]];
+            Purchase storage purchase = tier.tierInfo.customers[msg.sender];
 
             purchase.latestVestingWithdraw = block.timestamp;
 
-            ERC20(tierView.saleTokenAddress).safeTransfer(msg.sender, vestingWithdrawAmounts[i]);
+            ERC20(tier.tierView.saleTokenAddress).safeTransfer(
+                msg.sender,
+                vestingWithdrawAmounts[i]
+            );
         }
     }
 
     function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable {
         bool isNativeCurrency = tokenToBuyWith == ETHEREUM_ADDRESS;
-
         uint256 saleTokenAmount = getSaleTokenAmount(
             msg.sender,
             tierId,
@@ -98,9 +100,9 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         );
 
         Tier storage tier = _tiers[tierId];
+        TierInfo storage tierInfo = tier.tierInfo;
 
         TierView memory tierView = tier.tierView;
-        TierInfo storage tierInfo = tier.tierInfo;
 
         ERC20(tierView.saleTokenAddress).safeTransfer(
             msg.sender,
@@ -108,6 +110,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         );
 
         tierInfo.totalSold += saleTokenAmount;
+
         tierInfo.customers[msg.sender] = Purchase({
             purchaseTime: block.timestamp,
             vestingAmount: saleTokenAmount.percentage(tierView.vestingSettings.vestingPercentage),
@@ -115,7 +118,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         });
 
         if (isNativeCurrency) {
-            payable(govAddress).transfer(msg.value);
+            (bool success, ) = govAddress.call{value: msg.value}("");
+            require(success, "TSP: failed to transfer ether");
         } else {
             ERC20(tokenToBuyWith).safeTransferFrom(msg.sender, govAddress, amount);
         }
@@ -131,11 +135,9 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
             Tier storage tier = _tiers[tierIds[i]];
 
-            address saleToken = tier.tierView.saleTokenAddress;
-
             tier.tierInfo.totalSold += recoveringAmounts[i];
 
-            ERC20(saleToken).safeTransfer(govAddress, recoveringAmounts[i]);
+            ERC20(tier.tierView.saleTokenAddress).safeTransfer(govAddress, recoveringAmounts[i]);
         }
     }
 
@@ -287,35 +289,29 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         Tier storage tier = _tiers[tierId];
         TierInfo storage tierInfo = tier.tierInfo;
 
-        TierView memory tierView = tier.tierView;
-
-        if (tierInfo.customers[user].purchaseTime == 0) {
-            return 0;
-        }
-
-        VestingSettings memory vestingSettings = tierView.vestingSettings;
-        if (vestingSettings.vestingPercentage == 0) {
-            return 0;
-        }
-
         Purchase memory purchase = tierInfo.customers[user];
+        VestingSettings memory vestingSettings = tier.tierView.vestingSettings;
 
         uint256 startTime = purchase.purchaseTime + vestingSettings.cliffPeriod;
-        if (startTime > block.timestamp) {
+
+        if (
+            startTime > block.timestamp ||
+            vestingSettings.vestingPercentage == 0 ||
+            tierInfo.customers[user].purchaseTime == 0
+        ) {
             return 0;
         }
 
-        uint256 normVestingEndTime = purchase.purchaseTime + vestingSettings.vestingDuration;
-        normVestingEndTime -= vestingSettings.vestingDuration % vestingSettings.unlockStep;
+        uint256 normVestingEndTime = (purchase.purchaseTime + vestingSettings.vestingDuration) -
+            (vestingSettings.vestingDuration % vestingSettings.unlockStep);
 
         if (purchase.latestVestingWithdraw >= normVestingEndTime) {
             return 0;
         }
 
-        uint256 normLatestVestingWithdraw = purchase.latestVestingWithdraw.min(normVestingEndTime);
-        normLatestVestingWithdraw -=
-            (normLatestVestingWithdraw - purchase.purchaseTime) %
-            vestingSettings.unlockStep;
+        uint256 normLatestVestingWithdraw = purchase.latestVestingWithdraw -
+            ((purchase.latestVestingWithdraw - purchase.purchaseTime) %
+                vestingSettings.unlockStep);
 
         uint256 normNextVestingWithdraw = block.timestamp.min(normVestingEndTime);
         normNextVestingWithdraw -=

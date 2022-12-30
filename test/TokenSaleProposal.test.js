@@ -16,7 +16,7 @@ const PoolRegistry = artifacts.require("PoolRegistry");
 const CoreProperties = artifacts.require("CoreProperties");
 const GovPool = artifacts.require("GovPool");
 const DistributionProposal = artifacts.require("DistributionProposal");
-const TokenSaleProposal = artifacts.require("TokenSaleProposal");
+const TokenSaleProposal = artifacts.require("TokenSaleProposalMock");
 const ERC20Sale = artifacts.require("ERC20Sale");
 const GovSettings = artifacts.require("GovSettings");
 const GovValidators = artifacts.require("GovValidators");
@@ -43,7 +43,7 @@ GovSettings.numberFormat = "BigNumber";
 GovValidators.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 
-describe("TokenSaleProposal", () => {
+describe.only("TokenSaleProposal", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -770,6 +770,14 @@ describe("TokenSaleProposal", () => {
           assert.equal(await web3.eth.getBalance(govPool.address), wei(1));
 
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(80));
+        });
+
+        it("should not buy if ether transfer fails", async () => {
+          await tsp.setGovPool(tsp.address);
+
+          await setTime(parseInt(tiers[0].saleStartTime));
+
+          await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, 0, { value: wei(1) }), "TSP: failed to transfer ether");
         });
 
         it("should not buy if the tier does not exist", async () => {
