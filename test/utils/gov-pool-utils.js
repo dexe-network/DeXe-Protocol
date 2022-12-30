@@ -355,6 +355,161 @@ const getBytesChangeExecutors = (executors, ids) => {
   );
 };
 
+const getBytesCreateTiersTSP = (tiers) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          components: [
+            {
+              components: [
+                {
+                  internalType: "string",
+                  name: "name",
+                  type: "string",
+                },
+                {
+                  internalType: "string",
+                  name: "description",
+                  type: "string",
+                },
+              ],
+              internalType: "struct ITokenSaleProposal.TierMetadata",
+              name: "metadata",
+              type: "tuple",
+            },
+            {
+              internalType: "uint256",
+              name: "totalTokenProvided",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "saleStartTime",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "saleEndTime",
+              type: "uint256",
+            },
+            {
+              internalType: "address",
+              name: "saleTokenAddress",
+              type: "address",
+            },
+            {
+              internalType: "address[]",
+              name: "purchaseTokenAddresses",
+              type: "address[]",
+            },
+            {
+              internalType: "uint256[]",
+              name: "exchangeRates",
+              type: "uint256[]",
+            },
+            {
+              internalType: "uint256",
+              name: "minAllocationPerUser",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "maxAllocationPerUser",
+              type: "uint256",
+            },
+            {
+              components: [
+                {
+                  internalType: "uint256",
+                  name: "vestingPercentage",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "vestingDuration",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "cliffPeriod",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "unlockStep",
+                  type: "uint256",
+                },
+              ],
+              internalType: "struct ITokenSaleProposal.VestingSettings",
+              name: "vestingSettings",
+              type: "tuple",
+            },
+          ],
+          internalType: "struct ITokenSaleProposal.TierView[]",
+          name: "tiers",
+          type: "tuple[]",
+        },
+      ],
+      name: "createTiers",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [tiers]
+  );
+};
+
+const getBytesAddToWhitelistTSP = (requests) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          components: [
+            {
+              internalType: "uint256",
+              name: "tierId",
+              type: "uint256",
+            },
+            {
+              internalType: "address[]",
+              name: "users",
+              type: "address[]",
+            },
+          ],
+          internalType: "struct ITokenSaleProposal.WhitelistingRequest[]",
+          name: "requests",
+          type: "tuple[]",
+        },
+      ],
+      name: "addToWhitelist",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [requests]
+  );
+};
+
+const getBytesOffTiersTSP = (tierIds) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "uint256[]",
+          name: "tierIds",
+          type: "uint256[]",
+        },
+      ],
+      name: "offTiers",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [tierIds]
+  );
+};
+
 module.exports = {
   getBytesExecute,
   getBytesApprove,
@@ -369,4 +524,7 @@ module.exports = {
   getBytesAddSettings,
   getBytesEditSettings,
   getBytesChangeExecutors,
+  getBytesCreateTiersTSP,
+  getBytesAddToWhitelistTSP,
+  getBytesOffTiersTSP,
 };

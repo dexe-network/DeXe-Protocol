@@ -2,6 +2,8 @@
 pragma solidity ^0.8.4;
 
 import "../gov/settings/IGovSettings.sol";
+import "../gov/proposals/ITokenSaleProposal.sol";
+import "../gov/ERC20/IERC20Sale.sol";
 import "../core/ICoreProperties.sol";
 
 /**
@@ -39,6 +41,12 @@ interface IPoolFactory {
         string name;
     }
 
+    struct GovTokenSaleProposalDeployParams {
+        ITokenSaleProposal.TierView[] tiersParams;
+        ITokenSaleProposal.WhitelistingRequest[] whitelistParams;
+        IERC20Sale.ConstructorParams tokenParams;
+    }
+
     /// @notice The parameters one can specify on the trader pool's creation
     /// @param descriptionURL the IPFS URL of the pool description
     /// @param trader the trader of the pool
@@ -62,6 +70,11 @@ interface IPoolFactory {
     /// @notice The function to deploy gov pools
     /// @param parameters the pool deploy parameters
     function deployGovPool(GovPoolDeployParams calldata parameters) external;
+
+    function deployGovPoolWithTokenSale(
+        GovPoolDeployParams calldata parameters,
+        GovTokenSaleProposalDeployParams calldata tokenSaleParams
+    ) external;
 
     /// @notice The function to deploy basic pools
     /// @param name the ERC20 name of the pool

@@ -1,5 +1,3 @@
-const { logTransaction } = require("@dlsl/hardhat-migrate");
-
 const Proxy = artifacts.require("TransparentUpgradeableProxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 
@@ -8,7 +6,7 @@ const UniswapV2PathFinderLib = artifacts.require("UniswapV2PathFinder");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
 
-module.exports = async (deployer) => {
+module.exports = async (deployer, logger) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
   await deployer.deploy(UniswapV2PathFinderLib);
@@ -18,12 +16,12 @@ module.exports = async (deployer) => {
   const coreProperties = await deployer.deploy(CoreProperties);
   const priceFeed = await deployer.deploy(PriceFeed);
 
-  logTransaction(
+  logger.logTransaction(
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), coreProperties.address),
     "AddProxy CoreProperties"
   );
 
-  logTransaction(
+  logger.logTransaction(
     await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), priceFeed.address),
     "AddProxy PriceFeed"
   );

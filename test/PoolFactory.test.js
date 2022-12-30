@@ -3,6 +3,8 @@ const { toBN, accounts, wei } = require("../scripts/utils/utils");
 const truffleAssert = require("truffle-assertions");
 const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
 const { ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
+const { toPercent } = require("./utils/utils");
+const { getCurrentBlockTime } = require("./helpers/block-helper");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const ERC20Mock = artifacts.require("ERC20Mock");
@@ -27,9 +29,11 @@ const InvestPoolProposalLib = artifacts.require("TraderPoolInvestProposalView");
 const RiskyPoolProposal = artifacts.require("TraderPoolRiskyProposal");
 const InvestPoolProposal = artifacts.require("TraderPoolInvestProposal");
 const DistributionProposal = artifacts.require("DistributionProposal");
+const TokenSaleProposal = artifacts.require("TokenSaleProposal");
 const UniswapV2PathFinderLib = artifacts.require("UniswapV2PathFinder");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const PoolFactory = artifacts.require("PoolFactory");
+const GovTokenSaleDeployerLib = artifacts.require("GovTokenSaleDeployer");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
@@ -55,6 +59,8 @@ RiskyPoolProposal.numberFormat = "BigNumber";
 InvestPoolProposal.numberFormat = "BigNumber";
 UniswapV2RouterMock.numberFormat = "BigNumber";
 PoolFactory.numberFormat = "BigNumber";
+DistributionProposal.numberFormat = "BigNumber";
+TokenSaleProposal.numberFormat = "BigNumber";
 
 describe("PoolFactory", () => {
   let OWNER;
@@ -71,6 +77,10 @@ describe("PoolFactory", () => {
   before("setup", async () => {
     OWNER = await accounts(0);
     NOTHING = await accounts(3);
+
+    const govTokenSaleDeployerLib = await GovTokenSaleDeployerLib.new();
+
+    await PoolFactory.link(govTokenSaleDeployerLib);
 
     const govUserKeeperViewLib = await GovUserKeeperViewLib.new();
 
@@ -179,6 +189,7 @@ describe("PoolFactory", () => {
     let riskyPoolProposal = await RiskyPoolProposal.new();
     let investPoolProposal = await InvestPoolProposal.new();
     let distributionProposal = await DistributionProposal.new();
+    let tokenSaleProposal = await TokenSaleProposal.new();
 
     let govPool = await GovPool.new();
     let govUserKeeper = await GovUserKeeper.new();
@@ -195,6 +206,7 @@ describe("PoolFactory", () => {
       await poolRegistry.SETTINGS_NAME(),
       await poolRegistry.VALIDATORS_NAME(),
       await poolRegistry.DISTRIBUTION_PROPOSAL_NAME(),
+      await poolRegistry.TOKEN_SALE_PROPOSAL_NAME(),
     ];
 
     const poolAddrs = [
@@ -207,212 +219,213 @@ describe("PoolFactory", () => {
       govSettings.address,
       govValidators.address,
       distributionProposal.address,
+      tokenSaleProposal.address,
     ];
 
     await poolRegistry.setNewImplementations(poolNames, poolAddrs);
   });
 
-  describe("deployBasicPool", () => {
-    let POOL_PARAMETERS;
+  describe("TraderPools", () => {
+    describe("deployBasicPool", () => {
+      let POOL_PARAMETERS;
 
-    beforeEach("setup", async () => {
-      POOL_PARAMETERS = {
-        descriptionURL: "placeholder.com",
-        trader: OWNER,
-        privatePool: false,
-        totalLPEmission: 0,
-        baseToken: testERC20.address,
-        minimalInvestment: 0,
-        commissionPeriod: ComissionPeriods.PERIOD_1,
-        commissionPercentage: toBN(30).times(PRECISION).toFixed(),
-      };
+      beforeEach("setup", async () => {
+        POOL_PARAMETERS = {
+          descriptionURL: "placeholder.com",
+          trader: OWNER,
+          privatePool: false,
+          totalLPEmission: 0,
+          baseToken: testERC20.address,
+          minimalInvestment: 0,
+          commissionPeriod: ComissionPeriods.PERIOD_1,
+          commissionPercentage: toBN(30).times(PRECISION).toFixed(),
+        };
+      });
+
+      it("should deploy basic pool and check event", async () => {
+        let tx = await poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS);
+        let event = tx.receipt.logs[0];
+
+        assert.equal("TraderPoolDeployed", event.event);
+        assert.equal(OWNER, event.args.trader);
+        assert.equal("BASIC_POOL", event.args.poolType);
+      });
+
+      it("should deploy pool and check PoolRegistry", async () => {
+        let lenPools = await poolRegistry.countPools(await poolRegistry.BASIC_POOL_NAME());
+        let lenUser = await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.BASIC_POOL_NAME());
+
+        let tx = await poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS);
+        let event = tx.receipt.logs[0];
+
+        assert.isTrue(await poolRegistry.isTraderPool(event.args.at));
+
+        const traderPool = await BasicTraderPool.at(event.args.at);
+
+        assert.equal((await traderPool.getPoolInfo()).parameters.trader, OWNER);
+        assert.equal((await traderPool.getPoolInfo()).parameters.baseTokenDecimals, 18);
+
+        assert.equal(
+          (await poolRegistry.countPools(await poolRegistry.BASIC_POOL_NAME())).toString(),
+          lenPools.plus(1).toString()
+        );
+        assert.equal(
+          (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.BASIC_POOL_NAME())).toString(),
+          lenUser.plus(1).toString()
+        );
+      });
     });
 
-    it("should deploy basic pool and check event", async () => {
-      let tx = await poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS);
-      let event = tx.receipt.logs[0];
+    describe("deployInvestPool", () => {
+      let POOL_PARAMETERS;
 
-      assert.equal("TraderPoolDeployed", event.event);
-      assert.equal(OWNER, event.args.trader);
-      assert.equal("BASIC_POOL", event.args.poolType);
+      beforeEach("setup", async () => {
+        POOL_PARAMETERS = {
+          descriptionURL: "placeholder.com",
+          trader: OWNER,
+          privatePool: false,
+          totalLPEmission: 0,
+          baseToken: testERC20.address,
+          minimalInvestment: 0,
+          commissionPeriod: ComissionPeriods.PERIOD_1,
+          commissionPercentage: toBN(30).times(PRECISION).toFixed(),
+        };
+      });
+
+      it("should deploy invest pool and check events", async () => {
+        let tx = await poolFactory.deployInvestPool("Invest", "IP", POOL_PARAMETERS);
+        let event = tx.receipt.logs[0];
+
+        assert.equal("TraderPoolDeployed", event.event);
+        assert.equal(OWNER, event.args.trader);
+        assert.equal("INVEST_POOL", event.args.poolType);
+      });
+
+      it("should deploy pool and check PoolRegistry", async () => {
+        let lenPools = await poolRegistry.countPools(await poolRegistry.INVEST_POOL_NAME());
+        let lenUser = await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.INVEST_POOL_NAME());
+
+        let tx = await poolFactory.deployInvestPool("Invest", "IP", POOL_PARAMETERS);
+        let event = tx.receipt.logs[0];
+
+        assert.isTrue(await poolRegistry.isTraderPool(event.args.at));
+
+        const traderPool = await BasicTraderPool.at(event.args.at);
+
+        assert.equal((await traderPool.getPoolInfo()).parameters.trader, OWNER);
+        assert.equal((await traderPool.getPoolInfo()).parameters.baseTokenDecimals, 18);
+
+        assert.equal(
+          (await poolRegistry.countPools(await poolRegistry.INVEST_POOL_NAME())).toString(),
+          lenPools.plus(1).toString()
+        );
+        assert.equal(
+          (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.INVEST_POOL_NAME())).toString(),
+          lenUser.plus(1).toString()
+        );
+      });
     });
 
-    it("should deploy pool and check PoolRegistry", async () => {
-      let lenPools = await poolRegistry.countPools(await poolRegistry.BASIC_POOL_NAME());
-      let lenUser = await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.BASIC_POOL_NAME());
+    describe("TraderPool validation", () => {
+      let POOL_PARAMETERS;
 
-      let tx = await poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS);
-      let event = tx.receipt.logs[0];
+      it("should revert when deploying with incorrect percentage for Period 1", async () => {
+        POOL_PARAMETERS = {
+          descriptionURL: "placeholder.com",
+          trader: OWNER,
+          privatePool: false,
+          totalLPEmission: 0,
+          baseToken: testERC20.address,
+          minimalInvestment: 0,
+          commissionPeriod: ComissionPeriods.PERIOD_1,
+          commissionPercentage: toBN(50).times(PRECISION).toFixed(),
+        };
 
-      assert.isTrue(await poolRegistry.isTraderPool(event.args.at));
+        await truffleAssert.reverts(
+          poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
+          "PoolFactory: Incorrect percentage"
+        );
+      });
 
-      const traderPool = await BasicTraderPool.at(event.args.at);
+      it("should revert when deploying with incorrect percentage for Period 2", async () => {
+        POOL_PARAMETERS = {
+          descriptionURL: "placeholder.com",
+          trader: OWNER,
+          privatePool: false,
+          totalLPEmission: 0,
+          baseToken: testERC20.address,
+          minimalInvestment: 0,
+          commissionPeriod: ComissionPeriods.PERIOD_2,
+          commissionPercentage: toBN(70).times(PRECISION).toFixed(),
+        };
 
-      assert.equal((await traderPool.getPoolInfo()).parameters.trader, OWNER);
-      assert.equal((await traderPool.getPoolInfo()).parameters.baseTokenDecimals, 18);
+        await truffleAssert.reverts(
+          poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
+          "PoolFactory: Incorrect percentage"
+        );
+      });
 
-      assert.equal(
-        (await poolRegistry.countPools(await poolRegistry.BASIC_POOL_NAME())).toString(),
-        lenPools.plus(1).toString()
-      );
-      assert.equal(
-        (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.BASIC_POOL_NAME())).toString(),
-        lenUser.plus(1).toString()
-      );
+      it("should revert when deploying with incorrect percentage for Period 3", async () => {
+        POOL_PARAMETERS = {
+          descriptionURL: "placeholder.com",
+          trader: OWNER,
+          privatePool: false,
+          totalLPEmission: 0,
+          baseToken: testERC20.address,
+          minimalInvestment: 0,
+          commissionPeriod: ComissionPeriods.PERIOD_3,
+          commissionPercentage: toBN(100).times(PRECISION).toFixed(),
+        };
+
+        await truffleAssert.reverts(
+          poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
+          "PoolFactory: Incorrect percentage"
+        );
+      });
+
+      it("should not deploy pool with blacklisted base token", async () => {
+        let POOL_PARAMETERS = {
+          descriptionURL: "placeholder.com",
+          trader: OWNER,
+          privatePool: false,
+          totalLPEmission: 0,
+          baseToken: testERC20.address,
+          minimalInvestment: 0,
+          commissionPeriod: ComissionPeriods.PERIOD_1,
+          commissionPercentage: toBN(30).times(PRECISION).toFixed(),
+        };
+
+        await coreProperties.addBlacklistTokens([testERC20.address]);
+
+        await truffleAssert.reverts(
+          poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
+          "PoolFactory: token is blacklisted"
+        );
+      });
+
+      it("should revert when deploying pool with trader = address(0)", async () => {
+        let POOL_PARAMETERS = {
+          descriptionURL: "placeholder.com",
+          trader: ZERO_ADDR,
+          privatePool: false,
+          totalLPEmission: 0,
+          baseToken: testERC20.address,
+          minimalInvestment: 0,
+          commissionPeriod: ComissionPeriods.PERIOD_1,
+          commissionPercentage: toBN(30).times(PRECISION).toFixed(),
+        };
+
+        await truffleAssert.reverts(
+          poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
+          "PoolFactory: invalid trader address"
+        );
+      });
     });
   });
 
-  describe("deployInvestPool", () => {
-    let POOL_PARAMETERS;
-
-    beforeEach("setup", async () => {
-      POOL_PARAMETERS = {
-        descriptionURL: "placeholder.com",
-        trader: OWNER,
-        privatePool: false,
-        totalLPEmission: 0,
-        baseToken: testERC20.address,
-        minimalInvestment: 0,
-        commissionPeriod: ComissionPeriods.PERIOD_1,
-        commissionPercentage: toBN(30).times(PRECISION).toFixed(),
-      };
-    });
-
-    it("should deploy invest pool and check events", async () => {
-      let tx = await poolFactory.deployInvestPool("Invest", "IP", POOL_PARAMETERS);
-      let event = tx.receipt.logs[0];
-
-      assert.equal("TraderPoolDeployed", event.event);
-      assert.equal(OWNER, event.args.trader);
-      assert.equal("INVEST_POOL", event.args.poolType);
-    });
-
-    it("should deploy pool and check PoolRegistry", async () => {
-      let lenPools = await poolRegistry.countPools(await poolRegistry.INVEST_POOL_NAME());
-      let lenUser = await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.INVEST_POOL_NAME());
-
-      let tx = await poolFactory.deployInvestPool("Invest", "IP", POOL_PARAMETERS);
-      let event = tx.receipt.logs[0];
-
-      assert.isTrue(await poolRegistry.isTraderPool(event.args.at));
-
-      const traderPool = await BasicTraderPool.at(event.args.at);
-
-      assert.equal((await traderPool.getPoolInfo()).parameters.trader, OWNER);
-      assert.equal((await traderPool.getPoolInfo()).parameters.baseTokenDecimals, 18);
-
-      assert.equal(
-        (await poolRegistry.countPools(await poolRegistry.INVEST_POOL_NAME())).toString(),
-        lenPools.plus(1).toString()
-      );
-      assert.equal(
-        (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.INVEST_POOL_NAME())).toString(),
-        lenUser.plus(1).toString()
-      );
-    });
-  });
-
-  describe("TraderPool validation", () => {
-    let POOL_PARAMETERS;
-
-    it("should revert when deploying with incorrect percentage for Period 1", async () => {
-      POOL_PARAMETERS = {
-        descriptionURL: "placeholder.com",
-        trader: OWNER,
-        privatePool: false,
-        totalLPEmission: 0,
-        baseToken: testERC20.address,
-        minimalInvestment: 0,
-        commissionPeriod: ComissionPeriods.PERIOD_1,
-        commissionPercentage: toBN(50).times(PRECISION).toFixed(),
-      };
-
-      await truffleAssert.reverts(
-        poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
-        "PoolFactory: Incorrect percentage"
-      );
-    });
-
-    it("should revert when deploying with incorrect percentage for Period 2", async () => {
-      POOL_PARAMETERS = {
-        descriptionURL: "placeholder.com",
-        trader: OWNER,
-        privatePool: false,
-        totalLPEmission: 0,
-        baseToken: testERC20.address,
-        minimalInvestment: 0,
-        commissionPeriod: ComissionPeriods.PERIOD_2,
-        commissionPercentage: toBN(70).times(PRECISION).toFixed(),
-      };
-
-      await truffleAssert.reverts(
-        poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
-        "PoolFactory: Incorrect percentage"
-      );
-    });
-
-    it("should revert when deploying with incorrect percentage for Period 3", async () => {
-      POOL_PARAMETERS = {
-        descriptionURL: "placeholder.com",
-        trader: OWNER,
-        privatePool: false,
-        totalLPEmission: 0,
-        baseToken: testERC20.address,
-        minimalInvestment: 0,
-        commissionPeriod: ComissionPeriods.PERIOD_3,
-        commissionPercentage: toBN(100).times(PRECISION).toFixed(),
-      };
-
-      await truffleAssert.reverts(
-        poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
-        "PoolFactory: Incorrect percentage"
-      );
-    });
-
-    it("should not deploy pool with blacklisted base token", async () => {
-      let POOL_PARAMETERS = {
-        descriptionURL: "placeholder.com",
-        trader: OWNER,
-        privatePool: false,
-        totalLPEmission: 0,
-        baseToken: testERC20.address,
-        minimalInvestment: 0,
-        commissionPeriod: ComissionPeriods.PERIOD_1,
-        commissionPercentage: toBN(30).times(PRECISION).toFixed(),
-      };
-
-      await coreProperties.addBlacklistTokens([testERC20.address]);
-
-      await truffleAssert.reverts(
-        poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
-        "PoolFactory: token is blacklisted"
-      );
-    });
-
-    it("should revert when deploying pool with trader = address(0)", async () => {
-      let POOL_PARAMETERS = {
-        descriptionURL: "placeholder.com",
-        trader: ZERO_ADDR,
-        privatePool: false,
-        totalLPEmission: 0,
-        baseToken: testERC20.address,
-        minimalInvestment: 0,
-        commissionPeriod: ComissionPeriods.PERIOD_1,
-        commissionPercentage: toBN(30).times(PRECISION).toFixed(),
-      };
-
-      await truffleAssert.reverts(
-        poolFactory.deployBasicPool("Basic", "BP", POOL_PARAMETERS),
-        "PoolFactory: invalid trader address"
-      );
-    });
-  });
-
-  describe("deployGovPool", () => {
-    let POOL_PARAMETERS;
-
-    it("should deploy pool with DP", async () => {
-      POOL_PARAMETERS = {
+  describe("GovPools", () => {
+    function getGovPoolDefaultDeployParams() {
+      return {
         settingsParams: {
           proposalSettings: [
             {
@@ -500,27 +513,189 @@ describe("PoolFactory", () => {
         descriptionURL: "example.com",
         name: "Pool name",
       };
+    }
 
-      let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);
-      let event = tx.receipt.logs[0];
+    function getTokenSaleDefaultDeployParams() {
+      return {
+        tiersParams: [
+          {
+            metadata: {
+              name: "tier1",
+              description: "description",
+            },
+            totalTokenProvided: wei("100"),
+            saleStartTime: 0,
+            saleEndTime: 1000000,
+            saleTokenAddress: ZERO_ADDR,
+            purchaseTokenAddresses: [testERC20.address],
+            exchangeRates: [PRECISION.toFixed()],
+            minAllocationPerUser: wei("1"),
+            maxAllocationPerUser: wei("100"),
+            vestingSettings: {
+              vestingPercentage: toPercent(50),
+              vestingDuration: 86400,
+              cliffPeriod: 0,
+              unlockStep: 1,
+            },
+          },
+        ],
+        whitelistParams: [],
+        tokenParams: {
+          name: "sale token",
+          symbol: "st",
+          users: [],
+          saleAmount: wei("100"),
+          cap: wei("1000"),
+          mintedTotal: wei("150"),
+          amounts: [],
+        },
+      };
+    }
 
-      assert.isTrue(await poolRegistry.isGovPool(event.args.govPool));
-      assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
+    describe("deployGovPool", () => {
+      it("should deploy pool with DP", async () => {
+        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
 
-      let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
-      let helperContracts = await govPool.getHelperContracts();
+        let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);
+        let event = tx.receipt.logs[0];
 
-      let govSettings = await GovSettings.at(helperContracts[0]);
-      let govValidators = await GovValidators.at(helperContracts[2]);
-      let settings = await govSettings.getExecutorSettings(helperContracts[3]);
+        assert.isTrue(await poolRegistry.isGovPool(event.args.govPool));
+        assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
 
-      assert.equal(await govPool.descriptionURL(), "example.com");
+        let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+        let helperContracts = await govPool.getHelperContracts();
 
-      assert.equal((await govValidators.validatorsCount()).toFixed(), 1);
+        let govSettings = await GovSettings.at(helperContracts[0]);
+        let govValidators = await GovValidators.at(helperContracts[2]);
+        let settings = await govSettings.getExecutorSettings(helperContracts[3]);
 
-      assert.equal(settings[0], POOL_PARAMETERS.settingsParams.proposalSettings[2].earlyCompletion);
+        assert.equal(await govPool.descriptionURL(), "example.com");
 
-      assert.equal(await govPool.nftMultiplier(), testERC721Multiplier.address);
+        assert.equal((await govValidators.validatorsCount()).toFixed(), 1);
+
+        assert.equal(settings[0], POOL_PARAMETERS.settingsParams.proposalSettings[2].earlyCompletion);
+
+        assert.equal(await govPool.nftMultiplier(), testERC721Multiplier.address);
+      });
+    });
+
+    describe("deployGovPoolWithTokenSale", () => {
+      it("should deploy pool and instantiate token sale", async () => {
+        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
+        let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
+
+        POOL_PARAMETERS.settingsParams.proposalSettings.push({
+          earlyCompletion: false,
+          delegatedVotingAllowed: false,
+          validatorsVote: false,
+          duration: 500,
+          durationValidators: 600,
+          quorum: PRECISION.times("51").toFixed(),
+          quorumValidators: PRECISION.times("61").toFixed(),
+          minVotesForVoting: wei("10"),
+          minVotesForCreating: wei("5"),
+          rewardToken: ZERO_ADDR,
+          creationReward: 0,
+          executionReward: 0,
+          voteRewardsCoefficient: 0,
+          executorDescription: "Token Sale",
+        });
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(ZERO_ADDR);
+        POOL_PARAMETERS.userKeeperParams.tokenAddress = ZERO_ADDR;
+
+        SALE_PARAMETERS.tiersParams.push({
+          metadata: {
+            name: "tier2",
+            description: "description",
+          },
+          totalTokenProvided: wei("100"),
+          saleStartTime: await getCurrentBlockTime(),
+          saleEndTime: (await getCurrentBlockTime()) + 10000,
+          saleTokenAddress: testERC20.address,
+          purchaseTokenAddresses: [testERC20.address],
+          exchangeRates: [PRECISION.toFixed()],
+          minAllocationPerUser: wei("1"),
+          maxAllocationPerUser: wei("100"),
+          vestingSettings: {
+            vestingPercentage: toPercent(50),
+            vestingDuration: 86400,
+            cliffPeriod: 0,
+            unlockStep: 1,
+          },
+        });
+
+        let tx = await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS);
+        let event = tx.receipt.logs[1];
+
+        let tokenSale = await TokenSaleProposal.at(event.args.tokenSale);
+        let token = await ERC20Mock.at(event.args.token);
+
+        let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+        let helperContracts = await govPool.getHelperContracts();
+
+        let govUserKeeper = await GovUserKeeper.at(helperContracts[1]);
+
+        assert.equal(await token.totalSupply(), wei("150"));
+        assert.equal(await token.balanceOf(govPool.address), wei("50"));
+        assert.equal(await token.balanceOf(tokenSale.address), wei("100"));
+
+        assert.equal(await tokenSale.latestTierId(), "2");
+
+        assert.equal(await govUserKeeper.tokenAddress(), token.address);
+      });
+    });
+
+    describe("GovPool with token sale validation", () => {
+      it("should revert if user keeper address is not address(0)", async () => {
+        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
+        let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
+
+        await truffleAssert.reverts(
+          poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS),
+          "PoolFactory: invalid token address"
+        );
+      });
+
+      it("should revert sale if misconfigured", async () => {
+        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
+        let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
+
+        POOL_PARAMETERS.userKeeperParams.tokenAddress = ZERO_ADDR;
+
+        await truffleAssert.reverts(
+          poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS),
+          "PoolFactory: invalid token sale executor"
+        );
+
+        POOL_PARAMETERS.settingsParams.proposalSettings.push({
+          earlyCompletion: false,
+          delegatedVotingAllowed: false,
+          validatorsVote: false,
+          duration: 500,
+          durationValidators: 600,
+          quorum: PRECISION.times("51").toFixed(),
+          quorumValidators: PRECISION.times("61").toFixed(),
+          minVotesForVoting: wei("10"),
+          minVotesForCreating: wei("5"),
+          rewardToken: ZERO_ADDR,
+          creationReward: 0,
+          executionReward: 0,
+          voteRewardsCoefficient: 0,
+          executorDescription: "Token Sale",
+        });
+
+        await truffleAssert.reverts(
+          poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS),
+          "PoolFactory: invalid token sale executor"
+        );
+
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(OWNER);
+
+        await truffleAssert.reverts(
+          poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS),
+          "PoolFactory: invalid token sale executor"
+        );
+      });
     });
   });
 });

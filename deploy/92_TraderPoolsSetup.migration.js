@@ -1,5 +1,3 @@
-const { logTransaction } = require("@dlsl/hardhat-migrate");
-
 const Proxy = artifacts.require("TransparentUpgradeableProxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 
@@ -20,6 +18,7 @@ const InvestPoolProposal = artifacts.require("TraderPoolInvestProposal");
 
 async function linkPools(deployer) {
   await deployer.deploy(TraderPoolPriceLib);
+
   await deployer.link(TraderPoolPriceLib, TraderPoolLeverageLib);
 
   await deployer.deploy(TraderPoolCommissionLib);
@@ -52,7 +51,7 @@ async function link(deployer) {
   await linkProposals(deployer);
 }
 
-module.exports = async (deployer) => {
+module.exports = async (deployer, logger) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
   const poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
@@ -69,7 +68,7 @@ module.exports = async (deployer) => {
   const riskyProposalName = await poolRegistry.RISKY_PROPOSAL_NAME();
   const investProposalName = await poolRegistry.INVEST_PROPOSAL_NAME();
 
-  logTransaction(
+  logger.logTransaction(
     await poolRegistry.setNewImplementations(
       [basicPoolName, investPoolName, riskyProposalName, investProposalName],
       [basicTraderPool.address, investTraderPool.address, riskyPoolProposal.address, investPoolProposal.address]
