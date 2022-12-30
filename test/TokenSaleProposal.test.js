@@ -43,7 +43,7 @@ GovSettings.numberFormat = "BigNumber";
 GovValidators.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 
-describe.only("TokenSaleProposal", () => {
+describe("TokenSaleProposal", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -791,6 +791,10 @@ describe.only("TokenSaleProposal", () => {
       });
 
       describe("vestingWithdraw", () => {
+        it("should not withdraw if the tier does not exist", async () => {
+          await truffleAssert.reverts(tsp.vestingWithdraw([3]), "TSP: tier does not exist");
+        });
+
         it("should return zero vesting withdraw amount if the user has not purchased the sale token", async () => {
           assert.deepEqual(
             (await tsp.getVestingWithdrawAmounts(OWNER, [1, 2])).map((amount) => amount.toFixed()),
@@ -891,6 +895,10 @@ describe.only("TokenSaleProposal", () => {
             (await tsp.getRecoverAmounts([1, 2])).map((amount) => amount.toFixed()),
             ["0", "0"]
           );
+        });
+
+        it("should not recover if the tier does not exist", async () => {
+          await truffleAssert.reverts(tsp.recover([3]), "TSP: tier does not exist");
         });
 
         it("should recover if the tier is off", async () => {

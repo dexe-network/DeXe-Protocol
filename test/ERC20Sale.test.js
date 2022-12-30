@@ -177,6 +177,13 @@ describe("ERC20Sale", () => {
   async function setupTokens() {
     await token.mint(OWNER, wei("100000000000"));
     await token.approve(userKeeper.address, wei("10000000000"));
+
+    await token.mint(SECOND, wei("100000000000000000000"));
+
+    await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
+
+    await govPool.deposit(OWNER, wei("1000"), []);
+    await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
   }
 
   describe("constructor", () => {
@@ -372,13 +379,6 @@ describe("ERC20Sale", () => {
         DEFAULT_PARAMS.saleAddress,
         DEFAULT_PARAMS.constructorParameters
       );
-
-      await token.mint(SECOND, wei("100000000000000000000"));
-
-      await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
-
-      await govPool.deposit(OWNER, wei("1000"), []);
-      await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
     });
 
     describe("mint", () => {
