@@ -10,7 +10,6 @@ const {
   getBytesAddToWhitelistTSP,
 } = require("./utils/gov-pool-utils");
 const { getCurrentBlockTime, setTime } = require("./helpers/block-helper");
-const { ethers } = require("hardhat");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
@@ -372,7 +371,7 @@ describe("TokenSaleProposal", () => {
           purchaseTokenAddresses: [purchaseToken1.address, ETHER_ADDR],
           exchangeRates: [PRECISION.times(3).toFixed(), PRECISION.times(100).toFixed()],
           minAllocationPerUser: wei(20),
-          maxAllocationPerUser: wei(500),
+          maxAllocationPerUser: wei(600),
           vestingSettings: {
             vestingPercentage: PERCENTAGE_100.idiv(5).toFixed(),
             vestingDuration: "100",
@@ -667,11 +666,11 @@ describe("TokenSaleProposal", () => {
         });
       });
 
-      describe.only("buy", () => {
+      describe("buy", () => {
         beforeEach(async () => {
           await purchaseToken1.mint(OWNER, wei(1000));
 
-          await network.provider.send("hardhat_setBalance", [OWNER, "0x" + wei("1000")]);
+          await network.provider.send("hardhat_setBalance", [OWNER, "0x" + wei("100000")]);
         });
 
         it("should buy for erc20 if all conditions are met", async () => {
@@ -707,7 +706,94 @@ describe("TokenSaleProposal", () => {
 
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(80));
         });
+
+        it("should not buy if the tier does not exist", async () => {
+          await truffleAssert.reverts(tsp.buy(3, purchaseToken1.address, wei(100)), "TSP: tier does not exist");
+        });
+
+        it("should not buy if the tier is off", async () => {
+          await acceptProposal([tsp.address], [0], [getBytesOffTiersTSP([1])]);
+
+          await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100)), "TSP: tier is off");
+        });
+
+        it("should not buy if an amount is zero", async () => {
+          await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, 0), "TSP: zero amount");
+
+          await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, wei(1)), "TSP: zero amount");
+        });
+
+        it("should not buy if not whitelisted", async () => {
+          const whitelistRequest = [
+            {
+              tierId: 1,
+              users: [SECOND],
+            },
+          ];
+
+          await acceptProposal([tsp.address], [0], [getBytesAddToWhitelistTSP(whitelistRequest)]);
+
+          await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100)), "TSP: not whitelisted");
+        });
+
+        it("should not buy unless it's sale time", async () => {
+          await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100)), "TSP: cannot buy now");
+
+          await setTime(parseInt(tiers[0].saleEndTime + 1));
+
+          await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100)), "TSP: cannot buy now");
+        });
+
+        it("should not buy twice", async () => {
+          await setTime(parseInt(tiers[0].saleStartTime));
+
+          await purchaseToken1.approve(tsp.address, wei(200));
+          await tsp.buy(1, purchaseToken1.address, wei(100));
+
+          await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100)), "TSP: cannot buy twice");
+          await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, 0, { value: wei(1) }), "TSP: cannot buy twice");
+        });
+
+        it("should not buy if the incorrect purchase token was provided", async () => {
+          await setTime(parseInt(tiers[0].saleStartTime));
+
+          await truffleAssert.reverts(tsp.buy(1, purchaseToken2.address, wei(100)), "TSP: incorrect token");
+        });
+
+        it("should not buy unless it's a proper allocation", async () => {
+          await setTime(parseInt(tiers[0].saleStartTime));
+
+          await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, 0, { value: wei(100000) }), "TSP: wrong allocation");
+        });
+
+        it("should not buy if the sale token ran out", async () => {
+          await setTime(parseInt(tiers[0].saleStartTime));
+
+          await purchaseToken1.approve(tsp.address, wei(200));
+          await purchaseToken1.approve(tsp.address, wei(200), { from: SECOND });
+
+          await tsp.buy(1, purchaseToken1.address, wei(200));
+          await truffleAssert.reverts(
+            tsp.buy(1, purchaseToken1.address, wei(200), { from: SECOND }),
+            "TSP: insufficient sale token amount"
+          );
+        });
+
+        it("should not buy if the TSP has insufficient token balance", async () => {
+          await setTime(parseInt(tiers[1].saleStartTime));
+
+          await purchaseToken1.approve(tsp.address, wei(200));
+
+          await truffleAssert.reverts(
+            tsp.buy(2, purchaseToken1.address, wei(200)),
+            "TSP: insufficient contract balance"
+          );
+        });
       });
+
+      describe("vestingWithdraw", () => {});
+
+      describe("recover", () => {});
     });
   });
 });

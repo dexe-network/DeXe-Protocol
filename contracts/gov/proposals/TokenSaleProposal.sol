@@ -173,12 +173,12 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             "TSP: wrong allocation"
         );
         require(
-            ERC20(tierView.saleTokenAddress).balanceOf(address(this)) >= saleTokenAmount,
-            "TSP: insufficient contract balance"
-        );
-        require(
             tierInfo.totalSold + saleTokenAmount <= tierView.totalTokenProvided,
             "TSP: insufficient sale token amount"
+        );
+        require(
+            ERC20(tierView.saleTokenAddress).balanceOf(address(this)) >= saleTokenAmount,
+            "TSP: insufficient contract balance"
         );
 
         return saleTokenAmount;
