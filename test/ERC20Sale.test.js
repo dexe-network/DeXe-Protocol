@@ -7,7 +7,7 @@ const ERC20Sale = artifacts.require("ERC20Sale");
 
 ERC20Sale.numberFormat = "BigNumber";
 
-describe.only("ERC20Sale", () => {
+describe("ERC20Sale", () => {
   let OWNER;
   let SECOND;
   let THIRD;
