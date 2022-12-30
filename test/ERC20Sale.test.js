@@ -381,25 +381,11 @@ describe("ERC20Sale", () => {
       await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
     });
 
-    describe("onlyGov", () => {
+    describe("mint", () => {
       it("should not mint if the caller is not a govPool", async () => {
         await truffleAssert.reverts(erc20Sale.mint(SALE_ADDRESS, wei(1)), "ERC20Sale: not a Gov contract");
       });
 
-      it("should not burn if the caller is not a govPool", async () => {
-        await truffleAssert.reverts(erc20Sale.burn(SALE_ADDRESS, wei(1)), "ERC20Sale: not a Gov contract");
-      });
-
-      it("should not pause if the caller is not a govPool", async () => {
-        await truffleAssert.reverts(erc20Sale.pause(), "ERC20Sale: not a Gov contract");
-      });
-
-      it("should not unpause if the caller is not a govPool", async () => {
-        await truffleAssert.reverts(erc20Sale.unpause(), "ERC20Sale: not a Gov contract");
-      });
-    });
-
-    describe("mint", () => {
       it("should not mint if the cap is reached", async () => {
         await truffleAssert.reverts(
           acceptProposal([erc20Sale.address], [0], [getBytesMintERC20Sale(OWNER, wei(100))]),
@@ -417,6 +403,10 @@ describe("ERC20Sale", () => {
     });
 
     describe("burn", () => {
+      it("should not burn if the caller is not a govPool", async () => {
+        await truffleAssert.reverts(erc20Sale.burn(SALE_ADDRESS, wei(1)), "ERC20Sale: not a Gov contract");
+      });
+
       it("should not burn if not enough balance", async () => {
         await truffleAssert.reverts(
           acceptProposal([erc20Sale.address], [0], [getBytesBurnERC20Sale(SALE_ADDRESS, wei(100))]),
@@ -434,6 +424,10 @@ describe("ERC20Sale", () => {
     });
 
     describe("pause", () => {
+      it("should not pause if the caller is not a govPool", async () => {
+        await truffleAssert.reverts(erc20Sale.pause(), "ERC20Sale: not a Gov contract");
+      });
+
       it("should not mint if the erc20Sale is paused", async () => {
         await acceptProposal([erc20Sale.address], [0], [getBytesPauseERC20Sale()]);
 
@@ -457,6 +451,10 @@ describe("ERC20Sale", () => {
       beforeEach(async () => {
         await acceptProposal([erc20Sale.address], [0], [getBytesPauseERC20Sale()]);
         await acceptProposal([erc20Sale.address], [0], [getBytesUnpauseERC20Sale()]);
+      });
+
+      it("should not unpause if the caller is not a govPool", async () => {
+        await truffleAssert.reverts(erc20Sale.unpause(), "ERC20Sale: not a Gov contract");
       });
 
       it("should mint if the erc20Sale is unpaused", async () => {

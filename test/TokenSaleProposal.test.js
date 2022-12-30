@@ -666,7 +666,7 @@ describe("TokenSaleProposal", () => {
         });
       });
 
-      describe.only("buy", () => {
+      describe("buy", () => {
         beforeEach(async () => {
           await purchaseToken1.mint(OWNER, wei(1000));
 
