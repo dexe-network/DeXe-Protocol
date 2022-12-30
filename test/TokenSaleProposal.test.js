@@ -195,7 +195,7 @@ describe("TokenSaleProposal", () => {
     await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
   }
 
-  describe.only("init", () => {
+  describe("init", () => {
     beforeEach(async () => {
       tsp = await TokenSaleProposal.new();
     });
