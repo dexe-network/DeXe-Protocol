@@ -357,6 +357,8 @@ describe.only("TokenSaleProposal", () => {
       purchaseToken2 = await ERC20Mock.new("PurchaseMockedToken1", "PMT1", 18);
       saleToken = await ERC20Mock.new("SaleMockedToken", "SMT", 18);
 
+      const timeNow = await getCurrentBlockTime();
+
       tiers = [
         {
           metadata: {
@@ -364,8 +366,8 @@ describe.only("TokenSaleProposal", () => {
             description: "the first tier",
           },
           totalTokenProvided: wei(1000),
-          saleStartTime: ((await getCurrentBlockTime()) + 100).toString(),
-          saleEndTime: ((await getCurrentBlockTime()) + 200).toString(),
+          saleStartTime: (timeNow + 100).toString(),
+          saleEndTime: (timeNow + 200).toString(),
           saleTokenAddress: erc20Sale.address,
           purchaseTokenAddresses: [purchaseToken1.address, ETHER_ADDR],
           exchangeRates: [PRECISION.times(3).toFixed(), PRECISION.times(100).toFixed()],
@@ -384,8 +386,8 @@ describe.only("TokenSaleProposal", () => {
             description: "the second tier",
           },
           totalTokenProvided: wei(1000),
-          saleStartTime: ((await getCurrentBlockTime()) + 1000).toString(),
-          saleEndTime: ((await getCurrentBlockTime()) + 2000).toString(),
+          saleStartTime: (timeNow + 1000).toString(),
+          saleEndTime: (timeNow + 2000).toString(),
           saleTokenAddress: saleToken.address,
           purchaseTokenAddresses: [purchaseToken1.address, purchaseToken2.address],
           exchangeRates: [PRECISION.times(4).toFixed(), PRECISION.idiv(4).toFixed()],
