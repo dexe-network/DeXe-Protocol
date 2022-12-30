@@ -81,11 +81,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             TierView memory tierView = _tiers[tierIds[i]].tierView;
             Purchase storage purchase = _tiers[tierIds[i]].tierInfo.customers[msg.sender];
 
-            uint256 deltaTime = block.timestamp.min(
-                purchase.purchaseTime + tierView.vestingSettings.vestingDuration
-            ) - purchase.latestVestingWithdraw;
-
-            purchase.latestVestingWithdraw = deltaTime - (deltaTime % vestingSettings.unlockStep);
+            purchase.latestVestingWithdraw = block.timestamp;
 
             ERC20(tierView.saleTokenAddress).safeTransfer(msg.sender, vestingWithdrawAmounts[i]);
         }
@@ -309,15 +305,29 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             return 0;
         }
 
+        uint256 normVestingEndTime = purchase.purchaseTime + vestingSettings.vestingDuration;
+        normVestingEndTime -= vestingSettings.vestingDuration % vestingSettings.unlockStep;
+
+        if (purchase.latestVestingWithdraw >= normVestingEndTime) {
+            return 0;
+        }
+
+        uint256 normLatestVestingWithdraw = purchase.latestVestingWithdraw.min(normVestingEndTime);
+        normLatestVestingWithdraw -=
+            (normLatestVestingWithdraw - purchase.purchaseTime) %
+            vestingSettings.unlockStep;
+
+        uint256 normNextVestingWithdraw = block.timestamp.min(normVestingEndTime);
+        normNextVestingWithdraw -=
+            (normNextVestingWithdraw - purchase.purchaseTime) %
+            vestingSettings.unlockStep;
+
         uint256 stepsCount = vestingSettings.vestingDuration / vestingSettings.unlockStep;
         uint256 tokensPerStep = purchase.vestingAmount / stepsCount;
-        uint256 deltaTime = block.timestamp.min(
-            purchase.purchaseTime + vestingSettings.vestingDuration
-        ) - purchase.latestVestingWithdraw;
 
         return
             tokensPerStep.ratio(
-                deltaTime - (deltaTime % vestingSettings.unlockStep),
+                normNextVestingWithdraw - normLatestVestingWithdraw,
                 vestingSettings.unlockStep
             );
     }
