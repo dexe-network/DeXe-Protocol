@@ -551,6 +551,10 @@ describe("TokenSaleProposal", () => {
       beforeEach(async () => {
         // `getBytesCreateTiersTSP` modifies `tiers`, so it's needed to make a deep copy
         await acceptProposal([tsp.address], [0], [getBytesCreateTiersTSP(JSON.parse(JSON.stringify(tiers)))]);
+
+        await purchaseToken1.mint(OWNER, wei(1000));
+
+        await network.provider.send("hardhat_setBalance", [OWNER, "0x" + wei("100000")]);
       });
 
       describe("addToWhitelist", () => {
@@ -667,12 +671,6 @@ describe("TokenSaleProposal", () => {
       });
 
       describe("buy", () => {
-        beforeEach(async () => {
-          await purchaseToken1.mint(OWNER, wei(1000));
-
-          await network.provider.send("hardhat_setBalance", [OWNER, "0x" + wei("100000")]);
-        });
-
         it("should buy for erc20 if all conditions are met", async () => {
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), "0");
           assert.equal((await purchaseToken1.balanceOf(OWNER)).toFixed(), wei(1000));
@@ -791,7 +789,53 @@ describe("TokenSaleProposal", () => {
         });
       });
 
-      describe("vestingWithdraw", () => {});
+      describe.only("vestingWithdraw", () => {
+        it("should return zero vesting withdraw amount if the user has not purchased the sale token", async () => {
+          assert.deepEqual(
+            (await tsp.getVestingWithdrawAmounts(OWNER, [1, 2])).map((amount) => amount.toFixed()),
+            ["0", "0"]
+          );
+        });
+
+        it("should return zero vesting withdraw amount if vesting percentage is zero", async () => {
+          sellToken.mint(tsp.address, wei(1000));
+
+          await purchaseToken1.approve(tsp.address, wei(200));
+
+          assert.equal((await sellToken.balanceOf(OWNER)).toFixed(), "0");
+
+          await setTime(parseInt(tiers[1].saleStartTime));
+          await tsp.buy(2, purchaseToken1.address, wei(200));
+
+          assert.equal((await sellToken.balanceOf(OWNER)).toFixed(), wei(800));
+          assert.deepEqual(
+            (await tsp.getVestingWithdrawAmounts(OWNER, [2])).map((amount) => amount.toFixed()),
+            ["0"]
+          );
+        });
+
+        it.only("should return non-zero vesting withdraw amount only if the cliff period is achieved", async () => {
+          await purchaseToken1.approve(tsp.address, wei(200));
+
+          assert.equal((await sellToken.balanceOf(OWNER)).toFixed(), "0");
+
+          await setTime(parseInt(tiers[0].saleStartTime));
+          await tsp.buy(1, purchaseToken1.address, wei(200));
+
+          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(480));
+          assert.deepEqual(
+            (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
+            ["0"]
+          );
+
+          await setTime(parseInt(tiers[0].saleStartTime) + 1000);
+
+          assert.deepEqual(
+            (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
+            ["120"]
+          );
+        });
+      });
 
       describe("recover", () => {});
     });

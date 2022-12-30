@@ -81,10 +81,11 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             TierView memory tierView = _tiers[tierIds[i]].tierView;
             Purchase storage purchase = _tiers[tierIds[i]].tierInfo.customers[msg.sender];
 
-            purchase.latestVestingWithdraw =
-                block.timestamp -
-                ((block.timestamp - purchase.latestVestingWithdraw) %
-                    tierView.vestingSettings.unlockStep);
+            uint256 deltaTime = block.timestamp.min(
+                purchase.purchaseTime + tierView.vestingSettings.vestingDuration
+            ) - purchase.latestVestingWithdraw;
+
+            purchase.latestVestingWithdraw = deltaTime - (deltaTime % vestingSettings.unlockStep);
 
             ERC20(tierView.saleTokenAddress).safeTransfer(msg.sender, vestingWithdrawAmounts[i]);
         }
@@ -310,10 +311,13 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
         uint256 stepsCount = vestingSettings.vestingDuration / vestingSettings.unlockStep;
         uint256 tokensPerStep = purchase.vestingAmount / stepsCount;
+        uint256 deltaTime = block.timestamp.min(
+            purchase.purchaseTime + vestingSettings.vestingDuration
+        ) - purchase.latestVestingWithdraw;
 
         return
             tokensPerStep.ratio(
-                block.timestamp - purchase.latestVestingWithdraw,
+                deltaTime - (deltaTime % vestingSettings.unlockStep),
                 vestingSettings.unlockStep
             );
     }
