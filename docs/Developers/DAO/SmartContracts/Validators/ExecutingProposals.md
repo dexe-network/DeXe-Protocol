@@ -3,6 +3,6 @@
 Function ***`execute()`*** on `GovValidators` is used for executing ***internal*** proposals after approval by validators.
 
 ```solidity
-function execute(uint256 proposalId) external override
+function execute(uint256 proposalId) external
 ```
-- ***proposalId*** - the id of proposal
+- ***proposalId*** - the id of the proposal

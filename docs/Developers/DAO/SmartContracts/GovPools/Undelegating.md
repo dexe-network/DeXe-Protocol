@@ -9,6 +9,6 @@ function undelegate(
     uint256[] calldata nftIds
 ) external;
  ```
-- ***delegatee*** - the undelegation target address (accaout that will be undelegated)
+- ***delegatee*** - the undelegation target address (account that will be undelegated)
 - ***amount*** - the **ERC20** undelegation amount
 - ***nftIds*** - the array of **NFT** ids to undelegate

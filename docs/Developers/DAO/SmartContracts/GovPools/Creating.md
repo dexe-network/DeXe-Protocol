@@ -51,13 +51,15 @@ struct ProposalSettings {
     string executorDescription;
 }
 ```
-- ***earlyCompletion*** - the boolean flag, if true the voting completes as soon as the quorum is reached
-- ***delegatedVotingAllowed*** - the boolean flag, if true then delegators can vote with their own delegated tokens
+- ***earlyCompletion*** - the boolean flag
+    - if *true* **->** the voting completes as soon as the quorum is reached
+- ***delegatedVotingAllowed*** - the boolean flag
+    - if *true* **->** delegators can vote with their own delegated tokens
 - ***validatorsVote*** - the boolean flag
     - if *true* **->** voting will have an additional validators step
 - ***duration*** - the duration of voting in seconds
 - ***durationValidators*** - the duration of validators voting in seconds
-- ***quorum*** - the percentage of total votes supply (erc20 + nft) to confirm the proposal
+- ***quorum*** - the percentage of total votes supply (**ERC20** + **NFT**) to confirm the proposal
 - ***quorumValidators*** - the percentage of total validator token supply to confirm the proposal
 - ***minVotesForVoting*** - the minimal needed voting power to vote for the proposal
 - ***minVotesForCreating*** - the minimal needed voting power to create the proposal

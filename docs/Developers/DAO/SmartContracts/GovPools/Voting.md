@@ -1,10 +1,10 @@
 # 🗳 Voting
 
-Pool DAO members can vote on existing proposals with their own tokens or with delegated tokens.
+Pool **DAO** members can vote on existing proposals with their own tokens or with delegated tokens.
 
 #
 
-Function `vote()` is used for voting with own tokens.
+Function ***`vote()`*** is used for voting with own tokens.
 
 ```solidity
 function vote(
@@ -28,7 +28,7 @@ function vote(
 
 #
 
-Function `voteDelegated()` is used for voting with delegated tokens.
+Function ***`voteDelegated()`*** is used for voting with delegated tokens.
 
 ```solidity
 function voteDelegated(
