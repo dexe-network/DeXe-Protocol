@@ -43,7 +43,7 @@ GovSettings.numberFormat = "BigNumber";
 GovValidators.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 
-describe("TokenSaleProposal", () => {
+describe.only("TokenSaleProposal", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -76,7 +76,6 @@ describe("TokenSaleProposal", () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
     THIRD = await accounts(2);
-    SALE_ADDRESS = await accounts(3);
     FACTORY = await accounts(4);
     NOTHING = await accounts(9);
 
