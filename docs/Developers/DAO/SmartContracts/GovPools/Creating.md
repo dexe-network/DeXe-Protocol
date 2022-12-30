@@ -5,7 +5,7 @@ DAO Pool is deploying using ***`deployGovPool()`*** function on `PoolFactory`.
 ```solidity
 function deployGovPool(GovPoolDeployParams calldata parameters) external;
 ```
-- parameters - the pool deploy parameters
+- ***parameters*** - the pool deploy parameters
 
 ```solidity
 struct GovPoolDeployParams {
@@ -17,33 +17,14 @@ struct GovPoolDeployParams {
     string name;
 }
 ```
-- nftMultiplierAddress - ...
-- descriptionURL - the description of the pool
-- name - the name of the pool
+- ***settingsParams*** - general settings of the pool
+- ***validatorsParams*** - parameters of validators
+- ***nftMultiplierAddress*** - the address of **NFT** multiplier
+- ***descriptionURL*** - the description of the pool
+- ***name*** - the name of the pool
 
 Structures in the parameters:
-
-
-```solidity
-struct ValidatorsDeployParams {
-    string name;
-    string symbol;
-    uint64 duration;
-    uint128 quorum;
-    address[] validators;
-    uint256[] balances;
-}
-```
-
-```solidity
-struct UserKeeperDeployParams {
-    address tokenAddress;
-    address nftAddress;
-    uint256 totalPowerInTokens;
-    uint256 nftsTotalSupply;
-}
-```
-
+#
 ```solidity
 struct SettingsDeployParams {
     IGovSettings.ProposalSettings[] proposalSettings;
@@ -88,6 +69,40 @@ struct ProposalSettings {
 
 #
 
+```solidity
+struct ValidatorsDeployParams {
+    string name;
+    string symbol;
+    uint64 duration;
+    uint128 quorum;
+    address[] validators;
+    uint256[] balances;
+}
+```
+- ***name*** - the name of a token used by validators
+- ***symbol*** - the symbol of a token used by validators
+- ***duration*** - the duration of voting (without the participation of the **DAO** pool) of validators in seconds
+- ***quorum*** - percentage of tokens from the token supply needed to reach a quorum
+- ***validators*** - list of the validator addresses
+- ***balances*** - list of initial token balances of the validators
+
+#
+
+```solidity
+struct UserKeeperDeployParams {
+    address tokenAddress;
+    address nftAddress;
+    uint256 totalPowerInTokens;
+    uint256 nftsTotalSupply;
+}
+```
+- ***tokenAddress*** - address of the tokens used for voting
+- ***nftAddress*** - address of the **NFT** used for voting
+- ***totalPowerInTokens*** - the token equivalent of all **NFTs**
+- ***nftsTotalSupply*** - the **NFT** collection size
+
+#
+
 After creating a `GovPool` it is added to the `PoolRegistry`. From  `PoolRegistry` you can find out the list of all DAO pools on the **DeXe** platform. Use ***`listPools()`*** method to get this list.
 
 ```solidity
@@ -100,4 +115,5 @@ function listPools(
 - ***name*** - the associated pools name
 - ***offset*** - the starting index in the pools array
 - ***limit*** - the number of pools
-- **returns** **->** pools the array of pools proxies
+- **returns** **->** 
+    - **pools** - the array of pools proxies
