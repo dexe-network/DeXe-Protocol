@@ -195,7 +195,24 @@ describe("TokenSaleProposal", () => {
     await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
   }
 
-  describe("init", () => {});
+  describe.only("init", () => {
+    beforeEach(async () => {
+      tsp = await TokenSaleProposal.new();
+    });
+
+    it("should not init if govAddress is zero", async () => {
+      await truffleAssert.reverts(tsp.__TokenSaleProposal_init(ZERO_ADDR), "TSP: zero gov address");
+    });
+
+    it("should not init twice", async () => {
+      await tsp.__TokenSaleProposal_init(NOTHING);
+
+      await truffleAssert.reverts(
+        tsp.__TokenSaleProposal_init(NOTHING),
+        "Initializable: contract is already initialized"
+      );
+    });
+  });
 
   describe("proposals", () => {
     const acceptProposal = async (executors, values, bytes) => {
