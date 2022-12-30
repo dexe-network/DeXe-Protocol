@@ -41,7 +41,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         _;
     }
 
-    modifier ifTierNotOff(uint256 tierId) {
+    modifier ifTierIsNotOff(uint256 tierId) {
         require(!_tiers[tierId].tierInfo.isOff, "TSP: tier is off");
         _;
     }
@@ -146,7 +146,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         uint256 tierId,
         address tokenToBuyWith,
         uint256 amount
-    ) public view ifTierExists(tierId) ifTierNotOff(tierId) returns (uint256) {
+    ) public view ifTierExists(tierId) ifTierIsNotOff(tierId) returns (uint256) {
         require(amount > 0, "TSP: zero amount");
         require(
             totalSupply(tierId) == 0 || balanceOf(msg.sender, tierId) == 1,
@@ -274,18 +274,14 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
     function _addToWhitelist(
         WhitelistingRequest calldata request
-    ) internal ifTierExists(request.tierId) ifTierNotOff(request.tierId) {
+    ) internal ifTierExists(request.tierId) ifTierIsNotOff(request.tierId) {
         for (uint256 i = 0; i < request.users.length; i++) {
             _mint(request.users[i], request.tierId, 1, "");
         }
     }
 
-    function _offTier(uint256 tierId) internal ifTierExists(tierId) ifTierNotOff(tierId) {
-        TierInfo storage tierInfo = _tiers[tierId].tierInfo;
-
-        require(!tierInfo.isOff, "TSP: tier is already off");
-
-        tierInfo.isOff = true;
+    function _offTier(uint256 tierId) internal ifTierExists(tierId) ifTierIsNotOff(tierId) {
+        _tiers[tierId].tierInfo.isOff = true;
     }
 
     function _getVestingWithdrawAmount(
