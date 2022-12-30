@@ -27,6 +27,11 @@ interface ITokenSaleProposal {
         VestingSettings vestingSettings;
     }
 
+    struct TierInfoView {
+        bool isOff;
+        uint256 totalSold;
+    }
+
     struct Purchase {
         uint256 purchaseTime;
         uint256 vestingAmount;
@@ -65,12 +70,14 @@ interface ITokenSaleProposal {
     function recover(uint256[] calldata tierIds) external;
 
     function getSaleTokenAmount(
+        address user,
         uint256 tierId,
         address tokenToBuyWith,
         uint256 amount
     ) external view returns (uint256);
 
     function getVestingWithdrawAmounts(
+        address user,
         uint256[] calldata tierIds
     ) external view returns (uint256[] memory vestingWithdrawAmounts);
 
@@ -81,5 +88,5 @@ interface ITokenSaleProposal {
     function getTiers(
         uint256 offset,
         uint256 limit
-    ) external view returns (TierView[] memory tierViews);
+    ) external view returns (TierView[] memory tierViews, TierInfoView[] memory tierInfoViews);
 }
