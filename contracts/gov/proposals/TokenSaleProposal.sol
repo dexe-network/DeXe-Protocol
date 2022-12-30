@@ -301,7 +301,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         }
 
         VestingSettings memory vestingSettings = tierView.vestingSettings;
-
         if (vestingSettings.vestingPercentage == 0) {
             return 0;
         }
@@ -309,7 +308,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         Purchase memory purchase = tierInfo.customers[msg.sender];
 
         uint256 startTime = purchase.purchaseTime + vestingSettings.cliffPeriod;
-
         if (startTime > block.timestamp) {
             return 0;
         }
