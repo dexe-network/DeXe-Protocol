@@ -437,7 +437,7 @@ describe("TokenSaleProposal", () => {
     });
 
     describe("createTiers", () => {
-      it("should not create tiers if the caller is not a govPool", async () => {
+      it("should not create tiers if a caller is not the govPool", async () => {
         await truffleAssert.reverts(tsp.createTiers(tiers), "TSP: not a Gov contract");
       });
 
@@ -549,6 +549,15 @@ describe("TokenSaleProposal", () => {
         );
       });
 
+      it("should not create tiers if the exchange rate is zero", async () => {
+        tiers[0].exchangeRates[1] = 0;
+
+        await truffleAssert.reverts(
+          acceptProposal([tsp.address], [0], [getBytesCreateTiersTSP(tiers.slice(0, 1))]),
+          "TSP: rate cannot be zero"
+        );
+      });
+
       it("should not create tiers if purchaseTokenAddresses are duplicated", async () => {
         tiers[0].purchaseTokenAddresses[0] = tiers[0].purchaseTokenAddresses[1];
 
@@ -576,6 +585,17 @@ describe("TokenSaleProposal", () => {
       });
 
       describe("addToWhitelist", () => {
+        it("should not whitelist if a caller is not the govPool", async () => {
+          const whitelistingRequest = [
+            {
+              tierId: 1,
+              users: [SECOND],
+            },
+          ];
+
+          await truffleAssert.reverts(tsp.addToWhitelist(whitelistingRequest), "TSP: not a Gov contract");
+        });
+
         it("should not whitelist if the tier does not exist", async () => {
           const nonexistentWhitelisting = [
             {
@@ -587,6 +607,22 @@ describe("TokenSaleProposal", () => {
           await truffleAssert.reverts(
             acceptProposal([tsp.address], [0], [getBytesAddToWhitelistTSP(nonexistentWhitelisting)]),
             "TSP: tier does not exist"
+          );
+        });
+
+        it("should not whitelist if the tier is off", async () => {
+          await acceptProposal([tsp.address], [0], [getBytesOffTiersTSP([1])]);
+
+          const offTierWhitelisting = [
+            {
+              tierId: 1,
+              users: [OWNER, SECOND],
+            },
+          ];
+
+          await truffleAssert.reverts(
+            acceptProposal([tsp.address], [0], [getBytesAddToWhitelistTSP(offTierWhitelisting)]),
+            "TSP: tier is off"
           );
         });
 
@@ -653,6 +689,10 @@ describe("TokenSaleProposal", () => {
       });
 
       describe("offTiers", () => {
+        it("should not off tiers if a caller is not the govPool", async () => {
+          await truffleAssert.reverts(tsp.offTiers([1, 2]), "TSP: not a Gov contract");
+        });
+
         it("should not off tiers if the tier does not exist", async () => {
           const nonexistentOffTier = [3];
 
@@ -690,6 +730,15 @@ describe("TokenSaleProposal", () => {
 
       describe("buy", () => {
         it("should buy for erc20 if all conditions are met", async () => {
+          const whitelistingRequest = [
+            {
+              tierId: 1,
+              users: [OWNER],
+            },
+          ];
+
+          await acceptProposal([tsp.address], [0], [getBytesAddToWhitelistTSP(whitelistingRequest)]);
+
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), "0");
           assert.equal((await purchaseToken1.balanceOf(OWNER)).toFixed(), wei(1000));
 

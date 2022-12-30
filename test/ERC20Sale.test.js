@@ -382,7 +382,7 @@ describe("ERC20Sale", () => {
     });
 
     describe("mint", () => {
-      it("should not mint if the caller is not a govPool", async () => {
+      it("should not mint if a caller is not the govPool", async () => {
         await truffleAssert.reverts(erc20Sale.mint(SALE_ADDRESS, wei(1)), "ERC20Sale: not a Gov contract");
       });
 
@@ -403,7 +403,7 @@ describe("ERC20Sale", () => {
     });
 
     describe("burn", () => {
-      it("should not burn if the caller is not a govPool", async () => {
+      it("should not burn if a caller is not the govPool", async () => {
         await truffleAssert.reverts(erc20Sale.burn(SALE_ADDRESS, wei(1)), "ERC20Sale: not a Gov contract");
       });
 
@@ -424,7 +424,7 @@ describe("ERC20Sale", () => {
     });
 
     describe("pause", () => {
-      it("should not pause if the caller is not a govPool", async () => {
+      it("should not pause if a caller is not the govPool", async () => {
         await truffleAssert.reverts(erc20Sale.pause(), "ERC20Sale: not a Gov contract");
       });
 
@@ -453,7 +453,7 @@ describe("ERC20Sale", () => {
         await acceptProposal([erc20Sale.address], [0], [getBytesUnpauseERC20Sale()]);
       });
 
-      it("should not unpause if the caller is not a govPool", async () => {
+      it("should not unpause if a caller is not the govPool", async () => {
         await truffleAssert.reverts(erc20Sale.unpause(), "ERC20Sale: not a Gov contract");
       });
 
