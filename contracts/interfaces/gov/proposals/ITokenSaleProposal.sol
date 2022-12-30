@@ -70,12 +70,14 @@ interface ITokenSaleProposal {
     function recover(uint256[] calldata tierIds) external;
 
     function getSaleTokenAmount(
+        address user,
         uint256 tierId,
         address tokenToBuyWith,
         uint256 amount
     ) external view returns (uint256);
 
     function getVestingWithdrawAmounts(
+        address user,
         uint256[] calldata tierIds
     ) external view returns (uint256[] memory vestingWithdrawAmounts);
 

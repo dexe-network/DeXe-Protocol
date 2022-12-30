@@ -10,6 +10,7 @@ const {
   getBytesAddToWhitelistTSP,
 } = require("./utils/gov-pool-utils");
 const { getCurrentBlockTime, setTime } = require("./helpers/block-helper");
+const { ethers } = require("hardhat");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");

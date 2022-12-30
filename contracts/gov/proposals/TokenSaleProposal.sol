@@ -71,7 +71,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     }
 
     function vestingWithdraw(uint256[] calldata tierIds) external override {
-        uint256[] memory vestingWithdrawAmounts = getVestingWithdrawAmounts(tierIds);
+        uint256[] memory vestingWithdrawAmounts = getVestingWithdrawAmounts(msg.sender, tierIds);
 
         for (uint256 i = 0; i < vestingWithdrawAmounts.length; i++) {
             if (vestingWithdrawAmounts[i] == 0) {
@@ -94,6 +94,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         bool isNativeCurrency = tokenToBuyWith == ETHEREUM_ADDRESS;
 
         uint256 saleTokenAmount = getSaleTokenAmount(
+            msg.sender,
             tierId,
             tokenToBuyWith,
             isNativeCurrency ? msg.value : amount
@@ -117,8 +118,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         });
 
         if (isNativeCurrency) {
-            (bool success, ) = govAddress.call{value: msg.value}("");
-            require(success, "TSP: failed to transfer ether");
+            payable(govAddress).transfer(msg.value);
         } else {
             ERC20(tokenToBuyWith).safeTransferFrom(msg.sender, govAddress, amount);
         }
@@ -143,15 +143,13 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     }
 
     function getSaleTokenAmount(
+        address user,
         uint256 tierId,
         address tokenToBuyWith,
         uint256 amount
     ) public view ifTierExists(tierId) ifTierIsNotOff(tierId) returns (uint256) {
         require(amount > 0, "TSP: zero amount");
-        require(
-            totalSupply(tierId) == 0 || balanceOf(msg.sender, tierId) == 1,
-            "TSP: not whitelisted"
-        );
+        require(totalSupply(tierId) == 0 || balanceOf(user, tierId) == 1, "TSP: not whitelisted");
 
         Tier storage tier = _tiers[tierId];
         TierInfo storage tierInfo = tier.tierInfo;
@@ -162,7 +160,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             tierView.saleStartTime <= block.timestamp && block.timestamp <= tierView.saleEndTime,
             "TSP: cannot buy now"
         );
-        require(tierInfo.customers[msg.sender].purchaseTime == 0, "TSP: cannot buy twice");
+        require(tierInfo.customers[user].purchaseTime == 0, "TSP: cannot buy twice");
 
         uint256 exchangeRate = tierInfo.rates[tokenToBuyWith];
         uint256 saleTokenAmount = amount.ratio(exchangeRate, PRECISION);
@@ -187,12 +185,13 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     }
 
     function getVestingWithdrawAmounts(
+        address user,
         uint256[] calldata tierIds
     ) public view returns (uint256[] memory vestingWithdrawAmounts) {
         vestingWithdrawAmounts = new uint256[](tierIds.length);
 
         for (uint256 i = 0; i < tierIds.length; i++) {
-            vestingWithdrawAmounts[i] = _getVestingWithdrawAmount(tierIds[i]);
+            vestingWithdrawAmounts[i] = _getVestingWithdrawAmount(user, tierIds[i]);
         }
     }
 
@@ -285,6 +284,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     }
 
     function _getVestingWithdrawAmount(
+        address user,
         uint256 tierId
     ) internal view ifTierExists(tierId) returns (uint256) {
         Tier storage tier = _tiers[tierId];
@@ -292,7 +292,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
         TierView memory tierView = tier.tierView;
 
-        if (tierInfo.customers[msg.sender].purchaseTime == 0) {
+        if (tierInfo.customers[user].purchaseTime == 0) {
             return 0;
         }
 
@@ -301,7 +301,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             return 0;
         }
 
-        Purchase memory purchase = tierInfo.customers[msg.sender];
+        Purchase memory purchase = tierInfo.customers[user];
 
         uint256 startTime = purchase.purchaseTime + vestingSettings.cliffPeriod;
         if (startTime > block.timestamp) {
