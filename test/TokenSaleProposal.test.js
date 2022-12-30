@@ -50,7 +50,7 @@ describe("TokenSaleProposal", () => {
 
   let purchaseToken1;
   let purchaseToken2;
-  let sellToken;
+  let saleToken;
   let erc20Params;
   let tiers;
 
@@ -343,7 +343,7 @@ describe("TokenSaleProposal", () => {
           users: [SECOND, THIRD],
           saleAmount: wei(1000),
           cap: wei(2000),
-          mintedTotal: wei(1010),
+          mintedTotal: wei(1005),
           amounts: [wei(2), wei(3)],
         },
       };
@@ -356,7 +356,7 @@ describe("TokenSaleProposal", () => {
 
       purchaseToken1 = await ERC20Mock.new("PurchaseMockedToken1", "PMT1", 18);
       purchaseToken2 = await ERC20Mock.new("PurchaseMockedToken1", "PMT1", 18);
-      sellToken = await ERC20Mock.new("SellMockedToken", "SMT", 18);
+      saleToken = await ERC20Mock.new("SaleMockedToken", "SMT", 18);
 
       tiers = [
         {
@@ -387,7 +387,7 @@ describe("TokenSaleProposal", () => {
           totalTokenProvided: wei(1000),
           saleStartTime: ((await getCurrentBlockTime()) + 1000).toString(),
           saleEndTime: ((await getCurrentBlockTime()) + 2000).toString(),
-          saleTokenAddress: sellToken.address,
+          saleTokenAddress: saleToken.address,
           purchaseTokenAddresses: [purchaseToken1.address, purchaseToken2.address],
           exchangeRates: [PRECISION.times(4).toFixed(), PRECISION.idiv(4).toFixed()],
           minAllocationPerUser: "0",
@@ -406,10 +406,10 @@ describe("TokenSaleProposal", () => {
       it("should be increased when tiers has been created", async () => {
         assert.equal(await tsp.latestTierId(), 0);
 
-        await sellToken.mint(govPool.address, tiers[1].totalTokenProvided);
+        await saleToken.mint(govPool.address, tiers[1].totalTokenProvided);
 
         await acceptProposal(
-          [sellToken.address, tsp.address],
+          [saleToken.address, tsp.address],
           [0, 0],
           [getBytesTransfer(tsp.address, tiers[1].totalTokenProvided), getBytesCreateTiersTSP(tiers)]
         );
@@ -798,16 +798,16 @@ describe("TokenSaleProposal", () => {
         });
 
         it("should return zero vesting withdraw amount if vesting percentage is zero", async () => {
-          sellToken.mint(tsp.address, wei(1000));
+          saleToken.mint(tsp.address, wei(1000));
 
           await purchaseToken1.approve(tsp.address, wei(200));
 
-          assert.equal((await sellToken.balanceOf(OWNER)).toFixed(), "0");
+          assert.equal((await saleToken.balanceOf(OWNER)).toFixed(), "0");
 
           await setTime(parseInt(tiers[1].saleStartTime));
           await tsp.buy(2, purchaseToken1.address, wei(200));
 
-          assert.equal((await sellToken.balanceOf(OWNER)).toFixed(), wei(800));
+          assert.equal((await saleToken.balanceOf(OWNER)).toFixed(), wei(800));
           assert.deepEqual(
             (await tsp.getVestingWithdrawAmounts(OWNER, [2])).map((amount) => amount.toFixed()),
             ["0"]
@@ -817,7 +817,7 @@ describe("TokenSaleProposal", () => {
         it("should do multiple various time withdraws properly", async () => {
           await purchaseToken1.approve(tsp.address, wei(200));
 
-          assert.equal((await sellToken.balanceOf(OWNER)).toFixed(), "0");
+          assert.equal((await saleToken.balanceOf(OWNER)).toFixed(), "0");
 
           await setTime(parseInt(tiers[0].saleStartTime));
           await tsp.buy(1, purchaseToken1.address, wei(200));
@@ -877,7 +877,49 @@ describe("TokenSaleProposal", () => {
         });
       });
 
-      describe("recover", () => {});
+      describe("recover", () => {
+        beforeEach(async () => {
+          await purchaseToken1.approve(tsp.address, wei(200));
+
+          await setTime(parseInt(tiers[0].saleStartTime));
+          await tsp.buy(1, purchaseToken1.address, wei(200));
+        });
+
+        it("should not recover if recover conditions were not met", async () => {
+          assert.deepEqual(
+            (await tsp.getRecoverAmounts([1, 2])).map((amount) => amount.toFixed()),
+            ["0", "0"]
+          );
+        });
+
+        it("should recover if the tier is off", async () => {
+          await acceptProposal([tsp.address], [0], [getBytesOffTiersTSP([1])]);
+
+          assert.deepEqual(
+            (await tsp.getRecoverAmounts([1, 2])).map((amount) => amount.toFixed()),
+            [wei("400"), "0"]
+          );
+
+          await tsp.recover([1, 2]);
+
+          assert.equal((await erc20Sale.balanceOf(govPool.address)).toFixed(), wei("400"));
+          assert.equal((await saleToken.balanceOf(govPool.address)).toFixed(), "0");
+        });
+
+        it("should recover if sales are over", async () => {
+          await setTime(parseInt(tiers[0].saleEndTime) + 1);
+
+          assert.deepEqual(
+            (await tsp.getRecoverAmounts([1, 2])).map((amount) => amount.toFixed()),
+            [wei("400"), "0"]
+          );
+
+          await tsp.recover([1, 2]);
+
+          assert.equal((await erc20Sale.balanceOf(govPool.address)).toFixed(), wei("400"));
+          assert.equal((await saleToken.balanceOf(govPool.address)).toFixed(), "0");
+        });
+      });
     });
   });
 });
