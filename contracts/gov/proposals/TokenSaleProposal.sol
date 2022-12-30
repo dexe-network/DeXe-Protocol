@@ -240,17 +240,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             "TSP: wrong allocation"
         );
         require(
-            tierView.vestingSettings.vestingPercentage <= PERCENTAGE_100,
-            "TSP: vestingPercentage > 100%"
-        );
-        require(
-            tierView.vestingSettings.vestingDuration == 0 ||
-                tierView.vestingSettings.unlockStep != 0,
-            "TSP: unlockStep cannot be zero"
-        );
-        require(
-            tierView.vestingSettings.vestingDuration >= tierView.vestingSettings.unlockStep,
-            "TSP: vestingDuration should greater than unlock step"
+            _validateVestingSettings(tierView.vestingSettings),
+            "TSP: vesting settings validation failed"
         );
         require(
             tierView.purchaseTokenAddresses.length != 0,
@@ -310,6 +301,11 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         }
 
         VestingSettings memory vestingSettings = tierView.vestingSettings;
+
+        if (vestingSettings.vestingPercentage == 0) {
+            return 0;
+        }
+
         Purchase memory purchase = tierInfo.customers[msg.sender];
 
         uint256 startTime = purchase.purchaseTime + vestingSettings.cliffPeriod;
@@ -355,5 +351,25 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         for (uint256 i = 0; i < ids.length; i++) {
             require(balanceOf(to, ids[i]) == 0, "TSP: balance can be only 0 or 1");
         }
+    }
+
+    function _validateVestingSettings(
+        VestingSettings memory vestingSettings
+    ) private pure returns (bool) {
+        if (
+            vestingSettings.vestingPercentage == 0 &&
+            vestingSettings.vestingDuration == 0 &&
+            vestingSettings.unlockStep == 0 &&
+            vestingSettings.cliffPeriod == 0
+        ) {
+            return true;
+        }
+
+        return
+            vestingSettings.vestingDuration != 0 &&
+            vestingSettings.vestingPercentage != 0 &&
+            vestingSettings.unlockStep != 0 &&
+            vestingSettings.vestingPercentage <= PERCENTAGE_100 &&
+            vestingSettings.vestingDuration >= vestingSettings.unlockStep;
     }
 }
