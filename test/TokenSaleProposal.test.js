@@ -666,7 +666,7 @@ describe("TokenSaleProposal", () => {
         });
       });
 
-      describe("buy", () => {
+      describe.only("buy", () => {
         beforeEach(async () => {
           await purchaseToken1.mint(OWNER, wei(1000));
 
@@ -702,6 +702,7 @@ describe("TokenSaleProposal", () => {
               .toFixed(),
             wei(1)
           );
+          assert.equal(await web3.eth.getBalance(govPool.address), wei(1));
 
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(80));
         });

@@ -323,7 +323,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     ) internal view ifTierExists(tierId) returns (uint256) {
         TierView memory tierView = _tiers[tierId].tierView;
 
-        if (block.timestamp <= tierView.saleEndTime) {
+        if (!_tiers[tierId].tierInfo.isOff && block.timestamp <= tierView.saleEndTime) {
             return 0;
         }
 
