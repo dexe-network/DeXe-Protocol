@@ -476,6 +476,11 @@ const getBytesAddToWhitelistTSP = (requests) => {
               name: "users",
               type: "address[]",
             },
+            {
+              internalType: "string",
+              name: "uri",
+              type: "string",
+            },
           ],
           internalType: "struct ITokenSaleProposal.WhitelistingRequest[]",
           name: "requests",
