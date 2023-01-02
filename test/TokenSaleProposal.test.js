@@ -587,6 +587,7 @@ describe("TokenSaleProposal", () => {
             {
               tierId: 1,
               users: [SECOND],
+              uri: "",
             },
           ];
 
@@ -598,6 +599,7 @@ describe("TokenSaleProposal", () => {
             {
               tierId: 3,
               users: [SECOND],
+              uri: "",
             },
           ];
 
@@ -614,6 +616,7 @@ describe("TokenSaleProposal", () => {
             {
               tierId: 1,
               users: [OWNER, SECOND],
+              uri: "",
             },
           ];
 
@@ -628,10 +631,12 @@ describe("TokenSaleProposal", () => {
             {
               tierId: 1,
               users: [SECOND],
+              uri: "",
             },
             {
               tierId: 1,
               users: [SECOND],
+              uri: "",
             },
           ];
 
@@ -646,6 +651,7 @@ describe("TokenSaleProposal", () => {
             {
               tierId: 1,
               users: [SECOND],
+              uri: "",
             },
           ];
 
@@ -664,10 +670,12 @@ describe("TokenSaleProposal", () => {
             {
               tierId: 1,
               users: [SECOND],
+              uri: "",
             },
             {
               tierId: 2,
               users: [OWNER, THIRD],
+              uri: "",
             },
           ];
 
@@ -682,6 +690,53 @@ describe("TokenSaleProposal", () => {
           assert.equal((await tsp.balanceOf(SECOND, 1)).toFixed(), "1");
           assert.equal((await tsp.balanceOf(OWNER, 2)).toFixed(), "1");
           assert.equal((await tsp.balanceOf(THIRD, 2)).toFixed(), "1");
+        });
+
+        it("should whitelist properly if all conditions are met", async () => {
+          const whitelistingRequests = [
+            {
+              tierId: 1,
+              users: [OWNER],
+              uri: "uri1_owner",
+            },
+            {
+              tierId: 1,
+              users: [SECOND],
+              uri: "uri1_second",
+            },
+            {
+              tierId: 2,
+              users: [SECOND],
+              uri: "uri2_second",
+            },
+            {
+              tierId: 2,
+              users: [OWNER],
+              uri: "uri2_owner",
+            },
+          ];
+
+          await acceptProposal([tsp.address], [0], [getBytesAddToWhitelistTSP(whitelistingRequests)]);
+
+          assert.deepEqual(
+            (await tsp.getTiers(0, 2)).tierInfoViews.map((tierInfoView) => tierInfoView.uri),
+            ["uri1_second", "uri2_owner"]
+          );
+
+          const zeroUriWhitelistingRequest = [
+            {
+              tierId: 1,
+              users: [THIRD],
+              uri: "",
+            },
+          ];
+
+          await acceptProposal([tsp.address], [0], [getBytesAddToWhitelistTSP(zeroUriWhitelistingRequest)]);
+
+          assert.deepEqual(
+            (await tsp.getTiers(0, 2)).tierInfoViews.map((tierInfoView) => tierInfoView.uri),
+            ["", "uri2_owner"]
+          );
         });
       });
 
@@ -731,6 +786,7 @@ describe("TokenSaleProposal", () => {
             {
               tierId: 1,
               users: [OWNER],
+              uri: "",
             },
           ];
 
@@ -798,6 +854,7 @@ describe("TokenSaleProposal", () => {
             {
               tierId: 1,
               users: [SECOND],
+              uri: "",
             },
           ];
 
