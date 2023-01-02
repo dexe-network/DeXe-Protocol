@@ -225,7 +225,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     ) external view override returns (ActiveInvestmentInfo[] memory investments) {
         return
             TraderPoolInvestProposalView.getActiveInvestmentsInfo(
-                _activeInvestments[user],
+                _activeInvestments[user].values(),
                 _baseBalances,
                 _lpBalances,
                 user,
@@ -258,10 +258,10 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         UserRewardInfo storage userRewardInfo = _userRewardInfos[user][proposalId];
         RewardInfo storage rewardInfo = _rewardInfos[proposalId];
 
-        uint256 length = rewardInfo.rewardTokens.length();
+        address[] memory rewardTokensRaw = rewardInfo.rewardTokens.values();
 
-        for (uint256 i = 0; i < length; i++) {
-            address token = rewardInfo.rewardTokens.at(i);
+        for (uint256 i = 0; i < rewardTokensRaw.length; i++) {
+            address token = rewardTokensRaw[i];
             uint256 cumulativeSum = rewardInfo.cumulativeSums[token];
 
             userRewardInfo.rewardsStored[token] +=
@@ -282,16 +282,16 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         _updateRewards(proposalId, user);
 
         RewardInfo storage rewardInfo = _rewardInfos[proposalId];
-        uint256 length = rewardInfo.rewardTokens.length();
+        address[] memory rewardTokensRaw = rewardInfo.rewardTokens.values();
 
-        claimed = new uint256[](length);
-        addresses = new address[](length);
+        claimed = new uint256[](rewardTokensRaw.length);
+        addresses = new address[](rewardTokensRaw.length);
 
         address baseToken = _parentTraderPoolInfo.baseToken;
         uint256 baseIndex;
 
-        for (uint256 i = 0; i < length; i++) {
-            address token = rewardInfo.rewardTokens.at(i);
+        for (uint256 i = 0; i < rewardTokensRaw.length; i++) {
+            address token = rewardTokensRaw[i];
 
             claimed[i] = _userRewardInfos[user][proposalId].rewardsStored[token];
             addresses[i] = token;
@@ -304,7 +304,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             }
         }
 
-        if (length > 0) {
+        if (rewardTokensRaw.length > 0) {
             /// @dev make the base token first (if not found, do nothing)
             (claimed[0], claimed[baseIndex]) = (claimed[baseIndex], claimed[0]);
             (addresses[0], addresses[baseIndex]) = (addresses[baseIndex], addresses[0]);

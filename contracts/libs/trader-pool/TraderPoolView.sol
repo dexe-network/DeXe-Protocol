@@ -39,7 +39,9 @@ library TraderPoolView {
         uint256 offset,
         uint256 limit
     ) external view returns (ITraderPool.UserInfo[] memory usersInfo) {
-        uint256 to = (offset + limit).min(investors.length()).max(offset);
+        address[] memory investorsRaw = investors.values();
+
+        uint256 to = (offset + limit).min(investorsRaw.length).max(offset);
 
         (uint256 totalPoolBase, uint256 totalPoolUSD) = poolParameters
             .getNormalizedPoolPriceAndUSD();
@@ -68,7 +70,7 @@ library TraderPoolView {
         for (uint256 i = offset; i < to; i++) {
             usersInfo[i - offset + 2] = _getUserInfo(
                 poolParameters,
-                investors.at(i),
+                investorsRaw[i],
                 totalPoolBase,
                 totalPoolUSD,
                 totalSupply
@@ -176,7 +178,7 @@ library TraderPoolView {
 
     function getReinvestCommissions(
         ITraderPool.PoolParameters storage poolParameters,
-        EnumerableSet.AddressSet storage investors,
+        address[] memory investors,
         uint256[] calldata offsetLimits
     ) external view returns (ITraderPool.Commissions memory commissions) {
         (uint256 totalPoolBase, ) = poolParameters.getNormalizedPoolPriceAndUSD();
@@ -186,16 +188,14 @@ library TraderPoolView {
         uint256 allLPCommission;
 
         for (uint256 i = 0; i < offsetLimits.length; i += 2) {
-            uint256 to = (offsetLimits[i] + offsetLimits[i + 1]).min(investors.length()).max(
+            uint256 to = (offsetLimits[i] + offsetLimits[i + 1]).min(investors.length).max(
                 offsetLimits[i]
             );
 
             for (uint256 j = offsetLimits[i]; j < to; j++) {
-                address investor = investors.at(j);
-
                 (uint256 baseCommission, uint256 lpCommission) = _getReinvestCommission(
                     poolParameters,
-                    investor,
+                    investors[j],
                     totalPoolBase,
                     totalSupply
                 );

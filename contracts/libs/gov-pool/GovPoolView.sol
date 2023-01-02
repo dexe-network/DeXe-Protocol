@@ -109,16 +109,15 @@ library GovPoolView {
             ShrinkableArray.UintArray memory lockedIds
         )
     {
-        EnumerableSet.UintSet storage votes = _votedInProposals[user][isMicropool];
-        uint256 proposalsLength = votes.length();
+        uint256[] memory votes = _votedInProposals[user][isMicropool].values();
 
-        uint256[] memory unlockedProposals = new uint256[](proposalsLength);
-        uint256[] memory lockedProposals = new uint256[](proposalsLength);
+        uint256[] memory unlockedProposals = new uint256[](votes.length);
+        uint256[] memory lockedProposals = new uint256[](votes.length);
         uint256 unlockedLength;
         uint256 lockedLength;
 
-        for (uint256 i; i < proposalsLength; i++) {
-            uint256 proposalId = votes.at(i);
+        for (uint256 i; i < votes.length; i++) {
+            uint256 proposalId = votes[i];
 
             IGovPool.ProposalState state = IGovPool(address(this)).getProposalState(proposalId);
 

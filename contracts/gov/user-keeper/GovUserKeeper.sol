@@ -342,10 +342,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             if (!userContains && !isMicropool && useDelegated) {
                 UserInfo storage userInfo = _usersInfo[voter];
 
-                uint256 delegateeLength = userInfo.delegatees.length();
+                address[] memory delegateesRaw = userInfo.delegatees.values();
 
-                for (uint256 j; j < delegateeLength; j++) {
-                    if (userInfo.delegatedNfts[userInfo.delegatees.at(j)].contains(nftIds[i])) {
+                for (uint256 j; j < delegateesRaw.length; j++) {
+                    if (userInfo.delegatedNfts[delegateesRaw[j]].contains(nftIds[i])) {
                         delegatedContains = true;
                         break;
                     }
@@ -416,10 +416,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             if (useDelegated) {
                 UserInfo storage userInfo = _usersInfo[voter];
 
-                uint256 delegateeLength = userInfo.delegatees.length();
+                address[] memory delegateesRaw = userInfo.delegatees.values();
 
-                for (uint256 i; i < delegateeLength; i++) {
-                    totalBalance += userInfo.delegatedTokens[userInfo.delegatees.at(i)];
+                for (uint256 i; i < delegateesRaw.length; i++) {
+                    totalBalance += userInfo.delegatedTokens[delegateesRaw[i]];
                 }
             }
 
@@ -445,10 +445,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             if (useDelegated) {
                 UserInfo storage userInfo = _usersInfo[voter];
 
-                uint256 delegateeLength = userInfo.delegatees.length();
+                address[] memory delegateesRaw = userInfo.delegatees.values();
 
-                for (uint256 i; i < delegateeLength; i++) {
-                    totalBalance += userInfo.delegatedNfts[userInfo.delegatees.at(i)].length();
+                for (uint256 i; i < delegateesRaw.length; i++) {
+                    totalBalance += userInfo.delegatedNfts[delegateesRaw[i]].length();
                 }
             }
 
@@ -481,12 +481,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             if (useDelegated) {
                 UserInfo storage userInfo = _usersInfo[voter];
 
-                uint256 delegateeLength = userInfo.delegatees.length();
+                address[] memory delegateesRaw = userInfo.delegatees.values();
 
-                for (uint256 i; i < delegateeLength; i++) {
+                for (uint256 i; i < delegateesRaw.length; i++) {
                     currentLength = nfts.insert(
                         currentLength,
-                        userInfo.delegatedNfts[userInfo.delegatees.at(i)].values()
+                        userInfo.delegatedNfts[delegateesRaw[i]].values()
                     );
                 }
             }

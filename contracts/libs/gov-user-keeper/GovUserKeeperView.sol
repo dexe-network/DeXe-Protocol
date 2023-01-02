@@ -117,11 +117,13 @@ library GovUserKeeperView {
     {
         IGovUserKeeper.UserInfo storage userInfo = usersInfo[user];
 
-        delegationsInfo = new IGovUserKeeper.DelegationInfoView[](userInfo.delegatees.length());
+        address[] memory delegateesRaw = userInfo.delegatees.values();
+
+        delegationsInfo = new IGovUserKeeper.DelegationInfoView[](delegateesRaw.length);
 
         for (uint256 i; i < delegationsInfo.length; i++) {
             IGovUserKeeper.DelegationInfoView memory delegation = delegationsInfo[i];
-            address delegatee = userInfo.delegatees.at(i);
+            address delegatee = delegateesRaw[i];
 
             delegation.delegatee = delegatee;
             delegation.delegatedTokens = userInfo.delegatedTokens[delegatee];
@@ -200,11 +202,13 @@ library GovUserKeeperView {
 
         withdrawableTokens = balanceInfo.tokenBalance - newLockedAmount;
 
-        uint256[] memory nfts = new uint256[](balanceInfo.nftBalance.length());
+        uint256[] memory nftBalanceRaw = balanceInfo.nftBalance.values();
+
+        uint256[] memory nfts = new uint256[](nftBalanceRaw.length);
         uint256 nftsLength;
 
         for (uint256 i; i < nfts.length; i++) {
-            uint256 nftId = balanceInfo.nftBalance.at(i);
+            uint256 nftId = nftBalanceRaw[i];
             uint256 nftLockAmount = nftLockedNums[nftId];
 
             if (nftLockAmount != 0) {

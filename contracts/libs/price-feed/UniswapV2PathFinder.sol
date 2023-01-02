@@ -70,12 +70,12 @@ library UniswapV2PathFinder {
             foundPath.path = path2;
         } catch {}
 
-        uint256 length = pathTokens.length();
+        address[] memory pathTokensRaw = pathTokens.values();
 
-        for (uint256 i = 0; i < length; i++) {
+        for (uint256 i = 0; i < pathTokensRaw.length; i++) {
             address[] memory path3 = new address[](3);
             path3[0] = inToken;
-            path3[1] = pathTokens.at(i);
+            path3[1] = pathTokensRaw[i];
             path3[2] = outToken;
 
             try priceFunction(amount, path3) returns (uint256[] memory amounts) {
