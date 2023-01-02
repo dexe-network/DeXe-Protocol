@@ -30,6 +30,7 @@ interface ITokenSaleProposal {
     struct TierInfoView {
         bool isOff;
         uint256 totalSold;
+        string uri;
     }
 
     struct Purchase {
@@ -39,8 +40,7 @@ interface ITokenSaleProposal {
     }
 
     struct TierInfo {
-        bool isOff;
-        uint256 totalSold;
+        TierInfoView tierInfoView;
         mapping(address => uint256) rates;
         mapping(address => Purchase) customers;
     }
@@ -53,6 +53,7 @@ interface ITokenSaleProposal {
     struct WhitelistingRequest {
         uint256 tierId;
         address[] users;
+        string uri;
     }
 
     function latestTierId() external view returns (uint256);

@@ -37,7 +37,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     }
 
     modifier ifTierIsNotOff(uint256 tierId) {
-        require(!_tiers[tierId].tierInfo.isOff, "TSP: tier is off");
+        require(!_tiers[tierId].tierInfo.tierInfoView.isOff, "TSP: tier is off");
         _;
     }
 
@@ -104,7 +104,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             saleTokenAmount.percentage(PERCENTAGE_100 - tierView.vestingSettings.vestingPercentage)
         );
 
-        tierInfo.totalSold += saleTokenAmount;
+        tierInfo.tierInfoView.totalSold += saleTokenAmount;
 
         tierInfo.customers[msg.sender] = Purchase({
             purchaseTime: block.timestamp,
@@ -130,7 +130,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
             Tier storage tier = _tiers[tierIds[i]];
 
-            tier.tierInfo.totalSold += recoveringAmounts[i];
+            tier.tierInfo.tierInfoView.totalSold += recoveringAmounts[i];
 
             ERC20(tier.tierView.saleTokenAddress).safeTransfer(govAddress, recoveringAmounts[i]);
         }
@@ -167,7 +167,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             "TSP: wrong allocation"
         );
         require(
-            tierInfo.totalSold + saleTokenAmount <= tierView.totalTokenProvided,
+            tierInfo.tierInfoView.totalSold + saleTokenAmount <= tierView.totalTokenProvided,
             "TSP: insufficient sale token amount"
         );
         require(
@@ -209,14 +209,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         tierInfoViews = new TierInfoView[](to - offset);
 
         for (uint256 i = offset; i < to; i++) {
-            tierViews[i - offset] = _tiers[i + 1].tierView;
+            Tier storage tier = _tiers[i + 1];
 
-            TierInfo storage tierInfo = _tiers[i + 1].tierInfo;
-
-            tierInfoViews[i - offset] = TierInfoView({
-                isOff: tierInfo.isOff,
-                totalSold: tierInfo.totalSold
-            });
+            tierViews[i - offset] = tier.tierView;
+            tierInfoViews[i - offset] = tier.tierInfo.tierInfoView;
         }
     }
 
@@ -268,13 +264,15 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     function _addToWhitelist(
         WhitelistingRequest calldata request
     ) internal ifTierExists(request.tierId) ifTierIsNotOff(request.tierId) {
+        _tiers[request.tierId].tierInfo.tierInfoView.uri = request.uri;
+
         for (uint256 i = 0; i < request.users.length; i++) {
             _mint(request.users[i], request.tierId, 1, "");
         }
     }
 
     function _offTier(uint256 tierId) internal ifTierExists(tierId) ifTierIsNotOff(tierId) {
-        _tiers[tierId].tierInfo.isOff = true;
+        _tiers[tierId].tierInfo.tierInfoView.isOff = true;
     }
 
     function _getVestingWithdrawAmount(
@@ -328,11 +326,13 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     ) internal view ifTierExists(tierId) returns (uint256) {
         TierView memory tierView = _tiers[tierId].tierView;
 
-        if (!_tiers[tierId].tierInfo.isOff && block.timestamp <= tierView.saleEndTime) {
+        TierInfoView memory tierInfoView = _tiers[tierId].tierInfo.tierInfoView;
+
+        if (!tierInfoView.isOff && block.timestamp <= tierView.saleEndTime) {
             return 0;
         }
 
-        return tierView.totalTokenProvided - _tiers[tierId].tierInfo.totalSold;
+        return tierView.totalTokenProvided - tierInfoView.totalSold;
     }
 
     function _beforeTokenTransfer(
