@@ -328,9 +328,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     function _getRecoverAmount(
         uint256 tierId
     ) internal view ifTierExists(tierId) returns (uint256) {
-        TierView memory tierView = _tiers[tierId].tierView;
-
-        TierInfoView memory tierInfoView = _tiers[tierId].tierInfo.tierInfoView;
+        TierView storage tierView = _tiers[tierId].tierView;
+        TierInfoView storage tierInfoView = _tiers[tierId].tierInfo.tierInfoView;
 
         if (!tierInfoView.isOff && block.timestamp <= tierView.saleEndTime) {
             return 0;
