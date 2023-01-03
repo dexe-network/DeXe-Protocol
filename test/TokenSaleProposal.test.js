@@ -722,6 +722,9 @@ describe("TokenSaleProposal", () => {
             (await tsp.getTiers(0, 2)).tierInfoViews.map((tierInfoView) => tierInfoView.uri),
             ["uri1_second", "uri2_owner"]
           );
+          assert.equal(await tsp.uri(1), "uri1_second");
+          assert.equal(await tsp.uri(2), "uri2_owner");
+          assert.equal(await tsp.uri(3), "");
 
           const zeroUriWhitelistingRequest = [
             {
@@ -737,6 +740,9 @@ describe("TokenSaleProposal", () => {
             (await tsp.getTiers(0, 2)).tierInfoViews.map((tierInfoView) => tierInfoView.uri),
             ["", "uri2_owner"]
           );
+          assert.equal(await tsp.uri(1), "");
+          assert.equal(await tsp.uri(2), "uri2_owner");
+          assert.equal(await tsp.uri(3), "");
         });
       });
 
