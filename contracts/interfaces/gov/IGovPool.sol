@@ -233,6 +233,10 @@ interface IGovPool {
     /// @param newDescriptionURL the string with new url
     function editDescriptionURL(string calldata newDescriptionURL) external;
 
+    /// @notice The function for changing verifier address
+    /// @param newVerifier the address of verifier
+    function changeVerifier(address newVerifier) external;
+
     /// @notice The function for setting address of nft multiplier contract
     /// @param nftMultiplierAddress the address of nft multiplier
     function setNftMultiplierAddress(address nftMultiplierAddress) external;
@@ -295,4 +299,18 @@ interface IGovPool {
     function getDelegatorStakingRewards(
         address delegator
     ) external view returns (UserStakeRewardsView[] memory);
+
+    /// @notice The function for saving ipfs hashes of offchain votings
+    /// @param hashes the array of ipfs hashes
+    /// @param signature the signature from verifier
+    function saveOffchainResults(bytes32[] calldata hashes, bytes calldata signature) external;
+
+    /// @notice The paginated function for getting ipfs hashes list
+    /// @param offset the proposal starting index
+    /// @param limit the number of proposals to observe
+    /// @return hashes the bytes32 array
+    function getHashes(
+        uint256 offset,
+        uint256 limit
+    ) external view returns (bytes32[] memory hashes);
 }

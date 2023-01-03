@@ -2,10 +2,12 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 
 import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
+import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
 
 import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
@@ -33,6 +35,8 @@ contract GovPool is
     ERC1155HolderUpgradeable
 {
     using MathHelper for uint256;
+    using ECDSA for bytes32;
+    using Paginator for bytes32[];
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
     using ShrinkableArray for uint256[];
@@ -63,6 +67,10 @@ contract GovPool is
 
     uint256 public override latestProposalId;
 
+    address public verifier;
+
+    bytes32[] internal _hashes;
+
     mapping(uint256 => Proposal) internal _proposals; // proposalId => info
 
     mapping(uint256 => mapping(address => mapping(bool => VoteInfo))) internal _voteInfos; // proposalId => voter => isMicropool => info
@@ -88,6 +96,7 @@ contract GovPool is
         address distributionProposalAddress,
         address validatorsAddress,
         address nftMultiplierAddress,
+        address _verifier,
         string calldata _descriptionURL,
         string calldata _name
     ) external initializer {
@@ -102,6 +111,8 @@ contract GovPool is
 
         descriptionURL = _descriptionURL;
         name = _name;
+
+        verifier = _verifier;
     }
 
     function setDependencies(address contractsRegistry) external override dependant {
@@ -317,6 +328,10 @@ contract GovPool is
         descriptionURL = newDescriptionURL;
     }
 
+    function changeVerifier(address newVerifier) external override onlyThis {
+        verifier = newVerifier;
+    }
+
     function setNftMultiplierAddress(address nftMultiplierAddress) external override onlyThis {
         _setNftMultiplierAddress(nftMultiplierAddress);
     }
@@ -429,6 +444,27 @@ contract GovPool is
         address delegator
     ) external view override returns (UserStakeRewardsView[] memory) {
         return _micropoolInfos.getDelegatorStakingRewards(delegator);
+    }
+
+    function saveOffchainResults(
+        bytes32[] calldata hashes,
+        bytes calldata signature
+    ) external override {
+        bytes32 signHash_ = keccak256(abi.encodePacked(hashes, block.chainid, address(this)));
+        address recovered_ = signHash_.toEthSignedMessageHash().recover(signature);
+
+        require(recovered_ == verifier, "Gov: invalid signer");
+
+        for (uint i; i < hashes.length; i++) {
+            _hashes.push(hashes[i]);
+        }
+    }
+
+    function getHashes(
+        uint256 offset,
+        uint256 limit
+    ) external view override returns (bytes32[] memory hashes) {
+        return _hashes.part(offset, limit);
     }
 
     function _setNftMultiplierAddress(address nftMultiplierAddress) internal {
