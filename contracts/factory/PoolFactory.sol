@@ -45,6 +45,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     );
     event DaoPoolDeployed(
         string name,
+        address tokenAddress,
+        address nftAddress,
         address govPool,
         address DP,
         address validators,
@@ -74,6 +76,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         emit DaoPoolDeployed(
             parameters.name,
+            parameters.userKeeperParams.tokenAddress,
+            parameters.userKeeperParams.nftAddress,
             poolProxy,
             dpProxy,
             validatorsProxy,
@@ -115,6 +119,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         emit DaoPoolDeployed(
             parameters.name,
+            parameters.userKeeperParams.tokenAddress,
+            parameters.userKeeperParams.nftAddress,
             poolProxy,
             dpProxy,
             validatorsProxy,
