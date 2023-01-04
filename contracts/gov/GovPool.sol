@@ -80,6 +80,8 @@ contract GovPool is
 
     mapping(address => MicropoolInfo) internal _micropoolInfos;
 
+    mapping(bytes32 => bool) internal _usedHashes;
+
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
     event MovedToValidators(uint256 proposalId, address sender);
     event Deposited(uint256 amount, uint256[] nfts, address sender);
@@ -341,6 +343,9 @@ contract GovPool is
         bytes calldata signature
     ) external override {
         bytes32 signHash_ = getSignHash(hashes, block.chainid, address(this));
+
+        require(!_usedHashes[signHash_], "Gov: already used");
+
         address recovered_ = signHash_.toEthSignedMessageHash().recover(signature);
 
         require(recovered_ == verifier, "Gov: invalid signer");
@@ -348,6 +353,8 @@ contract GovPool is
         for (uint i; i < hashes.length; i++) {
             _hashes.push(hashes[i]);
         }
+
+        _usedHashes[signHash_] = true;
     }
 
     receive() external payable {}

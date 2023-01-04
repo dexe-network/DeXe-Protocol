@@ -2293,5 +2293,19 @@ describe("GovPool", () => {
 
       await truffleAssert.reverts(govPool.saveOffchainResults(hashes, signature), "Gov: invalid signer");
     });
+
+    it("should revert when use same signHash", async () => {
+      const hashes = [
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d",
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a5956471",
+      ];
+      const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
+
+      let signHash = await govPool.getSignHash(hashes, await web3.eth.getChainId(), govPool.address);
+      let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
+
+      await govPool.saveOffchainResults(hashes, signature);
+      await truffleAssert.reverts(govPool.saveOffchainResults(hashes, signature), "Gov: already used");
+    });
   });
 });
