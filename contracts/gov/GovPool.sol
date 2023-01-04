@@ -336,6 +336,20 @@ contract GovPool is
         _setNftMultiplierAddress(nftMultiplierAddress);
     }
 
+    function saveOffchainResults(
+        bytes32[] calldata hashes,
+        bytes calldata signature
+    ) external override {
+        bytes32 signHash_ = getSignHash(hashes, block.chainid, address(this));
+        address recovered_ = signHash_.toEthSignedMessageHash().recover(signature);
+
+        require(recovered_ == verifier, "Gov: invalid signer");
+
+        for (uint i; i < hashes.length; i++) {
+            _hashes.push(hashes[i]);
+        }
+    }
+
     receive() external payable {}
 
     function getProposals(
@@ -446,25 +460,19 @@ contract GovPool is
         return _micropoolInfos.getDelegatorStakingRewards(delegator);
     }
 
-    function saveOffchainResults(
-        bytes32[] calldata hashes,
-        bytes calldata signature
-    ) external override {
-        bytes32 signHash_ = keccak256(abi.encodePacked(hashes, block.chainid, address(this)));
-        address recovered_ = signHash_.toEthSignedMessageHash().recover(signature);
-
-        require(recovered_ == verifier, "Gov: invalid signer");
-
-        for (uint i; i < hashes.length; i++) {
-            _hashes.push(hashes[i]);
-        }
-    }
-
     function getHashes(
         uint256 offset,
         uint256 limit
     ) external view override returns (bytes32[] memory hashes) {
         return _hashes.part(offset, limit);
+    }
+
+    function getSignHash(
+        bytes32[] calldata hashes,
+        uint256 chainId,
+        address contractAddress
+    ) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(hashes, chainId, contractAddress));
     }
 
     function _setNftMultiplierAddress(address nftMultiplierAddress) internal {

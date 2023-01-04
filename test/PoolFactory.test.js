@@ -510,6 +510,7 @@ describe("PoolFactory", () => {
           nftsTotalSupply: 33,
         },
         nftMultiplierAddress: testERC721Multiplier.address,
+        verifier: OWNER,
         descriptionURL: "example.com",
         name: "Pool name",
       };

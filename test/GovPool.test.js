@@ -20,6 +20,8 @@ const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("./helpers/block-helper");
 const { impersonate } = require("./helpers/impersonator");
 const { assert } = require("chai");
+const ethSigUtil = require("@metamask/eth-sig-util");
+const { web3 } = require("hardhat");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
@@ -193,6 +195,7 @@ describe("GovPool", () => {
       dp.address,
       validators.address,
       poolParams.nftMultiplierAddress,
+      OWNER,
       poolParams.descriptionURL,
       poolParams.name
     );
@@ -294,6 +297,7 @@ describe("GovPool", () => {
         nftsTotalSupply: 33,
       },
       nftMultiplierAddress: ZERO_ADDR,
+      verifier: OWNER,
       descriptionURL: "example.com",
       name: "Pool name",
     };
@@ -375,6 +379,7 @@ describe("GovPool", () => {
             dp.address,
             validators.address,
             POOL_PARAMETERS.nftMultiplierAddress,
+            OWNER,
             POOL_PARAMETERS.descriptionURL,
             POOL_PARAMETERS.name
           ),
@@ -2245,6 +2250,48 @@ describe("GovPool", () => {
 
         assertNoZerosBalanceDistribution([balance1, balance2], [1, 2]);
       });
+    });
+  });
+
+  describe("saveOffchainResults", () => {
+    const OWNER_PRIVATE_KEY = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+    const NOT_OWNER_PRIVATE_KEY = "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
+
+    beforeEach("setup", async () => {
+      const POOL_PARAMETERS = await getPoolParameters(nft.address);
+
+      await deployPool(POOL_PARAMETERS);
+      await setupTokens();
+    });
+
+    it("should correctly add hashes", async () => {
+      const hashes = [
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d",
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a5956471",
+      ];
+      const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
+
+      let signHash = await govPool.getSignHash(hashes, await web3.eth.getChainId(), govPool.address);
+      let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
+
+      await govPool.saveOffchainResults(hashes, signature);
+
+      let storedHashes = await govPool.getHashes(0, 10);
+
+      assert.deepEqual(hashes, storedHashes);
+    });
+
+    it("should revert when signer is not verifier", async () => {
+      const hashes = [
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d",
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a5956471",
+      ];
+      const privateKey = Buffer.from(NOT_OWNER_PRIVATE_KEY, "hex");
+
+      let signHash = await govPool.getSignHash(hashes, await web3.eth.getChainId(), govPool.address);
+      let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
+
+      await truffleAssert.reverts(govPool.saveOffchainResults(hashes, signature), "Gov: invalid signer");
     });
   });
 });

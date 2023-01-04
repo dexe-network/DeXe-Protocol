@@ -152,6 +152,7 @@ describe("DistributionProposal", () => {
       dp.address,
       validators.address,
       poolParams.nftMultiplierAddress,
+      OWNER,
       poolParams.descriptionURL,
       poolParams.name
     );
