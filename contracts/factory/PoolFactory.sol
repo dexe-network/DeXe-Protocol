@@ -70,7 +70,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address userKeeperProxy = _deploy(_poolRegistry.USER_KEEPER_NAME());
         address dpProxy = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
         address settingsProxy = _deploy(_poolRegistry.SETTINGS_NAME());
-        address poolProxy = _deploy(poolType);
+        address poolProxy = _deploy2(poolType, parameters.name);
 
         emit DaoPoolDeployed(
             parameters.name,
@@ -111,7 +111,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address userKeeperProxy = _deploy(_poolRegistry.USER_KEEPER_NAME());
         address dpProxy = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
         address settingsProxy = _deploy(_poolRegistry.SETTINGS_NAME());
-        address poolProxy = _deploy(poolType);
+        address poolProxy = _deploy2(poolType, parameters.name);
 
         emit DaoPoolDeployed(
             parameters.name,
@@ -224,6 +224,10 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _poolRegistry.associateUserWithPool(poolParameters.trader, poolType, poolProxy);
     }
 
+    function predictDeploy2Address(string calldata poolName) external view returns (address) {
+        return _predictDeploy2Address(type(GovPool).creationCode, _calculateDeploy2Salt(poolName));
+    }
+
     function _initGovPool(
         address poolProxy,
         address settingsProxy,
@@ -316,6 +320,10 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         return _deploy(address(_poolRegistry), poolType);
     }
 
+    function _deploy2(string memory poolType, string memory poolName) internal returns (address) {
+        return _deploy2(address(_poolRegistry), poolType, _calculateDeploy2Salt(poolName));
+    }
+
     function _register(string memory poolType, address poolProxy) internal {
         _register(address(_poolRegistry), poolType, poolProxy);
     }
@@ -366,5 +374,9 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
                 parameters.settingsParams.additionalProposalExecutors[0] == address(0),
             "PoolFactory: invalid token sale executor"
         );
+    }
+
+    function _calculateDeploy2Salt(string memory poolName) internal view returns (bytes32) {
+        return keccak256(abi.encodePacked(tx.origin, poolName));
     }
 }
