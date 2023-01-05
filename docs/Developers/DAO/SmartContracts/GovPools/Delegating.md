@@ -1,6 +1,6 @@
 # ✍️ Delegating
 
-If a user doesn't want to vote for proposals, he can give part of his funds to another user to manage and receive rewards.
+If a user doesn't want to vote for proposals, he can delegate part of his funds to another user for management and receive rewards for that matter.
 
 Function `delegate()` is used for this purpose.
 ```solidity
