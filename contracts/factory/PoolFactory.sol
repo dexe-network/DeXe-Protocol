@@ -32,6 +32,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     PoolRegistry internal _poolRegistry;
     CoreProperties internal _coreProperties;
 
+    mapping(bytes32 => bool) private _usedSalts;
+
     event TraderPoolDeployed(
         string poolType,
         string symbol,
@@ -228,6 +230,10 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address deployer,
         string calldata poolName
     ) external view override returns (address) {
+        if (bytes(poolName).length == 0) {
+            return address(0);
+        }
+
         return
             _predictPoolAddress(
                 address(_poolRegistry),
@@ -329,7 +335,14 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     }
 
     function _deploy2(string memory poolType, string memory poolName) internal returns (address) {
-        return _deploy2(address(_poolRegistry), poolType, _calculateGovSalt(tx.origin, poolName));
+        require(bytes(poolName).length != 0, "PoolFactory: pool name cannot be empty");
+
+        bytes32 salt = _calculateGovSalt(tx.origin, poolName);
+        require(!_usedSalts[salt], "PoolFactory: pool name is already taken");
+
+        _usedSalts[salt] = true;
+
+        return _deploy2(address(_poolRegistry), poolType, salt);
     }
 
     function _register(string memory poolType, address poolProxy) internal {
