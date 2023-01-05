@@ -14,6 +14,7 @@ function createProposal(
 ) external;
 ```
 - ***descriptionURL*** - *IPFS* URL to the proposal's description
+- ***misc*** - minimal instruction set computer
 - ***executors*** - executors addresses
 - ***values*** - the ether values
 - ***data*** - data Bytes
