@@ -1,4 +1,4 @@
-# 💰 Deposing
+# 💰 Depositing
 
 To be able to vote on proposals, user must first deposit funds into the **DAO** pool.
 
