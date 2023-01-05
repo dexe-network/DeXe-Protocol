@@ -23,11 +23,14 @@ import "../core/CoreProperties.sol";
 import "./PoolRegistry.sol";
 
 import "../libs/factory/GovTokenSaleDeployer.sol";
+import "../libs/factory/GovPoolDeployer2.sol";
 
 import "../core/Globals.sol";
+import "../mock/tokens/ERC20Mock.sol";
 
 contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     using GovTokenSaleDeployer for *;
+    using GovPoolDeployer2 for *;
 
     PoolRegistry internal _poolRegistry;
     CoreProperties internal _coreProperties;
@@ -224,8 +227,11 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _poolRegistry.associateUserWithPool(poolParameters.trader, poolType, poolProxy);
     }
 
-    function predictDeploy2Address(string calldata poolName) external view returns (address) {
-        return _predictDeploy2Address(type(GovPool).creationCode, _calculateDeploy2Salt(poolName));
+    function predictDeploy2Address(
+        address deployer,
+        string calldata poolName
+    ) external view returns (address) {
+        return deployer.predictDeploy2Address(poolName);
     }
 
     function _initGovPool(
@@ -321,7 +327,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     }
 
     function _deploy2(string memory poolType, string memory poolName) internal returns (address) {
-        return _deploy2(address(_poolRegistry), poolType, _calculateDeploy2Salt(poolName));
+        return _deploy2(address(_poolRegistry), poolType, tx.origin.calculateSalt(poolName));
     }
 
     function _register(string memory poolType, address poolProxy) internal {
@@ -374,9 +380,5 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
                 parameters.settingsParams.additionalProposalExecutors[0] == address(0),
             "PoolFactory: invalid token sale executor"
         );
-    }
-
-    function _calculateDeploy2Salt(string memory poolName) internal view returns (bytes32) {
-        return keccak256(abi.encodePacked(tx.origin, poolName));
     }
 }
