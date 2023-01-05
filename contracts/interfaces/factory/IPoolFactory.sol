@@ -95,4 +95,9 @@ interface IPoolFactory {
         string calldata symbol,
         TraderPoolDeployParameters calldata parameters
     ) external;
+
+    function predictGovAddress(
+        address deployer,
+        string calldata poolName
+    ) external view returns (address);
 }

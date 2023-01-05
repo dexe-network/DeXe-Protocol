@@ -23,13 +23,11 @@ import "../core/CoreProperties.sol";
 import "./PoolRegistry.sol";
 
 import "../libs/factory/GovTokenSaleDeployer.sol";
-import "../libs/factory/GovPoolDeployer2.sol";
 
 import "../core/Globals.sol";
 
 contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     using GovTokenSaleDeployer for *;
-    using GovPoolDeployer2 for *;
 
     PoolRegistry internal _poolRegistry;
     CoreProperties internal _coreProperties;
@@ -226,14 +224,15 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _poolRegistry.associateUserWithPool(poolParameters.trader, poolType, poolProxy);
     }
 
-    function predictDeploy2GovProxyAddress(
+    function predictGovAddress(
         address deployer,
         string calldata poolName
     ) external view override returns (address) {
         return
-            deployer.predictDeploy2Address(
-                poolName,
-                _getDeploy2ProxyBytecodeHash(address(_poolRegistry), _poolRegistry.GOV_POOL_NAME())
+            _predictPoolAddress(
+                address(_poolRegistry),
+                _poolRegistry.GOV_POOL_NAME(),
+                _calculateGovSalt(deployer, poolName)
             );
     }
 
@@ -330,7 +329,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     }
 
     function _deploy2(string memory poolType, string memory poolName) internal returns (address) {
-        return _deploy2(address(_poolRegistry), poolType, tx.origin.calculateSalt(poolName));
+        return _deploy2(address(_poolRegistry), poolType, _calculateGovSalt(tx.origin, poolName));
     }
 
     function _register(string memory poolType, address poolProxy) internal {
@@ -383,5 +382,12 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
                 parameters.settingsParams.additionalProposalExecutors[0] == address(0),
             "PoolFactory: invalid token sale executor"
         );
+    }
+
+    function _calculateGovSalt(
+        address deployer,
+        string memory poolName
+    ) private pure returns (bytes32) {
+        return keccak256(abi.encodePacked(deployer, poolName));
     }
 }
