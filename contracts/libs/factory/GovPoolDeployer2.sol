@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/utils/Create2.sol";
+
 import "../../gov/GovPool.sol";
 
 library GovPoolDeployer2 {
@@ -9,19 +11,9 @@ library GovPoolDeployer2 {
         string memory poolName
     ) external view returns (address) {
         return
-            address(
-                uint160(
-                    uint256(
-                        keccak256(
-                            abi.encodePacked(
-                                bytes1(0xff),
-                                address(this),
-                                calculateSalt(deployer, poolName),
-                                keccak256(type(GovPool).creationCode)
-                            )
-                        )
-                    )
-                )
+            Create2.computeAddress(
+                calculateSalt(deployer, poolName),
+                keccak256(type(GovPool).creationCode)
             );
     }
 
