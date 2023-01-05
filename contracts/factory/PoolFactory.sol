@@ -26,7 +26,6 @@ import "../libs/factory/GovTokenSaleDeployer.sol";
 import "../libs/factory/GovPoolDeployer2.sol";
 
 import "../core/Globals.sol";
-import "../mock/tokens/ERC20Mock.sol";
 
 contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     using GovTokenSaleDeployer for *;
