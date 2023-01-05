@@ -1,6 +1,6 @@
 # 🏗️ Creating
 
-DAO Pool is deploying using ***`deployGovPool()`*** function on `PoolFactory`.
+DAO Pool is deployed via ***`deployGovPool()`*** function on `PoolFactory`.
 
 ```solidity
 function deployGovPool(GovPoolDeployParams calldata parameters) external;
