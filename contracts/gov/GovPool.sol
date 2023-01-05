@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
@@ -26,6 +27,8 @@ import "../libs/gov-pool/GovPoolExecute.sol";
 import "../libs/gov-pool/GovPoolStaking.sol";
 import "../libs/math/MathHelper.sol";
 
+import "../libs/utils/TokenBalance.sol";
+
 import "../core/Globals.sol";
 
 contract GovPool is
@@ -34,7 +37,9 @@ contract GovPool is
     ERC721HolderUpgradeable,
     ERC1155HolderUpgradeable
 {
+    using TokenBalance for address;
     using MathHelper for uint256;
+    using Math for uint256;
     using ECDSA for bytes32;
     using Paginator for bytes32[];
     using EnumerableSet for EnumerableSet.UintSet;
@@ -355,6 +360,30 @@ contract GovPool is
         }
 
         _usedHashes[signHash_] = true;
+
+        /// @dev rewards
+        IGovSettings.ProposalSettings memory internalSettings = _govSettings.getInternalSettings();
+
+        require(
+            internalSettings.rewardToken.normThisBalance() >= internalSettings.executionReward,
+            "Gov: not enough balance"
+        );
+
+        internalSettings.rewardToken.sendFunds(msg.sender, internalSettings.executionReward);
+
+        /// @dev commission
+        (, uint256 commissionPercentage, , address[3] memory commissionReceivers) = coreProperties
+            .getDEXECommissionPercentages();
+
+        if (commissionReceivers[1] == address(this)) {
+            return;
+        }
+
+        uint256 commission = internalSettings.rewardToken.normThisBalance().min(
+            internalSettings.executionReward.percentage(commissionPercentage)
+        );
+
+        internalSettings.rewardToken.sendFunds(commissionReceivers[1], commission);
     }
 
     receive() external payable {}

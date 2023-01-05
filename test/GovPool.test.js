@@ -13,6 +13,7 @@ const {
   getBytesApprove,
   getBytesApproveAll,
   getBytesSetNftMultiplierAddress,
+  getBytesChangeVerifier,
 } = require("./utils/gov-pool-utils");
 const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../scripts/utils/constants");
 const { ProposalState, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
@@ -1364,6 +1365,30 @@ describe("GovPool", () => {
             );
           });
         });
+
+        describe("changeVerifier", () => {
+          it("should correctly set new verifier", async () => {
+            const newAddress = SECOND;
+            const bytesChangeVerifier = getBytesChangeVerifier(newAddress);
+
+            await govPool.createProposal("example.com", "misc", [govPool.address], [0], [bytesChangeVerifier]);
+
+            await govPool.vote(1, 0, [], wei("1000"), []);
+            await govPool.vote(1, 0, [], wei("100000000000000000000"), [], { from: SECOND });
+
+            await govPool.moveProposalToValidators(1);
+            await validators.vote(1, wei("100"), false);
+            await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+            await govPool.execute(1);
+
+            assert.equal(await govPool.verifier(), newAddress);
+          });
+
+          it("should revert when call is from non govPool address", async () => {
+            await truffleAssert.reverts(govPool.changeVerifier(SECOND), "Gov: not this contract");
+          });
+        });
       });
     });
 
@@ -2306,6 +2331,23 @@ describe("GovPool", () => {
 
       await govPool.saveOffchainResults(hashes, signature);
       await truffleAssert.reverts(govPool.saveOffchainResults(hashes, signature), "Gov: already used");
+    });
+
+    it("should revert when out of reward balance", async () => {
+      let parameters = await getPoolParameters(ZERO_ADDR);
+      parameters.settingsParams.proposalSettings[1].rewardToken = ETHER_ADDR;
+      await deployPool(parameters);
+
+      const hashes = [
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d",
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a5956471",
+      ];
+      const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
+
+      let signHash = await govPool.getSignHash(hashes, await web3.eth.getChainId(), govPool.address);
+      let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
+
+      await truffleAssert.reverts(govPool.saveOffchainResults(hashes, signature), "Gov: not enough balance");
     });
   });
 });
