@@ -8,13 +8,10 @@ import "../../gov/GovPool.sol";
 library GovPoolDeployer2 {
     function predictDeploy2Address(
         address deployer,
-        string memory poolName
+        string memory poolName,
+        bytes32 bytecodeHash
     ) external view returns (address) {
-        return
-            Create2.computeAddress(
-                calculateSalt(deployer, poolName),
-                keccak256(type(GovPool).creationCode)
-            );
+        return Create2.computeAddress(calculateSalt(deployer, poolName), bytecodeHash);
     }
 
     function calculateSalt(

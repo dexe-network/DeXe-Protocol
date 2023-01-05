@@ -226,11 +226,15 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _poolRegistry.associateUserWithPool(poolParameters.trader, poolType, poolProxy);
     }
 
-    function predictDeploy2Address(
+    function predictDeploy2GovProxyAddress(
         address deployer,
         string calldata poolName
-    ) external view returns (address) {
-        return deployer.predictDeploy2Address(poolName);
+    ) external view override returns (address) {
+        return
+            deployer.predictDeploy2Address(
+                poolName,
+                _getDeploy2ProxyBytecodeHash(address(_poolRegistry), _poolRegistry.GOV_POOL_NAME())
+            );
     }
 
     function _initGovPool(
