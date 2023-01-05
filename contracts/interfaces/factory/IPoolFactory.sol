@@ -96,6 +96,10 @@ interface IPoolFactory {
         TraderPoolDeployParameters calldata parameters
     ) external;
 
+    /// @notice The view function that predicts the address where the gov pool proxy will be stored
+    /// @param deployer the user that deploys the gov pool
+    /// @param poolName the name of the pool which is part of the salt
+    /// @return the predicted gov pool proxy address
     function predictGovAddress(
         address deployer,
         string calldata poolName
