@@ -1,6 +1,6 @@
 # ⚒ Executing Proposals
 
-Once the vote has been successfully completed, the proposal can be executed.
+Once the voting has been successfully completed, the proposal can be executed.
 
 Function ***`execute()`*** is used for executing a proposal.
 
