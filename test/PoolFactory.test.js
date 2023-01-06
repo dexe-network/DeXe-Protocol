@@ -62,7 +62,7 @@ PoolFactory.numberFormat = "BigNumber";
 DistributionProposal.numberFormat = "BigNumber";
 TokenSaleProposal.numberFormat = "BigNumber";
 
-describe("PoolFactory", () => {
+describe.only("PoolFactory", () => {
   let OWNER;
   let SECOND;
   let NOTHING;
@@ -554,9 +554,8 @@ describe("PoolFactory", () => {
       };
     }
 
-    async function getTokenSaleConfiguredDeployParams() {
+    function getGovPoolSaleConfiguredParams() {
       let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
-      let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
 
       POOL_PARAMETERS.settingsParams.proposalSettings.push({
         earlyCompletion: false,
@@ -574,31 +573,10 @@ describe("PoolFactory", () => {
         voteRewardsCoefficient: 0,
         executorDescription: "Token Sale",
       });
+
       POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(ZERO_ADDR);
-      POOL_PARAMETERS.userKeeperParams.tokenAddress = ZERO_ADDR;
 
-      SALE_PARAMETERS.tiersParams.push({
-        metadata: {
-          name: "tier2",
-          description: "description",
-        },
-        totalTokenProvided: wei("100"),
-        saleStartTime: await getCurrentBlockTime(),
-        saleEndTime: (await getCurrentBlockTime()) + 10000,
-        saleTokenAddress: testERC20.address,
-        purchaseTokenAddresses: [testERC20.address],
-        exchangeRates: [PRECISION.toFixed()],
-        minAllocationPerUser: wei("1"),
-        maxAllocationPerUser: wei("100"),
-        vestingSettings: {
-          vestingPercentage: toPercent(50),
-          vestingDuration: 86400,
-          cliffPeriod: 0,
-          unlockStep: 1,
-        },
-      });
-
-      return [POOL_PARAMETERS, SALE_PARAMETERS];
+      return POOL_PARAMETERS;
     }
 
     describe("deployGovPool", () => {
@@ -635,7 +613,31 @@ describe("PoolFactory", () => {
 
     describe("deployGovPoolWithTokenSale", () => {
       it("should deploy pool and instantiate token sale", async () => {
-        const [POOL_PARAMETERS, SALE_PARAMETERS] = await getTokenSaleConfiguredDeployParams();
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+        let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
+
+        POOL_PARAMETERS.userKeeperParams.tokenAddress = ZERO_ADDR;
+
+        SALE_PARAMETERS.tiersParams.push({
+          metadata: {
+            name: "tier2",
+            description: "description",
+          },
+          totalTokenProvided: wei("100"),
+          saleStartTime: await getCurrentBlockTime(),
+          saleEndTime: (await getCurrentBlockTime()) + 10000,
+          saleTokenAddress: testERC20.address,
+          purchaseTokenAddresses: [testERC20.address],
+          exchangeRates: [PRECISION.toFixed()],
+          minAllocationPerUser: wei("1"),
+          maxAllocationPerUser: wei("100"),
+          vestingSettings: {
+            vestingPercentage: toPercent(50),
+            vestingDuration: 86400,
+            cliffPeriod: 0,
+            unlockStep: 1,
+          },
+        });
 
         const predictedGovAddress = await poolFactory.predictGovAddress(OWNER, POOL_PARAMETERS.name);
 
@@ -663,26 +665,8 @@ describe("PoolFactory", () => {
       });
 
       it("should deploy pool with empty token sale", async () => {
-        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
         let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
-
-        POOL_PARAMETERS.settingsParams.proposalSettings.push({
-          earlyCompletion: false,
-          delegatedVotingAllowed: false,
-          validatorsVote: false,
-          duration: 500,
-          durationValidators: 600,
-          quorum: PRECISION.times("51").toFixed(),
-          quorumValidators: PRECISION.times("61").toFixed(),
-          minVotesForVoting: wei("10"),
-          minVotesForCreating: wei("5"),
-          rewardToken: ZERO_ADDR,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
-          executorDescription: "Token Sale",
-        });
-        POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(ZERO_ADDR);
 
         SALE_PARAMETERS.tiersParams.pop();
 
@@ -768,7 +752,8 @@ describe("PoolFactory", () => {
       });
 
       it("should not deploy pools with the same salt", async () => {
-        const [POOL_PARAMETERS, SALE_PARAMETERS] = await getTokenSaleConfiguredDeployParams();
+        const POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+        const SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
 
         await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS);
 
@@ -784,7 +769,8 @@ describe("PoolFactory", () => {
       });
 
       it("should revert if name is an empty string", async () => {
-        const [POOL_PARAMETERS, SALE_PARAMETERS] = await getTokenSaleConfiguredDeployParams();
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+        let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
 
         POOL_PARAMETERS.name = "";
 
