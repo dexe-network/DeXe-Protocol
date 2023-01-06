@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/utils/Multicall.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 
@@ -30,7 +31,8 @@ contract GovPool is
     IGovPool,
     AbstractDependant,
     ERC721HolderUpgradeable,
-    ERC1155HolderUpgradeable
+    ERC1155HolderUpgradeable,
+    Multicall
 {
     using MathHelper for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
