@@ -62,7 +62,7 @@ PoolFactory.numberFormat = "BigNumber";
 DistributionProposal.numberFormat = "BigNumber";
 TokenSaleProposal.numberFormat = "BigNumber";
 
-describe.only("PoolFactory", () => {
+describe("PoolFactory", () => {
   let OWNER;
   let SECOND;
   let NOTHING;
