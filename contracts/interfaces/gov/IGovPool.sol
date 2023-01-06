@@ -171,20 +171,11 @@ interface IGovPool {
     function moveProposalToValidators(uint256 proposalId) external;
 
     /// @notice The function for voting for proposal with own tokens
-    /// @notice values `depositAmount`, `depositNftIds` may be zero if tokens were deposited before
     /// @notice values `voteAmount`, `voteNftIds` should be less or equal to the total deposit
     /// @param proposalId the id of proposal
-    /// @param depositAmount the deposit amount in erc20
-    /// @param depositNftIds the deposit nft ids
     /// @param voteAmount the erc20 vote amount
     /// @param voteNftIds the nft ids that will be used in voting
-    function vote(
-        uint256 proposalId,
-        uint256 depositAmount,
-        uint256[] calldata depositNftIds,
-        uint256 voteAmount,
-        uint256[] calldata voteNftIds
-    ) external;
+    function vote(uint256 proposalId, uint256 voteAmount, uint256[] calldata voteNftIds) external;
 
     /// @notice The function for voting for proposals with delegated tokens
     /// @param proposalId the id of proposal
@@ -242,10 +233,6 @@ interface IGovPool {
     /// @notice The function for claiming rewards from executed proposals
     /// @param proposalIds the array of proposal ids
     function claimRewards(uint256[] calldata proposalIds) external;
-
-    /// @notice The function for executing proposal and then claiming the reward
-    /// @param proposalId the id of proposal
-    function executeAndClaim(uint256 proposalId) external;
 
     /// @notice The function for changing description url
     /// @param newDescriptionURL the string with new url

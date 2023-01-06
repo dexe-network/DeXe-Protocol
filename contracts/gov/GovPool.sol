@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/utils/Multicall.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 
@@ -32,7 +33,8 @@ contract GovPool is
     IGovPool,
     AbstractDependant,
     ERC721HolderUpgradeable,
-    ERC1155HolderUpgradeable
+    ERC1155HolderUpgradeable,
+    Multicall
 {
     using MathHelper for uint256;
     using Math for uint256;
@@ -171,14 +173,9 @@ contract GovPool is
 
     function vote(
         uint256 proposalId,
-        uint256 depositAmount,
-        uint256[] calldata depositNftIds,
         uint256 voteAmount,
         uint256[] calldata voteNftIds
     ) external override {
-        _govUserKeeper.depositTokens.exec(msg.sender, depositAmount);
-        _govUserKeeper.depositNfts.exec(msg.sender, depositNftIds);
-
         unlock(msg.sender, false);
 
         uint256 reward = _proposals.vote(
@@ -316,11 +313,6 @@ contract GovPool is
         for (uint256 i; i < proposalIds.length; i++) {
             _pendingRewards.claimReward(_proposals, proposalIds[i]);
         }
-    }
-
-    function executeAndClaim(uint256 proposalId) external override {
-        execute(proposalId);
-        _pendingRewards.claimReward(_proposals, proposalId);
     }
 
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
