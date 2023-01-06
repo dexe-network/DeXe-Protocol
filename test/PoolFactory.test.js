@@ -643,19 +643,50 @@ describe("PoolFactory", () => {
 
         assert.equal(await govUserKeeper.tokenAddress(), token.address);
       });
-    });
 
-    describe("GovPool with token sale validation", () => {
-      it("should revert if user keeper address is not address(0)", async () => {
+      it("should deploy pool with empty token sale", async () => {
         let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
         let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
 
-        await truffleAssert.reverts(
-          poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS),
-          "PoolFactory: invalid token address"
-        );
-      });
+        POOL_PARAMETERS.settingsParams.proposalSettings.push({
+          earlyCompletion: false,
+          delegatedVotingAllowed: false,
+          validatorsVote: false,
+          duration: 500,
+          durationValidators: 600,
+          quorum: PRECISION.times("51").toFixed(),
+          quorumValidators: PRECISION.times("61").toFixed(),
+          minVotesForVoting: wei("10"),
+          minVotesForCreating: wei("5"),
+          rewardToken: ZERO_ADDR,
+          creationReward: 0,
+          executionReward: 0,
+          voteRewardsCoefficient: 0,
+          executorDescription: "Token Sale",
+        });
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(ZERO_ADDR);
 
+        SALE_PARAMETERS.tiersParams.pop();
+
+        let tx = await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS);
+        let event = tx.receipt.logs[1];
+
+        let tokenSale = await TokenSaleProposal.at(event.args.tokenSale);
+        let token = await ERC20Mock.at(event.args.token);
+
+        let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+        let helperContracts = await govPool.getHelperContracts();
+
+        let govUserKeeper = await GovUserKeeper.at(helperContracts[1]);
+
+        assert.equal(await tokenSale.latestTierId(), "0");
+
+        assert.equal(await govUserKeeper.tokenAddress(), token.address);
+        assert.equal(await govUserKeeper.tokenAddress(), testERC20.address);
+      });
+    });
+
+    describe("GovPool with token sale validation", () => {
       it("should revert sale if misconfigured", async () => {
         let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
         let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();

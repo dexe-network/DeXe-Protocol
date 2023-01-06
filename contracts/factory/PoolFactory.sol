@@ -123,19 +123,13 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             msg.sender
         );
 
-        address tokenSaleProxy = _deploy(_poolRegistry.TOKEN_SALE_PROPOSAL_NAME());
-        address token = poolProxy.deploy(tokenSaleProxy, tokenSaleParameters.tokenParams);
+        address tokenSaleProxy = _deployTokenSale(parameters, tokenSaleParameters, poolProxy);
 
-        emit DaoTokenSaleDeployed(poolProxy, tokenSaleProxy, token);
-
-        parameters.userKeeperParams.tokenAddress = token;
-        parameters.settingsParams.additionalProposalExecutors[0] = tokenSaleProxy;
-
-        for (uint256 i = 0; i < tokenSaleParameters.tiersParams.length; i++) {
-            if (tokenSaleParameters.tiersParams[i].saleTokenAddress == address(0)) {
-                tokenSaleParameters.tiersParams[i].saleTokenAddress = token;
-            }
-        }
+        emit DaoTokenSaleDeployed(
+            poolProxy,
+            tokenSaleProxy,
+            parameters.userKeeperParams.tokenAddress
+        );
 
         TokenSaleProposal(tokenSaleProxy).createTiers(tokenSaleParameters.tiersParams);
         TokenSaleProposal(tokenSaleProxy).addToWhitelist(tokenSaleParameters.whitelistParams);
@@ -222,6 +216,31 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _injectDependencies(poolProxy);
 
         _poolRegistry.associateUserWithPool(poolParameters.trader, poolType, poolProxy);
+    }
+
+    function _deployTokenSale(
+        GovPoolDeployParams memory parameters,
+        GovTokenSaleProposalDeployParams memory tokenSaleParameters,
+        address poolProxy
+    ) internal returns (address tokenSaleProxy) {
+        tokenSaleProxy = _deploy(_poolRegistry.TOKEN_SALE_PROPOSAL_NAME());
+
+        parameters.settingsParams.additionalProposalExecutors[0] = tokenSaleProxy;
+
+        if (parameters.userKeeperParams.tokenAddress == address(0)) {
+            parameters.userKeeperParams.tokenAddress = poolProxy.deploy(
+                tokenSaleProxy,
+                tokenSaleParameters.tokenParams
+            );
+        }
+
+        address token = parameters.userKeeperParams.tokenAddress;
+
+        for (uint256 i = 0; i < tokenSaleParameters.tiersParams.length; i++) {
+            if (tokenSaleParameters.tiersParams[i].saleTokenAddress == address(0)) {
+                tokenSaleParameters.tiersParams[i].saleTokenAddress = token;
+            }
+        }
     }
 
     function _initGovPool(
@@ -356,10 +375,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     function _validateGovPoolWithTokenSaleParameters(
         GovPoolDeployParams memory parameters
     ) internal pure {
-        require(
-            parameters.userKeeperParams.tokenAddress == address(0),
-            "PoolFactory: invalid token address"
-        );
         require(
             parameters.settingsParams.proposalSettings.length > 4 &&
                 parameters.settingsParams.additionalProposalExecutors.length > 0 &&
