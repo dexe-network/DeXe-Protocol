@@ -115,6 +115,10 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         return settings[uint256(ExecutorType.DEFAULT)];
     }
 
+    function getInternalSettings() external view override returns (ProposalSettings memory) {
+        return settings[uint256(ExecutorType.INTERNAL)];
+    }
+
     function getExecutorSettings(
         address executor
     ) external view override returns (ProposalSettings memory) {

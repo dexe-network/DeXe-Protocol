@@ -13,6 +13,7 @@ const {
   getBytesApprove,
   getBytesApproveAll,
   getBytesSetNftMultiplierAddress,
+  getBytesChangeVerifier,
 } = require("./utils/gov-pool-utils");
 const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../scripts/utils/constants");
 const { ProposalState, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
@@ -20,6 +21,8 @@ const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("./helpers/block-helper");
 const { impersonate } = require("./helpers/impersonator");
 const { assert } = require("chai");
+const ethSigUtil = require("@metamask/eth-sig-util");
+const { web3 } = require("hardhat");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
@@ -42,6 +45,7 @@ const GovPoolUnlockLib = artifacts.require("GovPoolUnlock");
 const GovPoolVoteLib = artifacts.require("GovPoolVote");
 const GovPoolViewLib = artifacts.require("GovPoolView");
 const GovPoolStakingLib = artifacts.require("GovPoolStaking");
+const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -102,6 +106,7 @@ describe("GovPool", () => {
     const govPoolVoteLib = await GovPoolVoteLib.new();
     const govPoolViewLib = await GovPoolViewLib.new();
     const govPoolStakingLib = await GovPoolStakingLib.new();
+    const govPoolOffchainLib = await GovPoolOffchainLib.new();
 
     await GovUserKeeper.link(govUserKeeperViewLib);
 
@@ -112,6 +117,7 @@ describe("GovPool", () => {
     await GovPool.link(govPoolVoteLib);
     await GovPool.link(govPoolViewLib);
     await GovPool.link(govPoolStakingLib);
+    await GovPool.link(govPoolOffchainLib);
   });
 
   beforeEach("setup", async () => {
@@ -193,6 +199,7 @@ describe("GovPool", () => {
       dp.address,
       validators.address,
       poolParams.nftMultiplierAddress,
+      OWNER,
       poolParams.descriptionURL,
       poolParams.name
     );
@@ -294,6 +301,7 @@ describe("GovPool", () => {
         nftsTotalSupply: 33,
       },
       nftMultiplierAddress: ZERO_ADDR,
+      verifier: OWNER,
       descriptionURL: "example.com",
       name: "Pool name",
     };
@@ -375,6 +383,7 @@ describe("GovPool", () => {
             dp.address,
             validators.address,
             POOL_PARAMETERS.nftMultiplierAddress,
+            OWNER,
             POOL_PARAMETERS.descriptionURL,
             POOL_PARAMETERS.name
           ),
@@ -1359,6 +1368,30 @@ describe("GovPool", () => {
             );
           });
         });
+
+        describe("changeVerifier", () => {
+          it("should correctly set new verifier", async () => {
+            const newAddress = SECOND;
+            const bytesChangeVerifier = getBytesChangeVerifier(newAddress);
+
+            await govPool.createProposal("example.com", "misc", [govPool.address], [0], [bytesChangeVerifier]);
+
+            await govPool.vote(1, 0, [], wei("1000"), []);
+            await govPool.vote(1, 0, [], wei("100000000000000000000"), [], { from: SECOND });
+
+            await govPool.moveProposalToValidators(1);
+            await validators.vote(1, wei("100"), false);
+            await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+            await govPool.execute(1);
+
+            assert.equal(await govPool.getVerifier(), newAddress);
+          });
+
+          it("should revert when call is from non govPool address", async () => {
+            await truffleAssert.reverts(govPool.changeVerifier(SECOND), "Gov: not this contract");
+          });
+        });
       });
     });
 
@@ -2245,6 +2278,79 @@ describe("GovPool", () => {
 
         assertNoZerosBalanceDistribution([balance1, balance2], [1, 2]);
       });
+    });
+  });
+
+  describe("saveOffchainResults", () => {
+    const OWNER_PRIVATE_KEY = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+    const NOT_OWNER_PRIVATE_KEY = "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
+
+    beforeEach("setup", async () => {
+      const POOL_PARAMETERS = await getPoolParameters(nft.address);
+
+      await deployPool(POOL_PARAMETERS);
+      await setupTokens();
+    });
+
+    it("should correctly add hashes", async () => {
+      const hashes = [
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d",
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a5956471",
+      ];
+      const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
+
+      let signHash = await govPool.getSignHash(hashes);
+      let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
+
+      await govPool.saveOffchainResults(hashes, signature);
+
+      let storedHashes = await govPool.getHashes(0, 10);
+
+      assert.deepEqual(hashes, storedHashes);
+    });
+
+    it("should revert when signer is not verifier", async () => {
+      const hashes = [
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d",
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a5956471",
+      ];
+      const privateKey = Buffer.from(NOT_OWNER_PRIVATE_KEY, "hex");
+
+      let signHash = await govPool.getSignHash(hashes);
+      let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
+
+      await truffleAssert.reverts(govPool.saveOffchainResults(hashes, signature), "Gov: invalid signer");
+    });
+
+    it("should revert when use same signHash", async () => {
+      const hashes = [
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d",
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a5956471",
+      ];
+      const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
+
+      let signHash = await govPool.getSignHash(hashes);
+      let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
+
+      await govPool.saveOffchainResults(hashes, signature);
+      await truffleAssert.reverts(govPool.saveOffchainResults(hashes, signature), "Gov: already used");
+    });
+
+    it("should revert when out of reward balance", async () => {
+      let parameters = await getPoolParameters(ZERO_ADDR);
+      parameters.settingsParams.proposalSettings[1].rewardToken = ETHER_ADDR;
+      await deployPool(parameters);
+
+      const hashes = [
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d",
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a5956471",
+      ];
+      const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
+
+      let signHash = await govPool.getSignHash(hashes);
+      let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
+
+      await truffleAssert.reverts(govPool.saveOffchainResults(hashes, signature), "Gov: not enough balance");
     });
   });
 });

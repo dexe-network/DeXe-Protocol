@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 
 import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
+import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
 
 import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
@@ -22,6 +24,7 @@ import "../libs/gov-pool/GovPoolVote.sol";
 import "../libs/gov-pool/GovPoolUnlock.sol";
 import "../libs/gov-pool/GovPoolExecute.sol";
 import "../libs/gov-pool/GovPoolStaking.sol";
+import "../libs/gov-pool/GovPoolOffchain.sol";
 import "../libs/math/MathHelper.sol";
 
 import "../core/Globals.sol";
@@ -33,10 +36,13 @@ contract GovPool is
     ERC1155HolderUpgradeable
 {
     using MathHelper for uint256;
+    using Math for uint256;
+    using Paginator for bytes32[];
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
     using ShrinkableArray for uint256[];
     using ShrinkableArray for ShrinkableArray.UintArray;
+    using GovPoolOffchain for bytes32[];
     using GovUserKeeperLocal for *;
     using GovPoolView for *;
     using GovPoolCreate for *;
@@ -63,6 +69,8 @@ contract GovPool is
 
     uint256 public override latestProposalId;
 
+    OffChain internal _offChain;
+
     mapping(uint256 => Proposal) internal _proposals; // proposalId => info
 
     mapping(uint256 => mapping(address => mapping(bool => VoteInfo))) internal _voteInfos; // proposalId => voter => isMicropool => info
@@ -88,6 +96,7 @@ contract GovPool is
         address distributionProposalAddress,
         address validatorsAddress,
         address nftMultiplierAddress,
+        address _verifier,
         string calldata _descriptionURL,
         string calldata _name
     ) external initializer {
@@ -102,6 +111,8 @@ contract GovPool is
 
         descriptionURL = _descriptionURL;
         name = _name;
+
+        _offChain.verifier = _verifier;
     }
 
     function setDependencies(address contractsRegistry) external override dependant {
@@ -317,8 +328,19 @@ contract GovPool is
         descriptionURL = newDescriptionURL;
     }
 
+    function changeVerifier(address newVerifier) external override onlyThis {
+        _offChain.verifier = newVerifier;
+    }
+
     function setNftMultiplierAddress(address nftMultiplierAddress) external override onlyThis {
         _setNftMultiplierAddress(nftMultiplierAddress);
+    }
+
+    function saveOffchainResults(
+        bytes32[] calldata hashes,
+        bytes calldata signature
+    ) external override {
+        hashes.saveOffchainResults(signature, _offChain);
     }
 
     receive() external payable {}
@@ -429,6 +451,21 @@ contract GovPool is
         address delegator
     ) external view override returns (UserStakeRewardsView[] memory) {
         return _micropoolInfos.getDelegatorStakingRewards(delegator);
+    }
+
+    function getHashes(
+        uint256 offset,
+        uint256 limit
+    ) external view override returns (bytes32[] memory hashes) {
+        return _offChain.hashes.part(offset, limit);
+    }
+
+    function getSignHash(bytes32[] calldata hashes) external view override returns (bytes32) {
+        return hashes.getSignHash();
+    }
+
+    function getVerifier() external view override returns (address) {
+        return _offChain.verifier;
     }
 
     function _setNftMultiplierAddress(address nftMultiplierAddress) internal {
