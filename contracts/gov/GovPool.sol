@@ -163,14 +163,9 @@ contract GovPool is
 
     function vote(
         uint256 proposalId,
-        uint256 depositAmount,
-        uint256[] calldata depositNftIds,
         uint256 voteAmount,
         uint256[] calldata voteNftIds
     ) external override {
-        _govUserKeeper.depositTokens.exec(msg.sender, depositAmount);
-        _govUserKeeper.depositNfts.exec(msg.sender, depositNftIds);
-
         unlock(msg.sender, false);
 
         uint256 reward = _proposals.vote(
@@ -308,11 +303,6 @@ contract GovPool is
         for (uint256 i; i < proposalIds.length; i++) {
             pendingRewards.claimReward(_proposals, proposalIds[i]);
         }
-    }
-
-    function executeAndClaim(uint256 proposalId) external override {
-        execute(proposalId);
-        pendingRewards.claimReward(_proposals, proposalId);
     }
 
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
