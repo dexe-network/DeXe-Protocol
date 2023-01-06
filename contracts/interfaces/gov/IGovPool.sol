@@ -315,7 +315,7 @@ interface IGovPool {
     /// @param offset the proposal starting index
     /// @param limit the number of proposals to observe
     /// @return hashes the bytes32 array
-    function getHashes(
+    function getOffchainHashes(
         uint256 offset,
         uint256 limit
     ) external view returns (bytes32[] memory hashes);
@@ -323,7 +323,7 @@ interface IGovPool {
     /// @notice The function for getting sign hash from bytes32 array, chainid, govPool address
     /// @param hashes the array of ipfs hashes
     /// @return bytes32 hash
-    function getSignHash(bytes32[] calldata hashes) external view returns (bytes32);
+    function getOffchainSignHash(bytes32[] calldata hashes) external view returns (bytes32);
 
     /// @notice The function for getting verifier address
     /// @return address of verifier

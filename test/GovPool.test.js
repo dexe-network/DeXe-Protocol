@@ -2299,14 +2299,43 @@ describe("GovPool", () => {
       ];
       const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
 
-      let signHash = await govPool.getSignHash(hashes);
+      let signHash = await govPool.getOffchainSignHash(hashes);
       let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
+
+      const treasury = await contractsRegistry.getTreasuryContract();
+
+      assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), "0");
+      assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), "0");
 
       await govPool.saveOffchainResults(hashes, signature);
 
-      let storedHashes = await govPool.getHashes(0, 10);
+      assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("5"));
+      assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("1"));
+
+      let storedHashes = await govPool.getOffchainHashes(0, 10);
 
       assert.deepEqual(hashes, storedHashes);
+    });
+
+    it("should not transfer commission if treasury is address(this)", async () => {
+      const hashes = [
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d",
+        "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a5956471",
+      ];
+      const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
+
+      await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), govPool.address);
+
+      await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
+
+      let signHash = await govPool.getOffchainSignHash(hashes);
+      let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
+
+      const balance = await rewardToken.balanceOf(govPool.address);
+
+      await govPool.saveOffchainResults(hashes, signature);
+
+      assert.equal((await rewardToken.balanceOf(govPool.address)).toFixed(), toBN(balance).minus(wei("5")).toFixed());
     });
 
     it("should revert when signer is not verifier", async () => {
@@ -2316,20 +2345,20 @@ describe("GovPool", () => {
       ];
       const privateKey = Buffer.from(NOT_OWNER_PRIVATE_KEY, "hex");
 
-      let signHash = await govPool.getSignHash(hashes);
+      let signHash = await govPool.getOffchainSignHash(hashes);
       let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
 
       await truffleAssert.reverts(govPool.saveOffchainResults(hashes, signature), "Gov: invalid signer");
     });
 
-    it("should revert when use same signHash", async () => {
+    it("should revert if same signHash is used", async () => {
       const hashes = [
         "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d",
         "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a5956471",
       ];
       const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
 
-      let signHash = await govPool.getSignHash(hashes);
+      let signHash = await govPool.getOffchainSignHash(hashes);
       let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
 
       await govPool.saveOffchainResults(hashes, signature);
@@ -2339,6 +2368,7 @@ describe("GovPool", () => {
     it("should revert when out of reward balance", async () => {
       let parameters = await getPoolParameters(ZERO_ADDR);
       parameters.settingsParams.proposalSettings[1].rewardToken = ETHER_ADDR;
+
       await deployPool(parameters);
 
       const hashes = [
@@ -2347,7 +2377,7 @@ describe("GovPool", () => {
       ];
       const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
 
-      let signHash = await govPool.getSignHash(hashes);
+      let signHash = await govPool.getOffchainSignHash(hashes);
       let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
 
       await truffleAssert.reverts(govPool.saveOffchainResults(hashes, signature), "Gov: not enough balance");

@@ -453,14 +453,16 @@ contract GovPool is
         return _micropoolInfos.getDelegatorStakingRewards(delegator);
     }
 
-    function getHashes(
+    function getOffchainHashes(
         uint256 offset,
         uint256 limit
     ) external view override returns (bytes32[] memory hashes) {
         return _offChain.hashes.part(offset, limit);
     }
 
-    function getSignHash(bytes32[] calldata hashes) external view override returns (bytes32) {
+    function getOffchainSignHash(
+        bytes32[] calldata hashes
+    ) external view override returns (bytes32) {
         return hashes.getSignHash();
     }
 

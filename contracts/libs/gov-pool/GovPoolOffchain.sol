@@ -26,12 +26,12 @@ library GovPoolOffchain {
         bytes32 signHash_ = getSignHash(hashes);
 
         require(!offChain.usedHashes[signHash_], "Gov: already used");
+        require(
+            signHash_.toEthSignedMessageHash().recover(signature) == offChain.verifier,
+            "Gov: invalid signer"
+        );
 
-        address recovered_ = signHash_.toEthSignedMessageHash().recover(signature);
-
-        require(recovered_ == offChain.verifier, "Gov: invalid signer");
-
-        for (uint i; i < hashes.length; i++) {
+        for (uint256 i; i < hashes.length; i++) {
             offChain.hashes.push(hashes[i]);
         }
 
