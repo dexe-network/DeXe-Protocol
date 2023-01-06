@@ -733,7 +733,7 @@ describe("PoolFactory", () => {
 
     describe("deploy2 validation", () => {
       it("should deploy pools with the same name from different deployers", async () => {
-        const POOL_PARAMETERS = getGovPoolDefaultDeployParams();
+        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
 
         const predictedAddressOwner = await poolFactory.predictGovAddress(OWNER, POOL_PARAMETERS.name);
         const predictedAddressSecond = await poolFactory.predictGovAddress(SECOND, POOL_PARAMETERS.name);
@@ -752,8 +752,8 @@ describe("PoolFactory", () => {
       });
 
       it("should not deploy pools with the same salt", async () => {
-        const POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
-        const SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+        let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
 
         await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS);
 
