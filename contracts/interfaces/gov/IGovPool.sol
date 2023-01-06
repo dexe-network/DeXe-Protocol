@@ -109,6 +109,12 @@ interface IGovPool {
         mapping(address => uint256) latestDelegatorStake;
     }
 
+    struct OffChain {
+        address verifier;
+        bytes32[] hashes;
+        mapping(bytes32 => bool) usedHashes;
+    }
+
     /// @notice The function to get nft multiplier
     /// @return `address` of nft multiplier
     function nftMultiplier() external view returns (address);

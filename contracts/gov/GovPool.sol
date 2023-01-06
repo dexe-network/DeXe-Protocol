@@ -3,7 +3,6 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 
@@ -25,9 +24,8 @@ import "../libs/gov-pool/GovPoolVote.sol";
 import "../libs/gov-pool/GovPoolUnlock.sol";
 import "../libs/gov-pool/GovPoolExecute.sol";
 import "../libs/gov-pool/GovPoolStaking.sol";
+import "../libs/gov-pool/GovPoolOffchain.sol";
 import "../libs/math/MathHelper.sol";
-
-import "../libs/utils/TokenBalance.sol";
 
 import "../core/Globals.sol";
 
@@ -37,15 +35,14 @@ contract GovPool is
     ERC721HolderUpgradeable,
     ERC1155HolderUpgradeable
 {
-    using TokenBalance for address;
     using MathHelper for uint256;
     using Math for uint256;
-    using ECDSA for bytes32;
     using Paginator for bytes32[];
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
     using ShrinkableArray for uint256[];
     using ShrinkableArray for ShrinkableArray.UintArray;
+    using GovPoolOffchain for bytes32[];
     using GovUserKeeperLocal for *;
     using GovPoolView for *;
     using GovPoolCreate for *;
@@ -72,9 +69,7 @@ contract GovPool is
 
     uint256 public override latestProposalId;
 
-    address public verifier;
-
-    bytes32[] internal _hashes;
+    OffChain internal _offChain;
 
     mapping(uint256 => Proposal) internal _proposals; // proposalId => info
 
@@ -84,8 +79,6 @@ contract GovPool is
     mapping(uint256 => mapping(address => uint256)) public pendingRewards; // proposalId => user => tokens amount
 
     mapping(address => MicropoolInfo) internal _micropoolInfos;
-
-    mapping(bytes32 => bool) internal _usedHashes;
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
     event MovedToValidators(uint256 proposalId, address sender);
@@ -119,7 +112,7 @@ contract GovPool is
         descriptionURL = _descriptionURL;
         name = _name;
 
-        verifier = _verifier;
+        _offChain.verifier = _verifier;
     }
 
     function setDependencies(address contractsRegistry) external override dependant {
@@ -336,7 +329,7 @@ contract GovPool is
     }
 
     function changeVerifier(address newVerifier) external override onlyThis {
-        verifier = newVerifier;
+        _offChain.verifier = newVerifier;
     }
 
     function setNftMultiplierAddress(address nftMultiplierAddress) external override onlyThis {
@@ -347,43 +340,7 @@ contract GovPool is
         bytes32[] calldata hashes,
         bytes calldata signature
     ) external override {
-        bytes32 signHash_ = getSignHash(hashes, block.chainid, address(this));
-
-        require(!_usedHashes[signHash_], "Gov: already used");
-
-        address recovered_ = signHash_.toEthSignedMessageHash().recover(signature);
-
-        require(recovered_ == verifier, "Gov: invalid signer");
-
-        for (uint i; i < hashes.length; i++) {
-            _hashes.push(hashes[i]);
-        }
-
-        _usedHashes[signHash_] = true;
-
-        /// @dev rewards
-        IGovSettings.ProposalSettings memory internalSettings = _govSettings.getInternalSettings();
-
-        require(
-            internalSettings.rewardToken.normThisBalance() >= internalSettings.executionReward,
-            "Gov: not enough balance"
-        );
-
-        internalSettings.rewardToken.sendFunds(msg.sender, internalSettings.executionReward);
-
-        /// @dev commission
-        (, uint256 commissionPercentage, , address[3] memory commissionReceivers) = coreProperties
-            .getDEXECommissionPercentages();
-
-        if (commissionReceivers[1] == address(this)) {
-            return;
-        }
-
-        uint256 commission = internalSettings.rewardToken.normThisBalance().min(
-            internalSettings.executionReward.percentage(commissionPercentage)
-        );
-
-        internalSettings.rewardToken.sendFunds(commissionReceivers[1], commission);
+        hashes.saveOffchainResults(signature, _offChain);
     }
 
     receive() external payable {}
@@ -500,15 +457,15 @@ contract GovPool is
         uint256 offset,
         uint256 limit
     ) external view override returns (bytes32[] memory hashes) {
-        return _hashes.part(offset, limit);
+        return _offChain.hashes.part(offset, limit);
     }
 
-    function getSignHash(
-        bytes32[] calldata hashes,
-        uint256 chainId,
-        address contractAddress
-    ) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(hashes, chainId, contractAddress));
+    function getSignHash(bytes32[] calldata hashes) external view returns (bytes32) {
+        return hashes.getSignHash();
+    }
+
+    function getVerifier() external view returns (address) {
+        return _offChain.verifier;
     }
 
     function _setNftMultiplierAddress(address nftMultiplierAddress) internal {

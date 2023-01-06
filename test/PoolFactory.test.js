@@ -42,6 +42,7 @@ const GovPoolUnlockLib = artifacts.require("GovPoolUnlock");
 const GovPoolVoteLib = artifacts.require("GovPoolVote");
 const GovPoolViewLib = artifacts.require("GovPoolView");
 const GovPoolStakingLib = artifacts.require("GovPoolStaking");
+const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
 
 ContractsRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
@@ -91,6 +92,7 @@ describe("PoolFactory", () => {
     const govPoolVoteLib = await GovPoolVoteLib.new();
     const govPoolViewLib = await GovPoolViewLib.new();
     const govPoolStakingLib = await GovPoolStakingLib.new();
+    const govPoolOffchainLib = await GovPoolOffchainLib.new();
 
     await GovUserKeeper.link(govUserKeeperViewLib);
 
@@ -101,6 +103,7 @@ describe("PoolFactory", () => {
     await GovPool.link(govPoolVoteLib);
     await GovPool.link(govPoolViewLib);
     await GovPool.link(govPoolStakingLib);
+    await GovPool.link(govPoolOffchainLib);
 
     const traderPoolPriceLib = await TraderPoolPriceLib.new();
 

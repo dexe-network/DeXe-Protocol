@@ -45,6 +45,7 @@ const GovPoolUnlockLib = artifacts.require("GovPoolUnlock");
 const GovPoolVoteLib = artifacts.require("GovPoolVote");
 const GovPoolViewLib = artifacts.require("GovPoolView");
 const GovPoolStakingLib = artifacts.require("GovPoolStaking");
+const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -105,6 +106,7 @@ describe("GovPool", () => {
     const govPoolVoteLib = await GovPoolVoteLib.new();
     const govPoolViewLib = await GovPoolViewLib.new();
     const govPoolStakingLib = await GovPoolStakingLib.new();
+    const govPoolOffchainLib = await GovPoolOffchainLib.new();
 
     await GovUserKeeper.link(govUserKeeperViewLib);
 
@@ -115,6 +117,7 @@ describe("GovPool", () => {
     await GovPool.link(govPoolVoteLib);
     await GovPool.link(govPoolViewLib);
     await GovPool.link(govPoolStakingLib);
+    await GovPool.link(govPoolOffchainLib);
   });
 
   beforeEach("setup", async () => {
@@ -1382,7 +1385,7 @@ describe("GovPool", () => {
 
             await govPool.execute(1);
 
-            assert.equal(await govPool.verifier(), newAddress);
+            assert.equal(await govPool.getVerifier(), newAddress);
           });
 
           it("should revert when call is from non govPool address", async () => {
@@ -2296,7 +2299,7 @@ describe("GovPool", () => {
       ];
       const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
 
-      let signHash = await govPool.getSignHash(hashes, await web3.eth.getChainId(), govPool.address);
+      let signHash = await govPool.getSignHash(hashes);
       let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
 
       await govPool.saveOffchainResults(hashes, signature);
@@ -2313,7 +2316,7 @@ describe("GovPool", () => {
       ];
       const privateKey = Buffer.from(NOT_OWNER_PRIVATE_KEY, "hex");
 
-      let signHash = await govPool.getSignHash(hashes, await web3.eth.getChainId(), govPool.address);
+      let signHash = await govPool.getSignHash(hashes);
       let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
 
       await truffleAssert.reverts(govPool.saveOffchainResults(hashes, signature), "Gov: invalid signer");
@@ -2326,7 +2329,7 @@ describe("GovPool", () => {
       ];
       const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
 
-      let signHash = await govPool.getSignHash(hashes, await web3.eth.getChainId(), govPool.address);
+      let signHash = await govPool.getSignHash(hashes);
       let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
 
       await govPool.saveOffchainResults(hashes, signature);
@@ -2344,7 +2347,7 @@ describe("GovPool", () => {
       ];
       const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
 
-      let signHash = await govPool.getSignHash(hashes, await web3.eth.getChainId(), govPool.address);
+      let signHash = await govPool.getSignHash(hashes);
       let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
 
       await truffleAssert.reverts(govPool.saveOffchainResults(hashes, signature), "Gov: not enough balance");
