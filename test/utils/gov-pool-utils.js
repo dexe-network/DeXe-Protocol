@@ -515,6 +515,25 @@ const getBytesOffTiersTSP = (tierIds) => {
   );
 };
 
+const getBytesChangeVerifier = (newAddress) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "newVerifier",
+          type: "address",
+        },
+      ],
+      name: "changeVerifier",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [newAddress]
+  );
+};
+
 const getBytesGovExecute = (proposalId) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -628,6 +647,7 @@ module.exports = {
   getBytesCreateTiersTSP,
   getBytesAddToWhitelistTSP,
   getBytesOffTiersTSP,
+  getBytesChangeVerifier,
   getBytesGovExecute,
   getBytesGovClaimRewards,
   getBytesGovVote,
