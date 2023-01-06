@@ -460,11 +460,11 @@ contract GovPool is
         return _offChain.hashes.part(offset, limit);
     }
 
-    function getSignHash(bytes32[] calldata hashes) external view returns (bytes32) {
+    function getSignHash(bytes32[] calldata hashes) external view override returns (bytes32) {
         return hashes.getSignHash();
     }
 
-    function getVerifier() external view returns (address) {
+    function getVerifier() external view override returns (address) {
         return _offChain.verifier;
     }
 

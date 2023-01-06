@@ -319,4 +319,13 @@ interface IGovPool {
         uint256 offset,
         uint256 limit
     ) external view returns (bytes32[] memory hashes);
+
+    /// @notice The function for getting sign hasfrom bytes32 array, chainid, govPool address
+    /// @param hashes the array of ipfs hashes
+    /// @return bytes32 hash
+    function getSignHash(bytes32[] calldata hashes) external view returns (bytes32);
+
+    /// @notice The function for getting verifier address
+    /// @return address of verifier
+    function getVerifier() external view returns (address);
 }

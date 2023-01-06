@@ -23,7 +23,7 @@ library GovPoolOffchain {
         bytes calldata signature,
         IGovPool.OffChain storage offChain
     ) external {
-        bytes32 signHash_ = _getSignHash(hashes);
+        bytes32 signHash_ = getSignHash(hashes);
 
         require(!offChain.usedHashes[signHash_], "Gov: already used");
 
@@ -67,11 +67,7 @@ library GovPoolOffchain {
         internalSettings.rewardToken.sendFunds(commissionReceivers[1], commission);
     }
 
-    function getSignHash(bytes32[] calldata hashes) external view returns (bytes32) {
-        return _getSignHash(hashes);
-    }
-
-    function _getSignHash(bytes32[] calldata hashes) internal view returns (bytes32) {
+    function getSignHash(bytes32[] calldata hashes) public view returns (bytes32) {
         return keccak256(abi.encodePacked(hashes, block.chainid, address(this)));
     }
 }
