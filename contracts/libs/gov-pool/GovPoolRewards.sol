@@ -33,15 +33,17 @@ library GovPoolRewards {
             );
         }
 
+        IGovPool.PendingRewards storage userRewards = pendingRewards[msg.sender];
+
         if (proposalId != 0) {
-            pendingRewards[msg.sender].onchainRewards[proposalId] += amountToAdd;
+            userRewards.onchainRewards[proposalId] += amountToAdd;
         } else {
             (address settingsAddress, , , ) = IGovPool(address(this)).getHelperContracts();
 
             address rewardToken = IGovSettings(settingsAddress).getInternalSettings().rewardToken;
 
-            pendingRewards[msg.sender].offchainRewards[rewardToken] += amountToAdd;
-            pendingRewards[msg.sender].offchainTokens.add(rewardToken);
+            userRewards.offchainRewards[rewardToken] += amountToAdd;
+            userRewards.offchainTokens.add(rewardToken);
         }
 
         emit RewardCredited(proposalId, amountToAdd, msg.sender);
@@ -52,23 +54,26 @@ library GovPoolRewards {
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId
     ) external {
+        IGovPool.PendingRewards storage userRewards = pendingRewards[msg.sender];
+
         if (proposalId != 0) {
             require(proposals[proposalId].core.executed, "Gov: proposal is not executed");
 
             address rewardToken = proposals[proposalId].core.settings.rewardToken;
-            uint256 rewards = pendingRewards[msg.sender].onchainRewards[proposalId];
+            uint256 rewards = userRewards.onchainRewards[proposalId];
 
-            delete pendingRewards[msg.sender].onchainRewards[proposalId];
+            delete userRewards.onchainRewards[proposalId];
 
             _sendRewards(proposalId, rewardToken, rewards);
         } else {
-            uint256 length = pendingRewards[msg.sender].offchainTokens.length();
+            uint256 length = userRewards.offchainTokens.length();
 
-            for (uint256 i = 0; i < length; i++) {
-                address rewardToken = pendingRewards[msg.sender].offchainTokens.at(i);
-                uint256 rewards = pendingRewards[msg.sender].offchainRewards[rewardToken];
+            for (uint256 i = length; i > 0; i--) {
+                address rewardToken = userRewards.offchainTokens.at(i - 1);
+                uint256 rewards = userRewards.offchainRewards[rewardToken];
 
-                delete pendingRewards[msg.sender].offchainRewards[rewardToken];
+                delete userRewards.offchainRewards[rewardToken];
+                userRewards.offchainTokens.remove(rewardToken);
 
                 _sendRewards(0, rewardToken, rewards);
             }
