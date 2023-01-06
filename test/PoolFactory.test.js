@@ -64,6 +64,7 @@ TokenSaleProposal.numberFormat = "BigNumber";
 
 describe("PoolFactory", () => {
   let OWNER;
+  let SECOND;
   let NOTHING;
 
   let poolRegistry;
@@ -76,6 +77,7 @@ describe("PoolFactory", () => {
 
   before("setup", async () => {
     OWNER = await accounts(0);
+    SECOND = await accounts(1);
     NOTHING = await accounts(3);
 
     const govTokenSaleDeployerLib = await GovTokenSaleDeployerLib.new();
@@ -552,9 +554,36 @@ describe("PoolFactory", () => {
       };
     }
 
+    function getGovPoolSaleConfiguredParams() {
+      let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
+
+      POOL_PARAMETERS.settingsParams.proposalSettings.push({
+        earlyCompletion: false,
+        delegatedVotingAllowed: false,
+        validatorsVote: false,
+        duration: 500,
+        durationValidators: 600,
+        quorum: PRECISION.times("51").toFixed(),
+        quorumValidators: PRECISION.times("61").toFixed(),
+        minVotesForVoting: wei("10"),
+        minVotesForCreating: wei("5"),
+        rewardToken: ZERO_ADDR,
+        creationReward: 0,
+        executionReward: 0,
+        voteRewardsCoefficient: 0,
+        executorDescription: "Token Sale",
+      });
+
+      POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(ZERO_ADDR);
+
+      return POOL_PARAMETERS;
+    }
+
     describe("deployGovPool", () => {
       it("should deploy pool with DP", async () => {
         let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
+
+        const predictedGovAddress = await poolFactory.predictGovAddress(OWNER, POOL_PARAMETERS.name);
 
         let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);
         let event = tx.receipt.logs[0];
@@ -563,6 +592,9 @@ describe("PoolFactory", () => {
         assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
 
         let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+
+        assert.equal(govPool.address, predictedGovAddress);
+
         let helperContracts = await govPool.getHelperContracts();
 
         let govSettings = await GovSettings.at(helperContracts[0]);
@@ -581,26 +613,9 @@ describe("PoolFactory", () => {
 
     describe("deployGovPoolWithTokenSale", () => {
       it("should deploy pool and instantiate token sale", async () => {
-        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
         let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
 
-        POOL_PARAMETERS.settingsParams.proposalSettings.push({
-          earlyCompletion: false,
-          delegatedVotingAllowed: false,
-          validatorsVote: false,
-          duration: 500,
-          durationValidators: 600,
-          quorum: PRECISION.times("51").toFixed(),
-          quorumValidators: PRECISION.times("61").toFixed(),
-          minVotesForVoting: wei("10"),
-          minVotesForCreating: wei("5"),
-          rewardToken: ZERO_ADDR,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
-          executorDescription: "Token Sale",
-        });
-        POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(ZERO_ADDR);
         POOL_PARAMETERS.userKeeperParams.tokenAddress = ZERO_ADDR;
 
         SALE_PARAMETERS.tiersParams.push({
@@ -624,6 +639,8 @@ describe("PoolFactory", () => {
           },
         });
 
+        const predictedGovAddress = await poolFactory.predictGovAddress(OWNER, POOL_PARAMETERS.name);
+
         let tx = await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS);
         let event = tx.receipt.logs[1];
 
@@ -631,6 +648,9 @@ describe("PoolFactory", () => {
         let token = await ERC20Mock.at(event.args.token);
 
         let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+
+        assert.equal(govPool.address, predictedGovAddress);
+
         let helperContracts = await govPool.getHelperContracts();
 
         let govUserKeeper = await GovUserKeeper.at(helperContracts[1]);
@@ -645,26 +665,8 @@ describe("PoolFactory", () => {
       });
 
       it("should deploy pool with empty token sale", async () => {
-        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
         let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
-
-        POOL_PARAMETERS.settingsParams.proposalSettings.push({
-          earlyCompletion: false,
-          delegatedVotingAllowed: false,
-          validatorsVote: false,
-          duration: 500,
-          durationValidators: 600,
-          quorum: PRECISION.times("51").toFixed(),
-          quorumValidators: PRECISION.times("61").toFixed(),
-          minVotesForVoting: wei("10"),
-          minVotesForCreating: wei("5"),
-          rewardToken: ZERO_ADDR,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
-          executorDescription: "Token Sale",
-        });
-        POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(ZERO_ADDR);
 
         SALE_PARAMETERS.tiersParams.pop();
 
@@ -726,6 +728,67 @@ describe("PoolFactory", () => {
           poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS),
           "PoolFactory: invalid token sale executor"
         );
+      });
+    });
+
+    describe("deploy2 validation", () => {
+      it("should deploy pools with the same name from different deployers", async () => {
+        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
+
+        const predictedAddressOwner = await poolFactory.predictGovAddress(OWNER, POOL_PARAMETERS.name);
+        const predictedAddressSecond = await poolFactory.predictGovAddress(SECOND, POOL_PARAMETERS.name);
+
+        assert.notEqual(predictedAddressOwner, ZERO_ADDR);
+        assert.notEqual(predictedAddressSecond, ZERO_ADDR);
+        assert.notEqual(predictedAddressOwner, predictedAddressSecond);
+
+        await poolFactory.deployGovPool(POOL_PARAMETERS);
+        await poolFactory.deployGovPool(POOL_PARAMETERS, { from: SECOND });
+
+        assert.deepEqual(await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 2), [
+          predictedAddressOwner,
+          predictedAddressSecond,
+        ]);
+      });
+
+      it("should not deploy pools with the same salt", async () => {
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+        let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
+
+        await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS);
+
+        await truffleAssert.reverts(
+          poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS),
+          "PoolFactory: pool name is already taken"
+        );
+
+        await truffleAssert.reverts(
+          poolFactory.deployGovPool(POOL_PARAMETERS),
+          "PoolFactory: pool name is already taken"
+        );
+      });
+
+      it("should revert if name is an empty string", async () => {
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+        let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
+
+        POOL_PARAMETERS.name = "";
+
+        await truffleAssert.reverts(
+          poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS),
+          "PoolFactory: pool name cannot be empty"
+        );
+
+        await truffleAssert.reverts(
+          poolFactory.deployGovPool(POOL_PARAMETERS),
+          "PoolFactory: pool name cannot be empty"
+        );
+      });
+    });
+
+    describe("predictGovAddress", () => {
+      it("should return zero address if name is an empty string", async () => {
+        assert.equal(await poolFactory.predictGovAddress(OWNER, ""), ZERO_ADDR);
       });
     });
   });
