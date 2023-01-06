@@ -1389,8 +1389,8 @@ describe("GovPool", () => {
 
             await govPool.createProposal("example.com", "misc", [govPool.address], [0], [bytesChangeVerifier]);
 
-            await govPool.vote(1, 0, [], wei("1000"), []);
-            await govPool.vote(1, 0, [], wei("100000000000000000000"), [], { from: SECOND });
+            await govPool.vote(1, wei("1000"), []);
+            await govPool.vote(1, wei("100000000000000000000"), [], { from: SECOND });
 
             await govPool.moveProposalToValidators(1);
             await validators.vote(1, wei("100"), false);
