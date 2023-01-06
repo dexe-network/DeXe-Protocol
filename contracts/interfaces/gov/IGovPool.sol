@@ -109,9 +109,21 @@ interface IGovPool {
         mapping(address => uint256) latestDelegatorStake;
     }
 
+    struct PendingRewards {
+        mapping(uint256 => uint256) onchainRewards;
+        mapping(address => uint256) offchainRewards;
+        EnumerableSet.AddressSet offchainTokens;
+    }
+
+    struct PendingRewardsView {
+        uint256[] onchainRewards;
+        uint256[] offchainRewards;
+        address[] offchainTokens;
+    }
+
     struct OffChain {
         address verifier;
-        bytes32[] hashes;
+        string resultsHash;
         mapping(bytes32 => bool) usedHashes;
     }
 
@@ -234,6 +246,11 @@ interface IGovPool {
     /// @param nftMultiplierAddress the address of nft multiplier
     function setNftMultiplierAddress(address nftMultiplierAddress) external;
 
+    /// @notice The function for saving ipfs hash of offchain proposal results
+    /// @param resultsHash the ipfs results hash
+    /// @param signature the signature from verifier
+    function saveOffchainResults(string calldata resultsHash, bytes calldata signature) external;
+
     /// @notice The paginated function for getting proposal info list
     /// @param offset the proposal starting index
     /// @param limit the number of proposals to observe
@@ -289,30 +306,25 @@ interface IGovPool {
         address delegatee
     ) external view returns (uint256, ShrinkableArray.UintArray memory);
 
+    function getPendingRewards(
+        address user,
+        uint256[] calldata proposalIds
+    ) external view returns (PendingRewardsView memory);
+
     function getDelegatorStakingRewards(
         address delegator
     ) external view returns (UserStakeRewardsView[] memory);
 
-    /// @notice The function for saving ipfs hashes of offchain votings
-    /// @param hashes the array of ipfs hashes
-    /// @param signature the signature from verifier
-    function saveOffchainResults(bytes32[] calldata hashes, bytes calldata signature) external;
+    /// @notice The function to get offchain voting results
+    /// @return resultsHash the ipfs hash
+    function getOffchainResultsHash() external view returns (string memory resultsHash);
 
-    /// @notice The paginated function for getting ipfs hashes list
-    /// @param offset the proposal starting index
-    /// @param limit the number of proposals to observe
-    /// @return hashes the bytes32 array
-    function getOffchainHashes(
-        uint256 offset,
-        uint256 limit
-    ) external view returns (bytes32[] memory hashes);
-
-    /// @notice The function for getting sign hash from bytes32 array, chainid, govPool address
-    /// @param hashes the array of ipfs hashes
+    /// @notice The function to get the sign hash from srting resultsHash, chainid, govPool address
+    /// @param resultsHash the ipfs hash
     /// @return bytes32 hash
-    function getOffchainSignHash(bytes32[] calldata hashes) external view returns (bytes32);
+    function getOffchainSignHash(string calldata resultsHash) external view returns (bytes32);
 
-    /// @notice The function for getting verifier address
+    /// @notice The function to get offchain verifier address
     /// @return address of verifier
     function getVerifier() external view returns (address);
 }

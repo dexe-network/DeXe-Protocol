@@ -10,6 +10,7 @@ import "../../interfaces/gov/validators/IGovValidators.sol";
 import "../utils/DataHelper.sol";
 import "../math/MathHelper.sol";
 import "../utils/TokenBalance.sol";
+import "./GovPoolCommission.sol";
 
 import "../../gov/GovPool.sol";
 
@@ -18,6 +19,7 @@ library GovPoolExecute {
     using MathHelper for uint256;
     using Math for uint256;
     using TokenBalance for address;
+    using GovPoolCommission for address;
 
     event ProposalExecuted(uint256 proposalId, address sender);
 
@@ -56,18 +58,8 @@ library GovPoolExecute {
     function _payCommission(IGovPool.ProposalCore storage core) internal {
         IGovSettings.ProposalSettings storage settings = core.settings;
 
-        GovPool govPool = GovPool(payable(address(this)));
+        (, , address govValidators, ) = GovPool(payable(address(this))).getHelperContracts();
 
-        address rewardToken = settings.rewardToken;
-        (, uint256 commissionPercentage, , address[3] memory commissionReceivers) = govPool
-            .coreProperties()
-            .getDEXECommissionPercentages();
-
-        if (rewardToken == address(0) || commissionReceivers[1] == address(this)) {
-            return;
-        }
-
-        (, , address govValidators, ) = govPool.getHelperContracts();
         uint256 creationRewards = settings.creationReward *
             (
                 settings.validatorsVote && IGovValidators(govValidators).validatorsCount() > 0
@@ -79,10 +71,6 @@ library GovPoolExecute {
             settings.executionReward +
             core.votesFor.ratio(settings.voteRewardsCoefficient, PRECISION);
 
-        uint256 commission = rewardToken.normThisBalance().min(
-            totalRewards.percentage(commissionPercentage)
-        );
-
-        rewardToken.sendFunds(commissionReceivers[1], commission);
+        settings.rewardToken.payCommission(totalRewards);
     }
 }
