@@ -1,6 +1,8 @@
 # 🏗️ Creating
 
-DAO Pool is deployed via ***`deployGovPool()`*** function on `PoolFactory`.
+**DAO** Pool address is determined by its name and the address of the creator.
+
+**DAO** Pool is deployed via ***`deployGovPool()`*** function on `PoolFactory`.
 
 ```solidity
 function deployGovPool(GovPoolDeployParams calldata parameters) external;
