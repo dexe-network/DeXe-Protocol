@@ -58,8 +58,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     mapping(address => InvestorInfo) public investorsInfo;
 
-    event InvestorAdded(address investor);
-    event InvestorRemoved(address investor);
+    event Joined(address user);
+    event Left(address user);
     event Invested(address user, uint256 investedBase, uint256 receivedLP);
     event Divested(address user, uint256 divestedLP, uint256 receivedBase);
     event ActivePortfolioExchanged(
@@ -180,8 +180,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         _poolParameters.checkLeverage(amountInBaseToInvest);
 
-        uint256 lpMinted = _investPositions(msg.sender, amountInBaseToInvest, minPositionsOut);
-        _updateTo(msg.sender, lpMinted, amountInBaseToInvest);
+        uint256 toMintLP = _investPositions(msg.sender, amountInBaseToInvest, minPositionsOut);
+
+        _updateTo(msg.sender, toMintLP, amountInBaseToInvest);
+        _mint(msg.sender, toMintLP);
     }
 
     function reinvestCommission(
@@ -326,7 +328,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             _poolParameters.getExchangeAmount(_positions, from, to, amount, optionalPath, exType);
     }
 
-    function _transferBaseAndMintLP(
+    function _transferBase(
         address baseHolder,
         uint256 totalBaseInPool,
         uint256 amountInBaseToInvest
@@ -350,7 +352,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         );
 
         _investsInBlocks[msg.sender][block.number] += toMintLP;
-        _mint(msg.sender, toMintLP);
 
         return toMintLP;
     }
@@ -359,7 +360,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         address baseHolder,
         uint256 amountInBaseToInvest,
         uint256[] calldata minPositionsOut
-    ) internal returns (uint256 lpMinted) {
+    ) internal returns (uint256 toMintLP) {
         address baseToken = _poolParameters.baseToken;
         (
             uint256 totalBase,
@@ -368,7 +369,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
             uint256[] memory positionPricesInBase
         ) = _poolParameters.getNormalizedPoolPriceAndPositions();
 
-        lpMinted = _transferBaseAndMintLP(baseHolder, totalBase, amountInBaseToInvest);
+        toMintLP = _transferBase(baseHolder, totalBase, amountInBaseToInvest);
 
         for (uint256 i = 0; i < positionTokens.length; i++) {
             uint256 amount = positionPricesInBase[i].ratio(amountInBaseToInvest, totalBase);
@@ -504,31 +505,35 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         }
     }
 
-    function _checkRemoveInvestor(address user, uint256 lpAmount) internal {
-        if (!isTrader(user) && lpAmount == balanceOf(user)) {
-            _investors.remove(user);
-            investorsInfo[user].commissionUnlockEpoch = 0;
+    function _checkLeave(address user, uint256 lpAmount) internal {
+        if (lpAmount == balanceOf(user)) {
+            if (!isTrader(user)) {
+                _investors.remove(user);
+                investorsInfo[user].commissionUnlockEpoch = 0;
+            }
 
-            emit InvestorRemoved(user);
+            emit Left(user);
         }
     }
 
-    function _checkNewInvestor(address user) internal {
+    function _checkJoin(address user) internal {
         require(
             !_poolParameters.privatePool || isTraderAdmin(user) || isPrivateInvestor(user),
             "TP: private pool"
         );
 
-        if (!isTrader(user) && !_investors.contains(user)) {
-            _investors.add(user);
-            investorsInfo[user].commissionUnlockEpoch = getNextCommissionEpoch();
+        if (balanceOf(user) == 0) {
+            if (!isTrader(user)) {
+                _investors.add(user);
+                investorsInfo[user].commissionUnlockEpoch = getNextCommissionEpoch();
 
-            require(
-                _investors.length() <= coreProperties.getMaximumPoolInvestors(),
-                "TP: max investors"
-            );
+                require(
+                    _investors.length() <= coreProperties.getMaximumPoolInvestors(),
+                    "TP: max investors"
+                );
+            }
 
-            emit InvestorAdded(user);
+            emit Joined(user);
         }
     }
 
@@ -541,11 +546,11 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
         emit Divested(user, lpAmount, baseAmount == 0 ? baseTransfer : baseAmount);
 
-        _checkRemoveInvestor(user, lpAmount);
+        _checkLeave(user, lpAmount);
     }
 
     function _updateTo(address user, uint256 lpAmount, uint256 baseAmount) internal {
-        _checkNewInvestor(user);
+        _checkJoin(user);
         _updateToData(user, baseAmount);
 
         emit Invested(user, baseAmount, lpAmount);

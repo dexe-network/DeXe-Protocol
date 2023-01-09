@@ -1,5 +1,5 @@
 const { assert } = require("chai");
-const { toBN, accounts, wei } = require("../scripts/utils/utils");
+const { toBN, accounts, wei } = require("../../scripts/utils/utils");
 const truffleAssert = require("truffle-assertions");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");

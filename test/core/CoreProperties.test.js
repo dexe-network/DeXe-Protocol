@@ -1,7 +1,7 @@
 const { assert } = require("chai");
-const { toBN, accounts } = require("../scripts/utils/utils");
-const { SECONDS_IN_MONTH } = require("../scripts/utils/constants");
-const { ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
+const { toBN, accounts } = require("../../scripts/utils/utils");
+const { SECONDS_IN_MONTH } = require("../../scripts/utils/constants");
+const { ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
 const truffleAssert = require("truffle-assertions");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");

@@ -1,9 +1,9 @@
 const { assert } = require("chai");
-const { toBN, accounts, wei } = require("../scripts/utils/utils");
-const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
+const { toBN, accounts, wei } = require("../../scripts/utils/utils");
+const { setTime, getCurrentBlockTime } = require("../helpers/block-helper");
 const truffleAssert = require("truffle-assertions");
-const { SECONDS_IN_MONTH, PRECISION } = require("../scripts/utils/constants");
-const { ExchangeType, ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
+const { SECONDS_IN_MONTH, PRECISION } = require("../../scripts/utils/constants");
+const { ExchangeType, ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const Insurance = artifacts.require("Insurance");
@@ -938,6 +938,15 @@ describe("TraderPool", () => {
 
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("500"));
         assert.equal((await tokens.WETH.balanceOf(OWNER)).toFixed(), balance.plus(wei("750")).toFixed());
+      });
+
+      it("should fully divest trader", async () => {
+        const balance = await tokens.WETH.balanceOf(OWNER);
+
+        await divest(wei("1000"), OWNER);
+
+        assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), "0");
+        assert.equal((await tokens.WETH.balanceOf(OWNER)).toFixed(), balance.plus(wei("1000")).toFixed());
       });
 
       it("trader should not divest if positions > 0", async () => {

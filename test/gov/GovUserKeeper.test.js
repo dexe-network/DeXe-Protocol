@@ -1,8 +1,8 @@
 const { assert } = require("chai");
-const { toBN, accounts, wei } = require("../scripts/utils/utils");
+const { toBN, accounts, wei } = require("../../scripts/utils/utils");
 const truffleAssert = require("truffle-assertions");
-const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
-const { getCurrentBlockTime, setTime } = require("./helpers/block-helper");
+const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
+const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
 
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC20Mock = artifacts.require("ERC20Mock");

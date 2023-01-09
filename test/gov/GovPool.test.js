@@ -1,5 +1,5 @@
-const { toBN, accounts, wei } = require("../scripts/utils/utils");
-const { toPercent } = require("./utils/utils");
+const { toBN, accounts, wei } = require("../../scripts/utils/utils");
+const { toPercent } = require("../utils/utils");
 const {
   getBytesExecute,
   getBytesEditUrl,
@@ -18,12 +18,12 @@ const {
   getBytesGovClaimRewards,
   getBytesGovVote,
   getBytesGovDeposit,
-} = require("./utils/gov-pool-utils");
-const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../scripts/utils/constants");
-const { ProposalState, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
+} = require("../utils/gov-pool-utils");
+const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
+const { ProposalState, DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
 const truffleAssert = require("truffle-assertions");
-const { getCurrentBlockTime, setTime } = require("./helpers/block-helper");
-const { impersonate } = require("./helpers/impersonator");
+const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
+const { impersonate } = require("../helpers/impersonator");
 const { assert } = require("chai");
 const ethSigUtil = require("@metamask/eth-sig-util");
 const { web3 } = require("hardhat");

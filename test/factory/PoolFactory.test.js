@@ -1,10 +1,10 @@
 const { assert } = require("chai");
-const { toBN, accounts, wei } = require("../scripts/utils/utils");
+const { toBN, accounts, wei } = require("../../scripts/utils/utils");
 const truffleAssert = require("truffle-assertions");
-const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
-const { ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
-const { toPercent } = require("./utils/utils");
-const { getCurrentBlockTime } = require("./helpers/block-helper");
+const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
+const { ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
+const { toPercent } = require("../utils/utils");
+const { getCurrentBlockTime } = require("../helpers/block-helper");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const ERC20Mock = artifacts.require("ERC20Mock");

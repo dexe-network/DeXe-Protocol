@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./ITraderPoolInvestorsHook.sol";
+import "./ITraderPoolMemberHook.sol";
 import "./ITraderPoolInvestProposal.sol";
 import "./ITraderPool.sol";
 
@@ -10,7 +10,7 @@ import "./ITraderPool.sol";
  * it inherits the functionality of the TraderPool yet differs in the proposals implementation. Investors can fund the
  * investment proposals and the trader will be able to do whetever he wants to do with the received funds
  */
-interface IInvestTraderPool is ITraderPoolInvestorsHook {
+interface IInvestTraderPool is ITraderPoolMemberHook {
     /// @notice This function creates an investment proposal that users will be able to invest in
     /// @param descriptionURL the IPFS URL of the description document
     /// @param lpAmount the amount of LP tokens the trader will invest rightaway

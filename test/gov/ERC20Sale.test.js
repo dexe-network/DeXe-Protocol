@@ -1,6 +1,6 @@
 const { assert } = require("chai");
-const { accounts, wei } = require("../scripts/utils/utils");
-const { ZERO_ADDR } = require("../scripts/utils/constants");
+const { accounts, wei } = require("../../scripts/utils/utils");
+const { ZERO_ADDR } = require("../../scripts/utils/constants");
 const truffleAssert = require("truffle-assertions");
 
 const ERC20Sale = artifacts.require("ERC20Sale");

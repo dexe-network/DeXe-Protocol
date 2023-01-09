@@ -1,8 +1,8 @@
 const { assert } = require("chai");
-const { toBN, accounts, wei } = require("../scripts/utils/utils");
-const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
-const { toPercent } = require("./utils/utils");
-const { ExecutorType } = require("./utils/constants");
+const { toBN, accounts, wei } = require("../../scripts/utils/utils");
+const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
+const { toPercent } = require("../utils/utils");
+const { ExecutorType } = require("../utils/constants");
 const truffleAssert = require("truffle-assertions");
 
 const GovSettings = artifacts.require("GovSettings");

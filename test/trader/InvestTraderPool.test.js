@@ -1,8 +1,8 @@
-const { toBN, accounts, wei } = require("../scripts/utils/utils");
-const { setTime, getCurrentBlockTime } = require("./helpers/block-helper");
+const { toBN, accounts, wei } = require("../../scripts/utils/utils");
+const { setTime, getCurrentBlockTime } = require("../helpers/block-helper");
 const truffleAssert = require("truffle-assertions");
-const { SECONDS_IN_DAY, SECONDS_IN_MONTH, PRECISION } = require("../scripts/utils/constants");
-const { ExchangeType, ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("./utils/constants");
+const { SECONDS_IN_DAY, SECONDS_IN_MONTH, PRECISION } = require("../../scripts/utils/constants");
+const { ExchangeType, ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
 const { assert } = require("chai");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -324,8 +324,8 @@ describe("InvestTraderPool", () => {
       });
 
       it("only proposal pool should call these methods", async () => {
-        await truffleAssert.reverts(traderPool.checkRemoveInvestor(OWNER), "ITP: not a proposal");
-        await truffleAssert.reverts(traderPool.checkNewInvestor(OWNER), "ITP: not a proposal");
+        await truffleAssert.reverts(traderPool.checkLeave(OWNER), "ITP: not a proposal");
+        await truffleAssert.reverts(traderPool.checkJoin(OWNER), "ITP: not a proposal");
       });
     });
 
