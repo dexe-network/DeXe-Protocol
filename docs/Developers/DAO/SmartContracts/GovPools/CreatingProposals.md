@@ -14,7 +14,7 @@ function createProposal(
 ) external;
 ```
 - ***descriptionURL*** - *IPFS* URL to the proposal's description
-- ***misc*** - minimal instruction set computer
+- ***misc*** - special string that will be saved on the subgraph
 - ***executors*** - executors addresses
 - ***values*** - the ether values
 - ***data*** - data Bytes
