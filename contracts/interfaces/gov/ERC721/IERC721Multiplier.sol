@@ -18,7 +18,7 @@ interface IERC721Multiplier is IERC721Enumerable {
         uint256 lockedAt;
     }
 
-    /// @notice This function is used to lock an nft (enable corresponding extra rewards multiplier). Only one NFT for one person can be locked at the same time
+    /// @notice This function is used to lock an nft (enable corresponding extra rewards multiplier). Only one NFT for each address can be locked at the same time
     /// @param tokenId the id of the nft to be locked
     function lock(uint256 tokenId) external;
 
