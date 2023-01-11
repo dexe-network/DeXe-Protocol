@@ -36,8 +36,8 @@ interface IERC721Multiplier is IERC721Enumerable {
 
     /// @notice This function is used to get the current basic rewards multiplier and the time for which the current nft will be locked
     /// @param whose the address of the user to be checked
-    /// @return the basic rewards multiplier
-    /// @return seconds remaining before the current locked nft expires
+    /// @return multiplier the basic rewards multiplier
+    /// @return timeLeft seconds remaining before the current locked nft expires
     function getCurrentMultiplier(
         address whose
     ) external view returns (uint256 multiplier, uint256 timeLeft);
