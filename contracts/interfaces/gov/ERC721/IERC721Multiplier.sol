@@ -4,8 +4,8 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
 /**
- * This is the special NFT contract which behaves like a coupon that can be used to get
- * extra rewards in the Governance pool contract
+ * This is the special NFT contract which behaves like a coupon that can be locked to receive
+ * corresponding extra rewards in the Governance pool contract
  */
 interface IERC721Multiplier is IERC721Enumerable {
     /// @notice This struct holds NFT Multiplier parameters
