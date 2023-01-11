@@ -4,11 +4,14 @@ pragma solidity ^0.8.4;
 import "../interfaces/trader/IBasicTraderPool.sol";
 import "../interfaces/trader/ITraderPoolRiskyProposal.sol";
 
+import "../libs/trader-pool/TraderPoolPrice.sol";
+
 import "./TraderPool.sol";
 
 contract BasicTraderPool is IBasicTraderPool, TraderPool {
     using MathHelper for uint256;
     using SafeERC20 for IERC20;
+    using TraderPoolPrice for PoolParameters;
 
     ITraderPoolRiskyProposal internal _traderPoolProposal;
 
@@ -113,10 +116,20 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
             minProposalOut
         );
 
+        (
+            uint256 totalBase,
+            ,
+            address[] memory positionTokens,
+            uint256[] memory positionPricesInBase
+        ) = _poolParameters.getNormalizedPoolPriceAndPositions();
+
         uint256 toMintLP = _investPositions(
             address(_traderPoolProposal),
             receivedBase,
-            minPositionsOut
+            minPositionsOut,
+            totalBase,
+            positionTokens,
+            positionPricesInBase
         );
 
         _updateToData(msg.sender, receivedBase);

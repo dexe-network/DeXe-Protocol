@@ -171,16 +171,62 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         emit DescriptionURLChanged(msg.sender, descriptionURL);
     }
 
+    function investWithoutPF(
+        uint256 amountInBaseToInvest,
+        uint256[] calldata minPositionsOut,
+        uint256 totalBase,
+        address[] memory positionTokens,
+        uint256[] memory positionPricesInBase
+    ) public virtual {
+        _invest(
+            amountInBaseToInvest,
+            minPositionsOut,
+            totalBase,
+            positionTokens,
+            positionPricesInBase
+        );
+    }
+
     function invest(
         uint256 amountInBaseToInvest,
         uint256[] calldata minPositionsOut
     ) public virtual override {
+        (
+            uint256 totalBase,
+            ,
+            address[] memory positionTokens,
+            uint256[] memory positionPricesInBase
+        ) = _poolParameters.getNormalizedPoolPriceAndPositions();
+
+        _invest(
+            amountInBaseToInvest,
+            minPositionsOut,
+            totalBase,
+            positionTokens,
+            positionPricesInBase
+        );
+    }
+
+    function _invest(
+        uint256 amountInBaseToInvest,
+        uint256[] calldata minPositionsOut,
+        uint256 totalBase,
+        address[] memory positionTokens,
+        uint256[] memory positionPricesInBase
+    ) internal {
         require(amountInBaseToInvest > 0, "TP: zero investment");
         require(amountInBaseToInvest >= _poolParameters.minimalInvestment, "TP: underinvestment");
 
         _poolParameters.checkLeverage(amountInBaseToInvest);
 
-        uint256 toMintLP = _investPositions(msg.sender, amountInBaseToInvest, minPositionsOut);
+        uint256 toMintLP = _investPositions(
+            msg.sender,
+            amountInBaseToInvest,
+            minPositionsOut,
+            totalBase,
+            positionTokens,
+            positionPricesInBase
+        );
 
         _updateTo(msg.sender, toMintLP, amountInBaseToInvest);
         _mint(msg.sender, toMintLP);
@@ -359,15 +405,12 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     function _investPositions(
         address baseHolder,
         uint256 amountInBaseToInvest,
-        uint256[] calldata minPositionsOut
+        uint256[] calldata minPositionsOut,
+        uint256 totalBase,
+        address[] memory positionTokens,
+        uint256[] memory positionPricesInBase
     ) internal returns (uint256 toMintLP) {
         address baseToken = _poolParameters.baseToken;
-        (
-            uint256 totalBase,
-            ,
-            address[] memory positionTokens,
-            uint256[] memory positionPricesInBase
-        ) = _poolParameters.getNormalizedPoolPriceAndPositions();
 
         toMintLP = _transferBase(baseHolder, totalBase, amountInBaseToInvest);
 
