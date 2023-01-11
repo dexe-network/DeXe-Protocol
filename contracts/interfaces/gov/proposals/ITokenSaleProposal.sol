@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+/**
+ * The contract for the additional proposal with custom settings.
+ * This contract acts as a marketplace to provide DAO pools with the ability to sell their own ERC20 tokens.
+ */
 interface ITokenSaleProposal {
     /// @notice Metadata of the tier that is part of the initial tier parameters
     /// @param name the name of the tier

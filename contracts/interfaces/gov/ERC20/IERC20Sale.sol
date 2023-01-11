@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+/**
+ * DAO pools could issue their own ERC20 token and sell it to investors with custom sale logic
+ */
 interface IERC20Sale {
     /// @notice Initial ERC20Sale parameters. This struct is used as an input argument in the contract constructor
     /// @param name the name of the token
