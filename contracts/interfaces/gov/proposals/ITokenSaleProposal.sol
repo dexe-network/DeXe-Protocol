@@ -129,7 +129,7 @@ interface ITokenSaleProposal {
     /// @param tierId the id of the tier in which tokens are purchased
     /// @param tokenToBuyWith the token which is used for exchange
     /// @param amount the token amount used for exchange
-    /// @returns expected sale token amount
+    /// @return expected sale token amount
     function getSaleTokenAmount(
         address user,
         uint256 tierId,
@@ -148,7 +148,7 @@ interface ITokenSaleProposal {
 
     /// @notice This function is used to get amount of tokens that have not been purchased during sale in given tiers and can be returned to DAO treasury
     /// @param tierIds the array of tier ids
-    /// @returns recoveringAmounts the array of token amounts that can be returned to DAO treasury in each tier
+    /// @return recoveringAmounts the array of token amounts that can be returned to DAO treasury in each tier
     function getRecoverAmounts(
         uint256[] calldata tierIds
     ) external view returns (uint256[] memory recoveringAmounts);
