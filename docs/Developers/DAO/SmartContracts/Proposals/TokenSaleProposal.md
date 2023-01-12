@@ -73,7 +73,7 @@ function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external pa
 
 Function ***`addToWhitelist()`*** is used to add users to the whitelist of tier. 
 
-❗ If no user added to whitelist, anyone can buy tokens. Otherwise only users from whitelist can buy tokens.
+❗ If no user added to whitelist, anyone can buy tokens. Otherwise, only users from whitelist can buy tokens.
 
 ```solidity
 function addToWhitelist(WhitelistingRequest[] calldata requests) external onlyGov;
@@ -97,7 +97,7 @@ Function ***`latestTierId()`*** is used to get id (index) of the latest tier of 
 ```solidity
 function latestTierId() external view returns (uint256);
 ```
-- returns -> the id of the latest tier
+- **returns** **->** the id of the latest tier
 
 #
 
