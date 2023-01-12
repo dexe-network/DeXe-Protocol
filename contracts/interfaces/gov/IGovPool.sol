@@ -99,7 +99,7 @@ interface IGovPool {
 
     /// @notice The struct that holds delegator properties (only for internal needs)
     /// @param latestCumulativeSum delegator's latest cumulative sum
-    /// @param pending rewards delegator's pending rewards
+    /// @param pendingRewards delegator's pending rewards
     struct DelegatorInfo {
         uint256 latestCumulativeSum;
         uint256 pendingRewards;
@@ -274,7 +274,7 @@ interface IGovPool {
     /// @param nftMultiplierAddress the address of nft multiplier
     function setNftMultiplierAddress(address nftMultiplierAddress) external;
 
-    /// @notice The function for saving ipfs hash of offchain proposal results
+    /// @notice The function for saving ipfs hash of off-chain proposal results
     /// @param resultsHash the ipfs results hash
     /// @param signature the signature from verifier
     function saveOffchainResults(string calldata resultsHash, bytes calldata signature) external;
@@ -334,7 +334,7 @@ interface IGovPool {
         address delegatee
     ) external view returns (uint256, ShrinkableArray.UintArray memory);
 
-    /// @notice The function to get onchain and offchain rewards
+    /// @notice The function to get on-chain and off-chain rewards
     /// @param user the address of the user whose rewards are required
     /// @param proposalIds the list of proposal ids
     /// @return the list of rewards
@@ -350,11 +350,11 @@ interface IGovPool {
         address delegator
     ) external view returns (UserStakeRewardsView[] memory);
 
-    /// @notice The function to get offchain voting results
+    /// @notice The function to get off-chain voting results
     /// @return resultsHash the ipfs hash
     function getOffchainResultsHash() external view returns (string memory resultsHash);
 
-    /// @notice The function to get the sign hash from srting resultsHash, chainid, govPool address
+    /// @notice The function to get the sign hash from string resultsHash, chainid, govPool address
     /// @param resultsHash the ipfs hash
     /// @return bytes32 hash
     function getOffchainSignHash(string calldata resultsHash) external view returns (bytes32);

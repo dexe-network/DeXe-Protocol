@@ -119,9 +119,9 @@ interface ITokenSaleProposal {
     function vestingWithdraw(uint256[] calldata tierIds) external;
 
     /// @notice This function is used to purchase tokens in the given tier
-    /// @param tierId id of tier where tokens will be purchased
-    /// @param tokenToBuyWith another token that will be used (exchanged) to purchase token on the token sale
-    /// @param amount amount of another token another to be used for this exchange
+    /// @param tierId the id of the tier where tokens will be purchased
+    /// @param tokenToBuyWith the token that will be used (exchanged) to purchase token on the token sale
+    /// @param amount the amount of the token to be used for this exchange
     function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable;
 
     /// @notice This function is used to return to the DAO treasury tokens that have not been purchased during sale
