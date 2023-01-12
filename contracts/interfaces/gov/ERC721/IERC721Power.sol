@@ -7,6 +7,12 @@ import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
  * This is the custom NFT contract with voting power
  */
 interface IERC721Power is IERC721Enumerable {
+    /// @notice This struct holds NFT Power parameters. These parameters are used to recalculate nft power
+    /// @param lastUpdate the last time when the power was recalculated
+    /// @param currentPower the current nft power
+    /// @param currentCollateral the current nft collateral
+    /// @param maxPower the maximum nft power limit
+    /// @param requiredCollateral the required collateral amount
     struct NftInfo {
         uint64 lastUpdate;
         uint256 currentPower;

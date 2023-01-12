@@ -15,13 +15,16 @@ struct GovPoolDeployParams {
     ValidatorsDeployParams validatorsParams;
     UserKeeperDeployParams userKeeperParams;
     address nftMultiplierAddress;
+    address verifier;
     string descriptionURL;
     string name;
 }
 ```
 - ***settingsParams*** - general settings of the pool
 - ***validatorsParams*** - parameters of validators
+- ***userKeeperParams*** - parameters of the user keeper
 - ***nftMultiplierAddress*** - the address of **NFT** multiplier
+- ***verifier*** - the address of the verifier
 - ***descriptionURL*** - the description of the pool
 - ***name*** - the name of the pool
 
@@ -114,7 +117,7 @@ function listPools(
     string memory name,
     uint256 offset,
     uint256 limit
-) public view returns (address[] memory pools)
+) public view returns (address[] memory pools);
 ```
 - ***name*** - the associated pools name
 - ***offset*** - the starting index in the pools array

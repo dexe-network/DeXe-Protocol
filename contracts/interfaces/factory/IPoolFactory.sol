@@ -11,11 +11,21 @@ import "../core/ICoreProperties.sol";
  * or a governance owner. There are 3 pools available: BasicTraderPool, InvestTraderPool and GovPool
  */
 interface IPoolFactory {
+    /// @notice General settings of the pool
+    /// @param proposalSettings list of infos about settings for proposal types
+    /// @param additionalProposalExecutors list of additional proposal executors
     struct SettingsDeployParams {
         IGovSettings.ProposalSettings[] proposalSettings;
         address[] additionalProposalExecutors;
     }
 
+    /// @notice Parameters of validators
+    /// @param name the name of a token used by validators
+    /// @param symbol the symbol of a token used by validators
+    /// @param duration the duration of voting (without the participation of the DAO pool) of validators in seconds
+    /// @param quorum percentage of tokens from the token supply needed to reach a quorum
+    /// @param validators list of the validator addresses
+    /// @param balances list of initial token balances of the validators
     struct ValidatorsDeployParams {
         string name;
         string symbol;
@@ -25,6 +35,11 @@ interface IPoolFactory {
         uint256[] balances;
     }
 
+    /// @notice Parameters of the user keeper
+    /// @param tokenAddress address of the tokens used for voting
+    /// @param nftAddress address of the NFT used for voting
+    /// @param totalPowerInTokens the token equivalent of all NFTs
+    /// @param nftsTotalSupply the NFT collection size
     struct UserKeeperDeployParams {
         address tokenAddress;
         address nftAddress;
@@ -32,6 +47,14 @@ interface IPoolFactory {
         uint256 nftsTotalSupply;
     }
 
+    /// @notice The pool deploy parameters
+    /// @param settingsParams general settings of the pool
+    /// @param validatorsParams parameters of validators
+    /// @param userKeeperParams parameters of the user keeper
+    /// @param nftMultiplierAddress the address of NFT multiplier
+    /// @param verifier the address of the verifier
+    /// @param descriptionURL the description of the pool
+    /// @param name the name of the pool
     struct GovPoolDeployParams {
         SettingsDeployParams settingsParams;
         ValidatorsDeployParams validatorsParams;
@@ -42,6 +65,10 @@ interface IPoolFactory {
         string name;
     }
 
+    /// @notice The token sale proposal parameters
+    /// @param tiersParams tiers parameters
+    /// @param whitelistParams whitelisted users (for participation in tiers)
+    /// @param tokenParams parameters of the token
     struct GovTokenSaleProposalDeployParams {
         ITokenSaleProposal.TierView[] tiersParams;
         ITokenSaleProposal.WhitelistingRequest[] whitelistParams;
@@ -72,6 +99,9 @@ interface IPoolFactory {
     /// @param parameters the pool deploy parameters
     function deployGovPool(GovPoolDeployParams calldata parameters) external;
 
+    /// @notice This function is used to deploy DAO Pool with TokenSale proposal
+    /// @param parameters the pool deploy parameters
+    /// @param tokenSaleParams the token sale proposal parameters
     function deployGovPoolWithTokenSale(
         GovPoolDeployParams calldata parameters,
         GovTokenSaleProposalDeployParams calldata tokenSaleParams
