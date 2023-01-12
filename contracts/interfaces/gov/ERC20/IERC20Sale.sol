@@ -8,10 +8,10 @@ interface IERC20Sale {
     /// @notice Initial ERC20Sale parameters. This struct is used as an input argument in the contract constructor
     /// @param name the name of the token
     /// @param symbol the symbol of the token
-    /// @param users the list of users for which tokens need to be minted
+    /// @param users the list of users for which tokens are needed to be minted
     /// @param saleAmount the token amount to be minted for sale
     /// @param cap cap on the token's total supply
-    /// @param mintedTotal the total amount of tokens to be minted while the contract creation
+    /// @param mintedTotal the total amount of tokens to be minted with the contract creation
     /// @param amounts the list of token amounts which should be minted to the respective users
     struct ConstructorParams {
         string name;
