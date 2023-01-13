@@ -974,15 +974,36 @@ describe("TokenSaleProposal", () => {
           await setTime(parseInt(tiers[1].saleStartTime));
           await tsp.buy(2, purchaseToken1.address, wei(200));
 
+          const userInfos = [
+            {
+              isWhitelisted: true,
+              purchase: {
+                purchaseTime: (parseInt(tiers[1].saleStartTime) + 1).toString(),
+                vestingTotalAmount: "0",
+                vestingWithdrawnAmount: "0",
+                latestVestingWithdraw: "0",
+              },
+              vestingView: {
+                cliffEndTime: "0",
+                vestingEndTime: "0",
+                nextUnlockTime: "0",
+                nextUnlockAmount: "0",
+                amountToWithdraw: "0",
+                lockedAmount: "0",
+              },
+            },
+          ];
+
           assert.equal((await saleToken.balanceOf(OWNER)).toFixed(), wei(800));
           assert.deepEqual(
             (await tsp.getVestingWithdrawAmounts(OWNER, [2])).map((amount) => amount.toFixed()),
             ["0"]
           );
+          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [2])), userInfos);
         });
 
         it("should do multiple various time withdraws properly", async () => {
-          await purchaseToken1.approve(tsp.address, wei(200));
+          await purchaseToken1.approve(tsp.address, wei(400));
 
           assert.equal((await saleToken.balanceOf(OWNER)).toFixed(), "0");
 
