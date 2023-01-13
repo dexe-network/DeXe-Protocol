@@ -233,7 +233,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             userInfos[i].isWhitelisted = _isWhitelisted(user, tierIds[i]);
             userInfos[i].purchase = purchase;
 
-            if (purchase.purchaseTime == 0 || purchase.vestingTotalAmount == 0) {
+            if (purchase.vestingTotalAmount == 0) {
                 continue;
             }
 

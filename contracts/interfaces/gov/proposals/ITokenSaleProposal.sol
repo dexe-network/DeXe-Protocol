@@ -60,9 +60,10 @@ interface ITokenSaleProposal {
         string uri;
     }
 
-    /// @notice Purchase parameters (only for internal needs)
+    /// @notice Purchase parameters. This struct is used in view functions of contract as a return argument
     /// @param purchaseTime the time of the purchase
-    /// @param vestingAmount the token amount allocated for vesting
+    /// @param vestingTotalAmount the token amount allocated for vesting
+    /// @param vestingWithdrawnAmount the token amount withdrawn by the user
     /// @param latestVestingWithdraw the last time the buyer made a vesting withdrawal
     struct Purchase {
         uint256 purchaseTime;
@@ -71,6 +72,13 @@ interface ITokenSaleProposal {
         uint256 latestVestingWithdraw;
     }
 
+    /// @notice Vesting dynamic parameters. This struct is used in view functions of contract as a return argument
+    /// @param cliffEndTime the end time of the cliff period
+    /// @param vestingEndTime the end time of the vesting
+    /// @param nextUnlockTime the next time the user will receive vesting funds. It is zero if there are no more locked tokens
+    /// @param nextUnlockAmount the token amount which will be unlocked in the next unlock time
+    /// @param amountToWithdraw the token amount which can be withdrawn in the current time
+    /// @param lockedAmount the token amount which is locked in the current time
     struct VestingView {
         uint256 cliffEndTime;
         uint256 vestingEndTime;
@@ -80,6 +88,10 @@ interface ITokenSaleProposal {
         uint256 lockedAmount;
     }
 
+    /// @notice User parameters. This struct is used in view functions of contract as a return argument
+    /// @param isWhitelisted true if the user is whitelisted in the corresponding tier, false otherwise
+    /// @param purchase user purchase parameters in the corresponding tier
+    /// @param vestingView user vesting parameters in the corresponding tier
     struct UserInfo {
         bool isWhitelisted;
         Purchase purchase;
@@ -183,6 +195,10 @@ interface ITokenSaleProposal {
         uint256 limit
     ) external view returns (TierView[] memory tierViews, TierInfoView[] memory tierInfoViews);
 
+    /// @notice This function is used to get user's infos from tiers
+    /// @param user the address of the user whose infos are required
+    /// @param tierIds the list of tier ids to get infos from
+    /// @return userInfos the list of user infos
     function getUserInfos(
         address user,
         uint256[] calldata tierIds
