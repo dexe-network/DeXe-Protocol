@@ -252,13 +252,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
                 currentPrefixVestingAmount -
                 purchase.vestingWithdrawnAmount;
             vestingView.lockedAmount = purchase.vestingTotalAmount - currentPrefixVestingAmount;
-            vestingView.nextUnlockAmount =
-                _countPrefixVestingAmount(
-                    vestingView.cliffEndTime.max(block.timestamp + vestingSettings.unlockStep),
-                    purchase,
-                    vestingSettings
-                ) -
-                currentPrefixVestingAmount;
 
             if (block.timestamp < vestingView.cliffEndTime) {
                 vestingView.nextUnlockTime =
@@ -270,10 +263,14 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
                     purchase.purchaseTime;
                 deltaTime -= deltaTime % vestingSettings.unlockStep;
 
-                vestingView.nextUnlockTime -= deltaTime > vestingSettings.vestingDuration
+                vestingView.nextUnlockTime = deltaTime > vestingSettings.vestingDuration
                     ? 0
                     : purchase.purchaseTime + deltaTime;
             }
+
+            vestingView.nextUnlockAmount =
+                _countPrefixVestingAmount(vestingView.nextUnlockTime, purchase, vestingSettings) -
+                currentPrefixVestingAmount;
 
             userInfos[i].vestingView = vestingView;
         }
