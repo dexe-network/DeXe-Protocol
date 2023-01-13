@@ -113,7 +113,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
                 tierView.vestingSettings.vestingPercentage
             ),
             vestingWithdrawnAmount: 0,
-            latestVestingWithdraw: block.timestamp
+            latestVestingWithdraw: 0
         });
 
         if (isNativeCurrency) {

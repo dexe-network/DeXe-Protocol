@@ -254,6 +254,30 @@ describe("TokenSaleProposal", () => {
       return tierViews.map((tierView) => tierViewToObject(tierView));
     };
 
+    const userInfoToObject = (userInfo) => {
+      return {
+        isWhitelisted: userInfo.isWhitelisted,
+        purchase: {
+          purchaseTime: userInfo.purchase.purchaseTime,
+          vestingTotalAmount: userInfo.purchase.vestingTotalAmount,
+          vestingWithdrawnAmount: userInfo.purchase.vestingWithdrawnAmount,
+          latestVestingWithdraw: userInfo.purchase.latestVestingWithdraw,
+        },
+        vestingView: {
+          cliffEndTime: userInfo.vestingView.cliffEndTime,
+          vestingEndTime: userInfo.vestingView.vestingEndTime,
+          nextUnlockTime: userInfo.vestingView.nextUnlockTime,
+          nextUnlockAmount: userInfo.vestingView.nextUnlockAmount,
+          amountToWithdraw: userInfo.vestingView.amountToWithdraw,
+          lockedAmount: userInfo.vestingView.lockedAmount,
+        },
+      };
+    };
+
+    const userInfosToObject = (userInfos) => {
+      return userInfos.map((userInfo) => userInfoToObject(userInfo));
+    };
+
     let POOL_PARAMETERS;
 
     beforeEach("setup", async () => {
@@ -957,7 +981,7 @@ describe("TokenSaleProposal", () => {
           );
         });
 
-        it("should do multiple various time withdraws properly", async () => {
+        it.only("should do multiple various time withdraws properly", async () => {
           await purchaseToken1.approve(tsp.address, wei(200));
 
           assert.equal((await saleToken.balanceOf(OWNER)).toFixed(), "0");
@@ -965,36 +989,75 @@ describe("TokenSaleProposal", () => {
           await setTime(parseInt(tiers[0].saleStartTime));
           await tsp.buy(1, purchaseToken1.address, wei(200));
 
+          const purchaseTime = parseInt(tiers[0].saleStartTime) + 1;
+
+          let userInfos = [
+            {
+              isWhitelisted: true,
+              purchase: {
+                purchaseTime: purchaseTime.toString(),
+                vestingTotalAmount: wei("120"),
+                vestingWithdrawnAmount: "0",
+                latestVestingWithdraw: "0",
+              },
+              vestingView: {
+                cliffEndTime: (purchaseTime + parseInt(tiers[0].vestingSettings.cliffPeriod)).toString(),
+                vestingEndTime: (purchaseTime + parseInt(tiers[0].vestingSettings.vestingDuration)).toString(),
+                nextUnlockTime: (purchaseTime + parseInt(tiers[0].vestingSettings.cliffPeriod)).toString(),
+                nextUnlockAmount: wei("60"),
+                amountToWithdraw: "0",
+                lockedAmount: wei("120"),
+              },
+            },
+          ];
+
+          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(480));
+          assert.deepEqual(
+            (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
+            ["0"]
+          );
+          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
+
+          await tsp.vestingWithdraw([1]);
+
+          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(480));
+
+          await setTime(purchaseTime + 24);
+
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(480));
           assert.deepEqual(
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
             ["0"]
           );
 
-          await tsp.vestingWithdraw([1]);
-
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(480));
-
-          await setTime(parseInt(tiers[0].saleStartTime) + 25);
-
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(480));
-          assert.deepEqual(
-            (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
-            ["0"]
-          );
+          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
           await tsp.vestingWithdraw([1]);
 
+          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(480));
 
-          await setTime(parseInt(tiers[0].saleStartTime) + 75);
+          await setTime(purchaseTime + 74);
 
           assert.deepEqual(
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
             [wei("88.8")]
           ); // tokensPerStep = 2.4, steps = 74 // 2 = 37, vestingWithdraw = 2.4 * 37 = 88.8
 
+          userInfos[0].vestingView.lockedAmount = wei("31.2");
+          userInfos[0].vestingView.amountToWithdraw = wei("88.8");
+          userInfos[0].vestingView.nextUnlockTime = (purchaseTime + 76).toString();
+          userInfos[0].vestingView.nextUnlockAmount = wei("2.4");
+
+          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
+
           await tsp.vestingWithdraw([1]);
+
+          userInfos[0].purchase.latestVestingWithdraw = (purchaseTime + 75).toString();
+          userInfos[0].purchase.vestingWithdrawnAmount = wei("88.8");
+          userInfos[0].vestingView.amountToWithdraw = "0";
+
+          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei("568.8"));
           assert.deepEqual(
@@ -1002,14 +1065,35 @@ describe("TokenSaleProposal", () => {
             ["0"]
           );
 
-          await setTime(parseInt(tiers[0].saleStartTime) + 101);
+          await setTime(purchaseTime + 91);
+
+          userInfos[0].vestingView.nextUnlockTime = (purchaseTime + 92).toString();
+          userInfos[0].vestingView.amountToWithdraw = wei("19.2");
+          userInfos[0].vestingView.lockedAmount = wei("12");
+
+          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
+
+          await setTime(purchaseTime + 100);
 
           assert.deepEqual(
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
             [wei("31.2")]
           ); // tokensPerStep = 2.4, steps = (100-74) // 2 = 13 vestingWithdraw = 2.4 * 13 = 31.2
 
+          userInfos[0].vestingView.nextUnlockAmount = "0";
+          userInfos[0].vestingView.nextUnlockTime = "0";
+          userInfos[0].vestingView.amountToWithdraw = wei("31.2");
+          userInfos[0].vestingView.lockedAmount = "0";
+
+          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
+
           await tsp.vestingWithdraw([1]);
+
+          userInfos[0].vestingView.amountToWithdraw = "0";
+          userInfos[0].purchase.latestVestingWithdraw = (purchaseTime + 101).toString();
+          userInfos[0].purchase.vestingWithdrawnAmount = wei("120");
+
+          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei("600"));
           assert.deepEqual(
@@ -1024,7 +1108,11 @@ describe("TokenSaleProposal", () => {
             ["0"]
           );
 
+          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
+
           await tsp.vestingWithdraw([1]);
+
+          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(600));
         });
