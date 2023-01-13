@@ -981,7 +981,7 @@ describe("TokenSaleProposal", () => {
           );
         });
 
-        it.only("should do multiple various time withdraws properly", async () => {
+        it("should do multiple various time withdraws properly", async () => {
           await purchaseToken1.approve(tsp.address, wei(200));
 
           assert.equal((await saleToken.balanceOf(OWNER)).toFixed(), "0");
