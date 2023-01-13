@@ -239,9 +239,26 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
             VestingSettings memory vestingSettings = tier.tierView.vestingSettings;
 
+            uint256 currentPrefixVestingAmount = _countPrefixVestingAmount(
+                block.timestamp,
+                purchase,
+                vestingSettings
+            );
+
             VestingView memory vestingView;
             vestingView.cliffEndTime = purchase.purchaseTime + vestingSettings.cliffPeriod;
             vestingView.vestingEndTime = purchase.purchaseTime + vestingSettings.vestingDuration;
+            vestingView.amountToWithdraw =
+                currentPrefixVestingAmount -
+                purchase.vestingWithdrawnAmount;
+            vestingView.lockedAmount = purchase.vestingTotalAmount - currentPrefixVestingAmount;
+            vestingView.nextUnlockAmount =
+                _countPrefixVestingAmount(
+                    vestingView.cliffEndTime.max(block.timestamp + vestingSettings.unlockStep),
+                    purchase,
+                    vestingSettings
+                ) -
+                currentPrefixVestingAmount;
 
             if (block.timestamp < vestingView.cliffEndTime) {
                 vestingView.nextUnlockTime =
@@ -257,24 +274,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
                     ? 0
                     : purchase.purchaseTime + deltaTime;
             }
-
-            uint256 currentPrefixVestingAmount = _countPrefixVestingAmount(
-                block.timestamp,
-                purchase,
-                vestingSettings
-            );
-
-            vestingView.amountToWithdraw =
-                currentPrefixVestingAmount -
-                purchase.vestingWithdrawnAmount;
-            vestingView.lockedAmount = purchase.vestingTotalAmount - currentPrefixVestingAmount;
-            vestingView.nextUnlockAmount =
-                _countPrefixVestingAmount(
-                    vestingView.cliffEndTime.max(block.timestamp + vestingSettings.unlockStep),
-                    purchase,
-                    vestingSettings
-                ) -
-                currentPrefixVestingAmount;
 
             userInfos[i].vestingView = vestingView;
         }
