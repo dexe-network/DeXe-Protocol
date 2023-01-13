@@ -66,7 +66,8 @@ interface ITokenSaleProposal {
     /// @param latestVestingWithdraw the last time the buyer made a vesting withdrawal
     struct Purchase {
         uint256 purchaseTime;
-        uint256 vestingAmount;
+        uint256 vestingTotalAmount;
+        uint256 vestingWithdrawnAmount;
         uint256 latestVestingWithdraw;
     }
 

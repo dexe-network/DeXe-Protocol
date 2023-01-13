@@ -77,6 +77,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             Purchase storage purchase = tier.tierInfo.customers[msg.sender];
 
             purchase.latestVestingWithdraw = block.timestamp;
+            purchase.vestingWithdrawnAmount += vestingWithdrawAmounts[i];
 
             ERC20(tier.tierView.saleTokenAddress).safeTransfer(
                 msg.sender,
@@ -108,7 +109,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
         tierInfo.customers[msg.sender] = Purchase({
             purchaseTime: block.timestamp,
-            vestingAmount: saleTokenAmount.percentage(tierView.vestingSettings.vestingPercentage),
+            vestingTotalAmount: saleTokenAmount.percentage(
+                tierView.vestingSettings.vestingPercentage
+            ),
+            vestingWithdrawnAmount: 0,
             latestVestingWithdraw: block.timestamp
         });
 
@@ -284,45 +288,13 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         uint256 tierId
     ) internal view ifTierExists(tierId) returns (uint256) {
         Tier storage tier = _tiers[tierId];
-        TierInfo storage tierInfo = tier.tierInfo;
 
-        Purchase memory purchase = tierInfo.customers[user];
+        Purchase memory purchase = tier.tierInfo.customers[user];
         VestingSettings memory vestingSettings = tier.tierView.vestingSettings;
 
-        uint256 startTime = purchase.purchaseTime + vestingSettings.cliffPeriod;
-
-        if (
-            startTime > block.timestamp ||
-            vestingSettings.vestingPercentage == 0 ||
-            tierInfo.customers[user].purchaseTime == 0
-        ) {
-            return 0;
-        }
-
-        uint256 normVestingEndTime = (purchase.purchaseTime + vestingSettings.vestingDuration) -
-            (vestingSettings.vestingDuration % vestingSettings.unlockStep);
-
-        if (purchase.latestVestingWithdraw >= normVestingEndTime) {
-            return 0;
-        }
-
-        uint256 normLatestVestingWithdraw = purchase.latestVestingWithdraw -
-            ((purchase.latestVestingWithdraw - purchase.purchaseTime) %
-                vestingSettings.unlockStep);
-
-        uint256 normNextVestingWithdraw = block.timestamp.min(normVestingEndTime);
-        normNextVestingWithdraw -=
-            (normNextVestingWithdraw - purchase.purchaseTime) %
-            vestingSettings.unlockStep;
-
-        uint256 stepsCount = vestingSettings.vestingDuration / vestingSettings.unlockStep;
-        uint256 tokensPerStep = purchase.vestingAmount / stepsCount;
-
         return
-            tokensPerStep.ratio(
-                normNextVestingWithdraw - normLatestVestingWithdraw,
-                vestingSettings.unlockStep
-            );
+            _countPrefixVestingAmount(block.timestamp, purchase, vestingSettings) -
+            purchase.vestingWithdrawnAmount;
     }
 
     function _getRecoverAmount(
@@ -353,6 +325,27 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         for (uint256 i = 0; i < ids.length; i++) {
             require(balanceOf(to, ids[i]) == 0, "TSP: balance can be only 0 or 1");
         }
+    }
+
+    function _countPrefixVestingAmount(
+        uint256 timePoint,
+        Purchase memory purchase,
+        VestingSettings memory vestingSettings
+    ) private pure returns (uint256) {
+        if (
+            purchase.purchaseTime == 0 ||
+            vestingSettings.vestingPercentage == 0 ||
+            timePoint < purchase.purchaseTime + vestingSettings.cliffPeriod
+        ) {
+            return 0;
+        }
+
+        uint256 stepsCount = vestingSettings.vestingDuration / vestingSettings.unlockStep;
+        uint256 tokensPerStep = purchase.vestingTotalAmount / stepsCount;
+
+        return
+            (vestingSettings.vestingDuration.min(timePoint - purchase.purchaseTime) /
+                vestingSettings.unlockStep) * tokensPerStep;
     }
 
     function _validateVestingSettings(
