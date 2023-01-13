@@ -71,6 +71,21 @@ interface ITokenSaleProposal {
         uint256 latestVestingWithdraw;
     }
 
+    struct VestingView {
+        uint256 cliffEndTime;
+        uint256 vestingEndTime;
+        uint256 nextUnlockTime;
+        uint256 nextUnlockAmount;
+        uint256 amountToWithdraw;
+        uint256 lockedAmount;
+    }
+
+    struct UserInfo {
+        bool isWhitelisted;
+        Purchase purchase;
+        VestingView vestingView;
+    }
+
     /// @notice Additional tier parameters (only for internal needs)
     /// @param tierInfoView dynamic tier parameters
     /// @param rates matching purchase token addresses with their exchange rates
@@ -167,4 +182,9 @@ interface ITokenSaleProposal {
         uint256 offset,
         uint256 limit
     ) external view returns (TierView[] memory tierViews, TierInfoView[] memory tierInfoViews);
+
+    function getUserInfos(
+        address user,
+        uint256[] calldata tierIds
+    ) external view returns (UserInfo[] memory userInfos);
 }

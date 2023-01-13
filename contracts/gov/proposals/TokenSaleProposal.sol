@@ -220,6 +220,75 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         }
     }
 
+    function getUserInfos(
+        address user,
+        uint256[] calldata tierIds
+    ) external view returns (UserInfo[] memory userInfos) {
+        userInfos = new UserInfo[](tierIds.length);
+
+        for (uint256 i = 0; i < userInfos.length; i++) {
+            Tier storage tier = _tiers[tierIds[i]];
+
+            userInfos[i].purchase = tier.tierInfo.customers[user];
+
+            if (
+                userInfos[i].purchase.purchaseTime == 0 ||
+                userInfos[i].purchase.vestingTotalAmount == 0
+            ) {
+                continue;
+            }
+
+            VestingSettings memory vestingSettings = tier.tierView.vestingSettings;
+
+            VestingView memory vestingView;
+            vestingView.cliffEndTime =
+                userInfos[i].purchase.purchaseTime +
+                vestingSettings.cliffPeriod;
+            vestingView.vestingEndTime =
+                userInfos[i].purchase.purchaseTime +
+                vestingSettings.vestingDuration;
+
+            if (block.timestamp < vestingView.cliffEndTime) {
+                vestingView.nextUnlockTime =
+                    userInfos[i].purchase.purchaseTime +
+                    vestingSettings.cliffPeriod.min(vestingSettings.unlockStep);
+            } else {
+                uint256 deltaTime = block.timestamp +
+                    vestingSettings.unlockStep -
+                    userInfos[i].purchase.purchaseTime;
+                deltaTime -= deltaTime % vestingSettings.unlockStep;
+
+                vestingView.nextUnlockTime -= deltaTime > vestingSettings.vestingDuration
+                    ? 0
+                    : userInfos[i].purchase.purchaseTime + deltaTime;
+            }
+
+            uint256 currentPrefixVestingAmount = _countPrefixVestingAmount(
+                block.timestamp,
+                userInfos[i].purchase,
+                vestingSettings
+            );
+
+            vestingView.amountToWithdraw =
+                currentPrefixVestingAmount -
+                userInfos[i].purchase.vestingWithdrawnAmount;
+
+            vestingView.lockedAmount =
+                userInfos[i].purchase.vestingTotalAmount -
+                currentPrefixVestingAmount;
+
+            vestingView.nextUnlockAmount =
+                _countPrefixVestingAmount(
+                    vestingView.cliffEndTime.max(block.timestamp + vestingSettings.unlockStep),
+                    userInfos[i].purchase,
+                    vestingSettings
+                ) -
+                currentPrefixVestingAmount;
+
+            userInfos[i].vestingView = vestingView;
+        }
+    }
+
     function uri(uint256 tierId) public view override returns (string memory) {
         return _tiers[tierId].tierInfo.tierInfoView.uri;
     }
