@@ -238,6 +238,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             }
 
             VestingSettings memory vestingSettings = tier.tierView.vestingSettings;
+            VestingView memory vestingView;
 
             uint256 currentPrefixVestingAmount = _countPrefixVestingAmount(
                 block.timestamp,
@@ -245,7 +246,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
                 vestingSettings
             );
 
-            VestingView memory vestingView;
             vestingView.cliffEndTime = purchase.purchaseTime + vestingSettings.cliffPeriod;
             vestingView.vestingEndTime = purchase.purchaseTime + vestingSettings.vestingDuration;
             vestingView.amountToWithdraw =
@@ -345,6 +345,23 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         _tiers[tierId].tierInfo.tierInfoView.isOff = true;
     }
 
+    function _beforeTokenTransfer(
+        address operator,
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) internal override {
+        super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+
+        require(from == address(0), "TSP: only for minting");
+
+        for (uint256 i = 0; i < ids.length; i++) {
+            require(balanceOf(to, ids[i]) == 0, "TSP: balance can be only 0 or 1");
+        }
+    }
+
     function _getVestingWithdrawAmount(
         address user,
         uint256 tierId
@@ -370,23 +387,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         }
 
         return tierView.totalTokenProvided - tierInfoView.totalSold;
-    }
-
-    function _beforeTokenTransfer(
-        address operator,
-        address from,
-        address to,
-        uint256[] memory ids,
-        uint256[] memory amounts,
-        bytes memory data
-    ) internal override {
-        super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
-
-        require(from == address(0), "TSP: only for minting");
-
-        for (uint256 i = 0; i < ids.length; i++) {
-            require(balanceOf(to, ids[i]) == 0, "TSP: balance can be only 0 or 1");
-        }
     }
 
     function _isWhitelisted(address user, uint256 tierId) internal view returns (bool) {
