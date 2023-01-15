@@ -12,7 +12,7 @@ import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/trader/ITraderPoolProposal.sol";
-import "../interfaces/trader/ITraderPoolInvestorsHook.sol";
+import "../interfaces/trader/ITraderPoolMemberHook.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
 import "../libs/math/MathHelper.sol";
@@ -48,8 +48,8 @@ abstract contract TraderPoolProposal is
     mapping(address => uint256) public override totalLPBalances; // user => LP invested
 
     event ProposalRestrictionsChanged(uint256 proposalId, address sender);
-    event ProposalInvestorAdded(uint256 proposalId, address investor);
-    event ProposalInvestorRemoved(uint256 proposalId, address investor);
+    event ProposalJoined(uint256 proposalId, address investor);
+    event ProposalLeft(uint256 proposalId, address investor);
     event ProposalInvested(
         uint256 proposalId,
         address user,
@@ -131,8 +131,8 @@ abstract contract TraderPoolProposal is
         totalLockedLP += lpInvestment;
         investedBase += baseInvestment;
 
-        _mint(to, proposalId, toMint, "");
         _updateTo(to, proposalId, toMint, lpInvestment, baseInvestment);
+        _mint(to, proposalId, toMint, "");
     }
 
     function _updateFromData(
@@ -164,31 +164,31 @@ abstract contract TraderPoolProposal is
         totalLPBalances[user] += lpAmount;
     }
 
-    function _checkRemoveInvestor(address user, uint256 proposalId, uint256 lp2Amount) internal {
+    function _checkLeave(address user, uint256 proposalId, uint256 lp2Amount) internal {
         if (balanceOf(user, proposalId) == lp2Amount) {
             _activeInvestments[user].remove(proposalId);
 
             if (user != _parentTraderPoolInfo.trader) {
                 _investors[proposalId].remove(user);
-
-                if (_activeInvestments[user].length() == 0) {
-                    ITraderPoolInvestorsHook(_parentTraderPoolInfo.parentPoolAddress)
-                        .checkRemoveInvestor(user);
-                }
-
-                emit ProposalInvestorRemoved(proposalId, user);
             }
+
+            if (_activeInvestments[user].length() == 0) {
+                ITraderPoolMemberHook(_parentTraderPoolInfo.parentPoolAddress).checkLeave(user);
+            }
+
+            emit ProposalLeft(proposalId, user);
         }
     }
 
-    function _checkNewInvestor(address user, uint256 proposalId) internal {
-        if (user != _parentTraderPoolInfo.trader && !_investors[proposalId].contains(user)) {
-            _investors[proposalId].add(user);
-            ITraderPoolInvestorsHook(_parentTraderPoolInfo.parentPoolAddress).checkNewInvestor(
-                user
-            );
+    function _checkJoin(address user, uint256 proposalId) internal {
+        if (balanceOf(user, proposalId) == 0) {
+            if (user != _parentTraderPoolInfo.trader) {
+                _investors[proposalId].add(user);
+            }
 
-            emit ProposalInvestorAdded(proposalId, user);
+            ITraderPoolMemberHook(_parentTraderPoolInfo.parentPoolAddress).checkJoin(user);
+
+            emit ProposalJoined(proposalId, user);
         }
     }
 
@@ -204,7 +204,7 @@ abstract contract TraderPoolProposal is
             emit ProposalDivested(proposalId, user, lp2Amount, lpTransfer, baseTransfer);
         }
 
-        _checkRemoveInvestor(user, proposalId, lp2Amount);
+        _checkLeave(user, proposalId, lp2Amount);
     }
 
     function _updateTo(
@@ -214,7 +214,7 @@ abstract contract TraderPoolProposal is
         uint256 lpAmount,
         uint256 baseAmount
     ) internal virtual {
-        _checkNewInvestor(user, proposalId);
+        _checkJoin(user, proposalId);
         _updateToData(user, proposalId, lpAmount, baseAmount);
 
         emit ProposalInvested(proposalId, user, lpAmount, baseAmount, lp2Amount);

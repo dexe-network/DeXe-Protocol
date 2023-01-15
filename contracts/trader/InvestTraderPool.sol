@@ -113,14 +113,16 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
             return;
         }
 
-        uint256 lpMinted = _investPositions(
+        uint256 toMintLP = _investPositions(
             address(_traderPoolProposal),
             receivedBase,
             minPositionsOut
         );
-        _updateToData(msg.sender, receivedBase);
 
-        emit ProposalDivested(proposalId, msg.sender, 0, lpMinted, receivedBase);
+        _updateToData(msg.sender, receivedBase);
+        _mint(msg.sender, toMintLP);
+
+        emit ProposalDivested(proposalId, msg.sender, 0, toMintLP, receivedBase);
     }
 
     function proposalPoolAddress() external view override returns (address) {
@@ -143,12 +145,12 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         return delay != 0 ? (_firstExchange != 0 ? _firstExchange + delay : MAX_UINT) : 0;
     }
 
-    function checkRemoveInvestor(address user) external override onlyProposalPool {
-        _checkRemoveInvestor(user, 0);
+    function checkLeave(address user) external override onlyProposalPool {
+        _checkLeave(user, 0);
     }
 
-    function checkNewInvestor(address user) external override onlyProposalPool {
-        _checkNewInvestor(user);
+    function checkJoin(address user) external override onlyProposalPool {
+        _checkJoin(user);
     }
 
     function _setFirstExchangeTime() internal {

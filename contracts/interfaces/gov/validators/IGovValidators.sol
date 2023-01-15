@@ -148,7 +148,7 @@ interface IGovValidators {
     /// @notice The function for getting proposal required quorum
     /// @param proposalId the id of proposal
     /// @param isInternal the boolean flag, if true then proposal is internal
-    /// return the number of votes to reach the quorum
+    /// @return the number of votes to reach the quorum
     function getProposalRequiredQuorum(
         uint256 proposalId,
         bool isInternal

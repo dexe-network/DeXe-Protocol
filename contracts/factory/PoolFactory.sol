@@ -32,6 +32,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     PoolRegistry internal _poolRegistry;
     CoreProperties internal _coreProperties;
 
+    mapping(bytes32 => bool) private _usedSalts;
+
     event TraderPoolDeployed(
         string poolType,
         string symbol,
@@ -70,7 +72,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address userKeeperProxy = _deploy(_poolRegistry.USER_KEEPER_NAME());
         address dpProxy = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
         address settingsProxy = _deploy(_poolRegistry.SETTINGS_NAME());
-        address poolProxy = _deploy(poolType);
+        address poolProxy = _deploy2(poolType, parameters.name);
 
         emit DaoPoolDeployed(
             parameters.name,
@@ -111,7 +113,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address userKeeperProxy = _deploy(_poolRegistry.USER_KEEPER_NAME());
         address dpProxy = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
         address settingsProxy = _deploy(_poolRegistry.SETTINGS_NAME());
-        address poolProxy = _deploy(poolType);
+        address poolProxy = _deploy2(poolType, parameters.name);
 
         emit DaoPoolDeployed(
             parameters.name,
@@ -123,19 +125,13 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             msg.sender
         );
 
-        address tokenSaleProxy = _deploy(_poolRegistry.TOKEN_SALE_PROPOSAL_NAME());
-        address token = poolProxy.deploy(tokenSaleProxy, tokenSaleParameters.tokenParams);
+        address tokenSaleProxy = _deployTokenSale(parameters, tokenSaleParameters, poolProxy);
 
-        emit DaoTokenSaleDeployed(poolProxy, tokenSaleProxy, token);
-
-        parameters.userKeeperParams.tokenAddress = token;
-        parameters.settingsParams.additionalProposalExecutors[0] = tokenSaleProxy;
-
-        for (uint256 i = 0; i < tokenSaleParameters.tiersParams.length; i++) {
-            if (tokenSaleParameters.tiersParams[i].saleTokenAddress == address(0)) {
-                tokenSaleParameters.tiersParams[i].saleTokenAddress = token;
-            }
-        }
+        emit DaoTokenSaleDeployed(
+            poolProxy,
+            tokenSaleProxy,
+            parameters.userKeeperParams.tokenAddress
+        );
 
         TokenSaleProposal(tokenSaleProxy).createTiers(tokenSaleParameters.tiersParams);
         TokenSaleProposal(tokenSaleProxy).addToWhitelist(tokenSaleParameters.whitelistParams);
@@ -224,6 +220,47 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _poolRegistry.associateUserWithPool(poolParameters.trader, poolType, poolProxy);
     }
 
+    function predictGovAddress(
+        address deployer,
+        string calldata poolName
+    ) external view override returns (address) {
+        if (bytes(poolName).length == 0) {
+            return address(0);
+        }
+
+        return
+            _predictPoolAddress(
+                address(_poolRegistry),
+                _poolRegistry.GOV_POOL_NAME(),
+                _calculateGovSalt(deployer, poolName)
+            );
+    }
+
+    function _deployTokenSale(
+        GovPoolDeployParams memory parameters,
+        GovTokenSaleProposalDeployParams memory tokenSaleParameters,
+        address poolProxy
+    ) internal returns (address tokenSaleProxy) {
+        tokenSaleProxy = _deploy(_poolRegistry.TOKEN_SALE_PROPOSAL_NAME());
+
+        parameters.settingsParams.additionalProposalExecutors[0] = tokenSaleProxy;
+
+        if (parameters.userKeeperParams.tokenAddress == address(0)) {
+            parameters.userKeeperParams.tokenAddress = poolProxy.deploy(
+                tokenSaleProxy,
+                tokenSaleParameters.tokenParams
+            );
+        }
+
+        address token = parameters.userKeeperParams.tokenAddress;
+
+        for (uint256 i = 0; i < tokenSaleParameters.tiersParams.length; i++) {
+            if (tokenSaleParameters.tiersParams[i].saleTokenAddress == address(0)) {
+                tokenSaleParameters.tiersParams[i].saleTokenAddress = token;
+            }
+        }
+    }
+
     function _initGovPool(
         address poolProxy,
         address settingsProxy,
@@ -261,6 +298,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             dpProxy,
             validatorsProxy,
             parameters.nftMultiplierAddress,
+            parameters.verifier,
             parameters.descriptionURL,
             parameters.name
         );
@@ -316,6 +354,17 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         return _deploy(address(_poolRegistry), poolType);
     }
 
+    function _deploy2(string memory poolType, string memory poolName) internal returns (address) {
+        require(bytes(poolName).length != 0, "PoolFactory: pool name cannot be empty");
+
+        bytes32 salt = _calculateGovSalt(tx.origin, poolName);
+        require(!_usedSalts[salt], "PoolFactory: pool name is already taken");
+
+        _usedSalts[salt] = true;
+
+        return _deploy2(address(_poolRegistry), poolType, salt);
+    }
+
     function _register(string memory poolType, address poolProxy) internal {
         _register(address(_poolRegistry), poolType, poolProxy);
     }
@@ -357,14 +406,17 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         GovPoolDeployParams memory parameters
     ) internal pure {
         require(
-            parameters.userKeeperParams.tokenAddress == address(0),
-            "PoolFactory: invalid token address"
-        );
-        require(
             parameters.settingsParams.proposalSettings.length > 4 &&
                 parameters.settingsParams.additionalProposalExecutors.length > 0 &&
                 parameters.settingsParams.additionalProposalExecutors[0] == address(0),
             "PoolFactory: invalid token sale executor"
         );
+    }
+
+    function _calculateGovSalt(
+        address deployer,
+        string memory poolName
+    ) private pure returns (bytes32) {
+        return keccak256(abi.encodePacked(deployer, poolName));
     }
 }

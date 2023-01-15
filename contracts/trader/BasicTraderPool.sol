@@ -113,14 +113,16 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
             minProposalOut
         );
 
-        uint256 lpMinted = _investPositions(
+        uint256 toMintLP = _investPositions(
             address(_traderPoolProposal),
             receivedBase,
             minPositionsOut
         );
-        _updateToData(msg.sender, receivedBase);
 
-        emit ProposalDivested(proposalId, msg.sender, lp2Amount, lpMinted, receivedBase);
+        _updateToData(msg.sender, receivedBase);
+        _mint(msg.sender, toMintLP);
+
+        emit ProposalDivested(proposalId, msg.sender, lp2Amount, toMintLP, receivedBase);
     }
 
     function proposalPoolAddress() external view override returns (address) {
@@ -137,12 +139,12 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
             _traderPoolProposal.getTotalActiveInvestments(investor) == 0;
     }
 
-    function checkRemoveInvestor(address user) external override onlyProposalPool {
-        _checkRemoveInvestor(user, 0);
+    function checkLeave(address user) external override onlyProposalPool {
+        _checkLeave(user, 0);
     }
 
-    function checkNewInvestor(address user) external override onlyProposalPool {
-        _checkNewInvestor(user);
+    function checkJoin(address user) external override onlyProposalPool {
+        _checkJoin(user);
     }
 
     function _onlyProposalPool() internal view {

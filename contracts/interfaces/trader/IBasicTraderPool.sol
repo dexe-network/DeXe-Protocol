@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./ITraderPoolInvestorsHook.sol";
+import "./ITraderPoolMemberHook.sol";
 import "./ITraderPoolRiskyProposal.sol";
 import "./ITraderPool.sol";
 
@@ -12,7 +12,7 @@ import "./ITraderPool.sol";
  * Investors can enter subpools by allocating parts of their funds to the proposals. The allocation as done
  * through internal withdrawal and deposit process
  */
-interface IBasicTraderPool is ITraderPoolInvestorsHook {
+interface IBasicTraderPool is ITraderPoolMemberHook {
     /// @notice This function is used to create risky proposals (basically subpools) and allow investors to invest into it.
     /// The proposals follow pretty much the same rules as the main pool except that the trade can happen with a specified token only.
     /// Investors can't fund the proposal more than the trader percentage wise

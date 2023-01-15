@@ -73,6 +73,10 @@ interface IGovSettings {
     /// @return default setting
     function getDefaultSettings() external view returns (ProposalSettings memory);
 
+    /// @notice The function to get internal settings
+    /// @return internal setting
+    function getInternalSettings() external view returns (ProposalSettings memory);
+
     /// @notice The function the get the settings of the executor
     /// @param executor Executor address
     /// @return `ProposalSettings` by `executor` address

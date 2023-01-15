@@ -94,6 +94,7 @@ let POOL_PARAMETERS = {
     nftsTotalSupply: 0,
   },
   nftMultiplierAddress: ZERO_ADDR,
+  verifier: ZERO_ADDR,
   descriptionURL: "",
   name: "DEXE DAO",
 };

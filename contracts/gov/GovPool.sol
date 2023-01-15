@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/utils/Multicall.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 
@@ -22,6 +24,7 @@ import "../libs/gov-pool/GovPoolVote.sol";
 import "../libs/gov-pool/GovPoolUnlock.sol";
 import "../libs/gov-pool/GovPoolExecute.sol";
 import "../libs/gov-pool/GovPoolStaking.sol";
+import "../libs/gov-pool/GovPoolOffchain.sol";
 import "../libs/math/MathHelper.sol";
 
 import "../core/Globals.sol";
@@ -30,13 +33,16 @@ contract GovPool is
     IGovPool,
     AbstractDependant,
     ERC721HolderUpgradeable,
-    ERC1155HolderUpgradeable
+    ERC1155HolderUpgradeable,
+    Multicall
 {
     using MathHelper for uint256;
+    using Math for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
     using ShrinkableArray for uint256[];
     using ShrinkableArray for ShrinkableArray.UintArray;
+    using GovPoolOffchain for *;
     using GovUserKeeperLocal for *;
     using GovPoolView for *;
     using GovPoolCreate for *;
@@ -63,12 +69,14 @@ contract GovPool is
 
     uint256 public override latestProposalId;
 
+    OffChain internal _offChain;
+
     mapping(uint256 => Proposal) internal _proposals; // proposalId => info
 
     mapping(uint256 => mapping(address => mapping(bool => VoteInfo))) internal _voteInfos; // proposalId => voter => isMicropool => info
     mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
 
-    mapping(uint256 => mapping(address => uint256)) public pendingRewards; // proposalId => user => tokens amount
+    mapping(address => PendingRewards) internal _pendingRewards; // user => pending rewards
 
     mapping(address => MicropoolInfo) internal _micropoolInfos;
 
@@ -76,6 +84,7 @@ contract GovPool is
     event MovedToValidators(uint256 proposalId, address sender);
     event Deposited(uint256 amount, uint256[] nfts, address sender);
     event Withdrawn(uint256 amount, uint256[] nfts, address sender);
+    event OffchainResultsSaved(string resultsHash);
 
     modifier onlyThis() {
         _onlyThis();
@@ -88,6 +97,7 @@ contract GovPool is
         address distributionProposalAddress,
         address validatorsAddress,
         address nftMultiplierAddress,
+        address _verifier,
         string calldata _descriptionURL,
         string calldata _name
     ) external initializer {
@@ -102,6 +112,8 @@ contract GovPool is
 
         descriptionURL = _descriptionURL;
         name = _name;
+
+        _offChain.verifier = _verifier;
     }
 
     function setDependencies(address contractsRegistry) external override dependant {
@@ -140,7 +152,7 @@ contract GovPool is
 
         _proposals.createProposal(_descriptionURL, misc, executors, values, data);
 
-        pendingRewards.updateRewards(
+        _pendingRewards.updateRewards(
             latestProposalId,
             _proposals[latestProposalId].core.settings.creationReward,
             PRECISION
@@ -150,7 +162,7 @@ contract GovPool is
     function moveProposalToValidators(uint256 proposalId) external override {
         _proposals.moveProposalToValidators(proposalId);
 
-        pendingRewards.updateRewards(
+        _pendingRewards.updateRewards(
             proposalId,
             _proposals[proposalId].core.settings.creationReward,
             PRECISION
@@ -161,14 +173,9 @@ contract GovPool is
 
     function vote(
         uint256 proposalId,
-        uint256 depositAmount,
-        uint256[] calldata depositNftIds,
         uint256 voteAmount,
         uint256[] calldata voteNftIds
     ) external override {
-        _govUserKeeper.depositTokens.exec(msg.sender, depositAmount);
-        _govUserKeeper.depositNfts.exec(msg.sender, depositNftIds);
-
         unlock(msg.sender, false);
 
         uint256 reward = _proposals.vote(
@@ -179,7 +186,7 @@ contract GovPool is
             voteNftIds
         );
 
-        pendingRewards.updateRewards(
+        _pendingRewards.updateRewards(
             proposalId,
             reward,
             _proposals[proposalId].core.settings.voteRewardsCoefficient
@@ -201,7 +208,7 @@ contract GovPool is
             voteNftIds
         );
 
-        pendingRewards.updateRewards(
+        _pendingRewards.updateRewards(
             proposalId,
             reward.percentage(PERCENTAGE_MICROPOOL_REWARDS),
             _proposals[proposalId].core.settings.voteRewardsCoefficient
@@ -295,7 +302,7 @@ contract GovPool is
     function execute(uint256 proposalId) public override {
         _proposals.execute(proposalId);
 
-        pendingRewards.updateRewards(
+        _pendingRewards.updateRewards(
             proposalId,
             _proposals[proposalId].core.settings.executionReward,
             PRECISION
@@ -304,21 +311,35 @@ contract GovPool is
 
     function claimRewards(uint256[] calldata proposalIds) external override {
         for (uint256 i; i < proposalIds.length; i++) {
-            pendingRewards.claimReward(_proposals, proposalIds[i]);
+            _pendingRewards.claimReward(_proposals, proposalIds[i]);
         }
-    }
-
-    function executeAndClaim(uint256 proposalId) external override {
-        execute(proposalId);
-        pendingRewards.claimReward(_proposals, proposalId);
     }
 
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
         descriptionURL = newDescriptionURL;
     }
 
+    function changeVerifier(address newVerifier) external override onlyThis {
+        _offChain.verifier = newVerifier;
+    }
+
     function setNftMultiplierAddress(address nftMultiplierAddress) external override onlyThis {
         _setNftMultiplierAddress(nftMultiplierAddress);
+    }
+
+    function saveOffchainResults(
+        string calldata resultsHash,
+        bytes calldata signature
+    ) external override {
+        resultsHash.saveOffchainResults(signature, _offChain);
+
+        _pendingRewards.updateRewards(
+            0,
+            _govSettings.getInternalSettings().executionReward,
+            PRECISION
+        );
+
+        emit OffchainResultsSaved(resultsHash);
     }
 
     receive() external payable {}
@@ -425,10 +446,31 @@ contract GovPool is
                 : delegator.getUndelegateableAssets(delegatee, _votedInProposals, _voteInfos);
     }
 
+    function getPendingRewards(
+        address user,
+        uint256[] calldata proposalIds
+    ) external view override returns (PendingRewardsView memory) {
+        return _pendingRewards.getPendingRewards(_proposals, user, proposalIds);
+    }
+
     function getDelegatorStakingRewards(
         address delegator
     ) external view override returns (UserStakeRewardsView[] memory) {
         return _micropoolInfos.getDelegatorStakingRewards(delegator);
+    }
+
+    function getOffchainResultsHash() external view override returns (string memory resultsHash) {
+        return _offChain.resultsHash;
+    }
+
+    function getOffchainSignHash(
+        string calldata resultHash
+    ) external view override returns (bytes32) {
+        return resultHash.getSignHash();
+    }
+
+    function getVerifier() external view override returns (address) {
+        return _offChain.verifier;
     }
 
     function _setNftMultiplierAddress(address nftMultiplierAddress) internal {

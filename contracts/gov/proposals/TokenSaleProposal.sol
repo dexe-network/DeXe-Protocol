@@ -37,7 +37,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     }
 
     modifier ifTierIsNotOff(uint256 tierId) {
-        require(!_tiers[tierId].tierInfo.isOff, "TSP: tier is off");
+        require(!_tiers[tierId].tierInfo.tierInfoView.isOff, "TSP: tier is off");
         _;
     }
 
@@ -77,6 +77,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             Purchase storage purchase = tier.tierInfo.customers[msg.sender];
 
             purchase.latestVestingWithdraw = block.timestamp;
+            purchase.vestingWithdrawnAmount += vestingWithdrawAmounts[i];
 
             ERC20(tier.tierView.saleTokenAddress).safeTransfer(
                 msg.sender,
@@ -104,12 +105,15 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             saleTokenAmount.percentage(PERCENTAGE_100 - tierView.vestingSettings.vestingPercentage)
         );
 
-        tierInfo.totalSold += saleTokenAmount;
+        tierInfo.tierInfoView.totalSold += saleTokenAmount;
 
         tierInfo.customers[msg.sender] = Purchase({
             purchaseTime: block.timestamp,
-            vestingAmount: saleTokenAmount.percentage(tierView.vestingSettings.vestingPercentage),
-            latestVestingWithdraw: block.timestamp
+            vestingTotalAmount: saleTokenAmount.percentage(
+                tierView.vestingSettings.vestingPercentage
+            ),
+            vestingWithdrawnAmount: 0,
+            latestVestingWithdraw: 0
         });
 
         if (isNativeCurrency) {
@@ -130,7 +134,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
             Tier storage tier = _tiers[tierIds[i]];
 
-            tier.tierInfo.totalSold += recoveringAmounts[i];
+            tier.tierInfo.tierInfoView.totalSold += recoveringAmounts[i];
 
             ERC20(tier.tierView.saleTokenAddress).safeTransfer(govAddress, recoveringAmounts[i]);
         }
@@ -143,7 +147,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         uint256 amount
     ) public view ifTierExists(tierId) ifTierIsNotOff(tierId) returns (uint256) {
         require(amount > 0, "TSP: zero amount");
-        require(totalSupply(tierId) == 0 || balanceOf(user, tierId) == 1, "TSP: not whitelisted");
+        require(_isWhitelisted(user, tierId), "TSP: not whitelisted");
 
         Tier storage tier = _tiers[tierId];
         TierInfo storage tierInfo = tier.tierInfo;
@@ -167,7 +171,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             "TSP: wrong allocation"
         );
         require(
-            tierInfo.totalSold + saleTokenAmount <= tierView.totalTokenProvided,
+            tierInfo.tierInfoView.totalSold + saleTokenAmount <= tierView.totalTokenProvided,
             "TSP: insufficient sale token amount"
         );
         require(
@@ -209,15 +213,77 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         tierInfoViews = new TierInfoView[](to - offset);
 
         for (uint256 i = offset; i < to; i++) {
-            tierViews[i - offset] = _tiers[i + 1].tierView;
+            Tier storage tier = _tiers[i + 1];
 
-            TierInfo storage tierInfo = _tiers[i + 1].tierInfo;
-
-            tierInfoViews[i - offset] = TierInfoView({
-                isOff: tierInfo.isOff,
-                totalSold: tierInfo.totalSold
-            });
+            tierViews[i - offset] = tier.tierView;
+            tierInfoViews[i - offset] = tier.tierInfo.tierInfoView;
         }
+    }
+
+    function getUserInfos(
+        address user,
+        uint256[] calldata tierIds
+    ) external view returns (UserInfo[] memory userInfos) {
+        userInfos = new UserInfo[](tierIds.length);
+
+        for (uint256 i = 0; i < userInfos.length; i++) {
+            Tier storage tier = _tiers[tierIds[i]];
+            Purchase memory purchase = tier.tierInfo.customers[user];
+
+            userInfos[i].isWhitelisted = _isWhitelisted(user, tierIds[i]);
+            userInfos[i].purchase = purchase;
+
+            if (purchase.vestingTotalAmount == 0) {
+                continue;
+            }
+
+            VestingSettings memory vestingSettings = tier.tierView.vestingSettings;
+            VestingView memory vestingView;
+
+            uint256 currentPrefixVestingAmount = _countPrefixVestingAmount(
+                block.timestamp,
+                purchase,
+                vestingSettings
+            );
+
+            vestingView.cliffEndTime = purchase.purchaseTime + vestingSettings.cliffPeriod;
+            vestingView.vestingEndTime = purchase.purchaseTime + vestingSettings.vestingDuration;
+            vestingView.amountToWithdraw =
+                currentPrefixVestingAmount -
+                purchase.vestingWithdrawnAmount;
+            vestingView.lockedAmount = purchase.vestingTotalAmount - currentPrefixVestingAmount;
+
+            if (block.timestamp < vestingView.cliffEndTime) {
+                vestingView.nextUnlockTime =
+                    purchase.purchaseTime +
+                    vestingSettings.cliffPeriod.max(vestingSettings.unlockStep);
+            } else {
+                vestingView.nextUnlockTime = block.timestamp + vestingSettings.unlockStep;
+                vestingView.nextUnlockTime -=
+                    (vestingView.nextUnlockTime - purchase.purchaseTime) %
+                    vestingSettings.unlockStep;
+
+                if (vestingView.nextUnlockTime > vestingView.vestingEndTime) {
+                    vestingView.nextUnlockTime = 0;
+                }
+            }
+
+            if (vestingView.nextUnlockTime != 0) {
+                vestingView.nextUnlockAmount =
+                    _countPrefixVestingAmount(
+                        vestingView.nextUnlockTime,
+                        purchase,
+                        vestingSettings
+                    ) -
+                    currentPrefixVestingAmount;
+            }
+
+            userInfos[i].vestingView = vestingView;
+        }
+    }
+
+    function uri(uint256 tierId) public view override returns (string memory) {
+        return _tiers[tierId].tierInfo.tierInfoView.uri;
     }
 
     function _createTier(TierView calldata tierView) internal {
@@ -268,71 +334,15 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     function _addToWhitelist(
         WhitelistingRequest calldata request
     ) internal ifTierExists(request.tierId) ifTierIsNotOff(request.tierId) {
+        _tiers[request.tierId].tierInfo.tierInfoView.uri = request.uri;
+
         for (uint256 i = 0; i < request.users.length; i++) {
             _mint(request.users[i], request.tierId, 1, "");
         }
     }
 
     function _offTier(uint256 tierId) internal ifTierExists(tierId) ifTierIsNotOff(tierId) {
-        _tiers[tierId].tierInfo.isOff = true;
-    }
-
-    function _getVestingWithdrawAmount(
-        address user,
-        uint256 tierId
-    ) internal view ifTierExists(tierId) returns (uint256) {
-        Tier storage tier = _tiers[tierId];
-        TierInfo storage tierInfo = tier.tierInfo;
-
-        Purchase memory purchase = tierInfo.customers[user];
-        VestingSettings memory vestingSettings = tier.tierView.vestingSettings;
-
-        uint256 startTime = purchase.purchaseTime + vestingSettings.cliffPeriod;
-
-        if (
-            startTime > block.timestamp ||
-            vestingSettings.vestingPercentage == 0 ||
-            tierInfo.customers[user].purchaseTime == 0
-        ) {
-            return 0;
-        }
-
-        uint256 normVestingEndTime = (purchase.purchaseTime + vestingSettings.vestingDuration) -
-            (vestingSettings.vestingDuration % vestingSettings.unlockStep);
-
-        if (purchase.latestVestingWithdraw >= normVestingEndTime) {
-            return 0;
-        }
-
-        uint256 normLatestVestingWithdraw = purchase.latestVestingWithdraw -
-            ((purchase.latestVestingWithdraw - purchase.purchaseTime) %
-                vestingSettings.unlockStep);
-
-        uint256 normNextVestingWithdraw = block.timestamp.min(normVestingEndTime);
-        normNextVestingWithdraw -=
-            (normNextVestingWithdraw - purchase.purchaseTime) %
-            vestingSettings.unlockStep;
-
-        uint256 stepsCount = vestingSettings.vestingDuration / vestingSettings.unlockStep;
-        uint256 tokensPerStep = purchase.vestingAmount / stepsCount;
-
-        return
-            tokensPerStep.ratio(
-                normNextVestingWithdraw - normLatestVestingWithdraw,
-                vestingSettings.unlockStep
-            );
-    }
-
-    function _getRecoverAmount(
-        uint256 tierId
-    ) internal view ifTierExists(tierId) returns (uint256) {
-        TierView memory tierView = _tiers[tierId].tierView;
-
-        if (!_tiers[tierId].tierInfo.isOff && block.timestamp <= tierView.saleEndTime) {
-            return 0;
-        }
-
-        return tierView.totalTokenProvided - _tiers[tierId].tierInfo.totalSold;
+        _tiers[tierId].tierInfo.tierInfoView.isOff = true;
     }
 
     function _beforeTokenTransfer(
@@ -350,6 +360,58 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         for (uint256 i = 0; i < ids.length; i++) {
             require(balanceOf(to, ids[i]) == 0, "TSP: balance can be only 0 or 1");
         }
+    }
+
+    function _getVestingWithdrawAmount(
+        address user,
+        uint256 tierId
+    ) internal view ifTierExists(tierId) returns (uint256) {
+        Tier storage tier = _tiers[tierId];
+
+        Purchase memory purchase = tier.tierInfo.customers[user];
+        VestingSettings memory vestingSettings = tier.tierView.vestingSettings;
+
+        return
+            _countPrefixVestingAmount(block.timestamp, purchase, vestingSettings) -
+            purchase.vestingWithdrawnAmount;
+    }
+
+    function _getRecoverAmount(
+        uint256 tierId
+    ) internal view ifTierExists(tierId) returns (uint256) {
+        TierView storage tierView = _tiers[tierId].tierView;
+        TierInfoView storage tierInfoView = _tiers[tierId].tierInfo.tierInfoView;
+
+        if (!tierInfoView.isOff && block.timestamp <= tierView.saleEndTime) {
+            return 0;
+        }
+
+        return tierView.totalTokenProvided - tierInfoView.totalSold;
+    }
+
+    function _isWhitelisted(address user, uint256 tierId) internal view returns (bool) {
+        return totalSupply(tierId) == 0 || balanceOf(user, tierId) == 1;
+    }
+
+    function _countPrefixVestingAmount(
+        uint256 timePoint,
+        Purchase memory purchase,
+        VestingSettings memory vestingSettings
+    ) private pure returns (uint256) {
+        if (
+            purchase.purchaseTime == 0 ||
+            vestingSettings.vestingPercentage == 0 ||
+            timePoint < purchase.purchaseTime + vestingSettings.cliffPeriod
+        ) {
+            return 0;
+        }
+
+        uint256 stepsCount = vestingSettings.vestingDuration / vestingSettings.unlockStep;
+        uint256 tokensPerStep = purchase.vestingTotalAmount / stepsCount;
+
+        return
+            (vestingSettings.vestingDuration.min(timePoint - purchase.purchaseTime) /
+                vestingSettings.unlockStep) * tokensPerStep;
     }
 
     function _validateVestingSettings(
