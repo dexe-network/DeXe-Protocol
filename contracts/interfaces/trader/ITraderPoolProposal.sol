@@ -19,7 +19,7 @@ interface ITraderPoolProposal {
         address parentPoolAddress;
         address trader;
         address baseToken;
-        uint256 baseTokenDecimals;
+        uint8 baseTokenDecimals;
     }
 
     /// @notice The function that returns the PriceFeed this proposal uses
