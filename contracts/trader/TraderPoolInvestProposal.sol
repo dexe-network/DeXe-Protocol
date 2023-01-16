@@ -225,7 +225,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     ) external view override returns (ActiveInvestmentInfo[] memory investments) {
         return
             TraderPoolInvestProposalView.getActiveInvestmentsInfo(
-                _activeInvestments[user].values(),
+                _activeInvestments[user],
                 _baseBalances,
                 _lpBalances,
                 user,

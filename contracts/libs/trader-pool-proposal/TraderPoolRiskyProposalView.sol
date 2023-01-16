@@ -63,7 +63,7 @@ library TraderPoolRiskyProposalView {
     }
 
     function getActiveInvestmentsInfo(
-        uint256[] memory activeInvestments,
+        EnumerableSet.UintSet storage activeInvestments,
         mapping(address => mapping(uint256 => uint256)) storage baseBalances,
         mapping(address => mapping(uint256 => uint256)) storage lpBalances,
         mapping(uint256 => ITraderPoolRiskyProposal.ProposalInfo) storage proposalInfos,
@@ -71,12 +71,12 @@ library TraderPoolRiskyProposalView {
         uint256 offset,
         uint256 limit
     ) external view returns (ITraderPoolRiskyProposal.ActiveInvestmentInfo[] memory investments) {
-        uint256 to = (offset + limit).min(activeInvestments.length).max(offset);
+        uint256 to = (offset + limit).min(activeInvestments.length()).max(offset);
 
         investments = new ITraderPoolRiskyProposal.ActiveInvestmentInfo[](to - offset);
 
         for (uint256 i = offset; i < to; i++) {
-            uint256 proposalId = activeInvestments[i];
+            uint256 proposalId = activeInvestments.at(i);
             uint256 balance = TraderPoolRiskyProposal(address(this)).balanceOf(user, proposalId);
             uint256 supply = TraderPoolRiskyProposal(address(this)).totalSupply(proposalId);
 

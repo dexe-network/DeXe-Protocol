@@ -41,18 +41,18 @@ library TraderPoolInvestProposalView {
     }
 
     function getActiveInvestmentsInfo(
-        uint256[] memory activeInvestments,
+        EnumerableSet.UintSet storage activeInvestments,
         mapping(address => mapping(uint256 => uint256)) storage baseBalances,
         mapping(address => mapping(uint256 => uint256)) storage lpBalances,
         address user,
         uint256 offset,
         uint256 limit
     ) external view returns (ITraderPoolInvestProposal.ActiveInvestmentInfo[] memory investments) {
-        uint256 to = (offset + limit).min(activeInvestments.length).max(offset);
+        uint256 to = (offset + limit).min(activeInvestments.length()).max(offset);
         investments = new ITraderPoolInvestProposal.ActiveInvestmentInfo[](to - offset);
 
         for (uint256 i = offset; i < to; i++) {
-            uint256 proposalId = activeInvestments[i];
+            uint256 proposalId = activeInvestments.at(i);
 
             investments[i - offset] = ITraderPoolInvestProposal.ActiveInvestmentInfo(
                 proposalId,

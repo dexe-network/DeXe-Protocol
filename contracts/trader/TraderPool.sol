@@ -192,19 +192,19 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     ) external virtual override onlyTraderAdmin {
         require(openPositions().length == 0, "TP: positions are open");
 
-        address[] memory investorsRaw = _investors.values();
+        uint256 investorsLength = _investors.length();
         uint256 totalSupply = totalSupply();
         uint256 nextCommissionEpoch = getNextCommissionEpoch();
         uint256 allBaseCommission;
         uint256 allLPCommission;
 
         for (uint256 i = 0; i < offsetLimits.length; i += 2) {
-            uint256 to = (offsetLimits[i] + offsetLimits[i + 1]).min(investorsRaw.length).max(
+            uint256 to = (offsetLimits[i] + offsetLimits[i + 1]).min(investorsLength).max(
                 offsetLimits[i]
             );
 
             for (uint256 j = offsetLimits[i]; j < to; j++) {
-                address investor = investorsRaw[j];
+                address investor = _investors.at(j);
                 InvestorInfo storage info = investorsInfo[investor];
 
                 if (nextCommissionEpoch > info.commissionUnlockEpoch) {
@@ -298,7 +298,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     function getReinvestCommissions(
         uint256[] calldata offsetLimits
     ) external view override returns (Commissions memory commissions) {
-        return _poolParameters.getReinvestCommissions(_investors.values(), offsetLimits);
+        return _poolParameters.getReinvestCommissions(_investors, offsetLimits);
     }
 
     function getNextCommissionEpoch() public view override returns (uint256) {
