@@ -299,6 +299,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             validatorsProxy,
             parameters.nftMultiplierAddress,
             parameters.verifier,
+            parameters.onlyBABHolders,
             parameters.descriptionURL,
             parameters.name
         );

@@ -61,6 +61,7 @@ interface IPoolFactory {
         UserKeeperDeployParams userKeeperParams;
         address nftMultiplierAddress;
         address verifier;
+        bool onlyBABHolders;
         string descriptionURL;
         string name;
     }

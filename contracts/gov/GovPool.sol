@@ -15,6 +15,7 @@ import "../interfaces/gov/validators/IGovValidators.sol";
 import "../interfaces/gov/IGovPool.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
+import "../interfaces/core/ISBT721.sol";
 
 import "../libs/gov-user-keeper/GovUserKeeperLocal.sol";
 import "../libs/gov-pool/GovPoolView.sol";
@@ -63,6 +64,9 @@ contract GovPool is
     ICoreProperties public coreProperties;
 
     address public nftMultiplier;
+    ISBT721 public babt;
+
+    bool onlyBABTHolders;
 
     string public descriptionURL;
     string public name;
@@ -91,6 +95,11 @@ contract GovPool is
         _;
     }
 
+    modifier onlyBABTHolder() {
+        _onlyBABTHolder();
+        _;
+    }
+
     function __GovPool_init(
         address govSettingAddress,
         address govUserKeeperAddress,
@@ -98,6 +107,7 @@ contract GovPool is
         address validatorsAddress,
         address nftMultiplierAddress,
         address _verifier,
+        bool _onlyBABTHolders,
         string calldata _descriptionURL,
         string calldata _name
     ) external initializer {
@@ -110,6 +120,8 @@ contract GovPool is
             _setNftMultiplierAddress(nftMultiplierAddress);
         }
 
+        onlyBABTHolders = _onlyBABTHolders;
+
         descriptionURL = _descriptionURL;
         name = _name;
 
@@ -120,6 +132,7 @@ contract GovPool is
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         coreProperties = ICoreProperties(registry.getCorePropertiesContract());
+        babt = ISBT721(registry.getBABTContract());
     }
 
     function getHelperContracts()
@@ -147,7 +160,7 @@ contract GovPool is
         address[] calldata executors,
         uint256[] calldata values,
         bytes[] calldata data
-    ) external override {
+    ) external override onlyBABTHolder {
         latestProposalId++;
 
         _proposals.createProposal(_descriptionURL, misc, executors, values, data);
@@ -175,7 +188,7 @@ contract GovPool is
         uint256 proposalId,
         uint256 voteAmount,
         uint256[] calldata voteNftIds
-    ) external override {
+    ) external override onlyBABTHolder {
         unlock(msg.sender, false);
 
         uint256 reward = _proposals.vote(
@@ -197,7 +210,7 @@ contract GovPool is
         uint256 proposalId,
         uint256 voteAmount,
         uint256[] calldata voteNftIds
-    ) external override {
+    ) external override onlyBABTHolder {
         unlock(msg.sender, true);
 
         uint256 reward = _proposals.voteDelegated(
@@ -221,7 +234,11 @@ contract GovPool is
         );
     }
 
-    function deposit(address receiver, uint256 amount, uint256[] calldata nftIds) public override {
+    function deposit(
+        address receiver,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) public override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty deposit");
 
         _govUserKeeper.depositTokens.exec(receiver, amount);
@@ -234,7 +251,7 @@ contract GovPool is
         address receiver,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external override {
+    ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty withdrawal");
 
         unlock(msg.sender, false);
@@ -249,7 +266,7 @@ contract GovPool is
         address delegatee,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external override {
+    ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
 
         unlock(msg.sender, false);
@@ -270,7 +287,7 @@ contract GovPool is
         address delegatee,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external override {
+    ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty undelegation");
 
         unlock(delegatee, true);
@@ -287,7 +304,7 @@ contract GovPool is
         emit Delegated(msg.sender, delegatee, amount, nftIds, false);
     }
 
-    function unlock(address user, bool isMicropool) public override {
+    function unlock(address user, bool isMicropool) public override onlyBABTHolder {
         unlockInProposals(_votedInProposals[user][isMicropool].values(), user, isMicropool);
     }
 
@@ -295,11 +312,11 @@ contract GovPool is
         uint256[] memory proposalIds,
         address user,
         bool isMicropool
-    ) public override {
+    ) public override onlyBABTHolder {
         _votedInProposals.unlockInProposals(_voteInfos, proposalIds, user, isMicropool);
     }
 
-    function execute(uint256 proposalId) public override {
+    function execute(uint256 proposalId) public override onlyBABTHolder {
         _proposals.execute(proposalId);
 
         _pendingRewards.updateRewards(
@@ -309,7 +326,7 @@ contract GovPool is
         );
     }
 
-    function claimRewards(uint256[] calldata proposalIds) external override {
+    function claimRewards(uint256[] calldata proposalIds) external override onlyBABTHolder {
         for (uint256 i; i < proposalIds.length; i++) {
             _pendingRewards.claimReward(_proposals, proposalIds[i]);
         }
@@ -488,5 +505,9 @@ contract GovPool is
 
     function _onlyThis() internal view {
         require(address(this) == msg.sender, "Gov: not this contract");
+    }
+
+    function _onlyBABTHolder() internal view {
+        require(babt.balanceOf(msg.sender) > 0 || !onlyBABTHolders, "Gov: not BABT holder");
     }
 }

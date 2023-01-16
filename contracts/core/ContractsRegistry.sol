@@ -13,6 +13,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry {
 
     string public constant DEXE_NAME = "DEXE";
     string public constant USD_NAME = "USD";
+    string public constant BABT_NAME = "BABT";
 
     string public constant PRICE_FEED_NAME = "PRICE_FEED";
     string public constant UNISWAP_V2_ROUTER_NAME = "UNISWAP_V2_ROUTER";
@@ -70,5 +71,9 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry {
 
     function getCorePropertiesContract() external view override returns (address) {
         return getContract(CORE_PROPERTIES_NAME);
+    }
+
+    function getBABTContract() external view override returns (address) {
+        return getContract(BABT_NAME);
     }
 }
