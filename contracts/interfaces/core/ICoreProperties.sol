@@ -23,27 +23,27 @@ interface ICoreProperties {
     /// @notice The struct that stores TraderPools parameters
     /// @param maxPoolInvestors the maximum number of investors in the TraderPool
     /// @param maxOpenPositions the maximum number of concurrently opened positions by a trader
-    /// @param leverageThreshold the first parameter in the trader's formula
-    /// @param leverageSlope the second parameters in the trader's formula
+    /// @param delayForRiskyPool the investment delay after the first exchange in the risky pool in seconds
     /// @param commissionInitTimestamp the initial timestamp of the commission rounds
     /// @param commissionDurations the durations of the commission periods in seconds - see enum CommissionPeriod
+    /// @param leverageThreshold the first parameter in the trader's formula
+    /// @param leverageSlope the second parameters in the trader's formula
     /// @param dexeCommissionPercentage the protocol's commission percentage, multiplied by 10**25
     /// @param dexeCommissionDistributionPercentages the individual percentages of the commission contracts (should sum up to 10**27 = 100%)
     /// @param minTraderCommission the minimal trader's commission the trader can specify
     /// @param maxTraderCommissions the maximal trader's commission the trader can specify based on the chosen commission period
-    /// @param delayForRiskyPool the investment delay after the first exchange in the risky pool in seconds
     struct TraderParameters {
-        uint256 maxPoolInvestors;
-        uint256 maxOpenPositions;
+        uint64 maxPoolInvestors;
+        uint64 maxOpenPositions;
+        uint64 delayForRiskyPool;
+        uint64 commissionInitTimestamp;
+        uint64[] commissionDurations;
         uint256 leverageThreshold;
         uint256 leverageSlope;
-        uint256 commissionInitTimestamp;
-        uint256[] commissionDurations;
         uint256 dexeCommissionPercentage;
         uint256[] dexeCommissionDistributionPercentages;
         uint256 minTraderCommission;
         uint256[] maxTraderCommissions;
-        uint256 delayForRiskyPool;
     }
 
     /// @notice The struct that stores Insurance parameters
@@ -97,11 +97,11 @@ interface ICoreProperties {
 
     /// @notice The function to set the maximum pool investors
     /// @param count new maximum pool investors
-    function setMaximumPoolInvestors(uint256 count) external;
+    function setMaximumPoolInvestors(uint64 count) external;
 
     /// @notice The function to set the maximum concurrent pool positions
     /// @param count new maximum pool positions
-    function setMaximumOpenPositions(uint256 count) external;
+    function setMaximumOpenPositions(uint64 count) external;
 
     /// @notice The function the adjust trader leverage formula
     /// @param threshold new first parameter of the leverage function
@@ -110,11 +110,11 @@ interface ICoreProperties {
 
     /// @notice The function to set new initial timestamp of the commission rounds
     /// @param timestamp new timestamp (in seconds)
-    function setCommissionInitTimestamp(uint256 timestamp) external;
+    function setCommissionInitTimestamp(uint64 timestamp) external;
 
     /// @notice The function to change the commission durations for the commission periods
     /// @param durations the array of new durations (in seconds)
-    function setCommissionDurations(uint256[] calldata durations) external;
+    function setCommissionDurations(uint64[] calldata durations) external;
 
     /// @notice The function to modify the platform's commission percentages
     /// @param dexeCommission DEXE percentage commission. Should be multiplied by 10**25
@@ -136,7 +136,7 @@ interface ICoreProperties {
 
     /// @notice The function to set new investment delay for the risky pool
     /// @param delayForRiskyPool new investment delay after the first exchange
-    function setDelayForRiskyPool(uint256 delayForRiskyPool) external;
+    function setDelayForRiskyPool(uint64 delayForRiskyPool) external;
 
     /// @notice The function to set new insurance parameters
     /// @param insuranceParams the insurance parameters
@@ -191,11 +191,11 @@ interface ICoreProperties {
 
     /// @notice The function to fetch the maximum pool investors
     /// @return maximum pool investors
-    function getMaximumPoolInvestors() external view returns (uint256);
+    function getMaximumPoolInvestors() external view returns (uint64);
 
     /// @notice The function to fetch the maximum concurrently opened positions
     /// @return the maximum concurrently opened positions
-    function getMaximumOpenPositions() external view returns (uint256);
+    function getMaximumOpenPositions() external view returns (uint64);
 
     /// @notice The function to get trader's leverage function parameters
     /// @return threshold the first function parameter
@@ -204,11 +204,11 @@ interface ICoreProperties {
 
     /// @notice The function to get the initial commission timestamp
     /// @return the initial timestamp
-    function getCommissionInitTimestamp() external view returns (uint256);
+    function getCommissionInitTimestamp() external view returns (uint64);
 
     /// @notice The function the get the commission duration for the specified period
     /// @param period the commission period
-    function getCommissionDuration(CommissionPeriod period) external view returns (uint256);
+    function getCommissionDuration(CommissionPeriod period) external view returns (uint64);
 
     /// @notice The function to get DEXE commission percentages and receivers
     /// @return totalPercentage the overall DEXE commission percentage
@@ -238,7 +238,7 @@ interface ICoreProperties {
 
     /// @notice The function to get the investment delay of the risky pool
     /// @return the investment delay in seconds
-    function getDelayForRiskyPool() external view returns (uint256);
+    function getDelayForRiskyPool() external view returns (uint64);
 
     /// @notice The function to get the insurance deposit multiplier
     /// @return the multiplier
