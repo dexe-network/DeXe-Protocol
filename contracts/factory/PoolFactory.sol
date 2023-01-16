@@ -393,9 +393,9 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.descriptionURL,
             parameters.trader,
             parameters.privatePool,
+            ERC20(parameters.baseToken).decimals(),
             parameters.totalLPEmission,
             parameters.baseToken,
-            ERC20(parameters.baseToken).decimals(),
             parameters.minimalInvestment,
             parameters.commissionPeriod,
             parameters.commissionPercentage

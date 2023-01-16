@@ -26,9 +26,9 @@ interface ITraderPool {
     /// @param descriptionURL the IPFS URL of the description
     /// @param trader the address of trader of this pool
     /// @param privatePool the publicity of the pool. Of the pool is private, only private investors are allowed to invest into it
+    /// @param baseTokenDecimals are the decimals of base token (just the gas savings)
     /// @param totalLPEmission the total* number of pool's LP tokens. The investors are disallowed to invest more that this number
     /// @param baseToken the address of pool's base token
-    /// @param baseTokenDecimals are the decimals of base token (just the gas savings)
     /// @param minimalInvestment is the minimal number of base tokens the investor is allowed to invest (in 18 decimals)
     /// @param commissionPeriod represents the duration of the commission period
     /// @param commissionPercentage trader's commission percentage (DEXE takes commission from this commission)
@@ -36,9 +36,9 @@ interface ITraderPool {
         string descriptionURL;
         address trader;
         bool privatePool;
+        uint8 baseTokenDecimals;
         uint256 totalLPEmission; // zero means unlimited
         address baseToken;
-        uint256 baseTokenDecimals;
         uint256 minimalInvestment; // zero means any value
         ICoreProperties.CommissionPeriod commissionPeriod;
         uint256 commissionPercentage;
