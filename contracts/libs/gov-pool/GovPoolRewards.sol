@@ -66,10 +66,10 @@ library GovPoolRewards {
 
             _sendRewards(proposalId, rewardToken, rewards);
         } else {
-            uint256 length = userRewards.offchainTokens.length();
+            address[] memory offchainTokensRaw = userRewards.offchainTokens.values();
 
-            for (uint256 i = length; i > 0; i--) {
-                address rewardToken = userRewards.offchainTokens.at(i - 1);
+            for (uint256 i = offchainTokensRaw.length; i > 0; i--) {
+                address rewardToken = offchainTokensRaw[i - 1];
                 uint256 rewards = userRewards.offchainRewards[rewardToken];
 
                 delete userRewards.offchainRewards[rewardToken];
@@ -88,11 +88,11 @@ library GovPoolRewards {
     ) external view returns (IGovPool.PendingRewardsView memory rewards) {
         IGovPool.PendingRewards storage userRewards = pendingRewards[user];
 
-        uint256 tokensLength = userRewards.offchainTokens.length();
+        address[] memory offchainTokensRaw = userRewards.offchainTokens.values();
 
         rewards.onchainRewards = new uint256[](proposalIds.length);
-        rewards.offchainRewards = new uint256[](tokensLength);
-        rewards.offchainTokens = new address[](tokensLength);
+        rewards.offchainRewards = new uint256[](offchainTokensRaw.length);
+        rewards.offchainTokens = new address[](offchainTokensRaw.length);
 
         for (uint256 i = 0; i < proposalIds.length; i++) {
             if (!proposals[proposalIds[i]].core.executed) {
@@ -102,8 +102,8 @@ library GovPoolRewards {
             rewards.onchainRewards[i] = userRewards.onchainRewards[proposalIds[i]];
         }
 
-        for (uint256 i = 0; i < rewards.offchainTokens.length; i++) {
-            address token = userRewards.offchainTokens.at(i);
+        for (uint256 i = 0; i < offchainTokensRaw.length; i++) {
+            address token = offchainTokensRaw[i];
 
             rewards.offchainTokens[i] = token;
             rewards.offchainRewards[i] = userRewards.offchainRewards[token];
