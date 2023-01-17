@@ -157,7 +157,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     function deployBasicPool(
         string calldata name,
         string calldata symbol,
-        TraderPoolDeployParameters calldata parameters
+        TraderPoolDeployParameters calldata parameters,
+        bool onlyBABHolder
     ) external override {
         string memory poolType = _poolRegistry.BASIC_POOL_NAME();
         ITraderPool.PoolParameters memory poolParameters = _validateTraderPoolParameters(
@@ -179,7 +180,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             poolParameters.descriptionURL
         );
 
-        _initBasicPool(poolProxy, proposalProxy, name, symbol, poolParameters);
+        _initBasicPool(poolProxy, proposalProxy, name, symbol, poolParameters, onlyBABHolder);
 
         _register(poolType, poolProxy);
         _injectDependencies(poolProxy);
@@ -190,7 +191,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     function deployInvestPool(
         string calldata name,
         string calldata symbol,
-        TraderPoolDeployParameters calldata parameters
+        TraderPoolDeployParameters calldata parameters,
+        bool onlyBABHolder
     ) external override {
         string memory poolType = _poolRegistry.INVEST_POOL_NAME();
         ITraderPool.PoolParameters memory poolParameters = _validateTraderPoolParameters(
@@ -212,7 +214,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             poolParameters.descriptionURL
         );
 
-        _initInvestPool(poolProxy, proposalProxy, name, symbol, poolParameters);
+        _initInvestPool(poolProxy, proposalProxy, name, symbol, poolParameters, onlyBABHolder);
 
         _register(poolType, poolProxy);
         _injectDependencies(poolProxy);
@@ -310,13 +312,15 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address proposalProxy,
         string calldata name,
         string calldata symbol,
-        ITraderPool.PoolParameters memory poolParameters
+        ITraderPool.PoolParameters memory poolParameters,
+        bool onlyBABHolder
     ) internal {
         BasicTraderPool(poolProxy).__BasicTraderPool_init(
             name,
             symbol,
             poolParameters,
-            proposalProxy
+            proposalProxy,
+            onlyBABHolder
         );
         TraderPoolRiskyProposal(proposalProxy).__TraderPoolRiskyProposal_init(
             ITraderPoolProposal.ParentTraderPoolInfo(
@@ -333,13 +337,15 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address proposalProxy,
         string calldata name,
         string calldata symbol,
-        ITraderPool.PoolParameters memory poolParameters
+        ITraderPool.PoolParameters memory poolParameters,
+        bool onlyBABHolder
     ) internal {
         InvestTraderPool(poolProxy).__InvestTraderPool_init(
             name,
             symbol,
             poolParameters,
-            proposalProxy
+            proposalProxy,
+            onlyBABHolder
         );
         TraderPoolInvestProposal(proposalProxy).__TraderPoolInvestProposal_init(
             ITraderPoolProposal.ParentTraderPoolInfo(

@@ -10,9 +10,10 @@ contract TraderPoolMock is TraderPool {
     function __TraderPoolMock_init(
         string calldata name,
         string calldata symbol,
-        PoolParameters calldata _poolParameters
+        PoolParameters calldata _poolParameters,
+        bool _onlyBABTHolder
     ) public initializer {
-        __TraderPool_init(name, symbol, _poolParameters);
+        __TraderPool_init(name, symbol, _poolParameters, _onlyBABTHolder);
     }
 
     function proposalPoolAddress() external pure override returns (address) {

@@ -9,6 +9,7 @@ import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
 import "../interfaces/trader/ITraderPool.sol";
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/core/IContractsRegistry.sol";
+import "../interfaces/core/ISBT721.sol";
 
 import "../libs/trader-pool/TraderPoolCommission.sol";
 import "../libs/trader-pool/TraderPoolExchange.sol";
@@ -28,9 +29,12 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     using TraderPoolDivest for *;
     using TraderPoolView for *;
 
-    IERC20 public dexeToken;
-    IPriceFeed public priceFeed;
-    ICoreProperties public coreProperties;
+    bool onlyBABTHolders;
+
+    IERC20 internal _dexeToken;
+    ISBT721 public babt;
+    IPriceFeed public override priceFeed;
+    ICoreProperties public override coreProperties;
 
     EnumerableSet.AddressSet internal _traderAdmins;
 
@@ -62,6 +66,11 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _onlyThis();
         _;
     }
+    
+    modifier onlyBABTHolder() {
+        _onlyBABTHolder();
+        _;
+    }
 
     function isPrivateInvestor(address who) public view override returns (bool) {
         return _privateInvestors.contains(who);
@@ -78,20 +87,23 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     function __TraderPool_init(
         string calldata name,
         string calldata symbol,
-        PoolParameters calldata poolParameters
+        PoolParameters calldata poolParameters,
+        bool _onlyBABTHolders
     ) public onlyInitializing {
         __ERC20_init(name, symbol);
 
         _poolParameters = poolParameters;
+        onlyBABTHolders = _onlyBABTHolders;
         _traderAdmins.add(poolParameters.trader);
     }
 
     function setDependencies(address contractsRegistry) public virtual override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
-        dexeToken = IERC20(registry.getDEXEContract());
+        _dexeToken = IERC20(registry.getDEXEContract());
         priceFeed = IPriceFeed(registry.getPriceFeedContract());
         coreProperties = ICoreProperties(registry.getCorePropertiesContract());
+        babt = ISBT721(registry.getBABTContract());
     }
 
     function modifyAdmins(address[] calldata admins, bool add) external override onlyTraderAdmin {
@@ -342,5 +354,16 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     function _onlyThis() internal view {
         require(address(this) == msg.sender, "TP: not this contract");
+    }
+
+    function _onlyBABTHolder() internal view {
+        require(babt.balanceOf(msg.sender) > 0 || !onlyBABTHolders, "Gov: not BABT holder");
+    }
+
+    function _checkUserBalance(uint256 amountLP) internal view {
+        require(
+            amountLP <= balanceOf(msg.sender) - investsInBlocks[msg.sender][block.number],
+            "TP: wrong amount"
+        );
     }
 }

@@ -347,7 +347,7 @@ contract GovPool is
     function saveOffchainResults(
         string calldata resultsHash,
         bytes calldata signature
-    ) external override {
+    ) external override onlyBABTHolder {
         resultsHash.saveOffchainResults(signature, _offChain);
 
         _pendingRewards.updateRewards(

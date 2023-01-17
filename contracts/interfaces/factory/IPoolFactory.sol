@@ -115,7 +115,8 @@ interface IPoolFactory {
     function deployBasicPool(
         string calldata name,
         string calldata symbol,
-        TraderPoolDeployParameters calldata parameters
+        TraderPoolDeployParameters calldata parameters,
+        bool onlyBABHolder
     ) external;
 
     /// @notice The function to deploy invest pools
@@ -125,7 +126,8 @@ interface IPoolFactory {
     function deployInvestPool(
         string calldata name,
         string calldata symbol,
-        TraderPoolDeployParameters calldata parameters
+        TraderPoolDeployParameters calldata parameters,
+        bool onlyBABHolder
     ) external;
 
     /// @notice The view function that predicts the address where the gov pool proxy will be stored
