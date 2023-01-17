@@ -45,17 +45,18 @@ enum CommissionPeriod {
 ```solidity
 struct InsuranceParameters {
     uint64 insuranceFactor;
-    uint64 maxInsurancePoolShare;
     uint64 insuranceWithdrawalLock;
+    uint128 maxInsurancePoolShare;
     uint256 minInsuranceDeposit;
 }
 ```
  - ***insuranceFactor*** - the deposit insurance multiplier. Means how many insurance tokens is received per deposited token
- - ***maxInsurancePoolShare*** - the maximal share of the pool which can be used to pay out the insurance (**3** **->** *1/3* of the pool)
  - ***insuranceWithdrawalLock*** - the time needed to wait to withdraw tokens from the insurance after the deposit 
  - ***minInsuranceDeposit*** - the minimal required deposit in **DEXE** tokens to receive an insurance
+ - ***maxInsurancePoolShare*** - the maximal share of the pool which can be used to pay out the insurance (**3** **->** *1/3* of the pool)
 
- #### GovParameters
+
+#### GovParameters
  `GovParameters` struct stores `GovPool` parameters.
  ```solidity
 struct GovParameters {

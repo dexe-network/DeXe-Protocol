@@ -225,12 +225,12 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         return coreParameters.insuranceParams.insuranceFactor;
     }
 
-    function getMaxInsurancePoolShare() external view override returns (uint64) {
-        return coreParameters.insuranceParams.maxInsurancePoolShare;
-    }
-
     function getInsuranceWithdrawalLock() external view override returns (uint64) {
         return coreParameters.insuranceParams.insuranceWithdrawalLock;
+    }
+
+    function getMaxInsurancePoolShare() external view override returns (uint128) {
+        return coreParameters.insuranceParams.maxInsurancePoolShare;
     }
 
     function getMinInsuranceDeposit() external view override returns (uint256) {

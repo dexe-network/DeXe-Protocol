@@ -48,13 +48,13 @@ interface ICoreProperties {
 
     /// @notice The struct that stores Insurance parameters
     /// @param insuranceFactor the deposit insurance multiplier. Means how many insurance tokens is received per deposited token
-    /// @param maxInsurancePoolShare the maximal share of the pool which can be used to pay out the insurance. 3 = 1/3 of the pool
     /// @param insuranceWithdrawalLock the time needed to wait to withdraw tokens from the insurance after the deposit
+    /// @param maxInsurancePoolShare the maximal share of the pool which can be used to pay out the insurance. 3 = 1/3 of the pool
     /// @param minInsuranceDeposit the minimal required deposit in DEXE tokens to receive an insurance
     struct InsuranceParameters {
         uint64 insuranceFactor;
-        uint64 maxInsurancePoolShare;
         uint64 insuranceWithdrawalLock;
+        uint128 maxInsurancePoolShare;
         uint256 minInsuranceDeposit;
     }
 
@@ -244,13 +244,13 @@ interface ICoreProperties {
     /// @return the multiplier
     function getInsuranceFactor() external view returns (uint64);
 
-    /// @notice The function to get the max payout share of the insurance pool
-    /// @return the max pool share to be paid in a single request
-    function getMaxInsurancePoolShare() external view returns (uint64);
-
     /// @notice The function to get insurance withdrawal lock duration
     /// @return the duration of insurance lock
     function getInsuranceWithdrawalLock() external view returns (uint64);
+
+    /// @notice The function to get the max payout share of the insurance pool
+    /// @return the max pool share to be paid in a single request
+    function getMaxInsurancePoolShare() external view returns (uint128);
 
     /// @notice The function to get the min allowed insurance deposit
     /// @return the min allowed insurance deposit in DEXE tokens
