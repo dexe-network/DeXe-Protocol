@@ -7,6 +7,8 @@ import "../../interfaces/trader/ITraderPool.sol";
 import "../../interfaces/core/IPriceFeed.sol";
 import "../../interfaces/core/ICoreProperties.sol";
 
+import "../../trader/TraderPool.sol";
+
 import "../price-feed/PriceFeedLocal.sol";
 import "../utils/TokenBalance.sol";
 
@@ -34,8 +36,8 @@ library TraderPoolExchange {
         address[] calldata optionalPath,
         ITraderPool.ExchangeType exType
     ) external {
-        ICoreProperties coreProperties = ITraderPool(address(this)).coreProperties();
-        IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
+        ICoreProperties coreProperties = TraderPool(address(this)).coreProperties();
+        IPriceFeed priceFeed = TraderPool(address(this)).priceFeed();
 
         require(from != to, "TP: ambiguous exchange");
         require(
@@ -95,8 +97,8 @@ library TraderPoolExchange {
         address[] calldata optionalPath,
         ITraderPool.ExchangeType exType
     ) external view returns (uint256, address[] memory) {
-        IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
-        ICoreProperties coreProperties = ITraderPool(address(this)).coreProperties();
+        IPriceFeed priceFeed = TraderPool(address(this)).priceFeed();
+        ICoreProperties coreProperties = TraderPool(address(this)).coreProperties();
 
         if (coreProperties.isBlacklistedToken(from) || coreProperties.isBlacklistedToken(to)) {
             return (0, new address[](0));

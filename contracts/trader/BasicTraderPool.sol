@@ -9,6 +9,8 @@ import "./TraderPool.sol";
 contract BasicTraderPool is IBasicTraderPool, TraderPool {
     using MathHelper for uint256;
     using SafeERC20 for IERC20;
+    using TraderPoolInvest for *;
+    using TraderPoolDivest for *;
 
     ITraderPoolRiskyProposal internal _traderPoolProposal;
 
@@ -70,7 +72,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256 minProposalOut,
         address[] calldata optionalPath
     ) external override onlyTrader {
-        uint256 baseAmount = _divestPositions(lpAmount, minDivestOut);
+        uint256 baseAmount = _poolParameters.divestPositions(lpAmount, minDivestOut);
 
         _traderPoolProposal.create(
             descriptionURL,
@@ -92,7 +94,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256[] calldata minDivestOut,
         uint256 minProposalOut
     ) external override {
-        uint256 baseAmount = _divestPositions(lpAmount, minDivestOut);
+        uint256 baseAmount = _poolParameters.divestPositions(lpAmount, minDivestOut);
 
         _traderPoolProposal.invest(proposalId, msg.sender, lpAmount, baseAmount, minProposalOut);
 
@@ -113,7 +115,8 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
             minProposalOut
         );
 
-        uint256 toMintLP = _investPositions(
+        uint256 toMintLP = _poolParameters.investPositions(
+            investsInBlocks,
             address(_traderPoolProposal),
             receivedBase,
             minPositionsOut
@@ -123,6 +126,14 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         _mint(msg.sender, toMintLP);
 
         emit ProposalDivested(proposalId, msg.sender, lp2Amount, toMintLP, receivedBase);
+    }
+
+    function checkLeave(address user) external override onlyProposalPool {
+        _checkLeave(user, 0);
+    }
+
+    function checkJoin(address user) external override onlyProposalPool {
+        _checkJoin(user);
     }
 
     function proposalPoolAddress() external view override returns (address) {
@@ -137,14 +148,6 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         return
             balanceOf(investor) == 0 &&
             _traderPoolProposal.getTotalActiveInvestments(investor) == 0;
-    }
-
-    function checkLeave(address user) external override onlyProposalPool {
-        _checkLeave(user, 0);
-    }
-
-    function checkJoin(address user) external override onlyProposalPool {
-        _checkJoin(user);
     }
 
     function _onlyProposalPool() internal view {

@@ -18,6 +18,9 @@ const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
 const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
 const TraderPoolExchangeLib = artifacts.require("TraderPoolExchange");
 const TraderPoolPriceLib = artifacts.require("TraderPoolPrice");
+const TraderPoolInvestLib = artifacts.require("TraderPoolInvest");
+const TraderPoolDivestLib = artifacts.require("TraderPoolDivest");
+const TraderPoolModifyLib = artifacts.require("TraderPoolModify");
 const TraderPoolViewLib = artifacts.require("TraderPoolView");
 
 ContractsRegistry.numberFormat = "BigNumber";
@@ -95,17 +98,27 @@ describe("TraderPool", () => {
     const traderPoolCommissionLib = await TraderPoolCommissionLib.new();
     const traderPoolLeverageLib = await TraderPoolLeverageLib.new();
 
+    await TraderPoolDivestLib.link(traderPoolCommissionLib);
+
+    await TraderPoolInvestLib.link(traderPoolPriceLib);
+    await TraderPoolInvestLib.link(traderPoolLeverageLib);
+
     await TraderPoolViewLib.link(traderPoolPriceLib);
     await TraderPoolViewLib.link(traderPoolCommissionLib);
     await TraderPoolViewLib.link(traderPoolLeverageLib);
 
     const traderPoolViewLib = await TraderPoolViewLib.new();
     const traderPoolExchangeLib = await TraderPoolExchangeLib.new();
+    const traderPoolInvestLib = await TraderPoolInvestLib.new();
+    const traderPoolDivestLib = await TraderPoolDivestLib.new();
+    const traderPoolModifyLib = await TraderPoolModifyLib.new();
 
     await TraderPoolMock.link(traderPoolCommissionLib);
     await TraderPoolMock.link(traderPoolLeverageLib);
-    await TraderPoolMock.link(traderPoolPriceLib);
     await TraderPoolMock.link(traderPoolExchangeLib);
+    await TraderPoolMock.link(traderPoolInvestLib);
+    await TraderPoolMock.link(traderPoolDivestLib);
+    await TraderPoolMock.link(traderPoolModifyLib);
     await TraderPoolMock.link(traderPoolViewLib);
   });
 
@@ -229,6 +242,16 @@ describe("TraderPool", () => {
 
       it("should not set dependencies from non dependant", async () => {
         await truffleAssert.reverts(traderPool.setDependencies(OWNER), "Dependant: Not an injector");
+      });
+
+      it("only this should call these methods", async () => {
+        await truffleAssert.reverts(traderPool.mint(OWNER, 1), "TP: not this contract");
+
+        await truffleAssert.reverts(traderPool.burn(OWNER, 1), "TP: not this contract");
+
+        await truffleAssert.reverts(traderPool.updateTo(OWNER, 1, 1), "TP: not this contract");
+
+        await truffleAssert.reverts(traderPool.updateFrom(OWNER, 1, 1), "TP: not this contract");
       });
 
       it("only admin should call these methods", async () => {

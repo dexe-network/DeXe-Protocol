@@ -13,7 +13,7 @@ import "../../libs/math/MathHelper.sol";
 
 library TraderPoolLeverage {
     using MathHelper for uint256;
-    using TraderPoolPrice for ITraderPool.PoolParameters;
+    using TraderPoolPrice for *;
 
     function getMaxTraderLeverage(
         ITraderPool.PoolParameters storage poolParameters
@@ -21,7 +21,7 @@ library TraderPoolLeverage {
         uint256 traderUSDTokens;
 
         (totalTokensUSD, traderUSDTokens) = _getNormalizedLeveragePoolPriceInUSD(poolParameters);
-        (uint256 threshold, uint256 slope) = ITraderPool(address(this))
+        (uint256 threshold, uint256 slope) = TraderPool(address(this))
             .coreProperties()
             .getTraderLeverageParams();
 
@@ -48,7 +48,7 @@ library TraderPoolLeverage {
         (uint256 totalPriceInUSD, uint256 maxTraderVolumeInUSD) = getMaxTraderLeverage(
             poolParameters
         );
-        (uint256 addInUSD, ) = ITraderPool(address(this)).priceFeed().getNormalizedPriceOutUSD(
+        (uint256 addInUSD, ) = TraderPool(address(this)).priceFeed().getNormalizedPriceOutUSD(
             poolParameters.baseToken,
             amountInBaseToInvest
         );
@@ -60,8 +60,8 @@ library TraderPoolLeverage {
         ITraderPool.PoolParameters storage poolParameters
     ) internal view returns (uint256 totalInUSD, uint256 traderInUSD) {
         address trader = poolParameters.trader;
-        address proposalPool = ITraderPool(address(this)).proposalPoolAddress();
-        uint256 totalEmission = ITraderPool(address(this)).totalEmission();
+        address proposalPool = TraderPool(address(this)).proposalPoolAddress();
+        uint256 totalEmission = TraderPool(address(this)).totalEmission();
         uint256 traderBalance = IERC20(address(this)).balanceOf(trader);
 
         (, totalInUSD) = poolParameters.getNormalizedPoolPriceAndUSD();

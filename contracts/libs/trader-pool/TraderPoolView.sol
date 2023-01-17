@@ -22,10 +22,9 @@ import "../price-feed/PriceFeedLocal.sol";
 
 library TraderPoolView {
     using EnumerableSet for EnumerableSet.AddressSet;
-    using TraderPoolPrice for ITraderPool.PoolParameters;
-    using TraderPoolPrice for address;
-    using TraderPoolCommission for ITraderPool.PoolParameters;
-    using TraderPoolLeverage for ITraderPool.PoolParameters;
+    using TraderPoolPrice for *;
+    using TraderPoolCommission for *;
+    using TraderPoolLeverage for *;
     using DecimalsConverter for uint256;
     using MathHelper for uint256;
     using Math for uint256;
@@ -84,7 +83,7 @@ library TraderPoolView {
         poolInfo.name = ERC20(address(this)).name();
 
         poolInfo.parameters = poolParameters;
-        poolInfo.openPositions = ITraderPool(address(this)).openPositions();
+        poolInfo.openPositions = TraderPool(address(this)).openPositions();
 
         poolInfo.baseAndPositionBalances = new uint256[](poolInfo.openPositions.length + 1);
         poolInfo.baseAndPositionBalances[0] = poolInfo.parameters.baseToken.normThisBalance();
@@ -94,14 +93,14 @@ library TraderPoolView {
         }
 
         poolInfo.totalBlacklistedPositions = positions.length() - poolInfo.openPositions.length;
-        poolInfo.totalInvestors = ITraderPool(address(this)).totalInvestors();
+        poolInfo.totalInvestors = TraderPool(address(this)).totalInvestors();
 
         (poolInfo.totalPoolBase, poolInfo.totalPoolUSD) = poolParameters
             .getNormalizedPoolPriceAndUSD();
 
         poolInfo.lpSupply = IERC20(address(this)).totalSupply();
         poolInfo.lpLockedInProposals =
-            ITraderPool(address(this)).totalEmission() -
+            TraderPool(address(this)).totalEmission() -
             poolInfo.lpSupply;
 
         if (poolInfo.lpSupply > 0) {
@@ -129,7 +128,7 @@ library TraderPoolView {
             leverageInfo.freeLeverageUSD =
                 leverageInfo.traderLeverageUSDTokens -
                 leverageInfo.totalPoolUSDWithProposals;
-            (leverageInfo.freeLeverageBase, ) = ITraderPool(address(this))
+            (leverageInfo.freeLeverageBase, ) = TraderPool(address(this))
                 .priceFeed()
                 .getNormalizedPriceInUSD(poolParameters.baseToken, leverageInfo.freeLeverageUSD);
         }
@@ -152,7 +151,7 @@ library TraderPoolView {
         receptions.receivedAmounts = new uint256[](positionTokens.length);
 
         if (totalBase > 0) {
-            IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
+            IPriceFeed priceFeed = TraderPool(address(this)).priceFeed();
 
             receptions.baseAmount = currentBaseAmount.ratio(amountInBaseToInvest, totalBase);
             receptions.lpAmount = receptions.lpAmount.ratio(
@@ -222,8 +221,8 @@ library TraderPoolView {
         )
     {
         ERC20 baseToken = ERC20(poolParameters.baseToken);
-        IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
-        address[] memory openPositions = ITraderPool(address(this)).openPositions();
+        IPriceFeed priceFeed = TraderPool(address(this)).priceFeed();
+        address[] memory openPositions = TraderPool(address(this)).openPositions();
 
         uint256 totalSupply = IERC20(address(this)).totalSupply();
 
@@ -272,7 +271,7 @@ library TraderPoolView {
         uint256 totalPoolUSD,
         uint256 totalSupply
     ) internal view returns (ITraderPool.UserInfo memory userInfo) {
-        ICoreProperties coreProperties = ITraderPool(address(this)).coreProperties();
+        ICoreProperties coreProperties = TraderPool(address(this)).coreProperties();
 
         userInfo.poolLPBalance = IERC20(address(this)).balanceOf(user);
 
@@ -314,7 +313,7 @@ library TraderPoolView {
     ) internal view returns (uint256 baseCommission, uint256 lpCommission) {
         (, uint256 commissionUnlockEpoch) = TraderPool(address(this)).investorsInfo(investor);
 
-        if (poolParameters.nextCommissionEpoch() > commissionUnlockEpoch) {
+        if (poolParameters.getNextCommissionEpoch() > commissionUnlockEpoch) {
             uint256 lpBalance = IERC20(address(this)).balanceOf(investor);
             uint256 baseShare = totalPoolBase.ratio(lpBalance, totalSupply);
 
@@ -331,8 +330,8 @@ library TraderPoolView {
         uint256 baseCommission,
         uint256 lpCommission
     ) internal view returns (ITraderPool.Commissions memory commissions) {
-        IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
-        (uint256 dexePercentage, , , ) = ITraderPool(address(this))
+        IPriceFeed priceFeed = TraderPool(address(this)).priceFeed();
+        (uint256 dexePercentage, , , ) = TraderPool(address(this))
             .coreProperties()
             .getDEXECommissionPercentages();
 
