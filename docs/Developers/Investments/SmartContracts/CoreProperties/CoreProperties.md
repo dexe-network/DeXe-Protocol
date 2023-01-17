@@ -11,10 +11,10 @@ struct TraderParameters {
     uint64 delayForRiskyPool;
     uint64 commissionInitTimestamp;
     uint64[] commissionDurations;
-    uint256 leverageThreshold;
-    uint256 leverageSlope;
-    uint256 dexeCommissionPercentage;
-    uint256[] dexeCommissionDistributionPercentages;
+    uint32 leverageThreshold;
+    uint32 leverageSlope;
+    uint128 dexeCommissionPercentage;
+    uint128[] dexeCommissionDistributionPercentages;
     uint256 minTraderCommission;
     uint256[] maxTraderCommissions;
 }
@@ -44,23 +44,23 @@ enum CommissionPeriod {
 `InsuranceParameters` struct stores `Insurance` parameters.
 ```solidity
 struct InsuranceParameters {
-    uint256 insuranceFactor;
-    uint256 maxInsurancePoolShare;
+    uint64 insuranceFactor;
+    uint64 maxInsurancePoolShare;
+    uint64 insuranceWithdrawalLock;
     uint256 minInsuranceDeposit;
-    uint256 insuranceWithdrawalLock;
 }
 ```
  - ***insuranceFactor*** - the deposit insurance multiplier. Means how many insurance tokens is received per deposited token
  - ***maxInsurancePoolShare*** - the maximal share of the pool which can be used to pay out the insurance (**3** **->** *1/3* of the pool)
+ - ***insuranceWithdrawalLock*** - the time needed to wait to withdraw tokens from the insurance after the deposit 
  - ***minInsuranceDeposit*** - the minimal required deposit in **DEXE** tokens to receive an insurance
- - ***insuranceWithdrawalLock*** - the time needed to wait to withdraw tokens from the insurance after the deposit
 
  #### GovParameters
  `GovParameters` struct stores `GovPool` parameters.
  ```solidity
 struct GovParameters {
-    uint256 govVotesLimit;
-    uint256 govCommissionPercentage;
+    uint128 govVotesLimit;
+    uint128 govCommissionPercentage;
 }
 ```
 - ***govVotesLimit*** - the maximum number of simultaneous votes of the voter

@@ -393,9 +393,9 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         require(baseToDistribute > 0, "TP: no commission available");
 
         (
-            uint256 dexePercentage,
+            uint128 dexePercentage,
             ,
-            uint256[] memory poolPercentages,
+            uint128[] memory poolPercentages,
             address[3] memory commissionReceivers
         ) = coreProperties.getDEXECommissionPercentages();
 

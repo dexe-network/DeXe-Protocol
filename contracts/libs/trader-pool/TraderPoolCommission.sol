@@ -23,7 +23,7 @@ library TraderPoolCommission {
     function sendDexeCommission(
         IERC20 dexeToken,
         uint256 dexeCommission,
-        uint256[] calldata poolPercentages,
+        uint128[] calldata poolPercentages,
         address[3] calldata commissionReceivers
     ) external {
         for (uint256 i = 0; i < commissionReceivers.length; i++) {

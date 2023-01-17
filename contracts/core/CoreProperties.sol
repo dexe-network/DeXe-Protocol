@@ -74,10 +74,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         coreParameters.traderParams.maxOpenPositions = count;
     }
 
-    function setTraderLeverageParams(
-        uint256 threshold,
-        uint256 slope
-    ) external override onlyOwner {
+    function setTraderLeverageParams(uint32 threshold, uint32 slope) external override onlyOwner {
         coreParameters.traderParams.leverageThreshold = threshold;
         coreParameters.traderParams.leverageSlope = slope;
     }
@@ -91,9 +88,9 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
     }
 
     function setDEXECommissionPercentages(
-        uint256 dexeCommission,
-        uint256 govCommission,
-        uint256[] calldata distributionPercentages
+        uint128 dexeCommission,
+        uint128 govCommission,
+        uint128[] calldata distributionPercentages
     ) external override onlyOwner {
         coreParameters.traderParams.dexeCommissionPercentage = dexeCommission;
         coreParameters
@@ -120,7 +117,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         coreParameters.insuranceParams = insuranceParams;
     }
 
-    function setGovVotesLimit(uint256 newVotesLimit) external override onlyOwner {
+    function setGovVotesLimit(uint128 newVotesLimit) external override onlyOwner {
         coreParameters.govParams.govVotesLimit = newVotesLimit;
     }
 
@@ -184,7 +181,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         return coreParameters.traderParams.maxOpenPositions;
     }
 
-    function getTraderLeverageParams() external view override returns (uint256, uint256) {
+    function getTraderLeverageParams() external view override returns (uint32, uint32) {
         return (
             coreParameters.traderParams.leverageThreshold,
             coreParameters.traderParams.leverageSlope
@@ -203,7 +200,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         external
         view
         override
-        returns (uint256, uint256, uint256[] memory, address[3] memory)
+        returns (uint128, uint128, uint128[] memory, address[3] memory)
     {
         return (
             coreParameters.traderParams.dexeCommissionPercentage,
@@ -224,23 +221,23 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         return coreParameters.traderParams.delayForRiskyPool;
     }
 
-    function getInsuranceFactor() external view override returns (uint256) {
+    function getInsuranceFactor() external view override returns (uint64) {
         return coreParameters.insuranceParams.insuranceFactor;
     }
 
-    function getMaxInsurancePoolShare() external view override returns (uint256) {
+    function getMaxInsurancePoolShare() external view override returns (uint64) {
         return coreParameters.insuranceParams.maxInsurancePoolShare;
+    }
+
+    function getInsuranceWithdrawalLock() external view override returns (uint64) {
+        return coreParameters.insuranceParams.insuranceWithdrawalLock;
     }
 
     function getMinInsuranceDeposit() external view override returns (uint256) {
         return coreParameters.insuranceParams.minInsuranceDeposit;
     }
 
-    function getInsuranceWithdrawalLock() external view override returns (uint256) {
-        return coreParameters.insuranceParams.insuranceWithdrawalLock;
-    }
-
-    function getGovVotesLimit() external view override returns (uint256) {
+    function getGovVotesLimit() external view override returns (uint128) {
         return coreParameters.govParams.govVotesLimit;
     }
 
