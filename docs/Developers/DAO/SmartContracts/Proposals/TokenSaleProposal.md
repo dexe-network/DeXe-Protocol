@@ -15,8 +15,8 @@ function createTiers(TierView[] calldata tiers) external onlyGov;
 struct TierView {
     TierMetadata metadata;
     uint256 totalTokenProvided;
-    uint256 saleStartTime;
-    uint256 saleEndTime;
+    uint64 saleStartTime;
+    uint64 saleEndTime;
     address saleTokenAddress;
     address[] purchaseTokenAddresses;
     uint256[] exchangeRates;
@@ -48,9 +48,9 @@ struct TierMetadata {
 ```solidity
 struct VestingSettings {
     uint256 vestingPercentage;
-    uint256 vestingDuration;
-    uint256 cliffPeriod;
-    uint256 unlockStep;
+    uint64 vestingDuration;
+    uint64 cliffPeriod;
+    uint64 unlockStep;
 }
 ```
 - ***vestingPercentage*** - percentage of the purchased token amount that goes to vesting

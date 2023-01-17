@@ -6,30 +6,30 @@ The purpose of this module is to store system constant parameters.
 `TraderParameters` struct stores `TraderPools` parameters.
 ```solidity
 struct TraderParameters {
-    uint256 maxPoolInvestors;
-    uint256 maxOpenPositions;
+    uint64 maxPoolInvestors;
+    uint64 maxOpenPositions;
+    uint64 delayForRiskyPool;
+    uint64 commissionInitTimestamp;
+    uint64[] commissionDurations;
     uint256 leverageThreshold;
     uint256 leverageSlope;
-    uint256 commissionInitTimestamp;
-    uint256[] commissionDurations;
     uint256 dexeCommissionPercentage;
     uint256[] dexeCommissionDistributionPercentages;
     uint256 minTraderCommission;
     uint256[] maxTraderCommissions;
-    uint256 delayForRiskyPool;
 }
 ```
  - ***maxPoolInvestors*** - the maximum number of investors in the `TraderPool`
  - ***maxOpenPositions*** - the maximum number of concurrently opened positions by a trader
- - ***leverageThreshold*** - the first parameter in the trader's formula
- - ***leverageSlope*** - the second parameters in the trader's formula
+ - ***delayForRiskyPool*** - the investment delay after the first exchange in the risky pool in seconds
  - ***commissionInitTimestamp*** - the initial timestamp of the commission rounds
  - ***commissionDurations*** - the durations of the commission periods in seconds (see `CommissionPeriod`)
+ - ***leverageThreshold*** - the first parameter in the trader's formula
+ - ***leverageSlope*** - the second parameters in the trader's formula
  - ***dexeCommissionPercentage*** - the protocol's commission percentage, multiplied by ***10\*\*25***
  - ***dexeCommissionDistributionPercentages*** - the individual percentages of the commission contracts (should sum up to ***10\*\*27*** = **100%**)
  - ***minTraderCommission*** - the minimal trader's commission the trader can specify
  - ***maxTraderCommissions*** - the maximal trader's commission the trader can specify based on the chosen commission period
- - ***delayForRiskyPool*** - the investment delay after the first exchange in the risky pool in seconds
 
 There are **3** types of commission periods.
  ```solidity
