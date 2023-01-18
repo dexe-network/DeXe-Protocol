@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "../../interfaces/trader/ITraderPool.sol";
+import "../../interfaces/core/ISBT721.sol";
 
 import "../../trader/TraderPool.sol";
 
@@ -18,11 +19,17 @@ library TraderPoolModify {
         EnumerableSet.AddressSet storage admins,
         ITraderPool.PoolParameters storage poolParameters,
         address[] calldata newAdmins,
+        mapping(address => uint256) storage adminBABTIDs,
+        ISBT721 babt,
         bool add
     ) external {
         for (uint256 i = 0; i < newAdmins.length; i++) {
             if (add) {
                 admins.add(newAdmins[i]);
+
+                if (babt.balanceOf(newAdmins[i]) > 0) {
+                    adminBABTIDs[newAdmins[i]] = babt.tokenIdOf(newAdmins[i]);
+                }
             } else {
                 admins.remove(newAdmins[i]);
             }

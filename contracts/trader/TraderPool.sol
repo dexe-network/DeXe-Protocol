@@ -44,6 +44,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     mapping(address => mapping(uint256 => uint256)) public investsInBlocks; // user => block => LP amount
     mapping(address => InvestorInfo) public investorsInfo;
+    mapping(address => uint256) public adminBABTIDs;
 
     event Joined(address user);
     event Left(address user);
@@ -100,10 +101,16 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _babt = ISBT721(registry.getBABTContract());
         priceFeed = IPriceFeed(registry.getPriceFeedContract());
         coreProperties = ICoreProperties(registry.getCorePropertiesContract());
+
+        address trader = _poolParameters.trader;
+
+        if (_babt.balanceOf(trader) > 0) {
+            adminBABTIDs[trader] = _babt.tokenIdOf(trader);
+        }
     }
 
     function modifyAdmins(address[] calldata admins, bool add) external override onlyTraderAdmin {
-        _traderAdmins.modifyAdmins(_poolParameters, admins, add);
+        _traderAdmins.modifyAdmins(_poolParameters, admins, adminBABTIDs, _babt, add);
     }
 
     function modifyPrivateInvestors(
