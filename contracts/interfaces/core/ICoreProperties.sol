@@ -23,47 +23,47 @@ interface ICoreProperties {
     /// @notice The struct that stores TraderPools parameters
     /// @param maxPoolInvestors the maximum number of investors in the TraderPool
     /// @param maxOpenPositions the maximum number of concurrently opened positions by a trader
-    /// @param leverageThreshold the first parameter in the trader's formula
-    /// @param leverageSlope the second parameters in the trader's formula
+    /// @param delayForRiskyPool the investment delay after the first exchange in the risky pool in seconds
     /// @param commissionInitTimestamp the initial timestamp of the commission rounds
     /// @param commissionDurations the durations of the commission periods in seconds - see enum CommissionPeriod
+    /// @param leverageThreshold the first parameter in the trader's formula
+    /// @param leverageSlope the second parameters in the trader's formula
     /// @param dexeCommissionPercentage the protocol's commission percentage, multiplied by 10**25
     /// @param dexeCommissionDistributionPercentages the individual percentages of the commission contracts (should sum up to 10**27 = 100%)
     /// @param minTraderCommission the minimal trader's commission the trader can specify
     /// @param maxTraderCommissions the maximal trader's commission the trader can specify based on the chosen commission period
-    /// @param delayForRiskyPool the investment delay after the first exchange in the risky pool in seconds
     struct TraderParameters {
-        uint256 maxPoolInvestors;
-        uint256 maxOpenPositions;
-        uint256 leverageThreshold;
-        uint256 leverageSlope;
-        uint256 commissionInitTimestamp;
-        uint256[] commissionDurations;
-        uint256 dexeCommissionPercentage;
-        uint256[] dexeCommissionDistributionPercentages;
+        uint64 maxPoolInvestors;
+        uint64 maxOpenPositions;
+        uint64 delayForRiskyPool;
+        uint64 commissionInitTimestamp;
+        uint64[] commissionDurations;
+        uint32 leverageThreshold;
+        uint32 leverageSlope;
+        uint128 dexeCommissionPercentage;
+        uint128[] dexeCommissionDistributionPercentages;
         uint256 minTraderCommission;
         uint256[] maxTraderCommissions;
-        uint256 delayForRiskyPool;
     }
 
     /// @notice The struct that stores Insurance parameters
     /// @param insuranceFactor the deposit insurance multiplier. Means how many insurance tokens is received per deposited token
+    /// @param insuranceWithdrawalLock the time needed to wait to withdraw tokens from the insurance after the deposit
     /// @param maxInsurancePoolShare the maximal share of the pool which can be used to pay out the insurance. 3 = 1/3 of the pool
     /// @param minInsuranceDeposit the minimal required deposit in DEXE tokens to receive an insurance
-    /// @param insuranceWithdrawalLock the time needed to wait to withdraw tokens from the insurance after the deposit
     struct InsuranceParameters {
-        uint256 insuranceFactor;
-        uint256 maxInsurancePoolShare;
+        uint64 insuranceFactor;
+        uint64 insuranceWithdrawalLock;
+        uint128 maxInsurancePoolShare;
         uint256 minInsuranceDeposit;
-        uint256 insuranceWithdrawalLock;
     }
 
     /// @notice The struct that stores GovPool parameters
     /// @param govVotesLimit the maximum number of simultaneous votes of the voter
     /// @param govCommission the protocol's commission percentage
     struct GovParameters {
-        uint256 govVotesLimit;
-        uint256 govCommissionPercentage;
+        uint128 govVotesLimit;
+        uint128 govCommissionPercentage;
     }
 
     /// @notice The struct that stores vital platform's parameters that may be modified by the OWNER
@@ -97,33 +97,33 @@ interface ICoreProperties {
 
     /// @notice The function to set the maximum pool investors
     /// @param count new maximum pool investors
-    function setMaximumPoolInvestors(uint256 count) external;
+    function setMaximumPoolInvestors(uint64 count) external;
 
     /// @notice The function to set the maximum concurrent pool positions
     /// @param count new maximum pool positions
-    function setMaximumOpenPositions(uint256 count) external;
+    function setMaximumOpenPositions(uint64 count) external;
 
     /// @notice The function the adjust trader leverage formula
     /// @param threshold new first parameter of the leverage function
     /// @param slope new second parameter of the leverage formula
-    function setTraderLeverageParams(uint256 threshold, uint256 slope) external;
+    function setTraderLeverageParams(uint32 threshold, uint32 slope) external;
 
     /// @notice The function to set new initial timestamp of the commission rounds
     /// @param timestamp new timestamp (in seconds)
-    function setCommissionInitTimestamp(uint256 timestamp) external;
+    function setCommissionInitTimestamp(uint64 timestamp) external;
 
     /// @notice The function to change the commission durations for the commission periods
     /// @param durations the array of new durations (in seconds)
-    function setCommissionDurations(uint256[] calldata durations) external;
+    function setCommissionDurations(uint64[] calldata durations) external;
 
     /// @notice The function to modify the platform's commission percentages
     /// @param dexeCommission DEXE percentage commission. Should be multiplied by 10**25
     /// @param govCommission the gov percentage commission. Should be multiplied by 10**25
     /// @param distributionPercentages the percentages of the individual contracts (has to add up to 10**27)
     function setDEXECommissionPercentages(
-        uint256 dexeCommission,
-        uint256 govCommission,
-        uint256[] calldata distributionPercentages
+        uint128 dexeCommission,
+        uint128 govCommission,
+        uint128[] calldata distributionPercentages
     ) external;
 
     /// @notice The function to set new bounds for the trader commission
@@ -136,7 +136,7 @@ interface ICoreProperties {
 
     /// @notice The function to set new investment delay for the risky pool
     /// @param delayForRiskyPool new investment delay after the first exchange
-    function setDelayForRiskyPool(uint256 delayForRiskyPool) external;
+    function setDelayForRiskyPool(uint64 delayForRiskyPool) external;
 
     /// @notice The function to set new insurance parameters
     /// @param insuranceParams the insurance parameters
@@ -144,7 +144,7 @@ interface ICoreProperties {
 
     /// @notice The function to set new gov votes limit
     /// @param newVotesLimit new gov votes limit
-    function setGovVotesLimit(uint256 newVotesLimit) external;
+    function setGovVotesLimit(uint128 newVotesLimit) external;
 
     /// @notice The function that returns the total number of whitelisted tokens
     /// @return the number of whitelisted tokens
@@ -191,24 +191,24 @@ interface ICoreProperties {
 
     /// @notice The function to fetch the maximum pool investors
     /// @return maximum pool investors
-    function getMaximumPoolInvestors() external view returns (uint256);
+    function getMaximumPoolInvestors() external view returns (uint64);
 
     /// @notice The function to fetch the maximum concurrently opened positions
     /// @return the maximum concurrently opened positions
-    function getMaximumOpenPositions() external view returns (uint256);
+    function getMaximumOpenPositions() external view returns (uint64);
 
     /// @notice The function to get trader's leverage function parameters
     /// @return threshold the first function parameter
     /// @return slope the second function parameter
-    function getTraderLeverageParams() external view returns (uint256 threshold, uint256 slope);
+    function getTraderLeverageParams() external view returns (uint32 threshold, uint32 slope);
 
     /// @notice The function to get the initial commission timestamp
     /// @return the initial timestamp
-    function getCommissionInitTimestamp() external view returns (uint256);
+    function getCommissionInitTimestamp() external view returns (uint64);
 
     /// @notice The function the get the commission duration for the specified period
     /// @param period the commission period
-    function getCommissionDuration(CommissionPeriod period) external view returns (uint256);
+    function getCommissionDuration(CommissionPeriod period) external view returns (uint64);
 
     /// @notice The function to get DEXE commission percentages and receivers
     /// @return totalPercentage the overall DEXE commission percentage
@@ -222,9 +222,9 @@ interface ICoreProperties {
         external
         view
         returns (
-            uint256 totalPercentage,
-            uint256 govPercentage,
-            uint256[] memory individualPercentages,
+            uint128 totalPercentage,
+            uint128 govPercentage,
+            uint128[] memory individualPercentages,
             address[3] memory commissionReceivers
         );
 
@@ -238,27 +238,27 @@ interface ICoreProperties {
 
     /// @notice The function to get the investment delay of the risky pool
     /// @return the investment delay in seconds
-    function getDelayForRiskyPool() external view returns (uint256);
+    function getDelayForRiskyPool() external view returns (uint64);
 
     /// @notice The function to get the insurance deposit multiplier
     /// @return the multiplier
-    function getInsuranceFactor() external view returns (uint256);
+    function getInsuranceFactor() external view returns (uint64);
+
+    /// @notice The function to get insurance withdrawal lock duration
+    /// @return the duration of insurance lock
+    function getInsuranceWithdrawalLock() external view returns (uint64);
 
     /// @notice The function to get the max payout share of the insurance pool
     /// @return the max pool share to be paid in a single request
-    function getMaxInsurancePoolShare() external view returns (uint256);
+    function getMaxInsurancePoolShare() external view returns (uint128);
 
     /// @notice The function to get the min allowed insurance deposit
     /// @return the min allowed insurance deposit in DEXE tokens
     function getMinInsuranceDeposit() external view returns (uint256);
 
-    /// @notice The function to get insurance withdrawal lock duration
-    /// @return the duration of insurance lock
-    function getInsuranceWithdrawalLock() external view returns (uint256);
-
     /// @notice The function to get max votes limit of the gov pool
     /// @return votesLimit the votes limit
-    function getGovVotesLimit() external view returns (uint256 votesLimit);
+    function getGovVotesLimit() external view returns (uint128 votesLimit);
 
     /// @notice The function to get current commission epoch based on the timestamp and period
     /// @param timestamp the timestamp (should not be less than the initial timestamp)

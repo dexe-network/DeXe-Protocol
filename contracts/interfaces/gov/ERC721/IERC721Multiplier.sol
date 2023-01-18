@@ -14,8 +14,8 @@ interface IERC721Multiplier is IERC721Enumerable {
     /// @param lockedAt the time nft was locked
     struct NftInfo {
         uint256 multiplier;
-        uint256 duration;
-        uint256 lockedAt;
+        uint64 duration;
+        uint64 lockedAt;
     }
 
     /// @notice This function is used to lock an nft (enable corresponding basic rewards multiplier). Only one NFT for each address can be locked at the same time
@@ -26,7 +26,7 @@ interface IERC721Multiplier is IERC721Enumerable {
     /// @param to the address to which an nft should be minted
     /// @param multiplier the basic rewards multiplier
     /// @param duration the time for which an nft can be locked
-    function mint(address to, uint256 multiplier, uint256 duration) external;
+    function mint(address to, uint256 multiplier, uint64 duration) external;
 
     /// @notice This function is used to calculate extra rewards
     /// @param whose the address of the user who is to receive extra rewards

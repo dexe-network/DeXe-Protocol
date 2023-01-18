@@ -18,8 +18,6 @@ import "../libs/trader-pool/TraderPoolInvest.sol";
 import "../libs/trader-pool/TraderPoolDivest.sol";
 import "../libs/math/MathHelper.sol";
 
-import "../core/Globals.sol";
-
 abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant {
     using EnumerableSet for EnumerableSet.AddressSet;
     using MathHelper for uint256;

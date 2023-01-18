@@ -32,13 +32,13 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
 
         NftInfo storage tokenToBeLocked = _tokens[tokenId];
 
-        tokenToBeLocked.lockedAt = block.timestamp;
+        tokenToBeLocked.lockedAt = uint64(block.timestamp);
         _latestLockedTokenIds[msg.sender] = tokenId;
 
         emit Locked(msg.sender, tokenId, tokenToBeLocked.multiplier, tokenToBeLocked.duration);
     }
 
-    function mint(address to, uint256 multiplier, uint256 duration) external override onlyOwner {
+    function mint(address to, uint256 multiplier, uint64 duration) external override onlyOwner {
         uint256 currentTokenId = totalSupply() + 1;
 
         _mint(to, currentTokenId);

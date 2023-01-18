@@ -39,7 +39,7 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
     struct ProposalInfo {
         string descriptionURL;
         address token;
-        uint256 tokenDecimals;
+        uint8 tokenDecimals;
         ProposalLimits proposalLimits;
         uint256 lpLocked;
         uint256 balanceBase;

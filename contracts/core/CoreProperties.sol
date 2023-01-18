@@ -66,34 +66,31 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         _blacklistTokens.remove(tokens);
     }
 
-    function setMaximumPoolInvestors(uint256 count) external override onlyOwner {
+    function setMaximumPoolInvestors(uint64 count) external override onlyOwner {
         coreParameters.traderParams.maxPoolInvestors = count;
     }
 
-    function setMaximumOpenPositions(uint256 count) external override onlyOwner {
+    function setMaximumOpenPositions(uint64 count) external override onlyOwner {
         coreParameters.traderParams.maxOpenPositions = count;
     }
 
-    function setTraderLeverageParams(
-        uint256 threshold,
-        uint256 slope
-    ) external override onlyOwner {
+    function setTraderLeverageParams(uint32 threshold, uint32 slope) external override onlyOwner {
         coreParameters.traderParams.leverageThreshold = threshold;
         coreParameters.traderParams.leverageSlope = slope;
     }
 
-    function setCommissionInitTimestamp(uint256 timestamp) external override onlyOwner {
+    function setCommissionInitTimestamp(uint64 timestamp) external override onlyOwner {
         coreParameters.traderParams.commissionInitTimestamp = timestamp;
     }
 
-    function setCommissionDurations(uint256[] calldata durations) external override onlyOwner {
+    function setCommissionDurations(uint64[] calldata durations) external override onlyOwner {
         coreParameters.traderParams.commissionDurations = durations;
     }
 
     function setDEXECommissionPercentages(
-        uint256 dexeCommission,
-        uint256 govCommission,
-        uint256[] calldata distributionPercentages
+        uint128 dexeCommission,
+        uint128 govCommission,
+        uint128[] calldata distributionPercentages
     ) external override onlyOwner {
         coreParameters.traderParams.dexeCommissionPercentage = dexeCommission;
         coreParameters
@@ -110,7 +107,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         coreParameters.traderParams.maxTraderCommissions = maxTraderCommissions;
     }
 
-    function setDelayForRiskyPool(uint256 delayForRiskyPool) external override onlyOwner {
+    function setDelayForRiskyPool(uint64 delayForRiskyPool) external override onlyOwner {
         coreParameters.traderParams.delayForRiskyPool = delayForRiskyPool;
     }
 
@@ -120,7 +117,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         coreParameters.insuranceParams = insuranceParams;
     }
 
-    function setGovVotesLimit(uint256 newVotesLimit) external override onlyOwner {
+    function setGovVotesLimit(uint128 newVotesLimit) external override onlyOwner {
         coreParameters.govParams.govVotesLimit = newVotesLimit;
     }
 
@@ -176,28 +173,26 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         }
     }
 
-    function getMaximumPoolInvestors() external view override returns (uint256) {
+    function getMaximumPoolInvestors() external view override returns (uint64) {
         return coreParameters.traderParams.maxPoolInvestors;
     }
 
-    function getMaximumOpenPositions() external view override returns (uint256) {
+    function getMaximumOpenPositions() external view override returns (uint64) {
         return coreParameters.traderParams.maxOpenPositions;
     }
 
-    function getTraderLeverageParams() external view override returns (uint256, uint256) {
+    function getTraderLeverageParams() external view override returns (uint32, uint32) {
         return (
             coreParameters.traderParams.leverageThreshold,
             coreParameters.traderParams.leverageSlope
         );
     }
 
-    function getCommissionInitTimestamp() public view override returns (uint256) {
+    function getCommissionInitTimestamp() public view override returns (uint64) {
         return coreParameters.traderParams.commissionInitTimestamp;
     }
 
-    function getCommissionDuration(
-        CommissionPeriod period
-    ) public view override returns (uint256) {
+    function getCommissionDuration(CommissionPeriod period) public view override returns (uint64) {
         return coreParameters.traderParams.commissionDurations[uint256(period)];
     }
 
@@ -205,7 +200,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         external
         view
         override
-        returns (uint256, uint256, uint256[] memory, address[3] memory)
+        returns (uint128, uint128, uint128[] memory, address[3] memory)
     {
         return (
             coreParameters.traderParams.dexeCommissionPercentage,
@@ -222,15 +217,19 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         );
     }
 
-    function getDelayForRiskyPool() external view override returns (uint256) {
+    function getDelayForRiskyPool() external view override returns (uint64) {
         return coreParameters.traderParams.delayForRiskyPool;
     }
 
-    function getInsuranceFactor() external view override returns (uint256) {
+    function getInsuranceFactor() external view override returns (uint64) {
         return coreParameters.insuranceParams.insuranceFactor;
     }
 
-    function getMaxInsurancePoolShare() external view override returns (uint256) {
+    function getInsuranceWithdrawalLock() external view override returns (uint64) {
+        return coreParameters.insuranceParams.insuranceWithdrawalLock;
+    }
+
+    function getMaxInsurancePoolShare() external view override returns (uint128) {
         return coreParameters.insuranceParams.maxInsurancePoolShare;
     }
 
@@ -238,11 +237,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         return coreParameters.insuranceParams.minInsuranceDeposit;
     }
 
-    function getInsuranceWithdrawalLock() external view override returns (uint256) {
-        return coreParameters.insuranceParams.insuranceWithdrawalLock;
-    }
-
-    function getGovVotesLimit() external view override returns (uint256) {
+    function getGovVotesLimit() external view override returns (uint128) {
         return coreParameters.govParams.govVotesLimit;
     }
 

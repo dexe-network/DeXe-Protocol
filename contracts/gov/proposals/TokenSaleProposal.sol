@@ -76,7 +76,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             Tier storage tier = _tiers[tierIds[i]];
             Purchase storage purchase = tier.tierInfo.customers[msg.sender];
 
-            purchase.latestVestingWithdraw = block.timestamp;
+            purchase.latestVestingWithdraw = uint64(block.timestamp);
             purchase.vestingWithdrawnAmount += vestingWithdrawAmounts[i];
 
             ERC20(tier.tierView.saleTokenAddress).safeTransfer(
@@ -108,7 +108,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         tierInfo.tierInfoView.totalSold += saleTokenAmount;
 
         tierInfo.customers[msg.sender] = Purchase({
-            purchaseTime: block.timestamp,
+            purchaseTime: uint64(block.timestamp),
             vestingTotalAmount: saleTokenAmount.percentage(
                 tierView.vestingSettings.vestingPercentage
             ),
@@ -256,9 +256,9 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             if (block.timestamp < vestingView.cliffEndTime) {
                 vestingView.nextUnlockTime =
                     purchase.purchaseTime +
-                    vestingSettings.cliffPeriod.max(vestingSettings.unlockStep);
+                    uint64(uint256(vestingSettings.cliffPeriod).max(vestingSettings.unlockStep));
             } else {
-                vestingView.nextUnlockTime = block.timestamp + vestingSettings.unlockStep;
+                vestingView.nextUnlockTime = uint64(block.timestamp) + vestingSettings.unlockStep;
                 vestingView.nextUnlockTime -=
                     (vestingView.nextUnlockTime - purchase.purchaseTime) %
                     vestingSettings.unlockStep;
@@ -410,7 +410,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         uint256 tokensPerStep = purchase.vestingTotalAmount / stepsCount;
 
         return
-            (vestingSettings.vestingDuration.min(timePoint - purchase.purchaseTime) /
+            (uint256(vestingSettings.vestingDuration).min(timePoint - purchase.purchaseTime) /
                 vestingSettings.unlockStep) * tokensPerStep;
     }
 

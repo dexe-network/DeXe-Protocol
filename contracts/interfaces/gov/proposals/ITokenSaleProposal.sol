@@ -21,9 +21,9 @@ interface ITokenSaleProposal {
     /// @param unlockStep the tick step with which funds from the vesting are given to the buyer
     struct VestingSettings {
         uint256 vestingPercentage;
-        uint256 vestingDuration;
-        uint256 cliffPeriod;
-        uint256 unlockStep;
+        uint64 vestingDuration;
+        uint64 cliffPeriod;
+        uint64 unlockStep;
     }
 
     /// @notice Initial tier parameters. This struct is used to create a new tier and as a return argument in contract view functions
@@ -40,8 +40,8 @@ interface ITokenSaleProposal {
     struct TierView {
         TierMetadata metadata;
         uint256 totalTokenProvided;
-        uint256 saleStartTime;
-        uint256 saleEndTime;
+        uint64 saleStartTime;
+        uint64 saleEndTime;
         address saleTokenAddress;
         address[] purchaseTokenAddresses;
         uint256[] exchangeRates;
@@ -62,14 +62,14 @@ interface ITokenSaleProposal {
 
     /// @notice Purchase parameters. This struct is used in view functions of contract as a return argument
     /// @param purchaseTime the time of the purchase
+    /// @param latestVestingWithdraw the last time the buyer made a vesting withdrawal
     /// @param vestingTotalAmount the token amount allocated for vesting
     /// @param vestingWithdrawnAmount the token amount withdrawn by the user
-    /// @param latestVestingWithdraw the last time the buyer made a vesting withdrawal
     struct Purchase {
-        uint256 purchaseTime;
+        uint64 purchaseTime;
+        uint64 latestVestingWithdraw;
         uint256 vestingTotalAmount;
         uint256 vestingWithdrawnAmount;
-        uint256 latestVestingWithdraw;
     }
 
     /// @notice Vesting dynamic parameters. This struct is used in view functions of contract as a return argument
@@ -80,9 +80,9 @@ interface ITokenSaleProposal {
     /// @param amountToWithdraw the token amount which can be withdrawn in the current time
     /// @param lockedAmount the token amount which is locked in the current time
     struct VestingView {
-        uint256 cliffEndTime;
-        uint256 vestingEndTime;
-        uint256 nextUnlockTime;
+        uint64 cliffEndTime;
+        uint64 vestingEndTime;
+        uint64 nextUnlockTime;
         uint256 nextUnlockAmount;
         uint256 amountToWithdraw;
         uint256 lockedAmount;

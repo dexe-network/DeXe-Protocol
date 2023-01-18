@@ -5,8 +5,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "../../interfaces/trader/ITraderPool.sol";
 import "../../interfaces/trader/ITraderPoolProposal.sol";
-import "../../interfaces/core/IPriceFeed.sol";
-import "../../interfaces/core/ICoreProperties.sol";
 
 import "./TraderPoolPrice.sol";
 import "../../libs/math/MathHelper.sol";

@@ -30,16 +30,16 @@ interface IGovValidators {
 
     /// @notice The struct holds core properties of a proposal
     /// @param executed the boolean flag that indicated whether the proposal is executed or not
+    /// @param snapshotId the id of snapshot
     /// @param voteEnd the timestamp of voting end of the proposal
     /// @param quorum the percentage of validators token supply to confirm the proposal
     /// @param votesFor the total number of votes in proposal from all voters
-    /// @param snapshotId the id of snapshot
     struct ProposalCore {
         bool executed;
+        uint32 snapshotId;
         uint64 voteEnd;
         uint128 quorum;
         uint256 votesFor;
-        uint256 snapshotId;
     }
 
     /// @notice The struct holds information about the internal proposal
