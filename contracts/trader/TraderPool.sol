@@ -29,10 +29,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     using TraderPoolDivest for *;
     using TraderPoolView for *;
 
-    IERC20 internal _dexeToken;
+    IERC20 public dexeToken;
     ISBT721 internal _babt;
-    IPriceFeed public override priceFeed;
-    ICoreProperties public override coreProperties;
+    IPriceFeed public priceFeed;
+    ICoreProperties public coreProperties;
 
     EnumerableSet.AddressSet internal _traderAdmins;
 
@@ -64,7 +64,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _onlyThis();
         _;
     }
-    
+
     modifier onlyBABTHolder() {
         _onlyBABTHolder();
         _;
@@ -96,7 +96,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     function setDependencies(address contractsRegistry) public virtual override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
-        _dexeToken = IERC20(registry.getDEXEContract());
+        dexeToken = IERC20(registry.getDEXEContract());
         _babt = ISBT721(registry.getBABTContract());
         priceFeed = IPriceFeed(registry.getPriceFeedContract());
         coreProperties = ICoreProperties(registry.getCorePropertiesContract());
@@ -131,7 +131,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     function invest(
         uint256 amountInBaseToInvest,
         uint256[] calldata minPositionsOut
-    ) public virtual override {
+    ) public virtual override onlyBABTHolder {
         _poolParameters.invest(investsInBlocks, amountInBaseToInvest, minPositionsOut);
     }
 
@@ -151,7 +151,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 amountLP,
         uint256[] calldata minPositionsOut,
         uint256 minDexeCommissionOut
-    ) public virtual override {
+    ) public virtual override onlyBABTHolder {
         _poolParameters.divest(amountLP, minPositionsOut, minDexeCommissionOut);
     }
 
