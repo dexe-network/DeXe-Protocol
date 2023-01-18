@@ -37,6 +37,7 @@ interface ITraderPool {
         address trader;
         bool privatePool;
         uint8 baseTokenDecimals;
+        bool onlyBABTHolder;
         uint256 totalLPEmission; // zero means unlimited
         address baseToken;
         uint256 minimalInvestment; // zero means any value

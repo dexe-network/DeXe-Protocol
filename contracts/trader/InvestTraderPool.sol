@@ -34,10 +34,9 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         string calldata name,
         string calldata symbol,
         ITraderPool.PoolParameters calldata _poolParameters,
-        address traderPoolProposal,
-        bool _onlyBABTHolder
+        address traderPoolProposal
     ) public initializer {
-        __TraderPool_init(name, symbol, _poolParameters, _onlyBABTHolder);
+        __TraderPool_init(name, symbol, _poolParameters);
 
         _traderPoolProposal = ITraderPoolInvestProposal(traderPoolProposal);
 

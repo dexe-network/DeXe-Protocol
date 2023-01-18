@@ -89,6 +89,7 @@ interface IPoolFactory {
         string descriptionURL;
         address trader;
         bool privatePool;
+        bool onlyBABTHolder;
         uint256 totalLPEmission; // zero means unlimited
         address baseToken;
         uint256 minimalInvestment; // zero means any value
@@ -115,8 +116,7 @@ interface IPoolFactory {
     function deployBasicPool(
         string calldata name,
         string calldata symbol,
-        TraderPoolDeployParameters calldata parameters,
-        bool onlyBABHolder
+        TraderPoolDeployParameters calldata parameters
     ) external;
 
     /// @notice The function to deploy invest pools
@@ -126,8 +126,7 @@ interface IPoolFactory {
     function deployInvestPool(
         string calldata name,
         string calldata symbol,
-        TraderPoolDeployParameters calldata parameters,
-        bool onlyBABHolder
+        TraderPoolDeployParameters calldata parameters
     ) external;
 
     /// @notice The view function that predicts the address where the gov pool proxy will be stored
