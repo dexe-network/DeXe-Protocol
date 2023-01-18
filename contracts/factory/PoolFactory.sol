@@ -6,6 +6,7 @@ import "@dlsl/dev-modules/pool-contracts-registry/pool-factory/AbstractPoolFacto
 import "../interfaces/factory/IPoolFactory.sol";
 import "../interfaces/trader/ITraderPool.sol";
 import "../interfaces/core/IContractsRegistry.sol";
+import "../interfaces/core/ISBT721.sol";
 
 import {DistributionProposal} from "../gov/proposals/DistributionProposal.sol";
 import {TokenSaleProposal} from "../gov/proposals/TokenSaleProposal.sol";
@@ -31,6 +32,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
     PoolRegistry internal _poolRegistry;
     CoreProperties internal _coreProperties;
+    ISBT721 internal _babt;
 
     mapping(bytes32 => bool) private _usedSalts;
 
@@ -63,6 +65,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         _poolRegistry = PoolRegistry(registry.getPoolRegistryContract());
         _coreProperties = CoreProperties(registry.getCorePropertiesContract());
+        _babt = ISBT721(registry.getBABTContract());
     }
 
     function deployGovPool(GovPoolDeployParams calldata parameters) external override {
@@ -269,6 +272,12 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address validatorsProxy,
         GovPoolDeployParams memory parameters
     ) internal {
+        uint256 id;
+
+        if (_babt.balanceOf(msg.sender) > 0) {
+            id = _babt.tokenIdOf(msg.sender);
+        }
+
         GovValidators(validatorsProxy).__GovValidators_init(
             parameters.validatorsParams.name,
             parameters.validatorsParams.symbol,
@@ -300,6 +309,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.nftMultiplierAddress,
             parameters.verifier,
             parameters.onlyBABHolders,
+            id,
             parameters.descriptionURL,
             parameters.name
         );
