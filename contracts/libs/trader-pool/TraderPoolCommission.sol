@@ -6,11 +6,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
-
 import "../../interfaces/trader/ITraderPool.sol";
-import "../../interfaces/core/ICoreProperties.sol";
-import "../../interfaces/core/IPriceFeed.sol";
 
 import "../../trader/TraderPool.sol";
 
@@ -18,7 +14,6 @@ import "../../libs/math/MathHelper.sol";
 import "../../libs/utils/TokenBalance.sol";
 
 library TraderPoolCommission {
-    using DecimalsConverter for uint256;
     using MathHelper for uint256;
     using SafeERC20 for IERC20;
     using TokenBalance for address;
@@ -52,10 +47,10 @@ library TraderPoolCommission {
 
                 if (nextCommissionEpoch > info.commissionUnlockEpoch) {
                     (
-                    uint256 investorBaseAmount,
-                    uint256 baseCommission,
-                    uint256 lpCommission
-                    ) = calculateCommissionOnReinvest(poolParameters, investor, totalSupply);
+                        uint256 investorBaseAmount,
+                        uint256 baseCommission,
+                        uint256 lpCommission
+                    ) = _calculateCommissionOnReinvest(poolParameters, investor, totalSupply);
 
                     info.commissionUnlockEpoch = nextCommissionEpoch;
 
@@ -91,13 +86,13 @@ library TraderPoolCommission {
         IERC20 dexeToken = traderPool.dexeToken();
 
         (
-        uint256 dexePercentage,
-        ,
-        uint256[] memory poolPercentages,
-        address[3] memory commissionReceivers
+            uint256 dexePercentage,
+            ,
+            uint128[] memory poolPercentages,
+            address[3] memory commissionReceivers
         ) = traderPool.coreProperties().getDEXECommissionPercentages();
 
-        (uint256 dexeLPCommission, uint256 dexeBaseCommission) = calculateDexeCommission(
+        (uint256 dexeLPCommission, uint256 dexeBaseCommission) = _calculateDexeCommission(
             baseToDistribute,
             lpToDistribute,
             dexePercentage
@@ -126,28 +121,6 @@ library TraderPoolCommission {
         );
     }
 
-    function calculateCommissionOnReinvest(
-        ITraderPool.PoolParameters storage poolParameters,
-        address investor,
-        uint256 oldTotalSupply
-    )
-    public
-    view
-    returns (uint256 investorBaseAmount, uint256 baseCommission, uint256 lpCommission)
-    {
-        uint256 investorBalance = IERC20(address(this)).balanceOf(investor);
-        uint256 baseTokenBalance = poolParameters.baseToken.normThisBalance();
-
-        investorBaseAmount = baseTokenBalance.ratio(investorBalance, oldTotalSupply);
-
-        (baseCommission, lpCommission) = calculateCommissionOnDivest(
-            poolParameters,
-            investor,
-            investorBaseAmount,
-            investorBalance
-        );
-    }
-
     function calculateCommissionOnDivest(
         ITraderPool.PoolParameters storage poolParameters,
         address investor,
@@ -173,17 +146,39 @@ library TraderPoolCommission {
         ITraderPool.PoolParameters storage poolParameters
     ) public view returns (uint256) {
         return
-        TraderPool(address(this)).coreProperties().getCommissionEpochByTimestamp(
-            block.timestamp,
-            poolParameters.commissionPeriod
+            TraderPool(address(this)).coreProperties().getCommissionEpochByTimestamp(
+                block.timestamp,
+                poolParameters.commissionPeriod
+            );
+    }
+
+    function _calculateCommissionOnReinvest(
+        ITraderPool.PoolParameters storage poolParameters,
+        address investor,
+        uint256 oldTotalSupply
+    )
+        internal
+        view
+        returns (uint256 investorBaseAmount, uint256 baseCommission, uint256 lpCommission)
+    {
+        uint256 investorBalance = IERC20(address(this)).balanceOf(investor);
+        uint256 baseTokenBalance = poolParameters.baseToken.normThisBalance();
+
+        investorBaseAmount = baseTokenBalance.ratio(investorBalance, oldTotalSupply);
+
+        (baseCommission, lpCommission) = calculateCommissionOnDivest(
+            poolParameters,
+            investor,
+            investorBaseAmount,
+            investorBalance
         );
     }
 
-    function calculateDexeCommission(
+    function _calculateDexeCommission(
         uint256 baseToDistribute,
         uint256 lpToDistribute,
         uint256 dexePercentage
-    ) public pure returns (uint256 lpCommission, uint256 baseCommission) {
+    ) internal pure returns (uint256 lpCommission, uint256 baseCommission) {
         lpCommission = lpToDistribute.percentage(dexePercentage);
         baseCommission = baseToDistribute.percentage(dexePercentage);
     }

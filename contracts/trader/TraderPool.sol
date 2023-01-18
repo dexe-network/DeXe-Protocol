@@ -18,8 +18,6 @@ import "../libs/trader-pool/TraderPoolInvest.sol";
 import "../libs/trader-pool/TraderPoolDivest.sol";
 import "../libs/math/MathHelper.sol";
 
-import "../core/Globals.sol";
-
 abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant {
     using EnumerableSet for EnumerableSet.AddressSet;
     using MathHelper for uint256;
@@ -232,10 +230,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         address user,
         uint256 amountLP
     )
-    external
-    view
-    override
-    returns (Receptions memory receptions, Commissions memory commissions)
+        external
+        view
+        override
+        returns (Receptions memory receptions, Commissions memory commissions)
     {
         return _poolParameters.getDivestAmountsAndCommissions(user, amountLP);
     }
@@ -248,7 +246,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         ExchangeType exType
     ) external view override returns (uint256, address[] memory) {
         return
-        _poolParameters.getExchangeAmount(_positions, from, to, amount, optionalPath, exType);
+            _poolParameters.getExchangeAmount(_positions, from, to, amount, optionalPath, exType);
     }
 
     function _updateFromData(
