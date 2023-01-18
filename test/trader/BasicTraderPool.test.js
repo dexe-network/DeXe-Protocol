@@ -8,6 +8,7 @@ const truffleAssert = require("truffle-assertions");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const Insurance = artifacts.require("Insurance");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const BABTMock = artifacts.require("BABTMock");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeedMock = artifacts.require("PriceFeedMock");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
@@ -33,6 +34,7 @@ UniswapV2RouterMock.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
 BasicTraderPool.numberFormat = "BigNumber";
 PoolProposal.numberFormat = "BigNumber";
+BABTMock.numberFormat = "BigNumber";
 
 describe("BasicTraderPool", () => {
   let OWNER;
@@ -135,6 +137,7 @@ describe("BasicTraderPool", () => {
     const _insurance = await Insurance.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     USD = await ERC20Mock.new("USD", "USD", 18);
+    const BABT = await BABTMock.new();
     const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeedMock.new();
     uniswapV2Router = await UniswapV2RouterMock.new();
@@ -149,6 +152,7 @@ describe("BasicTraderPool", () => {
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
+    await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), BABT.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
     await contractsRegistry.addContract(await contractsRegistry.POOL_FACTORY_NAME(), FACTORY);
 

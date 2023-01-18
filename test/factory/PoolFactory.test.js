@@ -9,6 +9,7 @@ const { getCurrentBlockTime } = require("../helpers/block-helper");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC721Mock = artifacts.require("ERC721Mock");
+const BABTMock = artifacts.require("BABTMock");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
@@ -50,6 +51,7 @@ const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
 ContractsRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 ERC721Mock.numberFormat = "BigNumber";
+BABTMock.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
 PriceFeed.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -165,6 +167,7 @@ describe("PoolFactory", () => {
     const contractsRegistry = await ContractsRegistry.new();
     const DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     const USD = await ERC20Mock.new("USD", "USD", 6);
+    const BABT = await BABTMock.new();
     const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeed.new();
     const _poolRegistry = await PoolRegistry.new();
@@ -180,6 +183,7 @@ describe("PoolFactory", () => {
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
+    await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), BABT.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), uniswapV2Router.address);
 
@@ -252,6 +256,7 @@ describe("PoolFactory", () => {
           descriptionURL: "placeholder.com",
           trader: OWNER,
           privatePool: false,
+          onlyBABTHolder: false,
           totalLPEmission: 0,
           baseToken: testERC20.address,
           minimalInvestment: 0,

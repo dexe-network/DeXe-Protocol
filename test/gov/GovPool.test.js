@@ -40,6 +40,7 @@ const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const ERC721Power = artifacts.require("ERC721Power");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const BABTMock = artifacts.require("BABTMock");
 const ExecutorTransferMock = artifacts.require("ExecutorTransferMock");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
@@ -61,6 +62,7 @@ GovSettings.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 ERC721EnumMock.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
+BABTMock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
 describe("GovPool", () => {
@@ -139,6 +141,7 @@ describe("GovPool", () => {
     contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
+    const BABT = await BABTMock.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721EnumMock.new("Mock", "Mock");
     nftMultiplier = await ERC721Multiplier.new("NFTMultiplierMock", "NFTMM");
@@ -163,6 +166,8 @@ describe("GovPool", () => {
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), ETHER_ADDR);
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.INSURANCE_NAME(), NOTHING);
+
+    await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), BABT.address);
 
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
@@ -215,6 +220,7 @@ describe("GovPool", () => {
       validators.address,
       poolParams.nftMultiplierAddress,
       OWNER,
+      poolParams.onlyBABTHolder,
       poolParams.descriptionURL,
       poolParams.name
     );
@@ -317,6 +323,7 @@ describe("GovPool", () => {
       },
       nftMultiplierAddress: ZERO_ADDR,
       verifier: OWNER,
+      onlyBABTHolder: false,
       descriptionURL: "example.com",
       name: "Pool name",
     };
@@ -399,6 +406,7 @@ describe("GovPool", () => {
             validators.address,
             POOL_PARAMETERS.nftMultiplierAddress,
             OWNER,
+            POOL_PARAMETERS.onlyBABTHolder,
             POOL_PARAMETERS.descriptionURL,
             POOL_PARAMETERS.name
           ),
