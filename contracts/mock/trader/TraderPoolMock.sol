@@ -5,7 +5,7 @@ import "../../trader/TraderPool.sol";
 
 contract TraderPoolMock is TraderPool {
     using EnumerableSet for EnumerableSet.AddressSet;
-    using TraderPoolLeverage for PoolParameters;
+    using TraderPoolLeverage for *;
 
     function __TraderPoolMock_init(
         string calldata name,

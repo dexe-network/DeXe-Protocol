@@ -8,6 +8,8 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "../../interfaces/trader/ITraderPool.sol";
 import "../../interfaces/core/IPriceFeed.sol";
 
+import "../../trader/TraderPool.sol";
+
 import "../../libs/utils/TokenBalance.sol";
 
 library TraderPoolPrice {
@@ -19,7 +21,7 @@ library TraderPoolPrice {
     ) external view returns (uint256 totalBase, uint256 totalUSD) {
         (totalBase, , , ) = getNormalizedPoolPriceAndPositions(poolParameters);
 
-        (totalUSD, ) = ITraderPool(address(this)).priceFeed().getNormalizedPriceOutUSD(
+        (totalUSD, ) = TraderPool(address(this)).priceFeed().getNormalizedPriceOutUSD(
             poolParameters.baseToken,
             totalBase
         );
@@ -37,8 +39,8 @@ library TraderPoolPrice {
             uint256[] memory positionPricesInBase
         )
     {
-        IPriceFeed priceFeed = ITraderPool(address(this)).priceFeed();
-        address[] memory openPositions = ITraderPool(address(this)).openPositions();
+        IPriceFeed priceFeed = TraderPool(address(this)).priceFeed();
+        address[] memory openPositions = TraderPool(address(this)).openPositions();
         totalPriceInBase = currentBaseAmount = poolParameters.baseToken.normThisBalance();
 
         positionTokens = new address[](openPositions.length);

@@ -10,6 +10,8 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
     using SafeERC20 for IERC20;
     using MathHelper for uint256;
     using DecimalsConverter for uint256;
+    using TraderPoolInvest for *;
+    using TraderPoolDivest for *;
 
     ITraderPoolInvestProposal internal _traderPoolProposal;
 
@@ -78,7 +80,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         ITraderPoolInvestProposal.ProposalLimits calldata proposalLimits,
         uint256[] calldata minPositionsOut
     ) external override onlyTrader {
-        uint256 baseAmount = _divestPositions(lpAmount, minPositionsOut);
+        uint256 baseAmount = _poolParameters.divestPositions(lpAmount, minPositionsOut);
 
         _traderPoolProposal.create(descriptionURL, proposalLimits, lpAmount, baseAmount);
 
@@ -95,7 +97,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
             "ITP: investment delay"
         );
 
-        uint256 baseAmount = _divestPositions(lpAmount, minPositionsOut);
+        uint256 baseAmount = _poolParameters.divestPositions(lpAmount, minPositionsOut);
 
         _traderPoolProposal.invest(proposalId, msg.sender, lpAmount, baseAmount);
 
@@ -113,7 +115,8 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
             return;
         }
 
-        uint256 toMintLP = _investPositions(
+        uint256 toMintLP = _poolParameters.investPositions(
+            investsInBlocks,
             address(_traderPoolProposal),
             receivedBase,
             minPositionsOut
@@ -123,6 +126,14 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         _mint(msg.sender, toMintLP);
 
         emit ProposalDivested(proposalId, msg.sender, 0, toMintLP, receivedBase);
+    }
+
+    function checkLeave(address user) external override onlyProposalPool {
+        _checkLeave(user, 0);
+    }
+
+    function checkJoin(address user) external override onlyProposalPool {
+        _checkJoin(user);
     }
 
     function proposalPoolAddress() external view override returns (address) {
@@ -143,14 +154,6 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         uint256 delay = coreProperties.getDelayForRiskyPool();
 
         return delay != 0 ? (_firstExchange != 0 ? _firstExchange + delay : MAX_UINT) : 0;
-    }
-
-    function checkLeave(address user) external override onlyProposalPool {
-        _checkLeave(user, 0);
-    }
-
-    function checkJoin(address user) external override onlyProposalPool {
-        _checkJoin(user);
     }
 
     function _setFirstExchangeTime() internal {

@@ -19,6 +19,9 @@ const TraderPoolCommissionLib = artifacts.require("TraderPoolCommission");
 const TraderPoolLeverageLib = artifacts.require("TraderPoolLeverage");
 const TraderPoolExchangeLib = artifacts.require("TraderPoolExchange");
 const TraderPoolPriceLib = artifacts.require("TraderPoolPrice");
+const TraderPoolInvestLib = artifacts.require("TraderPoolInvest");
+const TraderPoolDivestLib = artifacts.require("TraderPoolDivest");
+const TraderPoolModifyLib = artifacts.require("TraderPoolModify");
 const TraderPoolViewLib = artifacts.require("TraderPoolView");
 
 ContractsRegistry.numberFormat = "BigNumber";
@@ -100,17 +103,26 @@ describe("BasicTraderPool", () => {
     const traderPoolCommissionLib = await TraderPoolCommissionLib.new();
     const traderPoolLeverageLib = await TraderPoolLeverageLib.new();
 
+    await TraderPoolDivestLib.link(traderPoolCommissionLib);
+
+    await TraderPoolInvestLib.link(traderPoolPriceLib);
+    await TraderPoolInvestLib.link(traderPoolLeverageLib);
+
     await TraderPoolViewLib.link(traderPoolPriceLib);
     await TraderPoolViewLib.link(traderPoolCommissionLib);
     await TraderPoolViewLib.link(traderPoolLeverageLib);
 
     const traderPoolViewLib = await TraderPoolViewLib.new();
     const traderPoolExchangeLib = await TraderPoolExchangeLib.new();
+    const traderPoolInvestLib = await TraderPoolInvestLib.new();
+    const traderPoolDivestLib = await TraderPoolDivestLib.new();
+    const traderPoolModifyLib = await TraderPoolModifyLib.new();
 
     await BasicTraderPool.link(traderPoolCommissionLib);
-    await BasicTraderPool.link(traderPoolLeverageLib);
-    await BasicTraderPool.link(traderPoolPriceLib);
     await BasicTraderPool.link(traderPoolExchangeLib);
+    await BasicTraderPool.link(traderPoolInvestLib);
+    await BasicTraderPool.link(traderPoolDivestLib);
+    await BasicTraderPool.link(traderPoolModifyLib);
     await BasicTraderPool.link(traderPoolViewLib);
 
     const poolProposalLib = await PoolProposalLib.new();

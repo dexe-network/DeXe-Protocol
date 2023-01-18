@@ -146,14 +146,6 @@ interface ITraderPool {
         uint256 traderLPBalance;
     }
 
-    /// @notice The function that returns a PriceFeed contract
-    /// @return the price feed used
-    function priceFeed() external view returns (IPriceFeed);
-
-    /// @notice The function that returns a CoreProperties contract
-    /// @return the core properties contract
-    function coreProperties() external view returns (ICoreProperties);
-
     /// @notice The function that checks whether the specified address is a private investor
     /// @param who the address to check
     /// @return true if the pool is private and who is a private investor, false otherwise
