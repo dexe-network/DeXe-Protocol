@@ -4,26 +4,30 @@
 
 ## Abstract
 
-**DeXe** is a decentralized social trading platform design to copy the best trader stategies. You can create your presonalized trading token, invest into other traders to multiply you assets by purchasing their tokens (each token is baked by real assets and its price depends on the trader`s skills), repeat other wallets trading transactions using *Wallet-to-Wallet* copying.
+**DeXe** is a decentralized social trading platform design to copy the best trader strategies. You can create your personalized trading token, invest into other traders to multiply your assets by purchasing their tokens (each token is baked by real assets and its price depends on the trader's skills), repeat other wallets trading transactions using *Wallet-to-Wallet* copying.
 
-On **DeXe** platform user can also form a **DAO** for collective decision making and execution of those decisions. 
+On **DeXe** platform user can also form a **DAO** for collective decision-making and execution of those decisions. 
 **DAO** pools can be useful for projects that want to give their community a vote in the development of the project or to control the treasuries.
 
-**DeXe** aims to be community owned decentralized finance system.
+**DeXe** aims to be a community owned decentralized finance system.
 
 
 ## DeXe protocol overview
 
 **DeXe** protocol is a multichain protocol that enables: 
 
-- ***Decentralized Autonomous Organizations***: **DAO** pools with their own tokens are used for collective governence
+- ***Decentralized Autonomous Organizations***: **DAO** pools with their own tokens are used for collective governance
 - ***Validators***: validators in the **DAO** pool may be needed in order to validate incoming proposals after they have been approved by the community
 - ***TokenSale***: sale of a **DAO** pool token with custom settings (whitelists of users and exchange tokens, sales tiers, vesting, etc)
 - ***Staking***: if the user does not want to vote for proposals on his own, he can delegate part of his funds to another user and receive rewards
 - ***Trading***: user can earn by trading tokens on the platform, receive investments for your trading from other users
-- ***Investing***: on **DeXe** platform user can invest own tokens into other traders 
+- ***Investing***: on **DeXe** platform, user can invest own tokens into other traders 
 - ***Insurance***: investor can buy an insurance to be protected from fraud
 - ***Protocol Fees***: **DeXe** will charge fees in native token from trading operations to ensure protocol sustainability
+
+
+**DeXe** protocol uses `The Graph` protocol for indexing and storing historical and statistical data.
+
 
 ## Current Smart Contracts
 
@@ -39,7 +43,7 @@ Types of **DAO** Pools (by pool token):
 
 These tokens are the means of determining whether a user belongs to the **DAO** community.
 
-By owning pool tokens user gets the opportunity to vote and participate in the collective decision-making process. Also, user with tokens can offer ideas that other members of the **DAO** pool can accept or reject.
+By owning pool tokens, the user gets the opportunity to vote and participate in the collective decision-making process. Also, a user with tokens can offer ideas that other members of the **DAO** pool can accept or reject.
 
 **DAO** pool base contracts:
 
@@ -63,7 +67,7 @@ Proposal contracts of **DAO** pools:
 
 - ***TokanSaleProposal***
 
-Contract is responsible for saling **DAO** pool tokens with customized logic (tiers, user whitelist, exchange tokens whitelist and exhange rate, token supply for each tier, vesting logic, etc).
+Contract is responsible for selling **DAO** pool tokens with customized logic (tiers, user whitelist, exchange tokens whitelist and exchange rate, token supply for each tier, vesting logic, etc).
 
 - ***DistributionProposal***
 
@@ -85,15 +89,14 @@ An insurance is needed to secure users' assets invested in pools. Any user can b
 
 #### PriceFeed
 
-Contract is used for finding best path for token exchange on **DEXes**.
+Contract is used for finding the best path for token exchange on **DEXes**.
 
 #### TraderPools
 
 A trader can create his own pool (fund) by sending a transaction using the smart contract method. The pool can be public and private. In private pool, the trader enters the addresses in the whitelist that can invest in this fund, public is open for all investors.
 
-There are **3** types of pool:
+There are **2** types of pool:
 - *Standart*: trade using whitelisted tokens
-- *Risky*: trade any tokens on **DEXes**
 - *Invest*: invest into offchain assets 
 
 Pool has its native **ERC20** token with unique symbols and can have several managers.
@@ -110,14 +113,14 @@ Maximum number of investors in the pool - **1000**.
 ## Protocol Fees
 
 Of all commission received on trading, **DeXe** charges its own commission of ***30%*** and use it to immediately purchase the **DEXE** token.
-Commision distribution:
+Commission distribution:
 - ⅓ to the treasury of the protocol
 - ⅓ to the insurance fund
 - ⅓ to the token holders (in the form of dividends) 
 
 ## Governance
 
-**DeXe** protocol is governed by **DAO** community. Parameters of the protocol that can be modified through protocal governance:
+**DeXe** protocol is governed by **DAO** community. Parameters of the protocol that can be modified through protocol governance:
 - **DeXe** commission change
 - Changing proportions of **DeXe** commission distribution
 - Adding a token to the whitelist
