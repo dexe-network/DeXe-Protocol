@@ -221,6 +221,7 @@ describe("GovPool", () => {
       poolParams.nftMultiplierAddress,
       OWNER,
       poolParams.onlyBABTHolder,
+      poolParams.deployerBABTid,
       poolParams.descriptionURL,
       poolParams.name
     );
@@ -324,6 +325,7 @@ describe("GovPool", () => {
       nftMultiplierAddress: ZERO_ADDR,
       verifier: OWNER,
       onlyBABTHolder: false,
+      deployerBABTid: 1,
       descriptionURL: "example.com",
       name: "Pool name",
     };
@@ -407,6 +409,7 @@ describe("GovPool", () => {
             POOL_PARAMETERS.nftMultiplierAddress,
             OWNER,
             POOL_PARAMETERS.onlyBABTHolder,
+            POOL_PARAMETERS.deployerBABTid,
             POOL_PARAMETERS.descriptionURL,
             POOL_PARAMETERS.name
           ),
