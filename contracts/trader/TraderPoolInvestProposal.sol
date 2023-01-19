@@ -52,7 +52,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     function changeProposalRestrictions(
         uint256 proposalId,
         ProposalLimits calldata proposalLimits
-    ) external override onlyTraderAdmin {
+    ) external override onlyTraderAdmin onlyBABTHolder {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
         _proposalInfos[proposalId].proposalLimits = proposalLimits;
@@ -153,7 +153,10 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         _payout(user, claimed, addresses);
     }
 
-    function withdraw(uint256 proposalId, uint256 amount) external override onlyTraderAdmin {
+    function withdraw(
+        uint256 proposalId,
+        uint256 amount
+    ) external override onlyTraderAdmin onlyBABTHolder {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
         require(
             amount <= _proposalInfos[proposalId].newInvestedBase,
@@ -174,7 +177,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         uint256 proposalId,
         uint256[] calldata amounts,
         address[] calldata addresses
-    ) external override onlyTraderAdmin {
+    ) external override onlyTraderAdmin onlyBABTHolder {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
         require(addresses.length == amounts.length, "TPIP: length mismatch");
 
@@ -192,7 +195,9 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         emit ProposalSupplied(proposalId, msg.sender, amounts, addresses);
     }
 
-    function convertInvestedBaseToDividends(uint256 proposalId) external override onlyTraderAdmin {
+    function convertInvestedBaseToDividends(
+        uint256 proposalId
+    ) external override onlyTraderAdmin onlyBABTHolder {
         require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
 
         uint256 newInvestedBase = _proposalInfos[proposalId].newInvestedBase;

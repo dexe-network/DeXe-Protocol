@@ -44,7 +44,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     mapping(address => mapping(uint256 => uint256)) public investsInBlocks; // user => block => LP amount
     mapping(address => InvestorInfo) public investorsInfo;
-    mapping(address => uint256) public adminBABTIDs;
+
+    uint256 traderBABTId;
 
     event Joined(address user);
     event Left(address user);
@@ -83,6 +84,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         return _poolParameters.trader == who;
     }
 
+    function isBABTHolder(address who) public view override returns (bool) {
+        return _babt.balanceOf(who) > 0 || !_poolParameters.onlyBABTHolder;
+    }
+
     function __TraderPool_init(
         string calldata name,
         string calldata symbol,
@@ -105,18 +110,21 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         address trader = _poolParameters.trader;
 
         if (_babt.balanceOf(trader) > 0) {
-            adminBABTIDs[trader] = _babt.tokenIdOf(trader);
+            traderBABTId = _babt.tokenIdOf(trader);
         }
     }
 
-    function modifyAdmins(address[] calldata admins, bool add) external override onlyTraderAdmin {
-        _traderAdmins.modifyAdmins(_poolParameters, admins, adminBABTIDs, _babt, add);
+    function modifyAdmins(
+        address[] calldata admins,
+        bool add
+    ) external override onlyTraderAdmin onlyBABTHolder {
+        _traderAdmins.modifyAdmins(_poolParameters, admins, add);
     }
 
     function modifyPrivateInvestors(
         address[] calldata privateInvestors,
         bool add
-    ) external override onlyTraderAdmin {
+    ) external override onlyTraderAdmin onlyBABTHolder {
         _privateInvestors.modifyPrivateInvestors(privateInvestors, add);
     }
 
@@ -125,7 +133,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         bool privatePool,
         uint256 totalLPEmission,
         uint256 minimalInvestment
-    ) external override onlyTraderAdmin {
+    ) external override onlyTraderAdmin onlyBABTHolder {
         _poolParameters.changePoolParameters(
             _investors,
             descriptionURL,
@@ -145,7 +153,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     function reinvestCommission(
         uint256[] calldata offsetLimits,
         uint256 minDexeCommissionOut
-    ) external virtual override onlyTraderAdmin {
+    ) external virtual override onlyTraderAdmin onlyBABTHolder {
         investorsInfo.reinvestCommission(
             _investors,
             offsetLimits,
@@ -169,7 +177,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 amountBound,
         address[] calldata optionalPath,
         ExchangeType exType
-    ) public virtual override onlyTraderAdmin {
+    ) public virtual override onlyTraderAdmin onlyBABTHolder {
         _poolParameters.exchange(_positions, from, to, amount, amountBound, optionalPath, exType);
     }
 
@@ -360,16 +368,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     }
 
     function _onlyBABTHolder() internal view {
-        require(
-            _babt.balanceOf(msg.sender) > 0 || !_poolParameters.onlyBABTHolder,
-            "Gov: not BABT holder"
-        );
-    }
-
-    function _checkUserBalance(uint256 amountLP) internal view {
-        require(
-            amountLP <= balanceOf(msg.sender) - investsInBlocks[msg.sender][block.number],
-            "TP: wrong amount"
-        );
+        require(isBABTHolder(msg.sender), "Gov: not BABT holder");
     }
 }

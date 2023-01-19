@@ -66,13 +66,13 @@ contract GovPool is
     address public nftMultiplier;
     ISBT721 public babt;
 
-    bool onlyBABTHolders;
+    bool public onlyBABTHolders;
 
     string public descriptionURL;
     string public name;
 
     uint256 public override latestProposalId;
-    uint256 public traderBABTId;
+    uint256 public deployerBABTid;
 
     OffChain internal _offChain;
 
@@ -109,7 +109,7 @@ contract GovPool is
         address nftMultiplierAddress,
         address _verifier,
         bool _onlyBABTHolders,
-        uint256 _traderBABTId,
+        uint256 _deployerBABTid,
         string calldata _descriptionURL,
         string calldata _name
     ) external initializer {
@@ -123,7 +123,7 @@ contract GovPool is
         }
 
         onlyBABTHolders = _onlyBABTHolders;
-        traderBABTId = _traderBABTId;
+        deployerBABTid = _deployerBABTid;
 
         descriptionURL = _descriptionURL;
         name = _name;

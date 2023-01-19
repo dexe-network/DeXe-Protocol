@@ -162,6 +162,11 @@ interface ITraderPool {
     /// @return true if who is a trader, false otherwise
     function isTrader(address who) external view returns (bool);
 
+    /// @notice The function that checks whether the specified address is a BABT holder
+    /// @param who the address to check
+    /// @return true if who is a holder, false otherwise
+    function isBABTHolder(address who) external view returns (bool);
+
     /// @notice The function to modify trader admins. Trader admins are eligible for executing swaps
     /// @param admins the array of addresses to grant or revoke an admin rights
     /// @param add if true the admins will be added, if false the admins will be removed

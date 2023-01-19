@@ -75,6 +75,11 @@ abstract contract TraderPoolProposal is
         _;
     }
 
+    modifier onlyBABTHolder() {
+        _onlyBABTHolder();
+        _;
+    }
+
     function __TraderPoolProposal_init(
         ParentTraderPoolInfo calldata parentTraderPoolInfo
     ) public onlyInitializing {
@@ -255,6 +260,13 @@ abstract contract TraderPoolProposal is
         require(
             TraderPool(_parentTraderPoolInfo.parentPoolAddress).isTraderAdmin(msg.sender),
             "TPP: not a trader admin"
+        );
+    }
+
+    function _onlyBABTHolder() internal view {
+        require(
+            TraderPool(_parentTraderPoolInfo.parentPoolAddress).isBABTHolder(msg.sender),
+            "TPP: not BABT holder"
         );
     }
 }

@@ -79,7 +79,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         uint256 lpAmount,
         ITraderPoolInvestProposal.ProposalLimits calldata proposalLimits,
         uint256[] calldata minPositionsOut
-    ) external override onlyTrader {
+    ) external override onlyTrader onlyBABTHolder {
         uint256 baseAmount = _poolParameters.divestPositions(lpAmount, minPositionsOut);
 
         _traderPoolProposal.create(descriptionURL, proposalLimits, lpAmount, baseAmount);
@@ -91,7 +91,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         uint256 proposalId,
         uint256 lpAmount,
         uint256[] calldata minPositionsOut
-    ) external override {
+    ) external override onlyBABTHolder {
         require(
             isTraderAdmin(msg.sender) || getInvestDelayEnd() <= block.timestamp,
             "ITP: investment delay"
@@ -108,7 +108,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
     function reinvestProposal(
         uint256 proposalId,
         uint256[] calldata minPositionsOut
-    ) external override {
+    ) external override onlyBABTHolder {
         uint256 receivedBase = _traderPoolProposal.divest(proposalId, msg.sender);
 
         if (receivedBase == 0) {

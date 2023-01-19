@@ -71,7 +71,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256[] calldata minDivestOut,
         uint256 minProposalOut,
         address[] calldata optionalPath
-    ) external override onlyTrader {
+    ) external override onlyTrader onlyBABTHolder {
         uint256 baseAmount = _poolParameters.divestPositions(lpAmount, minDivestOut);
 
         _traderPoolProposal.create(
@@ -93,7 +93,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256 lpAmount,
         uint256[] calldata minDivestOut,
         uint256 minProposalOut
-    ) external override {
+    ) external override onlyBABTHolder {
         uint256 baseAmount = _poolParameters.divestPositions(lpAmount, minDivestOut);
 
         _traderPoolProposal.invest(proposalId, msg.sender, lpAmount, baseAmount, minProposalOut);
@@ -107,7 +107,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256 lp2Amount,
         uint256[] calldata minPositionsOut,
         uint256 minProposalOut
-    ) external override {
+    ) external override onlyBABTHolder {
         uint256 receivedBase = _traderPoolProposal.divest(
             proposalId,
             msg.sender,
