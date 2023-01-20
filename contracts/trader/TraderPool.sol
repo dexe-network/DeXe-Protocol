@@ -45,7 +45,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     mapping(address => mapping(uint256 => uint256)) public investsInBlocks; // user => block => LP amount
     mapping(address => InvestorInfo) public investorsInfo;
 
-    uint256 traderBABTId;
+    uint256 public traderBABTId;
 
     event Joined(address user);
     event Left(address user);
@@ -368,6 +368,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     }
 
     function _onlyBABTHolder() internal view {
-        require(isBABTHolder(msg.sender), "Gov: not BABT holder");
+        require(isBABTHolder(msg.sender), "TP: not BABT holder");
     }
 }

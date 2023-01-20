@@ -79,6 +79,7 @@ describe("PoolFactory", () => {
 
   let testERC20;
   let testERC721;
+  let babt;
   let testERC721Multiplier;
 
   before("setup", async () => {
@@ -167,7 +168,7 @@ describe("PoolFactory", () => {
     const contractsRegistry = await ContractsRegistry.new();
     const DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     const USD = await ERC20Mock.new("USD", "USD", 6);
-    const BABT = await BABTMock.new();
+    babt = await BABTMock.new();
     const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeed.new();
     const _poolRegistry = await PoolRegistry.new();
@@ -183,7 +184,7 @@ describe("PoolFactory", () => {
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
-    await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), BABT.address);
+    await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), uniswapV2Router.address);
 
@@ -630,6 +631,16 @@ describe("PoolFactory", () => {
         assert.equal(settings[0], POOL_PARAMETERS.settingsParams.proposalSettings[2].earlyCompletion);
 
         assert.equal(await govPool.nftMultiplier(), testERC721Multiplier.address);
+      });
+
+      it("should deploy pool from address with BABT", async () => {
+        await babt.attest(OWNER);
+
+        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
+        await poolFactory.deployGovPool(POOL_PARAMETERS);
+        let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+
+        assert.equal((await govPool.deployerBABTid()).toString(), (await babt.tokenIdOf(OWNER)).toString());
       });
     });
 

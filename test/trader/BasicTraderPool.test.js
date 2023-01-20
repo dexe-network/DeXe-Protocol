@@ -46,6 +46,7 @@ describe("BasicTraderPool", () => {
   let insurance;
   let DEXE;
   let USD;
+  let babt;
   let coreProperties;
   let priceFeed;
   let uniswapV2Router;
@@ -137,7 +138,7 @@ describe("BasicTraderPool", () => {
     const _insurance = await Insurance.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     USD = await ERC20Mock.new("USD", "USD", 18);
-    const BABT = await BABTMock.new();
+    babt = await BABTMock.new();
     const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeedMock.new();
     uniswapV2Router = await UniswapV2RouterMock.new();
@@ -152,7 +153,7 @@ describe("BasicTraderPool", () => {
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
-    await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), BABT.address);
+    await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
     await contractsRegistry.addContract(await contractsRegistry.POOL_FACTORY_NAME(), FACTORY);
 
@@ -1477,6 +1478,51 @@ describe("BasicTraderPool", () => {
         assert.equal((await traderPool.totalInvestors()).toFixed(), "1");
 
         assert.equal(toBN(infoThird.lpInvested).toFixed(), wei("500"));
+      });
+    });
+
+    describe("onlyBABTHolder modifier reverts", () => {
+      const REVERT_STRING_TP = "TP: not BABT holder";
+      const REVERT_STRING_TPP = "TPP: not BABT holder";
+
+      beforeEach("setup", async () => {
+        await babt.attest(SECOND);
+
+        POOL_PARAMETERS.onlyBABTHolder = true;
+
+        [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);
+      });
+
+      it("createProposal()", async () => {
+        await truffleAssert.reverts(
+          createProposal("description", tokens.MANA.address, wei("1000"), [wei("100000"), wei("10000"), wei("2")], 0),
+          REVERT_STRING_TP
+        );
+      });
+
+      it("investProposal()", async () => {
+        await truffleAssert.reverts(traderPool.investProposal(1, wei("100"), [wei("100")], [0]), REVERT_STRING_TP);
+      });
+
+      it("reinvestProposal()", async () => {
+        await truffleAssert.reverts(
+          traderPool.reinvestProposal(1, wei("250"), [wei("250")], wei("250")),
+          REVERT_STRING_TP
+        );
+      });
+
+      it("changeProposalRestrictions()", async () => {
+        await truffleAssert.reverts(
+          proposalPool.changeProposalRestrictions(1, [wei("1000000"), wei("1000"), wei("10")]),
+          REVERT_STRING_TPP
+        );
+      });
+
+      it("exchange() in proposal", async () => {
+        await truffleAssert.reverts(
+          proposalPool.exchange(1, tokens.WETH.address, wei("100"), wei("100"), [], ExchangeType.FROM_EXACT),
+          REVERT_STRING_TPP
+        );
       });
     });
   });
