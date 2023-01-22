@@ -17,7 +17,7 @@ The next step is configuring **DAO pool** profile. User need to input name and l
 
 #
 
-For governance, user can choose any **ERC-20** token, any **ERC-171** **NFT**, or hybrid of both.
+For governance, user can choose any **ERC-20** token, any **ERC-171** **NFT**, or hybrid of both. Token creation guidence located in `UserGuide/CreateToken`.
 
 <img src="../img/userGuideDAOImg/userGuideImg_CreateDAOTokens.png" height="300" />
 
