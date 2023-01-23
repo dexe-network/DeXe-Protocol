@@ -1,5 +1,7 @@
 # Creating a governance token
 
+![Logo](../img/logoDeXe.svg)
+
 While creating a **DAO** (see `UserGuide/CreateDAO`) user may need to create a governance token first.
 
 <img src="../img/userGuideToken/userGuideImg_CreateTokenDAO.png" height="280" />
@@ -29,3 +31,5 @@ By default, the entire amount of ***Initial Distribution*** tokens will be sent 
 In `Token sale` panel, pool creator can select tokens that can be used to buy **DAO** native token and configure exchange rates.
 
 <img src="../img/userGuideToken/userGuideImg_CreateTokenSale.png" height="225" />
+
+To see how to buy a **DAO** pool token, visit `UserGuide/BuyDAOToken`.
