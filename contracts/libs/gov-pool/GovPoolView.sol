@@ -12,6 +12,8 @@ import "../../interfaces/gov/validators/IGovValidators.sol";
 
 import "../data-structures/ShrinkableArray.sol";
 
+import "../../gov/GovPool.sol";
+
 import "../../core/Globals.sol";
 
 library GovPoolView {
@@ -142,7 +144,7 @@ library GovPoolView {
         uint256 offset,
         uint256 limit
     ) internal view returns (IGovPool.ProposalView[] memory proposalViews) {
-        IGovPool govPool = IGovPool(address(this));
+        GovPool govPool = GovPool(payable(address(this)));
         (, , address validators, ) = govPool.getHelperContracts();
 
         uint256 to = (offset + limit).min(govPool.latestProposalId()).max(offset);

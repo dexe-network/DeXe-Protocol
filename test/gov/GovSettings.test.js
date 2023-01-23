@@ -337,20 +337,20 @@ describe("GovSettings", () => {
 
         assert.equal(settings1.earlyCompletion, newSettings1.earlyCompletion);
         assert.equal(settings1.delegatedVotingAllowed, newSettings1.delegatedVotingAllowed);
-        assert.equal(settings1.duration.toString(), newSettings1.duration);
+        assert.equal(settings1.duration, newSettings1.duration);
         assert.equal(settings1.durationValidators, newSettings1.durationValidators);
-        assert.equal(settings1.quorum.toString(), toBN(newSettings1.quorum));
-        assert.equal(settings1.quorumValidators.toString(), toBN(newSettings1.quorumValidators));
+        assert.equal(settings1.quorum.toFixed(), toBN(newSettings1.quorum).toFixed());
+        assert.equal(settings1.quorumValidators.toFixed(), toBN(newSettings1.quorumValidators).toFixed());
         assert.equal(settings1.minVotesForVoting, newSettings1.minVotesForVoting);
         assert.equal(settings1.minVotesForCreating, newSettings1.minVotesForCreating);
         assert.equal(settings1.executorDescription, newSettings1.executorDescription);
 
         assert.equal(settings2.earlyCompletion, newSettings2.earlyCompletion);
         assert.equal(settings2.delegatedVotingAllowed, newSettings2.delegatedVotingAllowed);
-        assert.equal(settings2.duration.toString(), newSettings2.duration);
+        assert.equal(settings2.duration, newSettings2.duration);
         assert.equal(settings2.durationValidators, newSettings2.durationValidators);
-        assert.equal(settings2.quorum.toString(), toBN(newSettings2.quorum));
-        assert.equal(settings2.quorumValidators.toString(), toBN(newSettings2.quorumValidators));
+        assert.equal(settings2.quorum.toFixed(), toBN(newSettings2.quorum).toFixed());
+        assert.equal(settings2.quorumValidators.toFixed(), toBN(newSettings2.quorumValidators).toFixed());
         assert.equal(settings2.minVotesForVoting, newSettings2.minVotesForVoting);
         assert.equal(settings2.minVotesForCreating, newSettings2.minVotesForCreating);
         assert.equal(settings2.executorDescription, newSettings2.executorDescription);
@@ -563,8 +563,8 @@ describe("GovSettings", () => {
 
         assert.isFalse(executorSettings[0]);
         assert.isFalse(executorSettings[1]);
-        assert.equal(executorSettings[3].toString(), 50);
-        assert.equal(executorSettings[4].toString(), 100);
+        assert.equal(executorSettings[3], 50);
+        assert.equal(executorSettings[4], 100);
       });
 
       it("should return setting for internal executor", async () => {

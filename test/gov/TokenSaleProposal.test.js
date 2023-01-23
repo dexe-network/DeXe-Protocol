@@ -175,7 +175,7 @@ describe("TokenSaleProposal", () => {
       validators.address,
       poolParams.nftMultiplierAddress,
       OWNER,
-      poolParams.onlyBABTHolder,
+      poolParams.onlyBABTHolders,
       poolParams.deployerBABTid,
       poolParams.descriptionURL,
       poolParams.name
@@ -373,7 +373,7 @@ describe("TokenSaleProposal", () => {
           nftsTotalSupply: 33,
         },
         nftMultiplierAddress: ZERO_ADDR,
-        onlyBABTHolder: false,
+        onlyBABTHolders: false,
         deployerBABTid: 1,
         descriptionURL: "example.com",
         name: "Pool name",

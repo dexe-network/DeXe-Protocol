@@ -226,7 +226,7 @@ describe("TraderPool", () => {
         descriptionURL: "placeholder.com",
         trader: OWNER,
         privatePool: false,
-        onlyBABTHolder: false,
+        onlyBABTHolders: false,
         totalLPEmission: 0,
         baseToken: tokens.WETH.address,
         baseTokenDecimals: 18,
@@ -1182,7 +1182,7 @@ describe("TraderPool", () => {
       beforeEach("setup", async () => {
         await babt.attest(SECOND);
 
-        POOL_PARAMETERS.onlyBABTHolder = true;
+        POOL_PARAMETERS.onlyBABTHolders = true;
 
         traderPool = await deployPool(POOL_PARAMETERS);
       });
@@ -1190,11 +1190,13 @@ describe("TraderPool", () => {
       it("setDependencies when trader is babt holder", async () => {
         await babt.attest(OWNER);
 
-        POOL_PARAMETERS.onlyBABTHolder = true;
-        POOL_PARAMETERS.traderBABTId = (await babt.tokenIdOf(OWNER)).toString();
+        POOL_PARAMETERS.onlyBABTHolders = true;
+        POOL_PARAMETERS.traderBABTId = (await babt.tokenIdOf(OWNER)).toFixed();
+
         traderPool = await deployPool(POOL_PARAMETERS);
 
-        assert.equal((await traderPool.getTraderBABTId()).toString(), (await babt.tokenIdOf(OWNER)).toString());
+        assert.equal((await traderPool.getTraderBABTId()).toFixed(), (await babt.tokenIdOf(OWNER)).toFixed());
+        assert.isTrue(await traderPool.isBABTHolder(OWNER));
       });
 
       it("modifyAdmins()", async () => {

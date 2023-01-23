@@ -221,7 +221,7 @@ describe("GovPool", () => {
       validators.address,
       poolParams.nftMultiplierAddress,
       OWNER,
-      poolParams.onlyBABTHolder,
+      poolParams.onlyBABTHolders,
       poolParams.deployerBABTid,
       poolParams.descriptionURL,
       poolParams.name
@@ -325,7 +325,7 @@ describe("GovPool", () => {
       },
       nftMultiplierAddress: ZERO_ADDR,
       verifier: OWNER,
-      onlyBABTHolder: false,
+      onlyBABTHolders: false,
       deployerBABTid: 1,
       descriptionURL: "example.com",
       name: "Pool name",
@@ -409,7 +409,7 @@ describe("GovPool", () => {
             validators.address,
             POOL_PARAMETERS.nftMultiplierAddress,
             OWNER,
-            POOL_PARAMETERS.onlyBABTHolder,
+            POOL_PARAMETERS.onlyBABTHolders,
             POOL_PARAMETERS.deployerBABTid,
             POOL_PARAMETERS.descriptionURL,
             POOL_PARAMETERS.name
@@ -2423,7 +2423,7 @@ describe("GovPool", () => {
 
     beforeEach("setup", async () => {
       const POOL_PARAMETERS = await getPoolParameters(nft.address);
-      POOL_PARAMETERS.onlyBABTHolder = true;
+      POOL_PARAMETERS.onlyBABTHolders = true;
 
       await babt.attest(SECOND);
 

@@ -272,10 +272,10 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address validatorsProxy,
         GovPoolDeployParams memory parameters
     ) internal {
-        uint256 id;
+        uint256 babtId;
 
         if (_babt.balanceOf(msg.sender) > 0) {
-            id = _babt.tokenIdOf(msg.sender);
+            babtId = _babt.tokenIdOf(msg.sender);
         }
 
         GovValidators(validatorsProxy).__GovValidators_init(
@@ -309,7 +309,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.nftMultiplierAddress,
             parameters.verifier,
             parameters.onlyBABHolders,
-            id,
+            babtId,
             parameters.descriptionURL,
             parameters.name
         );
@@ -387,7 +387,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     function _validateTraderPoolParameters(
         TraderPoolDeployParameters calldata parameters
     ) internal view returns (ITraderPool.PoolParameters memory poolParameters) {
-        uint256 id;
+        uint256 babtId;
         (uint256 general, uint256[] memory byPeriod) = _coreProperties.getTraderCommissions();
 
         require(parameters.trader != address(0), "PoolFactory: invalid trader address");
@@ -402,7 +402,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         );
 
         if (_babt.balanceOf(parameters.trader) > 0) {
-            id = _babt.tokenIdOf(parameters.trader);
+            babtId = _babt.tokenIdOf(parameters.trader);
         }
 
         poolParameters = ITraderPool.PoolParameters(
@@ -410,13 +410,13 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.trader,
             parameters.privatePool,
             ERC20(parameters.baseToken).decimals(),
-            parameters.onlyBABTHolder,
+            parameters.onlyBABTHolders,
             parameters.totalLPEmission,
             parameters.baseToken,
             parameters.minimalInvestment,
             parameters.commissionPeriod,
             parameters.commissionPercentage,
-            id
+            babtId
         );
     }
 

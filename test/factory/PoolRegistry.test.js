@@ -259,7 +259,7 @@ describe("PoolRegistry", () => {
         descriptionURL: "placeholder.com",
         trader: OWNER,
         privatePool: false,
-        onlyBABTHolder: false,
+        onlyBABTHolders: false,
         totalLPEmission: 0,
         baseToken: DEXE.address,
         baseTokenDecimals: 8,

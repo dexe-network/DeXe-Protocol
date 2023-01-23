@@ -71,7 +71,7 @@ contract GovPool is
     string public descriptionURL;
     string public name;
 
-    uint256 public override latestProposalId;
+    uint256 public latestProposalId;
     uint256 public deployerBABTid;
 
     OffChain internal _offChain;

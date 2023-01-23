@@ -257,7 +257,7 @@ describe("PoolFactory", () => {
           descriptionURL: "placeholder.com",
           trader: OWNER,
           privatePool: false,
-          onlyBABTHolder: false,
+          onlyBABTHolders: false,
           totalLPEmission: 0,
           baseToken: testERC20.address,
           minimalInvestment: 0,
@@ -290,12 +290,12 @@ describe("PoolFactory", () => {
         assert.equal((await traderPool.getPoolInfo()).parameters.baseTokenDecimals, 18);
 
         assert.equal(
-          (await poolRegistry.countPools(await poolRegistry.BASIC_POOL_NAME())).toString(),
-          lenPools.plus(1).toString()
+          (await poolRegistry.countPools(await poolRegistry.BASIC_POOL_NAME())).toFixed(),
+          lenPools.plus(1).toFixed()
         );
         assert.equal(
-          (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.BASIC_POOL_NAME())).toString(),
-          lenUser.plus(1).toString()
+          (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.BASIC_POOL_NAME())).toFixed(),
+          lenUser.plus(1).toFixed()
         );
       });
     });
@@ -308,6 +308,7 @@ describe("PoolFactory", () => {
           descriptionURL: "placeholder.com",
           trader: OWNER,
           privatePool: false,
+          onlyBABTHolders: false,
           totalLPEmission: 0,
           baseToken: testERC20.address,
           minimalInvestment: 0,
@@ -334,19 +335,33 @@ describe("PoolFactory", () => {
 
         assert.isTrue(await poolRegistry.isTraderPool(event.args.at));
 
-        const traderPool = await BasicTraderPool.at(event.args.at);
+        const traderPool = await InvestTraderPool.at(event.args.at);
 
         assert.equal((await traderPool.getPoolInfo()).parameters.trader, OWNER);
         assert.equal((await traderPool.getPoolInfo()).parameters.baseTokenDecimals, 18);
 
         assert.equal(
-          (await poolRegistry.countPools(await poolRegistry.INVEST_POOL_NAME())).toString(),
-          lenPools.plus(1).toString()
+          (await poolRegistry.countPools(await poolRegistry.INVEST_POOL_NAME())).toFixed(),
+          lenPools.plus(1).toFixed()
         );
         assert.equal(
-          (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.INVEST_POOL_NAME())).toString(),
-          lenUser.plus(1).toString()
+          (await poolRegistry.countAssociatedPools(OWNER, await poolRegistry.INVEST_POOL_NAME())).toFixed(),
+          lenUser.plus(1).toFixed()
         );
+      });
+
+      it("should deploy pool from address with BABT", async () => {
+        await babt.attest(OWNER);
+
+        await poolFactory.deployInvestPool("Invest", "IP", POOL_PARAMETERS);
+
+        let traderPool = await InvestTraderPool.at(
+          (
+            await poolRegistry.listPools(await poolRegistry.INVEST_POOL_NAME(), 0, 1)
+          )[0]
+        );
+
+        assert.equal((await traderPool.getTraderBABTId()).toFixed(), (await babt.tokenIdOf(OWNER)).toFixed());
       });
     });
 
@@ -358,6 +373,7 @@ describe("PoolFactory", () => {
           descriptionURL: "placeholder.com",
           trader: OWNER,
           privatePool: false,
+          onlyBABTHolders: false,
           totalLPEmission: 0,
           baseToken: testERC20.address,
           minimalInvestment: 0,
@@ -376,6 +392,7 @@ describe("PoolFactory", () => {
           descriptionURL: "placeholder.com",
           trader: OWNER,
           privatePool: false,
+          onlyBABTHolders: false,
           totalLPEmission: 0,
           baseToken: testERC20.address,
           minimalInvestment: 0,
@@ -394,6 +411,7 @@ describe("PoolFactory", () => {
           descriptionURL: "placeholder.com",
           trader: OWNER,
           privatePool: false,
+          onlyBABTHolders: false,
           totalLPEmission: 0,
           baseToken: testERC20.address,
           minimalInvestment: 0,
@@ -412,6 +430,7 @@ describe("PoolFactory", () => {
           descriptionURL: "placeholder.com",
           trader: OWNER,
           privatePool: false,
+          onlyBABTHolders: false,
           totalLPEmission: 0,
           baseToken: testERC20.address,
           minimalInvestment: 0,
@@ -432,6 +451,7 @@ describe("PoolFactory", () => {
           descriptionURL: "placeholder.com",
           trader: ZERO_ADDR,
           privatePool: false,
+          onlyBABTHolders: false,
           totalLPEmission: 0,
           baseToken: testERC20.address,
           minimalInvestment: 0,
@@ -535,6 +555,7 @@ describe("PoolFactory", () => {
         },
         nftMultiplierAddress: testERC721Multiplier.address,
         verifier: OWNER,
+        onlyBABTHolders: false,
         descriptionURL: "example.com",
         name: "Pool name",
       };
@@ -612,7 +633,7 @@ describe("PoolFactory", () => {
         let event = tx.receipt.logs[0];
 
         assert.isTrue(await poolRegistry.isGovPool(event.args.govPool));
-        assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toString(), "1");
+        assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toFixed(), "1");
 
         let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
 
@@ -637,10 +658,12 @@ describe("PoolFactory", () => {
         await babt.attest(OWNER);
 
         let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
+
         await poolFactory.deployGovPool(POOL_PARAMETERS);
+
         let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
 
-        assert.equal((await govPool.deployerBABTid()).toString(), (await babt.tokenIdOf(OWNER)).toString());
+        assert.equal((await govPool.deployerBABTid()).toFixed(), (await babt.tokenIdOf(OWNER)).toFixed());
       });
     });
 

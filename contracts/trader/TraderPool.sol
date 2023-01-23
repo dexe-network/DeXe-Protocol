@@ -30,9 +30,9 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     using TraderPoolView for *;
 
     IERC20 public dexeToken;
-    ISBT721 internal _babt;
     IPriceFeed public priceFeed;
     ICoreProperties public coreProperties;
+    ISBT721 internal _babt;
 
     EnumerableSet.AddressSet internal _traderAdmins;
 
@@ -83,7 +83,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     }
 
     function isBABTHolder(address who) public view override returns (bool) {
-        return _babt.balanceOf(who) > 0 || !_poolParameters.onlyBABTHolder;
+        return _babt.balanceOf(who) > 0 || !_poolParameters.onlyBABTHolders;
     }
 
     function __TraderPool_init(
@@ -101,9 +101,9 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         dexeToken = IERC20(registry.getDEXEContract());
-        _babt = ISBT721(registry.getBABTContract());
         priceFeed = IPriceFeed(registry.getPriceFeedContract());
         coreProperties = ICoreProperties(registry.getCorePropertiesContract());
+        _babt = ISBT721(registry.getBABTContract());
     }
 
     function modifyAdmins(

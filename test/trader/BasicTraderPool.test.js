@@ -1489,7 +1489,7 @@ describe("BasicTraderPool", () => {
       beforeEach("setup", async () => {
         await babt.attest(SECOND);
 
-        POOL_PARAMETERS.onlyBABTHolder = true;
+        POOL_PARAMETERS.onlyBABTHolders = true;
 
         [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);
       });
