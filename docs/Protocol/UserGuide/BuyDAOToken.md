@@ -1,12 +1,12 @@
-# How to buy DAO token on token sale
+# How to buy DAO tokens on token sale
 
 ![Logo](../img/logoDeXe.svg)
 
-To buy a **DAO** pool token, user need to visit profile of this **DAO**. There, the user will be able to see the token sale proposals if there are any. 
+To buy a **DAO** pool token, the user needs to visit the profile of this **DAO**. There, the user will be able to see the token sale proposals if there are any. 
 
 <img src="../img/userGuideBuyToken/userGuideImg_DAOpage.png" height="500" />
 
-In token sale proposal, the user will be able to conduct exchange using some token from the token sale proposal list and acquiring **DAO** token. After selecting tokens and their amount to be exchanged, press ***Buy DAO token***.
+In the token sale proposal, the user will be able to conduct an exchange using some token from the token sale proposal list and acquiring **DAO** tokens. After selecting tokens and their amount to be exchanged, press ***Buy DAO token***.
 
 <img src="../img/userGuideBuyToken/userGuideImg_BuyPage.png" height="250" />
 

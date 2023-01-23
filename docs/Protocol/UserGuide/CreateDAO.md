@@ -3,25 +3,25 @@
 ![Logo](../img/logoDeXe.svg)
 
 
-To create a **DAO pool**, user needs to enter `Create fund` page and select "***DAO pool***" option.
+To create a **DAO pool**, a user needs to enter the `Create fund` page and select "***DAO pool***" option.
 
 
 <img src="../img/userGuideDAOImg/userGuideImg_CreateFundDAOselected.png" height="600" />
 
 #
 
-The next step is configuring **DAO pool** profile. User need to input name and logo of pool. If no logo image uploaded, the **DeXe** logo will be used.
+The next step is configuring **DAO pool** profile. The user needs to input the name and logo of the pool. If no logo image is uploaded, the **DeXe** logo will be used.
 
 <img src="../img/userGuideDAOImg/userGuideImg_CreateDAONameLogo.png" height="400" />⠀
 <img src="../img/userGuideDAOImg/userGuideImg_CreateDAONameLogoComplete.png" height="400" />
 
 #
 
-For governance, user can choose any **ERC-20** token, any **ERC-171** **NFT**, or hybrid of both. Token creation guidence located in `UserGuide/CreateToken`.
+For governance, the user can choose any **ERC-20** token, any **ERC-171** **NFT**, or a hybrid of both. Token creation guidance is located in `UserGuide/CreateToken`.
 
 <img src="../img/userGuideDAOImg/userGuideImg_CreateDAOTokens.png" height="300" />
 
-User can set additional description and documentation for the pool.
+The user can set additional descriptions and documentation for the pool.
 
 <img src="../img/userGuideDAOImg/userGuideImg_CreateDAOadditional.png" height="400" />
 
@@ -40,7 +40,7 @@ On this page, the user can designate trusted **DAO** members to serve as validat
 
 ## Voting settings
 
-On this page user can configure the settings for proposals, voting, vote delegation, rewards for activity in **DAO**.
+On this page, the user can configure the settings for proposals, voting, vote delegation, and rewards for activity in **DAO**.
 
 <img src="../img/userGuideDAOImg/userGuideImg_CreateDAOVoteSettings.png" height="400" />
 
@@ -50,7 +50,7 @@ On this page user can configure the settings for proposals, voting, vote delegat
 
 ## Changing general voting settings
 
-While creating **DAO** user can configure changing general voting settings. For example, it can be used to set up higher barrier for proposals that change general voting settings to avoid abuse and to be voted on by only large token holders (user can set the minimum voting threshold to a higher level than in general voting settings).
+While creating **DAO** user can configure changing general voting settings. For example, it can be used to set up a higher barrier for proposals that change general voting settings to avoid abuse and to be voted on by only large token holders (the user can set the minimum voting threshold to a higher level than in general voting settings).
 
 <img src="../img/userGuideDAOImg/
 userGuideImg_CreateDAOChangeSettings.png" height="280"/>
