@@ -54,4 +54,8 @@ interface IContractsRegistry {
     /// @notice Used in dependency injection mechanism
     /// @return CoreProperties contract address
     function getCorePropertiesContract() external view returns (address);
+
+    /// @notice Used in dependency injection mechanism
+    /// @return BABT contract address
+    function getBABTContract() external view returns (address);
 }

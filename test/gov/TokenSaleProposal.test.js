@@ -18,6 +18,7 @@ const GovPool = artifacts.require("GovPool");
 const DistributionProposal = artifacts.require("DistributionProposal");
 const TokenSaleProposal = artifacts.require("TokenSaleProposalMock");
 const ERC20Sale = artifacts.require("ERC20Sale");
+const BABTMock = artifacts.require("BABTMock");
 const GovSettings = artifacts.require("GovSettings");
 const GovValidators = artifacts.require("GovValidators");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
@@ -38,6 +39,7 @@ CoreProperties.numberFormat = "BigNumber";
 GovPool.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 ERC20Sale.numberFormat = "BigNumber";
+BABTMock.numberFormat = "BigNumber";
 TokenSaleProposal.numberFormat = "BigNumber";
 GovSettings.numberFormat = "BigNumber";
 GovValidators.numberFormat = "BigNumber";
@@ -105,6 +107,7 @@ describe("TokenSaleProposal", () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
+    const BABT = await BABTMock.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
 
     await contractsRegistry.__OwnableContractsRegistry_init();
@@ -117,6 +120,8 @@ describe("TokenSaleProposal", () => {
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.INSURANCE_NAME(), NOTHING);
+
+    await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), BABT.address);
 
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
@@ -170,6 +175,8 @@ describe("TokenSaleProposal", () => {
       validators.address,
       poolParams.nftMultiplierAddress,
       OWNER,
+      poolParams.onlyBABTHolders,
+      poolParams.deployerBABTid,
       poolParams.descriptionURL,
       poolParams.name
     );
@@ -366,6 +373,8 @@ describe("TokenSaleProposal", () => {
           nftsTotalSupply: 33,
         },
         nftMultiplierAddress: ZERO_ADDR,
+        onlyBABTHolders: false,
+        deployerBABTid: 1,
         descriptionURL: "example.com",
         name: "Pool name",
       };

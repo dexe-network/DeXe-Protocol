@@ -9,6 +9,7 @@ import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
 import "../interfaces/trader/ITraderPool.sol";
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/core/IContractsRegistry.sol";
+import "../interfaces/core/ISBT721.sol";
 
 import "../libs/trader-pool/TraderPoolCommission.sol";
 import "../libs/trader-pool/TraderPoolExchange.sol";
@@ -31,6 +32,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     IERC20 public dexeToken;
     IPriceFeed public priceFeed;
     ICoreProperties public coreProperties;
+    ISBT721 internal _babt;
 
     EnumerableSet.AddressSet internal _traderAdmins;
 
@@ -63,6 +65,11 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _;
     }
 
+    modifier onlyBABTHolder() {
+        _onlyBABTHolder();
+        _;
+    }
+
     function isPrivateInvestor(address who) public view override returns (bool) {
         return _privateInvestors.contains(who);
     }
@@ -73,6 +80,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     function isTrader(address who) public view override returns (bool) {
         return _poolParameters.trader == who;
+    }
+
+    function isBABTHolder(address who) public view override returns (bool) {
+        return _babt.balanceOf(who) > 0 || !_poolParameters.onlyBABTHolders;
     }
 
     function __TraderPool_init(
@@ -92,16 +103,20 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         dexeToken = IERC20(registry.getDEXEContract());
         priceFeed = IPriceFeed(registry.getPriceFeedContract());
         coreProperties = ICoreProperties(registry.getCorePropertiesContract());
+        _babt = ISBT721(registry.getBABTContract());
     }
 
-    function modifyAdmins(address[] calldata admins, bool add) external override onlyTraderAdmin {
+    function modifyAdmins(
+        address[] calldata admins,
+        bool add
+    ) external override onlyTraderAdmin onlyBABTHolder {
         _traderAdmins.modifyAdmins(_poolParameters, admins, add);
     }
 
     function modifyPrivateInvestors(
         address[] calldata privateInvestors,
         bool add
-    ) external override onlyTraderAdmin {
+    ) external override onlyTraderAdmin onlyBABTHolder {
         _privateInvestors.modifyPrivateInvestors(privateInvestors, add);
     }
 
@@ -110,7 +125,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         bool privatePool,
         uint256 totalLPEmission,
         uint256 minimalInvestment
-    ) external override onlyTraderAdmin {
+    ) external override onlyTraderAdmin onlyBABTHolder {
         _poolParameters.changePoolParameters(
             _investors,
             descriptionURL,
@@ -123,14 +138,14 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     function invest(
         uint256 amountInBaseToInvest,
         uint256[] calldata minPositionsOut
-    ) public virtual override {
+    ) public virtual override onlyBABTHolder {
         _poolParameters.invest(investsInBlocks, amountInBaseToInvest, minPositionsOut);
     }
 
     function reinvestCommission(
         uint256[] calldata offsetLimits,
         uint256 minDexeCommissionOut
-    ) external virtual override onlyTraderAdmin {
+    ) external virtual override onlyTraderAdmin onlyBABTHolder {
         investorsInfo.reinvestCommission(
             _investors,
             offsetLimits,
@@ -143,7 +158,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 amountLP,
         uint256[] calldata minPositionsOut,
         uint256 minDexeCommissionOut
-    ) public virtual override {
+    ) public virtual override onlyBABTHolder {
         _poolParameters.divest(amountLP, minPositionsOut, minDexeCommissionOut);
     }
 
@@ -154,7 +169,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 amountBound,
         address[] calldata optionalPath,
         ExchangeType exType
-    ) public virtual override onlyTraderAdmin {
+    ) public virtual override onlyTraderAdmin onlyBABTHolder {
         _poolParameters.exchange(_positions, from, to, amount, amountBound, optionalPath, exType);
     }
 
@@ -247,6 +262,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     ) external view override returns (uint256, address[] memory) {
         return
             _poolParameters.getExchangeAmount(_positions, from, to, amount, optionalPath, exType);
+    }
+
+    function getTraderBABTId() external view override returns (uint256) {
+        return _poolParameters.traderBABTId;
     }
 
     function _updateFromData(
@@ -342,5 +361,9 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     function _onlyThis() internal view {
         require(address(this) == msg.sender, "TP: not this contract");
+    }
+
+    function _onlyBABTHolder() internal view {
+        require(isBABTHolder(msg.sender), "TP: not BABT holder");
     }
 }

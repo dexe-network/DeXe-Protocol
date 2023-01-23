@@ -8,6 +8,7 @@ const { assert } = require("chai");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const Insurance = artifacts.require("Insurance");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const BABTMock = artifacts.require("BABTMock");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeedMock = artifacts.require("PriceFeedMock");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
@@ -33,6 +34,7 @@ UniswapV2RouterMock.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
 InvestTraderPool.numberFormat = "BigNumber";
 PoolProposal.numberFormat = "BigNumber";
+BABTMock.numberFormat = "BigNumber";
 
 describe("InvestTraderPool", () => {
   let OWNER;
@@ -44,6 +46,7 @@ describe("InvestTraderPool", () => {
   let insurance;
   let DEXE;
   let USD;
+  let babt;
   let coreProperties;
   let priceFeed;
   let uniswapV2Router;
@@ -135,6 +138,7 @@ describe("InvestTraderPool", () => {
     const _insurance = await Insurance.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     USD = await ERC20Mock.new("USD", "USD", 18);
+    babt = await BABTMock.new();
     const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeedMock.new();
     uniswapV2Router = await UniswapV2RouterMock.new();
@@ -149,6 +153,7 @@ describe("InvestTraderPool", () => {
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
+    await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
     await contractsRegistry.addContract(await contractsRegistry.POOL_FACTORY_NAME(), FACTORY);
 
@@ -261,12 +266,14 @@ describe("InvestTraderPool", () => {
         descriptionURL: "placeholder.com",
         trader: OWNER,
         privatePool: false,
+        onlyBABTHolders: false,
         totalLPEmission: 0,
         baseToken: tokens.WETH.address,
         baseTokenDecimals: 18,
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_1,
         commissionPercentage: toBN(30).times(PRECISION).toFixed(),
+        traderBABTId: 0,
       };
 
       [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);
@@ -1048,6 +1055,56 @@ describe("InvestTraderPool", () => {
         );
       });
     });
+
+    describe("onlyBABTHolder modifier reverts", () => {
+      const REVERT_STRING_TP = "TP: not BABT holder";
+      const REVERT_STRING_TPP = "TPP: not BABT holder";
+
+      beforeEach("setup", async () => {
+        await babt.attest(SECOND);
+
+        POOL_PARAMETERS.onlyBABTHolders = true;
+
+        [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);
+      });
+
+      it("createProposal()", async () => {
+        await truffleAssert.reverts(
+          traderPool.createProposal("placeholder", wei("100"), [wei(100000), wei("10000")], []),
+          REVERT_STRING_TP
+        );
+      });
+
+      it("investProposal()", async () => {
+        await truffleAssert.reverts(
+          traderPool.investProposal(1, wei("10"), [wei(100000), wei("10000")]),
+          REVERT_STRING_TP
+        );
+      });
+
+      it("reinvestProposal()", async () => {
+        await truffleAssert.reverts(traderPool.reinvestProposal(1, [wei(100000), wei("10000")]), REVERT_STRING_TP);
+      });
+
+      it("changeProposalRestrictions()", async () => {
+        await truffleAssert.reverts(
+          proposalPool.changeProposalRestrictions(1, [wei("1000000"), wei("1000")]),
+          REVERT_STRING_TPP
+        );
+      });
+
+      it("withdraw()", async () => {
+        await truffleAssert.reverts(proposalPool.withdraw(1, wei("100")), REVERT_STRING_TPP);
+      });
+
+      it("supply()", async () => {
+        await truffleAssert.reverts(proposalPool.supply(1, [wei("100")], [tokens.WETH.address]), REVERT_STRING_TPP);
+      });
+
+      it("convertInvestedBaseToDividends()", async () => {
+        await truffleAssert.reverts(proposalPool.convertInvestedBaseToDividends(1), REVERT_STRING_TPP);
+      });
+    });
   });
 
   describe("Private pool", () => {
@@ -1064,6 +1121,7 @@ describe("InvestTraderPool", () => {
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_1,
         commissionPercentage: toBN(50).times(PRECISION).toFixed(),
+        traderBABTId: 0,
       };
 
       [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);

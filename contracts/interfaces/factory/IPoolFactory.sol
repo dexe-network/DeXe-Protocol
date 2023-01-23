@@ -53,6 +53,7 @@ interface IPoolFactory {
     /// @param userKeeperParams parameters of the user keeper
     /// @param nftMultiplierAddress the address of NFT multiplier
     /// @param verifier the address of the verifier
+    /// @param onlyBABHolders if true, only KYCed users will be allowed to interact with the pool
     /// @param descriptionURL the description of the pool
     /// @param name the name of the pool
     struct GovPoolDeployParams {
@@ -61,6 +62,7 @@ interface IPoolFactory {
         UserKeeperDeployParams userKeeperParams;
         address nftMultiplierAddress;
         address verifier;
+        bool onlyBABHolders;
         string descriptionURL;
         string name;
     }
@@ -79,6 +81,7 @@ interface IPoolFactory {
     /// @param descriptionURL the IPFS URL of the pool description
     /// @param trader the trader of the pool
     /// @param privatePool the publicity of the pool
+    /// @param onlyBABHolders if true, only KYCed users will be allowed to interact with the pool
     /// @param totalLPEmission maximal* emission of LP tokens that can be invested
     /// @param baseToken the address of the base token of the pool
     /// @param minimalInvestment the minimal allowed investment into the pool
@@ -88,6 +91,7 @@ interface IPoolFactory {
         string descriptionURL;
         address trader;
         bool privatePool;
+        bool onlyBABTHolders;
         uint256 totalLPEmission; // zero means unlimited
         address baseToken;
         uint256 minimalInvestment; // zero means any value

@@ -7,6 +7,7 @@ const { ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("../utils/constant
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const BABTMock = artifacts.require("BABTMock");
 const Insurance = artifacts.require("Insurance");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeedMock = artifacts.require("PriceFeedMock");
@@ -24,6 +25,7 @@ const TraderPoolViewLib = artifacts.require("TraderPoolView");
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
+BABTMock.numberFormat = "BigNumber";
 Insurance.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
 PriceFeedMock.numberFormat = "BigNumber";
@@ -84,6 +86,7 @@ describe("PoolRegistry", () => {
     const _insurance = await Insurance.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     const USD = await ERC20Mock.new("USD", "USD", 18);
+    const BABT = await BABTMock.new();
     const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeedMock.new();
     const uniswapV2Router = await UniswapV2RouterMock.new();
@@ -97,6 +100,7 @@ describe("PoolRegistry", () => {
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
+    await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), BABT.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
     await contractsRegistry.addContract(await contractsRegistry.POOL_FACTORY_NAME(), FACTORY);
 
@@ -255,12 +259,14 @@ describe("PoolRegistry", () => {
         descriptionURL: "placeholder.com",
         trader: OWNER,
         privatePool: false,
+        onlyBABTHolders: false,
         totalLPEmission: 0,
         baseToken: DEXE.address,
         baseTokenDecimals: 8,
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_1,
         commissionPercentage: toBN(50).times(PRECISION).toFixed(),
+        traderBABTId: 0,
       };
 
       await deployPool(POOL_PARAMETERS);

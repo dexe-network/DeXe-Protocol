@@ -6,6 +6,7 @@ import "@dlsl/dev-modules/pool-contracts-registry/pool-factory/AbstractPoolFacto
 import "../interfaces/factory/IPoolFactory.sol";
 import "../interfaces/trader/ITraderPool.sol";
 import "../interfaces/core/IContractsRegistry.sol";
+import "../interfaces/core/ISBT721.sol";
 
 import {DistributionProposal} from "../gov/proposals/DistributionProposal.sol";
 import {TokenSaleProposal} from "../gov/proposals/TokenSaleProposal.sol";
@@ -31,6 +32,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
     PoolRegistry internal _poolRegistry;
     CoreProperties internal _coreProperties;
+    ISBT721 internal _babt;
 
     mapping(bytes32 => bool) private _usedSalts;
 
@@ -63,6 +65,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         _poolRegistry = PoolRegistry(registry.getPoolRegistryContract());
         _coreProperties = CoreProperties(registry.getCorePropertiesContract());
+        _babt = ISBT721(registry.getBABTContract());
     }
 
     function deployGovPool(GovPoolDeployParams calldata parameters) external override {
@@ -269,6 +272,12 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address validatorsProxy,
         GovPoolDeployParams memory parameters
     ) internal {
+        uint256 babtId;
+
+        if (_babt.balanceOf(msg.sender) > 0) {
+            babtId = _babt.tokenIdOf(msg.sender);
+        }
+
         GovValidators(validatorsProxy).__GovValidators_init(
             parameters.validatorsParams.name,
             parameters.validatorsParams.symbol,
@@ -299,6 +308,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             validatorsProxy,
             parameters.nftMultiplierAddress,
             parameters.verifier,
+            parameters.onlyBABHolders,
+            babtId,
             parameters.descriptionURL,
             parameters.name
         );
@@ -376,6 +387,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     function _validateTraderPoolParameters(
         TraderPoolDeployParameters calldata parameters
     ) internal view returns (ITraderPool.PoolParameters memory poolParameters) {
+        uint256 babtId;
         (uint256 general, uint256[] memory byPeriod) = _coreProperties.getTraderCommissions();
 
         require(parameters.trader != address(0), "PoolFactory: invalid trader address");
@@ -389,16 +401,22 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             "PoolFactory: Incorrect percentage"
         );
 
+        if (_babt.balanceOf(parameters.trader) > 0) {
+            babtId = _babt.tokenIdOf(parameters.trader);
+        }
+
         poolParameters = ITraderPool.PoolParameters(
             parameters.descriptionURL,
             parameters.trader,
             parameters.privatePool,
             ERC20(parameters.baseToken).decimals(),
+            parameters.onlyBABTHolders,
             parameters.totalLPEmission,
             parameters.baseToken,
             parameters.minimalInvestment,
             parameters.commissionPeriod,
-            parameters.commissionPercentage
+            parameters.commissionPercentage,
+            babtId
         );
     }
 

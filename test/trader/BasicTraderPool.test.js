@@ -8,6 +8,7 @@ const truffleAssert = require("truffle-assertions");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const Insurance = artifacts.require("Insurance");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const BABTMock = artifacts.require("BABTMock");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeedMock = artifacts.require("PriceFeedMock");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
@@ -33,6 +34,7 @@ UniswapV2RouterMock.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
 BasicTraderPool.numberFormat = "BigNumber";
 PoolProposal.numberFormat = "BigNumber";
+BABTMock.numberFormat = "BigNumber";
 
 describe("BasicTraderPool", () => {
   let OWNER;
@@ -44,6 +46,7 @@ describe("BasicTraderPool", () => {
   let insurance;
   let DEXE;
   let USD;
+  let babt;
   let coreProperties;
   let priceFeed;
   let uniswapV2Router;
@@ -135,6 +138,7 @@ describe("BasicTraderPool", () => {
     const _insurance = await Insurance.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     USD = await ERC20Mock.new("USD", "USD", 18);
+    babt = await BABTMock.new();
     const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeedMock.new();
     uniswapV2Router = await UniswapV2RouterMock.new();
@@ -149,6 +153,7 @@ describe("BasicTraderPool", () => {
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
+    await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
     await contractsRegistry.addContract(await contractsRegistry.POOL_FACTORY_NAME(), FACTORY);
 
@@ -282,6 +287,7 @@ describe("BasicTraderPool", () => {
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_1,
         commissionPercentage: toBN(50).times(PRECISION).toFixed(),
+        traderBABTId: 0,
       };
 
       [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);
@@ -1475,6 +1481,51 @@ describe("BasicTraderPool", () => {
         assert.equal(toBN(infoThird.lpInvested).toFixed(), wei("500"));
       });
     });
+
+    describe("onlyBABTHolder modifier reverts", () => {
+      const REVERT_STRING_TP = "TP: not BABT holder";
+      const REVERT_STRING_TPP = "TPP: not BABT holder";
+
+      beforeEach("setup", async () => {
+        await babt.attest(SECOND);
+
+        POOL_PARAMETERS.onlyBABTHolders = true;
+
+        [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);
+      });
+
+      it("createProposal()", async () => {
+        await truffleAssert.reverts(
+          createProposal("description", tokens.MANA.address, wei("1000"), [wei("100000"), wei("10000"), wei("2")], 0),
+          REVERT_STRING_TP
+        );
+      });
+
+      it("investProposal()", async () => {
+        await truffleAssert.reverts(traderPool.investProposal(1, wei("100"), [wei("100")], [0]), REVERT_STRING_TP);
+      });
+
+      it("reinvestProposal()", async () => {
+        await truffleAssert.reverts(
+          traderPool.reinvestProposal(1, wei("250"), [wei("250")], wei("250")),
+          REVERT_STRING_TP
+        );
+      });
+
+      it("changeProposalRestrictions()", async () => {
+        await truffleAssert.reverts(
+          proposalPool.changeProposalRestrictions(1, [wei("1000000"), wei("1000"), wei("10")]),
+          REVERT_STRING_TPP
+        );
+      });
+
+      it("exchange() in proposal", async () => {
+        await truffleAssert.reverts(
+          proposalPool.exchange(1, tokens.WETH.address, wei("100"), wei("100"), [], ExchangeType.FROM_EXACT),
+          REVERT_STRING_TPP
+        );
+      });
+    });
   });
 
   describe("Private pool", () => {
@@ -1491,6 +1542,7 @@ describe("BasicTraderPool", () => {
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_1,
         commissionPercentage: toBN(50).times(PRECISION).toFixed(),
+        traderBABTId: 0,
       };
 
       [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);

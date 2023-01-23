@@ -56,7 +56,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     function changeProposalRestrictions(
         uint256 proposalId,
         ProposalLimits calldata proposalLimits
-    ) external override onlyTraderAdmin {
+    ) external override onlyTraderAdmin onlyBABTHolder {
         require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
 
         _proposalInfos[proposalId].proposalLimits = proposalLimits;
@@ -205,7 +205,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 amountBound,
         address[] calldata optionalPath,
         ExchangeType exType
-    ) external override onlyTraderAdmin {
+    ) external override onlyTraderAdmin onlyBABTHolder {
         require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
 
         ProposalInfo storage info = _proposalInfos[proposalId];

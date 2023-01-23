@@ -27,21 +27,25 @@ interface ITraderPool {
     /// @param trader the address of trader of this pool
     /// @param privatePool the publicity of the pool. Of the pool is private, only private investors are allowed to invest into it
     /// @param baseTokenDecimals are the decimals of base token (just the gas savings)
+    /// @param onlyBABTHolders if true, only KYCed users will be allowed to interact with the pool
     /// @param totalLPEmission the total* number of pool's LP tokens. The investors are disallowed to invest more that this number
     /// @param baseToken the address of pool's base token
     /// @param minimalInvestment is the minimal number of base tokens the investor is allowed to invest (in 18 decimals)
     /// @param commissionPeriod represents the duration of the commission period
     /// @param commissionPercentage trader's commission percentage (DEXE takes commission from this commission)
+    /// @param traderBABTId the BABT id of the trader
     struct PoolParameters {
         string descriptionURL;
         address trader;
         bool privatePool;
         uint8 baseTokenDecimals;
+        bool onlyBABTHolders;
         uint256 totalLPEmission; // zero means unlimited
         address baseToken;
         uint256 minimalInvestment; // zero means any value
         ICoreProperties.CommissionPeriod commissionPeriod;
         uint256 commissionPercentage;
+        uint256 traderBABTId;
     }
 
     /// @notice The struct that stores basic investor's info
@@ -160,6 +164,11 @@ interface ITraderPool {
     /// @param who the address to check
     /// @return true if who is a trader, false otherwise
     function isTrader(address who) external view returns (bool);
+
+    /// @notice The function that checks whether the specified address is a BABT holder
+    /// @param who the address to check
+    /// @return true if who is a holder, false otherwise
+    function isBABTHolder(address who) external view returns (bool);
 
     /// @notice The function to modify trader admins. Trader admins are eligible for executing swaps
     /// @param admins the array of addresses to grant or revoke an admin rights
@@ -311,4 +320,8 @@ interface ITraderPool {
         address[] calldata optionalPath,
         ExchangeType exType
     ) external view returns (uint256, address[] memory);
+
+    /// @notice The fucntion to get trader's BAB token id
+    /// @return id of bab token
+    function getTraderBABTId() external view returns (uint256);
 }

@@ -40,6 +40,7 @@ const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const ERC721Power = artifacts.require("ERC721Power");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const BABTMock = artifacts.require("BABTMock");
 const ExecutorTransferMock = artifacts.require("ExecutorTransferMock");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
@@ -61,6 +62,7 @@ GovSettings.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 ERC721EnumMock.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
+BABTMock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
 describe("GovPool", () => {
@@ -82,6 +84,7 @@ describe("GovPool", () => {
   let nftPower;
   let rewardToken;
   let nftMultiplier;
+  let babt;
 
   let settings;
   let validators;
@@ -139,6 +142,7 @@ describe("GovPool", () => {
     contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
+    babt = await BABTMock.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721EnumMock.new("Mock", "Mock");
     nftMultiplier = await ERC721Multiplier.new("NFTMultiplierMock", "NFTMM");
@@ -163,6 +167,8 @@ describe("GovPool", () => {
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), ETHER_ADDR);
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.INSURANCE_NAME(), NOTHING);
+
+    await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
 
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
@@ -215,6 +221,8 @@ describe("GovPool", () => {
       validators.address,
       poolParams.nftMultiplierAddress,
       OWNER,
+      poolParams.onlyBABTHolders,
+      poolParams.deployerBABTid,
       poolParams.descriptionURL,
       poolParams.name
     );
@@ -317,6 +325,8 @@ describe("GovPool", () => {
       },
       nftMultiplierAddress: ZERO_ADDR,
       verifier: OWNER,
+      onlyBABTHolders: false,
+      deployerBABTid: 1,
       descriptionURL: "example.com",
       name: "Pool name",
     };
@@ -399,6 +409,8 @@ describe("GovPool", () => {
             validators.address,
             POOL_PARAMETERS.nftMultiplierAddress,
             OWNER,
+            POOL_PARAMETERS.onlyBABTHolders,
+            POOL_PARAMETERS.deployerBABTid,
             POOL_PARAMETERS.descriptionURL,
             POOL_PARAMETERS.name
           ),
@@ -2403,6 +2415,91 @@ describe("GovPool", () => {
 
       await govPool.saveOffchainResults(resultsHash, signature);
       await truffleAssert.reverts(govPool.saveOffchainResults(resultsHash, signature), "Gov: already used");
+    });
+  });
+
+  describe("pool with babt feature", () => {
+    const REVERT_STRING = "Gov: not BABT holder";
+
+    beforeEach("setup", async () => {
+      const POOL_PARAMETERS = await getPoolParameters(nft.address);
+      POOL_PARAMETERS.onlyBABTHolders = true;
+
+      await babt.attest(SECOND);
+
+      await deployPool(POOL_PARAMETERS);
+
+      await setupTokens();
+
+      await token.mint(SECOND, wei("100000000000000000000"));
+      await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
+    });
+
+    describe("onlyBABTHolder modifier reverts", () => {
+      it("createProposal()", async () => {
+        await truffleAssert.reverts(
+          govPool.createProposal("example.com", "misc", [SECOND], [0], [getBytesApprove(SECOND, 1)]),
+          REVERT_STRING
+        );
+      });
+
+      it("vote()", async () => {
+        await govPool.createProposal("example.com", "misc", [SECOND], [0], [getBytesApprove(SECOND, 1)], {
+          from: SECOND,
+        });
+        await truffleAssert.reverts(govPool.vote(1, wei("100"), []), REVERT_STRING);
+      });
+
+      it("voteDelegated()", async () => {
+        await govPool.deposit(SECOND, wei("1000"), [], { from: SECOND });
+        await govPool.delegate(OWNER, wei("500"), [], { from: SECOND });
+        await govPool.createProposal("example.com", "misc", [SECOND], [0], [getBytesApprove(SECOND, 1)], {
+          from: SECOND,
+        });
+        await truffleAssert.reverts(govPool.voteDelegated(1, wei("100"), []), REVERT_STRING);
+      });
+
+      it("deposit()", async () => {
+        await truffleAssert.reverts(govPool.deposit(SECOND, wei("1000"), []), REVERT_STRING);
+      });
+
+      it("withdraw()", async () => {
+        await truffleAssert.reverts(govPool.withdraw(SECOND, wei("1000"), []), REVERT_STRING);
+      });
+
+      it("delegate()", async () => {
+        await truffleAssert.reverts(govPool.delegate(OWNER, wei("500"), []), REVERT_STRING);
+      });
+
+      it("undelegate()", async () => {
+        await truffleAssert.reverts(govPool.undelegate(OWNER, wei("500"), []), REVERT_STRING);
+      });
+
+      it("unlock()", async () => {
+        await truffleAssert.reverts(govPool.unlock(OWNER, false), REVERT_STRING);
+      });
+
+      it("unlockInProposals()", async () => {
+        await truffleAssert.reverts(govPool.unlockInProposals([1], OWNER, false), REVERT_STRING);
+      });
+
+      it("execute()", async () => {
+        await truffleAssert.reverts(govPool.execute(1), REVERT_STRING);
+      });
+
+      it("claimRewards()", async () => {
+        await truffleAssert.reverts(govPool.claimRewards([1]), REVERT_STRING);
+      });
+
+      it("saveOffchainResults()", async () => {
+        await truffleAssert.reverts(
+          govPool.saveOffchainResults(
+            "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d",
+            "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d"
+          ),
+          REVERT_STRING
+        );
+      });
     });
   });
 });

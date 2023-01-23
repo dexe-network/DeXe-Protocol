@@ -159,10 +159,6 @@ interface IGovPool {
     /// @return `address` of nft multiplier
     function nftMultiplier() external view returns (address);
 
-    /// @notice The function to get the latest proposal id
-    /// @return `id` of latest proposal
-    function latestProposalId() external view returns (uint256);
-
     /// @notice The function to get helper contract of this pool
     /// @return settings settings address
     /// @return userKeeper user keeper address
