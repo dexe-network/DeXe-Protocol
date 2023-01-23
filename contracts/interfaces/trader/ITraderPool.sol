@@ -43,6 +43,7 @@ interface ITraderPool {
         uint256 minimalInvestment; // zero means any value
         ICoreProperties.CommissionPeriod commissionPeriod;
         uint256 commissionPercentage;
+        uint256 traderBABTId;
     }
 
     /// @notice The struct that stores basic investor's info
@@ -317,4 +318,8 @@ interface ITraderPool {
         address[] calldata optionalPath,
         ExchangeType exType
     ) external view returns (uint256, address[] memory);
+
+    /// @notice The fucntion to get trader's BAB token id
+    /// @return id of bab token
+    function getTraderBABTId() external view returns (uint256);
 }

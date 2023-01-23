@@ -233,6 +233,7 @@ describe("TraderPool", () => {
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_1,
         commissionPercentage: toBN(50).times(PRECISION).toFixed(),
+        traderBABTId: 0,
       };
 
       traderPool = await deployPool(POOL_PARAMETERS);
@@ -1190,9 +1191,10 @@ describe("TraderPool", () => {
         await babt.attest(OWNER);
 
         POOL_PARAMETERS.onlyBABTHolder = true;
+        POOL_PARAMETERS.traderBABTId = (await babt.tokenIdOf(OWNER)).toString();
         traderPool = await deployPool(POOL_PARAMETERS);
 
-        assert.equal((await traderPool.traderBABTId()).toString(), (await babt.tokenIdOf(OWNER)).toString());
+        assert.equal((await traderPool.getTraderBABTId()).toString(), (await babt.tokenIdOf(OWNER)).toString());
       });
 
       it("modifyAdmins()", async () => {
@@ -1243,6 +1245,7 @@ describe("TraderPool", () => {
         minimalInvestment: wei("1", 8),
         commissionPeriod: ComissionPeriods.PERIOD_1,
         commissionPercentage: toBN(50).times(PRECISION).toFixed(),
+        traderBABTId: 0,
       };
 
       traderPool = await deployPool(POOL_PARAMETERS);
@@ -1338,6 +1341,7 @@ describe("TraderPool", () => {
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_1,
         commissionPercentage: toBN(50).times(PRECISION).toFixed(),
+        traderBABTId: 0,
       };
 
       traderPool = await deployPool(POOL_PARAMETERS);

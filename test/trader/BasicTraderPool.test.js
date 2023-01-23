@@ -287,6 +287,7 @@ describe("BasicTraderPool", () => {
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_1,
         commissionPercentage: toBN(50).times(PRECISION).toFixed(),
+        traderBABTId: 0,
       };
 
       [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);
@@ -1541,6 +1542,7 @@ describe("BasicTraderPool", () => {
         minimalInvestment: 0,
         commissionPeriod: ComissionPeriods.PERIOD_1,
         commissionPercentage: toBN(50).times(PRECISION).toFixed(),
+        traderBABTId: 0,
       };
 
       [traderPool, proposalPool] = await deployPool(POOL_PARAMETERS);

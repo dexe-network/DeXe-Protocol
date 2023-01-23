@@ -45,8 +45,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     mapping(address => mapping(uint256 => uint256)) public investsInBlocks; // user => block => LP amount
     mapping(address => InvestorInfo) public investorsInfo;
 
-    uint256 public traderBABTId;
-
     event Joined(address user);
     event Left(address user);
     event Invested(address user, uint256 investedBase, uint256 receivedLP);
@@ -106,12 +104,6 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _babt = ISBT721(registry.getBABTContract());
         priceFeed = IPriceFeed(registry.getPriceFeedContract());
         coreProperties = ICoreProperties(registry.getCorePropertiesContract());
-
-        address trader = _poolParameters.trader;
-
-        if (_babt.balanceOf(trader) > 0) {
-            traderBABTId = _babt.tokenIdOf(trader);
-        }
     }
 
     function modifyAdmins(
@@ -270,6 +262,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     ) external view override returns (uint256, address[] memory) {
         return
             _poolParameters.getExchangeAmount(_positions, from, to, amount, optionalPath, exType);
+    }
+
+    function getTraderBABTId() external view override returns (uint256) {
+        return _poolParameters.traderBABTId;
     }
 
     function _updateFromData(

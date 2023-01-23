@@ -387,7 +387,12 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     function _validateTraderPoolParameters(
         TraderPoolDeployParameters calldata parameters
     ) internal view returns (ITraderPool.PoolParameters memory poolParameters) {
+        uint256 id;
         (uint256 general, uint256[] memory byPeriod) = _coreProperties.getTraderCommissions();
+
+        if (_babt.balanceOf(msg.sender) > 0) {
+            id = _babt.tokenIdOf(msg.sender);
+        }
 
         require(parameters.trader != address(0), "PoolFactory: invalid trader address");
         require(
@@ -410,7 +415,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.baseToken,
             parameters.minimalInvestment,
             parameters.commissionPeriod,
-            parameters.commissionPercentage
+            parameters.commissionPercentage,
+            id
         );
     }
 
