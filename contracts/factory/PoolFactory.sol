@@ -390,10 +390,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         uint256 id;
         (uint256 general, uint256[] memory byPeriod) = _coreProperties.getTraderCommissions();
 
-        if (_babt.balanceOf(msg.sender) > 0) {
-            id = _babt.tokenIdOf(msg.sender);
-        }
-
         require(parameters.trader != address(0), "PoolFactory: invalid trader address");
         require(
             !_coreProperties.isBlacklistedToken(parameters.baseToken),
@@ -404,6 +400,10 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
                 parameters.commissionPercentage <= byPeriod[uint256(parameters.commissionPeriod)],
             "PoolFactory: Incorrect percentage"
         );
+
+        if (_babt.balanceOf(parameters.trader) > 0) {
+            id = _babt.tokenIdOf(parameters.trader);
+        }
 
         poolParameters = ITraderPool.PoolParameters(
             parameters.descriptionURL,
