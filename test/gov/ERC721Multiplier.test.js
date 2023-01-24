@@ -2,6 +2,7 @@ const { assert } = require("chai");
 const { accounts } = require("../../scripts/utils/utils");
 const { setTime, getCurrentBlockTime } = require("../helpers/block-helper");
 const { PRECISION } = require("../../scripts/utils/constants");
+const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
@@ -22,11 +23,19 @@ describe("ERC721Multiplier", () => {
 
   let TOKENS;
 
+  const reverter = new Reverter();
+
   before(async () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
     THIRD = await accounts(2);
 
+    nft = await ERC721Multiplier.new(NAME, SYMBOL);
+
+    await reverter.snapshot();
+  });
+
+  beforeEach(async () => {
     TOKENS = [
       {
         id: "1",
@@ -55,9 +64,7 @@ describe("ERC721Multiplier", () => {
     ];
   });
 
-  beforeEach(async () => {
-    nft = await ERC721Multiplier.new(NAME, SYMBOL);
-  });
+  afterEach(reverter.revert);
 
   it("should setup correctly", async () => {
     assert.equal(await nft.name(), NAME);

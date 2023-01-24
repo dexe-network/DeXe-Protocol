@@ -21,6 +21,7 @@ const {
 } = require("../utils/gov-pool-utils");
 const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { ProposalState, DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
+const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
 const { impersonate } = require("../helpers/impersonator");
@@ -92,6 +93,8 @@ describe("GovPool", () => {
   let dp;
   let govPool;
 
+  const reverter = new Reverter();
+
   const getProposalByIndex = async (index) => (await govPool.getProposals(index - 1, 1))[0].proposal;
 
   async function depositAndVote(proposalId, depositAmount, depositNftIds, voteAmount, voteNftIds, from) {
@@ -136,9 +139,7 @@ describe("GovPool", () => {
     await GovPool.link(govPoolViewLib);
     await GovPool.link(govPoolStakingLib);
     await GovPool.link(govPoolOffchainLib);
-  });
 
-  beforeEach("setup", async () => {
     contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
@@ -149,7 +150,7 @@ describe("GovPool", () => {
     nftPower = await ERC721Power.new(
       "NFTPowerMock",
       "NFTPM",
-      (await getCurrentBlockTime()) + 100,
+      (await getCurrentBlockTime()) + 200,
       token.address,
       toPercent("90"),
       toPercent("0.01"),
@@ -178,7 +179,11 @@ describe("GovPool", () => {
 
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
+
+    await reverter.snapshot();
   });
+
+  afterEach(reverter.revert);
 
   async function deployPool(poolParams) {
     const NAME = await poolRegistry.GOV_POOL_NAME();
@@ -2301,7 +2306,7 @@ describe("GovPool", () => {
       });
 
       it("should properly divide rewards by deviation", async () => {
-        await setTime((await getCurrentBlockTime()) + 100);
+        await setTime((await getCurrentBlockTime()) + 200);
 
         await govPool.delegate(micropool, 0, [10, 11, 12], { from: delegator1 });
         await govPool.delegate(micropool, 0, [20, 21, 22], { from: delegator2 });

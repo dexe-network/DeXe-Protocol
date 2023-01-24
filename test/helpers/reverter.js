@@ -3,7 +3,7 @@ const ht = require("hardhat");
 class Reverter {
   #snapshotId;
 
-  revert() {
+  revert = () => {
     return new Promise((resolve, reject) => {
       ht.network.provider
         .send("evm_revert", [this.#snapshotId])
@@ -14,9 +14,9 @@ class Reverter {
           return reject(err);
         });
     });
-  }
+  };
 
-  snapshot() {
+  snapshot = () => {
     return new Promise((resolve, reject) => {
       ht.network.provider
         .send("evm_snapshot", [])
@@ -28,7 +28,7 @@ class Reverter {
           return reject(err);
         });
     });
-  }
+  };
 }
 
 module.exports = Reverter;

@@ -1,6 +1,7 @@
 const ethSigUtil = require("@metamask/eth-sig-util");
 const { assert } = require("chai");
 const { accounts } = require("../../scripts/utils/utils");
+const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -17,12 +18,12 @@ describe("UserRegistry", () => {
   let userRegistry;
   let userRegistryName;
 
+  const reverter = new Reverter();
+
   before("setup", async () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
-  });
 
-  beforeEach("setup", async () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _userRegistry = await UserRegistry.new();
 
@@ -35,7 +36,11 @@ describe("UserRegistry", () => {
     userRegistry = await UserRegistry.at(await contractsRegistry.getUserRegistryContract());
 
     await userRegistry.__UserRegistry_init(userRegistryName);
+
+    await reverter.snapshot();
   });
+
+  afterEach(reverter.revert);
 
   async function sign(hash, userPrivateKey) {
     const privateKey = Buffer.from(userPrivateKey, "hex");

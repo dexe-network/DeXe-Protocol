@@ -1,5 +1,6 @@
 const { assert } = require("chai");
 const { toBN, accounts } = require("../../scripts/utils/utils");
+const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { PRECISION } = require("../../scripts/utils/constants");
 const { ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
@@ -44,6 +45,8 @@ describe("PoolRegistry", () => {
   let DEXE;
   let poolRegistry;
 
+  const reverter = new Reverter();
+
   before("setup", async () => {
     OWNER = await accounts(0);
     FACTORY = await accounts(1);
@@ -78,9 +81,7 @@ describe("PoolRegistry", () => {
     await TraderPoolMock.link(traderPoolDivestLib);
     await TraderPoolMock.link(traderPoolModifyLib);
     await TraderPoolMock.link(traderPoolViewLib);
-  });
 
-  beforeEach("setup", async () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _poolRegistry = await PoolRegistry.new();
     const _insurance = await Insurance.new();
@@ -126,7 +127,11 @@ describe("PoolRegistry", () => {
     BASIC_NAME = await poolRegistry.BASIC_POOL_NAME();
     INVEST_NAME = await poolRegistry.INVEST_POOL_NAME();
     GOV_NAME = await poolRegistry.GOV_POOL_NAME();
+
+    await reverter.snapshot();
   });
+
+  afterEach(reverter.revert);
 
   async function deployPool(poolParameters) {
     const traderPool = await TraderPoolMock.new();
