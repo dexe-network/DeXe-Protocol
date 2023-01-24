@@ -3,6 +3,7 @@ const { toBN, accounts, wei } = require("../../scripts/utils/utils");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { toPercent } = require("../utils/utils");
 const { ExecutorType } = require("../utils/constants");
+const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
 const GovSettings = artifacts.require("GovSettings");
@@ -90,6 +91,8 @@ describe("GovSettings", () => {
 
   let settings;
 
+  const reverter = new Reverter();
+
   before("setup", async () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
@@ -100,11 +103,13 @@ describe("GovSettings", () => {
     DP_ADDRESS = await accounts(5);
     VALIDATORS_ADDRESS = await accounts(6);
     USER_KEEPER_ADDRESS = await accounts(7);
+
+    settings = await GovSettings.new();
+
+    await reverter.snapshot();
   });
 
-  beforeEach("setup", async () => {
-    settings = await GovSettings.new();
-  });
+  afterEach(reverter.revert);
 
   describe("incorrect settings", () => {
     it("should revert when delegatedVotingAllowed is on for DP", async () => {

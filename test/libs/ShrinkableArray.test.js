@@ -1,5 +1,6 @@
 const { assert } = require("chai");
 const { toBN } = require("../../scripts/utils/utils");
+const Reverter = require("../helpers/reverter");
 
 const ShrinkableArrayMock = artifacts.require("ShrinkableArrayMock");
 
@@ -8,9 +9,15 @@ ShrinkableArrayMock.numberFormat = "BigNumber";
 describe("ShrinkableArray", () => {
   let shArray;
 
-  beforeEach("setup", async () => {
+  const reverter = new Reverter();
+
+  before("setup", async () => {
     shArray = await ShrinkableArrayMock.new();
+
+    await reverter.snapshot();
   });
+
+  afterEach(reverter.revert);
 
   describe("functionality", () => {
     it("should transform array", async () => {

@@ -1,4 +1,5 @@
 const { toBN, accounts, wei } = require("../../scripts/utils/utils");
+const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
 const { impersonate } = require("../helpers/impersonator");
@@ -59,6 +60,8 @@ describe("DistributionProposal", () => {
   let govPool;
   let dp;
 
+  const reverter = new Reverter();
+
   before("setup", async () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
@@ -87,9 +90,7 @@ describe("DistributionProposal", () => {
     await GovPool.link(govPoolViewLib);
     await GovPool.link(govPoolStakingLib);
     await GovPool.link(govPoolOffchainLib);
-  });
 
-  beforeEach("setup", async () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
@@ -118,7 +119,11 @@ describe("DistributionProposal", () => {
 
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
+
+    await reverter.snapshot();
   });
+
+  afterEach(reverter.revert);
 
   async function deployPool(poolParams) {
     const NAME = await poolRegistry.GOV_POOL_NAME();

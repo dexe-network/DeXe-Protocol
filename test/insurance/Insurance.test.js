@@ -1,4 +1,5 @@
 const { toBN, accounts, wei } = require("../../scripts/utils/utils");
+const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { SECONDS_IN_DAY } = require("../../scripts/utils/constants");
 const { DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
@@ -15,7 +16,7 @@ Insurance.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
 
-describe("Insurance", () => {
+describe.only("Insurance", () => {
   let OWNER;
   let SECOND;
   let ALICE;
@@ -27,6 +28,8 @@ describe("Insurance", () => {
   let insuranceFactor;
   let dexe;
 
+  const reverter = new Reverter();
+
   before("setup", async () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
@@ -34,9 +37,7 @@ describe("Insurance", () => {
     RON = await accounts(5);
     BOB = await accounts(6);
     NOTHING = await accounts(9);
-  });
 
-  beforeEach("setup", async () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _insurance = await Insurance.new();
     const _coreProperties = await CoreProperties.new();
@@ -67,7 +68,11 @@ describe("Insurance", () => {
     await dexe.mint(SECOND, wei("1000"));
 
     await dexe.approve(insurance.address, wei("1000"), { from: SECOND });
+
+    await reverter.snapshot();
   });
+
+  afterEach(reverter.revert);
 
   describe("access", () => {
     it("should not initialize twice", async () => {

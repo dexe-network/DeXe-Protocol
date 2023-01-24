@@ -1,5 +1,6 @@
 const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../../scripts/utils/utils");
+const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
@@ -26,6 +27,8 @@ describe("GovUserKeeper", () => {
   let token;
   let nft;
 
+  const reverter = new Reverter();
+
   before("setup", async () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
@@ -34,14 +37,16 @@ describe("GovUserKeeper", () => {
     const govUserKeeperViewLib = await GovUserKeeperViewLib.new();
 
     await GovUserKeeper.link(govUserKeeperViewLib);
-  });
 
-  beforeEach("setup", async () => {
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721Mock.new("Mock", "Mock");
 
     userKeeper = await GovUserKeeper.new();
+
+    await reverter.snapshot();
   });
+
+  afterEach(reverter.revert);
 
   describe("Bad GovUserKeeper", () => {
     describe("init", () => {

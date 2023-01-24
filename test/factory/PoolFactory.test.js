@@ -1,5 +1,6 @@
 const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../../scripts/utils/utils");
+const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
@@ -82,6 +83,8 @@ describe("PoolFactory", () => {
   let babt;
   let testERC721Multiplier;
 
+  const reverter = new Reverter();
+
   before("setup", async () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
@@ -158,9 +161,7 @@ describe("PoolFactory", () => {
     const uniswapV2PathFinderLib = await UniswapV2PathFinderLib.new();
 
     await PriceFeed.link(uniswapV2PathFinderLib);
-  });
 
-  beforeEach("setup", async () => {
     testERC20 = await ERC20Mock.new("TestERC20", "TS", 18);
     testERC721 = await ERC721Mock.new("TestERC721", "TS");
     testERC721Multiplier = await ERC721Multiplier.new("TestERC721Multiplier", "TSM");
@@ -246,7 +247,11 @@ describe("PoolFactory", () => {
     ];
 
     await poolRegistry.setNewImplementations(poolNames, poolAddrs);
+
+    await reverter.snapshot();
   });
+
+  afterEach(reverter.revert);
 
   describe("TraderPools", () => {
     describe("deployBasicPool", () => {

@@ -1,5 +1,6 @@
 const { toBN, accounts, wei } = require("../../scripts/utils/utils");
 const { setTime, getCurrentBlockTime } = require("../helpers/block-helper");
+const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { SECONDS_IN_DAY, SECONDS_IN_MONTH, PRECISION } = require("../../scripts/utils/constants");
 const { ExchangeType, ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
@@ -55,6 +56,8 @@ describe("InvestTraderPool", () => {
 
   let traderPool;
   let proposalPool;
+
+  const reverter = new Reverter();
 
   async function configureBaseTokens() {
     let tokensToMint = toBN(1000000000);
@@ -131,9 +134,7 @@ describe("InvestTraderPool", () => {
     const poolProposalLib = await PoolProposalLib.new();
 
     await PoolProposal.link(poolProposalLib);
-  });
 
-  beforeEach("setup", async () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _insurance = await Insurance.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
@@ -177,7 +178,11 @@ describe("InvestTraderPool", () => {
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
 
     await configureBaseTokens();
+
+    await reverter.snapshot();
   });
+
+  afterEach(reverter.revert);
 
   async function deployPool(poolParameters) {
     const POOL_NAME = await poolRegistry.INVEST_POOL_NAME();

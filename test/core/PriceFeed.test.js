@@ -1,5 +1,6 @@
 const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../../scripts/utils/utils");
+const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -26,6 +27,8 @@ describe("PriceFeed", () => {
   let DEXE;
   let USD;
 
+  const reverter = new Reverter();
+
   before("setup", async () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
@@ -33,9 +36,7 @@ describe("PriceFeed", () => {
     const uniswapV2PathFinderLib = await UniswapV2PathFinderLib.new();
 
     await PriceFeed.link(uniswapV2PathFinderLib);
-  });
 
-  beforeEach("setup", async () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _priceFeed = await PriceFeed.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
@@ -56,7 +57,11 @@ describe("PriceFeed", () => {
     await priceFeed.__PriceFeed_init();
 
     await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
+
+    await reverter.snapshot();
   });
+
+  afterEach(reverter.revert);
 
   describe("access", () => {
     it("should not initialize twice", async () => {

@@ -4,6 +4,7 @@ const toPercent = require("../utils/utils").toBNPercent;
 
 const { setTime, getCurrentBlockTime } = require("../helpers/block-helper");
 const { ZERO_ADDR, PERCENTAGE_100 } = require("../../scripts/utils/constants");
+const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
 const ERC721Power = artifacts.require("ERC721Power");
@@ -22,6 +23,8 @@ describe("ERC721Power", () => {
 
   let startTime;
   let DEFAULT_AMOUNT = wei("10000");
+
+  const reverter = new Reverter();
 
   const deployNft = async function (startTime, maxPower, reductionPercent, requiredCollateral) {
     token = await ERC20Mock.new("Mock", "Mock", 18);
@@ -45,11 +48,13 @@ describe("ERC721Power", () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
     THIRD = await accounts(2);
+
+    startTime = await getCurrentBlockTime();
+
+    await reverter.snapshot();
   });
 
-  beforeEach("setup", async () => {
-    startTime = await getCurrentBlockTime();
-  });
+  afterEach(reverter.revert);
 
   describe("constructor", () => {
     it("should revert when wrong params were passed", async () => {

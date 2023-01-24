@@ -1,6 +1,7 @@
 const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../../scripts/utils/utils");
 const { toPercent } = require("../utils/utils");
+const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { ValidatorsProposalState } = require("../utils/constants");
@@ -20,19 +21,23 @@ describe("GovValidators", () => {
   let validators;
   let validatorsToken;
 
+  const reverter = new Reverter();
+
   const getInternalProposalByIndex = async (index) => (await validators.getInternalProposals(index - 1, 1))[0];
 
   before("setup", async () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
     THIRD = await accounts(2);
+
+    validators = await GovValidators.new();
+
+    await reverter.snapshot();
   });
 
-  describe("invalid Validators", () => {
-    beforeEach("setup", async () => {
-      validators = await GovValidators.new();
-    });
+  afterEach(reverter.revert);
 
+  describe("invalid Validators", () => {
     describe("constructor()", () => {
       it("should revert if invalid array length (1)", async () => {
         await truffleAssert.reverts(
@@ -80,8 +85,6 @@ describe("GovValidators", () => {
 
   describe("valid Validators", () => {
     beforeEach("setup", async () => {
-      validators = await GovValidators.new();
-
       await validators.__GovValidators_init(
         "Validator Token",
         "VT",

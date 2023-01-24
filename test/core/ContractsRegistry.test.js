@@ -1,5 +1,6 @@
 const { assert } = require("chai");
 const { toBN, accounts } = require("../../scripts/utils/utils");
+const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -15,15 +16,19 @@ describe("ContractsRegistry", () => {
 
   let contractsRegistry;
 
+  const reverter = new Reverter();
+
   before("setup", async () => {
     OWNER = await accounts(0);
-  });
 
-  beforeEach("setup", async () => {
     contractsRegistry = await ContractsRegistry.new();
 
     await contractsRegistry.__OwnableContractsRegistry_init();
+
+    await reverter.snapshot();
   });
+
+  afterEach(reverter.revert);
 
   describe("contract management", () => {
     it("should add and remove the contract", async () => {

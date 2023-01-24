@@ -2,6 +2,7 @@ const { assert } = require("chai");
 const { toBN, accounts } = require("../../scripts/utils/utils");
 const { SECONDS_IN_MONTH } = require("../../scripts/utils/constants");
 const { ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
+const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -21,13 +22,13 @@ describe("CoreProperties", () => {
   let DEXE;
   let USD;
 
+  const reverter = new Reverter();
+
   before("setup", async () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
     NOTHING = await accounts(9);
-  });
 
-  beforeEach("setup", async () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
@@ -46,7 +47,11 @@ describe("CoreProperties", () => {
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
 
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
+
+    await reverter.snapshot();
   });
+
+  afterEach(reverter.revert);
 
   describe("access", () => {
     it("should not initialize twice", async () => {
