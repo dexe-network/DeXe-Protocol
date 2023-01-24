@@ -96,7 +96,7 @@ Contract is used for finding the best path for token exchange on **DEXes**.
 A trader can create his own pool (fund) by sending a transaction using the smart contract method. The pool can be public and private. In private pool, the trader enters the addresses in the whitelist that can invest in this fund, public is open for all investors.
 
 There are **2** types of pool:
-- *Standart*: trade using whitelisted tokens
+- *Standard*: trade using whitelisted tokens
 - *Invest*: invest into offchain assets 
 
 Pool has its native **ERC20** token with unique symbols and can have several managers.
@@ -123,7 +123,7 @@ Commission distribution:
 **DeXe** protocol is governed by **DAO** community. Parameters of the protocol that can be modified through protocol governance:
 - **DeXe** commission change
 - Changing proportions of **DeXe** commission distribution
-- Adding a token to the whitelist
+- Adding a token to the whitelist/blacklist
 - Upgrading contracts
 - Managing the limits on the number of users in pools
 - Managing the maximum number of positions for traders
