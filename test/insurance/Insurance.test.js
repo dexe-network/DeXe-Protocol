@@ -16,7 +16,7 @@ Insurance.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
 
-describe.only("Insurance", () => {
+describe("Insurance", () => {
   let OWNER;
   let SECOND;
   let ALICE;
