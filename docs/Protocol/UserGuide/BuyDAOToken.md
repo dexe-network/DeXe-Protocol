@@ -6,7 +6,7 @@ To buy a **DAO** pool token, the user needs to visit the profile of this **DAO**
 
 <img src="../img/userGuideBuyToken/userGuideImg_DAOpage.png" height="500" />
 
-In the token sale proposal, the user will be able to conduct an exchange using some token from the token sale proposal list and acquiring **DAO** tokens. After selecting tokens and their amount to be exchanged, press ***Buy DAO token***.
+In the token sale proposal, the user will be able to conduct an exchange using some token from the token sale proposal list to acquire **DAO** tokens. After selecting tokens and their amount to be exchanged, press ***Buy DAO token***.
 
 <img src="../img/userGuideBuyToken/userGuideImg_BuyPage.png" height="250" />
 
