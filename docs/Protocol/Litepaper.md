@@ -124,7 +124,7 @@ Commission distribution:
 - **DeXe** commission change
 - Changing proportions of **DeXe** commission distribution
 - Adding a token to the whitelist
-- Upgrade contracts
+- Upgrading contracts
 - Managing the limits on the number of users in pools
 - Managing the maximum number of positions for traders
 - Changing the parameters of the trader's leverage formula
