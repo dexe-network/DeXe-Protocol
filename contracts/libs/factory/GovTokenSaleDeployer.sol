@@ -8,7 +8,7 @@ library GovTokenSaleDeployer {
         address poolProxy,
         address tokenSaleProxy,
         ERC20Sale.ConstructorParams calldata tokenParams
-    ) external returns (address token) {
-        token = address(new ERC20Sale(poolProxy, tokenSaleProxy, tokenParams));
+    ) external returns (address) {
+        return address(new ERC20Sale(poolProxy, tokenSaleProxy, tokenParams));
     }
 }

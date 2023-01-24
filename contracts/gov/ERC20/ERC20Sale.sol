@@ -10,7 +10,7 @@ contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
     address public govAddress;
 
     modifier onlyGov() {
-        require(msg.sender == govAddress, "ERC20Sale: not a Gov contract");
+        _onlyGov();
         _;
     }
 
@@ -50,11 +50,11 @@ contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
         _burn(account, amount);
     }
 
-    function pause() public override onlyGov {
+    function pause() external override onlyGov {
         _pause();
     }
 
-    function unpause() public override onlyGov {
+    function unpause() external override onlyGov {
         _unpause();
     }
 
@@ -68,5 +68,9 @@ contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
 
     function _mint(address account, uint256 amount) internal override(ERC20, ERC20Capped) {
         super._mint(account, amount);
+    }
+
+    function _onlyGov() internal view {
+        require(msg.sender == govAddress, "ERC20Sale: not a Gov contract");
     }
 }

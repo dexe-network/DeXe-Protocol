@@ -24,7 +24,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     mapping(uint256 => Tier) internal _tiers;
 
     modifier onlyGov() {
-        require(govAddress == address(0) || msg.sender == govAddress, "TSP: not a Gov contract");
+        _onlyGov();
         _;
     }
 
@@ -391,6 +391,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
     function _isWhitelisted(address user, uint256 tierId) internal view returns (bool) {
         return totalSupply(tierId) == 0 || balanceOf(user, tierId) == 1;
+    }
+
+    function _onlyGov() internal view {
+        require(govAddress == address(0) || msg.sender == govAddress, "TSP: not a Gov contract");
     }
 
     function _countPrefixVestingAmount(
