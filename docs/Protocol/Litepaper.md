@@ -128,3 +128,4 @@ Commission distribution:
 - Managing the limits on the number of users in pools
 - Managing the maximum number of positions for traders
 - Changing the parameters of the trader's leverage formula
+- Adjusting insurance parameters
