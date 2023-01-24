@@ -116,7 +116,7 @@ Of all commission received on trading, **DeXe** charges its own commission of **
 Commission distribution:
 - ⅓ to the treasury of the protocol
 - ⅓ to the insurance fund
-- ⅓ to the token holders (in the form of dividends) 
+- ⅓ to the NFT holders (in the form of extra rewards for the DAO activity) 
 
 ## Governance
 
