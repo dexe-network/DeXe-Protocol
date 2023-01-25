@@ -11,8 +11,7 @@ function getDivestAmountsAndCommissions(
     uint256 amountLP
 ) external returns (Receptions memory receptions, Commissions memory commissions);
 ```
-
-- ***user*** -  the address of the user who is going to invent in the proposal
+- ***user*** - the address of the user who is going to invest into the proposal
 - ***amountLP*** - the amount of LP tokens the user is going to invest
 - **returns** **->**
     - ***receptions***  - the tokens that the user will receive

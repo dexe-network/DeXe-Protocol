@@ -30,5 +30,5 @@ function getDivestAmountsAndCommissions(
 - ***user*** -  the address of the user who is going to invest in the proposal
 - ***amountLP*** - the amount of **LP** tokens the `user` is going to invest
 - **returns** **->**
-    - ***receptions***  - the tokens that the user will receive
+    - ***receptions*** - the tokens that the user will receive
     - ***commissions*** - can be ignored

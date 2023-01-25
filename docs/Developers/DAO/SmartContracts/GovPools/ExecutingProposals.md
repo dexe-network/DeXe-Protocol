@@ -14,4 +14,4 @@ If validators are configured in the **DAO** pool, then before executing the prop
 ```solidity
 function moveProposalToValidators(uint256 proposalId) external;
 ```
-- ***proposalId*** - the ID of the proposal to be send for validation
+- ***proposalId*** - the ID of the proposal to be sent for validation
