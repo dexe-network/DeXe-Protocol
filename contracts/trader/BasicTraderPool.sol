@@ -88,6 +88,17 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         _burn(msg.sender, lpAmount);
     }
 
+    function investTokens(
+        uint256[] memory amounts,
+        address[] memory tokens
+    ) external override onlyTraderAdmin onlyBABTHolder {
+        for (uint256 i = 1; i < tokens.length; i++) {
+            require(coreProperties.isWhitelistedToken(tokens[i]), "BP: not in whitelist");
+        }
+
+        _poolParameters.investTokens(investsInBlocks, _positions, msg.sender, amounts, tokens);
+    }
+
     function investProposal(
         uint256 proposalId,
         uint256 lpAmount,

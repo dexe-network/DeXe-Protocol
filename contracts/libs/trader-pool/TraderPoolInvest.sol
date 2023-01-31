@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
@@ -20,6 +21,7 @@ library TraderPoolInvest {
     using TraderPoolPrice for *;
     using TraderPoolLeverage for *;
     using MathHelper for uint256;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     event ActivePortfolioExchanged(
         address fromToken,
@@ -88,6 +90,41 @@ library TraderPoolInvest {
 
             emit ActivePortfolioExchanged(baseToken, positionTokens[i], amount, amountGot);
         }
+    }
+
+    function investTokens(
+        ITraderPool.PoolParameters storage poolParameters,
+        mapping(address => mapping(uint256 => uint256)) storage investsInBlocks,
+        EnumerableSet.AddressSet storage positions,
+        address holder,
+        uint256[] memory amounts,
+        address[] memory tokens
+    ) external returns (uint256 toMintLP) {
+        address baseToken = poolParameters.baseToken;
+
+        TraderPool traderPool = TraderPool(address(this));
+
+        for (uint256 i; i < tokens.length; i++) {
+            require(
+                !traderPool.coreProperties().isBlacklistedToken(tokens[i]),
+                "TP: token in blacklist"
+            );
+
+            IERC20(tokens[i]).transferFrom(holder, address(this), amounts[i]);
+            positions.add(tokens[i]);
+
+            (uint256 baseAmount, ) = traderPool.priceFeed().getNormalizedPriceOut(
+                tokens[i],
+                baseToken,
+                amounts[i]
+            );
+            toMintLP += baseAmount;
+        }
+
+        investsInBlocks[msg.sender][block.number] += toMintLP;
+
+        traderPool.updateTo(msg.sender, toMintLP, toMintLP);
+        traderPool.mint(msg.sender, toMintLP);
     }
 
     function _transferBase(
