@@ -16,6 +16,7 @@ There are different types of proposals:
 - Token distribution
 - Any other proposal (autonomous interaction with any **DeFi** protocol)
 - Validator settings
+- Token sale (see `UserGuide/TokenSale`)
 
 Example of creation *Token distribution* proposal.
 
