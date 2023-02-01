@@ -197,7 +197,7 @@ interface ITraderPool {
     /// @param minPositionsOut the minimal amounts of position tokens to be received
     function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut) external;
 
-    function investTokens(uint256[] memory amounts, address[] memory tokens) external;
+    function investTokens(uint256[] calldata amounts, address[] calldata tokens) external;
 
     /// @notice The function that takes the commission from the users' income. This function should be called once per the
     /// commission period. Use "getReinvestCommissions()" function to get minDexeCommissionOut parameter

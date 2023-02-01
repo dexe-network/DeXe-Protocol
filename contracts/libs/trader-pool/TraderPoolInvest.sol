@@ -105,8 +105,8 @@ library TraderPoolInvest {
         mapping(address => mapping(uint256 => uint256)) storage investsInBlocks,
         EnumerableSet.AddressSet storage positions,
         address holder,
-        uint256[] memory amounts,
-        address[] memory tokens
+        uint256[] calldata amounts,
+        address[] calldata tokens
     ) external returns (uint256 toMintLP) {
         address baseToken = poolParameters.baseToken;
 

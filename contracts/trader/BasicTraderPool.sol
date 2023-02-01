@@ -89,8 +89,8 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
     }
 
     function investTokens(
-        uint256[] memory amounts,
-        address[] memory tokens
+        uint256[] calldata amounts,
+        address[] calldata tokens
     ) external override onlyTraderAdmin onlyBABTHolder {
         for (uint256 i = 1; i < tokens.length; i++) {
             require(coreProperties.isWhitelistedToken(tokens[i]), "BP: not in whitelist");

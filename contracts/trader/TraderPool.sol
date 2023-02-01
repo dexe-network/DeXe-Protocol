@@ -143,8 +143,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     }
 
     function investTokens(
-        uint256[] memory amounts,
-        address[] memory tokens
+        uint256[] calldata amounts,
+        address[] calldata tokens
     ) external virtual override onlyTraderAdmin onlyBABTHolder {
         require(
             _investors.length() == 0 && _privateInvestors.length() == 0,
