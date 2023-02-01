@@ -10,6 +10,8 @@ On the fund page, the user can review its statistic, description, and participan
 
 <img src="../img/userGuideTraders/userGuideImg_FundPage.png" height="350" />
 
+<img src="../img/userGuideTraders/userGuideImg_FundPositions.png" height="300" />
+
 If the fund trades in profit, the investor will be able to close his positions in the pool by selling **LP**-tokens and receiving increased amounts of the **base** tokens. Similarly, if the fund loses **base** tokens when trading, the investor will receive fewer tokens when leaving the fund (selling **LP**-tokens).
 
 To buy **LP**-tokens standard token-exchange interface is used.
