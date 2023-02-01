@@ -30,6 +30,14 @@ library TraderPoolInvest {
         uint256 toVolume
     );
 
+    event Exchanged(
+        address sender,
+        address fromToken,
+        address toToken,
+        uint256 fromVolume,
+        uint256 toVolume
+    );
+
     function invest(
         ITraderPool.PoolParameters storage poolParameters,
         mapping(address => mapping(uint256 => uint256)) storage investsInBlocks,
@@ -109,15 +117,26 @@ library TraderPoolInvest {
                 !traderPool.coreProperties().isBlacklistedToken(tokens[i]),
                 "TP: token in blacklist"
             );
-
+            uint256 baseAmount;
             IERC20(tokens[i]).transferFrom(holder, address(this), amounts[i]);
-            positions.add(tokens[i]);
 
-            (uint256 baseAmount, ) = traderPool.priceFeed().getNormalizedPriceOut(
-                tokens[i],
-                baseToken,
-                amounts[i]
-            );
+            if (tokens[i] != baseToken) {
+                (baseAmount, ) = traderPool.priceFeed().getNormalizedPriceOut(
+                    tokens[i],
+                    baseToken,
+                    amounts[i]
+                );
+
+                if (positions.contains(tokens[i])) {
+                    emit ActivePortfolioExchanged(baseToken, tokens[i], baseAmount, amounts[i]);
+                } else {
+                    positions.add(tokens[i]);
+                    emit Exchanged(msg.sender, baseToken, tokens[i], baseAmount, amounts[i]);
+                }
+            } else {
+                baseAmount = amounts[i];
+            }
+
             toMintLP += baseAmount;
         }
 
