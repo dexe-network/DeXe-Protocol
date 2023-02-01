@@ -1,22 +1,51 @@
 # Trader
 
-The first step for trader is creating fund. The process is described on the `UserGuide/CreateFund` page.
+The first step for a trader is creating a fund. The process is described on the `UserGuide/CreateFund` page.
 
 <img src="../img/userGuideTrader/userGuideImg_TraderPage.png" height="380" />
 
-The trader can manage multiple funds. The list of this finds located on the trader profile page.
+A trader can manage multiple funds. The list of these finds is located on the trader profile page.
 
 <img src="../img/userGuideTrader/userGuideImg_FundList.png" height="380" />
 <img src="../img/userGuideTrader/userGuideImg_FundList2.png" height="380" />
 
-To start trading and open new positions, trader must click `Open new trade` on the fund page.
+To start trading and open new positions, the trader must click `Open new trade` on the fund page.
 
 <img src="../img/userGuideTrader/userGuideImg_OpenNewTrade.png" height="150" />
 
 The trading interface is similar to a regular swapper.
 
 <img src="../img/userGuideTrader/userGuideImg_TradeToken1.png" height="300" />
+<img src="../img/userGuideTrader/userGuideImg_TradeToken3.png" height="400" />
 
-The owner of the fund can change its settings. 
+There is a list of tokens approved by **DeXe DAO** (whitelist). They are considered safe and a trader can work with them without restrictions.
+
+If a trader wants to invest in a non-whitelisted token, a risk proposal is automatically created.
+
+<img src="../img/userGuideTrader/userGuideImg_RiskProposalCreation.png" height="480" />
+
+When creating a risky proposal, you stake your **LP** tokens and indicate the volume of the token you wish to buy immediately as you create the risk proposal: from **0%** to **100%**, where **0%** means you can buy with your own **LP** tokens all of the tokens later (maybe because you're waiting for a better entry price) while **100%** will get the entire desired token amount right when you create the risk proposal.
+
+<img src="../img/userGuideTrader/userGuideImg_RiskProposals.png" height="300" />
+
+After the risk proposal is created, your investors will get a notification and can invest up to the same **%** of the original pool as you invested with by staking their **LP** tokens.
+
+<img src="../img/userGuideTrader/userGuideImg_StakeLP.png" height="250" />
+
+The investors will opt into this risk proposal in the same way (if you buy **100%** right away, so will they once they opt in). After creating the risk proposal, you purchase the risk token (token not in the whitelist) using your fund's base tokens and open positions in your regular pool (open positions will be closed proportionately based on the volume of the risk token you wish to buy.
+
+<img src="../img/userGuideTrader/userGuideImg_RiskProposalsInvestor.png" height="330" />
+
+Every new staking or investment into a risk proposal creates a market transaction. 
+
+*The average price of a purchased asset is the same for everyone in the pool and gets updated for everyone with each new investment.* 
+
+For this reason, you can limit the maximum market price the risk proposal is willing to pay for a token. If the price is above the maximum, investors won't be able to stake **LP** and buy the token until the price falls below the threshold. You can also limit the time window during which investors can opt into a specific risk proposal.
+
+The trader can close the position at any time. Profit or loss from the risk proposal is credited after the **LP** is withdrawn from the risk proposal.
+
+#
+
+The owner of the fund can change its settings. An investor can be deleted from a private fund only if he has no assets in it. The base token of the fund cannot be changed. 
 
 <img src="../img/userGuideTrader/userGuideImg_ChangeFundProfile.png" height="300" />
