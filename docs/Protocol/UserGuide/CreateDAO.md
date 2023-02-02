@@ -3,14 +3,14 @@
 ![Logo](../img/logoDeXe.svg)
 
 
-To create a **DAO pool**, a user needs to enter the `Create fund` page and select "***DAO pool***" option.
+To create a **DAO pool**, a user needs to enter the `Create fund` page and select the "***DAO pool***" option.
 
 
 <img src="../img/userGuideDAOImg/userGuideImg_CreateFundDAOselected.png" height="600" />
 
 #
 
-The next step is configuring **DAO pool** profile. The user needs to input the name and logo of the pool. If no logo image is uploaded, the **DeXe** logo will be used.
+The next step is configuring the **DAO pool** profile. The user needs to input the name and logo of the pool. If no logo image is uploaded, the **DeXe** logo will be used.
 
 <img src="../img/userGuideDAOImg/userGuideImg_CreateDAONameLogo.png" height="400" />⠀
 <img src="../img/userGuideDAOImg/userGuideImg_CreateDAONameLogoComplete.png" height="400" />

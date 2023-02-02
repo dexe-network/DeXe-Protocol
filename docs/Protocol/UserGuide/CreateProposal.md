@@ -22,7 +22,7 @@ Example of creation *Token distribution* proposal.
 
 <img src="../img/userGuideCreateProposal/userGuideImg_TokenDistribution.png" height="400" />
 
-The user should enter the proposal name, and description, and select which token and the amount that is going to be distributed among **DAO** members.
+The user should enter the proposal name, and description, and select which token and the amount that is going to be distributed among the **DAO** members.
 
 <img src="../img/userGuideCreateProposal/userGuideImg_TokenDistributionBasic.png" height="350" />
 
