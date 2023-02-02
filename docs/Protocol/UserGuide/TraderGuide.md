@@ -1,5 +1,7 @@
 # Trader
 
+![Logo](../img/logoDeXe.svg)
+
 The first step for a trader is creating a fund. The process is described on the `UserGuide/CreateFund` page.
 
 <img src="../img/userGuideTrader/userGuideImg_TraderPage.png" height="380" />
@@ -43,6 +45,11 @@ Every new staking or investment into a risk proposal creates a market transactio
 For this reason, you can limit the maximum market price the risk proposal is willing to pay for a token. If the price is above the maximum, investors won't be able to stake **LP** and buy the token until the price falls below the threshold. You can also limit the time window during which investors can opt into a specific risk proposal.
 
 The trader can close the position at any time. Profit or loss from the risk proposal is credited after the **LP** is withdrawn from the risk proposal.
+#
+
+If a trader wants to invest in off-chain assets (like real estate or startups), he should create an Investment fund (see `UserGuide/CreateFund`) and periodically pay dividends to the investors.
+
+<img src="../img/userGuideTrader/userGuideImg_PayDividend.png" height="110" />
 
 #
 
