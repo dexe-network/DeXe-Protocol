@@ -478,6 +478,106 @@ describe("TraderPool", () => {
       });
     });
 
+    describe("investTokens", () => {
+      it("should invest tokens", async () => {
+        await tokens.DEXE.approve(traderPool.address, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await tokens.USD.approve(traderPool.address, wei("1000"));
+
+        await traderPool.investTokens(
+          [wei("100"), wei("500"), wei("10")],
+          [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address]
+        );
+
+        assert.equal((await tokens.DEXE.balanceOf(traderPool.address)).toFixed(), wei("100"));
+        assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("500"));
+        assert.equal((await tokens.USD.balanceOf(traderPool.address)).toFixed(), wei("10"));
+        assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("610"));
+
+        const poolInfo = await traderPool.getPoolInfo();
+
+        assert.deepEqual(poolInfo[3], [tokens.DEXE.address, tokens.USD.address]);
+      });
+
+      it("should invest token twice", async () => {
+        await tokens.DEXE.approve(traderPool.address, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await tokens.USD.approve(traderPool.address, wei("1000"));
+        await tokens.MANA.approve(traderPool.address, wei("1000"));
+
+        await traderPool.investTokens(
+          [wei("100"), wei("500"), wei("10")],
+          [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address]
+        );
+        await traderPool.investTokens(
+          [wei("200"), wei("400"), wei("100")],
+          [tokens.DEXE.address, tokens.WETH.address, tokens.MANA.address]
+        );
+
+        assert.equal((await tokens.DEXE.balanceOf(traderPool.address)).toFixed(), wei("300"));
+        assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("900"));
+        assert.equal((await tokens.USD.balanceOf(traderPool.address)).toFixed(), wei("10"));
+        assert.equal((await tokens.MANA.balanceOf(traderPool.address)).toFixed(), wei("100"));
+        assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("1310"));
+
+        const poolInfo = await traderPool.getPoolInfo();
+
+        assert.deepEqual(poolInfo[3], [tokens.DEXE.address, tokens.USD.address, tokens.MANA.address]);
+      });
+
+      it("should reverts when investor in pool", async () => {
+        await tokens.DEXE.approve(traderPool.address, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
+        await tokens.WETH.transfer(SECOND, wei("10"));
+
+        await invest(wei("100"), OWNER);
+        await invest(wei("10"), SECOND);
+
+        await truffleAssert.reverts(
+          traderPool.investTokens([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address]),
+          "TP: only empty pool"
+        );
+      });
+
+      it("should reverts when private investor in pool", async () => {
+        await tokens.DEXE.approve(traderPool.address, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+
+        await traderPool.modifyPrivateInvestors([SECOND], true);
+
+        await truffleAssert.reverts(
+          traderPool.investTokens([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address]),
+          "TP: only empty pool"
+        );
+      });
+
+      it("should reverts when token in blacklist", async () => {
+        await coreProperties.addBlacklistTokens([tokens.DEXE.address]);
+
+        await truffleAssert.reverts(
+          traderPool.investTokens([wei("100")], [tokens.DEXE.address]),
+          "TP: token in blacklist"
+        );
+      });
+
+      it("should reverts when call from not trader", async () => {
+        await truffleAssert.reverts(
+          traderPool.investTokens([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address], {
+            from: SECOND,
+          }),
+          "TP: not an admin"
+        );
+      });
+
+      it("should reverts when array lengths are not equal", async () => {
+        await truffleAssert.reverts(
+          traderPool.investTokens([wei("100"), wei("500")], [tokens.DEXE.address]),
+          "TP: array lengths should be equal"
+        );
+      });
+    });
+
     describe("exchange", () => {
       beforeEach("setup", async () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"));
@@ -1232,6 +1332,13 @@ describe("TraderPool", () => {
       it("exchange()", async () => {
         await truffleAssert.reverts(
           traderPool.exchange(tokens.WETH.address, tokens.WBTC.address, wei("500"), 0, [], ExchangeType.FROM_EXACT),
+          REVERT_STRING
+        );
+      });
+
+      it("investTokens()", async () => {
+        await truffleAssert.reverts(
+          traderPool.investTokens([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address]),
           REVERT_STRING
         );
       });

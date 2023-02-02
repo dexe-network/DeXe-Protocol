@@ -417,6 +417,37 @@ describe("BasicTraderPool", () => {
       });
     });
 
+    describe("investTokens", () => {
+      it("should correctly invest tokens", async () => {
+        await tokens.DEXE.approve(traderPool.address, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await tokens.USD.approve(traderPool.address, wei("1000"));
+
+        await traderPool.investTokens(
+          [wei("100"), wei("500"), wei("10")],
+          [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address]
+        );
+
+        assert.equal((await tokens.DEXE.balanceOf(traderPool.address)).toFixed(), wei("100"));
+        assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("500"));
+        assert.equal((await tokens.USD.balanceOf(traderPool.address)).toFixed(), wei("10"));
+        assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("610"));
+
+        const poolInfo = await traderPool.getPoolInfo();
+
+        assert.deepEqual(poolInfo[3], [tokens.DEXE.address, tokens.USD.address]);
+      });
+
+      it("should rewerts when tokens not in whitelist", async () => {
+        await tokens.WBTC.mint(OWNER, wei("100"));
+        await tokens.WBTC.approve(traderPool.address, wei("100"));
+        await truffleAssert.reverts(
+          traderPool.investTokens([wei("100")], [tokens.WBTC.address]),
+          "BP: not in whitelist"
+        );
+      });
+    });
+
     describe("exchange", () => {
       beforeEach("setup", async () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"));
