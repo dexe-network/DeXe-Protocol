@@ -26,6 +26,10 @@ Whitelisted tokens are tokens that **DeXe DAO** decided are safe to use in tradi
 
 The minimum number of voters to make a decision.
 
-### Risk proposal
+### Risky proposal
 
 Proposal to invest in a token that is not whitelisted by the **DeXe DAO**
+
+### LP-token
+
+Token of a certain fund that is given to the investor in exchange for base token. If fund trades in profit, investor can give LP-tokens back and recevive increased amount of base token.
