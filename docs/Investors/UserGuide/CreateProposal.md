@@ -18,7 +18,7 @@ There are different types of proposals:
 - Validator settings
 - Token sale (see `UserGuide/TokenSale`)
 
-Example of creation *Token distribution* proposal.
+An example of the creation of the *Token distribution* proposal.
 
 <img src="../img/userGuideCreateProposal/userGuideImg_TokenDistribution.png" height="400" />
 
@@ -29,7 +29,7 @@ The user should enter the proposal name, and description, and select which token
 
 <img src="../img/userGuideCreateProposal/userGuideImg_TokenDistributionSelectedToken.png" height="50" />
 
-To finalize creating a proposal, the user must give it a certain amount of initial votes (defined in **DAO** settings). So the next step is voting for that proposal with the user`s tokens.
+To finalize creating a proposal, the user must give it a certain number of initial votes (defined in the **DAO** settings). So, the next step is to vote for that proposal with the user's tokens.
 
 <img src="../img/userGuideCreateProposal/userGuideImg_TokenDistributionVoting.png" height="350" />
 <img src="../img/userGuideCreateProposal/userGuideImg_TokenDistributionVotingNFT.png" height="350" />

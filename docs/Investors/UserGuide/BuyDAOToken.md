@@ -1,4 +1,4 @@
-# How to buy DAO tokens on token sale
+# Buying DAO tokens on a token sale
 
 ![Logo](../img/logoDeXe.svg)
 
@@ -10,6 +10,6 @@ In the token sale proposal, the user will be able to conduct an exchange using s
 
 <img src="../img/userGuideBuyToken/userGuideImg_BuyPage.png" height="250" />
 
-If you manage to buy **DAO** tokens successfully, you became a member of this **DAO**.
+If you manage to successfully purchase **DAO** tokens, you will become a member of this **DAO**.
 
 <img src="../img/userGuideBuyToken/userGuideImg_Success.png" height="300" />

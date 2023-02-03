@@ -2,7 +2,7 @@
 
 ![Logo](../img/logoDeXe.svg)
 
-On the `Delegation` page user can review tokens delegated by him, withdraw them, or delegate more. If you want to know how to find delegators and delegate tokens to them visit the `UserGuide/DelegateDAOToken` page.
+On the `Delegation` page, the user can review his delegated tokens, withdraw them, or delegate more. If you want to know how to find delegators and delegate tokens to them, visit the `UserGuide/DelegateDAOToken` page.
 
 
 <img src="../img/userGuideDelegation/userGuideImg_DelagationPage.png" height="350" />
