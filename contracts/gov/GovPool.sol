@@ -170,6 +170,7 @@ contract GovPool is
 
         _pendingRewards.updateRewards(
             latestProposalId,
+            RewardType.Create,
             _proposals[latestProposalId].core.settings.creationReward,
             PRECISION
         );
@@ -180,6 +181,7 @@ contract GovPool is
 
         _pendingRewards.updateRewards(
             proposalId,
+            RewardType.Create,
             _proposals[proposalId].core.settings.creationReward,
             PRECISION
         );
@@ -204,6 +206,7 @@ contract GovPool is
 
         _pendingRewards.updateRewards(
             proposalId,
+            RewardType.Vote,
             reward,
             _proposals[proposalId].core.settings.voteRewardsCoefficient
         );
@@ -226,6 +229,7 @@ contract GovPool is
 
         _pendingRewards.updateRewards(
             proposalId,
+            RewardType.VoteDelegated,
             reward.percentage(PERCENTAGE_MICROPOOL_REWARDS),
             _proposals[proposalId].core.settings.voteRewardsCoefficient
         );
@@ -324,6 +328,7 @@ contract GovPool is
 
         _pendingRewards.updateRewards(
             proposalId,
+            RewardType.Execute,
             _proposals[proposalId].core.settings.executionReward,
             PRECISION
         );
@@ -355,6 +360,7 @@ contract GovPool is
 
         _pendingRewards.updateRewards(
             0,
+            RewardType.SaveOffchainResults,
             _govSettings.getInternalSettings().executionReward,
             PRECISION
         );

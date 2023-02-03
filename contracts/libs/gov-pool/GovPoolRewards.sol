@@ -15,11 +15,17 @@ library GovPoolRewards {
     using MathHelper for uint256;
 
     event RewardClaimed(uint256 proposalId, address sender, address token, uint256 amount);
-    event RewardCredited(uint256 proposalId, uint256 amount, address sender);
+    event RewardCredited(
+        uint256 proposalId,
+        IGovPool.RewardType rewardType,
+        uint256 amount,
+        address sender
+    );
 
     function updateRewards(
         mapping(address => IGovPool.PendingRewards) storage pendingRewards,
         uint256 proposalId,
+        IGovPool.RewardType rewardType,
         uint256 amount,
         uint256 coefficient
     ) external {
@@ -46,7 +52,7 @@ library GovPoolRewards {
             userRewards.offchainTokens.add(rewardToken);
         }
 
-        emit RewardCredited(proposalId, amountToAdd, msg.sender);
+        emit RewardCredited(proposalId, rewardType, amountToAdd, msg.sender);
     }
 
     function claimReward(
