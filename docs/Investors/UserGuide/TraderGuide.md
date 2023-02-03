@@ -40,7 +40,7 @@ The investors will opt into this risk proposal in the same way (if you buy **100
 
 Every new staking or investment in a risk proposal creates a market transaction.
 
-*The average price of a purchased asset is the same for everyone in the pool and gets updated for everyone with each new investment.* 
+❗ *The average price of a purchased asset is the same for everyone in the pool and gets updated for everyone with each new investment.* 
 
 For this reason, you can limit the maximum market price the risk proposal is willing to pay for a token. If the price is above the maximum, investors won't be able to stake **LP** and buy the token until the price falls below the threshold. You can also limit the time window during which investors can opt into a specific risk proposal.
 
