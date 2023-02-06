@@ -52,11 +52,9 @@ On this page, the user can configure the settings for proposals, voting, vote de
 
 While creating a **DAO**, the user can configure to change the general voting settings. For example, it can be used to set up a higher barrier for proposals that change the general voting settings to avoid abuse and to be voted on by only large token holders (the user can set the minimum voting threshold to a higher level than in the general voting settings).
 
-<img src="../../img/userGuideDAOImg/
-userGuideImg_CreateDAOChangeSettings.png" height="280"/>
+<img src="../../img/userGuideDAOImg/userGuideImg_CreateDAOChangeSettings.png" height="280"/>
 
 ## DAO created
 
-<img src="../../img/userGuideDAOImg/
-userGuideImg_CreateDAOFinished.png" height="350"/>
+<img src="../../img/userGuideDAOImg/userGuideImg_CreateDAOFinished.png" height="350"/>
 
