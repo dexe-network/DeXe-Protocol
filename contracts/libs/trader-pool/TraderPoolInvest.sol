@@ -118,7 +118,7 @@ library TraderPoolInvest {
                 "TP: token in blacklist"
             );
             uint256 baseAmount;
-            IERC20(tokens[i]).transferFrom(holder, address(this), amounts[i]);
+            IERC20(tokens[i]).safeTransferFrom(holder, address(this), amounts[i]);
 
             if (tokens[i] != baseToken) {
                 (baseAmount, ) = traderPool.priceFeed().getNormalizedPriceOut(
