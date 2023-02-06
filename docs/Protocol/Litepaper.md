@@ -9,8 +9,7 @@
 On **DeXe** platform user can also form a **DAO** for collective decision-making and execution of those decisions. 
 **DAO** pools can be useful for projects that want to give their community a vote in the development of the project or to control the treasuries.
 
-**DeXe** aims to be a community owned decentralized finance system.
-
+At the core of **DeXe's** mission is the goal of building a community-driven decentralized finance system.
 
 ## DeXe protocol overview
 
