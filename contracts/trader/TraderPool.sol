@@ -146,11 +146,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256[] calldata amounts,
         address[] calldata tokens
     ) public virtual override onlyTraderAdmin onlyBABTHolder {
-        require(
-            _investors.length() == 0 && _privateInvestors.length() == 0,
-            "TP: only empty pool"
-        );
-        require(amounts.length == tokens.length, "TP: array lengths should be equal");
+        require(_investors.length() == 0, "TP: only empty pool");
 
         _poolParameters.investTokens(investsInBlocks, _positions, msg.sender, amounts, tokens);
     }
