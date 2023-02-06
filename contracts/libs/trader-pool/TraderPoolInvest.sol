@@ -112,6 +112,8 @@ library TraderPoolInvest {
 
         TraderPool traderPool = TraderPool(address(this));
 
+        (uint256 totalBase, , , ) = poolParameters.getNormalizedPoolPriceAndPositions();
+
         for (uint256 i; i < tokens.length; i++) {
             require(
                 !traderPool.coreProperties().isBlacklistedToken(tokens[i]),
@@ -137,10 +139,8 @@ library TraderPoolInvest {
                 baseAmount = amounts[i];
             }
 
-            toMintLP += baseAmount;
+            toMintLP += _calculateToMintLP(poolParameters, investsInBlocks, totalBase, baseAmount);
         }
-
-        investsInBlocks[msg.sender][block.number] += toMintLP;
 
         traderPool.updateTo(msg.sender, toMintLP, toMintLP);
         traderPool.mint(msg.sender, toMintLP);
@@ -153,14 +153,28 @@ library TraderPoolInvest {
         uint256 totalBaseInPool,
         uint256 amountInBaseToInvest
     ) internal returns (uint256) {
-        TraderPool traderPool = TraderPool(address(this));
-
         IERC20(poolParameters.baseToken).safeTransferFrom(
             baseHolder,
             address(this),
             amountInBaseToInvest.from18(poolParameters.baseTokenDecimals)
         );
 
+        return
+            _calculateToMintLP(
+                poolParameters,
+                investsInBlocks,
+                totalBaseInPool,
+                amountInBaseToInvest
+            );
+    }
+
+    function _calculateToMintLP(
+        ITraderPool.PoolParameters storage poolParameters,
+        mapping(address => mapping(uint256 => uint256)) storage investsInBlocks,
+        uint256 totalBaseInPool,
+        uint256 amountInBaseToInvest
+    ) internal returns (uint256) {
+        TraderPool traderPool = TraderPool(address(this));
         uint256 toMintLP = amountInBaseToInvest;
 
         if (totalBaseInPool > 0) {
