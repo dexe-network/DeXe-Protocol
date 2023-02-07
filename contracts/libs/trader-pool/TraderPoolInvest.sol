@@ -122,7 +122,7 @@ library TraderPoolInvest {
             IERC20Metadata(tokens[i]).safeTransferFrom(
                 msg.sender,
                 address(this),
-                amounts[i].to18(IERC20Metadata(tokens[i]).decimals())
+                amounts[i].from18(IERC20Metadata(tokens[i]).decimals())
             );
 
             if (tokens[i] != baseToken) {
