@@ -289,7 +289,7 @@ describe("TraderPool", () => {
         );
 
         await truffleAssert.reverts(
-          traderPool.investTokens([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address], {
+          traderPool.investInitial([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address], {
             from: SECOND,
           }),
           "TP: not an admin"
@@ -485,13 +485,13 @@ describe("TraderPool", () => {
       });
     });
 
-    describe("investTokens", () => {
+    describe("investInitial", () => {
       it("should invest tokens", async () => {
         await tokens.DEXE.approve(traderPool.address, wei("1000"));
         await tokens.WETH.approve(traderPool.address, wei("1000"));
         await tokens.USD.approve(traderPool.address, wei("1000"));
 
-        await traderPool.investTokens(
+        await traderPool.investInitial(
           [wei("100"), wei("500"), wei("10")],
           [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address]
         );
@@ -512,11 +512,11 @@ describe("TraderPool", () => {
         await tokens.USD.approve(traderPool.address, wei("1000"));
         await tokens.MANA.approve(traderPool.address, wei("1000"));
 
-        await traderPool.investTokens(
+        await traderPool.investInitial(
           [wei("100"), wei("500"), wei("10")],
           [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address]
         );
-        await traderPool.investTokens(
+        await traderPool.investInitial(
           [wei("200"), wei("400"), wei("100")],
           [tokens.DEXE.address, tokens.WETH.address, tokens.MANA.address]
         );
@@ -542,7 +542,7 @@ describe("TraderPool", () => {
         await invest(wei("10"), SECOND);
 
         await truffleAssert.reverts(
-          traderPool.investTokens([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address]),
+          traderPool.investInitial([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address]),
           "TP: only empty pool"
         );
       });
@@ -551,7 +551,7 @@ describe("TraderPool", () => {
         await coreProperties.addBlacklistTokens([tokens.DEXE.address]);
 
         await truffleAssert.reverts(
-          traderPool.investTokens([wei("100")], [tokens.DEXE.address]),
+          traderPool.investInitial([wei("100")], [tokens.DEXE.address]),
           "TP: token in blacklist"
         );
       });
@@ -564,7 +564,7 @@ describe("TraderPool", () => {
         await tokens.USD.approve(traderPool.address, wei("1000"));
 
         await truffleAssert.reverts(
-          traderPool.investTokens(
+          traderPool.investInitial(
             [wei("100"), wei("500"), wei("50")],
             [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address]
           ),
@@ -1331,9 +1331,9 @@ describe("TraderPool", () => {
         );
       });
 
-      it("investTokens()", async () => {
+      it("investInitial()", async () => {
         await truffleAssert.reverts(
-          traderPool.investTokens([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address]),
+          traderPool.investInitial([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address]),
           REVERT_STRING
         );
       });

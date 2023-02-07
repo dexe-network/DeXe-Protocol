@@ -63,7 +63,7 @@ library TraderPoolInvest {
         traderPool.mint(msg.sender, toMintLP);
     }
 
-    function investTokens(
+    function investInitial(
         ITraderPool.PoolParameters storage poolParameters,
         mapping(address => mapping(uint256 => uint256)) storage investsInBlocks,
         EnumerableSet.AddressSet storage positions,
