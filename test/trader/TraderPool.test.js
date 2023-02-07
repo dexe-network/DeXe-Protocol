@@ -540,18 +540,6 @@ describe("TraderPool", () => {
         );
       });
 
-      it("should reverts when private investor in pool", async () => {
-        await tokens.DEXE.approve(traderPool.address, wei("1000"));
-        await tokens.WETH.approve(traderPool.address, wei("1000"));
-
-        await traderPool.modifyPrivateInvestors([SECOND], true);
-
-        await truffleAssert.reverts(
-          traderPool.investTokens([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address]),
-          "TP: only empty pool"
-        );
-      });
-
       it("should reverts when token in blacklist", async () => {
         await coreProperties.addBlacklistTokens([tokens.DEXE.address]);
 
@@ -567,13 +555,6 @@ describe("TraderPool", () => {
             from: SECOND,
           }),
           "TP: not an admin"
-        );
-      });
-
-      it("should reverts when array lengths are not equal", async () => {
-        await truffleAssert.reverts(
-          traderPool.investTokens([wei("100"), wei("500")], [tokens.DEXE.address]),
-          "TP: array lengths should be equal"
         );
       });
     });
