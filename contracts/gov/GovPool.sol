@@ -89,7 +89,7 @@ contract GovPool is
     event MovedToValidators(uint256 proposalId, address sender);
     event Deposited(uint256 amount, uint256[] nfts, address sender);
     event Withdrawn(uint256 amount, uint256[] nfts, address sender);
-    event OffchainResultsSaved(string resultsHash);
+    event OffchainResultsSaved(string resultsHash, address sender);
 
     modifier onlyThis() {
         _onlyThis();
@@ -365,7 +365,7 @@ contract GovPool is
             PRECISION
         );
 
-        emit OffchainResultsSaved(resultsHash);
+        emit OffchainResultsSaved(resultsHash, msg.sender);
     }
 
     receive() external payable {}
