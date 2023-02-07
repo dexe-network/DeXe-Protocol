@@ -113,6 +113,8 @@ library TraderPoolInvest {
 
         (uint256 totalBase, , , ) = poolParameters.getNormalizedPoolPriceAndPositions();
 
+        uint256 totalInvestedBaseAmount;
+
         for (uint256 i; i < tokens.length; i++) {
             require(
                 !traderPool.coreProperties().isBlacklistedToken(tokens[i]),
@@ -141,11 +143,17 @@ library TraderPoolInvest {
             } else {
                 baseAmount = amounts[i];
             }
-
-            toMintLP += _calculateToMintLP(poolParameters, investsInBlocks, totalBase, baseAmount);
+            totalInvestedBaseAmount += baseAmount;
         }
 
-        traderPool.updateTo(msg.sender, toMintLP, toMintLP);
+        toMintLP = _calculateToMintLP(
+            poolParameters,
+            investsInBlocks,
+            totalBase,
+            totalInvestedBaseAmount
+        );
+
+        traderPool.updateTo(msg.sender, toMintLP, totalInvestedBaseAmount);
         traderPool.mint(msg.sender, toMintLP);
     }
 
