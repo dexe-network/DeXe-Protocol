@@ -287,6 +287,13 @@ describe("TraderPool", () => {
           }),
           "TP: not an admin"
         );
+
+        await truffleAssert.reverts(
+          traderPool.investTokens([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address], {
+            from: SECOND,
+          }),
+          "TP: not an admin"
+        );
       });
     });
 
@@ -499,7 +506,7 @@ describe("TraderPool", () => {
         assert.deepEqual(poolInfo[3], [tokens.DEXE.address, tokens.USD.address]);
       });
 
-      it("should invest token twice", async () => {
+      it("should invest tokens twice", async () => {
         await tokens.DEXE.approve(traderPool.address, wei("1000"));
         await tokens.WETH.approve(traderPool.address, wei("1000"));
         await tokens.USD.approve(traderPool.address, wei("1000"));
@@ -525,7 +532,7 @@ describe("TraderPool", () => {
         assert.deepEqual(poolInfo[3], [tokens.DEXE.address, tokens.USD.address, tokens.MANA.address]);
       });
 
-      it("should reverts when investor in pool", async () => {
+      it("should revert when investor is in pool", async () => {
         await tokens.DEXE.approve(traderPool.address, wei("1000"));
         await tokens.WETH.approve(traderPool.address, wei("1000"));
         await tokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
@@ -540,7 +547,7 @@ describe("TraderPool", () => {
         );
       });
 
-      it("should reverts when token in blacklist", async () => {
+      it("should revert when token is in blacklist", async () => {
         await coreProperties.addBlacklistTokens([tokens.DEXE.address]);
 
         await truffleAssert.reverts(
@@ -549,16 +556,7 @@ describe("TraderPool", () => {
         );
       });
 
-      it("should reverts when call from not trader", async () => {
-        await truffleAssert.reverts(
-          traderPool.investTokens([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address], {
-            from: SECOND,
-          }),
-          "TP: not an admin"
-        );
-      });
-
-      it("should reverts when positions more than maximum", async () => {
+      it("should revert when more than maximum positions", async () => {
         await coreProperties.setMaximumOpenPositions(1);
 
         await tokens.DEXE.approve(traderPool.address, wei("1000"));

@@ -197,6 +197,9 @@ interface ITraderPool {
     /// @param minPositionsOut the minimal amounts of position tokens to be received
     function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut) external;
 
+    /// @notice The function to invest initial positions into the pool. Bypasses the active portfolio
+    /// @param amounts the normalized amounts of tokens to be invested
+    /// @param tokens the array of tokens to be invested. If not a base token, opens a position
     function investTokens(uint256[] calldata amounts, address[] calldata tokens) external;
 
     /// @notice The function that takes the commission from the users' income. This function should be called once per the

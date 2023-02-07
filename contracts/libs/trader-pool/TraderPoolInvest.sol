@@ -63,6 +63,70 @@ library TraderPoolInvest {
         traderPool.mint(msg.sender, toMintLP);
     }
 
+    function investTokens(
+        ITraderPool.PoolParameters storage poolParameters,
+        mapping(address => mapping(uint256 => uint256)) storage investsInBlocks,
+        EnumerableSet.AddressSet storage positions,
+        uint256[] calldata amounts,
+        address[] calldata tokens
+    ) external {
+        TraderPool traderPool = TraderPool(address(this));
+        address baseToken = poolParameters.baseToken;
+        uint256 totalInvestedBaseAmount;
+
+        (uint256 totalBase, , , ) = poolParameters.getNormalizedPoolPriceAndPositions();
+
+        for (uint256 i = 0; i < tokens.length; i++) {
+            require(
+                !traderPool.coreProperties().isBlacklistedToken(tokens[i]),
+                "TP: token in blacklist"
+            );
+
+            IERC20Metadata(tokens[i]).safeTransferFrom(
+                msg.sender,
+                address(this),
+                amounts[i].from18(IERC20Metadata(tokens[i]).decimals())
+            );
+
+            uint256 baseAmount;
+
+            if (tokens[i] != baseToken) {
+                (baseAmount, ) = traderPool.priceFeed().getNormalizedPriceOut(
+                    tokens[i],
+                    baseToken,
+                    amounts[i]
+                );
+
+                if (positions.contains(tokens[i])) {
+                    emit ActivePortfolioExchanged(baseToken, tokens[i], baseAmount, amounts[i]);
+                } else {
+                    positions.add(tokens[i]);
+
+                    emit Exchanged(msg.sender, baseToken, tokens[i], baseAmount, amounts[i]);
+                }
+            } else {
+                baseAmount = amounts[i];
+            }
+
+            totalInvestedBaseAmount += baseAmount;
+        }
+
+        require(
+            positions.length() <= traderPool.coreProperties().getMaximumOpenPositions(),
+            "TP: max positions"
+        );
+
+        uint256 toMintLP = _calculateToMintLP(
+            poolParameters,
+            investsInBlocks,
+            totalBase,
+            totalInvestedBaseAmount
+        );
+
+        traderPool.updateTo(msg.sender, toMintLP, totalInvestedBaseAmount);
+        traderPool.mint(msg.sender, toMintLP);
+    }
+
     function investPositions(
         ITraderPool.PoolParameters storage poolParameters,
         mapping(address => mapping(uint256 => uint256)) storage investsInBlocks,
@@ -98,68 +162,6 @@ library TraderPoolInvest {
 
             emit ActivePortfolioExchanged(baseToken, positionTokens[i], amount, amountGot);
         }
-    }
-
-    function investTokens(
-        ITraderPool.PoolParameters storage poolParameters,
-        mapping(address => mapping(uint256 => uint256)) storage investsInBlocks,
-        EnumerableSet.AddressSet storage positions,
-        uint256[] calldata amounts,
-        address[] calldata tokens
-    ) external returns (uint256 toMintLP) {
-        address baseToken = poolParameters.baseToken;
-
-        TraderPool traderPool = TraderPool(address(this));
-
-        (uint256 totalBase, , , ) = poolParameters.getNormalizedPoolPriceAndPositions();
-
-        uint256 totalInvestedBaseAmount;
-
-        for (uint256 i; i < tokens.length; i++) {
-            require(
-                !traderPool.coreProperties().isBlacklistedToken(tokens[i]),
-                "TP: token in blacklist"
-            );
-            uint256 baseAmount;
-            IERC20Metadata(tokens[i]).safeTransferFrom(
-                msg.sender,
-                address(this),
-                amounts[i].from18(IERC20Metadata(tokens[i]).decimals())
-            );
-
-            if (tokens[i] != baseToken) {
-                (baseAmount, ) = traderPool.priceFeed().getNormalizedPriceOut(
-                    tokens[i],
-                    baseToken,
-                    amounts[i]
-                );
-
-                if (positions.contains(tokens[i])) {
-                    emit ActivePortfolioExchanged(baseToken, tokens[i], baseAmount, amounts[i]);
-                } else {
-                    positions.add(tokens[i]);
-                    emit Exchanged(msg.sender, baseToken, tokens[i], baseAmount, amounts[i]);
-                }
-            } else {
-                baseAmount = amounts[i];
-            }
-            totalInvestedBaseAmount += baseAmount;
-        }
-
-        require(
-            positions.length() <= traderPool.coreProperties().getMaximumOpenPositions(),
-            "TP: max positions"
-        );
-
-        toMintLP = _calculateToMintLP(
-            poolParameters,
-            investsInBlocks,
-            totalBase,
-            totalInvestedBaseAmount
-        );
-
-        traderPool.updateTo(msg.sender, toMintLP, totalInvestedBaseAmount);
-        traderPool.mint(msg.sender, toMintLP);
     }
 
     function _transferBase(

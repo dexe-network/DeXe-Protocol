@@ -438,9 +438,10 @@ describe("BasicTraderPool", () => {
         assert.deepEqual(poolInfo[3], [tokens.DEXE.address, tokens.USD.address]);
       });
 
-      it("should rewerts when tokens not in whitelist", async () => {
+      it("should revert when tokens are not in whitelist", async () => {
         await tokens.WBTC.mint(OWNER, wei("100"));
         await tokens.WBTC.approve(traderPool.address, wei("100"));
+
         await truffleAssert.reverts(
           traderPool.investTokens([wei("100")], [tokens.WBTC.address]),
           "BP: not in whitelist"
