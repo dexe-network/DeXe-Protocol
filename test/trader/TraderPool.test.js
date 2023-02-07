@@ -557,6 +557,22 @@ describe("TraderPool", () => {
           "TP: not an admin"
         );
       });
+
+      it("should reverts when positions more than maximum", async () => {
+        await coreProperties.setMaximumOpenPositions(1);
+
+        await tokens.DEXE.approve(traderPool.address, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await tokens.USD.approve(traderPool.address, wei("1000"));
+
+        await truffleAssert.reverts(
+          traderPool.investTokens(
+            [wei("100"), wei("500"), wei("50")],
+            [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address]
+          ),
+          "TP: max positions"
+        );
+      });
     });
 
     describe("exchange", () => {

@@ -145,10 +145,12 @@ library TraderPoolInvest {
             }
             totalInvestedBaseAmount += baseAmount;
         }
-    require(
-        positions.length() <= coreProperties.getMaximumOpenPositions(),
-        "TP: max positions"
-    );
+
+        require(
+            positions.length() <= traderPool.coreProperties().getMaximumOpenPositions(),
+            "TP: max positions"
+        );
+
         toMintLP = _calculateToMintLP(
             poolParameters,
             investsInBlocks,
