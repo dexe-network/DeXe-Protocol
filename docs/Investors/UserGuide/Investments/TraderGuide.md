@@ -44,7 +44,8 @@ Every new staking or investment in a risk proposal creates a market transaction.
 
 For this reason, you can limit the maximum market price the risk proposal is willing to pay for a token. If the price is above the maximum, investors won't be able to stake **LP** and buy the token until the price falls below the threshold. You can also limit the time window during which investors can opt into a specific risk proposal.
 
-The trader can close the position at any time. Profit or loss from the risk proposal is credited after the **LP** is withdrawn from the risk proposal.
+The trader has the flexibility to close the position at any time, and the profit or loss from the risk proposal is credited to the investor's account after they withdraw their **LP** from the risk proposal. This allows investors to track their returns and make informed decisions about their investments.
+
 #
 
 If a trader wants to invest in off-chain assets (like real estate or startups), he should create an Investment fund (see `UserGuide/Investments/CreateFund`) and periodically pay dividends to the investors.

@@ -8,16 +8,16 @@ A token sale proposal can be created on the `Create proposal` panel (on the **DA
 
 <img src="../../img/userGuideTokenSale/userGuideImg_DAOTokenSale.png" height="400" />
 
-The next step is to configure the proposal: create a description, select a token from the treasury (and its amount), and set up the exchange rate and basic token sale settings (min and max allocation per user, sale start and end times).
+The proposal configuration requires the creation of a description, selection of a token and its amount from the treasury, as well as setting the exchange rate and basic token sale parameters such as the minimum and maximum allocation per user, and the start and end times of the sale.
 
 <img src="../../img/userGuideTokenSale/userGuideImg_TokenSalePanel1.png" height="400" />
 <img src="../../img/userGuideTokenSale/userGuideImg_TokenSalePanel2.png" height="400" />
 
-The user should also configure vesting settings (a process of blocking and distributing purchased tokens within a specified time frame). Vesting parameters are the percentage of locked tokens, the lockup period (how long tokens will be locked), the cliff (a period when no tokens are awarded), and the unlock frequency.
+The user must also configure vesting settings, which involves locking and distributing purchased tokens over a specified period. Vesting parameters include the percentage of locked tokens, lockup duration, cliff period (when no tokens are distributed), and unlock frequency.
 
 <img src="../../img/userGuideTokenSale/userGuideImg_Vesting.png" height="400" />
 
-A token sale can be private or public. If it is a private one, the user should input whitelist addresses that are allowed to participate in a token sale.
+The token sale can be either private or public. In case of a private sale, the user must input the addresses on the whitelist that are authorized to participate.
 
 <img src="../../img/userGuideTokenSale/userGuideImg_WhitelistOff.png" height="170" />
 <img src="../../img/userGuideTokenSale/userGuideImg_WhitelistOn.png" height="200" />
