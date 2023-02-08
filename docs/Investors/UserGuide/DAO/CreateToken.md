@@ -1,4 +1,4 @@
-# Creating a governance token
+# 🪙 Creating a governance token
 
 ![Logo](../../img/logoDeXe.svg)
 

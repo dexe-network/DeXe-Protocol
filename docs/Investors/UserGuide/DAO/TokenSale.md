@@ -1,4 +1,4 @@
-# Token Sale
+# 💰 Token Sale
 
 ![Logo](../../img/logoDeXe.svg)
 

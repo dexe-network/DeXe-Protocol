@@ -1,4 +1,4 @@
-# Buying DAO tokens on a token sale
+# 💰 Buying DAO tokens on a token sale
 
 ![Logo](../../img/logoDeXe.svg)
 

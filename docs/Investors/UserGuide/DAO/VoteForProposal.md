@@ -1,4 +1,4 @@
-# Voting for proposal in DAO
+# 🗳 Voting for proposal in DAO
 
 ![Logo](../img/logoDeXe.svg)
 

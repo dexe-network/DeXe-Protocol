@@ -1,4 +1,4 @@
-# Creating a fund
+# 🏢 Creating a fund
 
 ![Logo](../../img/logoDeXe.svg)
 

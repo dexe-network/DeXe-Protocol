@@ -1,4 +1,4 @@
-# Trader
+# 💱 Trader
 
 ![Logo](../../img/logoDeXe.svg)
 

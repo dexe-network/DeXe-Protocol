@@ -1,4 +1,4 @@
-# Insurance
+# 🔏 Insurance
 
 ![Logo](../../img/logoDeXe.svg)
 

@@ -1,4 +1,4 @@
-# Creating a proposal
+# 🗳️ Creating a proposal
 
 ![Logo](../../img/logoDeXe.svg)
 

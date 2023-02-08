@@ -1,4 +1,4 @@
-# Delegating a DAO token
+# 💼 Delegating a DAO token
 
 ![Logo](../../img/logoDeXe.svg)
 

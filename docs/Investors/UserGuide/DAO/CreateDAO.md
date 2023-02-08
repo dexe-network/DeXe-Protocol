@@ -1,4 +1,4 @@
-# Creating a DAO pool
+# 🏛 Creating a DAO pool
 
 ![Logo](../../img/logoDeXe.svg)
 

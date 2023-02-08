@@ -1,4 +1,4 @@
-# Delegation
+# 💸 Delegation
 
 ![Logo](../../img/logoDeXe.svg)
 

@@ -1,4 +1,4 @@
-# Investing in the funds
+# 💰 Investing in the funds
 
 If the user wants to invest in an existing fund, the first step is to select the desired fund. To review the list of all funds, use the `Traders` page.
 
