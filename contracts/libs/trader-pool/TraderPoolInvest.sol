@@ -68,16 +68,14 @@ library TraderPoolInvest {
         address[] calldata tokens
     ) external {
         TraderPool traderPool = TraderPool(address(this));
+        ICoreProperties coreProperties = traderPool.coreProperties();
         address baseToken = poolParameters.baseToken;
         uint256 totalInvestedBaseAmount;
 
         (uint256 totalBase, , , ) = poolParameters.getNormalizedPoolPriceAndPositions();
 
         for (uint256 i = 0; i < tokens.length; i++) {
-            require(
-                !traderPool.coreProperties().isBlacklistedToken(tokens[i]),
-                "TP: token in blacklist"
-            );
+            require(!coreProperties.isBlacklistedToken(tokens[i]), "TP: token in blacklist");
 
             IERC20Metadata(tokens[i]).safeTransferFrom(
                 msg.sender,
@@ -109,7 +107,7 @@ library TraderPoolInvest {
         }
 
         require(
-            positions.length() <= traderPool.coreProperties().getMaximumOpenPositions(),
+            positions.length() <= coreProperties.getMaximumOpenPositions(),
             "TP: max positions"
         );
 
