@@ -139,7 +139,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 amountInBaseToInvest,
         uint256[] calldata minPositionsOut
     ) public virtual override onlyBABTHolder {
-        _poolParameters.invest(investsInBlocks, amountInBaseToInvest, minPositionsOut);
+        _poolParameters.invest(amountInBaseToInvest, minPositionsOut);
     }
 
     function investTokens(
@@ -148,7 +148,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     ) public virtual override onlyTraderAdmin onlyBABTHolder {
         require(_investors.length() == 0, "TP: only empty pool");
 
-        _poolParameters.investTokens(investsInBlocks, _positions, amounts, tokens);
+        _poolParameters.investTokens(_positions, amounts, tokens);
     }
 
     function reinvestCommission(
@@ -200,6 +200,10 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 baseAmount
     ) external onlyThis returns (uint256 baseTransfer) {
         return _updateFrom(user, lpAmount, baseAmount);
+    }
+
+    function mintBlockLP(address user, uint256 amount) external onlyThis {
+        investsInBlocks[user][block.number] += amount;
     }
 
     function proposalPoolAddress() external view virtual override returns (address);
