@@ -167,10 +167,9 @@ library TraderPoolInvest {
     function _calculateToMintLP(
         ITraderPool.PoolParameters storage poolParameters,
         uint256 totalBaseInPool,
-        uint256 amountInBaseToInvest
+        uint256 toMintLP
     ) internal returns (uint256) {
         TraderPool traderPool = TraderPool(address(this));
-        uint256 toMintLP = amountInBaseToInvest;
 
         if (totalBaseInPool > 0) {
             toMintLP = toMintLP.ratio(traderPool.totalSupply(), totalBaseInPool);
