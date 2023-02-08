@@ -182,7 +182,7 @@ library TraderPoolInvest {
             "TP: minting > emission"
         );
 
-        traderPool.mintBlockLP(msg.sender, toMintLP);
+        traderPool.addBlockInvestment(msg.sender, toMintLP);
 
         return toMintLP;
     }

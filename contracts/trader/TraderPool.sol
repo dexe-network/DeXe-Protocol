@@ -202,7 +202,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         return _updateFrom(user, lpAmount, baseAmount);
     }
 
-    function mintBlockLP(address user, uint256 amount) external onlyThis {
+    function addBlockInvestment(address user, uint256 amount) external onlyThis {
         investsInBlocks[user][block.number] += amount;
     }
 
