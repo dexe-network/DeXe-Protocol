@@ -287,6 +287,13 @@ describe("TraderPool", () => {
           }),
           "TP: not an admin"
         );
+
+        await truffleAssert.reverts(
+          traderPool.investInitial([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address], {
+            from: SECOND,
+          }),
+          "TP: not an admin"
+        );
       });
     });
 
@@ -389,6 +396,10 @@ describe("TraderPool", () => {
         await truffleAssert.passes(traderPool.getUsersInfo(NOTHING, 0, 10), "pass");
         await truffleAssert.passes(traderPool.getLeverageInfo(), "pass");
         await truffleAssert.passes(traderPool.getInvestTokens(wei("1")), "pass");
+        await truffleAssert.passes(
+          traderPool.getInvestInitialTokens([tokens.USD.address, tokens.WETH.address], [wei(1), wei(1)]),
+          "pass"
+        );
         await truffleAssert.passes(traderPool.getReinvestCommissions([0, 10]), "pass");
         await truffleAssert.passes(traderPool.getNextCommissionEpoch(), "pass");
         await truffleAssert.passes(traderPool.getDivestAmountsAndCommissions(NOTHING, wei("10")), "pass");
@@ -475,6 +486,113 @@ describe("TraderPool", () => {
         assert.equal(toBN(investorSecondInfo[1].poolBaseShare).toFixed(), wei("1000"));
 
         assert.deepEqual(investorSecondInfo[0], investorSecondInfo[2]);
+      });
+    });
+
+    describe("investInitial", () => {
+      it("should invest tokens", async () => {
+        await tokens.DEXE.approve(traderPool.address, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await tokens.USD.approve(traderPool.address, wei("1000"));
+
+        let expectedLPAmount = await traderPool.getInvestInitialTokens(
+          [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address],
+          [wei("100"), wei("500"), wei("10")]
+        );
+
+        await traderPool.investInitial(
+          [wei("100"), wei("500"), wei("10")],
+          [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address]
+        );
+
+        assert.equal((await tokens.DEXE.balanceOf(traderPool.address)).toFixed(), wei("100"));
+        assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("500"));
+        assert.equal((await tokens.USD.balanceOf(traderPool.address)).toFixed(), wei("10"));
+        assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), expectedLPAmount.toFixed());
+
+        const poolInfo = await traderPool.getPoolInfo();
+
+        assert.deepEqual(poolInfo[3], [tokens.DEXE.address, tokens.USD.address]);
+      });
+
+      it("should invest tokens twice", async () => {
+        await tokens.DEXE.approve(traderPool.address, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await tokens.USD.approve(traderPool.address, wei("1000"));
+        await tokens.MANA.approve(traderPool.address, wei("1000"));
+
+        let expectedLPAmount1 = await traderPool.getInvestInitialTokens(
+          [tokens.DEXE.address, tokens.WETH.address, tokens.MANA.address],
+          [wei("100"), wei("500"), wei("10")]
+        );
+
+        await traderPool.investInitial(
+          [wei("100"), wei("500"), wei("10")],
+          [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address]
+        );
+
+        let expectedLPAmount2 = await traderPool.getInvestInitialTokens(
+          [tokens.DEXE.address, tokens.WETH.address, tokens.MANA.address],
+          [wei("200"), wei("400"), wei("100")]
+        );
+
+        await traderPool.investInitial(
+          [wei("200"), wei("400"), wei("100")],
+          [tokens.DEXE.address, tokens.WETH.address, tokens.MANA.address]
+        );
+
+        assert.equal((await tokens.DEXE.balanceOf(traderPool.address)).toFixed(), wei("300"));
+        assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("900"));
+        assert.equal((await tokens.USD.balanceOf(traderPool.address)).toFixed(), wei("10"));
+        assert.equal((await tokens.MANA.balanceOf(traderPool.address)).toFixed(), wei("100"));
+        assert.equal(
+          (await traderPool.balanceOf(OWNER)).toFixed(),
+          expectedLPAmount1.plus(expectedLPAmount2).toFixed()
+        );
+
+        const poolInfo = await traderPool.getPoolInfo();
+
+        assert.deepEqual(poolInfo[3], [tokens.DEXE.address, tokens.USD.address, tokens.MANA.address]);
+      });
+
+      it("should revert when investor is in pool", async () => {
+        await tokens.DEXE.approve(traderPool.address, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
+        await tokens.WETH.transfer(SECOND, wei("10"));
+
+        await invest(wei("100"), OWNER);
+        await invest(wei("10"), SECOND);
+
+        await truffleAssert.reverts(
+          traderPool.investInitial([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address]),
+          "TP: only empty pool"
+        );
+      });
+
+      it("should revert when token is in blacklist", async () => {
+        await coreProperties.addBlacklistTokens([tokens.DEXE.address]);
+
+        await truffleAssert.reverts(
+          traderPool.investInitial([wei("100")], [tokens.DEXE.address]),
+          "TP: token in blacklist"
+        );
+      });
+
+      it("should revert when more than maximum positions", async () => {
+        await coreProperties.setMaximumOpenPositions(1);
+
+        await tokens.DEXE.approve(traderPool.address, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await tokens.USD.approve(traderPool.address, wei("1000"));
+
+        await truffleAssert.reverts(
+          traderPool.investInitial(
+            [wei("100"), wei("500"), wei("50")],
+            [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address]
+          ),
+          "TP: max positions"
+        );
       });
     });
 
@@ -1232,6 +1350,13 @@ describe("TraderPool", () => {
       it("exchange()", async () => {
         await truffleAssert.reverts(
           traderPool.exchange(tokens.WETH.address, tokens.WBTC.address, wei("500"), 0, [], ExchangeType.FROM_EXACT),
+          REVERT_STRING
+        );
+      });
+
+      it("investInitial()", async () => {
+        await truffleAssert.reverts(
+          traderPool.investInitial([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address]),
           REVERT_STRING
         );
       });

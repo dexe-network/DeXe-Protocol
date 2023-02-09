@@ -197,6 +197,11 @@ interface ITraderPool {
     /// @param minPositionsOut the minimal amounts of position tokens to be received
     function invest(uint256 amountInBaseToInvest, uint256[] calldata minPositionsOut) external;
 
+    /// @notice The function to invest initial positions into the pool. Bypasses the active portfolio
+    /// @param amounts the normalized amounts of tokens to be invested
+    /// @param tokens the array of tokens to be invested. If not a base token, opens a position
+    function investInitial(uint256[] calldata amounts, address[] calldata tokens) external;
+
     /// @notice The function that takes the commission from the users' income. This function should be called once per the
     /// commission period. Use "getReinvestCommissions()" function to get minDexeCommissionOut parameter
     /// @param offsetLimits the array of starting indexes and the lengths of the investors array.
@@ -281,6 +286,15 @@ interface ITraderPool {
     function getInvestTokens(
         uint256 amountInBaseToInvest
     ) external view returns (Receptions memory receptions);
+
+    /// @notice The function to get the lp amount that will be given to the investor
+    /// @param tokens the array of token addresses
+    /// @param amounts the array of token amounts
+    /// @return lpAmount the amount of lp token
+    function getInvestInitialTokens(
+        address[] calldata tokens,
+        uint256[] calldata amounts
+    ) external view returns (uint256 lpAmount);
 
     /// @notice The function to get the received commissions from the users when the "reinvestCommission" function is called.
     /// This function also "projects" commissions to the current positions if they were to be closed
