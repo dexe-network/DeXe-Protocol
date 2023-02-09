@@ -116,7 +116,6 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         }
 
         uint256 toMintLP = _poolParameters.investPositions(
-            investsInBlocks,
             address(_traderPoolProposal),
             receivedBase,
             minPositionsOut

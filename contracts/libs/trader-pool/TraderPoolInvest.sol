@@ -40,7 +40,6 @@ library TraderPoolInvest {
 
     function invest(
         ITraderPool.PoolParameters storage poolParameters,
-        mapping(address => mapping(uint256 => uint256)) storage investsInBlocks,
         uint256 amountInBaseToInvest,
         uint256[] calldata minPositionsOut
     ) external {
@@ -53,7 +52,6 @@ library TraderPoolInvest {
 
         uint256 toMintLP = investPositions(
             poolParameters,
-            investsInBlocks,
             msg.sender,
             amountInBaseToInvest,
             minPositionsOut
@@ -65,22 +63,19 @@ library TraderPoolInvest {
 
     function investInitial(
         ITraderPool.PoolParameters storage poolParameters,
-        mapping(address => mapping(uint256 => uint256)) storage investsInBlocks,
         EnumerableSet.AddressSet storage positions,
         uint256[] calldata amounts,
         address[] calldata tokens
     ) external {
         TraderPool traderPool = TraderPool(address(this));
+        ICoreProperties coreProperties = traderPool.coreProperties();
         address baseToken = poolParameters.baseToken;
         uint256 totalInvestedBaseAmount;
 
         (uint256 totalBase, , , ) = poolParameters.getNormalizedPoolPriceAndPositions();
 
         for (uint256 i = 0; i < tokens.length; i++) {
-            require(
-                !traderPool.coreProperties().isBlacklistedToken(tokens[i]),
-                "TP: token in blacklist"
-            );
+            require(!coreProperties.isBlacklistedToken(tokens[i]), "TP: token in blacklist");
 
             IERC20Metadata(tokens[i]).safeTransferFrom(
                 msg.sender,
@@ -112,16 +107,11 @@ library TraderPoolInvest {
         }
 
         require(
-            positions.length() <= traderPool.coreProperties().getMaximumOpenPositions(),
+            positions.length() <= coreProperties.getMaximumOpenPositions(),
             "TP: max positions"
         );
 
-        uint256 toMintLP = _calculateToMintLP(
-            poolParameters,
-            investsInBlocks,
-            totalBase,
-            totalInvestedBaseAmount
-        );
+        uint256 toMintLP = _calculateToMintLP(poolParameters, totalBase, totalInvestedBaseAmount);
 
         traderPool.updateTo(msg.sender, toMintLP, totalInvestedBaseAmount);
         traderPool.mint(msg.sender, toMintLP);
@@ -129,7 +119,6 @@ library TraderPoolInvest {
 
     function investPositions(
         ITraderPool.PoolParameters storage poolParameters,
-        mapping(address => mapping(uint256 => uint256)) storage investsInBlocks,
         address baseHolder,
         uint256 amountInBaseToInvest,
         uint256[] calldata minPositionsOut
@@ -142,13 +131,7 @@ library TraderPoolInvest {
             uint256[] memory positionPricesInBase
         ) = poolParameters.getNormalizedPoolPriceAndPositions();
 
-        toMintLP = _transferBase(
-            poolParameters,
-            investsInBlocks,
-            baseHolder,
-            totalBase,
-            amountInBaseToInvest
-        );
+        toMintLP = _transferBase(poolParameters, baseHolder, totalBase, amountInBaseToInvest);
 
         for (uint256 i = 0; i < positionTokens.length; i++) {
             uint256 amount = positionPricesInBase[i].ratio(amountInBaseToInvest, totalBase);
@@ -166,7 +149,6 @@ library TraderPoolInvest {
 
     function _transferBase(
         ITraderPool.PoolParameters storage poolParameters,
-        mapping(address => mapping(uint256 => uint256)) storage investsInBlocks,
         address baseHolder,
         uint256 totalBaseInPool,
         uint256 amountInBaseToInvest
@@ -177,23 +159,15 @@ library TraderPoolInvest {
             amountInBaseToInvest.from18(poolParameters.baseTokenDecimals)
         );
 
-        return
-            _calculateToMintLP(
-                poolParameters,
-                investsInBlocks,
-                totalBaseInPool,
-                amountInBaseToInvest
-            );
+        return _calculateToMintLP(poolParameters, totalBaseInPool, amountInBaseToInvest);
     }
 
     function _calculateToMintLP(
         ITraderPool.PoolParameters storage poolParameters,
-        mapping(address => mapping(uint256 => uint256)) storage investsInBlocks,
         uint256 totalBaseInPool,
-        uint256 amountInBaseToInvest
+        uint256 toMintLP
     ) internal returns (uint256) {
         TraderPool traderPool = TraderPool(address(this));
-        uint256 toMintLP = amountInBaseToInvest;
 
         if (totalBaseInPool > 0) {
             toMintLP = toMintLP.ratio(traderPool.totalSupply(), totalBaseInPool);
@@ -205,7 +179,7 @@ library TraderPoolInvest {
             "TP: minting > emission"
         );
 
-        investsInBlocks[msg.sender][block.number] += toMintLP;
+        traderPool.addBlockInvestment(msg.sender, toMintLP);
 
         return toMintLP;
     }
