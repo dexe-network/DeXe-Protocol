@@ -417,13 +417,13 @@ describe("BasicTraderPool", () => {
       });
     });
 
-    describe("investTokens", () => {
+    describe("investInitial", () => {
       it("should correctly invest tokens", async () => {
         await tokens.DEXE.approve(traderPool.address, wei("1000"));
         await tokens.WETH.approve(traderPool.address, wei("1000"));
         await tokens.USD.approve(traderPool.address, wei("1000"));
 
-        await traderPool.investTokens(
+        await traderPool.investInitial(
           [wei("100"), wei("500"), wei("10")],
           [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address]
         );
@@ -443,7 +443,7 @@ describe("BasicTraderPool", () => {
         await tokens.WBTC.approve(traderPool.address, wei("100"));
 
         await truffleAssert.reverts(
-          traderPool.investTokens([wei("100")], [tokens.WBTC.address]),
+          traderPool.investInitial([wei("100")], [tokens.WBTC.address]),
           "BP: not in whitelist"
         );
       });

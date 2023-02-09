@@ -173,6 +173,36 @@ library TraderPoolView {
         }
     }
 
+    function getInvestInitialTokens(
+        ITraderPool.PoolParameters storage poolParameters,
+        address[] calldata tokens,
+        uint256[] calldata amounts
+    ) external view returns (uint256 lpAmount) {
+        TraderPool traderPool = TraderPool(address(this));
+        address baseToken = poolParameters.baseToken;
+
+        (uint256 totalBase, , , ) = poolParameters.getNormalizedPoolPriceAndPositions();
+
+        for (uint256 i = 0; i < tokens.length; i++) {
+            uint256 baseAmount;
+            if (tokens[i] != baseToken) {
+                (baseAmount, ) = traderPool.priceFeed().getNormalizedPriceOut(
+                    tokens[i],
+                    baseToken,
+                    amounts[i]
+                );
+            } else {
+                baseAmount = amounts[i];
+            }
+
+            lpAmount += baseAmount;
+        }
+
+        if (totalBase > 0) {
+            lpAmount = lpAmount.ratio(traderPool.totalSupply(), totalBase);
+        }
+    }
+
     function getReinvestCommissions(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage investors,

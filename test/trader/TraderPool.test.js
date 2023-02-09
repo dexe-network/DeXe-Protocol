@@ -291,7 +291,7 @@ describe("TraderPool", () => {
         );
 
         await truffleAssert.reverts(
-          traderPool.investTokens([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address], {
+          traderPool.investInitial([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address], {
             from: SECOND,
           }),
           "TP: not an admin"
@@ -398,6 +398,10 @@ describe("TraderPool", () => {
         await truffleAssert.passes(traderPool.getUsersInfo(NOTHING, 0, 10), "pass");
         await truffleAssert.passes(traderPool.getLeverageInfo(), "pass");
         await truffleAssert.passes(traderPool.getInvestTokens(wei("1")), "pass");
+        await truffleAssert.passes(
+          traderPool.getInvestInitialTokens([tokens.USD.address, tokens.WETH.address], [wei(1), wei(1)]),
+          "pass"
+        );
         await truffleAssert.passes(traderPool.getReinvestCommissions([0, 10]), "pass");
         await truffleAssert.passes(traderPool.getNextCommissionEpoch(), "pass");
         await truffleAssert.passes(traderPool.getDivestAmountsAndCommissions(NOTHING, wei("10")), "pass");
@@ -487,13 +491,18 @@ describe("TraderPool", () => {
       });
     });
 
-    describe("investTokens", () => {
+    describe("investInitial", () => {
       it("should invest tokens", async () => {
         await tokens.DEXE.approve(traderPool.address, wei("1000"));
         await tokens.WETH.approve(traderPool.address, wei("1000"));
         await tokens.USD.approve(traderPool.address, wei("1000"));
 
-        await traderPool.investTokens(
+        let expectedLPAmount = await traderPool.getInvestInitialTokens(
+          [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address],
+          [wei("100"), wei("500"), wei("10")]
+        );
+
+        await traderPool.investInitial(
           [wei("100"), wei("500"), wei("10")],
           [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address]
         );
@@ -501,7 +510,7 @@ describe("TraderPool", () => {
         assert.equal((await tokens.DEXE.balanceOf(traderPool.address)).toFixed(), wei("100"));
         assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("500"));
         assert.equal((await tokens.USD.balanceOf(traderPool.address)).toFixed(), wei("10"));
-        assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("610"));
+        assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), expectedLPAmount.toFixed());
 
         const poolInfo = await traderPool.getPoolInfo();
 
@@ -514,11 +523,22 @@ describe("TraderPool", () => {
         await tokens.USD.approve(traderPool.address, wei("1000"));
         await tokens.MANA.approve(traderPool.address, wei("1000"));
 
-        await traderPool.investTokens(
+        let expectedLPAmount1 = await traderPool.getInvestInitialTokens(
+          [tokens.DEXE.address, tokens.WETH.address, tokens.MANA.address],
+          [wei("100"), wei("500"), wei("10")]
+        );
+
+        await traderPool.investInitial(
           [wei("100"), wei("500"), wei("10")],
           [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address]
         );
-        await traderPool.investTokens(
+
+        let expectedLPAmount2 = await traderPool.getInvestInitialTokens(
+          [tokens.DEXE.address, tokens.WETH.address, tokens.MANA.address],
+          [wei("200"), wei("400"), wei("100")]
+        );
+
+        await traderPool.investInitial(
           [wei("200"), wei("400"), wei("100")],
           [tokens.DEXE.address, tokens.WETH.address, tokens.MANA.address]
         );
@@ -527,7 +547,10 @@ describe("TraderPool", () => {
         assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("900"));
         assert.equal((await tokens.USD.balanceOf(traderPool.address)).toFixed(), wei("10"));
         assert.equal((await tokens.MANA.balanceOf(traderPool.address)).toFixed(), wei("100"));
-        assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("1310"));
+        assert.equal(
+          (await traderPool.balanceOf(OWNER)).toFixed(),
+          expectedLPAmount1.plus(expectedLPAmount2).toFixed()
+        );
 
         const poolInfo = await traderPool.getPoolInfo();
 
@@ -544,7 +567,7 @@ describe("TraderPool", () => {
         await invest(wei("10"), SECOND);
 
         await truffleAssert.reverts(
-          traderPool.investTokens([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address]),
+          traderPool.investInitial([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address]),
           "TP: only empty pool"
         );
       });
@@ -553,7 +576,7 @@ describe("TraderPool", () => {
         await coreProperties.addBlacklistTokens([tokens.DEXE.address]);
 
         await truffleAssert.reverts(
-          traderPool.investTokens([wei("100")], [tokens.DEXE.address]),
+          traderPool.investInitial([wei("100")], [tokens.DEXE.address]),
           "TP: token in blacklist"
         );
       });
@@ -566,7 +589,7 @@ describe("TraderPool", () => {
         await tokens.USD.approve(traderPool.address, wei("1000"));
 
         await truffleAssert.reverts(
-          traderPool.investTokens(
+          traderPool.investInitial(
             [wei("100"), wei("500"), wei("50")],
             [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address]
           ),
@@ -1333,9 +1356,9 @@ describe("TraderPool", () => {
         );
       });
 
-      it("investTokens()", async () => {
+      it("investInitial()", async () => {
         await truffleAssert.reverts(
-          traderPool.investTokens([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address]),
+          traderPool.investInitial([wei("100"), wei("500")], [tokens.DEXE.address, tokens.WETH.address]),
           REVERT_STRING
         );
       });

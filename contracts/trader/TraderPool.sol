@@ -142,13 +142,13 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _poolParameters.invest(amountInBaseToInvest, minPositionsOut);
     }
 
-    function investTokens(
+    function investInitial(
         uint256[] calldata amounts,
         address[] calldata tokens
     ) public virtual override onlyTraderAdmin onlyBABTHolder {
         require(_investors.length() == 0, "TP: only empty pool");
 
-        _poolParameters.investTokens(_positions, amounts, tokens);
+        _poolParameters.investInitial(_positions, amounts, tokens);
     }
 
     function reinvestCommission(
@@ -242,6 +242,13 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         uint256 amountInBaseToInvest
     ) external view override returns (Receptions memory receptions) {
         return _poolParameters.getInvestTokens(amountInBaseToInvest);
+    }
+
+    function getInvestInitialTokens(
+        address[] calldata tokens,
+        uint256[] calldata amounts
+    ) external view override returns (uint256 lpAmount) {
+        return _poolParameters.getInvestInitialTokens(tokens, amounts);
     }
 
     function getReinvestCommissions(

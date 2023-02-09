@@ -88,12 +88,12 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         _burn(msg.sender, lpAmount);
     }
 
-    function investTokens(uint256[] calldata amounts, address[] calldata tokens) public override {
+    function investInitial(uint256[] calldata amounts, address[] calldata tokens) public override {
         for (uint256 i = 0; i < tokens.length; i++) {
             require(coreProperties.isWhitelistedToken(tokens[i]), "BP: not in whitelist");
         }
 
-        super.investTokens(amounts, tokens);
+        super.investInitial(amounts, tokens);
     }
 
     function investProposal(

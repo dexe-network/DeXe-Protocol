@@ -61,7 +61,7 @@ library TraderPoolInvest {
         traderPool.mint(msg.sender, toMintLP);
     }
 
-    function investTokens(
+    function investInitial(
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage positions,
         uint256[] calldata amounts,
