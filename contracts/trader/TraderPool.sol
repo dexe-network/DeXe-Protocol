@@ -240,6 +240,13 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         return _poolParameters.getInvestTokens(amountInBaseToInvest);
     }
 
+    function getInvestInitialTokens(
+        address[] calldata tokens,
+        uint256[] calldata amounts
+    ) external view override returns (uint256 lpAmount) {
+        return _poolParameters.getInvestInitialTokens(tokens, amounts);
+    }
+
     function getReinvestCommissions(
         uint256[] calldata offsetLimits
     ) external view override returns (Commissions memory commissions) {

@@ -287,6 +287,15 @@ interface ITraderPool {
         uint256 amountInBaseToInvest
     ) external view returns (Receptions memory receptions);
 
+    /// @notice The function to get the lp amount that will be given to the investor
+    /// @param tokens the array of token addresses
+    /// @param amounts the array of token amounts
+    /// @return lpAmount the amount of lp token
+    function getInvestInitialTokens(
+        address[] calldata tokens,
+        uint256[] calldata amounts
+    ) external view returns (uint256 lpAmount);
+
     /// @notice The function to get the received commissions from the users when the "reinvestCommission" function is called.
     /// This function also "projects" commissions to the current positions if they were to be closed
     /// @param offsetLimits the starting indexes and the lengths of the investors array
