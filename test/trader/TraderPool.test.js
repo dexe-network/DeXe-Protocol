@@ -557,6 +557,24 @@ describe("TraderPool", () => {
         assert.deepEqual(poolInfo[3], [tokens.DEXE.address, tokens.USD.address, tokens.MANA.address]);
       });
 
+      it("should invest initial and then invest normally", async () => {
+        await tokens.DEXE.approve(traderPool.address, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"));
+        await tokens.USD.approve(traderPool.address, wei("1000"));
+
+        await traderPool.investInitial(
+          [wei("100"), wei("500"), wei("10")],
+          [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address]
+        );
+
+        const receptions = await traderPool.getInvestTokens(wei("100"));
+
+        await traderPool.invest(
+          wei("100"),
+          receptions.receivedAmounts.map((e) => toBN(e).times(95).idiv(100).toFixed())
+        );
+      });
+
       it("should revert when investor is in pool", async () => {
         await tokens.DEXE.approve(traderPool.address, wei("1000"));
         await tokens.WETH.approve(traderPool.address, wei("1000"));

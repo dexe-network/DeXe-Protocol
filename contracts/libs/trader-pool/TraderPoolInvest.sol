@@ -8,9 +8,11 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
 import "../../interfaces/trader/ITraderPool.sol";
+import "../../interfaces/core/IPriceFeed.sol";
 
 import "../../trader/TraderPool.sol";
 
+import "../price-feed/PriceFeedLocal.sol";
 import "./TraderPoolPrice.sol";
 import "./TraderPoolLeverage.sol";
 import "../math/MathHelper.sol";
@@ -22,6 +24,7 @@ library TraderPoolInvest {
     using TraderPoolLeverage for *;
     using MathHelper for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
+    using PriceFeedLocal for IPriceFeed;
 
     event ActivePortfolioExchanged(
         address fromToken,
@@ -68,14 +71,17 @@ library TraderPoolInvest {
         address[] calldata tokens
     ) external {
         TraderPool traderPool = TraderPool(address(this));
-        ICoreProperties coreProperties = traderPool.coreProperties();
+        IPriceFeed priceFeed = traderPool.priceFeed();
         address baseToken = poolParameters.baseToken;
         uint256 totalInvestedBaseAmount;
 
         (uint256 totalBase, , , ) = poolParameters.getNormalizedPoolPriceAndPositions();
 
         for (uint256 i = 0; i < tokens.length; i++) {
-            require(!coreProperties.isBlacklistedToken(tokens[i]), "TP: token in blacklist");
+            require(
+                !traderPool.coreProperties().isBlacklistedToken(tokens[i]),
+                "TP: token in blacklist"
+            );
 
             IERC20Metadata(tokens[i]).safeTransferFrom(
                 msg.sender,
@@ -83,14 +89,12 @@ library TraderPoolInvest {
                 amounts[i].from18(IERC20Metadata(tokens[i]).decimals())
             );
 
+            priceFeed.checkAllowance(tokens[i]);
+
             uint256 baseAmount;
 
             if (tokens[i] != baseToken) {
-                (baseAmount, ) = traderPool.priceFeed().getNormalizedPriceOut(
-                    tokens[i],
-                    baseToken,
-                    amounts[i]
-                );
+                (baseAmount, ) = priceFeed.getNormalizedPriceOut(tokens[i], baseToken, amounts[i]);
 
                 if (positions.contains(tokens[i])) {
                     emit ActivePortfolioExchanged(baseToken, tokens[i], baseAmount, amounts[i]);
@@ -107,7 +111,7 @@ library TraderPoolInvest {
         }
 
         require(
-            positions.length() <= coreProperties.getMaximumOpenPositions(),
+            positions.length() <= traderPool.coreProperties().getMaximumOpenPositions(),
             "TP: max positions"
         );
 
