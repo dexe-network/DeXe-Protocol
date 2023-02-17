@@ -271,6 +271,8 @@ describe("TokenSaleProposal", () => {
         isWhitelisted: userInfo.isWhitelisted,
         purchase: {
           purchaseTime: userInfo.purchase.purchaseTime,
+          tokenBoughtWith: userInfo.purchase.tokenBoughtWith,
+          amountBought: userInfo.purchase.amountBought,
           vestingTotalAmount: userInfo.purchase.vestingTotalAmount,
           vestingWithdrawnAmount: userInfo.purchase.vestingWithdrawnAmount,
           latestVestingWithdraw: userInfo.purchase.latestVestingWithdraw,
@@ -993,6 +995,8 @@ describe("TokenSaleProposal", () => {
               isWhitelisted: true,
               purchase: {
                 purchaseTime: (parseInt(tiers[1].saleStartTime) + 1).toString(),
+                tokenBoughtWith: purchaseToken1.address,
+                amountBought: wei("800"),
                 vestingTotalAmount: "0",
                 vestingWithdrawnAmount: "0",
                 latestVestingWithdraw: "0",
@@ -1031,6 +1035,8 @@ describe("TokenSaleProposal", () => {
               isWhitelisted: true,
               purchase: {
                 purchaseTime: purchaseTime.toString(),
+                tokenBoughtWith: purchaseToken1.address,
+                amountBought: wei("600"),
                 vestingTotalAmount: wei("120"),
                 vestingWithdrawnAmount: "0",
                 latestVestingWithdraw: "0",

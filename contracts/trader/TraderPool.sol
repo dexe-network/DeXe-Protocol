@@ -83,7 +83,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     }
 
     function isBABTHolder(address who) public view override returns (bool) {
-        return _babt.balanceOf(who) > 0 || !_poolParameters.onlyBABTHolders;
+        return !_poolParameters.onlyBABTHolders || _babt.balanceOf(who) > 0;
     }
 
     function __TraderPool_init(

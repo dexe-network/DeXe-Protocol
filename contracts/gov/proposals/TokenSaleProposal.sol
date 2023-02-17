@@ -23,6 +23,9 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
     mapping(uint256 => Tier) internal _tiers;
 
+    event Bought(uint256 tierId, address buyer);
+    event Whitelisted(uint256 tierId, address user);
+
     modifier onlyGov() {
         _onlyGov();
         _;
@@ -109,11 +112,13 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
         tierInfo.customers[msg.sender] = Purchase({
             purchaseTime: uint64(block.timestamp),
+            latestVestingWithdraw: 0,
+            tokenBoughtWith: tokenToBuyWith,
+            amountBought: saleTokenAmount,
             vestingTotalAmount: saleTokenAmount.percentage(
                 tierView.vestingSettings.vestingPercentage
             ),
-            vestingWithdrawnAmount: 0,
-            latestVestingWithdraw: 0
+            vestingWithdrawnAmount: 0
         });
 
         if (isNativeCurrency) {
@@ -122,6 +127,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         } else {
             ERC20(tokenToBuyWith).safeTransferFrom(msg.sender, govAddress, amount);
         }
+
+        emit Bought(tierId, msg.sender);
     }
 
     function recover(uint256[] calldata tierIds) external {
@@ -337,7 +344,12 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         _tiers[request.tierId].tierInfo.tierInfoView.uri = request.uri;
 
         for (uint256 i = 0; i < request.users.length; i++) {
-            _mint(request.users[i], request.tierId, 1, "");
+            address user = request.users[i];
+            uint256 tierId = request.tierId;
+
+            _mint(user, request.tierId, 1, "");
+
+            emit Whitelisted(tierId, user);
         }
     }
 

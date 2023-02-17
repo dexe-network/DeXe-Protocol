@@ -68,6 +68,8 @@ interface ITokenSaleProposal {
     struct Purchase {
         uint64 purchaseTime;
         uint64 latestVestingWithdraw;
+        address tokenBoughtWith;
+        uint256 amountBought;
         uint256 vestingTotalAmount;
         uint256 vestingWithdrawnAmount;
     }
