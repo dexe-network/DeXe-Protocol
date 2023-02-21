@@ -534,6 +534,25 @@ const getBytesChangeVerifier = (newAddress) => {
   );
 };
 
+const getBytesChangeBABTRestriction = (restrict) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "uint8",
+          name: "onlyBABT",
+          type: "bool",
+        },
+      ],
+      name: "changeBABTRestriction",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [restrict]
+  );
+};
+
 const getBytesGovExecute = (proposalId) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -648,6 +667,7 @@ module.exports = {
   getBytesAddToWhitelistTSP,
   getBytesOffTiersTSP,
   getBytesChangeVerifier,
+  getBytesChangeBABTRestriction,
   getBytesGovExecute,
   getBytesGovClaimRewards,
   getBytesGovVote,

@@ -348,6 +348,10 @@ contract GovPool is
         _offChain.verifier = newVerifier;
     }
 
+    function changeBABTRestriction(bool onlyBABT) external override onlyThis {
+        onlyBABTHolders = onlyBABT;
+    }
+
     function setNftMultiplierAddress(address nftMultiplierAddress) external override onlyThis {
         _setNftMultiplierAddress(nftMultiplierAddress);
     }

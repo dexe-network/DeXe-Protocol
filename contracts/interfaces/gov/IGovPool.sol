@@ -274,6 +274,10 @@ interface IGovPool {
     /// @param newVerifier the address of verifier
     function changeVerifier(address newVerifier) external;
 
+    /// @notice The function for changing the KYC restriction
+    /// @param onlyBABT true id restriction is needed
+    function changeBABTRestriction(bool onlyBABT) external;
+
     /// @notice The function for setting address of nft multiplier contract
     /// @param nftMultiplierAddress the address of nft multiplier
     function setNftMultiplierAddress(address nftMultiplierAddress) external;

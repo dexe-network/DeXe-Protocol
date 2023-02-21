@@ -14,6 +14,7 @@ const {
   getBytesApproveAll,
   getBytesSetNftMultiplierAddress,
   getBytesChangeVerifier,
+  getBytesChangeBABTRestriction,
   getBytesGovExecute,
   getBytesGovClaimRewards,
   getBytesGovVote,
@@ -1420,6 +1421,31 @@ describe("GovPool", () => {
 
           it("should revert when call is from non govPool address", async () => {
             await truffleAssert.reverts(govPool.changeVerifier(SECOND), "Gov: not this contract");
+          });
+        });
+
+        describe("changeBABTRestriction", () => {
+          it("should change restriction", async () => {
+            assert.isFalse(await govPool.onlyBABTHolders());
+
+            const bytesChangeBABTRestriction = getBytesChangeBABTRestriction(true);
+
+            await govPool.createProposal("example.com", "misc", [govPool.address], [0], [bytesChangeBABTRestriction]);
+
+            await govPool.vote(1, wei("1000"), []);
+            await govPool.vote(1, wei("100000000000000000000"), [], { from: SECOND });
+
+            await govPool.moveProposalToValidators(1);
+            await validators.vote(1, wei("100"), false);
+            await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+            await govPool.execute(1);
+
+            assert.isTrue(await govPool.onlyBABTHolders());
+          });
+
+          it("should revert when call is from non govPool address", async () => {
+            await truffleAssert.reverts(govPool.changeBABTRestriction(true), "Gov: not this contract");
           });
         });
       });
