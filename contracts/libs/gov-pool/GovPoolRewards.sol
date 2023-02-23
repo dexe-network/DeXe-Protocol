@@ -18,12 +18,14 @@ library GovPoolRewards {
     event RewardCredited(
         uint256 proposalId,
         IGovPool.RewardType rewardType,
+        address rewardToken,
         uint256 amount,
         address sender
     );
 
     function updateRewards(
         mapping(address => IGovPool.PendingRewards) storage pendingRewards,
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId,
         IGovPool.RewardType rewardType,
         uint256 amount,
@@ -41,18 +43,22 @@ library GovPoolRewards {
 
         IGovPool.PendingRewards storage userRewards = pendingRewards[msg.sender];
 
+        address rewardToken;
+
         if (proposalId != 0) {
+            rewardToken = proposals[proposalId].core.settings.rewardToken;
+
             userRewards.onchainRewards[proposalId] += amountToAdd;
         } else {
             (address settingsAddress, , , ) = IGovPool(address(this)).getHelperContracts();
 
-            address rewardToken = IGovSettings(settingsAddress).getInternalSettings().rewardToken;
+            rewardToken = IGovSettings(settingsAddress).getInternalSettings().rewardToken;
 
             userRewards.offchainRewards[rewardToken] += amountToAdd;
             userRewards.offchainTokens.add(rewardToken);
         }
 
-        emit RewardCredited(proposalId, rewardType, amountToAdd, msg.sender);
+        emit RewardCredited(proposalId, rewardType, rewardToken, amountToAdd, msg.sender);
     }
 
     function claimReward(
