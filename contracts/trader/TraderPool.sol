@@ -122,6 +122,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
 
     function changePoolParameters(
         string calldata descriptionURL,
+        bool onlyBABTHolders,
         bool privatePool,
         uint256 totalLPEmission,
         uint256 minimalInvestment
@@ -129,6 +130,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         _poolParameters.changePoolParameters(
             _investors,
             descriptionURL,
+            onlyBABTHolders,
             privatePool,
             totalLPEmission,
             minimalInvestment

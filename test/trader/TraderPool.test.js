@@ -277,7 +277,7 @@ describe("TraderPool", () => {
         );
 
         await truffleAssert.reverts(
-          traderPool.changePoolParameters("placeholder", false, 0, 0, { from: SECOND }),
+          traderPool.changePoolParameters("placeholder", false, false, 0, 0, { from: SECOND }),
           "TP: not an admin"
         );
 
@@ -353,17 +353,19 @@ describe("TraderPool", () => {
         assert.equal(info.parameters.baseToken, tokens.WETH.address);
         assert.equal(info.parameters.minimalInvestment, "0");
 
-        await traderPool.changePoolParameters("example.com", false, 0, wei("10"));
+        await traderPool.changePoolParameters("example.com", false, false, 0, wei("10"));
 
         info = await traderPool.getPoolInfo();
 
         assert.equal(info.parameters.descriptionURL, "example.com");
+        assert.isFalse(info.parameters.onlyBABTHolders);
         assert.equal(toBN(info.parameters.minimalInvestment).toFixed(), wei("10"));
 
-        await traderPool.changePoolParameters("example.com", true, 0, wei("10"));
+        await traderPool.changePoolParameters("example.com", true, true, 0, wei("10"));
 
         info = await traderPool.getPoolInfo();
 
+        assert.isTrue(info.parameters.onlyBABTHolders);
         assert.isTrue(info.parameters.privatePool);
       });
 
@@ -377,11 +379,11 @@ describe("TraderPool", () => {
         await invest(wei("1000"), SECOND);
 
         await truffleAssert.reverts(
-          traderPool.changePoolParameters("example.com", false, wei("1"), wei("10")),
+          traderPool.changePoolParameters("example.com", false, false, wei("1"), wei("10")),
           "TP: wrong emission supply"
         );
         await truffleAssert.reverts(
-          traderPool.changePoolParameters("example.com", true, wei("10000"), wei("10")),
+          traderPool.changePoolParameters("example.com", false, true, wei("10000"), wei("10")),
           "TP: pool is not empty"
         );
       });
@@ -429,7 +431,7 @@ describe("TraderPool", () => {
         await tokens.WETH.approve(traderPool.address, wei("1000"));
         await invest(wei("500"), OWNER);
 
-        await traderPool.changePoolParameters("example.com", false, wei("10000"), 0);
+        await traderPool.changePoolParameters("example.com", false, false, wei("10000"), 0);
 
         await invest(wei("500"), OWNER);
 
@@ -449,7 +451,7 @@ describe("TraderPool", () => {
       });
 
       it("should not invest if amount > emission", async () => {
-        await traderPool.changePoolParameters("example.com", false, wei("1"), 0);
+        await traderPool.changePoolParameters("example.com", false, false, wei("1"), 0);
 
         await tokens.WETH.approve(traderPool.address, wei("100"));
         await truffleAssert.reverts(invest(wei("100"), OWNER), "TP: minting > emission");
@@ -1351,7 +1353,7 @@ describe("TraderPool", () => {
       });
 
       it("changePoolParameters()", async () => {
-        await truffleAssert.reverts(traderPool.changePoolParameters("placeholder", false, 0, 0), REVERT_STRING);
+        await truffleAssert.reverts(traderPool.changePoolParameters("placeholder", false, false, 0, 0), REVERT_STRING);
       });
 
       it("invest()", async () => {

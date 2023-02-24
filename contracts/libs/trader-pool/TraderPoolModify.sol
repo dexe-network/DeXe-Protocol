@@ -60,6 +60,7 @@ library TraderPoolModify {
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage investors,
         string calldata descriptionURL,
+        bool onlyBABTHolders,
         bool privatePool,
         uint256 totalLPEmission,
         uint256 minimalInvestment
@@ -71,6 +72,7 @@ library TraderPoolModify {
         require(!privatePool || (privatePool && investors.length() == 0), "TP: pool is not empty");
 
         poolParameters.descriptionURL = descriptionURL;
+        poolParameters.onlyBABTHolders = onlyBABTHolders;
         poolParameters.privatePool = privatePool;
         poolParameters.totalLPEmission = totalLPEmission;
         poolParameters.minimalInvestment = minimalInvestment;

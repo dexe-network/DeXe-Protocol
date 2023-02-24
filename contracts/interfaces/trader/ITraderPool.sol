@@ -182,11 +182,13 @@ interface ITraderPool {
 
     /// @notice The function to change certain parameters of the pool
     /// @param descriptionURL the IPFS URL to new description
+    /// @param onlyBABTHolders the new BABT restriction
     /// @param privatePool the new access for this pool
     /// @param totalLPEmission the new LP emission for this pool
     /// @param minimalInvestment the new minimal investment bound
     function changePoolParameters(
         string calldata descriptionURL,
+        bool onlyBABTHolders,
         bool privatePool,
         uint256 totalLPEmission,
         uint256 minimalInvestment
