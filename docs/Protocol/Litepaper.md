@@ -9,8 +9,7 @@
 On **DeXe** platform user can also form a **DAO** for collective decision-making and execution of those decisions. 
 **DAO** pools can be useful for projects that want to give their community a vote in the development of the project or to control the treasuries.
 
-**DeXe** aims to be a community owned decentralized finance system.
-
+At the core of **DeXe's** mission is the goal of building a community-driven decentralized finance system.
 
 ## DeXe protocol overview
 
@@ -41,9 +40,7 @@ Types of **DAO** Pools (by pool token):
 - with **ERC721** token
 - with both (**ERC20** & **ERC721**)
 
-These tokens are the means of determining whether a user belongs to the **DAO** community.
-
-By owning pool tokens, the user gets the opportunity to vote and participate in the collective decision-making process. Also, a user with tokens can offer ideas that other members of the **DAO** pool can accept or reject.
+Pool tokens serve as the means of determining membership in the **DAO** community, granting users the right to vote and participate in the collective decision-making process. Additionally, token holders can propose ideas that can be approved or rejected by the rest of the **DAO** members
 
 **DAO** pool base contracts:
 
@@ -93,7 +90,7 @@ Contract is used for finding the best path for token exchange on **DEXes**.
 
 #### TraderPools
 
-A trader can create his own pool (fund) by sending a transaction using the smart contract method. The pool can be public and private. In private pool, the trader enters the addresses in the whitelist that can invest in this fund, public is open for all investors.
+Traders can create their own investment pool (fund) by executing a transaction via the smart contract method. The pool can be either public or private. A private pool requires whitelisted addresses for investment, while a public pool is open to all investors.
 
 There are **2** types of pool:
 - *Standard*: trade using whitelisted tokens
