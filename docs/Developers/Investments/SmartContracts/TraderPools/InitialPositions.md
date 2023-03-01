@@ -11,6 +11,8 @@ function investInitial(
 ) external;
 ```
 
+❗ The function will only work if there are no investors in the pool. The tokens will be taken from the trader's wallet.
+
 - ***amounts*** - the normalized amounts of tokens to be invested
 - ***tokens*** - the array of tokens to be invested (if not a base token -> opens a position)
 
@@ -26,3 +28,5 @@ function getInvestInitialTokens(
 - ***tokens*** - the array of token addresses
 - ***amounts*** - the array of token amounts
 - **returns** **->** the amount of lp token
+
+The calculation of the number of **LP** tokens that will be minted is relative to the spot price position to the base token.
