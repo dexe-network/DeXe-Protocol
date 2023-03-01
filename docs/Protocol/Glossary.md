@@ -49,3 +49,7 @@ An *Active Portfolio* is a portfolio of investments that is actively managed by 
 ### Validators
 
 Validators are trusted members of a DAO who review proposals from other members to ensure they are valid and comply with established standards. They serve as a security check.
+
+### BABT
+
+Binance Account Bound Token is the credentials of a Binance user who has passed **KYC**.
