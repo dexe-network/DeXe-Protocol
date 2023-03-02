@@ -52,10 +52,12 @@ interface ITokenSaleProposal {
 
     /// @notice Dynamic tier parameters. This struct is used in view functions of contract as a return argument
     /// @param isOff whether the tier is off
+    /// @param whitelisted true if the tier has at least one user in its whitelist, false otherwise
     /// @param totalSold how many tokens were sold
     /// @param uri whitelist uri
     struct TierInfoView {
         bool isOff;
+        bool whitelisted;
         uint256 totalSold;
         string uri;
     }
@@ -91,11 +93,11 @@ interface ITokenSaleProposal {
     }
 
     /// @notice User parameters. This struct is used in view functions of contract as a return argument
-    /// @param isWhitelisted true if the user is whitelisted in the corresponding tier, false otherwise
+    /// @param canParticipate true if the user is whitelisted in the corresponding tier, false otherwise
     /// @param purchase user purchase parameters in the corresponding tier
     /// @param vestingView user vesting parameters in the corresponding tier
     struct UserInfo {
-        bool isWhitelisted;
+        bool canParticipate;
         Purchase purchase;
         VestingView vestingView;
     }

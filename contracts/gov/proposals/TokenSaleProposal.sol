@@ -237,7 +237,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             Tier storage tier = _tiers[tierIds[i]];
             Purchase memory purchase = tier.tierInfo.customers[user];
 
-            userInfos[i].isWhitelisted = _isWhitelisted(user, tierIds[i]);
+            userInfos[i].canParticipate = _isWhitelisted(user, tierIds[i]);
             userInfos[i].purchase = purchase;
 
             if (purchase.vestingTotalAmount == 0) {
@@ -341,13 +341,16 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     function _addToWhitelist(
         WhitelistingRequest calldata request
     ) internal ifTierExists(request.tierId) ifTierIsNotOff(request.tierId) {
-        _tiers[request.tierId].tierInfo.tierInfoView.uri = request.uri;
+        uint256 tierId = request.tierId;
+
+        TierInfoView storage tierInfoView = _tiers[tierId].tierInfo.tierInfoView;
+        tierInfoView.uri = request.uri;
+        tierInfoView.whitelisted = request.users.length > 0;
 
         for (uint256 i = 0; i < request.users.length; i++) {
             address user = request.users[i];
-            uint256 tierId = request.tierId;
 
-            _mint(user, request.tierId, 1, "");
+            _mint(user, tierId, 1, "");
 
             emit Whitelisted(tierId, user);
         }
