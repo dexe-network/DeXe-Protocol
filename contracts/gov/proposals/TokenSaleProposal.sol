@@ -23,6 +23,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
     mapping(uint256 => Tier) internal _tiers;
 
+    event TierCreated(uint256 tierId, address saleToken);
     event Bought(uint256 tierId, address buyer);
     event Whitelisted(uint256 tierId, address user);
 
