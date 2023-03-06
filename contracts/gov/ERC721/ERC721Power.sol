@@ -23,18 +23,18 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
     using DecimalsConverter for uint256;
     using TokenBalance for address;
 
-    uint64 public powerCalcStartTimestamp;
+    uint64 public immutable powerCalcStartTimestamp;
     string public baseURI;
 
     mapping(uint256 => NftInfo) public nftInfos; // tokenId => info
 
-    uint256 public reductionPercent;
+    uint256 public immutable reductionPercent;
 
-    address public collateralToken;
+    address public immutable collateralToken;
     uint256 public totalCollateral;
 
-    uint256 public maxPower;
-    uint256 public requiredCollateral;
+    uint256 public immutable maxPower;
+    uint256 public immutable requiredCollateral;
 
     uint256 public totalPower;
 
