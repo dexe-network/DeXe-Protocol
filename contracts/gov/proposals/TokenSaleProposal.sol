@@ -221,9 +221,12 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
         for (uint256 i = offset; i < to; i++) {
             Tier storage tier = _tiers[i + 1];
+            TierInfoView memory tierInfoView = tier.tierInfo.tierInfoView;
+
+            tierInfoView.whitelisted = totalSupply(i + 1) > 0;
 
             tierViews[i - offset] = tier.tierView;
-            tierInfoViews[i - offset] = tier.tierInfo.tierInfoView;
+            tierInfoViews[i - offset] = tierInfoView;
         }
     }
 
@@ -345,7 +348,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
         TierInfoView storage tierInfoView = _tiers[tierId].tierInfo.tierInfoView;
         tierInfoView.uri = request.uri;
-        tierInfoView.whitelisted = request.users.length > 0;
 
         for (uint256 i = 0; i < request.users.length; i++) {
             address user = request.users[i];
