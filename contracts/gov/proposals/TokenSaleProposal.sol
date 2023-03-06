@@ -337,6 +337,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         }
 
         tier.tierView = tierView;
+
+        emit TierCreated(latestTierId, tierView.saleTokenAddress);
     }
 
     function _addToWhitelist(
