@@ -268,7 +268,7 @@ describe("TokenSaleProposal", () => {
 
     const userInfoToObject = (userInfo) => {
       return {
-        isWhitelisted: userInfo.isWhitelisted,
+        canParticipate: userInfo.canParticipate,
         purchase: {
           purchaseTime: userInfo.purchase.purchaseTime,
           tokenBoughtWith: userInfo.purchase.tokenBoughtWith,
@@ -734,6 +734,11 @@ describe("TokenSaleProposal", () => {
           assert.equal((await tsp.balanceOf(SECOND, 1)).toFixed(), "1");
           assert.equal((await tsp.balanceOf(OWNER, 2)).toFixed(), "1");
           assert.equal((await tsp.balanceOf(THIRD, 2)).toFixed(), "1");
+
+          assert.deepEqual(
+            (await tsp.getTiers(0, 2)).tierInfoViews.map((tierInfoView) => tierInfoView.whitelisted),
+            [true, true]
+          );
         });
 
         it("should whitelist properly if all conditions are met", async () => {
@@ -992,7 +997,7 @@ describe("TokenSaleProposal", () => {
 
           const userInfos = [
             {
-              isWhitelisted: true,
+              canParticipate: true,
               purchase: {
                 purchaseTime: (parseInt(tiers[1].saleStartTime) + 1).toString(),
                 tokenBoughtWith: purchaseToken1.address,
@@ -1032,7 +1037,7 @@ describe("TokenSaleProposal", () => {
 
           let userInfos = [
             {
-              isWhitelisted: true,
+              canParticipate: true,
               purchase: {
                 purchaseTime: purchaseTime.toString(),
                 tokenBoughtWith: purchaseToken1.address,
