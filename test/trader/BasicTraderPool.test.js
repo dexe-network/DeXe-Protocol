@@ -1413,6 +1413,38 @@ describe("BasicTraderPool", () => {
         assert.equal(toBN(proposalInfo.balancePosition).toFixed(), "0");
       });
 
+      it("should exchange in proposal twice", async () => {
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(
+          "description",
+          tokens.MANA.address,
+          wei("500"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          0
+        );
+
+        await tokens.MANA.approve(uniswapV2Router.address, wei("1000000"));
+
+        await uniswapV2Router.setReserve(tokens.MANA.address, wei("1000000"));
+        await uniswapV2Router.setReserve(tokens.WETH.address, wei("1000000"));
+
+        await exchangeToExactProposal(1, tokens.WETH.address, wei("400"));
+
+        await uniswapV2Router.setReserve(tokens.MANA.address, wei("1000000"));
+        await uniswapV2Router.setReserve(tokens.WETH.address, wei("1000000"));
+
+        await exchangeFromExactProposal(1, tokens.WETH.address, wei("100"));
+
+        let proposalInfo = (await proposalPool.getProposalInfos(0, 1))[0].proposalInfo;
+
+        assert.closeTo(toBN(proposalInfo.balanceBase).toNumber(), 0, toBN(wei("1")).toNumber());
+        assert.closeTo(
+          toBN(proposalInfo.balancePosition).toNumber(),
+          toBN(wei("500")).toNumber(),
+          toBN(wei("1")).toNumber()
+        );
+      });
+
       it("should not exchange random tokens", async () => {
         const time = toBN(await getCurrentBlockTime());
         await createProposal(

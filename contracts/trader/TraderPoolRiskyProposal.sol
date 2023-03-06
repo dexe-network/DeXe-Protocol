@@ -30,6 +30,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         address token,
         ITraderPoolRiskyProposal.ProposalLimits proposalLimits
     );
+    event ProposalPositionOpened(uint256 proposalId, address positionToken);
     event ProposalExchanged(
         uint256 proposalId,
         address sender,
@@ -100,13 +101,19 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         _proposalInfos[proposalId].tokenDecimals = ERC20(token).decimals();
         _proposalInfos[proposalId].proposalLimits = proposalLimits;
 
+        uint256 baseToExchange = baseInvestment.percentage(instantTradePercentage);
+
         emit ProposalCreated(proposalId, token, proposalLimits);
+
+        if (baseToExchange > 0) {
+            emit ProposalPositionOpened(proposalId, token);
+        }
 
         _transferAndMintLP(proposalId, trader, lpInvestment, baseInvestment);
         _investActivePortfolio(
             proposalId,
             baseInvestment,
-            baseInvestment.percentage(instantTradePercentage),
+            baseToExchange,
             lpInvestment,
             optionalPath,
             minPositionOut
@@ -216,11 +223,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
 
         require(from == baseToken || from == positionToken, "TPRP: invalid from token");
 
-        if (from == baseToken) {
-            to = positionToken;
-        } else {
-            to = baseToken;
-        }
+        to = from == baseToken ? positionToken : baseToken;
 
         uint256 amountGot;
 
@@ -250,12 +253,18 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             (amount, amountGot) = (amountGot, amount);
         }
 
-        emit ProposalExchanged(proposalId, msg.sender, from, to, amount, amountGot);
-
         if (from == baseToken) {
+            if (info.balancePosition == 0) {
+                emit ProposalPositionOpened(proposalId, from);
+            }
+
             info.balanceBase -= amount;
             info.balancePosition += amountGot;
-        } else {
+        }
+
+        emit ProposalExchanged(proposalId, msg.sender, from, to, amount, amountGot);
+
+        if (from != baseToken) {
             info.balanceBase += amountGot;
             info.balancePosition -= amount;
 

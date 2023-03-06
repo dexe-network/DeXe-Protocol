@@ -17,6 +17,7 @@ library TraderPoolExchange {
     using PriceFeedLocal for IPriceFeed;
     using TokenBalance for address;
 
+    event PositionOpened(address position);
     event Exchanged(
         address sender,
         address fromToken,
@@ -52,8 +53,8 @@ library TraderPoolExchange {
         priceFeed.checkAllowance(from);
         priceFeed.checkAllowance(to);
 
-        if (to != poolParameters.baseToken) {
-            positions.add(to);
+        if (to != poolParameters.baseToken && positions.add(to)) {
+            emit PositionOpened(to);
         }
 
         uint256 amountGot;

@@ -26,13 +26,13 @@ library TraderPoolInvest {
     using EnumerableSet for EnumerableSet.AddressSet;
     using PriceFeedLocal for IPriceFeed;
 
+    event PositionOpened(address position);
     event ActivePortfolioExchanged(
         address fromToken,
         address toToken,
         uint256 fromVolume,
         uint256 toVolume
     );
-
     event Exchanged(
         address sender,
         address fromToken,
@@ -96,12 +96,11 @@ library TraderPoolInvest {
             if (tokens[i] != baseToken) {
                 (baseAmount, ) = priceFeed.getNormalizedPriceOut(tokens[i], baseToken, amounts[i]);
 
-                if (positions.contains(tokens[i])) {
-                    emit ActivePortfolioExchanged(baseToken, tokens[i], baseAmount, amounts[i]);
-                } else {
-                    positions.add(tokens[i]);
-
+                if (positions.add(tokens[i])) {
+                    emit PositionOpened(tokens[i]);
                     emit Exchanged(msg.sender, baseToken, tokens[i], baseAmount, amounts[i]);
+                } else {
+                    emit ActivePortfolioExchanged(baseToken, tokens[i], baseAmount, amounts[i]);
                 }
             } else {
                 baseAmount = amounts[i];
