@@ -346,8 +346,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     ) internal ifTierExists(request.tierId) ifTierIsNotOff(request.tierId) {
         uint256 tierId = request.tierId;
 
-        TierInfoView storage tierInfoView = _tiers[tierId].tierInfo.tierInfoView;
-        tierInfoView.uri = request.uri;
+        _tiers[tierId].tierInfo.tierInfoView.uri = request.uri;
 
         for (uint256 i = 0; i < request.users.length; i++) {
             address user = request.users[i];
