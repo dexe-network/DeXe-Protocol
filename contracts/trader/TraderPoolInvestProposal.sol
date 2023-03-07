@@ -354,4 +354,6 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     function _baseInProposal(uint256 proposalId) internal view override returns (uint256) {
         return _proposalInfos[proposalId].investedBase;
     }
+
+    uint256[47] private __gap;
 }

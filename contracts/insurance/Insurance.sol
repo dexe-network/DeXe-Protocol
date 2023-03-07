@@ -164,4 +164,6 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
 
         emit Paidout(payout, stakePayout, user);
     }
+
+    uint256[44] private __gap;
 }

@@ -257,4 +257,6 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
     ) external view override returns (uint256) {
         return getCommissionInitTimestamp() + epoch * getCommissionDuration(commissionPeriod) - 1;
     }
+
+    uint256[35] private __gap;
 }

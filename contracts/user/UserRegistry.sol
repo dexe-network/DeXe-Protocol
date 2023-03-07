@@ -57,4 +57,6 @@ contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
     function setPrivacyPolicyDocumentHash(bytes32 hash) external override onlyOwner {
         documentHash = hash;
     }
+
+    uint256[48] private __gap;
 }

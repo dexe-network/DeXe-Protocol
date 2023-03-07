@@ -164,4 +164,6 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
     function _onlyProposalPool() internal view {
         require(msg.sender == address(_traderPoolProposal), "ITP: not a proposal");
     }
+
+    uint256[48] private __gap;
 }

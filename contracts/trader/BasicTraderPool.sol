@@ -160,4 +160,6 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
     function _onlyProposalPool() internal view {
         require(msg.sender == address(_traderPoolProposal), "BTP: not a proposal");
     }
+
+    uint256[49] private __gap;
 }

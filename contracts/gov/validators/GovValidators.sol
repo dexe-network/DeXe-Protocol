@@ -313,4 +313,6 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     function _onlyValidator() internal view {
         require(isValidator(msg.sender), "Validators: caller is not the validator");
     }
+
+    uint256[43] private __gap;
 }

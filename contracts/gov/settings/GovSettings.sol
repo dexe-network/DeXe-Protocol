@@ -136,4 +136,6 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
 
         emit SettingsChanged(settingsId, _settings.executorDescription);
     }
+
+    uint256[47] private __gap;
 }

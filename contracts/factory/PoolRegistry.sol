@@ -121,4 +121,6 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     function _onlyPoolFactory() internal view {
         require(_poolFactory == msg.sender, "PoolRegistry: Caller is not a factory");
     }
+
+    uint256[48] private __gap;
 }

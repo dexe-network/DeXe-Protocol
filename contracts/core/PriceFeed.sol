@@ -370,4 +370,6 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             IERC20(token).safeApprove(address(uniswapV2Router), MAX_UINT);
         }
     }
+
+    uint256[43] private __gap;
 }

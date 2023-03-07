@@ -473,4 +473,6 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
                 _proposalInfos[proposalId].balancePosition
             );
     }
+
+    uint256[49] private __gap;
 }

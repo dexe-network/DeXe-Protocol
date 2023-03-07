@@ -456,4 +456,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             vestingSettings.vestingPercentage <= PERCENTAGE_100 &&
             vestingSettings.vestingDuration >= vestingSettings.unlockStep;
     }
+
+    uint256[47] private __gap;
 }
