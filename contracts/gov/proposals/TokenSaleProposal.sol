@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
+
 import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
 
 import "../../libs/math/MathHelper.sol";
@@ -16,6 +18,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     using MathHelper for uint256;
     using Math for uint256;
     using SafeERC20 for ERC20;
+    using DecimalsConverter for uint256;
 
     address public govAddress;
 
@@ -83,9 +86,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             purchase.latestVestingWithdraw = uint64(block.timestamp);
             purchase.vestingWithdrawnAmount += vestingWithdrawAmounts[i];
 
-            ERC20(tier.tierView.saleTokenAddress).safeTransfer(
+            address saleTokenAddress = tier.tierView.saleTokenAddress;
+            ERC20(saleTokenAddress).safeTransfer(
                 msg.sender,
-                vestingWithdrawAmounts[i]
+                vestingWithdrawAmounts[i].from18(ERC20(saleTokenAddress).decimals())
             );
         }
     }
@@ -104,9 +108,14 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
         TierView memory tierView = tier.tierView;
 
+        uint256 vestingTotalAmount = saleTokenAmount.percentage(
+            tierView.vestingSettings.vestingPercentage
+        );
         ERC20(tierView.saleTokenAddress).safeTransfer(
             msg.sender,
-            saleTokenAmount.percentage(PERCENTAGE_100 - tierView.vestingSettings.vestingPercentage)
+            (saleTokenAmount - vestingTotalAmount).from18(
+                ERC20(tierView.saleTokenAddress).decimals()
+            )
         );
 
         tierInfo.tierInfoView.totalSold += saleTokenAmount;
@@ -116,9 +125,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             latestVestingWithdraw: 0,
             tokenBoughtWith: tokenToBuyWith,
             amountBought: saleTokenAmount,
-            vestingTotalAmount: saleTokenAmount.percentage(
-                tierView.vestingSettings.vestingPercentage
-            ),
+            vestingTotalAmount: vestingTotalAmount,
             vestingWithdrawnAmount: 0
         });
 
@@ -126,7 +133,11 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             (bool success, ) = govAddress.call{value: msg.value}("");
             require(success, "TSP: failed to transfer ether");
         } else {
-            ERC20(tokenToBuyWith).safeTransferFrom(msg.sender, govAddress, amount);
+            ERC20(tokenToBuyWith).safeTransferFrom(
+                msg.sender,
+                govAddress,
+                amount.from18(ERC20(tokenToBuyWith).decimals())
+            );
         }
 
         emit Bought(tierId, msg.sender);
@@ -144,7 +155,11 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
             tier.tierInfo.tierInfoView.totalSold += recoveringAmounts[i];
 
-            ERC20(tier.tierView.saleTokenAddress).safeTransfer(govAddress, recoveringAmounts[i]);
+            address saleTokenAddress = tier.tierView.saleTokenAddress;
+            ERC20(saleTokenAddress).safeTransfer(
+                govAddress,
+                recoveringAmounts[i].from18(ERC20(saleTokenAddress).decimals())
+            );
         }
     }
 
@@ -183,7 +198,9 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             "TSP: insufficient sale token amount"
         );
         require(
-            ERC20(tierView.saleTokenAddress).balanceOf(address(this)) >= saleTokenAmount,
+            ERC20(tierView.saleTokenAddress).balanceOf(address(this)).to18(
+                ERC20(tierView.saleTokenAddress).decimals()
+            ) >= saleTokenAmount,
             "TSP: insufficient contract balance"
         );
 
