@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import "../../interfaces/gov/ERC20/IERC20Sale.sol";
 
 contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
-    address public govAddress;
+    address public immutable govAddress;
 
     modifier onlyGov() {
         _onlyGov();
