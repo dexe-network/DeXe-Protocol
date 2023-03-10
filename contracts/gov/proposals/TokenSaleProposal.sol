@@ -434,19 +434,19 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     }
 
     function _countPrefixVestingAmount(
-        uint256 timePoint,
+        uint256 timestamp,
         Purchase memory purchase,
         VestingSettings memory vestingSettings
     ) private pure returns (uint256) {
         if (
             purchase.purchaseTime == 0 ||
             vestingSettings.vestingPercentage == 0 ||
-            timePoint < purchase.purchaseTime + vestingSettings.cliffPeriod
+            timestamp < purchase.purchaseTime + vestingSettings.cliffPeriod
         ) {
             return 0;
         }
 
-        if (timePoint >= purchase.purchaseTime + vestingSettings.vestingDuration) {
+        if (timestamp >= purchase.purchaseTime + vestingSettings.vestingDuration) {
             return purchase.vestingTotalAmount;
         }
 
@@ -455,15 +455,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
                 (vestingSettings.vestingDuration % vestingSettings.unlockStep),
             vestingSettings.vestingDuration
         );
-        uint256 fullSegmentsTotal = vestingSettings.vestingDuration / vestingSettings.unlockStep;
-        uint256 fullSegmentsBeforeTimePoint = (timePoint - purchase.purchaseTime) /
-            vestingSettings.unlockStep;
+        uint256 segmentsTotal = vestingSettings.vestingDuration / vestingSettings.unlockStep;
+        uint256 segmentsBefore = (timestamp - purchase.purchaseTime) / vestingSettings.unlockStep;
 
-        return
-            beforeLastSegmentAmount.vestingTotalAmount.ratio(
-                fullSegmentsBeforeTimePoint,
-                fullSegmentsTotal
-            );
+        return beforeLastSegmentAmount.ratio(segmentsBefore, segmentsTotal);
     }
 
     function _validateVestingSettings(
