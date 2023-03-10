@@ -290,8 +290,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
                 vestingView.nextUnlockTime -=
                     (vestingView.nextUnlockTime - purchase.purchaseTime) %
                     vestingSettings.unlockStep;
-                vestingView.nextUnlockTime = vestingView.nextUnlockTime.min(
-                    vestingView.vestingEndTime
+                vestingView.nextUnlockTime = uint64(
+                    uint256(vestingView.nextUnlockTime).min(vestingView.vestingEndTime)
                 );
             }
 
