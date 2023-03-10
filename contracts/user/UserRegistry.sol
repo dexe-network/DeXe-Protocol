@@ -14,6 +14,7 @@ contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
 
     event UpdatedProfile(address user, string url);
     event Agreed(address user, bytes32 documentHash);
+    event SetDocumentHash(bytes32 hash);
 
     function __UserRegistry_init(string calldata name) public initializer {
         __EIP712_init(name, "1");
@@ -57,6 +58,8 @@ contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
 
     function setPrivacyPolicyDocumentHash(bytes32 hash) external override onlyOwner {
         documentHash = hash;
+
+        emit SetDocumentHash(hash);
     }
 
     function userInfos(address user) public view returns (UserInfo memory) {
