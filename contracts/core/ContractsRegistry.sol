@@ -76,6 +76,4 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry {
     function getBABTContract() external view override returns (address) {
         return getContract(BABT_NAME);
     }
-
-    uint256[50] private __gap;
 }

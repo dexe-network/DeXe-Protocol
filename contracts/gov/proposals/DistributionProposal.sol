@@ -101,6 +101,4 @@ contract DistributionProposal is IDistributionProposal, Initializable {
                 ? 0
                 : proposals[proposalId].rewardAmount.ratio(voteWeight, totalVoteWeight);
     }
-
-    uint256[48] private __gap;
 }

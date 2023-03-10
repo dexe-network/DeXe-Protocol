@@ -680,6 +680,4 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function _withSupportedNft() internal view {
         require(nftAddress != address(0), "GovUK: nft is not supported");
     }
-
-    uint256[40] private __gap;
 }

@@ -270,5 +270,5 @@ abstract contract TraderPoolProposal is
         );
     }
 
-    uint256[38] private __gap;
+    uint256[38] private _gap;
 }

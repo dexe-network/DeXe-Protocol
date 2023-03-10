@@ -389,5 +389,5 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         require(isBABTHolder(msg.sender), "TP: not BABT holder");
     }
 
-    uint256[28] private __gap;
+    uint256[28] private _gap;
 }
