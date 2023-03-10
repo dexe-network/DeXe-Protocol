@@ -446,12 +446,24 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             return 0;
         }
 
-        uint256 stepsCount = vestingSettings.vestingDuration / vestingSettings.unlockStep;
-        uint256 tokensPerStep = purchase.vestingTotalAmount / stepsCount;
+        if (timePoint >= purchase.purchaseTime + vestingSettings.vestingDuration) {
+            return purchase.vestingTotalAmount;
+        }
+
+        uint256 beforeLastSegmentAmount = purchase.vestingTotalAmount.ratio(
+            vestingSettings.vestingDuration -
+                (vestingSettings.vestingDuration % vestingSettings.unlockStep),
+            vestingSettings.vestingDuration
+        );
+        uint256 fullSegmentsTotal = vestingSettings.vestingDuration / vestingSettings.unlockStep;
+        uint256 fullSegmentsBeforeTimePoint = (timePoint - purchase.purchaseTime) /
+            vestingSettings.unlockStep;
 
         return
-            (uint256(vestingSettings.vestingDuration).min(timePoint - purchase.purchaseTime) /
-                vestingSettings.unlockStep) * tokensPerStep;
+            beforeLastSegmentAmount.vestingTotalAmount.ratio(
+                fullSegmentsBeforeTimePoint,
+                fullSegmentsTotal
+            );
     }
 
     function _validateVestingSettings(
