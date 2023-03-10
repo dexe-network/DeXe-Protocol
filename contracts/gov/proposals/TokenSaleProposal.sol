@@ -285,15 +285,14 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
                 vestingView.nextUnlockTime =
                     purchase.purchaseTime +
                     uint64(uint256(vestingSettings.cliffPeriod).max(vestingSettings.unlockStep));
-            } else {
+            } else if (block.timestamp < vestingView.vestingEndTime) {
                 vestingView.nextUnlockTime = uint64(block.timestamp) + vestingSettings.unlockStep;
                 vestingView.nextUnlockTime -=
                     (vestingView.nextUnlockTime - purchase.purchaseTime) %
                     vestingSettings.unlockStep;
-
-                if (vestingView.nextUnlockTime > vestingView.vestingEndTime) {
-                    vestingView.nextUnlockTime = 0;
-                }
+                vestingView.nextUnlockTime = vestingView.nextUnlockTime.min(
+                    vestingView.vestingEndTime
+                );
             }
 
             if (vestingView.nextUnlockTime != 0) {
