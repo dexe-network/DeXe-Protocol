@@ -313,7 +313,13 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         return _tiers[tierId].tierInfo.tierInfoView.uri;
     }
 
-    function _createTier(TierView calldata tierView) internal {
+    function _createTier(TierView memory tierView) internal {
+        uint256 saleTokenDecimals = ERC20(tierView.saleTokenAddress).decimals();
+
+        tierView.minAllocationPerUser = tierView.minAllocationPerUser.to18(saleTokenDecimals);
+        tierView.maxAllocationPerUser = tierView.minAllocationPerUser.to18(saleTokenDecimals);
+        tierView.totalTokenProvided = tierView.totalTokenProvided.to18(saleTokenDecimals);
+
         require(tierView.saleTokenAddress != address(0), "TSP: sale token cannot be zero");
         require(tierView.saleTokenAddress != ETHEREUM_ADDRESS, "TSP: cannot sale native currency");
         require(tierView.totalTokenProvided != 0, "TSP: sale token is not provided");

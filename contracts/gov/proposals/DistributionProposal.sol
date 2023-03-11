@@ -48,7 +48,9 @@ contract DistributionProposal is IDistributionProposal, Initializable {
         require(amount > 0, "DP: zero amount");
 
         proposals[proposalId].rewardAddress = token;
-        proposals[proposalId].rewardAmount = amount;
+        proposals[proposalId].rewardAmount = token == ETHEREUM_ADDRESS
+            ? amount
+            : amount.to18(ERC20(token).decimals());
     }
 
     function claim(address voter, uint256[] calldata proposalIds) external override {
@@ -67,20 +69,20 @@ contract DistributionProposal is IDistributionProposal, Initializable {
 
             dpInfo.claimed[voter] = true;
 
+            emit DistributionProposalClaimed(proposalIds[i], voter, reward);
+
             if (address(rewardToken) == ETHEREUM_ADDRESS) {
                 (bool status, ) = payable(voter).call{value: reward}("");
                 require(status, "DP: failed to send eth");
             } else {
+                reward = reward.from18(rewardToken.decimals());
+
                 if (balance < reward) {
                     rewardToken.safeTransferFrom(govAddress, address(this), reward - balance);
                 }
 
                 rewardToken.safeTransfer(voter, reward);
-
-                reward = reward.to18(rewardToken.decimals());
             }
-
-            emit DistributionProposalClaimed(proposalIds[i], voter, reward);
         }
     }
 
