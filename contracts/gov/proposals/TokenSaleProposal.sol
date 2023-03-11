@@ -455,7 +455,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             return purchase.vestingTotalAmount;
         }
 
-        uint256 beforeSmallSegmentAmount = purchase.vestingTotalAmount.ratio(
+        uint256 beforeLastSegmentAmount = purchase.vestingTotalAmount.ratio(
             vestingSettings.vestingDuration -
                 (vestingSettings.vestingDuration % vestingSettings.unlockStep),
             vestingSettings.vestingDuration
@@ -463,7 +463,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         uint256 segmentsTotal = vestingSettings.vestingDuration / vestingSettings.unlockStep;
         uint256 segmentsBefore = (timestamp - purchase.purchaseTime) / vestingSettings.unlockStep;
 
-        return beforeSmallSegmentAmount.ratio(segmentsBefore, segmentsTotal);
+        return beforeLastSegmentAmount.ratio(segmentsBefore, segmentsTotal);
     }
 
     function _validateVestingSettings(
