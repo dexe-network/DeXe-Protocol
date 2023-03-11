@@ -314,12 +314,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     }
 
     function _createTier(TierView memory tierView) internal {
-        uint256 saleTokenDecimals = ERC20(tierView.saleTokenAddress).decimals();
-
-        tierView.minAllocationPerUser = tierView.minAllocationPerUser.to18(saleTokenDecimals);
-        tierView.maxAllocationPerUser = tierView.minAllocationPerUser.to18(saleTokenDecimals);
-        tierView.totalTokenProvided = tierView.totalTokenProvided.to18(saleTokenDecimals);
-
         require(tierView.saleTokenAddress != address(0), "TSP: sale token cannot be zero");
         require(tierView.saleTokenAddress != ETHEREUM_ADDRESS, "TSP: cannot sale native currency");
         require(tierView.totalTokenProvided != 0, "TSP: sale token is not provided");
@@ -343,6 +337,12 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             tierView.purchaseTokenAddresses.length == tierView.exchangeRates.length,
             "TSP: tokens and rates lengths mismatch"
         );
+
+        uint256 saleTokenDecimals = ERC20(tierView.saleTokenAddress).decimals();
+
+        tierView.minAllocationPerUser = tierView.minAllocationPerUser.to18(saleTokenDecimals);
+        tierView.maxAllocationPerUser = tierView.maxAllocationPerUser.to18(saleTokenDecimals);
+        tierView.totalTokenProvided = tierView.totalTokenProvided.to18(saleTokenDecimals);
 
         Tier storage tier = _tiers[++latestTierId];
         TierInfo storage tierInfo = tier.tierInfo;
