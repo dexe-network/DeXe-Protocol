@@ -59,31 +59,18 @@ contract DistributionProposal is IDistributionProposal, Initializable {
 
         for (uint256 i; i < proposalIds.length; i++) {
             DistributionProposalStruct storage dpInfo = proposals[proposalIds[i]];
-            IERC20Metadata rewardToken = IERC20Metadata(dpInfo.rewardAddress);
+            address rewardToken = dpInfo.rewardAddress;
 
-            require(address(rewardToken) != address(0), "DP: zero address");
+            require(rewardToken != address(0), "DP: zero address");
             require(!dpInfo.claimed[voter], "DP: already claimed");
 
             uint256 reward = getPotentialReward(proposalIds[i], voter);
 
             dpInfo.claimed[voter] = true;
 
+            rewardToken.sendFunds(voter, reward);
+
             emit DistributionProposalClaimed(proposalIds[i], voter, reward);
-
-            if (address(rewardToken) == ETHEREUM_ADDRESS) {
-                (bool status, ) = payable(voter).call{value: reward}("");
-                require(status, "DP: failed to send eth");
-            } else {
-                uint256 balance = address(rewardToken).thisBalance();
-
-                reward = reward.from18(rewardToken.decimals());
-
-                if (balance < reward) {
-                    rewardToken.safeTransferFrom(govAddress, address(this), reward - balance);
-                }
-
-                rewardToken.safeTransfer(voter, reward);
-            }
         }
     }
 
