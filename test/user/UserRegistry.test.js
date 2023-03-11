@@ -129,6 +129,27 @@ describe("UserRegistry", () => {
         "UserRegistry: privacy policy is not set"
       );
     });
+
+    it("should resign if a new doc has been set", async () => {
+      let docHash = web3.utils.soliditySha3("Privacy Policy document content");
+      let signature = await sign(docHash, OWNER_PRIVATE_KEY);
+
+      assert.isFalse(await userRegistry.agreed(OWNER));
+
+      await userRegistry.setPrivacyPolicyDocumentHash(docHash);
+      await userRegistry.agreeToPrivacyPolicy(signature);
+
+      assert.isTrue(await userRegistry.agreed(OWNER));
+
+      docHash = web3.utils.soliditySha3("New privacy Policy document content");
+      signature = await sign(docHash, OWNER_PRIVATE_KEY);
+
+      await userRegistry.setPrivacyPolicyDocumentHash(docHash);
+      assert.isFalse(await userRegistry.agreed(OWNER));
+
+      await userRegistry.agreeToPrivacyPolicy(signature);
+      assert.isTrue(await userRegistry.agreed(OWNER));
+    });
   });
 
   describe("Profile", () => {

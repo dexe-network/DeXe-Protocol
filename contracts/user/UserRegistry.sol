@@ -9,10 +9,12 @@ import "../interfaces/user/IUserRegistry.sol";
 contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
     bytes32 public documentHash;
 
-    mapping(address => UserInfo) public userInfos;
+    mapping(bytes32 => mapping(address => bytes32)) internal _signatureHashes;
+    mapping(address => string) internal _users;
 
     event UpdatedProfile(address user, string url);
     event Agreed(address user, bytes32 documentHash);
+    event SetDocumentHash(bytes32 hash);
 
     function __UserRegistry_init(string calldata name) public initializer {
         __EIP712_init(name, "1");
@@ -20,7 +22,7 @@ contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
     }
 
     function changeProfile(string calldata url) public override {
-        userInfos[msg.sender].profileURL = url;
+        _users[msg.sender] = url;
 
         emit UpdatedProfile(msg.sender, url);
     }
@@ -37,7 +39,7 @@ contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
             "UserRegistry: invalid signature"
         );
 
-        userInfos[msg.sender].signatureHash = keccak256(abi.encodePacked(signature));
+        _signatureHashes[documentHash][msg.sender] = keccak256(abi.encodePacked(signature));
 
         emit Agreed(msg.sender, documentHash);
     }
@@ -51,10 +53,20 @@ contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
     }
 
     function agreed(address user) external view override returns (bool) {
-        return userInfos[user].signatureHash != 0;
+        return _signatureHashes[documentHash][user] != 0;
     }
 
     function setPrivacyPolicyDocumentHash(bytes32 hash) external override onlyOwner {
         documentHash = hash;
+
+        emit SetDocumentHash(hash);
+    }
+
+    function userInfos(address user) public view returns (UserInfo memory) {
+        return
+            UserInfo({
+                profileURL: _users[user],
+                signatureHash: _signatureHashes[documentHash][user]
+            });
     }
 }
