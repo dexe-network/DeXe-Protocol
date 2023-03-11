@@ -65,7 +65,6 @@ contract DistributionProposal is IDistributionProposal, Initializable {
             require(!dpInfo.claimed[voter], "DP: already claimed");
 
             uint256 reward = getPotentialReward(proposalIds[i], voter);
-            uint256 balance = address(rewardToken).thisBalance();
 
             dpInfo.claimed[voter] = true;
 
@@ -75,6 +74,8 @@ contract DistributionProposal is IDistributionProposal, Initializable {
                 (bool status, ) = payable(voter).call{value: reward}("");
                 require(status, "DP: failed to send eth");
             } else {
+                uint256 balance = address(rewardToken).thisBalance();
+
                 reward = reward.from18(rewardToken.decimals());
 
                 if (balance < reward) {
