@@ -53,7 +53,6 @@ contract GovPool is
     using GovPoolExecute for *;
     using GovPoolStaking for *;
 
-    uint256 public constant PERCENTAGE_DELEGATORS_REWARDS = (4 * PERCENTAGE_100) / 5; // 80%
     uint256 public constant PERCENTAGE_MICROPOOL_REWARDS = PERCENTAGE_100 / 5; // 20%
 
     IGovSettings internal _govSettings;
@@ -230,16 +229,18 @@ contract GovPool is
             voteNftIds
         );
 
+        uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
+
         _pendingRewards.updateRewards(
             _proposals,
             proposalId,
             RewardType.VoteDelegated,
-            reward.percentage(PERCENTAGE_MICROPOOL_REWARDS),
+            micropoolReward,
             _proposals[proposalId].core.settings.voteRewardsCoefficient
         );
 
         _micropoolInfos[msg.sender].updateRewards(
-            reward.percentage(PERCENTAGE_DELEGATORS_REWARDS),
+            reward - micropoolReward,
             _proposals[proposalId].core.settings.voteRewardsCoefficient,
             _proposals[proposalId].core.settings.rewardToken
         );
