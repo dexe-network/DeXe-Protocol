@@ -465,10 +465,10 @@ describe("DistributionProposal", () => {
         await setTime(startTime + 10000);
         await govPool.execute(1);
 
-        await truffleAssert.reverts(dp.claim(SECOND, [1]), "DP: failed to send eth");
+        await truffleAssert.reverts(dp.claim(SECOND, [1]));
       });
 
-      it("should claim, when proposal amount < reward", async () => {
+      it("should revert when proposal amount < reward", async () => {
         await govPool.createProposal(
           "example.com",
           "misc",
@@ -486,11 +486,8 @@ describe("DistributionProposal", () => {
         await setTime(startTime + 10000);
         await govPool.execute(1);
 
-        await dp.claim(SECOND, [1]);
-        await dp.claim(THIRD, [1]);
-
-        assert.equal((await token.balanceOf(SECOND)).toFixed(), "55555555555555555555556");
-        assert.equal((await token.balanceOf(THIRD)).toFixed(), "44444444444444444444443");
+        await truffleAssert.reverts(dp.claim(SECOND, [1]), "ERC20: transfer amount exceeds balance");
+        await truffleAssert.reverts(dp.claim(THIRD, [1]), "ERC20: transfer amount exceeds balance");
       });
 
       it("should revert if already claimed", async () => {

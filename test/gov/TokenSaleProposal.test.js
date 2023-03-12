@@ -435,7 +435,7 @@ describe("TokenSaleProposal", () => {
             vestingPercentage: PERCENTAGE_100.idiv(5).toFixed(),
             vestingDuration: "100",
             cliffPeriod: "50",
-            unlockStep: "2",
+            unlockStep: "3",
           },
         },
         {
@@ -1050,9 +1050,9 @@ describe("TokenSaleProposal", () => {
                 cliffEndTime: (purchaseTime + parseInt(tiers[0].vestingSettings.cliffPeriod)).toString(),
                 vestingEndTime: (purchaseTime + parseInt(tiers[0].vestingSettings.vestingDuration)).toString(),
                 nextUnlockTime: (purchaseTime + parseInt(tiers[0].vestingSettings.cliffPeriod)).toString(),
-                nextUnlockAmount: wei("60"),
+                nextUnlockAmount: wei("57.6"), // 118.8 * (50 // 3) / 33
                 amountToWithdraw: "0",
-                lockedAmount: wei("120"),
+                lockedAmount: wei("120"), // 118.8 for full segments
               },
             },
           ];
@@ -1083,29 +1083,29 @@ describe("TokenSaleProposal", () => {
           assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(480));
 
-          await setTime(purchaseTime + 74);
+          await setTime(purchaseTime + 73);
 
           assert.deepEqual(
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
-            [wei("88.8")]
-          ); // tokensPerStep = 2.4, steps = 74 // 2 = 37, vestingWithdraw = 2.4 * 37 = 88.8
+            [wei("86.4")]
+          ); // 118.2 * (73 // 3) / 33
 
-          userInfos[0].vestingView.lockedAmount = wei("31.2");
-          userInfos[0].vestingView.amountToWithdraw = wei("88.8");
-          userInfos[0].vestingView.nextUnlockTime = (purchaseTime + 76).toString();
-          userInfos[0].vestingView.nextUnlockAmount = wei("2.4");
+          userInfos[0].vestingView.lockedAmount = wei("33.6");
+          userInfos[0].vestingView.amountToWithdraw = wei("86.4");
+          userInfos[0].vestingView.nextUnlockTime = (purchaseTime + 75).toString();
+          userInfos[0].vestingView.nextUnlockAmount = wei("3.6");
 
           assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
           await tsp.vestingWithdraw([1]);
 
-          userInfos[0].purchase.latestVestingWithdraw = (purchaseTime + 75).toString();
-          userInfos[0].purchase.vestingWithdrawnAmount = wei("88.8");
+          userInfos[0].purchase.latestVestingWithdraw = (purchaseTime + 74).toString();
+          userInfos[0].purchase.vestingWithdrawnAmount = wei("86.4");
           userInfos[0].vestingView.amountToWithdraw = "0";
 
           assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei("568.8"));
+          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei("566.4"));
           assert.deepEqual(
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
             ["0"]
@@ -1113,22 +1113,31 @@ describe("TokenSaleProposal", () => {
 
           await setTime(purchaseTime + 91);
 
-          userInfos[0].vestingView.nextUnlockTime = (purchaseTime + 92).toString();
-          userInfos[0].vestingView.amountToWithdraw = wei("19.2");
+          userInfos[0].vestingView.nextUnlockTime = (purchaseTime + 93).toString();
+          userInfos[0].vestingView.amountToWithdraw = wei("21.6");
           userInfos[0].vestingView.lockedAmount = wei("12");
 
           assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
-          await setTime(purchaseTime + 100);
+          await setTime(purchaseTime + 99);
+
+          userInfos[0].vestingView.nextUnlockTime = (purchaseTime + 100).toString();
+          userInfos[0].vestingView.amountToWithdraw = wei("32.4");
+          userInfos[0].vestingView.lockedAmount = wei("1.2");
+          userInfos[0].vestingView.nextUnlockAmount = wei("1.2");
+
+          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
           assert.deepEqual(
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
-            [wei("31.2")]
-          ); // tokensPerStep = 2.4, steps = (100-74) // 2 = 13 vestingWithdraw = 2.4 * 13 = 31.2
+            [wei("32.4")]
+          );
+
+          await setTime(purchaseTime + 100);
 
           userInfos[0].vestingView.nextUnlockAmount = "0";
           userInfos[0].vestingView.nextUnlockTime = "0";
-          userInfos[0].vestingView.amountToWithdraw = wei("31.2");
+          userInfos[0].vestingView.amountToWithdraw = wei("33.6");
           userInfos[0].vestingView.lockedAmount = "0";
 
           assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
