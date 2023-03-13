@@ -139,11 +139,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         _changeBalances(newValues, userAddresses);
     }
 
-    function vote(
-        uint256 proposalId,
-        uint256 amount,
-        bool isInternal
-    ) external override onlyValidator {
+    function vote(uint256 proposalId, uint256 amount, bool isInternal) external override {
         require(_proposalExists(proposalId, isInternal), "Validators: proposal does not exist");
 
         ProposalCore storage core = isInternal
@@ -155,6 +151,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         uint256 balanceAt = govValidatorsToken.balanceOfAt(msg.sender, core.snapshotId);
         uint256 voted = addressVoted[proposalId][isInternal][msg.sender];
 
+        require(balanceAt != 0, "Validators: zero snapshot balance");
         require(amount + voted <= balanceAt, "Validators: excessive vote amount");
 
         addressVoted[proposalId][isInternal][msg.sender] += amount;
