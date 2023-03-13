@@ -163,7 +163,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         uint256 balanceAt = govValidatorsToken.balanceOfAt(msg.sender, core.snapshotId);
         uint256 voted = addressVoted[proposalId][isInternal][msg.sender];
 
-        require(balanceAt != 0, "Validators: zero snapshot balance");
+        require(balanceAt != 0, "Validators: caller is not the validator");
         require(amount + voted <= balanceAt, "Validators: excessive vote amount");
 
         addressVoted[proposalId][isInternal][msg.sender] += amount;

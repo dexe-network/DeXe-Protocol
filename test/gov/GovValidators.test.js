@@ -17,6 +17,7 @@ describe("GovValidators", () => {
   let OWNER;
   let SECOND;
   let THIRD;
+  let NONE;
 
   let validators;
   let validatorsToken;
@@ -29,6 +30,7 @@ describe("GovValidators", () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
     THIRD = await accounts(2);
+    NONE = await accounts(9);
 
     validators = await GovValidators.new();
 
@@ -47,7 +49,8 @@ describe("GovValidators", () => {
             500,
             PRECISION.times("51").toFixed(),
             [SECOND],
-            [wei("100"), wei("200")]
+            [wei("100"), wei("200")],
+            NONE
           ),
           "Validators: invalid array length"
         );
@@ -61,7 +64,8 @@ describe("GovValidators", () => {
             0,
             PRECISION.times("51").toFixed(),
             [SECOND],
-            [wei("100")]
+            [wei("100")],
+            NONE
           ),
           "Validators: duration is zero"
         );
@@ -75,7 +79,8 @@ describe("GovValidators", () => {
             100,
             PRECISION.times("101").toFixed(),
             [SECOND],
-            [wei("100")]
+            [wei("100")],
+            NONE
           ),
           "Validators: invalid quorum value"
         );
@@ -91,7 +96,8 @@ describe("GovValidators", () => {
         500,
         PRECISION.times("51").toFixed(),
         [SECOND, THIRD],
-        [wei("100"), wei("200")]
+        [wei("100"), wei("200")],
+        NONE
       );
 
       validatorsToken = await GovValidatorsToken.at(await validators.govValidatorsToken());
@@ -143,7 +149,8 @@ describe("GovValidators", () => {
             500,
             PRECISION.times("51").toFixed(),
             [SECOND, THIRD],
-            [wei("100"), wei("200")]
+            [wei("100"), wei("200")],
+            NONE
           ),
           "Initializable: contract is already initialized"
         );
@@ -164,7 +171,9 @@ describe("GovValidators", () => {
           "Validators: caller is not the validator"
         );
 
-        await truffleAssert.reverts(validators.vote(1, 1, false), "Validators: caller is not the validator");
+        await validators.createInternalProposal(1, "example.com", [100], [SECOND], { from: SECOND });
+
+        await truffleAssert.reverts(validators.vote(1, 1, true), "Validators: caller is not the validator");
       });
     });
 

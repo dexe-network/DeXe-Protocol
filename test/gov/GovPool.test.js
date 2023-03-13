@@ -210,7 +210,8 @@ describe("GovPool", () => {
       poolParams.validatorsParams.duration,
       poolParams.validatorsParams.quorum,
       poolParams.validatorsParams.validators,
-      poolParams.validatorsParams.balances
+      poolParams.validatorsParams.balances,
+      govPool.address
     );
     await userKeeper.__GovUserKeeper_init(
       poolParams.userKeeperParams.tokenAddress,
