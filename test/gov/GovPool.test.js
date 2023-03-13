@@ -924,6 +924,8 @@ describe("GovPool", () => {
           executorDescription: "new_settings",
         };
 
+        let startTime;
+
         beforeEach("setup", async () => {
           startTime = await getCurrentBlockTime();
 
@@ -971,6 +973,22 @@ describe("GovPool", () => {
         });
 
         it("should revert when try move without vote", async () => {
+          await truffleAssert.reverts(govPool.moveProposalToValidators(3), "Gov: can't be moved");
+        });
+
+        it("should revert when validators count is zero", async () => {
+          await depositAndVote(3, wei("1000"), [], wei("1000"), [], OWNER);
+          await depositAndVote(3, wei("100000000000000000000"), [], wei("100000000000000000000"), [], SECOND);
+
+          assert.equal((await govPool.getProposalState(3)).toFixed(), ProposalState.WaitingForVotingTransfer);
+
+          await validators.createInternalProposal(3, "", [0, 0], [OWNER, SECOND]);
+          await validators.vote(1, wei("1000000000000"), true, { from: SECOND });
+          await validators.execute(1);
+
+          assert.equal((await validators.validatorsCount()).toFixed(), "0");
+          assert.equal((await govPool.getProposalState(3)).toFixed(), ProposalState.Succeeded);
+
           await truffleAssert.reverts(govPool.moveProposalToValidators(3), "Gov: can't be moved");
         });
       });

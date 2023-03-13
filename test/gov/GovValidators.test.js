@@ -17,7 +17,7 @@ describe("GovValidators", () => {
   let OWNER;
   let SECOND;
   let THIRD;
-  let NONE;
+  let NOTHING;
 
   let validators;
   let validatorsToken;
@@ -30,7 +30,7 @@ describe("GovValidators", () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
     THIRD = await accounts(2);
-    NONE = await accounts(9);
+    NOTHING = await accounts(9);
 
     validators = await GovValidators.new();
 
@@ -50,7 +50,7 @@ describe("GovValidators", () => {
             PRECISION.times("51").toFixed(),
             [SECOND],
             [wei("100"), wei("200")],
-            NONE
+            NOTHING
           ),
           "Validators: invalid array length"
         );
@@ -65,7 +65,7 @@ describe("GovValidators", () => {
             PRECISION.times("51").toFixed(),
             [SECOND],
             [wei("100")],
-            NONE
+            NOTHING
           ),
           "Validators: duration is zero"
         );
@@ -80,9 +80,24 @@ describe("GovValidators", () => {
             PRECISION.times("101").toFixed(),
             [SECOND],
             [wei("100")],
-            NONE
+            NOTHING
           ),
           "Validators: invalid quorum value"
+        );
+      });
+
+      it("should revert if gov address is zero", async () => {
+        await truffleAssert.reverts(
+          validators.__GovValidators_init(
+            "Validator Token",
+            "VT",
+            100,
+            PRECISION.times("51").toFixed(),
+            [SECOND],
+            [wei("100")],
+            ZERO_ADDR
+          ),
+          "Validators: zero gov address"
         );
       });
     });
@@ -97,7 +112,7 @@ describe("GovValidators", () => {
         PRECISION.times("51").toFixed(),
         [SECOND, THIRD],
         [wei("100"), wei("200")],
-        NONE
+        NOTHING
       );
 
       validatorsToken = await GovValidatorsToken.at(await validators.govValidatorsToken());
@@ -150,7 +165,7 @@ describe("GovValidators", () => {
             PRECISION.times("51").toFixed(),
             [SECOND, THIRD],
             [wei("100"), wei("200")],
-            NONE
+            NOTHING
           ),
           "Initializable: contract is already initialized"
         );
@@ -263,6 +278,12 @@ describe("GovValidators", () => {
       it("should revert if proposal already exists", async () => {
         await validators.createExternalProposal(1, 1, 1);
         await truffleAssert.reverts(validators.createExternalProposal(1, 1, 1), "Validators: proposal already exists");
+      });
+    });
+
+    describe("executeExternalProposal()", () => {
+      it("should revert if caller is not the gov pool", async () => {
+        await truffleAssert.reverts(validators.executeExternalProposal(1), "Validators: not a Gov contract");
       });
     });
 
