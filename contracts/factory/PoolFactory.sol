@@ -284,7 +284,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.validatorsParams.duration,
             parameters.validatorsParams.quorum,
             parameters.validatorsParams.validators,
-            parameters.validatorsParams.balances
+            parameters.validatorsParams.balances,
+            poolProxy
         );
         GovUserKeeper(userKeeperProxy).__GovUserKeeper_init(
             parameters.userKeeperParams.tokenAddress,
