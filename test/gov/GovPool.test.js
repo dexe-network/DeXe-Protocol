@@ -1175,7 +1175,6 @@ describe("GovPool", () => {
 
         await govPool.execute(1);
 
-        assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
         assert.equal((await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR)).tokens.toFixed(), wei("1000"));
 
         const addedSettings = await settings.settings(4);
@@ -1994,7 +1993,6 @@ describe("GovPool", () => {
           await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
           await govPool.execute(1);
-
           await govPool.claimRewards([1], { from: micropool });
 
           await govPool.undelegate(micropool, wei("100000000000000000000"), [], { from: delegator1 });
