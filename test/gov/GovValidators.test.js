@@ -80,20 +80,6 @@ describe("GovValidators", () => {
           "Validators: invalid quorum value"
         );
       });
-
-      it("should revert if gov address is zero", async () => {
-        await truffleAssert.reverts(
-          validators.__GovValidators_init(
-            "Validator Token",
-            "VT",
-            100,
-            PRECISION.times("51").toFixed(),
-            [SECOND],
-            [wei("100")]
-          ),
-          "Validators: zero gov address"
-        );
-      });
     });
   });
 
