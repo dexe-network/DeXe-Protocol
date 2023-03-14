@@ -169,6 +169,11 @@ describe("GovValidators", () => {
           validators.changeBalances([100], [SECOND], { from: SECOND }),
           "Ownable: caller is not the owner"
         );
+
+        await truffleAssert.reverts(
+          validators.executeExternalProposal(1, { from: SECOND }),
+          "Ownable: caller is not the owner"
+        );
       });
 
       it("only validator should call these functions", async () => {
@@ -271,15 +276,6 @@ describe("GovValidators", () => {
       it("should revert if proposal already exists", async () => {
         await validators.createExternalProposal(1, 1, 1);
         await truffleAssert.reverts(validators.createExternalProposal(1, 1, 1), "Validators: proposal already exists");
-      });
-    });
-
-    describe("executeExternalProposal()", () => {
-      it("should revert if caller is not the gov pool", async () => {
-        await truffleAssert.reverts(
-          validators.executeExternalProposal(1, { from: SECOND }),
-          "Ownable: caller is not the owner"
-        );
       });
     });
 
