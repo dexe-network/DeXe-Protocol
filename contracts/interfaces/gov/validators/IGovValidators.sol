@@ -119,6 +119,10 @@ interface IGovValidators {
     /// @param proposalId Internal proposal ID
     function execute(uint256 proposalId) external;
 
+    /// @notice The function called by governance that marks the external proposal as executed
+    /// @param proposalId External proposal ID
+    function executeExternalProposal(uint256 proposalId) external;
+
     /// @notice The function for getting information about the external proposals
     /// @param index the index of proposal
     /// @return `ExternalProposal` struct

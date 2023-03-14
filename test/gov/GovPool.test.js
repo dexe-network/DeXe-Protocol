@@ -21,7 +21,7 @@ const {
   getBytesGovDeposit,
 } = require("../utils/gov-pool-utils");
 const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
-const { ProposalState, DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
+const { ProposalState, DEFAULT_CORE_PROPERTIES, ValidatorsProposalState } = require("../utils/constants");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
@@ -923,6 +923,8 @@ describe("GovPool", () => {
           executorDescription: "new_settings",
         };
 
+        let startTime;
+
         beforeEach("setup", async () => {
           startTime = await getCurrentBlockTime();
 
@@ -970,6 +972,22 @@ describe("GovPool", () => {
         });
 
         it("should revert when try move without vote", async () => {
+          await truffleAssert.reverts(govPool.moveProposalToValidators(3), "Gov: can't be moved");
+        });
+
+        it("should revert when validators count is zero", async () => {
+          await depositAndVote(3, wei("1000"), [], wei("1000"), [], OWNER);
+          await depositAndVote(3, wei("100000000000000000000"), [], wei("100000000000000000000"), [], SECOND);
+
+          assert.equal((await govPool.getProposalState(3)).toFixed(), ProposalState.WaitingForVotingTransfer);
+
+          await validators.createInternalProposal(3, "", [0, 0], [OWNER, SECOND]);
+          await validators.vote(1, wei("1000000000000"), true, { from: SECOND });
+          await validators.execute(1);
+
+          assert.equal((await validators.validatorsCount()).toFixed(), "0");
+          assert.equal((await govPool.getProposalState(3)).toFixed(), ProposalState.Succeeded);
+
           await truffleAssert.reverts(govPool.moveProposalToValidators(3), "Gov: can't be moved");
         });
       });
@@ -1263,6 +1281,7 @@ describe("GovPool", () => {
         await govPool.execute(1);
 
         assert.equal(await govPool.getProposalState(1), ProposalState.Executed);
+        assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
         assert.equal(toBN(await settings.executorToSettings(executorTransfer.address)).toFixed(), "4");
 
         const bytesExecute = getBytesExecute();

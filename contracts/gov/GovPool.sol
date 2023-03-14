@@ -403,14 +403,17 @@ contract GovPool is
 
         if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
             if (_quorumReached(core)) {
-                if (core.settings.validatorsVote && _govValidators.validatorsCount() > 0) {
+                if (core.settings.validatorsVote) {
                     IGovValidators.ProposalState status = _govValidators.getProposalState(
                         proposalId,
                         false
                     );
 
                     if (status == IGovValidators.ProposalState.Undefined) {
-                        return ProposalState.WaitingForVotingTransfer;
+                        return
+                            _govValidators.validatorsCount() > 0
+                                ? ProposalState.WaitingForVotingTransfer
+                                : ProposalState.Succeeded;
                     }
 
                     if (status == IGovValidators.ProposalState.Succeeded) {
