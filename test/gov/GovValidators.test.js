@@ -89,8 +89,7 @@ describe("GovValidators", () => {
             100,
             PRECISION.times("51").toFixed(),
             [SECOND],
-            [wei("100")],
-            ZERO_ADDR
+            [wei("100")]
           ),
           "Validators: zero gov address"
         );
