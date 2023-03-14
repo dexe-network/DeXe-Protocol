@@ -17,7 +17,6 @@ describe("GovValidators", () => {
   let OWNER;
   let SECOND;
   let THIRD;
-  let NOTHING;
 
   let validators;
   let validatorsToken;
