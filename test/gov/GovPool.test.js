@@ -21,7 +21,7 @@ const {
   getBytesGovDeposit,
 } = require("../utils/gov-pool-utils");
 const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
-const { ProposalState, DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
+const { ProposalState, DEFAULT_CORE_PROPERTIES, ValidatorsProposalState } = require("../utils/constants");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
@@ -365,6 +365,8 @@ describe("GovPool", () => {
     await validators.vote(proposalId, wei("1000000000000"), false, { from: SECOND });
 
     await govPool.execute(proposalId);
+
+    assert.equal((await validators.getProposalState(proposalId, false)).toFixed(), ValidatorsProposalState.Executed);
   }
 
   const assertBalanceDistribution = (balances, coefficients) => {
@@ -702,6 +704,8 @@ describe("GovPool", () => {
           await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
           await govPool.execute(1);
+
+          assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
         });
 
         it("should create trusted proposal", async () => {
@@ -1175,6 +1179,7 @@ describe("GovPool", () => {
 
         await govPool.execute(1);
 
+        assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
         assert.equal((await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR)).tokens.toFixed(), wei("1000"));
 
         const addedSettings = await settings.settings(4);
@@ -1208,6 +1213,8 @@ describe("GovPool", () => {
 
         await govPool.execute(1);
 
+        assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
+
         await govPool.deposit(OWNER, 0, [1, 2, 3, 4]);
         await govPool.delegate(SECOND, wei("1000"), [1, 2, 3, 4]);
 
@@ -1232,6 +1239,8 @@ describe("GovPool", () => {
         await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
         await govPool.execute(1);
+
+        assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
 
         await truffleAssert.reverts(govPool.vote(1, wei("1000"), []), "Gov: vote unavailable");
 
@@ -1279,6 +1288,8 @@ describe("GovPool", () => {
         await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
         await govPool.execute(1);
+
+        assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
 
         assert.equal(await govPool.getProposalState(1), ProposalState.Executed);
         assert.equal(toBN(await settings.executorToSettings(executorTransfer.address)).toFixed(), "4");
@@ -1342,6 +1353,7 @@ describe("GovPool", () => {
 
         await truffleAssert.passes(govPool.execute(1), "Executed");
 
+        assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
         assert.equal(await web3.eth.getBalance(executorTransfer.address), wei("1"));
       });
 
@@ -1385,6 +1397,7 @@ describe("GovPool", () => {
 
             await govPool.execute(1);
 
+            assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
             assert.equal(await govPool.descriptionURL(), newUrl);
           });
 
@@ -1434,6 +1447,7 @@ describe("GovPool", () => {
 
             await govPool.execute(1);
 
+            assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
             assert.equal(await govPool.getVerifier(), newAddress);
           });
 
@@ -1459,6 +1473,7 @@ describe("GovPool", () => {
 
             await govPool.execute(1);
 
+            assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
             assert.isTrue(await govPool.onlyBABTHolders());
           });
 
@@ -1661,6 +1676,7 @@ describe("GovPool", () => {
 
         await govPool.execute(1);
 
+        assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
         assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("20000000000000000005.2"));
 
         rewards = await govPool.getPendingRewards(OWNER, [1]);
@@ -1691,6 +1707,7 @@ describe("GovPool", () => {
         await govPool.execute(2);
         await govPool.claimRewards([2]);
 
+        assert.equal((await validators.getProposalState(2, false)).toFixed(), ValidatorsProposalState.Executed);
         assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("91")); // 91 = 26 + 26 * 2.5
       });
 
@@ -1709,6 +1726,7 @@ describe("GovPool", () => {
 
         await executeAndClaim(1, OWNER);
 
+        assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
         assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("20000000000000000005.2"));
         assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("26"));
       });
@@ -1725,6 +1743,8 @@ describe("GovPool", () => {
         await network.provider.send("hardhat_setBalance", [govPool.address, "0x" + wei("100")]);
 
         await govPool.execute(1);
+
+        assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
 
         await govPool.createProposal(
           "example.com",
@@ -1778,6 +1798,7 @@ describe("GovPool", () => {
 
         await govPool.execute(1);
 
+        assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
         assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("10000000000000000000000"));
       });
 
@@ -1793,6 +1814,7 @@ describe("GovPool", () => {
         await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
         await executeAndClaim(1, OWNER);
+        assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
 
         await impersonate(coreProperties.address);
 
@@ -1856,6 +1878,8 @@ describe("GovPool", () => {
         await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
         await govPool.execute(1);
+
+        assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
 
         await govPool.createProposal(
           "example.com",
@@ -1992,6 +2016,9 @@ describe("GovPool", () => {
           await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
           await govPool.execute(1);
+
+          assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
+
           await govPool.claimRewards([1], { from: micropool });
 
           await govPool.undelegate(micropool, wei("100000000000000000000"), [], { from: delegator1 });
@@ -2075,6 +2102,8 @@ describe("GovPool", () => {
 
           await govPool.execute(1);
 
+          assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
+
           await govPool.createProposal(
             "example.com",
             "misc",
@@ -2148,6 +2177,8 @@ describe("GovPool", () => {
           await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
 
           await govPool.execute(1);
+
+          assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
 
           await govPool.createProposal(
             "example.com",
@@ -2236,6 +2267,8 @@ describe("GovPool", () => {
 
           await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
           await govPool.execute(1);
+
+          assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
 
           await govPool.createProposal(
             "example.com",
