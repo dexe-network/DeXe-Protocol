@@ -30,7 +30,6 @@ describe("GovValidators", () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
     THIRD = await accounts(2);
-    NOTHING = await accounts(9);
 
     validators = await GovValidators.new();
 
@@ -49,8 +48,7 @@ describe("GovValidators", () => {
             500,
             PRECISION.times("51").toFixed(),
             [SECOND],
-            [wei("100"), wei("200")],
-            NOTHING
+            [wei("100"), wei("200")]
           ),
           "Validators: invalid array length"
         );
@@ -64,8 +62,7 @@ describe("GovValidators", () => {
             0,
             PRECISION.times("51").toFixed(),
             [SECOND],
-            [wei("100")],
-            NOTHING
+            [wei("100")]
           ),
           "Validators: duration is zero"
         );
@@ -79,8 +76,7 @@ describe("GovValidators", () => {
             100,
             PRECISION.times("101").toFixed(),
             [SECOND],
-            [wei("100")],
-            NOTHING
+            [wei("100")]
           ),
           "Validators: invalid quorum value"
         );
@@ -111,8 +107,7 @@ describe("GovValidators", () => {
         500,
         PRECISION.times("51").toFixed(),
         [SECOND, THIRD],
-        [wei("100"), wei("200")],
-        NOTHING
+        [wei("100"), wei("200")]
       );
 
       validatorsToken = await GovValidatorsToken.at(await validators.govValidatorsToken());
@@ -164,8 +159,7 @@ describe("GovValidators", () => {
             500,
             PRECISION.times("51").toFixed(),
             [SECOND, THIRD],
-            [wei("100"), wei("200")],
-            NOTHING
+            [wei("100"), wei("200")]
           ),
           "Initializable: contract is already initialized"
         );
@@ -283,7 +277,10 @@ describe("GovValidators", () => {
 
     describe("executeExternalProposal()", () => {
       it("should revert if caller is not the gov pool", async () => {
-        await truffleAssert.reverts(validators.executeExternalProposal(1), "Validators: not a Gov contract");
+        await truffleAssert.reverts(
+          validators.executeExternalProposal(1, { from: SECOND }),
+          "Ownable: caller is not the owner"
+        );
       });
     });
 

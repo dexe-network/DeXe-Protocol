@@ -15,8 +15,6 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     using Math for uint256;
     using MathHelper for uint256;
 
-    address public govAddress;
-
     GovValidatorsToken public govValidatorsToken;
 
     InternalProposalSettings public internalProposalSettings;
@@ -47,34 +45,24 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         _;
     }
 
-    /// @dev Access only for GovPool
-    modifier onlyGov() {
-        _onlyGov();
-        _;
-    }
-
     function __GovValidators_init(
         string calldata name,
         string calldata symbol,
         uint64 duration,
         uint128 quorum,
         address[] calldata validators,
-        uint256[] calldata balances,
-        address _govAddress
+        uint256[] calldata balances
     ) external initializer {
         __Ownable_init();
 
         require(validators.length == balances.length, "Validators: invalid array length");
         require(duration > 0, "Validators: duration is zero");
         require(quorum <= PERCENTAGE_100, "Validators: invalid quorum value");
-        require(_govAddress != address(0), "Validators: zero gov address");
 
         govValidatorsToken = new GovValidatorsToken(name, symbol);
 
         internalProposalSettings.duration = duration;
         internalProposalSettings.quorum = quorum;
-
-        govAddress = _govAddress;
 
         _changeBalances(balances, validators);
     }
@@ -201,7 +189,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         emit InternalProposalExecuted(proposalId, msg.sender);
     }
 
-    function executeExternalProposal(uint256 proposalId) external override onlyGov {
+    function executeExternalProposal(uint256 proposalId) external override onlyOwner {
         _externalProposals[proposalId].core.executed = true;
     }
 
@@ -325,9 +313,5 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
     function _onlyValidator() internal view {
         require(isValidator(msg.sender), "Validators: caller is not the validator");
-    }
-
-    function _onlyGov() internal view {
-        require(msg.sender == govAddress, "Validators: not a Gov contract");
     }
 }
