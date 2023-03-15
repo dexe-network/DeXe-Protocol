@@ -50,7 +50,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     event DaoPoolDeployed(
         string name,
         address govPool,
-        address DP,
+        address dp,
         address validators,
         address settings,
         address govUserKeeper,
