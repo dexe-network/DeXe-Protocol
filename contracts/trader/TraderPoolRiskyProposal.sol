@@ -86,7 +86,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
             "TPRP: wrong investment limit"
         );
         require(lpInvestment > 0 && baseInvestment > 0, "TPRP: zero investment");
-        require(instantTradePercentage <= PERCENTAGE_100, "TPRP: percantage is bigger than 100");
+        require(instantTradePercentage <= PERCENTAGE_100, "TPRP: percentage is bigger than 100");
 
         proposalId = ++proposalsTotalNum;
 
