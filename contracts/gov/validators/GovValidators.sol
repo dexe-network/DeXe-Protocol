@@ -97,7 +97,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
                 executed: false,
                 quorum: internalProposalSettings.quorum,
                 votesFor: 0,
-                snapshotId: uint32(govValidatorsToken.snapshot())
+                snapshotId: uint56(govValidatorsToken.snapshot())
             }),
             descriptionURL: descriptionURL,
             newValues: newValues,
@@ -125,7 +125,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
                 executed: false,
                 quorum: quorum,
                 votesFor: 0,
-                snapshotId: uint32(govValidatorsToken.snapshot())
+                snapshotId: uint56(govValidatorsToken.snapshot())
             })
         });
 
