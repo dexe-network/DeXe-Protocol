@@ -70,6 +70,13 @@ describe("GovUserKeeper", () => {
           "GovUK: total supply is zero"
         );
       });
+
+      it("should revert if NFT total supply >= 2^128", async () => {
+        await truffleAssert.reverts(
+          userKeeper.__GovUserKeeper_init(ZERO_ADDR, nft.address, wei("1"), toBN(2).pow(128)),
+          "SafeCast: value doesn't fit in 128 bits"
+        );
+      });
     });
   });
 
