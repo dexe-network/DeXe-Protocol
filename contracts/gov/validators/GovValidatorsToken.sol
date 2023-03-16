@@ -17,11 +17,11 @@ contract GovValidatorsToken is IGovValidatorsToken, ERC20Snapshot {
         validator = msg.sender;
     }
 
-    function mint(address account, uint256 amount) external override onlyValidator {
+    function mint(address account, uint256 amount) external override {
         _mint(account, amount);
     }
 
-    function burn(address account, uint256 amount) external override onlyValidator {
+    function burn(address account, uint256 amount) external override {
         _burn(account, amount);
     }
 
