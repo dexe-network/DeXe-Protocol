@@ -123,27 +123,6 @@ describe("ERC20Sale", () => {
       });
     });
 
-    describe("burn", () => {
-      it("should not burn if caller is not govPool", async () => {
-        await truffleAssert.reverts(erc20Sale.burn(SALE_ADDRESS, wei(1)), "ERC20Sale: not a Gov contract");
-      });
-
-      it("should not burn if not enough balance", async () => {
-        await truffleAssert.reverts(
-          erc20Sale.burn(SALE_ADDRESS, wei(100), { from: GOV_ADDRESS }),
-          "ERC20: burn amount exceeds balance"
-        );
-      });
-
-      it("should not burn all conditions are met", async () => {
-        assert.equal((await erc20Sale.balanceOf(SALE_ADDRESS)).toFixed(), wei(1));
-
-        await erc20Sale.burn(SALE_ADDRESS, wei(1), { from: GOV_ADDRESS });
-
-        assert.equal((await erc20Sale.balanceOf(SALE_ADDRESS)).toFixed(), "0");
-      });
-    });
-
     describe("pause", () => {
       it("should not pause if caller is not govPool", async () => {
         await truffleAssert.reverts(erc20Sale.pause(), "ERC20Sale: not a Gov contract");

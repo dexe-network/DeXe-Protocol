@@ -3,10 +3,11 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
 import "../../interfaces/gov/ERC20/IERC20Sale.sol";
 
-contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
+contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable, ERC20Burnable {
     address public immutable govAddress;
 
     modifier onlyGov() {
@@ -44,10 +45,6 @@ contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
 
     function mint(address account, uint256 amount) external override onlyGov {
         _mint(account, amount);
-    }
-
-    function burn(address account, uint256 amount) external override onlyGov {
-        _burn(account, amount);
     }
 
     function pause() external override onlyGov {
