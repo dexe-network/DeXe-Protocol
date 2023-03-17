@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
@@ -25,7 +24,6 @@ import "../ERC721/ERC721Power.sol";
 contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgradeable {
     using SafeERC20 for IERC20;
     using Math for uint256;
-    using SafeCast for uint256;
     using MathHelper for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -655,9 +653,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         if (!IERC165(_nftAddress).supportsInterface(type(IERC721Power).interfaceId)) {
             if (!IERC165(_nftAddress).supportsInterface(type(IERC721Enumerable).interfaceId)) {
-                require(nftsTotalSupply > 0, "GovUK: total supply is zero");
+                require(uint128(nftsTotalSupply) > 0, "GovUK: total supply is zero");
 
-                _nftInfo.totalSupply = nftsTotalSupply.toUint128();
+                _nftInfo.totalSupply = nftsTotalSupply;
             }
         } else {
             _nftInfo.isSupportPower = true;
