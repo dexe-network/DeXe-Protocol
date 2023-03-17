@@ -36,7 +36,7 @@ interface IGovValidators {
     /// @param votesFor the total number of votes in proposal from all voters
     struct ProposalCore {
         bool executed;
-        uint32 snapshotId;
+        uint56 snapshotId;
         uint64 voteEnd;
         uint128 quorum;
         uint256 votesFor;
