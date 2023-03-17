@@ -655,7 +655,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             if (!IERC165(_nftAddress).supportsInterface(type(IERC721Enumerable).interfaceId)) {
                 require(uint128(nftsTotalSupply) > 0, "GovUK: total supply is zero");
 
-                _nftInfo.totalSupply = nftsTotalSupply;
+                _nftInfo.totalSupply = uint128(nftsTotalSupply);
             }
         } else {
             _nftInfo.isSupportPower = true;
