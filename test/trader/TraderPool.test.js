@@ -1151,6 +1151,10 @@ describe("TraderPool", () => {
         assert.equal((await traderPool.investorsInfo(SECOND)).investedBase.toFixed(), "0");
       });
 
+      it("should not divest if insufficient LP balance", async () => {
+        await truffleAssert.reverts(divest(wei("1001"), OWNER), "TP: wrong amount");
+      });
+
       it("should not divest in the same block", async () => {
         const bundle = await BundleMock.new();
 
@@ -1158,7 +1162,7 @@ describe("TraderPool", () => {
 
         await truffleAssert.reverts(
           bundle.investDivest(traderPool.address, tokens.WETH.address, wei("10")),
-          "TP: wrong amount"
+          "TP: wrong block"
         );
       });
 
