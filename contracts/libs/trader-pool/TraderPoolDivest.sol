@@ -130,11 +130,7 @@ library TraderPoolDivest {
     function _checkUserBalance(uint256 amountLP) internal view {
         TraderPool traderPool = TraderPool(address(this));
 
-        require(
-            amountLP <=
-                traderPool.balanceOf(msg.sender) -
-                    traderPool.investsInBlocks(msg.sender, block.number),
-            "TP: wrong amount"
-        );
+        require(block.number > traderPool.latestInvestBlocks(msg.sender), "TP: wrong block");
+        require(amountLP <= traderPool.balanceOf(msg.sender), "TP: wrong amount");
     }
 }
