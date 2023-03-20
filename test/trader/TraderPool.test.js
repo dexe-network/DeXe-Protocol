@@ -265,7 +265,7 @@ describe("TraderPool", () => {
 
         await truffleAssert.reverts(traderPool.updateFrom(OWNER, 1, 1), "TP: not this contract");
 
-        await truffleAssert.reverts(traderPool.addBlockInvestment(OWNER, 1), "TP: not this contract");
+        await truffleAssert.reverts(traderPool.setLatestInvestBlock(OWNER), "TP: not this contract");
       });
 
       it("only admin should call these methods", async () => {
