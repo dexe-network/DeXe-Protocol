@@ -131,12 +131,13 @@ interface IPoolFactory {
         TraderPoolDeployParameters calldata parameters
     ) external;
 
-    /// @notice The view function that predicts the address where the gov pool proxy will be stored
-    /// @param deployer the user that deploys the gov pool
+    /// @notice The view function that predicts the addresses where
+    /// the gov pool proxy, the gov token sale proxy and the gov token will be stored
+    /// @param deployer the user that deploys the gov pool (tx.origin)
     /// @param poolName the name of the pool which is part of the salt
-    /// @return the predicted gov pool proxy address
-    function predictGovAddress(
+    /// @return the predicted gov pool proxy, gov token sale proxy and gov token addresses
+    function predictGovAddresses(
         address deployer,
         string calldata poolName
-    ) external view returns (address);
+    ) external view returns (address, address, address);
 }

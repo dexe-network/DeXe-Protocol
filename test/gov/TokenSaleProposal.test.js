@@ -405,11 +405,9 @@ describe("TokenSaleProposal", () => {
         },
       };
 
-      erc20Sale = await ERC20Sale.new(
-        erc20Params.govAddress,
-        erc20Params.saleAddress,
-        erc20Params.constructorParameters
-      );
+      erc20Sale = await ERC20Sale.new();
+
+      erc20Sale.__ERC20Sale_init(erc20Params.govAddress, erc20Params.saleAddress, erc20Params.constructorParameters);
 
       purchaseToken1 = await ERC20Mock.new("PurchaseMockedToken1", "PMT1", 18);
       purchaseToken2 = await ERC20Mock.new("PurchaseMockedToken1", "PMT1", 18);
