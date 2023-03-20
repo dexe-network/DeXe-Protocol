@@ -42,7 +42,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
     EnumerableSet.AddressSet internal _investors;
     EnumerableSet.AddressSet internal _positions;
 
-    mapping(address => mapping(uint256 => uint256)) public investsInBlocks; // user => block => LP amount
+    mapping(address => uint256) public latestInvestBlocks; // user => block
     mapping(address => InvestorInfo) public investorsInfo;
 
     event Joined(address user);
@@ -204,8 +204,8 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         return _updateFrom(user, lpAmount, baseAmount);
     }
 
-    function addBlockInvestment(address user, uint256 amount) external onlyThis {
-        investsInBlocks[user][block.number] += amount;
+    function setLatestInvestBlock(address user) external onlyThis {
+        latestInvestBlocks[user] = block.number;
     }
 
     function proposalPoolAddress() external view virtual override returns (address);
