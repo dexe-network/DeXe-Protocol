@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "../../interfaces/gov/ERC721/IERC721Multiplier.sol";
 import "../../core/Globals.sol";
 
 import "../../libs/math/MathHelper.sol";
 
-contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
+contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, OwnableUpgradeable {
     using MathHelper for uint256;
 
     string public baseURI;
@@ -20,7 +20,14 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
     event Minted(address to, uint256 tokenId, uint256 multiplier, uint256 duration);
     event Locked(address from, uint256 tokenId, uint256 multiplier, uint256 duration);
 
-    constructor(string memory name, string memory symbol) ERC721(name, symbol) {}
+    function __ERC721Multiplier_init(
+        string memory name,
+        string memory symbol
+    ) external initializer {
+        __Ownable_init();
+        __ERC721Enumerable_init();
+        __ERC721_init(name, symbol);
+    }
 
     function lock(uint256 tokenId) external override {
         require(
@@ -91,10 +98,10 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721Enumerable, Ownable {
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view override(ERC721Enumerable, IERC165) returns (bool) {
+    ) public view override(IERC165Upgradeable, ERC721EnumerableUpgradeable) returns (bool) {
         return
             interfaceId == type(IERC721Multiplier).interfaceId ||
-            ERC721Enumerable.supportsInterface(interfaceId);
+            super.supportsInterface(interfaceId);
     }
 
     function _baseURI() internal view override returns (string memory) {
