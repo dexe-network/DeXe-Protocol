@@ -44,8 +44,8 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
     }
 
     function __ERC721Power_init(
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         uint64 startTimestamp,
         address _collateralToken,
         uint256 _maxPower,

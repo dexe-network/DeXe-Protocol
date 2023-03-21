@@ -21,8 +21,8 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
     event Locked(address from, uint256 tokenId, uint256 multiplier, uint256 duration);
 
     function __ERC721Multiplier_init(
-        string memory name,
-        string memory symbol
+        string calldata name,
+        string calldata symbol
     ) external initializer {
         __Ownable_init();
         __ERC721Enumerable_init();
