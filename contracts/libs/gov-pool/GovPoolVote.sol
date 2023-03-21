@@ -75,6 +75,8 @@ library GovPoolVote {
             "Gov: vote limit reached"
         );
 
+        IGovPool(address(this)).setLatestVoteBlock(proposalId);
+
         _voteTokens(core, voteInfo, proposalId, voteAmount, isMicropool, useDelegated);
         reward = _voteNfts(core, voteInfo, voteNftIds, isMicropool, useDelegated) + voteAmount;
 

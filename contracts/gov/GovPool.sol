@@ -76,6 +76,7 @@ contract GovPool is
     OffChain internal _offChain;
 
     mapping(uint256 => Proposal) internal _proposals; // proposalId => info
+    mapping(uint256 => uint256) public latestVoteBlocks; // proposalId => block
 
     mapping(uint256 => mapping(address => mapping(bool => VoteInfo))) internal _voteInfos; // proposalId => voter => isMicropool => info
     mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
@@ -360,6 +361,10 @@ contract GovPool is
 
     function setNftMultiplierAddress(address nftMultiplierAddress) external override onlyThis {
         _setNftMultiplierAddress(nftMultiplierAddress);
+    }
+
+    function setLatestVoteBlock(uint256 proposalId) external override onlyThis {
+        latestVoteBlocks[proposalId] = block.number;
     }
 
     function saveOffchainResults(

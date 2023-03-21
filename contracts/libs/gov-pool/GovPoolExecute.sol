@@ -35,6 +35,10 @@ library GovPoolExecute {
                 IGovPool.ProposalState.Succeeded,
             "Gov: invalid status"
         );
+        require(
+            GovPool(payable(address(this))).latestVoteBlocks(proposalId) < block.number,
+            "Gov: wrong block"
+        );
 
         core.executed = true;
 
