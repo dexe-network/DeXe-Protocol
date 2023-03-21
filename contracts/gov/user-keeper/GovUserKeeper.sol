@@ -452,7 +452,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
                 }
             }
 
-            ownedBalance = ERC721(nftAddress).balanceOf(voter);
+            ownedBalance = ERC721Upgradeable(nftAddress).balanceOf(voter);
             totalBalance += ownedBalance;
         }
     }
@@ -652,7 +652,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         _nftInfo.totalPowerInTokens = totalPowerInTokens;
 
         if (!IERC165(_nftAddress).supportsInterface(type(IERC721Power).interfaceId)) {
-            if (!IERC165(_nftAddress).supportsInterface(type(IERC721Enumerable).interfaceId)) {
+            if (
+                !IERC165(_nftAddress).supportsInterface(
+                    type(IERC721EnumerableUpgradeable).interfaceId
+                )
+            ) {
                 require(uint128(nftsTotalSupply) > 0, "GovUK: total supply is zero");
 
                 _nftInfo.totalSupply = uint128(nftsTotalSupply);
