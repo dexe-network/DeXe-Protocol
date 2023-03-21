@@ -714,10 +714,10 @@ describe("TraderPool", () => {
         assert.equal((await tokens.WBTC.balanceOf(traderPool.address)).toFixed(), wei("250", 8));
       });
 
-      it("should not exchange blacklisted tokens", async () => {
+      it("should not exchange for blacklisted tokens", async () => {
         await coreProperties.addBlacklistTokens([tokens.WBTC.address]);
 
-        const exchange1 = (
+        const exchange = (
           await traderPool.getExchangeAmount(
             tokens.WETH.address,
             tokens.WBTC.address,
@@ -727,27 +727,100 @@ describe("TraderPool", () => {
           )
         )[0];
 
+        assert.equal(exchange.toFixed(), "0");
+
+        await truffleAssert.reverts(
+          exchangeToExact(tokens.WETH.address, tokens.WBTC.address, wei("500")),
+          "TP: blacklisted token"
+        );
+      });
+
+      it("should exchange if the source base token is blacklisted", async () => {
+        await coreProperties.addBlacklistTokens([tokens.WETH.address]);
+        await uniswapV2Router.setReserve(tokens.WBTC.address, wei("500000", 8));
+
+        const exchange = (
+          await traderPool.getExchangeAmount(
+            tokens.WETH.address,
+            tokens.WBTC.address,
+            wei("250"),
+            [],
+            ExchangeType.TO_EXACT
+          )
+        )[0];
+
+        assert.equal(exchange.toFixed(), wei("500"));
+
+        await traderPool.exchange(
+          tokens.WETH.address,
+          tokens.WBTC.address,
+          wei("250"),
+          exchange,
+          [],
+          ExchangeType.TO_EXACT
+        );
+
+        assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("500"));
+        assert.equal((await tokens.WBTC.balanceOf(traderPool.address)).toFixed(), wei("250", 8));
+      });
+
+      it("should exchange if the source position token is blacklisted", async () => {
+        await uniswapV2Router.setReserve(tokens.WBTC.address, wei("500000", 8));
+
+        const exchange1 = (
+          await traderPool.getExchangeAmount(
+            tokens.WETH.address,
+            tokens.WBTC.address,
+            wei("1000"),
+            [],
+            ExchangeType.FROM_EXACT
+          )
+        )[0];
+
+        assert.equal(exchange1.toFixed(), wei("500"));
+
+        await traderPool.exchange(
+          tokens.WETH.address,
+          tokens.WBTC.address,
+          wei("1000"),
+          exchange1,
+          [],
+          ExchangeType.FROM_EXACT
+        );
+
+        assert.equal((await tokens.WBTC.balanceOf(traderPool.address)).toFixed(), wei("500", 8));
+
+        await coreProperties.addBlacklistTokens([tokens.WBTC.address]);
+
+        await tokens.WBTC.approve(uniswapV2Router.address, wei("500000", 8));
+        await tokens.USDT.approve(uniswapV2Router.address, wei("500000000", 6));
+
+        await uniswapV2Router.setReserve(tokens.WBTC.address, wei("500000", 8));
+        await uniswapV2Router.setReserve(tokens.USDT.address, wei("500000000", 6));
+
         const exchange2 = (
           await traderPool.getExchangeAmount(
             tokens.WBTC.address,
-            tokens.WETH.address,
+            tokens.USDT.address,
             wei("500"),
             [],
             ExchangeType.FROM_EXACT
           )
         )[0];
 
-        assert.equal(exchange1.toFixed(), "0");
-        assert.equal(exchange2.toFixed(), "0");
+        assert.equal(exchange2.toFixed(), wei("500000"));
 
-        await truffleAssert.reverts(
-          exchangeToExact(tokens.WETH.address, tokens.WBTC.address, wei("500")),
-          "TP: blacklisted token"
+        await traderPool.exchange(
+          tokens.WBTC.address,
+          tokens.USDT.address,
+          wei("500"),
+          exchange2,
+          [],
+          ExchangeType.FROM_EXACT
         );
-        await truffleAssert.reverts(
-          exchangeFromExact(tokens.WBTC.address, tokens.WETH.address, wei("500")),
-          "TP: blacklisted token"
-        );
+
+        assert.equal((await tokens.WBTC.balanceOf(traderPool.address)).toFixed(), "0");
+        assert.equal((await tokens.USDT.balanceOf(traderPool.address)).toFixed(), wei("500000", 6));
       });
     });
 
