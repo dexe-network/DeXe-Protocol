@@ -714,7 +714,7 @@ describe("TraderPool", () => {
         assert.equal((await tokens.WBTC.balanceOf(traderPool.address)).toFixed(), wei("250", 8));
       });
 
-      it("should not exchange blacklisted tokens", async () => {
+      it("should not exchange for blacklisted tokens", async () => {
         await coreProperties.addBlacklistTokens([tokens.WBTC.address]);
 
         const exchange1 = (
@@ -727,27 +727,41 @@ describe("TraderPool", () => {
           )
         )[0];
 
-        const exchange2 = (
-          await traderPool.getExchangeAmount(
-            tokens.WBTC.address,
-            tokens.WETH.address,
-            wei("500"),
-            [],
-            ExchangeType.FROM_EXACT
-          )
-        )[0];
-
         assert.equal(exchange1.toFixed(), "0");
-        assert.equal(exchange2.toFixed(), "0");
 
         await truffleAssert.reverts(
           exchangeToExact(tokens.WETH.address, tokens.WBTC.address, wei("500")),
           "TP: blacklisted token"
         );
-        await truffleAssert.reverts(
-          exchangeFromExact(tokens.WBTC.address, tokens.WETH.address, wei("500")),
-          "TP: blacklisted token"
+      });
+
+      it("should exchange if the source position is blacklisted", async () => {
+        await coreProperties.addBlacklistTokens([tokens.WETH.address]);
+        await uniswapV2Router.setReserve(tokens.WBTC.address, wei("500000", 8));
+
+        const exchange = (
+          await traderPool.getExchangeAmount(
+            tokens.WETH.address,
+            tokens.WBTC.address,
+            wei("250"),
+            [],
+            ExchangeType.TO_EXACT
+          )
+        )[0];
+
+        assert.equal(exchange.toFixed(), wei("500"));
+
+        await traderPool.exchange(
+          tokens.WETH.address,
+          tokens.WBTC.address,
+          wei("250"),
+          exchange,
+          [],
+          ExchangeType.TO_EXACT
         );
+
+        assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("500"));
+        assert.equal((await tokens.WBTC.balanceOf(traderPool.address)).toFixed(), wei("250", 8));
       });
     });
 
