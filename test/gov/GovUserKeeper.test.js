@@ -1037,7 +1037,8 @@ describe("GovUserKeeper", () => {
     beforeEach("setup", async () => {
       startTime = await getCurrentBlockTime();
 
-      nft = await ERC721Power.new(
+      nft = await ERC721Power.new();
+      await nft.__ERC721Power_init(
         "Power",
         "Power",
         startTime + 200,

@@ -147,8 +147,12 @@ describe("GovPool", () => {
     babt = await BABTMock.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721EnumMock.new("Mock", "Mock");
-    nftMultiplier = await ERC721Multiplier.new("NFTMultiplierMock", "NFTMM");
-    nftPower = await ERC721Power.new(
+
+    nftMultiplier = await ERC721Multiplier.new();
+    await nftMultiplier.__ERC721Multiplier_init("NFTMultiplierMock", "NFTMM");
+
+    nftPower = await ERC721Power.new();
+    await nftPower.__ERC721Power_init(
       "NFTPowerMock",
       "NFTPM",
       (await getCurrentBlockTime()) + 200,
@@ -157,6 +161,7 @@ describe("GovPool", () => {
       toPercent("0.01"),
       "540"
     );
+
     rewardToken = await ERC20Mock.new("REWARD", "RWD", 18);
 
     await contractsRegistry.__OwnableContractsRegistry_init();

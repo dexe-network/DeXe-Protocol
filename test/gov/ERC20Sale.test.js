@@ -2,6 +2,7 @@ const { assert } = require("chai");
 const { accounts, wei } = require("../../scripts/utils/utils");
 const { ZERO_ADDR } = require("../../scripts/utils/constants");
 const truffleAssert = require("truffle-assertions");
+const Reverter = require("../helpers/reverter");
 
 const ERC20Sale = artifacts.require("ERC20Sale");
 
@@ -18,17 +19,23 @@ describe("ERC20Sale", () => {
 
   let erc20Sale;
 
+  const reverter = new Reverter();
+
   before("setup", async () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
     THIRD = await accounts(2);
     SALE_ADDRESS = await accounts(3);
     GOV_ADDRESS = await accounts(4);
-  });
 
-  beforeEach(async () => {
     erc20Sale = await ERC20Sale.new();
 
+    await reverter.snapshot();
+  });
+
+  afterEach(reverter.revert);
+
+  beforeEach(async () => {
     DEFAULT_PARAMS = {
       govAddress: GOV_ADDRESS,
       saleAddress: SALE_ADDRESS,
