@@ -41,10 +41,7 @@ library TraderPoolExchange {
         IPriceFeed priceFeed = TraderPool(address(this)).priceFeed();
 
         require(from != to, "TP: ambiguous exchange");
-        require(
-            !coreProperties.isBlacklistedToken(from) && !coreProperties.isBlacklistedToken(to),
-            "TP: blacklisted token"
-        );
+        require(!coreProperties.isBlacklistedToken(to), "TP: blacklisted token");
         require(
             from == poolParameters.baseToken || positions.contains(from),
             "TP: invalid exchange address"
