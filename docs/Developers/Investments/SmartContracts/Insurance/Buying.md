@@ -1,6 +1,11 @@
 # 💰 Buying
 
-To buy insurace for the deposited **DEXE** tokens user needs to call `buyInsurance()` function from `Insurance` contract. Minimal insurance is specified by the **DAO**.
+⚠️⚠️ Be aware that insurance is controled by **DeXe DAO**. By the collective decision of the **DAO** can change **ANY** parameter. This may lead to users being unable to withdraw their deposits and injector may take control over the insurance pool.
+
+
+To buy insurace for the deposited **DEXE** tokens user needs to call `buyInsurance()` function from `Insurance` contract. Minimal insurance is specified by the **DAO**. 
+
+❗ This function provides only an ability to lock funds. Insurance is calculated based on the amount of locked funds.
 
 ```solidity
 function buyInsurance(uint256 deposit) external;
@@ -18,3 +23,5 @@ function getReceivedInsurance(
 
 - ***deposit*** - the amount of tokens to be deposited
 - **returns** -> the received insurance tokens
+
+⚠️⚠️ The ***`proposeClaim()`*** function is the ***`createProposal()`*** function on **DeXe DAO**.

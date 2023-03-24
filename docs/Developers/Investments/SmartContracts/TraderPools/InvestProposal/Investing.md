@@ -5,6 +5,8 @@
 All investors can invest in a proposal.
 Function ***`getDivestAmountsAndCommissions()`*** is used to get ***minPositionsOut***  parameter in ***`investProposal()`***.
 
+⚠️⚠️ Investment fund allows traders to **WITHDRAW ALL** user's investments from the pool. There is **NO** guarantee that users would be able to receive their funds back. Invest only in funds you can trust.
+
 ```solidity
 function getDivestAmountsAndCommissions(
     address user,

@@ -26,6 +26,8 @@ If a trader wants to invest in a non-whitelisted token, a risk proposal is autom
 
 <img src="../../img/userGuideTrader/userGuideImg_RiskProposalCreation.png" height="480" />
 
+⚠️⚠️ In a risky pool, traders can trade any token, even those created by them, and add liquidity to **Uniswap**. This allows the trader to always be in profit by selling their tokens at a higher price, and closing **DeXe** trades at a loss.
+
 When creating a risky proposal, you stake your **LP** tokens and indicate the volume of the token you wish to buy immediately as you create the risk proposal: from **0%** to **100%**, where **0%** means you can buy with your own **LP** tokens all the tokens later (maybe because you're waiting for a better entry price) while **100%** will get the entire desired token amount right when you create the risk proposal.
 
 <img src="../../img/userGuideTrader/userGuideImg_RiskProposals.png" height="300" />
@@ -49,6 +51,8 @@ The trader has the flexibility to close the position at any time, and the profit
 #
 
 If a trader wants to invest in off-chain assets (like real estate or startups), he should create an Investment fund (see `UserGuide/Investments/CreateFund`) and periodically pay dividends to the investors.
+
+⚠️⚠️ Investment fund allows traders to **WITHDRAW ALL** user's investments from the pool. There is **NO** guarantee that users would be able to receive their funds back. Invest only in funds you can trust.
 
 <img src="../../img/userGuideTrader/userGuideImg_PayDividend.png" height="110" />
 
