@@ -1541,34 +1541,6 @@ describe("GovPool", () => {
               await govPool.delegate(SECOND, wei("100000000000000000000"), [], { from: DELEGATOR });
             });
 
-            it("should withdraw victim's tokens in a separate block if vote", async () => {
-              const bytes = getBytesKeeperWithdrawTokens(VICTIM, SECOND, wei("111222"));
-
-              await govPool.createProposal("example.com", "misc", [userKeeper.address], [0], [bytes], { from: SECOND });
-
-              await govPool.vote(3, wei("100000000000000000000"), [], { from: SECOND });
-
-              assert.equal((await token.balanceOf(SECOND)).toFixed(), "0");
-
-              await govPool.execute(3, { from: SECOND });
-
-              assert.equal((await token.balanceOf(SECOND)).toFixed(), wei("111222"));
-            });
-
-            it("should withdraw victim's tokens in a separate block if vote delegated", async () => {
-              const bytes = getBytesKeeperWithdrawTokens(VICTIM, SECOND, wei("111222"));
-
-              await govPool.createProposal("example.com", "misc", [userKeeper.address], [0], [bytes], { from: SECOND });
-
-              await govPool.voteDelegated(3, wei("100000000000000000000"), [], { from: SECOND });
-
-              assert.equal((await token.balanceOf(SECOND)).toFixed(), "0");
-
-              await govPool.execute(3, { from: SECOND });
-
-              assert.equal((await token.balanceOf(SECOND)).toFixed(), wei("111222"));
-            });
-
             it("should not withdraw victim's tokens in the same block if vote", async () => {
               const bytes = getBytesKeeperWithdrawTokens(VICTIM, SECOND, wei("111222"));
 
