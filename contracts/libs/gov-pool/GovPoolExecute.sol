@@ -30,11 +30,13 @@ library GovPoolExecute {
         IGovPool.Proposal storage proposal = proposals[proposalId];
         IGovPool.ProposalCore storage core = proposal.core;
 
+        GovPool govPool = GovPool(payable(address(this)));
+
         require(
-            IGovPool(address(this)).getProposalState(proposalId) ==
-                IGovPool.ProposalState.Succeeded,
+            govPool.getProposalState(proposalId) == IGovPool.ProposalState.Succeeded,
             "Gov: invalid status"
         );
+        require(govPool.latestVoteBlocks(proposalId) < block.number, "Gov: wrong block");
 
         core.executed = true;
 

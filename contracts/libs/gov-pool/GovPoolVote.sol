@@ -70,10 +70,14 @@ library GovPoolVote {
 
         votes.add(proposalId);
 
+        GovPool govPool = GovPool(payable(address(this)));
+
         require(
-            votes.length() <= GovPool(payable(address(this))).coreProperties().getGovVotesLimit(),
+            votes.length() <= govPool.coreProperties().getGovVotesLimit(),
             "Gov: vote limit reached"
         );
+
+        govPool.setLatestVoteBlock(proposalId);
 
         _voteTokens(core, voteInfo, proposalId, voteAmount, isMicropool, useDelegated);
         reward = _voteNfts(core, voteInfo, voteNftIds, isMicropool, useDelegated) + voteAmount;

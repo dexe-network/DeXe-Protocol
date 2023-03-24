@@ -19,6 +19,8 @@ const {
   getBytesGovClaimRewards,
   getBytesGovVote,
   getBytesGovDeposit,
+  getBytesKeeperWithdrawTokens,
+  getBytesGovVoteDelegated,
 } = require("../utils/gov-pool-utils");
 const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { ProposalState, DEFAULT_CORE_PROPERTIES, ValidatorsProposalState } = require("../utils/constants");
@@ -1470,6 +1472,103 @@ describe("GovPool", () => {
 
           it("should revert when call is from non govPool address", async () => {
             await truffleAssert.reverts(govPool.changeBABTRestriction(true), "Gov: not this contract");
+          });
+        });
+
+        describe("setLatestVoteBlock", () => {
+          it("should revert when call is from non govPool address", async () => {
+            await truffleAssert.reverts(govPool.setLatestVoteBlock(1), "Gov: not this contract");
+          });
+
+          describe("vote-execute flashloan protection", () => {
+            const USER_KEERER_SETTINGS = {
+              earlyCompletion: true,
+              delegatedVotingAllowed: true,
+              validatorsVote: false,
+              duration: 500,
+              durationValidators: 500,
+              quorum: PRECISION.times("1").toFixed(),
+              quorumValidators: 0,
+              minVotesForVoting: 0,
+              minVotesForCreating: 0,
+              rewardToken: ZERO_ADDR,
+              creationReward: 0,
+              executionReward: 0,
+              voteRewardsCoefficient: 0,
+              executorDescription: "new_internal_settings",
+            };
+
+            let VICTIM;
+            let DELEGATOR;
+
+            beforeEach(async () => {
+              const addSettingsBytes = getBytesAddSettings([USER_KEERER_SETTINGS]);
+
+              await govPool.createProposal("example.com", "misc", [settings.address], [0], [addSettingsBytes]);
+              await govPool.vote(1, wei("1000"), []);
+              await govPool.vote(1, wei("100000000000000000000"), [], { from: SECOND });
+
+              await govPool.moveProposalToValidators(1);
+
+              await validators.vote(1, wei("100"), false);
+              await validators.vote(1, wei("1000000000000"), false, { from: SECOND });
+
+              await govPool.execute(1);
+
+              const changeExecutorBytes = getBytesChangeExecutors([userKeeper.address], [4]);
+
+              await govPool.createProposal("example.com", "misc", [settings.address], [0], [changeExecutorBytes]);
+              await govPool.vote(2, wei("1000"), []);
+              await govPool.vote(2, wei("100000000000000000000"), [], { from: SECOND });
+
+              await govPool.moveProposalToValidators(2);
+
+              await validators.vote(2, wei("100"), false);
+              await validators.vote(2, wei("1000000000000"), false, { from: SECOND });
+
+              await govPool.execute(2);
+
+              VICTIM = THIRD;
+              DELEGATOR = FOURTH;
+
+              await token.mint(VICTIM, wei("111222"));
+              await token.approve(userKeeper.address, wei("111222"), { from: VICTIM });
+              await govPool.deposit(VICTIM, wei("111222"), [], { from: VICTIM });
+
+              await token.mint(DELEGATOR, wei("100000000000000000000"));
+              await token.approve(userKeeper.address, wei("100000000000000000000"), { from: DELEGATOR });
+              await govPool.deposit(DELEGATOR, wei("100000000000000000000"), [], { from: DELEGATOR });
+              await govPool.delegate(SECOND, wei("100000000000000000000"), [], { from: DELEGATOR });
+            });
+
+            it("should not withdraw victim's tokens in the same block if vote", async () => {
+              const bytes = getBytesKeeperWithdrawTokens(VICTIM, SECOND, wei("111222"));
+
+              await govPool.createProposal("example.com", "misc", [userKeeper.address], [0], [bytes], { from: SECOND });
+
+              await truffleAssert.reverts(
+                govPool.multicall([getBytesGovVote(3, wei("100000000000000000000"), []), getBytesGovExecute(3)], {
+                  from: SECOND,
+                }),
+                "Gov: wrong block"
+              );
+            });
+
+            it("should not withdraw victim's tokens in the same block if vote delegated", async () => {
+              const bytes = getBytesKeeperWithdrawTokens(VICTIM, SECOND, wei("111222"));
+
+              await govPool.createProposal("example.com", "misc", [userKeeper.address], [0], [bytes], { from: SECOND });
+
+              await truffleAssert.reverts(
+                govPool.multicall(
+                  [getBytesGovVoteDelegated(3, wei("100000000000000000000"), []), getBytesGovExecute(3)],
+                  {
+                    from: SECOND,
+                  }
+                ),
+                "Gov: wrong block"
+              );
+            });
           });
         });
       });

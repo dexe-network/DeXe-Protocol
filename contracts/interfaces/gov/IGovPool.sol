@@ -282,6 +282,10 @@ interface IGovPool {
     /// @param nftMultiplierAddress the address of nft multiplier
     function setNftMultiplierAddress(address nftMultiplierAddress) external;
 
+    /// @notice The function for setting `block.number` of the latest vote
+    /// @param proposalId Proposal ID
+    function setLatestVoteBlock(uint256 proposalId) external;
+
     /// @notice The function for saving ipfs hash of off-chain proposal results
     /// @param resultsHash the ipfs results hash
     /// @param signature the signature from verifier
