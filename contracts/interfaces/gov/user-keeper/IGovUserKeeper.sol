@@ -264,6 +264,7 @@ interface IGovUserKeeper {
     /// @param voter the address of voter
     /// @param isMicropool the boolean flag, if true then uses micropool balance
     /// @param useDelegated the boolean flag, if true then balance is calculated with delegations
+    /// @param useOwnedBalance the boolean flag, if true then uses own balance
     /// @param requiredVotes the required voting power
     /// @param snapshotId the id of snapshot
     /// @return `true` - can participate, `false` - can't participate
@@ -271,6 +272,7 @@ interface IGovUserKeeper {
         address voter,
         bool isMicropool,
         bool useDelegated,
+        bool useOwnedBalance,
         uint256 requiredVotes,
         uint256 snapshotId
     ) external view returns (bool);

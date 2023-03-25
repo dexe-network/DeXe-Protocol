@@ -541,16 +541,32 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address voter,
         bool isMicropool,
         bool useDelegated,
+        bool useOwnedBalance,
         uint256 requiredVotes,
         uint256 snapshotId
     ) external view override returns (bool) {
-        (uint256 tokens, ) = tokenBalance(voter, isMicropool, useDelegated);
+        (uint256 tokens, uint256 ownedBalance) = tokenBalance(voter, isMicropool, useDelegated);
+
+        if (!useOwnedBalance) {
+            tokens -= ownedBalance;
+        }
 
         if (tokens >= requiredVotes) {
             return true;
         }
 
-        (uint256[] memory nftIds, ) = nftExactBalance(voter, isMicropool, useDelegated);
+        (uint256[] memory nftIds, uint256 ownedLength) = nftExactBalance(
+            voter,
+            isMicropool,
+            useDelegated
+        );
+
+        if (!useOwnedBalance) {
+            assembly {
+                mstore(nftIds, sub(mload(nftIds), ownedLength))
+            }
+        }
+
         uint256 nftPower = getNftsPowerInTokensBySnapshot(nftIds, snapshotId);
 
         return tokens + nftPower >= requiredVotes;

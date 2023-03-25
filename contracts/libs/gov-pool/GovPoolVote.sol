@@ -103,6 +103,7 @@ library GovPoolVote {
                 msg.sender,
                 isMicropool,
                 useDelegated,
+                true,
                 core.settings.minVotesForVoting,
                 core.nftPowerSnapshotId
             ),
