@@ -82,6 +82,8 @@ library GovPoolVote {
         _voteTokens(core, voteInfo, proposalId, voteAmount, isMicropool, useDelegated);
         reward = _voteNfts(core, voteInfo, voteNftIds, isMicropool, useDelegated) + voteAmount;
 
+        require(reward >= core.settings.minVotesForVoting, "Gov: insufficient vote power");
+
         emit Voted(proposalId, msg.sender, isMicropool ? 0 : reward, isMicropool ? reward : 0);
     }
 
