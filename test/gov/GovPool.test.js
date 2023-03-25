@@ -500,12 +500,12 @@ describe("GovPool", () => {
       });
     });
 
-    describe.only("createProposal()", () => {
+    describe("createProposal()", () => {
       beforeEach("", async () => {
         await govPool.deposit(OWNER, 1, [1]);
       });
 
-      it("should create proposal if insufficient deposit amount", async () => {
+      it("should not create proposal if insufficient deposited amount", async () => {
         await govPool.withdraw(OWNER, 0, [1]);
 
         await truffleAssert.reverts(
