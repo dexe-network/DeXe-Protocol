@@ -1674,6 +1674,8 @@ describe("GovPool", () => {
             },
           ];
 
+          await govPool.deposit(OWNER, wei("1000"), []);
+
           for (const proposalView of proposalViews) {
             const { descriptionURL, executors, values, data } = proposalView.proposal;
             await govPool.createProposal(descriptionURL, "misc", executors, values, data);
@@ -1681,7 +1683,7 @@ describe("GovPool", () => {
 
           await token.mint(SECOND, wei("100000000000000000000"));
           await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
-          await depositAndVote(3, wei("1000"), [], wei("1000"), [], OWNER);
+          await govPool.vote(3, wei("1000"), []);
           await depositAndVote(3, wei("100000000000000000000"), [], wei("100000000000000000000"), [], SECOND);
 
           await setTime(startTime + 1000000);
@@ -1749,7 +1751,7 @@ describe("GovPool", () => {
         const bytes = getBytesAddSettings([NEW_SETTINGS]);
 
         await govPool.createProposal("example.com", "misc", [settings.address], [0], [bytes]);
-        await govPool.vote(1, wei("1"), []);
+        await govPool.vote(1, wei("1000"), []);
         await govPool.vote(1, wei("100000000000000000000"), [], { from: SECOND });
 
         await govPool.moveProposalToValidators(1);
@@ -1766,15 +1768,15 @@ describe("GovPool", () => {
 
         await govPool.execute(1);
 
-        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("20000000000000000005.2"));
+        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("20000000000000000205"));
 
         rewards = await govPool.getPendingRewards(OWNER, [1]);
 
-        assert.deepEqual(rewards.onchainRewards, [wei("26")]);
+        assert.deepEqual(rewards.onchainRewards, [wei("1025")]);
 
         await govPool.claimRewards([1]);
 
-        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("26"));
+        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("1025"));
       });
 
       it("should claim reward properly if nft multiplier has been set", async () => {
@@ -1786,7 +1788,7 @@ describe("GovPool", () => {
         const bytes = getBytesAddSettings([NEW_SETTINGS]);
 
         await govPool.createProposal("example.com", "misc", [settings.address], [0], [bytes]);
-        await govPool.vote(2, wei("1"), []);
+        await govPool.vote(2, wei("1000"), []);
         await govPool.vote(2, wei("100000000000000000000"), [], { from: SECOND });
 
         await govPool.moveProposalToValidators(2);
@@ -1796,14 +1798,14 @@ describe("GovPool", () => {
         await govPool.execute(2);
         await govPool.claimRewards([2]);
 
-        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("91")); // 91 = 26 + 26 * 2.5
+        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("3587.5")); // 1025 + 1025 * 2.5
       });
 
       it("should execute and claim", async () => {
         const bytes = getBytesAddSettings([NEW_SETTINGS]);
 
         await govPool.createProposal("example.com", "misc", [settings.address], [0], [bytes]);
-        await govPool.vote(1, wei("1"), []);
+        await govPool.vote(1, wei("1000"), []);
         await govPool.vote(1, wei("100000000000000000000"), [], { from: SECOND });
 
         await govPool.moveProposalToValidators(1);
@@ -1814,8 +1816,8 @@ describe("GovPool", () => {
 
         await executeAndClaim(1, OWNER);
 
-        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("20000000000000000005.2"));
-        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("26"));
+        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("20000000000000000205"));
+        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("1025"));
       });
 
       it("should claim reward in native", async () => {
@@ -1872,7 +1874,7 @@ describe("GovPool", () => {
         const bytes = getBytesAddSettings([NEW_SETTINGS]);
 
         await govPool.createProposal("example.com", "misc", [settings.address], [0], [bytes]);
-        await govPool.vote(1, wei("1"), []);
+        await govPool.vote(1, wei("1000"), []);
         await govPool.vote(1, wei("100000000000000000000"), [], { from: SECOND });
 
         await govPool.moveProposalToValidators(1);
@@ -1890,7 +1892,7 @@ describe("GovPool", () => {
         const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
 
         await govPool.createProposal("example.com", "misc", [settings.address], [0], [bytes]);
-        await govPool.vote(1, wei("1"), []);
+        await govPool.vote(1, wei("1000"), []);
         await govPool.vote(1, wei("100000000000000000000"), [], { from: SECOND });
 
         await govPool.moveProposalToValidators(1);
@@ -2433,6 +2435,7 @@ describe("GovPool", () => {
         await govPool.deposit(delegator1, 0, [10, 11, 12], { from: delegator1 });
         await govPool.deposit(delegator2, 0, [20, 21, 22], { from: delegator2 });
 
+        await govPool.deposit(OWNER, wei("3"), []);
         await govPool.createProposal("example.com", "misc", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
       });
 
@@ -2587,6 +2590,8 @@ describe("GovPool", () => {
 
       await token.mint(SECOND, wei("100000000000000000000"));
       await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
+
+      await govPool.deposit(SECOND, wei("3"), [], { from: SECOND });
     });
 
     describe("onlyBABTHolder modifier reverts", () => {
