@@ -787,6 +787,10 @@ describe("GovPool", () => {
         it("should revert when vote zero amount", async () => {
           await truffleAssert.reverts(govPool.vote(1, 0, []), "Gov: empty vote");
         });
+
+        it("should not vote if low current vote power", async () => {
+          await truffleAssert.reverts(govPool.vote(1, wei("1"), []), "Gov: low current vote power");
+        });
       });
 
       describe("voteDelegated() tokens", () => {
@@ -841,74 +845,135 @@ describe("GovPool", () => {
             "Gov: wrong vote amount"
           );
         });
-      });
 
-      describe("vote() nfts", () => {
-        const SINGLE_NFT_COST = toBN("3666666666666666666666");
+        it("should not vote if low current vote power", async () => {
+          await govPool.createProposal("example.com", "misc", [SECOND], [0], [getBytesApprove(SECOND, 1)]);
 
-        it("should vote for two proposals", async () => {
-          await govPool.vote(1, 0, [1]);
-          await govPool.vote(2, 0, [2, 3]);
-
-          assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.toFixed());
-          assert.equal((await getProposalByIndex(2)).core.votesFor, SINGLE_NFT_COST.times(2).plus(1).toFixed());
-
-          const voteInfo = await govPool.getUserVotes(1, OWNER, false);
-
-          assert.equal(voteInfo.totalVoted, SINGLE_NFT_COST.toFixed());
-          assert.equal(voteInfo.tokensVoted, "0");
-          assert.deepEqual(voteInfo.nftsVoted, ["1"]);
-        });
-
-        it("should vote for proposal twice", async () => {
-          await govPool.vote(1, 0, [1]);
-          assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.toFixed());
-
-          await govPool.vote(1, 0, [2, 3]);
-          assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.times(3).plus(1).toFixed());
-        });
-
-        it("should revert when voting with same NFTs", async () => {
-          await truffleAssert.reverts(govPool.vote(1, 0, [2, 2]), "Gov: NFT already voted");
+          await truffleAssert.reverts(
+            govPool.voteDelegated(1, wei("1"), [], { from: SECOND }),
+            "Gov: low current vote power"
+          );
         });
       });
 
-      describe("voteDelegated() nfts", () => {
-        const SINGLE_NFT_COST = toBN("3666666666666666666666");
+      describe("if high minVotingPower", () => {
+        beforeEach(async () => {
+          const NEW_INTERNAL_SETTINGS = {
+            earlyCompletion: true,
+            delegatedVotingAllowed: true,
+            validatorsVote: true,
+            duration: 500,
+            durationValidators: 600,
+            quorum: PRECISION.times("51").toFixed(),
+            quorumValidators: PRECISION.times("61").toFixed(),
+            minVotesForVoting: wei("3500"),
+            minVotesForCreating: wei("2"),
+            rewardToken: rewardToken.address,
+            creationReward: wei("10"),
+            executionReward: wei("5"),
+            voteRewardsCoefficient: PRECISION.toFixed(),
+            executorDescription: "new_internal_settings",
+          };
 
-        beforeEach("setup", async () => {
-          await govPool.delegate(SECOND, wei("500"), [1]);
-          await govPool.delegate(THIRD, wei("500"), [2, 3]);
+          await token.mint(SECOND, wei("100000000000000000000"));
+          await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
+
+          const bytes = getBytesEditSettings([1], [NEW_INTERNAL_SETTINGS]);
+
+          await govPool.createProposal("example.com", "misc", [settings.address], [0], [bytes]);
+          await depositAndVote(3, wei("100000000000000000000"), [], wei("100000000000000000000"), [], SECOND);
+
+          await govPool.moveProposalToValidators(3);
+
+          await validators.vote(3, wei("100"), false);
+          await validators.vote(3, wei("1000000000000"), false, { from: SECOND });
+
+          await govPool.execute(3);
+
+          await nft.safeMint(OWNER, 10);
+
+          await govPool.createProposal("example.com", "misc", [settings.address], [0], [bytes]);
         });
 
-        it("should vote delegated nfts for two proposals", async () => {
-          await govPool.voteDelegated(1, 0, [1], { from: SECOND });
-          await govPool.voteDelegated(2, 0, [2, 3], { from: THIRD });
+        describe("vote() nfts", () => {
+          const SINGLE_NFT_COST = toBN("3666666666666666666666");
 
-          assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.toFixed());
-          assert.equal((await getProposalByIndex(2)).core.votesFor, SINGLE_NFT_COST.times(2).plus(1).toFixed());
+          it("should vote for two proposals", async () => {
+            await govPool.vote(1, 0, [1]);
+            await govPool.vote(2, 0, [2, 3]);
 
-          const voteInfo = await govPool.getUserVotes(1, SECOND, true);
+            assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.toFixed());
+            assert.equal((await getProposalByIndex(2)).core.votesFor, SINGLE_NFT_COST.times(2).plus(1).toFixed());
 
-          assert.equal(voteInfo.totalVoted, SINGLE_NFT_COST.toFixed());
-          assert.equal(voteInfo.tokensVoted, "0");
-          assert.deepEqual(voteInfo.nftsVoted, ["1"]);
+            const voteInfo = await govPool.getUserVotes(1, OWNER, false);
+
+            assert.equal(voteInfo.totalVoted, SINGLE_NFT_COST.toFixed());
+            assert.equal(voteInfo.tokensVoted, "0");
+            assert.deepEqual(voteInfo.nftsVoted, ["1"]);
+          });
+
+          it("should vote for proposal twice", async () => {
+            await govPool.vote(1, 0, [1]);
+
+            assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.toFixed());
+
+            await govPool.vote(1, 0, [2, 3]);
+            assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.times(3).plus(1).toFixed());
+          });
+
+          it("should revert when voting with same NFTs", async () => {
+            await truffleAssert.reverts(govPool.vote(1, 0, [2, 2]), "Gov: NFT already voted");
+          });
+
+          it("should not vote if low current vote power", async () => {
+            await truffleAssert.reverts(govPool.vote(4, 0, [1]), "Gov: low current vote power");
+          });
         });
 
-        it("should vote delegated nfts twice", async () => {
-          await govPool.voteDelegated(1, 0, [2], { from: THIRD });
-          assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.toFixed());
+        describe("voteDelegated() nfts", () => {
+          const SINGLE_NFT_COST = toBN("3666666666666666666666");
 
-          await govPool.voteDelegated(1, 0, [3], { from: THIRD });
-          assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.times(2).toFixed());
-        });
+          beforeEach("setup", async () => {
+            await govPool.delegate(SECOND, wei("500"), [1]);
+            await govPool.delegate(THIRD, wei("500"), [2, 3]);
+          });
 
-        it("should revert when spending undelegated nfts", async () => {
-          await truffleAssert.reverts(govPool.voteDelegated(1, 0, [1], { from: FOURTH }), "Gov: low voting power");
-        });
+          it("should vote delegated nfts for two proposals", async () => {
+            await govPool.voteDelegated(1, 0, [1], { from: SECOND });
+            await govPool.voteDelegated(2, 0, [2, 3], { from: THIRD });
 
-        it("should revert when voting with not delegated nfts", async () => {
-          await truffleAssert.reverts(govPool.voteDelegated(1, 0, [2], { from: SECOND }), "GovUK: NFT is not owned");
+            assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.toFixed());
+            assert.equal((await getProposalByIndex(2)).core.votesFor, SINGLE_NFT_COST.times(2).plus(1).toFixed());
+
+            const voteInfo = await govPool.getUserVotes(1, SECOND, true);
+
+            assert.equal(voteInfo.totalVoted, SINGLE_NFT_COST.toFixed());
+            assert.equal(voteInfo.tokensVoted, "0");
+            assert.deepEqual(voteInfo.nftsVoted, ["1"]);
+          });
+
+          it("should vote delegated nfts twice", async () => {
+            await govPool.voteDelegated(1, 0, [2], { from: THIRD });
+            assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.toFixed());
+
+            await govPool.voteDelegated(1, 0, [3], { from: THIRD });
+            assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.times(2).toFixed());
+          });
+
+          it("should revert when spending undelegated nfts", async () => {
+            await truffleAssert.reverts(govPool.voteDelegated(1, 0, [1], { from: FOURTH }), "Gov: low voting power");
+          });
+
+          it("should revert when voting with not delegated nfts", async () => {
+            await truffleAssert.reverts(govPool.voteDelegated(1, 0, [2], { from: SECOND }), "GovUK: NFT is not owned");
+          });
+
+          it("should not vote if low current vote power", async () => {
+            await truffleAssert.reverts(
+              govPool.voteDelegated(4, 0, [1], { from: SECOND }),
+              "Gov: low current vote power"
+            );
+          });
         });
       });
 
