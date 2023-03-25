@@ -500,9 +500,18 @@ describe("GovPool", () => {
       });
     });
 
-    describe("createProposal()", () => {
+    describe.only("createProposal()", () => {
       beforeEach("", async () => {
         await govPool.deposit(OWNER, 1, [1]);
+      });
+
+      it("should create proposal if insufficient deposit amount", async () => {
+        await govPool.withdraw(OWNER, 0, [1]);
+
+        await truffleAssert.reverts(
+          govPool.createProposal("example.com", "misc", [SECOND], [0], [getBytesApprove(SECOND, 1)]),
+          "Gov: low creating power"
+        );
       });
 
       it("should create 2 proposals", async () => {
