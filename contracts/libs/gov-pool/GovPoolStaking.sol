@@ -16,6 +16,8 @@ library GovPoolStaking {
     using Math for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    event StakingRewardClaimed(address user, address token, uint256 amount);
+
     function updateRewards(
         IGovPool.MicropoolInfo storage micropool,
         uint256 amount,
@@ -125,7 +127,11 @@ library GovPoolStaking {
 
             delegatorInfo.pendingRewards = 0;
 
-            rewardToken.sendFunds(msg.sender, rewards.min(rewardToken.normThisBalance()));
+            uint256 amountToTransfer = rewards.min(rewardToken.normThisBalance());
+
+            rewardToken.sendFunds(msg.sender, amountToTransfer);
+
+            emit StakingRewardClaimed(msg.sender, rewardToken, amountToTransfer);
         }
     }
 
