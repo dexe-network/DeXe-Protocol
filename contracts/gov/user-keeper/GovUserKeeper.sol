@@ -452,7 +452,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
                 }
             }
 
-            ownedBalance = ERC721(nftAddress).balanceOf(voter);
+            ownedBalance = ERC721Upgradeable(nftAddress).balanceOf(voter);
             totalBalance += ownedBalance;
         }
     }
@@ -541,16 +541,32 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address voter,
         bool isMicropool,
         bool useDelegated,
+        bool useOwnedBalance,
         uint256 requiredVotes,
         uint256 snapshotId
     ) external view override returns (bool) {
-        (uint256 tokens, ) = tokenBalance(voter, isMicropool, useDelegated);
+        (uint256 tokens, uint256 ownedBalance) = tokenBalance(voter, isMicropool, useDelegated);
+
+        if (!useOwnedBalance) {
+            tokens -= ownedBalance;
+        }
 
         if (tokens >= requiredVotes) {
             return true;
         }
 
-        (uint256[] memory nftIds, ) = nftExactBalance(voter, isMicropool, useDelegated);
+        (uint256[] memory nftIds, uint256 ownedLength) = nftExactBalance(
+            voter,
+            isMicropool,
+            useDelegated
+        );
+
+        if (!useOwnedBalance) {
+            assembly {
+                mstore(nftIds, sub(mload(nftIds), ownedLength))
+            }
+        }
+
         uint256 nftPower = getNftsPowerInTokensBySnapshot(nftIds, snapshotId);
 
         return tokens + nftPower >= requiredVotes;
@@ -652,8 +668,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         _nftInfo.totalPowerInTokens = totalPowerInTokens;
 
         if (!IERC165(_nftAddress).supportsInterface(type(IERC721Power).interfaceId)) {
-            if (!IERC165(_nftAddress).supportsInterface(type(IERC721Enumerable).interfaceId)) {
-                require(nftsTotalSupply > 0, "GovUK: total supply is zero");
+            if (
+                !IERC165(_nftAddress).supportsInterface(
+                    type(IERC721EnumerableUpgradeable).interfaceId
+                )
+            ) {
+                require(uint128(nftsTotalSupply) > 0, "GovUK: total supply is zero");
 
                 _nftInfo.totalSupply = uint128(nftsTotalSupply);
             }

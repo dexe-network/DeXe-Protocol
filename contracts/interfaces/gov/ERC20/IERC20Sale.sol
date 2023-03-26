@@ -28,11 +28,6 @@ interface IERC20Sale {
     /// @param amount the token amount to be minted
     function mint(address account, uint256 amount) external;
 
-    /// @notice This function is used to burn tokens
-    /// @param account the address from which tokens should be burned
-    /// @param amount the token amount to be burned
-    function burn(address account, uint256 amount) external;
-
     /// @notice This function is used to trigger stopped contract state
     function pause() external;
 

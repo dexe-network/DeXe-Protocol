@@ -36,7 +36,7 @@ interface IGovValidators {
     /// @param votesFor the total number of votes in proposal from all voters
     struct ProposalCore {
         bool executed;
-        uint32 snapshotId;
+        uint56 snapshotId;
         uint64 voteEnd;
         uint128 quorum;
         uint256 votesFor;
@@ -118,6 +118,10 @@ interface IGovValidators {
     /// @notice Only for internal proposals. External proposals should be executed from governance.
     /// @param proposalId Internal proposal ID
     function execute(uint256 proposalId) external;
+
+    /// @notice The function called by governance that marks the external proposal as executed
+    /// @param proposalId External proposal ID
+    function executeExternalProposal(uint256 proposalId) external;
 
     /// @notice The function for getting information about the external proposals
     /// @param index the index of proposal

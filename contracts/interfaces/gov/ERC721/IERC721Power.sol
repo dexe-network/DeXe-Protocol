@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/IERC721EnumerableUpgradeable.sol";
 
 /**
  * This is the custom NFT contract with voting power
  */
-interface IERC721Power is IERC721Enumerable {
+interface IERC721Power is IERC721EnumerableUpgradeable {
     /// @notice This struct holds NFT Power parameters. These parameters are used to recalculate nft power
     /// @param lastUpdate the last time when the power was recalculated
     /// @param currentPower the current nft power

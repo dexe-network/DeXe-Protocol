@@ -1,12 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20CappedUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
 
 import "../../interfaces/gov/ERC20/IERC20Sale.sol";
 
-contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
+contract ERC20Sale is
+    IERC20Sale,
+    ERC20CappedUpgradeable,
+    ERC20PausableUpgradeable,
+    ERC20BurnableUpgradeable
+{
     address public govAddress;
 
     modifier onlyGov() {
@@ -14,11 +20,14 @@ contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
         _;
     }
 
-    constructor(
+    function __ERC20Sale_init(
         address _govAddress,
         address _saleAddress,
-        ConstructorParams memory params
-    ) ERC20(params.name, params.symbol) ERC20Capped(params.cap) {
+        ConstructorParams calldata params
+    ) external initializer {
+        __ERC20_init(params.name, params.symbol);
+        __ERC20Capped_init(params.cap);
+
         require(_govAddress != address(0), "ERC20Sale: govAddress is zero");
         require(
             params.mintedTotal <= params.cap,
@@ -31,23 +40,19 @@ contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
 
         govAddress = _govAddress;
 
-        ERC20._mint(_saleAddress, params.saleAmount);
+        ERC20Upgradeable._mint(_saleAddress, params.saleAmount);
 
         for (uint256 i = 0; i < params.users.length; i++) {
-            ERC20._mint(params.users[i], params.amounts[i]);
+            ERC20Upgradeable._mint(params.users[i], params.amounts[i]);
         }
 
         require(totalSupply() <= params.mintedTotal, "ERC20Sale: overminting");
 
-        ERC20._mint(_govAddress, params.mintedTotal - totalSupply());
+        ERC20Upgradeable._mint(_govAddress, params.mintedTotal - totalSupply());
     }
 
     function mint(address account, uint256 amount) external override onlyGov {
         _mint(account, amount);
-    }
-
-    function burn(address account, uint256 amount) external override onlyGov {
-        _burn(account, amount);
     }
 
     function pause() external override onlyGov {
@@ -62,11 +67,14 @@ contract ERC20Sale is IERC20Sale, ERC20Capped, ERC20Pausable {
         address from,
         address to,
         uint256 amount
-    ) internal override(ERC20, ERC20Pausable) {
+    ) internal override(ERC20Upgradeable, ERC20PausableUpgradeable) {
         super._beforeTokenTransfer(from, to, amount);
     }
 
-    function _mint(address account, uint256 amount) internal override(ERC20, ERC20Capped) {
+    function _mint(
+        address account,
+        uint256 amount
+    ) internal override(ERC20Upgradeable, ERC20CappedUpgradeable) {
         super._mint(account, amount);
     }
 

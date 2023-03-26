@@ -108,6 +108,7 @@ library GovPoolCreate {
                 msg.sender,
                 false,
                 !settings.delegatedVotingAllowed,
+                false,
                 settings.minVotesForCreating,
                 snapshotId
             ),

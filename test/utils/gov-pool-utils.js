@@ -620,6 +620,35 @@ const getBytesGovVote = (proposalId, voteAmount, voteNftIds) => {
   );
 };
 
+const getBytesGovVoteDelegated = (proposalId, voteAmount, voteNftIds) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "uint256",
+          name: "proposalId",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256",
+          name: "voteAmount",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256[]",
+          name: "voteNftIds",
+          type: "uint256[]",
+        },
+      ],
+      name: "voteDelegated",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [proposalId, voteAmount, voteNftIds]
+  );
+};
+
 const getBytesGovDeposit = (receiver, amount, nftIds) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -649,6 +678,35 @@ const getBytesGovDeposit = (receiver, amount, nftIds) => {
   );
 };
 
+const getBytesKeeperWithdrawTokens = (payer, receiver, amount) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "payer",
+          type: "address",
+        },
+        {
+          internalType: "address",
+          name: "receiver",
+          type: "address",
+        },
+        {
+          internalType: "uint256",
+          name: "amount",
+          type: "uint256",
+        },
+      ],
+      name: "withdrawTokens",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [payer, receiver, amount]
+  );
+};
+
 module.exports = {
   getBytesExecute,
   getBytesApprove,
@@ -671,5 +729,7 @@ module.exports = {
   getBytesGovExecute,
   getBytesGovClaimRewards,
   getBytesGovVote,
+  getBytesGovVoteDelegated,
   getBytesGovDeposit,
+  getBytesKeeperWithdrawTokens,
 };

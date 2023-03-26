@@ -30,13 +30,26 @@ library GovPoolExecute {
         IGovPool.Proposal storage proposal = proposals[proposalId];
         IGovPool.ProposalCore storage core = proposal.core;
 
+        GovPool govPool = GovPool(payable(address(this)));
+
         require(
-            IGovPool(address(this)).getProposalState(proposalId) ==
-                IGovPool.ProposalState.Succeeded,
+            govPool.getProposalState(proposalId) == IGovPool.ProposalState.Succeeded,
             "Gov: invalid status"
         );
+        require(govPool.latestVoteBlocks(proposalId) < block.number, "Gov: wrong block");
 
         core.executed = true;
+
+        (, , address govValidators, ) = GovPool(payable(address(this))).getHelperContracts();
+
+        bool validatorsVotingSucceeded = IGovValidators(govValidators).getProposalState(
+            proposalId,
+            false
+        ) == IGovValidators.ProposalState.Succeeded;
+
+        if (validatorsVotingSucceeded) {
+            IGovValidators(govValidators).executeExternalProposal(proposalId);
+        }
 
         address[] memory executors = proposal.executors;
         uint256[] memory values = proposal.values;
@@ -52,20 +65,16 @@ library GovPoolExecute {
 
         emit ProposalExecuted(proposalId, msg.sender);
 
-        _payCommission(core);
+        _payCommission(core, validatorsVotingSucceeded);
     }
 
-    function _payCommission(IGovPool.ProposalCore storage core) internal {
+    function _payCommission(
+        IGovPool.ProposalCore storage core,
+        bool validatorsVotingSucceeded
+    ) internal {
         IGovSettings.ProposalSettings storage settings = core.settings;
 
-        (, , address govValidators, ) = GovPool(payable(address(this))).getHelperContracts();
-
-        uint256 creationRewards = settings.creationReward *
-            (
-                settings.validatorsVote && IGovValidators(govValidators).validatorsCount() > 0
-                    ? 2
-                    : 1
-            );
+        uint256 creationRewards = settings.creationReward * (validatorsVotingSucceeded ? 2 : 1);
 
         uint256 totalRewards = creationRewards +
             settings.executionReward +

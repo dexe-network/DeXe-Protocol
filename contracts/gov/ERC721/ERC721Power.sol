@@ -3,8 +3,8 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
@@ -16,7 +16,7 @@ import "../../libs/utils/TokenBalance.sol";
 
 import "../../core/Globals.sol";
 
-contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
+contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
     using Math for uint256;
     using MathHelper for uint256;
@@ -43,15 +43,19 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
         _;
     }
 
-    constructor(
-        string memory name,
-        string memory symbol,
+    function __ERC721Power_init(
+        string calldata name,
+        string calldata symbol,
         uint64 startTimestamp,
         address _collateralToken,
         uint256 _maxPower,
         uint256 _reductionPercent,
         uint256 _requiredCollateral
-    ) ERC721(name, symbol) {
+    ) external initializer {
+        __Ownable_init();
+        __ERC721Enumerable_init();
+        __ERC721_init(name, symbol);
+
         require(_collateralToken != address(0), "ERC721Power: zero address");
         require(_maxPower > 0, "ERC721Power: max power can't be zero");
         require(_reductionPercent > 0, "ERC721Power: reduction percent can't be zero");
@@ -199,7 +203,13 @@ contract ERC721Power is IERC721Power, ERC721Enumerable, Ownable {
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view virtual override(IERC165, ERC721Enumerable) returns (bool) {
+    )
+        public
+        view
+        virtual
+        override(IERC165Upgradeable, ERC721EnumerableUpgradeable)
+        returns (bool)
+    {
         return
             interfaceId == type(IERC721Power).interfaceId || super.supportsInterface(interfaceId);
     }

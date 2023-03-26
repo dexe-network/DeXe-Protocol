@@ -154,6 +154,11 @@ describe("GovValidators", () => {
           validators.changeBalances([100], [SECOND], { from: SECOND }),
           "Ownable: caller is not the owner"
         );
+
+        await truffleAssert.reverts(
+          validators.executeExternalProposal(1, { from: SECOND }),
+          "Ownable: caller is not the owner"
+        );
       });
 
       it("only validator should call these functions", async () => {
@@ -164,7 +169,9 @@ describe("GovValidators", () => {
           "Validators: caller is not the validator"
         );
 
-        await truffleAssert.reverts(validators.vote(1, 1, false), "Validators: caller is not the validator");
+        await validators.createInternalProposal(1, "example.com", [100], [SECOND], { from: SECOND });
+
+        await truffleAssert.reverts(validators.vote(1, 1, true), "Validators: caller is not the validator");
       });
     });
 

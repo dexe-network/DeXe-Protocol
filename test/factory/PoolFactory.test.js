@@ -632,7 +632,7 @@ describe("PoolFactory", () => {
       it("should deploy pool with DP", async () => {
         let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
 
-        const predictedGovAddress = await poolFactory.predictGovAddress(OWNER, POOL_PARAMETERS.name);
+        const predictedGovAddress = (await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name))[0];
 
         let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);
         let event = tx.receipt.logs[0];
@@ -677,8 +677,6 @@ describe("PoolFactory", () => {
         let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
         let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
 
-        POOL_PARAMETERS.userKeeperParams.tokenAddress = ZERO_ADDR;
-
         SALE_PARAMETERS.tiersParams.push({
           metadata: {
             name: "tier2",
@@ -700,7 +698,11 @@ describe("PoolFactory", () => {
           },
         });
 
-        const predictedGovAddress = await poolFactory.predictGovAddress(OWNER, POOL_PARAMETERS.name);
+        const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+
+        SALE_PARAMETERS.tiersParams[0].saleTokenAddress = predictedGovAddresses[2];
+        POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedGovAddresses[2];
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses[1];
 
         let tx = await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS);
         let event = tx.receipt.logs[1];
@@ -710,7 +712,9 @@ describe("PoolFactory", () => {
 
         let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
 
-        assert.equal(govPool.address, predictedGovAddress);
+        assert.equal(govPool.address, predictedGovAddresses[0]);
+        assert.equal(tokenSale.address, predictedGovAddresses[1]);
+        assert.equal(token.address, predictedGovAddresses[2]);
 
         let helperContracts = await govPool.getHelperContracts();
 
@@ -729,7 +733,10 @@ describe("PoolFactory", () => {
         let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
         let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
 
+        const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+
         SALE_PARAMETERS.tiersParams.pop();
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses[1];
 
         let tx = await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS);
         let event = tx.receipt.logs[1];
@@ -749,55 +756,12 @@ describe("PoolFactory", () => {
       });
     });
 
-    describe("GovPool with token sale validation", () => {
-      it("should revert sale if misconfigured", async () => {
-        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
-        let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
-
-        POOL_PARAMETERS.userKeeperParams.tokenAddress = ZERO_ADDR;
-
-        await truffleAssert.reverts(
-          poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS),
-          "PoolFactory: invalid token sale executor"
-        );
-
-        POOL_PARAMETERS.settingsParams.proposalSettings.push({
-          earlyCompletion: false,
-          delegatedVotingAllowed: false,
-          validatorsVote: false,
-          duration: 500,
-          durationValidators: 600,
-          quorum: PRECISION.times("51").toFixed(),
-          quorumValidators: PRECISION.times("61").toFixed(),
-          minVotesForVoting: wei("10"),
-          minVotesForCreating: wei("5"),
-          rewardToken: ZERO_ADDR,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
-          executorDescription: "Token Sale",
-        });
-
-        await truffleAssert.reverts(
-          poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS),
-          "PoolFactory: invalid token sale executor"
-        );
-
-        POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(OWNER);
-
-        await truffleAssert.reverts(
-          poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS),
-          "PoolFactory: invalid token sale executor"
-        );
-      });
-    });
-
     describe("deploy2 validation", () => {
       it("should deploy pools with the same name from different deployers", async () => {
         let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
 
-        const predictedAddressOwner = await poolFactory.predictGovAddress(OWNER, POOL_PARAMETERS.name);
-        const predictedAddressSecond = await poolFactory.predictGovAddress(SECOND, POOL_PARAMETERS.name);
+        const predictedAddressOwner = (await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name))[0];
+        const predictedAddressSecond = (await poolFactory.predictGovAddresses(SECOND, POOL_PARAMETERS.name))[0];
 
         assert.notEqual(predictedAddressOwner, ZERO_ADDR);
         assert.notEqual(predictedAddressSecond, ZERO_ADDR);
@@ -816,6 +780,8 @@ describe("PoolFactory", () => {
         let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
         let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
 
+        SALE_PARAMETERS.tiersParams.pop();
+
         await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS);
 
         await truffleAssert.reverts(
@@ -833,6 +799,7 @@ describe("PoolFactory", () => {
         let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
         let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
 
+        SALE_PARAMETERS.tiersParams.pop();
         POOL_PARAMETERS.name = "";
 
         await truffleAssert.reverts(
@@ -849,7 +816,11 @@ describe("PoolFactory", () => {
 
     describe("predictGovAddress", () => {
       it("should return zero address if name is an empty string", async () => {
-        assert.equal(await poolFactory.predictGovAddress(OWNER, ""), ZERO_ADDR);
+        assert.deepEqual(Object.values(await poolFactory.predictGovAddresses(OWNER, "")), [
+          ZERO_ADDR,
+          ZERO_ADDR,
+          ZERO_ADDR,
+        ]);
       });
     });
   });

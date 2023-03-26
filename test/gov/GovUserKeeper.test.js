@@ -70,6 +70,13 @@ describe("GovUserKeeper", () => {
           "GovUK: total supply is zero"
         );
       });
+
+      it("should revert if NFT total supply >= 2^128", async () => {
+        await truffleAssert.reverts(
+          userKeeper.__GovUserKeeper_init(ZERO_ADDR, nft.address, wei("1"), toBN(2).pow(128)),
+          "GovUK: total supply is zero"
+        );
+      });
     });
   });
 
@@ -1030,7 +1037,8 @@ describe("GovUserKeeper", () => {
     beforeEach("setup", async () => {
       startTime = await getCurrentBlockTime();
 
-      nft = await ERC721Power.new(
+      nft = await ERC721Power.new();
+      await nft.__ERC721Power_init(
         "Power",
         "Power",
         startTime + 200,

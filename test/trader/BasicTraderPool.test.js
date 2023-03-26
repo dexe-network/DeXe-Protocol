@@ -543,7 +543,7 @@ describe("BasicTraderPool", () => {
             [time.plus(100000), wei("10"), wei("2")],
             wei(wei("10"))
           ),
-          "TPRP: percantage is bigger than 100"
+          "TPRP: percentage is bigger than 100"
         );
       });
 

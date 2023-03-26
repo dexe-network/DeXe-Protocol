@@ -53,7 +53,6 @@ contract GovPool is
     using GovPoolExecute for *;
     using GovPoolStaking for *;
 
-    uint256 public constant PERCENTAGE_DELEGATORS_REWARDS = (4 * PERCENTAGE_100) / 5; // 80%
     uint256 public constant PERCENTAGE_MICROPOOL_REWARDS = PERCENTAGE_100 / 5; // 20%
 
     IGovSettings internal _govSettings;
@@ -77,6 +76,7 @@ contract GovPool is
     OffChain internal _offChain;
 
     mapping(uint256 => Proposal) internal _proposals; // proposalId => info
+    mapping(uint256 => uint256) public latestVoteBlocks; // proposalId => block
 
     mapping(uint256 => mapping(address => mapping(bool => VoteInfo))) internal _voteInfos; // proposalId => voter => isMicropool => info
     mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
@@ -230,16 +230,18 @@ contract GovPool is
             voteNftIds
         );
 
+        uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
+
         _pendingRewards.updateRewards(
             _proposals,
             proposalId,
             RewardType.VoteDelegated,
-            reward.percentage(PERCENTAGE_MICROPOOL_REWARDS),
+            micropoolReward,
             _proposals[proposalId].core.settings.voteRewardsCoefficient
         );
 
         _micropoolInfos[msg.sender].updateRewards(
-            reward.percentage(PERCENTAGE_DELEGATORS_REWARDS),
+            reward - micropoolReward,
             _proposals[proposalId].core.settings.voteRewardsCoefficient,
             _proposals[proposalId].core.settings.rewardToken
         );
@@ -361,6 +363,10 @@ contract GovPool is
         _setNftMultiplierAddress(nftMultiplierAddress);
     }
 
+    function setLatestVoteBlock(uint256 proposalId) external override onlyThis {
+        latestVoteBlocks[proposalId] = block.number;
+    }
+
     function saveOffchainResults(
         string calldata resultsHash,
         bytes calldata signature
@@ -402,14 +408,17 @@ contract GovPool is
 
         if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
             if (_quorumReached(core)) {
-                if (core.settings.validatorsVote && _govValidators.validatorsCount() > 0) {
+                if (core.settings.validatorsVote) {
                     IGovValidators.ProposalState status = _govValidators.getProposalState(
                         proposalId,
                         false
                     );
 
                     if (status == IGovValidators.ProposalState.Undefined) {
-                        return ProposalState.WaitingForVotingTransfer;
+                        return
+                            _govValidators.validatorsCount() > 0
+                                ? ProposalState.WaitingForVotingTransfer
+                                : ProposalState.Succeeded;
                     }
 
                     if (status == IGovValidators.ProposalState.Succeeded) {

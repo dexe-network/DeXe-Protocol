@@ -269,4 +269,6 @@ abstract contract TraderPoolProposal is
             "TPP: not BABT holder"
         );
     }
+
+    uint256[38] private _gap;
 }

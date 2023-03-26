@@ -70,13 +70,19 @@ library GovPoolVote {
 
         votes.add(proposalId);
 
+        GovPool govPool = GovPool(payable(address(this)));
+
         require(
-            votes.length() <= GovPool(payable(address(this))).coreProperties().getGovVotesLimit(),
+            votes.length() <= govPool.coreProperties().getGovVotesLimit(),
             "Gov: vote limit reached"
         );
 
+        govPool.setLatestVoteBlock(proposalId);
+
         _voteTokens(core, voteInfo, proposalId, voteAmount, isMicropool, useDelegated);
         reward = _voteNfts(core, voteInfo, voteNftIds, isMicropool, useDelegated) + voteAmount;
+
+        require(reward >= core.settings.minVotesForVoting, "Gov: low current vote power");
 
         emit Voted(proposalId, msg.sender, isMicropool ? 0 : reward, isMicropool ? reward : 0);
     }
@@ -99,6 +105,7 @@ library GovPoolVote {
                 msg.sender,
                 isMicropool,
                 useDelegated,
+                true,
                 core.settings.minVotesForVoting,
                 core.nftPowerSnapshotId
             ),
