@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+
 import "@dlsl/dev-modules/contracts-registry/presets/OwnableContractsRegistry.sol";
 
 import "../interfaces/core/IContractsRegistry.sol";
 
-contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry {
+contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPSUpgradeable {
     string public constant USER_REGISTRY_NAME = "USER_REGISTRY";
 
     string public constant POOL_FACTORY_NAME = "POOL_FACTORY";
@@ -82,4 +84,6 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry {
     function getDEXEDAOContract() external view override returns (address) {
         return getContract(DEXE_DAO_NAME);
     }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
