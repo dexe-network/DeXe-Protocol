@@ -2,8 +2,6 @@ const Proxy = artifacts.require("ERC1967Proxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
 
-const GovPool = artifacts.require("GovPool");
-
 const Insurance = artifacts.require("Insurance");
 const CoreProperties = artifacts.require("CoreProperties");
 const UserRegistry = artifacts.require("UserRegistry");
@@ -14,7 +12,7 @@ module.exports = async (deployer, logger) => {
 
   const poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
 
-  const govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+  const dexeDaoAddress = await contractsRegistry.getDEXEDAOContract();
 
   const insurance = await Insurance.at(await contractsRegistry.getInsuranceContract());
   const coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
@@ -22,21 +20,21 @@ module.exports = async (deployer, logger) => {
   const priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
 
   logger.logTransaction(
-    await contractsRegistry.transferOwnership(govPool.address),
+    await contractsRegistry.transferOwnership(dexeDaoAddress),
     "Transfer ContractsRegistry ownership to GovPool"
   );
   logger.logTransaction(
-    await poolRegistry.transferOwnership(govPool.address),
+    await poolRegistry.transferOwnership(dexeDaoAddress),
     "Transfer PoolRegistry ownership to GovPool"
   );
-  logger.logTransaction(await insurance.transferOwnership(govPool.address), "Transfer Insurance ownership to GovPool");
+  logger.logTransaction(await insurance.transferOwnership(dexeDaoAddress), "Transfer Insurance ownership to GovPool");
   logger.logTransaction(
-    await coreProperties.transferOwnership(govPool.address),
+    await coreProperties.transferOwnership(dexeDaoAddress),
     "Transfer CoreProperties ownership to GovPool"
   );
   logger.logTransaction(
-    await userRegistry.transferOwnership(govPool.address),
+    await userRegistry.transferOwnership(dexeDaoAddress),
     "Transfer UserRegistry ownership to GovPool"
   );
-  logger.logTransaction(await priceFeed.transferOwnership(govPool.address), "Transfer PriceFeed ownership to GovPool");
+  logger.logTransaction(await priceFeed.transferOwnership(dexeDaoAddress), "Transfer PriceFeed ownership to GovPool");
 };
