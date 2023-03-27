@@ -1,6 +1,6 @@
 const { SECONDS_IN_DAY, SECONDS_IN_MONTH, PRECISION, DECIMAL } = require("../scripts/utils/constants");
 
-const Proxy = artifacts.require("TransparentUpgradeableProxy");
+const Proxy = artifacts.require("ERC1967Proxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 
 const UserRegistry = artifacts.require("UserRegistry");

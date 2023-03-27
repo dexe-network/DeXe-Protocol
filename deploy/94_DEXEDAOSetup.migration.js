@@ -1,7 +1,7 @@
 const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
 const { wei } = require("../scripts/utils/utils");
 
-const Proxy = artifacts.require("TransparentUpgradeableProxy");
+const Proxy = artifacts.require("ERC1967Proxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 
 const PoolFactory = artifacts.require("PoolFactory");

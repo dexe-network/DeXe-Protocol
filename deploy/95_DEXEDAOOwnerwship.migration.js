@@ -1,4 +1,4 @@
-const Proxy = artifacts.require("TransparentUpgradeableProxy");
+const Proxy = artifacts.require("ERC1967Proxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
 
