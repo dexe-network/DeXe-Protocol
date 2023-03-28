@@ -24,4 +24,4 @@ function getReceivedInsurance(
 - ***deposit*** - the amount of tokens to be deposited
 - **returns** -> the received insurance tokens
 
-⚠️⚠️ The ***`proposeClaim()`*** function is the ***`createProposal()`*** function on **DeXe DAO**.
+⚠️⚠️ The insurance payout proposal is managed through **DEXE DAO** proposal creation (function ***`createProposal()`***). The community decides whether to proceed with the claim or not.
