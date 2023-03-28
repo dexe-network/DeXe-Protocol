@@ -1,3 +1,5 @@
+const { getDexeDaoAddress } = require("./utils/utils");
+
 const Proxy = artifacts.require("ERC1967Proxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
@@ -12,7 +14,7 @@ module.exports = async (deployer, logger) => {
 
   const poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
 
-  const dexeDaoAddress = await contractsRegistry.getDEXEDAOContract();
+  const dexeDaoAddress = await getDexeDaoAddress();
 
   const insurance = await Insurance.at(await contractsRegistry.getInsuranceContract());
   const coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());

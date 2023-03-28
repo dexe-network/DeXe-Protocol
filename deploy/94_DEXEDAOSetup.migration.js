@@ -1,6 +1,6 @@
 const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
 const { wei } = require("../scripts/utils/utils");
-const { dexeDaoName } = require("./utils/utils");
+const { getDexeDaoName } = require("./utils/utils");
 
 const Proxy = artifacts.require("ERC1967Proxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -98,7 +98,7 @@ let POOL_PARAMETERS = {
   verifier: ZERO_ADDR,
   onlyBABTHolders: false,
   descriptionURL: "",
-  name: dexeDaoName(),
+  name: getDexeDaoName(),
 };
 
 async function setupInsuranceProposals(contractsRegistry) {

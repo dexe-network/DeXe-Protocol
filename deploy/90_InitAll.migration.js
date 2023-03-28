@@ -77,11 +77,6 @@ module.exports = async (deployer, logger) => {
   console.log();
 
   logger.logTransaction(
-    await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME()),
-    "Inject CoreProperties"
-  );
-
-  logger.logTransaction(
     await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME()),
     "Inject PriceFeed"
   );
