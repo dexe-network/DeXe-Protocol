@@ -58,8 +58,4 @@ interface IContractsRegistry {
     /// @notice Used in dependency injection mechanism
     /// @return BABT contract address
     function getBABTContract() external view returns (address);
-
-    /// @notice Used in dependency injection mechanism
-    /// @return DEXEDAO contract address
-    function getDEXEDAOContract() external view returns (address);
 }

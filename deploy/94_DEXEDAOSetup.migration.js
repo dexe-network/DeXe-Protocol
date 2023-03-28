@@ -131,12 +131,5 @@ module.exports = async (deployer, logger) => {
 
   logger.logTransaction(tx, "Deployed DEXE DAO");
 
-  const dexeDaoAddress = tx.receipt.logs[0].args.govPool;
-
-  logger.logContracts(["DEXE DAO", dexeDaoAddress]);
-
-  logger.logTransaction(
-    await contractsRegistry.justAddProxyContract(await contractsRegistry.DEXE_DAO_NAME(), dexeDaoAddress),
-    "Add DEXE DAO"
-  );
+  logger.logContracts(["DEXE DAO", tx.receipt.logs[0].args.govPool]);
 };

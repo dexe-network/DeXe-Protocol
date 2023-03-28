@@ -27,8 +27,6 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
 
     string public constant CORE_PROPERTIES_NAME = "CORE_PROPERTIES";
 
-    string public constant DEXE_DAO_NAME = "DEXE_DAO";
-
     function getUserRegistryContract() external view override returns (address) {
         return getContract(USER_REGISTRY_NAME);
     }
@@ -79,10 +77,6 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
 
     function getBABTContract() external view override returns (address) {
         return getContract(BABT_NAME);
-    }
-
-    function getDEXEDAOContract() external view override returns (address) {
-        return getContract(DEXE_DAO_NAME);
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
