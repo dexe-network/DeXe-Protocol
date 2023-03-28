@@ -1,0 +1,23 @@
+{
+  "DEXEDAO": {
+    "name": "DEXE DAO"
+  },
+  "userRegistry": {
+    "documentHash": "0xdcf5635e2f38018583c7faa2aebd3361ed82c67c59c6a54de06b19181a596210"
+  },
+  "uniswapV2": {
+    "router": "0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3",
+    "factory": "0xb7926c0430afb07aa7defde6da862ae0bde767bc"
+  },
+  "tokens": {
+    "DEXE": "0xa651EdBbF77e1A2678DEfaE08A33c5004b491457",
+    "BUSD": "0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7",
+    "USDT": "0x7ef95a0fee0dd31b22626fa2e10ee6a223f8a684",
+    "BABT": "0x0000000000000000000000000000000000000001",
+    "WBNB": "0xae13d989dac2f0debff460ac112a837c89baa7cd",
+    "WETH": "0x8babbb98678facc7342735486c851abd7a0d17ca",
+    "DAI": "0x8a9424745056Eb399FD19a0EC26A14316684e274",
+    "pancake": "0xf9f93cf501bfadb6494589cb4b4c15de49e85d0e",
+    "SAFEMOON": "0xDAcbdeCc2992a63390d108e8507B98c7E2B5584a"
+  }
+}

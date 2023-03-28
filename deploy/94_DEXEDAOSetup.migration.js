@@ -1,14 +1,12 @@
+const config = require("./config/config.json");
+
 const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
 const { wei } = require("../scripts/utils/utils");
-const { getDexeDaoName } = require("./utils/utils");
 
 const Proxy = artifacts.require("ERC1967Proxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 
 const PoolFactory = artifacts.require("PoolFactory");
-
-// BSC TESTNET
-const dexeAddress = "0xa651EdBbF77e1A2678DEfaE08A33c5004b491457";
 
 let POOL_PARAMETERS = {
   settingsParams: {
@@ -55,7 +53,7 @@ let POOL_PARAMETERS = {
         quorumValidators: PRECISION.times("0.00001").toFixed(),
         minVotesForVoting: wei("10"),
         minVotesForCreating: wei("1"),
-        rewardToken: dexeAddress,
+        rewardToken: config.tokens.DEXE,
         creationReward: wei("10"),
         executionReward: wei("15"),
         voteRewardsCoefficient: PRECISION.times("10").toFixed(),
@@ -89,7 +87,7 @@ let POOL_PARAMETERS = {
     balances: [],
   },
   userKeeperParams: {
-    tokenAddress: dexeAddress,
+    tokenAddress: config.tokens.DEXE,
     nftAddress: ZERO_ADDR,
     totalPowerInTokens: 0,
     nftsTotalSupply: 0,
@@ -98,7 +96,7 @@ let POOL_PARAMETERS = {
   verifier: ZERO_ADDR,
   onlyBABTHolders: false,
   descriptionURL: "",
-  name: getDexeDaoName(),
+  name: config.DEXEDAO.name,
 };
 
 async function setupInsuranceProposals(contractsRegistry) {
@@ -130,7 +128,11 @@ module.exports = async (deployer, logger) => {
 
   let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);
 
+  const dexeDaoAddress = tx.receipt.logs[0].args.govPool;
+
+  deployer.dexeDaoAddress = dexeDaoAddress;
+
   logger.logTransaction(tx, "Deployed DEXE DAO");
 
-  logger.logContracts(["DEXE DAO", tx.receipt.logs[0].args.govPool]);
+  logger.logContracts(["DEXE DAO", dexeDaoAddress]);
 };
