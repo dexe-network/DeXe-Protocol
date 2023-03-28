@@ -5,4 +5,4 @@ function dexeDaoName() {
   return process.env.DEXE_DAO_NAME !== undefined ? process.env.DEXE_DAO_NAME : "DEXE DAO";
 }
 
-export { dexeDaoName };
+module.exports = { dexeDaoName };
