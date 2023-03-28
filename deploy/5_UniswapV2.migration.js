@@ -1,20 +1,18 @@
-const Proxy = artifacts.require("TransparentUpgradeableProxy");
-const ContractsRegistry = artifacts.require("ContractsRegistry");
+const config = require("./config/config.json");
 
-// BSC TESTNET
-const UniswapV2RouterAddress = "0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3";
-const UniswapV2FactoryAddress = "0xb7926c0430afb07aa7defde6da862ae0bde767bc";
+const Proxy = artifacts.require("ERC1967Proxy");
+const ContractsRegistry = artifacts.require("ContractsRegistry");
 
 module.exports = async (deployer, logger) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
   logger.logTransaction(
-    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), UniswapV2RouterAddress),
+    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), config.uniswapV2.router),
     "Add UniswapV2Router"
   );
 
   logger.logTransaction(
-    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), UniswapV2FactoryAddress),
+    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), config.uniswapV2.factory),
     "Add UniswapV2Factory"
   );
 };

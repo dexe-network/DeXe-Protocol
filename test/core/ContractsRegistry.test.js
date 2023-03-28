@@ -4,6 +4,7 @@ const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
+const ERC1967Proxy = artifacts.require("ERC1967Proxy");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC20MockUpgraded = artifacts.require("ERC20MockUpgraded");
 
@@ -13,6 +14,7 @@ ERC20Mock.numberFormat = "BigNumber";
 
 describe("ContractsRegistry", () => {
   let OWNER;
+  let SECOND;
 
   let contractsRegistry;
 
@@ -20,6 +22,7 @@ describe("ContractsRegistry", () => {
 
   before("setup", async () => {
     OWNER = await accounts(0);
+    SECOND = await accounts(1);
 
     contractsRegistry = await ContractsRegistry.new();
 
@@ -29,6 +32,30 @@ describe("ContractsRegistry", () => {
   });
 
   afterEach(reverter.revert);
+
+  describe("proxy functionality", () => {
+    let implementation;
+    let proxyRegistry;
+
+    beforeEach(async () => {
+      implementation = await ContractsRegistry.new();
+
+      proxyRegistry = await ContractsRegistry.at((await ERC1967Proxy.new(implementation.address, "0x")).address);
+
+      await proxyRegistry.__OwnableContractsRegistry_init();
+    });
+
+    it("should upgrade if all conditions are met", async () => {
+      await truffleAssert.passes(proxyRegistry.upgradeTo(implementation.address), "upgrades if caller is the owner");
+    });
+
+    it("should not upgrade if caller is not the owner", async () => {
+      await truffleAssert.reverts(
+        proxyRegistry.upgradeTo(implementation.address, { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+    });
+  });
 
   describe("contract management", () => {
     it("should add and remove the contract", async () => {
