@@ -6,6 +6,8 @@ The proposals follow pretty much the same rules as the main pool except that the
 
 Investors can't fund the proposal more than the trader percentage-wise.
 
+⚠️⚠️ In a risky pool, traders can trade any token, even those created by them, and add liquidity to **Uniswap**. This allows the trader to always be in profit by selling their tokens at a higher price, and closing **DeXe** trades at a loss.
+
 Function ***`createProposal()`*** on the `BasicTraderPool` is used to create a risky proposal.
 
 ```solidity

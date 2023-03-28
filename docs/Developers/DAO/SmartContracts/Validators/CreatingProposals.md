@@ -24,3 +24,5 @@ enum ProposalType {
     ChangeBalances
 }
 ```
+
+⚠️⚠️ The owner of validators contract is the corresponding **DAO**. The community can control its validators and **CHANGE** them by using `ChangeBalances` type of a proposal.

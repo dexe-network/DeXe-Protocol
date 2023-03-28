@@ -31,6 +31,8 @@ struct TraderParameters {
  - ***minTraderCommission*** - the minimal trader's commission the trader can specify
  - ***maxTraderCommissions*** - the maximal trader's commission the trader can specify based on the chosen commission period
 
+⚠️⚠️ The **DeXe DAO** could change commissions at ***any period of time***. The upper bound limit for the commission is **NOT** set up.
+
 There are **3** types of commission periods.
  ```solidity
 enum CommissionPeriod {
