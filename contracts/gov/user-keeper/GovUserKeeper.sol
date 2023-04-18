@@ -537,39 +537,50 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             _nftInfo.totalPowerInTokens;
     }
 
-    function canParticipate(
+    function canCreate(
         address voter,
-        bool isMicropool,
         bool useDelegated,
-        bool useOwnedBalance,
         uint256 requiredVotes,
         uint256 snapshotId
     ) external view override returns (bool) {
-        (uint256 tokens, uint256 ownedBalance) = tokenBalance(voter, isMicropool, useDelegated);
+        (uint256 tokens, uint256 ownedBalance) = tokenBalance(voter, false, useDelegated);
+        (uint256 tokensMicropool, ) = tokenBalance(voter, true, false);
 
-        if (!useOwnedBalance) {
-            tokens -= ownedBalance;
-        }
+        tokens = tokens + tokensMicropool - ownedBalance;
 
         if (tokens >= requiredVotes) {
             return true;
         }
 
-        (uint256[] memory nftIds, uint256 ownedLength) = nftExactBalance(
-            voter,
-            isMicropool,
-            useDelegated
-        );
+        (uint256[] memory nftIds, uint256 owned) = nftExactBalance(voter, false, useDelegated);
+        (uint256[] memory nftIdsMicropool, ) = nftExactBalance(voter, true, false);
 
-        if (!useOwnedBalance) {
-            assembly {
-                mstore(nftIds, sub(mload(nftIds), ownedLength))
-            }
+        assembly {
+            mstore(nftIds, sub(mload(nftIds), owned))
         }
 
-        uint256 nftPower = getNftsPowerInTokensBySnapshot(nftIds, snapshotId);
+        uint256 nftPower = getNftsPowerInTokensBySnapshot(nftIds, snapshotId) +
+            getNftsPowerInTokensBySnapshot(nftIdsMicropool, snapshotId);
 
         return tokens + nftPower >= requiredVotes;
+    }
+
+    function canVote(
+        address voter,
+        bool isMicropool,
+        bool useDelegated,
+        uint256 requiredVotes,
+        uint256 snapshotId
+    ) external view override returns (bool) {
+        (uint256 tokens, ) = tokenBalance(voter, isMicropool, useDelegated);
+
+        if (tokens >= requiredVotes) {
+            return true;
+        }
+
+        (uint256[] memory nftIds, ) = nftExactBalance(voter, isMicropool, useDelegated);
+
+        return tokens + getNftsPowerInTokensBySnapshot(nftIds, snapshotId) >= requiredVotes;
     }
 
     function votingPower(

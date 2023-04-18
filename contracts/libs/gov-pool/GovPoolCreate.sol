@@ -64,7 +64,7 @@ library GovPoolCreate {
             data: data
         });
 
-        _canParticipate(settings, snapshotId);
+        _canCreate(settings, snapshotId);
 
         emit ProposalCreated(
             proposalId,
@@ -97,18 +97,16 @@ library GovPoolCreate {
         );
     }
 
-    function _canParticipate(
+    function _canCreate(
         IGovSettings.ProposalSettings memory settings,
         uint256 snapshotId
     ) internal view {
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
         require(
-            IGovUserKeeper(userKeeper).canParticipate(
+            IGovUserKeeper(userKeeper).canCreate(
                 msg.sender,
-                false,
                 !settings.delegatedVotingAllowed,
-                false,
                 settings.minVotesForCreating,
                 snapshotId
             ),

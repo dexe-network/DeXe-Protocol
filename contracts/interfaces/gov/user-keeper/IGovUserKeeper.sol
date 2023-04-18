@@ -260,19 +260,30 @@ interface IGovUserKeeper {
     /// @return `total` power
     function getTotalVoteWeight() external view returns (uint256);
 
-    /// @notice The function to define if voter is able to vote or create proposal
+    /// @notice The function to define if voter is able to create a proposal. Includes micropool balance
     /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then uses micropool balance
     /// @param useDelegated the boolean flag, if true then balance is calculated with delegations
-    /// @param useOwnedBalance the boolean flag, if true then uses own balance
     /// @param requiredVotes the required voting power
     /// @param snapshotId the id of snapshot
     /// @return `true` - can participate, `false` - can't participate
-    function canParticipate(
+    function canCreate(
+        address voter,
+        bool useDelegated,
+        uint256 requiredVotes,
+        uint256 snapshotId
+    ) external view returns (bool);
+
+    /// @notice The function to define if voter is able to vote. Includes wallet balance
+    /// @param voter the address of voter
+    /// @param isMicropool the boolean flag, if true then uses micropool balance
+    /// @param useDelegated the boolean flag, if true then balance is calculated with delegations
+    /// @param requiredVotes the required voting power
+    /// @param snapshotId the id of snapshot
+    /// @return `true` - can participate, `false` - can't participate
+    function canVote(
         address voter,
         bool isMicropool,
         bool useDelegated,
-        bool useOwnedBalance,
         uint256 requiredVotes,
         uint256 snapshotId
     ) external view returns (bool);

@@ -66,7 +66,7 @@ library GovPoolVote {
         bool isMicropool,
         bool useDelegated
     ) internal returns (uint256 reward) {
-        _canParticipate(core, proposalId, isMicropool, useDelegated);
+        _canVote(core, proposalId, isMicropool, useDelegated);
 
         votes.add(proposalId);
 
@@ -87,7 +87,7 @@ library GovPoolVote {
         emit Voted(proposalId, msg.sender, isMicropool ? 0 : reward, isMicropool ? reward : 0);
     }
 
-    function _canParticipate(
+    function _canVote(
         IGovPool.ProposalCore storage core,
         uint256 proposalId,
         bool isMicropool,
@@ -101,11 +101,10 @@ library GovPoolVote {
             "Gov: vote unavailable"
         );
         require(
-            IGovUserKeeper(userKeeper).canParticipate(
+            IGovUserKeeper(userKeeper).canVote(
                 msg.sender,
                 isMicropool,
                 useDelegated,
-                true,
                 core.settings.minVotesForVoting,
                 core.nftPowerSnapshotId
             ),
