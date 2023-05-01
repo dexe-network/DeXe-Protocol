@@ -2,21 +2,15 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../../interfaces/gov/IGovPool.sol";
 
-import "../utils/TokenBalance.sol";
-import "../math/MathHelper.sol";
 import "./GovPoolCommission.sol";
 
 import "../../gov/GovPool.sol";
 
 library GovPoolOffchain {
-    using MathHelper for uint256;
-    using Math for uint256;
     using ECDSA for bytes32;
-    using TokenBalance for address;
     using GovPoolCommission for address;
 
     function saveOffchainResults(
