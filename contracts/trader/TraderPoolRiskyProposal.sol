@@ -3,7 +3,6 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "../interfaces/trader/ITraderPoolRiskyProposal.sol";
 import "../interfaces/trader/IBasicTraderPool.sol";
@@ -14,7 +13,7 @@ import "../libs/trader-pool-proposal/TraderPoolRiskyProposalView.sol";
 import "../core/Globals.sol";
 import "./TraderPoolProposal.sol";
 
-contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal, ReentrancyGuard {
+contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal {
     using EnumerableSet for EnumerableSet.UintSet;
     using SafeERC20 for IERC20;
     using DecimalsConverter for uint256;
@@ -127,7 +126,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 lpInvestment,
         uint256 baseInvestment,
         uint256 minPositionOut
-    ) external override nonReentrant onlyParentTraderPool {
+    ) external override onlyParentTraderPool {
         require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
 
         ProposalInfo storage info = _proposalInfos[proposalId];

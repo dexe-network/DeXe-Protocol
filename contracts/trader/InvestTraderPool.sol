@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
 import "../interfaces/trader/IInvestTraderPool.sol";
 import "../interfaces/trader/ITraderPoolInvestProposal.sol";
 
 import "./TraderPool.sol";
 
-contract InvestTraderPool is IInvestTraderPool, TraderPool {
+contract InvestTraderPool is IInvestTraderPool, TraderPool, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using MathHelper for uint256;
     using DecimalsConverter for uint256;
@@ -91,7 +93,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         uint256 proposalId,
         uint256 lpAmount,
         uint256[] calldata minPositionsOut
-    ) external override onlyBABTHolder {
+    ) external override nonReentrant onlyBABTHolder {
         require(
             isTraderAdmin(msg.sender) || getInvestDelayEnd() <= block.timestamp,
             "ITP: investment delay"

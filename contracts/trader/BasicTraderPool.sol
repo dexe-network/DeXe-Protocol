@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
 import "../interfaces/trader/IBasicTraderPool.sol";
 import "../interfaces/trader/ITraderPoolRiskyProposal.sol";
 
 import "./TraderPool.sol";
 
-contract BasicTraderPool is IBasicTraderPool, TraderPool {
+contract BasicTraderPool is IBasicTraderPool, TraderPool, ReentrancyGuard {
     using MathHelper for uint256;
     using SafeERC20 for IERC20;
     using TraderPoolInvest for *;
@@ -101,7 +103,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256 lpAmount,
         uint256[] calldata minDivestOut,
         uint256 minProposalOut
-    ) external override onlyBABTHolder {
+    ) external override nonReentrant onlyBABTHolder {
         uint256 baseAmount = _poolParameters.divestPositions(lpAmount, minDivestOut);
 
         _traderPoolProposal.invest(proposalId, msg.sender, lpAmount, baseAmount, minProposalOut);
