@@ -396,5 +396,5 @@ abstract contract TraderPool is
         require(isBABTHolder(msg.sender), "TP: not BABT holder");
     }
 
-    uint256[27] private _gap;
+    uint256[28] private _gap;
 }
