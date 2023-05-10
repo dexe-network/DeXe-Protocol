@@ -91,7 +91,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         uint256 proposalId,
         uint256 lpAmount,
         uint256[] calldata minPositionsOut
-    ) external override onlyBABTHolder {
+    ) external override nonReentrant onlyBABTHolder {
         require(
             isTraderAdmin(msg.sender) || getInvestDelayEnd() <= block.timestamp,
             "ITP: investment delay"

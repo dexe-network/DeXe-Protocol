@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
@@ -19,7 +20,12 @@ import "../libs/trader-pool/TraderPoolInvest.sol";
 import "../libs/trader-pool/TraderPoolDivest.sol";
 import "../libs/math/MathHelper.sol";
 
-abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant {
+abstract contract TraderPool is
+    ITraderPool,
+    ERC20Upgradeable,
+    ReentrancyGuardUpgradeable,
+    AbstractDependant
+{
     using EnumerableSet for EnumerableSet.AddressSet;
     using MathHelper for uint256;
     using TraderPoolCommission for *;
@@ -92,6 +98,7 @@ abstract contract TraderPool is ITraderPool, ERC20Upgradeable, AbstractDependant
         PoolParameters calldata poolParameters
     ) public onlyInitializing {
         __ERC20_init(name, symbol);
+        __ReentrancyGuard_init();
 
         _poolParameters = poolParameters;
         _traderAdmins.add(poolParameters.trader);
