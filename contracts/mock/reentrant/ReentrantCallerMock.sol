@@ -9,7 +9,7 @@ contract ReentrantCallerMock {
     address public callbackAddress;
     bytes public callbackData;
 
-    fallback() external payable {
+    fallback() external {
         (bool ok, bytes memory data) = callbackAddress.call(callbackData);
         require(ok, data.getRevertMsg());
     }

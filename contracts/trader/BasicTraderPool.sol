@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-
 import "../interfaces/trader/IBasicTraderPool.sol";
 import "../interfaces/trader/ITraderPoolRiskyProposal.sol";
 
 import "./TraderPool.sol";
 
-contract BasicTraderPool is IBasicTraderPool, TraderPool, ReentrancyGuard {
+contract BasicTraderPool is IBasicTraderPool, TraderPool {
     using MathHelper for uint256;
     using SafeERC20 for IERC20;
     using TraderPoolInvest for *;
