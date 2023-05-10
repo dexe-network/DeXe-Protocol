@@ -5,11 +5,13 @@ const truffleAssert = require("truffle-assertions");
 const { SECONDS_IN_DAY, SECONDS_IN_MONTH, PRECISION } = require("../../scripts/utils/constants");
 const { ExchangeType, ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
 const { assert } = require("chai");
+const { setCode } = require("@nomicfoundation/hardhat-network-helpers");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const Insurance = artifacts.require("Insurance");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const BABTMock = artifacts.require("BABTMock");
+const ReentrantCallerMock = artifacts.require("ReentrantCallerMock");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeedMock = artifacts.require("PriceFeedMock");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
@@ -533,6 +535,34 @@ describe("InvestTraderPool", () => {
         await exchangeToExact(tokens.WETH.address, tokens.USDT.address, wei("100"));
 
         await truffleAssert.reverts(investProposal(1, wei("100"), SECOND), "ITP: investment delay");
+      });
+
+      it("should revert if reentrant call", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        await createProposal(wei("100"), [time.plus(10000000), wei("10000")]);
+
+        await exchangeFromExact(tokens.WETH.address, tokens.USDT.address, wei("100"));
+        await setTime((await getCurrentBlockTime()) + SECONDS_IN_DAY * 20);
+
+        await invest(wei("1000"), SECOND);
+
+        const divests = await traderPool.getDivestAmountsAndCommissions(SECOND, wei("500"));
+
+        const baseTokenAddress = tokens.WETH.address;
+        const bytecode = await (await ReentrantCallerMock.new()).getBytecode();
+
+        await setCode(baseTokenAddress, bytecode);
+
+        const callbackAddress = traderPool.address;
+        const callbackData = traderPool.contract.methods.investProposal(0, 0, []).encodeABI();
+
+        await (await ReentrantCallerMock.at(baseTokenAddress)).setCallback(callbackAddress, callbackData);
+
+        await truffleAssert.reverts(
+          traderPool.investProposal(1, wei("500"), divests.receptions.receivedAmounts, { from: SECOND }),
+          "ReentrancyGuard: reentrant call"
+        );
       });
 
       it("should invest into the proposal", async () => {
