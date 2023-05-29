@@ -72,24 +72,39 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         }
     }
 
-    function vestingWithdraw(uint256[] calldata tierIds) external override {
-        uint256[] memory vestingWithdrawAmounts = getVestingWithdrawAmounts(msg.sender, tierIds);
+    function recover(uint256[] calldata tierIds) external onlyGov {
+        for (uint256 i = 0; i < tierIds.length; i++) {
+            uint256 recoveringAmount = _getRecoverAmount(tierIds[i]);
 
-        for (uint256 i = 0; i < vestingWithdrawAmounts.length; i++) {
-            if (vestingWithdrawAmounts[i] == 0) {
-                continue;
-            }
+            require(recoveringAmount > 0, "TSP: zero recovery");
+
+            Tier storage tier = _tiers[tierIds[i]];
+
+            tier.tierInfo.tierInfoView.totalSold += recoveringAmount;
+
+            address saleTokenAddress = tier.tierView.saleTokenAddress;
+            ERC20(saleTokenAddress).safeTransfer(
+                msg.sender,
+                recoveringAmount.from18(ERC20(saleTokenAddress).decimals())
+            );
+        }
+    }
+
+    function vestingWithdraw(uint256[] calldata tierIds) external override {
+        for (uint256 i = 0; i < tierIds.length; i++) {
+            uint256 vestingWithdrawAmount = _getVestingWithdrawAmount(msg.sender, tierIds[i]);
+            require(vestingWithdrawAmount > 0, "TSP: zero withdrawal");
 
             Tier storage tier = _tiers[tierIds[i]];
             Purchase storage purchase = tier.tierInfo.customers[msg.sender];
 
             purchase.latestVestingWithdraw = uint64(block.timestamp);
-            purchase.vestingWithdrawnAmount += vestingWithdrawAmounts[i];
+            purchase.vestingWithdrawnAmount += vestingWithdrawAmount;
 
             address saleTokenAddress = tier.tierView.saleTokenAddress;
             ERC20(saleTokenAddress).safeTransfer(
                 msg.sender,
-                vestingWithdrawAmounts[i].from18(ERC20(saleTokenAddress).decimals())
+                vestingWithdrawAmount.from18(ERC20(saleTokenAddress).decimals())
             );
         }
     }
@@ -141,26 +156,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         }
 
         emit Bought(tierId, msg.sender);
-    }
-
-    function recover(uint256[] calldata tierIds) external {
-        uint256[] memory recoveringAmounts = getRecoverAmounts(tierIds);
-
-        for (uint256 i = 0; i < recoveringAmounts.length; i++) {
-            if (recoveringAmounts[i] == 0) {
-                continue;
-            }
-
-            Tier storage tier = _tiers[tierIds[i]];
-
-            tier.tierInfo.tierInfoView.totalSold += recoveringAmounts[i];
-
-            address saleTokenAddress = tier.tierView.saleTokenAddress;
-            ERC20(saleTokenAddress).safeTransfer(
-                govAddress,
-                recoveringAmounts[i].from18(ERC20(saleTokenAddress).decimals())
-            );
-        }
     }
 
     function getSaleTokenAmount(

@@ -8,6 +8,7 @@ const {
   getBytesTransfer,
   getBytesCreateTiersTSP,
   getBytesOffTiersTSP,
+  getBytesRecoverTSP,
   getBytesAddToWhitelistTSP,
 } = require("../utils/gov-pool-utils");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
@@ -976,6 +977,10 @@ describe("TokenSaleProposal", () => {
           await truffleAssert.reverts(tsp.vestingWithdraw([3]), "TSP: tier does not exist");
         });
 
+        it("should not withdraw the same tier twice", async () => {
+          await truffleAssert.reverts(tsp.vestingWithdraw([1, 1]), "TSP: zero withdrawal");
+        });
+
         it("should return zero vesting withdraw amount if the user has not purchased the sale token", async () => {
           assert.deepEqual(
             (await tsp.getVestingWithdrawAmounts(OWNER, [1, 2])).map((amount) => amount.toFixed()),
@@ -1062,9 +1067,7 @@ describe("TokenSaleProposal", () => {
           );
           assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
-          await tsp.vestingWithdraw([1]);
-
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(480));
+          await truffleAssert.reverts(tsp.vestingWithdraw([1]), "TSP: zero withdrawal");
 
           await setTime(purchaseTime + 24);
 
@@ -1076,10 +1079,7 @@ describe("TokenSaleProposal", () => {
 
           assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
-          await tsp.vestingWithdraw([1]);
-
-          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(480));
+          await truffleAssert.reverts(tsp.vestingWithdraw([1]), "TSP: zero withdrawal");
 
           await setTime(purchaseTime + 73);
 
@@ -1163,11 +1163,7 @@ describe("TokenSaleProposal", () => {
 
           assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
-          await tsp.vestingWithdraw([1]);
-
-          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
-
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(600));
+          await truffleAssert.reverts(tsp.vestingWithdraw([1]), "TSP: zero withdrawal");
         });
       });
 
@@ -1186,8 +1182,22 @@ describe("TokenSaleProposal", () => {
           );
         });
 
+        it("should not recover if caller is not govPool", async () => {
+          await truffleAssert.reverts(tsp.recover([3]), "TSP: not a Gov contract");
+        });
+
         it("should not recover if the tier does not exist", async () => {
-          await truffleAssert.reverts(tsp.recover([3]), "TSP: tier does not exist");
+          await truffleAssert.reverts(
+            acceptProposal([tsp.address], [0], [getBytesRecoverTSP([3])]),
+            "TSP: tier does not exist"
+          );
+        });
+
+        it("should not recover the same tier twice", async () => {
+          await truffleAssert.reverts(
+            acceptProposal([tsp.address], [0], [getBytesRecoverTSP([1, 1])]),
+            "TSP: zero recovery"
+          );
         });
 
         it("should recover if the tier is off", async () => {
@@ -1198,7 +1208,7 @@ describe("TokenSaleProposal", () => {
             [wei("400"), "0"]
           );
 
-          await tsp.recover([1, 2]);
+          await acceptProposal([tsp.address], [0], [getBytesRecoverTSP([1])]);
 
           assert.equal((await erc20Sale.balanceOf(govPool.address)).toFixed(), wei("400"));
           assert.equal((await saleToken.balanceOf(govPool.address)).toFixed(), "0");
@@ -1212,7 +1222,7 @@ describe("TokenSaleProposal", () => {
             [wei("400"), "0"]
           );
 
-          await tsp.recover([1, 2]);
+          await acceptProposal([tsp.address], [0], [getBytesRecoverTSP([1])]);
 
           assert.equal((await erc20Sale.balanceOf(govPool.address)).toFixed(), wei("400"));
           assert.equal((await saleToken.balanceOf(govPool.address)).toFixed(), "0");

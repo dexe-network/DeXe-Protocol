@@ -146,6 +146,10 @@ interface ITokenSaleProposal {
     /// @param tierIds tier ids to set inactive
     function offTiers(uint256[] calldata tierIds) external;
 
+    /// @notice This function is used to return to the DAO treasury tokens that have not been purchased during sale
+    /// @param tierIds tier ids to recover from
+    function recover(uint256[] calldata tierIds) external;
+
     /// @notice This function is used to withdraw tokens from given tiers
     /// @param tierIds tier ids to make withdrawals from
     function vestingWithdraw(uint256[] calldata tierIds) external;
@@ -155,10 +159,6 @@ interface ITokenSaleProposal {
     /// @param tokenToBuyWith the token that will be used (exchanged) to purchase token on the token sale
     /// @param amount the amount of the token to be used for this exchange
     function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable;
-
-    /// @notice This function is used to return to the DAO treasury tokens that have not been purchased during sale
-    /// @param tierIds tier ids to recover from
-    function recover(uint256[] calldata tierIds) external;
 
     /// @notice This function is used to get amount of `TokenSaleProposal` tokens that can be purchased
     /// @param user the address of the user that purchases tokens
