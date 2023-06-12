@@ -36,9 +36,9 @@
     "typechain": "^8.1.0"
   },
   "devDependencies": {
-    "@dlsl/hardhat-gobind": "^1.0.2",
-    "@dlsl/hardhat-markup": "^1.0.0-rc.4",
-    "@dlsl/hardhat-migrate": "^1.4.0",
+    "@dlsl/hardhat-gobind": "^1.0.3",
+    "@dlsl/hardhat-markup": "^1.0.0-rc.12",
+    "@dlsl/hardhat-migrate": "^1.5.5",
     "@metamask/eth-sig-util": "^4.0.1",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.8",
     "@nomiclabs/hardhat-truffle5": "^2.0.7",
