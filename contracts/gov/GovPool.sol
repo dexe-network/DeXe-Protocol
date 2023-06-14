@@ -164,15 +164,15 @@ contract GovPool is
         uint256[] calldata values,
         bytes[] calldata data
     ) external override onlyBABTHolder {
-        latestProposalId++;
+        uint256 proposalId = ++latestProposalId;
 
         _proposals.createProposal(_descriptionURL, misc, executors, values, data);
 
         _pendingRewards.updateRewards(
             _proposals,
-            latestProposalId,
+            proposalId,
             RewardType.Create,
-            _proposals[latestProposalId].core.settings.creationReward,
+            _proposals[proposalId].core.settings.creationReward,
             PRECISION
         );
     }
