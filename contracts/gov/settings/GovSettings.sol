@@ -34,7 +34,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
 
             _validateProposalSettings(executorSettings);
 
-            settings[settingsId] = executorSettings;
+            _setSettings(executorSettings, settingsId);
 
             if (settingsId == uint256(ExecutorType.INTERNAL)) {
                 _setExecutor(address(this), settingsId);
