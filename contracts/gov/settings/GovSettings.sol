@@ -29,8 +29,8 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         uint256 systemExecutors = uint256(ExecutorType.VALIDATORS);
         uint256 settingsId;
 
-        for (uint256 i = 0; i < proposalSettings.length; i++) {
-            ProposalSettings calldata executorSettings = proposalSettings[i];
+        for (; settingsId < proposalSettings.length; settingsId++) {
+            ProposalSettings calldata executorSettings = proposalSettings[settingsId];
 
             _validateProposalSettings(executorSettings);
 
@@ -54,8 +54,6 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
                     settingsId
                 );
             }
-
-            settingsId++;
         }
         newSettingsId = settingsId;
     }
