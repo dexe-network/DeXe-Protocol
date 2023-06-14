@@ -58,7 +58,7 @@ library UniswapV2PathFinder {
         address[] calldata providedPath
     ) internal view returns (IPriceFeed.FoundPath memory foundPath) {
         if (amount == 0) {
-            return IPriceFeed.FoundPath(new address[](0), new uint256[](0), true);
+            return IPriceFeed.FoundPath(new address[](0), new uint256[](0), false);
         }
 
         address[] memory path2 = new address[](2);
