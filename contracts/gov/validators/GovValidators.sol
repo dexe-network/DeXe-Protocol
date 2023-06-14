@@ -234,9 +234,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         uint256 proposalId,
         bool isInternal
     ) public view override returns (uint256) {
-        ProposalCore storage core = isInternal
-            ? _internalProposals[proposalId].core
-            : _externalProposals[proposalId].core;
+        ProposalCore storage core = _getCore(proposalId, isInternal);
 
         if (core.voteEnd == 0) {
             return 0;
@@ -273,11 +271,18 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         return currentQuorum >= core.quorum;
     }
 
-    function _proposalExists(uint256 proposalId, bool isInternal) internal view returns (bool) {
+    function _getCore(
+        uint256 proposalId,
+        bool isInternal
+    ) internal view returns (ProposalCore storage) {
         return
-            isInternal
-                ? _internalProposals[proposalId].core.voteEnd != 0
-                : _externalProposals[proposalId].core.voteEnd != 0;
+            isInternal ? _internalProposals[proposalId].core : _externalProposals[proposalId].core;
+    }
+
+    function _proposalExists(uint256 proposalId, bool isInternal) internal view returns (bool) {
+        ProposalCore storage core = _getCore(proposalId, isInternal);
+
+        return core.voteEnd != 0;
     }
 
     function _changeBalances(uint256[] memory newValues, address[] memory userAddresses) internal {
