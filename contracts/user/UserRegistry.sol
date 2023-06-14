@@ -28,10 +28,12 @@ contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
     }
 
     function agreeToPrivacyPolicy(bytes calldata signature) public override {
-        require(documentHash != 0, "UserRegistry: privacy policy is not set");
+        bytes32 _documentHash = documentHash;
+
+        require(_documentHash != 0, "UserRegistry: privacy policy is not set");
 
         bytes32 digest = _hashTypedDataV4(
-            keccak256(abi.encode(keccak256("Agreement(bytes32 documentHash)"), documentHash))
+            keccak256(abi.encode(keccak256("Agreement(bytes32 documentHash)"), _documentHash))
         );
 
         require(
@@ -39,9 +41,9 @@ contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
             "UserRegistry: invalid signature"
         );
 
-        _signatureHashes[documentHash][msg.sender] = keccak256(abi.encodePacked(signature));
+        _signatureHashes[_documentHash][msg.sender] = keccak256(abi.encodePacked(signature));
 
-        emit Agreed(msg.sender, documentHash);
+        emit Agreed(msg.sender, _documentHash);
     }
 
     function changeProfileAndAgreeToPrivacyPolicy(
