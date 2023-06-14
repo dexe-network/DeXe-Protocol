@@ -385,6 +385,13 @@ describe("ERC721Power", () => {
           "ERC721Power: sender isn't an nft owner"
         );
       });
+
+      it("should revert if try to add zero collateral", async () => {
+        await truffleAssert.reverts(
+          nft.addCollateral("0", "1", { from: SECOND }),
+          "ERC721Power: wrong collateral amount"
+        );
+      });
     });
 
     describe("removeCollateral()", () => {
