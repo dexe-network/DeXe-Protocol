@@ -23,6 +23,7 @@ library ShrinkableArray {
 
     /**
      * @dev Change array length
+     * WARNING: This function does not check if new length is greater than original length
      */
     function crop(
         UintArray memory arr,
