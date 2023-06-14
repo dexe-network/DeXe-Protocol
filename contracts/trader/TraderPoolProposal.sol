@@ -148,8 +148,8 @@ abstract contract TraderPoolProposal is
         uint256 baseBalance = _baseBalances[user][proposalId];
         uint256 lpBalance = _lpBalances[user][proposalId];
 
-        baseTransfer = baseBalance.ratio(lp2Amount, balanceOf(user, proposalId)).min(baseBalance);
-        lpTransfer = lpBalance.ratio(lp2Amount, balanceOf(user, proposalId)).min(lpBalance);
+        baseTransfer = baseBalance.ratio(lp2Amount, balanceOf(user, proposalId));
+        lpTransfer = lpBalance.ratio(lp2Amount, balanceOf(user, proposalId));
 
         _baseBalances[user][proposalId] -= baseTransfer;
         _lpBalances[user][proposalId] -= lpTransfer;
