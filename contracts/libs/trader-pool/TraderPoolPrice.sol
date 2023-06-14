@@ -39,15 +39,12 @@ library TraderPoolPrice {
         )
     {
         IPriceFeed priceFeed = TraderPool(address(this)).priceFeed();
-        address[] memory openPositions = TraderPool(address(this)).openPositions();
+        positionTokens = TraderPool(address(this)).openPositions();
         totalPriceInBase = currentBaseAmount = poolParameters.baseToken.normThisBalance();
 
-        positionTokens = new address[](openPositions.length);
-        positionPricesInBase = new uint256[](openPositions.length);
+        positionPricesInBase = new uint256[](positionTokens.length);
 
-        for (uint256 i = 0; i < openPositions.length; i++) {
-            positionTokens[i] = openPositions[i];
-
+        for (uint256 i = 0; i < positionTokens.length; i++) {
             (positionPricesInBase[i], ) = priceFeed.getNormalizedPriceOut(
                 positionTokens[i],
                 poolParameters.baseToken,
