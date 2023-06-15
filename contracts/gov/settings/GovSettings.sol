@@ -41,10 +41,8 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
                 _setExecutor(govPoolAddress, settingsId);
                 _setExecutor(govUserKeeperAddress, settingsId);
             } else if (settingsId == uint256(ExecutorType.DISTRIBUTION)) {
-                require(
-                    !executorSettings.delegatedVotingAllowed && !executorSettings.earlyCompletion,
-                    "GovSettings: invalid distribution settings"
-                );
+                _validateDistributionSettings(executorSettings);
+
                 _setExecutor(distributionProposalAddress, settingsId);
             } else if (settingsId == uint256(ExecutorType.VALIDATORS)) {
                 _setExecutor(validatorsAddress, settingsId);
@@ -76,6 +74,10 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         for (uint256 i; i < _settings.length; i++) {
             require(_settingsExist(settingsIds[i]), "GovSettings: settings do not exist");
 
+            if (settingsIds[i] == uint256(ExecutorType.DISTRIBUTION)) {
+                _validateDistributionSettings(_settings[i]);
+            }
+
             _validateProposalSettings(_settings[i]);
             _setSettings(_settings[i], settingsIds[i]);
         }
@@ -102,6 +104,13 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         require(
             _settings.quorumValidators <= PERCENTAGE_100,
             "GovSettings: invalid validator quorum value"
+        );
+    }
+
+    function _validateDistributionSettings(ProposalSettings calldata _settings) internal pure {
+        require(
+            !_settings.delegatedVotingAllowed && !_settings.earlyCompletion,
+            "GovSettings: invalid distribution settings"
         );
     }
 

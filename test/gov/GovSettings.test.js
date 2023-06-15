@@ -520,6 +520,13 @@ describe("GovSettings", () => {
           "GovSettings: settings do not exist"
         );
       });
+
+      it("should revert if invalid distribution data", async () => {
+        await truffleAssert.reverts(
+          settings.editSettings([2], [DEFAULT_SETTINGS]),
+          "GovSettings: invalid distribution settings"
+        );
+      });
     });
 
     describe("changeExecutors()", () => {
