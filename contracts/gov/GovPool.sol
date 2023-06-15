@@ -196,7 +196,7 @@ contract GovPool is
         uint256 voteAmount,
         uint256[] calldata voteNftIds
     ) external override onlyBABTHolder {
-        unlock(msg.sender, false);
+        _unlock(msg.sender, false);
 
         uint256 reward = _proposals.vote(
             _votedInProposals,
@@ -220,7 +220,7 @@ contract GovPool is
         uint256 voteAmount,
         uint256[] calldata voteNftIds
     ) external override onlyBABTHolder {
-        unlock(msg.sender, true);
+        _unlock(msg.sender, true);
 
         uint256 reward = _proposals.voteDelegated(
             _votedInProposals,
@@ -267,7 +267,7 @@ contract GovPool is
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty withdrawal");
 
-        unlock(msg.sender, false);
+        _unlock(msg.sender, false);
 
         _govUserKeeper.withdrawTokens.exec(receiver, amount);
         _govUserKeeper.withdrawNfts.exec(receiver, nftIds);
@@ -282,7 +282,7 @@ contract GovPool is
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
 
-        unlock(msg.sender, false);
+        _unlock(msg.sender, false);
 
         MicropoolInfo storage micropool = _micropoolInfos[delegatee];
 
@@ -303,7 +303,7 @@ contract GovPool is
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty undelegation");
 
-        unlock(delegatee, true);
+        _unlock(delegatee, true);
 
         MicropoolInfo storage micropool = _micropoolInfos[delegatee];
 
@@ -318,7 +318,7 @@ contract GovPool is
     }
 
     function unlock(address user, bool isMicropool) public override onlyBABTHolder {
-        unlockInProposals(_votedInProposals[user][isMicropool].values(), user, isMicropool);
+        _unlock(user, isMicropool);
     }
 
     function unlockInProposals(
@@ -326,7 +326,7 @@ contract GovPool is
         address user,
         bool isMicropool
     ) public override onlyBABTHolder {
-        _votedInProposals.unlockInProposals(_voteInfos, proposalIds, user, isMicropool);
+        _unlockInProposals(proposalIds, user, isMicropool);
     }
 
     function execute(uint256 proposalId) public override onlyBABTHolder {
@@ -523,6 +523,18 @@ contract GovPool is
         require(nftMultiplierAddress != address(0), "Gov: new nft address is zero");
 
         nftMultiplier = nftMultiplierAddress;
+    }
+
+    function _unlock(address user, bool isMicropool) internal {
+        _unlockInProposals(_votedInProposals[user][isMicropool].values(), user, isMicropool);
+    }
+
+    function _unlockInProposals(
+        uint256[] memory proposalIds,
+        address user,
+        bool isMicropool
+    ) internal {
+        _votedInProposals.unlockInProposals(_voteInfos, proposalIds, user, isMicropool);
     }
 
     function _quorumReached(ProposalCore storage core) internal view returns (bool) {
