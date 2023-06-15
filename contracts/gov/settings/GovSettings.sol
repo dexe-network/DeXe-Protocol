@@ -53,6 +53,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
                 );
             }
         }
+
         newSettingsId = settingsId;
     }
 
