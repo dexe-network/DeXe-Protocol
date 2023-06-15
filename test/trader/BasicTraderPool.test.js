@@ -693,6 +693,10 @@ describe("BasicTraderPool", () => {
           proposalPool.changeProposalRestrictions(2, [time.plus(1000000), wei("1000"), wei("10")]),
           "TPRP: proposal doesn't exist"
         );
+        await truffleAssert.reverts(
+          proposalPool.changeProposalRestrictions(0, [time.plus(1000000), wei("1000"), wei("10")]),
+          "TPRP: proposal doesn't exist"
+        );
 
         info = (await proposalPool.getProposalInfos(0, 1))[0];
 
@@ -732,6 +736,7 @@ describe("BasicTraderPool", () => {
         );
 
         await truffleAssert.reverts(investProposal(3, wei("100"), SECOND), "TPRP: proposal doesn't exist");
+        await truffleAssert.reverts(investProposal(0, wei("100"), SECOND), "TPRP: proposal doesn't exist");
         await truffleAssert.reverts(investProposal(1, wei("100"), SECOND), "TPRP: proposal is closed");
         await truffleAssert.reverts(investProposal(2, wei("100"), SECOND), "TPRP: proposal is overinvested");
       });
@@ -1052,6 +1057,7 @@ describe("BasicTraderPool", () => {
         await investProposal(1, wei("500"), SECOND);
 
         await truffleAssert.reverts(reinvestProposal(2, wei("250"), OWNER), "TPRP: proposal doesn't exist");
+        await truffleAssert.reverts(reinvestProposal(0, wei("250"), OWNER), "TPRP: proposal doesn't exist");
         await truffleAssert.reverts(reinvestProposal(1, wei("1000"), SECOND), "TPRP: divesting more than balance");
       });
 
@@ -1280,6 +1286,11 @@ describe("BasicTraderPool", () => {
 
         await truffleAssert.reverts(
           exchangeFromExactProposal(2, tokens.WETH.address, wei("250")),
+          "TPRP: proposal doesn't exist"
+        );
+
+        await truffleAssert.reverts(
+          exchangeFromExactProposal(0, tokens.WETH.address, wei("250")),
           "TPRP: proposal doesn't exist"
         );
 
