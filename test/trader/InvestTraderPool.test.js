@@ -454,6 +454,34 @@ describe("InvestTraderPool", () => {
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("900"));
       });
 
+      it("should not create proposal if reentrant call", async () => {
+        assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("1000"));
+        assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("1000"));
+
+        const time = toBN(await getCurrentBlockTime());
+
+        const description = "placeholder.com";
+        const value = wei("100");
+        const limits = [time.plus(100000), wei("10000")];
+
+        const divests = await traderPool.getDivestAmountsAndCommissions(OWNER, value);
+
+        const bytecode = await (await ReentrantCallerMock.new()).getBytecode();
+
+        const baseTokenAddress = tokens.WETH.address;
+        await setCode(baseTokenAddress, bytecode);
+
+        const callbackAddress = traderPool.address;
+        const callbackData = traderPool.contract.methods.createProposal("", 0, [0, 0], []).encodeABI();
+
+        await (await ReentrantCallerMock.at(baseTokenAddress)).setCallback(callbackAddress, callbackData);
+
+        await truffleAssert.reverts(
+          traderPool.createProposal(description, value, limits, divests.receptions.receivedAmounts),
+          "ReentrancyGuard: reentrant call"
+        );
+      });
+
       it("should not create proposals with incorrect data", async () => {
         const time = toBN(await getCurrentBlockTime());
 

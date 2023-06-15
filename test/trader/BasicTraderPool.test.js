@@ -1,5 +1,5 @@
 const { assert } = require("chai");
-const { SECONDS_IN_MONTH, PRECISION } = require("../../scripts/utils/constants");
+const { SECONDS_IN_MONTH, PRECISION, ZERO_ADDR } = require("../../scripts/utils/constants");
 const { ExchangeType, ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
 const { toBN, accounts, wei } = require("../../scripts/utils/utils");
 const { setTime, getCurrentBlockTime } = require("../helpers/block-helper");
@@ -512,6 +512,47 @@ describe("BasicTraderPool", () => {
         await reinvestProposal(1, await proposalPool.balanceOf(OWNER, 1), OWNER);
 
         await truffleAssert.passes(proposalPool.getDivestAmounts([1], [0]), "pass");
+      });
+
+      it("should not create proposal if reentrant call", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        const description = "description";
+        const token = tokens.MANA.address;
+        const value = wei("100");
+        const limits = [time.plus(100000), wei("10000"), wei("2")];
+        const percentage = 0;
+
+        const divests = await traderPool.getDivestAmountsAndCommissions(OWNER, value);
+        const creationTokens = (
+          await proposalPool.getCreationTokens(token, divests.receptions.baseAmount, percentage, [])
+        )[0];
+
+        const bytecode = await (await ReentrantCallerMock.new()).getBytecode();
+
+        const baseTokenAddress = tokens.WETH.address;
+        await setCode(baseTokenAddress, bytecode);
+
+        const callbackAddress = traderPool.address;
+        const callbackData = traderPool.contract.methods
+          .createProposal("", ZERO_ADDR, 0, [0, 0, 0], 0, [], 0, [])
+          .encodeABI();
+
+        await (await ReentrantCallerMock.at(baseTokenAddress)).setCallback(callbackAddress, callbackData);
+
+        await truffleAssert.reverts(
+          traderPool.createProposal(
+            description,
+            token,
+            value,
+            limits,
+            percentage,
+            divests.receptions.receivedAmounts,
+            creationTokens,
+            []
+          ),
+          "ReentrancyGuard: reentrant call"
+        );
       });
 
       it("should not create proposals with incorrect data", async () => {
