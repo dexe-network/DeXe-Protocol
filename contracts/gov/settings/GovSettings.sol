@@ -24,6 +24,11 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         ProposalSettings[] calldata proposalSettings,
         address[] calldata additionalProposalExecutors
     ) external initializer {
+        require(
+            additionalProposalExecutors.length + 4 == proposalSettings.length,
+            "GovSettings: invalid proposal settings count"
+        );
+
         __Ownable_init();
 
         uint256 systemExecutors = uint256(ExecutorType.VALIDATORS);
