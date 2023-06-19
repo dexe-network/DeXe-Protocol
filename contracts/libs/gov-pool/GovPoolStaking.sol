@@ -120,12 +120,22 @@ library GovPoolStaking {
 
             delegatorInfo.pendingRewards = rewards;
             delegatorInfo.latestCumulativeSum = rewardTokenInfo.cumulativeSum;
+        }
 
-            if (!withdrawPendingRewards || rewards == 0) {
+        if (!withdrawPendingRewards) {
+            return;
+        }
+
+        for (uint256 i; i < rewardTokens.length; i++) {
+            address rewardToken = rewardTokens[i];
+
+            uint256 rewards = pendingRewards[i];
+
+            if (rewards == 0) {
                 continue;
             }
 
-            delegatorInfo.pendingRewards = 0;
+            micropool.rewardTokenInfos[rewardToken].delegators[msg.sender].pendingRewards = 0;
 
             uint256 amountToTransfer = rewards.min(rewardToken.normThisBalance());
 
