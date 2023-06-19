@@ -151,8 +151,8 @@ library GovPoolStaking {
 
         uint256 rewardsDeviation = previousDelegatorStake > currentDelegatorStake &&
             currentDelegatorStake != 0
-            ? previousDelegatorStake / currentDelegatorStake
-            : 1;
+            ? (previousDelegatorStake / currentDelegatorStake) * PRECISION
+            : PRECISION;
 
         rewardTokens = micropool.rewardTokens.values();
         pendingRewards = new uint256[](rewardTokens.length);
@@ -168,9 +168,8 @@ library GovPoolStaking {
                 delegatorInfo.pendingRewards +
                 (rewardTokenInfo.cumulativeSum - delegatorInfo.latestCumulativeSum).ratio(
                     previousDelegatorStake,
-                    PRECISION
-                ) /
-                rewardsDeviation;
+                    rewardsDeviation
+                );
         }
     }
 }
