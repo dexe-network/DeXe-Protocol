@@ -7,11 +7,17 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract UniswapV2RouterMock {
     using SafeERC20 for IERC20;
 
+    bool internal nonLinear;
+
     mapping(address => uint256) public reserves;
 
     mapping(address => mapping(address => uint256)) public bonuses;
 
     mapping(address => mapping(address => address)) public pairs;
+
+    function switchToNonLinear() external {
+        nonLinear = true;
+    }
 
     function enablePair(address tokenA, address tokenB) external {
         pairs[tokenA][tokenB] = address(1);
@@ -130,11 +136,15 @@ contract UniswapV2RouterMock {
         uint256 amountOut,
         uint256 reserveIn,
         uint256 reserveOut
-    ) internal pure returns (uint256 amountIn) {
+    ) internal view returns (uint256 amountIn) {
         require(amountOut > 0, "UniswapV2Library: INSUFFICIENT_OUTPUT_AMOUNT");
         require(reserveIn > 0 && reserveOut > 0, "UniswapV2Library: INSUFFICIENT_LIQUIDITY");
 
-        amountIn = (amountOut * reserveIn) / reserveOut;
+        if (nonLinear) {
+            amountIn = (amountOut * reserveIn) / (reserveOut - amountOut);
+        } else {
+            amountIn = (amountOut * reserveIn) / reserveOut;
+        }
     }
 
     /// @dev modified formula for simplicity
@@ -142,10 +152,14 @@ contract UniswapV2RouterMock {
         uint256 amountIn,
         uint256 reserveIn,
         uint256 reserveOut
-    ) internal pure returns (uint256 amountOut) {
+    ) internal view returns (uint256 amountOut) {
         require(amountIn > 0, "UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT");
         require(reserveIn > 0 && reserveOut > 0, "UniswapV2Library: INSUFFICIENT_LIQUIDITY");
 
-        amountOut = (amountIn * reserveOut) / reserveIn;
+        if (nonLinear) {
+            amountOut = (amountIn * reserveOut) / (reserveIn + amountIn);
+        } else {
+            amountOut = (amountIn * reserveOut) / reserveIn;
+        }
     }
 }
