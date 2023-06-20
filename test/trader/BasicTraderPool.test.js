@@ -59,6 +59,8 @@ describe("BasicTraderPool", () => {
   let traderPool;
   let proposalPool;
 
+  const defaultMinLPOut = toBN(1000000);
+
   const reverter = new Reverter();
 
   async function configureBaseTokens() {
@@ -427,7 +429,8 @@ describe("BasicTraderPool", () => {
 
         await traderPool.investInitial(
           [wei("100"), wei("500"), wei("10")],
-          [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address]
+          [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address],
+          defaultMinLPOut
         );
 
         assert.equal((await tokens.DEXE.balanceOf(traderPool.address)).toFixed(), wei("100"));
@@ -445,7 +448,7 @@ describe("BasicTraderPool", () => {
         await tokens.WBTC.approve(traderPool.address, wei("100"));
 
         await truffleAssert.reverts(
-          traderPool.investInitial([wei("100")], [tokens.WBTC.address]),
+          traderPool.investInitial([wei("100")], [tokens.WBTC.address], defaultMinLPOut),
           "BP: not in whitelist"
         );
       });
