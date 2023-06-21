@@ -154,7 +154,7 @@ library GovPoolStaking {
 
         uint256 rewardsDeviation = previousDelegatorStake > currentDelegatorStake &&
             currentDelegatorStake != 0
-            ? (previousDelegatorStake / currentDelegatorStake) * PRECISION
+            ? PRECISION.ratio(previousDelegatorStake, currentDelegatorStake)
             : PRECISION;
 
         rewardTokens = micropool.rewardTokens.values();

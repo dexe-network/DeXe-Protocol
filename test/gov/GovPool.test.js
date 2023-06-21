@@ -2542,7 +2542,7 @@ describe("GovPool", () => {
         await setTime((await getCurrentBlockTime()) + 1000);
         await govPool.undelegate(micropool, 0, [20, 21, 22], { from: delegator2 });
 
-        await setTime((await getCurrentBlockTime()) + 4000);
+        await setTime((await getCurrentBlockTime()) + 4440);
         await govPool.undelegate(micropool, 0, [10, 11, 12], { from: delegator1 });
 
         const balance1 = await rewardToken.balanceOf(delegator1);
