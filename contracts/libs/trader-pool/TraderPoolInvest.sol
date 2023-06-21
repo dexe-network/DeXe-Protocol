@@ -191,7 +191,7 @@ library TraderPoolInvest {
 
         uint256 totalLPTokens = traderPool.totalSupply();
 
-        if (totalLPTokens > 0 || totalBaseInPool > 0) {
+        if (totalLPTokens > 0 && totalBaseInPool > 0) {
             toMintLP = toMintLP.ratio(totalLPTokens, totalBaseInPool);
         }
 
