@@ -2533,8 +2533,9 @@ describe("GovPool", () => {
 
       it("should properly divide rewards by deviation", async () => {
         await setNextBlockTime((await getCurrentBlockTime()) + 200);
-
         await govPool.delegate(micropool, 0, [10, 11, 12], { from: delegator1 });
+
+        await setNextBlockTime((await getCurrentBlockTime()) + 1);
         await govPool.delegate(micropool, 0, [20, 21, 22], { from: delegator2 });
 
         await govPool.voteDelegated(1, 0, [10, 11, 12, 20, 21, 22], { from: micropool });
