@@ -56,27 +56,32 @@ library TraderPoolDivest {
         _checkUserBalance(amountLP);
 
         TraderPool traderPool = TraderPool(address(this));
-
-        address[] memory _openPositions = traderPool.openPositions();
         address baseToken = poolParameters.baseToken;
         uint256 totalSupply = traderPool.totalSupply();
 
-        {
-            (uint256 totalBase, , , ) = poolParameters.getNormalizedPoolPriceAndPositions();
-            investorBaseAmount = totalBase.ratio(amountLP, totalSupply);
-        }
+        investorBaseAmount = baseToken.normThisBalance().ratio(amountLP, totalSupply);
 
-        for (uint256 i = 0; i < _openPositions.length; i++) {
-            uint256 amount = _openPositions[i].normThisBalance().ratio(amountLP, totalSupply);
-            uint256 amountGot = TraderPool(address(this)).priceFeed().normalizedExchangeFromExact(
-                _openPositions[i],
+        (
+            ,
+            ,
+            address[] memory positionTokens,
+            uint256[] memory positionPricesInBase
+        ) = poolParameters.getNormalizedPoolPriceAndPositions();
+
+        for (uint256 i = 0; i < positionTokens.length; i++) {
+            uint256 amountBase = positionPricesInBase[i].ratio(amountLP, totalSupply);
+            require(amountBase >= minPositionsOut[i], "TP: slippage");
+            uint256 amountPaid = TraderPool(address(this)).priceFeed().normalizedExchangeToExact(
+                positionTokens[i],
                 baseToken,
-                amount,
+                amountBase,
                 new address[](0),
-                minPositionsOut[i]
+                positionTokens[i].normThisBalance().ratio(amountLP, totalSupply)
             );
 
-            emit ActivePortfolioExchanged(_openPositions[i], baseToken, amount, amountGot);
+            investorBaseAmount += amountBase;
+
+            emit ActivePortfolioExchanged(positionTokens[i], baseToken, amountPaid, amountBase);
         }
     }
 
