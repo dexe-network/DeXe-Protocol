@@ -33,10 +33,4 @@ interface IERC20Sale {
 
     /// @notice This function is used to return default contract state
     function unpause() external;
-
-    /// @notice This function is used to blacklist an address
-    function blacklist(address account, bool value) external;
-
-    /// @notice This function is used to blacklist a list of addresses
-    function getBlacklistTokens() external view returns (address[] memory);
 }
