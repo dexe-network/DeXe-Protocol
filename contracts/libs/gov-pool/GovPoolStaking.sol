@@ -108,18 +108,15 @@ library GovPoolStaking {
         ) = _getMicropoolPendingRewards(micropool, msg.sender, delegatee);
 
         for (uint256 i; i < rewardTokens.length; i++) {
-            address rewardToken = rewardTokens[i];
+            micropool
+                .rewardTokenInfos[rewardTokens[i]]
+                .delegators[msg.sender]
+                .pendingRewards = pendingRewards[i];
 
-            IGovPool.RewardTokenInfo storage rewardTokenInfo = micropool.rewardTokenInfos[
-                rewardToken
-            ];
-
-            IGovPool.DelegatorInfo storage delegatorInfo = rewardTokenInfo.delegators[msg.sender];
-
-            uint256 rewards = pendingRewards[i];
-
-            delegatorInfo.pendingRewards = rewards;
-            delegatorInfo.latestCumulativeSum = rewardTokenInfo.cumulativeSum;
+            micropool
+                .rewardTokenInfos[rewardTokens[i]]
+                .delegators[msg.sender]
+                .latestCumulativeSum = micropool.rewardTokenInfos[rewardTokens[i]].cumulativeSum;
         }
 
         if (!withdrawPendingRewards) {
@@ -127,21 +124,17 @@ library GovPoolStaking {
         }
 
         for (uint256 i; i < rewardTokens.length; i++) {
-            address rewardToken = rewardTokens[i];
-
-            uint256 rewards = pendingRewards[i];
-
-            if (rewards == 0) {
+            if (pendingRewards[i] == 0) {
                 continue;
             }
 
-            micropool.rewardTokenInfos[rewardToken].delegators[msg.sender].pendingRewards = 0;
+            micropool.rewardTokenInfos[rewardTokens[i]].delegators[msg.sender].pendingRewards = 0;
 
-            uint256 amountToTransfer = rewards.min(rewardToken.normThisBalance());
+            uint256 amountToTransfer = pendingRewards[i].min(rewardTokens[i].normThisBalance());
 
-            rewardToken.sendFunds(msg.sender, amountToTransfer);
+            rewardTokens[i].sendFunds(msg.sender, amountToTransfer);
 
-            emit StakingRewardClaimed(msg.sender, rewardToken, amountToTransfer);
+            emit StakingRewardClaimed(msg.sender, rewardTokens[i], amountToTransfer);
         }
     }
 
