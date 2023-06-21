@@ -118,7 +118,6 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         uint128 quorum
     ) external override onlyOwner {
         require(!_proposalExists(proposalId, false), "Validators: proposal already exists");
-
         require(duration > 0, "Validators: duration is zero");
         require(quorum <= PERCENTAGE_100, "Validators: invalid quorum value");
 
