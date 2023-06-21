@@ -1203,6 +1203,35 @@ describe("TraderPool", () => {
         await truffleAssert.reverts(divest(wei("500"), OWNER), "TP: can't divest");
       });
 
+      it.only("should not invest and divest with profit", async () => {
+        await exchangeFromExact(tokens.WETH.address, tokens.MANA.address, wei("1000"));
+
+        await uniswapV2Router.setReserve(tokens.MANA.address, wei("5000"));
+        await uniswapV2Router.setReserve(tokens.WETH.address, wei("10000"));
+
+        await uniswapV2Router.switchToNonLinear();
+
+        await tokens.WETH.mint(SECOND, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
+        await invest(wei("1000"), SECOND);
+
+        await tokens.WETH.mint(THIRD, wei("1000"));
+        console.log("LPToken before invest:", (await traderPool.balanceOf(THIRD)).toString());
+        console.log("WETH before invest:", (await tokens.WETH.balanceOf(THIRD)).toString());
+        await tokens.WETH.approve(traderPool.address, wei("1000"), { from: THIRD });
+        await invest(wei("1000"), THIRD);
+
+        console.log("LPToken after invest before divest:", (await traderPool.balanceOf(THIRD)).toString());
+        console.log("WETH after invest before divest:", (await tokens.WETH.balanceOf(THIRD)).toString());
+
+        await divest(wei("750"), THIRD);
+        let balanceAfter = await tokens.WETH.balanceOf(THIRD);
+        console.log("LPToken after divest:", (await traderPool.balanceOf(THIRD)).toString());
+        console.log("WETH after divest:", balanceAfter.toString());
+
+        assert.equal(balanceAfter.lt(wei("1000")), true);
+      });
+
       it("should divest investor with commission", async () => {
         await exchangeFromExact(tokens.WETH.address, tokens.MANA.address, wei("1000"));
 
