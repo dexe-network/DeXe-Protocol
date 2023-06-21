@@ -5,6 +5,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20CappedUp
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
 
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
 import "../../interfaces/gov/ERC20/IERC20Sale.sol";
 
 contract ERC20Sale is
@@ -13,7 +15,10 @@ contract ERC20Sale is
     ERC20PausableUpgradeable,
     ERC20BurnableUpgradeable
 {
+    using EnumerableSet for EnumerableSet.AddressSet;
     address public govAddress;
+
+    EnumerableSet.AddressSet internal _blacklistTokens;
 
     modifier onlyGov() {
         _onlyGov();
@@ -63,11 +68,28 @@ contract ERC20Sale is
         _unpause();
     }
 
+    function blacklist(address account, bool value) external override whenNotPaused onlyGov {
+        if (value) {
+            require(_blacklistTokens.add(account), "ERC20Sale: already blacklisted");
+        } else {
+            require(_blacklistTokens.remove(account), "ERC20Sale: not blacklisted");
+        }
+    }
+
+    function getBlacklistTokens() external view override returns (address[] memory) {
+        return _blacklistTokens.values();
+    }
+
     function _beforeTokenTransfer(
         address from,
         address to,
         uint256 amount
     ) internal override(ERC20Upgradeable, ERC20PausableUpgradeable) {
+        require(
+            !_blacklistTokens.contains(from) && !_blacklistTokens.contains(to),
+            "ERC20Sale: account is blacklisted"
+        );
+
         super._beforeTokenTransfer(from, to, amount);
     }
 
