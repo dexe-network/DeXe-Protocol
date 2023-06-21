@@ -108,15 +108,17 @@ library GovPoolStaking {
         ) = _getMicropoolPendingRewards(micropool, msg.sender, delegatee);
 
         for (uint256 i; i < rewardTokens.length; i++) {
+            address rewardToken = rewardTokens[i];
+
             micropool
-                .rewardTokenInfos[rewardTokens[i]]
+                .rewardTokenInfos[rewardToken]
                 .delegators[msg.sender]
                 .pendingRewards = pendingRewards[i];
 
             micropool
-                .rewardTokenInfos[rewardTokens[i]]
+                .rewardTokenInfos[rewardToken]
                 .delegators[msg.sender]
-                .latestCumulativeSum = micropool.rewardTokenInfos[rewardTokens[i]].cumulativeSum;
+                .latestCumulativeSum = micropool.rewardTokenInfos[rewardToken].cumulativeSum;
         }
 
         if (!withdrawPendingRewards) {
