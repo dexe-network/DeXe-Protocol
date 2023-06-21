@@ -26,7 +26,7 @@ const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/consta
 const { ProposalState, DEFAULT_CORE_PROPERTIES, ValidatorsProposalState } = require("../utils/constants");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
-const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
+const { getCurrentBlockTime, setTime, setNextBlockTime } = require("../helpers/block-helper");
 const { impersonate } = require("../helpers/impersonator");
 const { assert } = require("chai");
 const ethSigUtil = require("@metamask/eth-sig-util");
@@ -2532,17 +2532,17 @@ describe("GovPool", () => {
       });
 
       it("should properly divide rewards by deviation", async () => {
-        await setTime((await getCurrentBlockTime()) + 200);
+        await setNextBlockTime((await getCurrentBlockTime()) + 200);
 
         await govPool.delegate(micropool, 0, [10, 11, 12], { from: delegator1 });
         await govPool.delegate(micropool, 0, [20, 21, 22], { from: delegator2 });
 
         await govPool.voteDelegated(1, 0, [10, 11, 12, 20, 21, 22], { from: micropool });
 
-        await setTime((await getCurrentBlockTime()) + 1000);
+        await setNextBlockTime((await getCurrentBlockTime()) + 1000);
         await govPool.undelegate(micropool, 0, [20, 21, 22], { from: delegator2 });
 
-        await setTime((await getCurrentBlockTime()) + 4440);
+        await setNextBlockTime((await getCurrentBlockTime()) + 4465);
         await govPool.undelegate(micropool, 0, [10, 11, 12], { from: delegator1 });
 
         const balance1 = await rewardToken.balanceOf(delegator1);
