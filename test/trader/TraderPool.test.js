@@ -105,6 +105,7 @@ describe("TraderPool", () => {
     const traderPoolLeverageLib = await TraderPoolLeverageLib.new();
 
     await TraderPoolDivestLib.link(traderPoolCommissionLib);
+    await TraderPoolDivestLib.link(traderPoolPriceLib);
 
     await TraderPoolInvestLib.link(traderPoolPriceLib);
     await TraderPoolInvestLib.link(traderPoolLeverageLib);
@@ -1203,7 +1204,7 @@ describe("TraderPool", () => {
         await truffleAssert.reverts(divest(wei("500"), OWNER), "TP: can't divest");
       });
 
-      it.only("should not invest and divest with profit", async () => {
+      it("should not invest and divest with profit", async () => {
         await exchangeFromExact(tokens.WETH.address, tokens.MANA.address, wei("1000"));
 
         await uniswapV2Router.setReserve(tokens.MANA.address, wei("5000"));

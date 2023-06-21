@@ -12,12 +12,14 @@ import "../../trader/TraderPool.sol";
 
 import "./TraderPoolCommission.sol";
 import "../math/MathHelper.sol";
+import "./TraderPoolPrice.sol";
 import "../utils/TokenBalance.sol";
 
 library TraderPoolDivest {
     using SafeERC20 for IERC20;
     using DecimalsConverter for uint256;
     using TraderPoolCommission for *;
+    using TraderPoolPrice for *;
     using MathHelper for uint256;
     using TokenBalance for address;
 
@@ -59,7 +61,10 @@ library TraderPoolDivest {
         address baseToken = poolParameters.baseToken;
         uint256 totalSupply = traderPool.totalSupply();
 
-        investorBaseAmount = baseToken.normThisBalance().ratio(amountLP, totalSupply);
+        {
+            (uint256 totalBase, , , ) = poolParameters.getNormalizedPoolPriceAndPositions();
+            investorBaseAmount = totalBase.ratio(amountLP, totalSupply);
+        }
 
         for (uint256 i = 0; i < _openPositions.length; i++) {
             uint256 amount = _openPositions[i].normThisBalance().ratio(amountLP, totalSupply);
@@ -70,8 +75,6 @@ library TraderPoolDivest {
                 new address[](0),
                 minPositionsOut[i]
             );
-
-            investorBaseAmount += amountGot;
 
             emit ActivePortfolioExchanged(_openPositions[i], baseToken, amount, amountGot);
         }
