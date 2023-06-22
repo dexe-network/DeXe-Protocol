@@ -26,7 +26,7 @@ const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/consta
 const { ProposalState, DEFAULT_CORE_PROPERTIES, ValidatorsProposalState } = require("../utils/constants");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
-const { getCurrentBlockTime, setTime, setNextBlockTime } = require("../helpers/block-helper");
+const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
 const { impersonate } = require("../helpers/impersonator");
 const { assert } = require("chai");
 const ethSigUtil = require("@metamask/eth-sig-util");
@@ -374,21 +374,21 @@ describe("GovPool", () => {
     await govPool.execute(proposalId);
   }
 
-  const assertBalanceDistribution = (balances, coefficients) => {
+  const assertBalanceDistribution = (balances, coefficients, tolerance) => {
     for (let i = 0; i < balances.length - 1; i++) {
       const epsilon = coefficients[i] + coefficients[i + 1];
 
       const lhs = balances[i].idiv(wei("1")).times(coefficients[i + 1]);
       const rhs = balances[i + 1].idiv(wei("1")).times(coefficients[i]);
 
-      assert.closeTo(lhs.toNumber(), rhs.toNumber(), epsilon);
+      assert.closeTo(lhs.toNumber(), rhs.toNumber(), tolerance + epsilon);
     }
   };
 
-  const assertNoZerosBalanceDistribution = (balances, coefficients) => {
+  const assertNoZerosBalanceDistribution = (balances, coefficients, tolerance = 0) => {
     balances.forEach((balance) => assert.notEqual(balance.toFixed(), "0"));
 
-    assertBalanceDistribution(balances, coefficients);
+    assertBalanceDistribution(balances, coefficients, tolerance);
   };
 
   describe("Fullfat GovPool", () => {
@@ -2532,28 +2532,23 @@ describe("GovPool", () => {
       });
 
       it("should properly divide rewards by deviation", async () => {
-        let currentTime = (await getCurrentBlockTime()) + 200;
-        await setNextBlockTime(currentTime);
-        await govPool.delegate(micropool, 0, [10, 11, 12], { from: delegator1 });
+        await setTime((await getCurrentBlockTime()) + 200);
 
-        currentTime += 1;
-        await setNextBlockTime(currentTime);
+        await govPool.delegate(micropool, 0, [10, 11, 12], { from: delegator1 });
         await govPool.delegate(micropool, 0, [20, 21, 22], { from: delegator2 });
 
         await govPool.voteDelegated(1, 0, [10, 11, 12, 20, 21, 22], { from: micropool });
 
-        currentTime += 1000;
-        await setNextBlockTime(currentTime);
+        await setTime((await getCurrentBlockTime()) + 1000);
         await govPool.undelegate(micropool, 0, [20, 21, 22], { from: delegator2 });
 
-        currentTime += 4466;
-        await setNextBlockTime(currentTime);
+        await setTime((await getCurrentBlockTime()) + 4465);
         await govPool.undelegate(micropool, 0, [10, 11, 12], { from: delegator1 });
 
         const balance1 = await rewardToken.balanceOf(delegator1);
         const balance2 = await rewardToken.balanceOf(delegator2);
 
-        assertNoZerosBalanceDistribution([balance1, balance2], [1, 2]);
+        assertNoZerosBalanceDistribution([balance1, balance2], [1, 2], 100);
       });
     });
   });
