@@ -7,7 +7,8 @@ Function ***`investInitial()`*** is used to invest initial positions into the po
 ```solidity
 function investInitial(
     uint256[] calldata amounts,
-    address[] calldata tokens
+    address[] calldata tokens,
+    uint256 minLPOut
 ) external;
 ```
 
@@ -15,6 +16,7 @@ function investInitial(
 
 - ***amounts*** - the normalized amounts of tokens to be invested
 - ***tokens*** - the array of tokens to be invested (if not a base token -> opens a position)
+- ***minLPOut*** - the minimum amount of LP tokens to be minted
 
 Function ***`getInvestInitialTokens()`*** is used to get the lp amount that will be given to the investor.
 

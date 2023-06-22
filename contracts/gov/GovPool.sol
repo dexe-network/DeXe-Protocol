@@ -131,30 +131,48 @@ contract GovPool is
         _offChain.verifier = _verifier;
     }
 
+    function unlock(address user, bool isMicropool) public override onlyBABTHolder {
+        _unlock(user, isMicropool);
+    }
+
+    function unlockInProposals(
+        uint256[] memory proposalIds,
+        address user,
+        bool isMicropool
+    ) public override onlyBABTHolder {
+        _unlockInProposals(proposalIds, user, isMicropool);
+    }
+
+    function execute(uint256 proposalId) public override onlyBABTHolder {
+        _proposals.execute(proposalId);
+
+        _pendingRewards.updateRewards(
+            _proposals,
+            proposalId,
+            RewardType.Execute,
+            _proposals[proposalId].core.settings.executionReward,
+            PRECISION
+        );
+    }
+
+    function deposit(
+        address receiver,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) public override onlyBABTHolder {
+        require(amount > 0 || nftIds.length > 0, "Gov: empty deposit");
+
+        _govUserKeeper.depositTokens.exec(receiver, amount);
+        _govUserKeeper.depositNfts.exec(receiver, nftIds);
+
+        emit Deposited(amount, nftIds, receiver);
+    }
+
     function setDependencies(address contractsRegistry) external override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         coreProperties = ICoreProperties(registry.getCorePropertiesContract());
         babt = ISBT721(registry.getBABTContract());
-    }
-
-    function getHelperContracts()
-        external
-        view
-        override
-        returns (
-            address settings,
-            address userKeeper,
-            address validators,
-            address distributionProposal
-        )
-    {
-        return (
-            address(_govSettings),
-            address(_govUserKeeper),
-            address(_govValidators),
-            _distributionProposal
-        );
     }
 
     function createProposal(
@@ -164,15 +182,15 @@ contract GovPool is
         uint256[] calldata values,
         bytes[] calldata data
     ) external override onlyBABTHolder {
-        latestProposalId++;
+        uint256 proposalId = ++latestProposalId;
 
         _proposals.createProposal(_descriptionURL, misc, executors, values, data);
 
         _pendingRewards.updateRewards(
             _proposals,
-            latestProposalId,
+            proposalId,
             RewardType.Create,
-            _proposals[latestProposalId].core.settings.creationReward,
+            _proposals[proposalId].core.settings.creationReward,
             PRECISION
         );
     }
@@ -196,7 +214,7 @@ contract GovPool is
         uint256 voteAmount,
         uint256[] calldata voteNftIds
     ) external override onlyBABTHolder {
-        unlock(msg.sender, false);
+        _unlock(msg.sender, false);
 
         uint256 reward = _proposals.vote(
             _votedInProposals,
@@ -220,7 +238,7 @@ contract GovPool is
         uint256 voteAmount,
         uint256[] calldata voteNftIds
     ) external override onlyBABTHolder {
-        unlock(msg.sender, true);
+        _unlock(msg.sender, true);
 
         uint256 reward = _proposals.voteDelegated(
             _votedInProposals,
@@ -247,19 +265,6 @@ contract GovPool is
         );
     }
 
-    function deposit(
-        address receiver,
-        uint256 amount,
-        uint256[] calldata nftIds
-    ) public override onlyBABTHolder {
-        require(amount > 0 || nftIds.length > 0, "Gov: empty deposit");
-
-        _govUserKeeper.depositTokens.exec(receiver, amount);
-        _govUserKeeper.depositNfts.exec(receiver, nftIds);
-
-        emit Deposited(amount, nftIds, receiver);
-    }
-
     function withdraw(
         address receiver,
         uint256 amount,
@@ -267,7 +272,7 @@ contract GovPool is
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty withdrawal");
 
-        unlock(msg.sender, false);
+        _unlock(msg.sender, false);
 
         _govUserKeeper.withdrawTokens.exec(receiver, amount);
         _govUserKeeper.withdrawNfts.exec(receiver, nftIds);
@@ -282,7 +287,7 @@ contract GovPool is
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
 
-        unlock(msg.sender, false);
+        _unlock(msg.sender, false);
 
         MicropoolInfo storage micropool = _micropoolInfos[delegatee];
 
@@ -303,7 +308,7 @@ contract GovPool is
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty undelegation");
 
-        unlock(delegatee, true);
+        _unlock(delegatee, true);
 
         MicropoolInfo storage micropool = _micropoolInfos[delegatee];
 
@@ -315,30 +320,6 @@ contract GovPool is
         micropool.updateStakingCache(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, false);
-    }
-
-    function unlock(address user, bool isMicropool) public override onlyBABTHolder {
-        unlockInProposals(_votedInProposals[user][isMicropool].values(), user, isMicropool);
-    }
-
-    function unlockInProposals(
-        uint256[] memory proposalIds,
-        address user,
-        bool isMicropool
-    ) public override onlyBABTHolder {
-        _votedInProposals.unlockInProposals(_voteInfos, proposalIds, user, isMicropool);
-    }
-
-    function execute(uint256 proposalId) public override onlyBABTHolder {
-        _proposals.execute(proposalId);
-
-        _pendingRewards.updateRewards(
-            _proposals,
-            proposalId,
-            RewardType.Execute,
-            _proposals[proposalId].core.settings.executionReward,
-            PRECISION
-        );
     }
 
     function claimRewards(uint256[] calldata proposalIds) external override onlyBABTHolder {
@@ -385,13 +366,6 @@ contract GovPool is
     }
 
     receive() external payable {}
-
-    function getProposals(
-        uint256 offset,
-        uint256 limit
-    ) external view returns (ProposalView[] memory proposals) {
-        return _proposals.getProposals(offset, limit);
-    }
 
     function getProposalState(uint256 proposalId) public view override returns (ProposalState) {
         ProposalCore storage core = _proposals[proposalId].core;
@@ -443,6 +417,32 @@ contract GovPool is
         return ProposalState.Voting;
     }
 
+    function getHelperContracts()
+        external
+        view
+        override
+        returns (
+            address settings,
+            address userKeeper,
+            address validators,
+            address distributionProposal
+        )
+    {
+        return (
+            address(_govSettings),
+            address(_govUserKeeper),
+            address(_govValidators),
+            _distributionProposal
+        );
+    }
+
+    function getProposals(
+        uint256 offset,
+        uint256 limit
+    ) external view override returns (ProposalView[] memory proposals) {
+        return _proposals.getProposals(offset, limit);
+    }
+
     function getProposalRequiredQuorum(
         uint256 proposalId
     ) external view override returns (uint256) {
@@ -470,7 +470,7 @@ contract GovPool is
         uint256 proposalId,
         address voter,
         bool isMicropool
-    ) external view returns (VoteInfoView memory voteInfo) {
+    ) external view override returns (VoteInfoView memory voteInfo) {
         VoteInfo storage info = _voteInfos[proposalId][voter][isMicropool];
 
         return
@@ -523,6 +523,18 @@ contract GovPool is
         require(nftMultiplierAddress != address(0), "Gov: new nft address is zero");
 
         nftMultiplier = nftMultiplierAddress;
+    }
+
+    function _unlock(address user, bool isMicropool) internal {
+        _unlockInProposals(_votedInProposals[user][isMicropool].values(), user, isMicropool);
+    }
+
+    function _unlockInProposals(
+        uint256[] memory proposalIds,
+        address user,
+        bool isMicropool
+    ) internal {
+        _votedInProposals.unlockInProposals(_voteInfos, proposalIds, user, isMicropool);
     }
 
     function _quorumReached(ProposalCore storage core) internal view returns (bool) {

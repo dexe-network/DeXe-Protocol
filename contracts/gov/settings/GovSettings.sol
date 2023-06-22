@@ -24,27 +24,30 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         ProposalSettings[] calldata proposalSettings,
         address[] calldata additionalProposalExecutors
     ) external initializer {
+        require(
+            additionalProposalExecutors.length + 4 == proposalSettings.length,
+            "GovSettings: invalid proposal settings count"
+        );
+
         __Ownable_init();
 
         uint256 systemExecutors = uint256(ExecutorType.VALIDATORS);
         uint256 settingsId;
 
-        for (uint256 i = 0; i < proposalSettings.length; i++) {
-            ProposalSettings calldata executorSettings = proposalSettings[i];
+        for (; settingsId < proposalSettings.length; settingsId++) {
+            ProposalSettings calldata executorSettings = proposalSettings[settingsId];
 
             _validateProposalSettings(executorSettings);
 
-            settings[settingsId] = executorSettings;
+            _setSettings(executorSettings, settingsId);
 
             if (settingsId == uint256(ExecutorType.INTERNAL)) {
                 _setExecutor(address(this), settingsId);
                 _setExecutor(govPoolAddress, settingsId);
                 _setExecutor(govUserKeeperAddress, settingsId);
             } else if (settingsId == uint256(ExecutorType.DISTRIBUTION)) {
-                require(
-                    !executorSettings.delegatedVotingAllowed && !executorSettings.earlyCompletion,
-                    "GovSettings: invalid distribution settings"
-                );
+                _validateDistributionSettings(executorSettings);
+
                 _setExecutor(distributionProposalAddress, settingsId);
             } else if (settingsId == uint256(ExecutorType.VALIDATORS)) {
                 _setExecutor(validatorsAddress, settingsId);
@@ -54,9 +57,8 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
                     settingsId
                 );
             }
-
-            settingsId++;
         }
+
         newSettingsId = settingsId;
     }
 
@@ -77,6 +79,10 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
     ) external override onlyOwner {
         for (uint256 i; i < _settings.length; i++) {
             require(_settingsExist(settingsIds[i]), "GovSettings: settings do not exist");
+
+            if (settingsIds[i] == uint256(ExecutorType.DISTRIBUTION)) {
+                _validateDistributionSettings(_settings[i]);
+            }
 
             _validateProposalSettings(_settings[i]);
             _setSettings(_settings[i], settingsIds[i]);
@@ -104,6 +110,13 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         require(
             _settings.quorumValidators <= PERCENTAGE_100,
             "GovSettings: invalid validator quorum value"
+        );
+    }
+
+    function _validateDistributionSettings(ProposalSettings calldata _settings) internal pure {
+        require(
+            !_settings.delegatedVotingAllowed && !_settings.earlyCompletion,
+            "GovSettings: invalid distribution settings"
         );
     }
 

@@ -188,14 +188,12 @@ library GovPoolCreate {
     ) internal pure {
         require(executors.length == 1, "Gov: invalid executors length");
 
-        for (uint256 i; i < data.length; i++) {
-            bytes4 selector = data[i].getSelector();
+        bytes4 selector = data[0].getSelector();
 
-            require(
-                values[i] == 0 && (selector == IGovValidators.changeBalances.selector),
-                "Gov: invalid internal data"
-            );
-        }
+        require(
+            values[0] == 0 && (selector == IGovValidators.changeBalances.selector),
+            "Gov: invalid internal data"
+        );
     }
 
     function _handleDataForDistributionProposal(

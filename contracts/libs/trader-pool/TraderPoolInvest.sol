@@ -68,11 +68,11 @@ library TraderPoolInvest {
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage positions,
         uint256[] calldata amounts,
-        address[] calldata tokens
+        address[] calldata tokens,
+        uint256 minLPOut
     ) external {
         TraderPool traderPool = TraderPool(address(this));
         IPriceFeed priceFeed = traderPool.priceFeed();
-        address baseToken = poolParameters.baseToken;
         uint256 totalInvestedBaseAmount;
 
         (uint256 totalBase, , , ) = poolParameters.getNormalizedPoolPriceAndPositions();
@@ -93,14 +93,29 @@ library TraderPoolInvest {
 
             uint256 baseAmount;
 
-            if (tokens[i] != baseToken) {
-                (baseAmount, ) = priceFeed.getNormalizedPriceOut(tokens[i], baseToken, amounts[i]);
+            if (tokens[i] != poolParameters.baseToken) {
+                (baseAmount, ) = priceFeed.getNormalizedPriceOut(
+                    tokens[i],
+                    poolParameters.baseToken,
+                    amounts[i]
+                );
 
                 if (positions.add(tokens[i])) {
                     emit PositionOpened(tokens[i]);
-                    emit Exchanged(msg.sender, baseToken, tokens[i], baseAmount, amounts[i]);
+                    emit Exchanged(
+                        msg.sender,
+                        poolParameters.baseToken,
+                        tokens[i],
+                        baseAmount,
+                        amounts[i]
+                    );
                 } else {
-                    emit ActivePortfolioExchanged(baseToken, tokens[i], baseAmount, amounts[i]);
+                    emit ActivePortfolioExchanged(
+                        poolParameters.baseToken,
+                        tokens[i],
+                        baseAmount,
+                        amounts[i]
+                    );
                 }
             } else {
                 baseAmount = amounts[i];
@@ -115,6 +130,8 @@ library TraderPoolInvest {
         );
 
         uint256 toMintLP = _calculateToMintLP(poolParameters, totalBase, totalInvestedBaseAmount);
+
+        require(toMintLP >= minLPOut, "TP: minLPOut < toLP");
 
         traderPool.updateTo(msg.sender, toMintLP, totalInvestedBaseAmount);
         traderPool.mint(msg.sender, toMintLP);
@@ -172,8 +189,10 @@ library TraderPoolInvest {
     ) internal returns (uint256) {
         TraderPool traderPool = TraderPool(address(this));
 
-        if (totalBaseInPool > 0) {
-            toMintLP = toMintLP.ratio(traderPool.totalSupply(), totalBaseInPool);
+        uint256 totalLPTokens = traderPool.totalSupply();
+
+        if (totalLPTokens > 0 && totalBaseInPool > 0) {
+            toMintLP = toMintLP.ratio(totalLPTokens, totalBaseInPool);
         }
 
         require(

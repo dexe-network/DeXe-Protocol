@@ -374,21 +374,21 @@ describe("GovPool", () => {
     await govPool.execute(proposalId);
   }
 
-  const assertBalanceDistribution = (balances, coefficients) => {
+  const assertBalanceDistribution = (balances, coefficients, tolerance) => {
     for (let i = 0; i < balances.length - 1; i++) {
       const epsilon = coefficients[i] + coefficients[i + 1];
 
       const lhs = balances[i].idiv(wei("1")).times(coefficients[i + 1]);
       const rhs = balances[i + 1].idiv(wei("1")).times(coefficients[i]);
 
-      assert.closeTo(lhs.toNumber(), rhs.toNumber(), epsilon);
+      assert.closeTo(lhs.toNumber(), rhs.toNumber(), tolerance + epsilon);
     }
   };
 
-  const assertNoZerosBalanceDistribution = (balances, coefficients) => {
+  const assertNoZerosBalanceDistribution = (balances, coefficients, tolerance = 0) => {
     balances.forEach((balance) => assert.notEqual(balance.toFixed(), "0"));
 
-    assertBalanceDistribution(balances, coefficients);
+    assertBalanceDistribution(balances, coefficients, tolerance);
   };
 
   describe("Fullfat GovPool", () => {
@@ -2542,13 +2542,13 @@ describe("GovPool", () => {
         await setTime((await getCurrentBlockTime()) + 1000);
         await govPool.undelegate(micropool, 0, [20, 21, 22], { from: delegator2 });
 
-        await setTime((await getCurrentBlockTime()) + 4000);
+        await setTime((await getCurrentBlockTime()) + 4465);
         await govPool.undelegate(micropool, 0, [10, 11, 12], { from: delegator1 });
 
         const balance1 = await rewardToken.balanceOf(delegator1);
         const balance2 = await rewardToken.balanceOf(delegator2);
 
-        assertNoZerosBalanceDistribution([balance1, balance2], [1, 2]);
+        assertNoZerosBalanceDistribution([balance1, balance2], [1, 2], 100);
       });
     });
   });

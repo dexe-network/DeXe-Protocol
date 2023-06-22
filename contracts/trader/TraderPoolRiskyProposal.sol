@@ -58,7 +58,10 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 proposalId,
         ProposalLimits calldata proposalLimits
     ) external override onlyTraderAdmin onlyBABTHolder {
-        require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
+        require(
+            proposalId <= proposalsTotalNum && proposalId != 0,
+            "TPRP: proposal doesn't exist"
+        );
 
         _proposalInfos[proposalId].proposalLimits = proposalLimits;
 
@@ -127,7 +130,10 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 baseInvestment,
         uint256 minPositionOut
     ) external override onlyParentTraderPool {
-        require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
+        require(
+            proposalId <= proposalsTotalNum && proposalId != 0,
+            "TPRP: proposal doesn't exist"
+        );
 
         ProposalInfo storage info = _proposalInfos[proposalId];
 
@@ -187,7 +193,10 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 lp2,
         uint256 minPositionOut
     ) public override onlyParentTraderPool returns (uint256 receivedBase) {
-        require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
+        require(
+            proposalId <= proposalsTotalNum && proposalId != 0,
+            "TPRP: proposal doesn't exist"
+        );
         require(balanceOf(user, proposalId) >= lp2, "TPRP: divesting more than balance");
 
         if (user == _parentTraderPoolInfo.trader) {
@@ -213,7 +222,10 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         address[] calldata optionalPath,
         ExchangeType exType
     ) external override onlyTraderAdmin onlyBABTHolder {
-        require(proposalId <= proposalsTotalNum, "TPRP: proposal doesn't exist");
+        require(
+            proposalId <= proposalsTotalNum && proposalId != 0,
+            "TPRP: proposal doesn't exist"
+        );
 
         ProposalInfo storage info = _proposalInfos[proposalId];
 

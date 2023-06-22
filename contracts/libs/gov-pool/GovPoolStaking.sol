@@ -110,28 +110,33 @@ library GovPoolStaking {
         for (uint256 i; i < rewardTokens.length; i++) {
             address rewardToken = rewardTokens[i];
 
-            IGovPool.RewardTokenInfo storage rewardTokenInfo = micropool.rewardTokenInfos[
-                rewardToken
-            ];
+            micropool
+                .rewardTokenInfos[rewardToken]
+                .delegators[msg.sender]
+                .pendingRewards = pendingRewards[i];
 
-            IGovPool.DelegatorInfo storage delegatorInfo = rewardTokenInfo.delegators[msg.sender];
+            micropool
+                .rewardTokenInfos[rewardToken]
+                .delegators[msg.sender]
+                .latestCumulativeSum = micropool.rewardTokenInfos[rewardToken].cumulativeSum;
+        }
 
-            uint256 rewards = pendingRewards[i];
+        if (!withdrawPendingRewards) {
+            return;
+        }
 
-            delegatorInfo.pendingRewards = rewards;
-            delegatorInfo.latestCumulativeSum = rewardTokenInfo.cumulativeSum;
-
-            if (!withdrawPendingRewards || rewards == 0) {
+        for (uint256 i; i < rewardTokens.length; i++) {
+            if (pendingRewards[i] == 0) {
                 continue;
             }
 
-            delegatorInfo.pendingRewards = 0;
+            micropool.rewardTokenInfos[rewardTokens[i]].delegators[msg.sender].pendingRewards = 0;
 
-            uint256 amountToTransfer = rewards.min(rewardToken.normThisBalance());
+            uint256 amountToTransfer = pendingRewards[i].min(rewardTokens[i].normThisBalance());
 
-            rewardToken.sendFunds(msg.sender, amountToTransfer);
+            rewardTokens[i].sendFunds(msg.sender, amountToTransfer);
 
-            emit StakingRewardClaimed(msg.sender, rewardToken, amountToTransfer);
+            emit StakingRewardClaimed(msg.sender, rewardTokens[i], amountToTransfer);
         }
     }
 
@@ -151,8 +156,8 @@ library GovPoolStaking {
 
         uint256 rewardsDeviation = previousDelegatorStake > currentDelegatorStake &&
             currentDelegatorStake != 0
-            ? previousDelegatorStake / currentDelegatorStake
-            : 1;
+            ? PRECISION.ratio(previousDelegatorStake, currentDelegatorStake)
+            : PRECISION;
 
         rewardTokens = micropool.rewardTokens.values();
         pendingRewards = new uint256[](rewardTokens.length);
@@ -168,9 +173,8 @@ library GovPoolStaking {
                 delegatorInfo.pendingRewards +
                 (rewardTokenInfo.cumulativeSum - delegatorInfo.latestCumulativeSum).ratio(
                     previousDelegatorStake,
-                    PRECISION
-                ) /
-                rewardsDeviation;
+                    rewardsDeviation
+                );
         }
     }
 }
