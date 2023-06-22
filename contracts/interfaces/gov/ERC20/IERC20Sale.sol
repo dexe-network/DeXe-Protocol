@@ -35,8 +35,19 @@ interface IERC20Sale {
     function unpause() external;
 
     /// @notice This function is used to blacklist an address
+    /// @param account the address to be blacklisted
+    /// @param value the blacklist status
     function blacklist(address account, bool value) external;
 
-    /// @notice This function is used to blacklist a list of addresses
-    function getBlacklistTokens() external view returns (address[] memory);
+    /// @notice This function is used to get the total amount of blacklisted accounts
+    function totalBlacklistAccounts() external view returns (uint256);
+
+    /// @notice The paginated function to get addresses of blacklisted accounts
+    /// @param offset the starting index of the accounts array
+    /// @param limit the length of the array to observe
+    /// @return requested blacklist array
+    function getBlacklistAccounts(
+        uint256 offset,
+        uint256 limit
+    ) external view returns (address[] memory);
 }

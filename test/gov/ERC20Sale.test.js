@@ -234,21 +234,21 @@ describe("ERC20Sale", () => {
       });
 
       it("should blacklist if caller is govPool", async () => {
-        assert.equal((await erc20Sale.getBlacklistTokens()).length, 0);
+        assert.equal(await erc20Sale.totalBlacklistAccounts(), 0);
 
         await erc20Sale.blacklist(SECOND, true, { from: GOV_ADDRESS });
 
-        assert.equal((await erc20Sale.getBlacklistTokens()).length, 1);
+        assert.equal(await erc20Sale.totalBlacklistAccounts(), 1);
       });
 
       it("should unblacklist if caller is govPool", async () => {
         await erc20Sale.blacklist(SECOND, true, { from: GOV_ADDRESS });
 
-        assert.equal((await erc20Sale.getBlacklistTokens()).length, 1);
+        assert.equal(await erc20Sale.totalBlacklistAccounts(), 1);
 
         await erc20Sale.blacklist(SECOND, false, { from: GOV_ADDRESS });
 
-        assert.equal((await erc20Sale.getBlacklistTokens()).length, 0);
+        assert.equal(await erc20Sale.totalBlacklistAccounts(), 0);
       });
 
       it("should revert if account is already blacklisted", async () => {
@@ -288,15 +288,13 @@ describe("ERC20Sale", () => {
 
     describe("getBlacklistTokens", () => {
       it("should return empty array if no accounts are blacklisted", async () => {
-        assert.equal((await erc20Sale.getBlacklistTokens()).length, 0);
+        assert.deepEqual(await erc20Sale.getBlacklistAccounts(0, 10), []);
       });
 
       it("should return array of blacklisted accounts", async () => {
         await erc20Sale.blacklist(SECOND, true, { from: GOV_ADDRESS });
 
-        assert.equal((await erc20Sale.getBlacklistTokens()).length, 1);
-
-        assert.equal((await erc20Sale.getBlacklistTokens())[0], SECOND);
+        assert.deepEqual(await erc20Sale.getBlacklistAccounts(0, 10), [SECOND]);
       });
     });
   });

@@ -7,6 +7,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20Burnable
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
+
 import "../../interfaces/gov/ERC20/IERC20Sale.sol";
 
 contract ERC20Sale is
@@ -16,9 +18,11 @@ contract ERC20Sale is
     ERC20BurnableUpgradeable
 {
     using EnumerableSet for EnumerableSet.AddressSet;
+    using Paginator for EnumerableSet.AddressSet;
+
     address public govAddress;
 
-    EnumerableSet.AddressSet internal _blacklistTokens;
+    EnumerableSet.AddressSet internal _blacklistAccounts;
 
     modifier onlyGov() {
         _onlyGov();
@@ -70,14 +74,21 @@ contract ERC20Sale is
 
     function blacklist(address account, bool value) external override whenNotPaused onlyGov {
         if (value) {
-            require(_blacklistTokens.add(account), "ERC20Sale: already blacklisted");
+            require(_blacklistAccounts.add(account), "ERC20Sale: already blacklisted");
         } else {
-            require(_blacklistTokens.remove(account), "ERC20Sale: not blacklisted");
+            require(_blacklistAccounts.remove(account), "ERC20Sale: not blacklisted");
         }
     }
 
-    function getBlacklistTokens() external view override returns (address[] memory) {
-        return _blacklistTokens.values();
+    function totalBlacklistAccounts() external view override returns (uint256) {
+        return _blacklistAccounts.length();
+    }
+
+    function getBlacklistAccounts(
+        uint256 offset,
+        uint256 limit
+    ) external view override returns (address[] memory) {
+        return _blacklistAccounts.part(offset, limit);
     }
 
     function _beforeTokenTransfer(
@@ -86,7 +97,7 @@ contract ERC20Sale is
         uint256 amount
     ) internal override(ERC20Upgradeable, ERC20PausableUpgradeable) {
         require(
-            !_blacklistTokens.contains(from) && !_blacklistTokens.contains(to),
+            !_blacklistAccounts.contains(from) && !_blacklistAccounts.contains(to),
             "ERC20Sale: account is blacklisted"
         );
 
