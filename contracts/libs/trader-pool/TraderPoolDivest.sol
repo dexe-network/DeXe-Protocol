@@ -59,7 +59,8 @@ library TraderPoolDivest {
         address baseToken = poolParameters.baseToken;
         uint256 totalSupply = traderPool.totalSupply();
 
-        investorBaseAmount = baseToken.normThisBalance().ratio(amountLP, totalSupply);
+        investorBaseAmount = baseToken.normThisBalance();
+        investorBaseAmount = investorBaseAmount.ratio(amountLP, totalSupply);
 
         (
             ,
@@ -71,12 +72,14 @@ library TraderPoolDivest {
         for (uint256 i = 0; i < positionTokens.length; i++) {
             uint256 amountBase = positionPricesInBase[i].ratio(amountLP, totalSupply);
             require(amountBase >= minPositionsOut[i], "TP: slippage");
+            uint256 currentPositionBalance = positionTokens[i].normThisBalance();
+            currentPositionBalance = currentPositionBalance.ratio(amountLP, totalSupply);
             uint256 amountPaid = TraderPool(address(this)).priceFeed().normalizedExchangeToExact(
                 positionTokens[i],
                 baseToken,
                 amountBase,
                 new address[](0),
-                positionTokens[i].normThisBalance().ratio(amountLP, totalSupply)
+                currentPositionBalance
             );
 
             investorBaseAmount += amountBase;
