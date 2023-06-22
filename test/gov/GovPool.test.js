@@ -2532,18 +2532,22 @@ describe("GovPool", () => {
       });
 
       it("should properly divide rewards by deviation", async () => {
-        await setNextBlockTime((await getCurrentBlockTime()) + 200);
+        let currentTime = (await getCurrentBlockTime()) + 200;
+        await setNextBlockTime(currentTime);
         await govPool.delegate(micropool, 0, [10, 11, 12], { from: delegator1 });
 
-        await setNextBlockTime((await getCurrentBlockTime()) + 1);
+        currentTime += 1;
+        await setNextBlockTime(currentTime);
         await govPool.delegate(micropool, 0, [20, 21, 22], { from: delegator2 });
 
         await govPool.voteDelegated(1, 0, [10, 11, 12, 20, 21, 22], { from: micropool });
 
-        await setNextBlockTime((await getCurrentBlockTime()) + 1000);
+        currentTime += 1000;
+        await setNextBlockTime(currentTime);
         await govPool.undelegate(micropool, 0, [20, 21, 22], { from: delegator2 });
 
-        await setNextBlockTime((await getCurrentBlockTime()) + 4465);
+        currentTime += 4466;
+        await setNextBlockTime(currentTime);
         await govPool.undelegate(micropool, 0, [10, 11, 12], { from: delegator1 });
 
         const balance1 = await rewardToken.balanceOf(delegator1);
