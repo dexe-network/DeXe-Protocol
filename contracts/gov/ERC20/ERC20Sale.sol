@@ -72,11 +72,18 @@ contract ERC20Sale is
         _unpause();
     }
 
-    function blacklist(address account, bool value) external override whenNotPaused onlyGov {
+    function blacklist(
+        address[] calldata accounts,
+        bool value
+    ) external override whenNotPaused onlyGov {
         if (value) {
-            require(_blacklistAccounts.add(account), "ERC20Sale: already blacklisted");
+            for (uint256 i = 0; i < accounts.length; i++) {
+                _blacklistAccounts.add(accounts[i]);
+            }
         } else {
-            require(_blacklistAccounts.remove(account), "ERC20Sale: not blacklisted");
+            for (uint256 i = 0; i < accounts.length; i++) {
+                require(_blacklistAccounts.remove(accounts[i]), "ERC20Sale: not blacklisted");
+            }
         }
     }
 

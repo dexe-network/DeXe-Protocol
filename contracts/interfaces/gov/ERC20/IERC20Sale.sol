@@ -34,10 +34,10 @@ interface IERC20Sale {
     /// @notice This function is used to return default contract state
     function unpause() external;
 
-    /// @notice This function is used to blacklist an address
-    /// @param account the address to be blacklisted
+    /// @notice This function is used to blacklist the addresses
+    /// @param accounts the addresses to be blacklisted
     /// @param value the blacklist status
-    function blacklist(address account, bool value) external;
+    function blacklist(address[] calldata accounts, bool value) external;
 
     /// @notice This function is used to get the total amount of blacklisted accounts
     function totalBlacklistAccounts() external view returns (uint256);

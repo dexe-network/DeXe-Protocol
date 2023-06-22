@@ -191,7 +191,7 @@ describe("ERC20Sale", () => {
       it("should not blacklist if erc20Sale is paused", async () => {
         await erc20Sale.pause({ from: GOV_ADDRESS });
 
-        await truffleAssert.reverts(erc20Sale.blacklist(THIRD, true), "Pausable: paused");
+        await truffleAssert.reverts(erc20Sale.blacklist([THIRD], true), "Pausable: paused");
       });
     });
 
@@ -224,51 +224,50 @@ describe("ERC20Sale", () => {
       });
 
       it("should blacklist if erc20Sale is unpaused", async () => {
-        assert.ok(await erc20Sale.blacklist(SECOND, true, { from: GOV_ADDRESS }));
+        assert.ok(await erc20Sale.blacklist([SECOND], true, { from: GOV_ADDRESS }));
       });
     });
 
     describe("blacklist", () => {
       it("should not blacklist if caller is not govPool", async () => {
-        await truffleAssert.reverts(erc20Sale.blacklist(SECOND, true), "ERC20Sale: not a Gov contract");
+        await truffleAssert.reverts(erc20Sale.blacklist([SECOND], true), "ERC20Sale: not a Gov contract");
       });
 
       it("should blacklist if caller is govPool", async () => {
         assert.equal(await erc20Sale.totalBlacklistAccounts(), 0);
 
-        await erc20Sale.blacklist(SECOND, true, { from: GOV_ADDRESS });
+        await erc20Sale.blacklist([SECOND, THIRD], true, { from: GOV_ADDRESS });
 
-        assert.equal(await erc20Sale.totalBlacklistAccounts(), 1);
+        assert.equal(await erc20Sale.totalBlacklistAccounts(), 2);
       });
 
       it("should unblacklist if caller is govPool", async () => {
-        await erc20Sale.blacklist(SECOND, true, { from: GOV_ADDRESS });
+        await erc20Sale.blacklist([SECOND], true, { from: GOV_ADDRESS });
 
         assert.equal(await erc20Sale.totalBlacklistAccounts(), 1);
 
-        await erc20Sale.blacklist(SECOND, false, { from: GOV_ADDRESS });
+        await erc20Sale.blacklist([SECOND], false, { from: GOV_ADDRESS });
 
         assert.equal(await erc20Sale.totalBlacklistAccounts(), 0);
       });
 
-      it("should revert if account is already blacklisted", async () => {
-        await erc20Sale.blacklist(SECOND, true, { from: GOV_ADDRESS });
+      it("should not revert if account is already blacklisted", async () => {
+        await erc20Sale.blacklist([SECOND], true, { from: GOV_ADDRESS });
 
-        await truffleAssert.reverts(
-          erc20Sale.blacklist(SECOND, true, { from: GOV_ADDRESS }),
-          "ERC20Sale: already blacklisted"
-        );
+        assert.isOk(await erc20Sale.blacklist([SECOND], true, { from: GOV_ADDRESS }));
+
+        assert.equal(await erc20Sale.totalBlacklistAccounts(), 1);
       });
 
       it("should revert if account is not blacklisted", async () => {
         await truffleAssert.reverts(
-          erc20Sale.blacklist(SECOND, false, { from: GOV_ADDRESS }),
+          erc20Sale.blacklist([SECOND], false, { from: GOV_ADDRESS }),
           "ERC20Sale: not blacklisted"
         );
       });
 
       it("should not mint if the account is blacklisted", async () => {
-        await erc20Sale.blacklist(SECOND, true, { from: GOV_ADDRESS });
+        await erc20Sale.blacklist([SECOND], true, { from: GOV_ADDRESS });
 
         await truffleAssert.reverts(
           erc20Sale.mint(SECOND, wei(1), { from: GOV_ADDRESS }),
@@ -277,7 +276,7 @@ describe("ERC20Sale", () => {
       });
 
       it("should not transfer if the account is blacklisted", async () => {
-        await erc20Sale.blacklist(SECOND, true, { from: GOV_ADDRESS });
+        await erc20Sale.blacklist([SECOND], true, { from: GOV_ADDRESS });
 
         await truffleAssert.reverts(
           erc20Sale.transfer(GOV_ADDRESS, wei(1), { from: SECOND }),
@@ -292,7 +291,7 @@ describe("ERC20Sale", () => {
       });
 
       it("should return array of blacklisted accounts", async () => {
-        await erc20Sale.blacklist(SECOND, true, { from: GOV_ADDRESS });
+        await erc20Sale.blacklist([SECOND], true, { from: GOV_ADDRESS });
 
         assert.deepEqual(await erc20Sale.getBlacklistAccounts(0, 10), [SECOND]);
       });
