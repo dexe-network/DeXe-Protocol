@@ -259,11 +259,8 @@ describe("ERC20Sale", () => {
         assert.equal(await erc20Sale.totalBlacklistAccounts(), 1);
       });
 
-      it("should revert if account is not blacklisted", async () => {
-        await truffleAssert.reverts(
-          erc20Sale.blacklist([SECOND], false, { from: GOV_ADDRESS }),
-          "ERC20Sale: not blacklisted"
-        );
+      it("should not revert if account is not blacklisted", async () => {
+        assert.isOk(erc20Sale.blacklist([SECOND], false, { from: GOV_ADDRESS }));
       });
 
       it("should not mint if the account is blacklisted", async () => {

@@ -82,7 +82,7 @@ contract ERC20Sale is
             }
         } else {
             for (uint256 i = 0; i < accounts.length; i++) {
-                require(_blacklistAccounts.remove(accounts[i]), "ERC20Sale: not blacklisted");
+                _blacklistAccounts.remove(accounts[i]);
             }
         }
     }
