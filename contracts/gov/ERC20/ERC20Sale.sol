@@ -4,10 +4,10 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20CappedUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
-
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
+import "@dlsl/dev-modules/libs/arrays/SetHelper.sol";
 
 import "../../interfaces/gov/ERC20/IERC20Sale.sol";
 
@@ -19,6 +19,7 @@ contract ERC20Sale is
 {
     using EnumerableSet for EnumerableSet.AddressSet;
     using Paginator for EnumerableSet.AddressSet;
+    using SetHelper for EnumerableSet.AddressSet;
 
     address public govAddress;
 
@@ -77,13 +78,9 @@ contract ERC20Sale is
         bool value
     ) external override whenNotPaused onlyGov {
         if (value) {
-            for (uint256 i = 0; i < accounts.length; i++) {
-                _blacklistAccounts.add(accounts[i]);
-            }
+            _blacklistAccounts.add(accounts);
         } else {
-            for (uint256 i = 0; i < accounts.length; i++) {
-                _blacklistAccounts.remove(accounts[i]);
-            }
+            _blacklistAccounts.remove(accounts);
         }
     }
 
