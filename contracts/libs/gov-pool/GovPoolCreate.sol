@@ -55,6 +55,7 @@ library GovPoolCreate {
         for (uint256 i; i < actionsOnFor.length; i++) {
             proposals[proposalId].actionsOnFor.push(actionsOnFor[i]);
         }
+
         for (uint256 i; i < actionsOnAgainst.length; i++) {
             proposals[proposalId].actionsOnAgainst.push(actionsOnAgainst[i]);
         }
