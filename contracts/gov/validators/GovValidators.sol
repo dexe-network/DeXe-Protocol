@@ -268,7 +268,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             return
                 _votesForMoreThanAgainst(core)
                     ? ProposalState.SucceededFor
-                    : ProposalState.SucceededAgainst;
+                    : ProposalState.Defeated;
         }
 
         if (core.voteEnd < block.timestamp) {
