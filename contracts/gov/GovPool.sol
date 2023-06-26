@@ -386,7 +386,7 @@ contract GovPool is
         if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
             if (_quorumReached(core)) {
                 if (!_votesForMoreThanAgainst(core)) {
-                    return ProposalState.SucceededAgainst;
+                    return _proposalStateBasedOnActionOnAgainstExists(proposalId);
                 }
 
                 if (core.settings.validatorsVote) {
@@ -396,14 +396,11 @@ contract GovPool is
                     );
 
                     if (status == IGovValidators.ProposalState.Undefined) {
-                        return
-                            _govValidators.validatorsCount() > 0
-                                ? ProposalState.WaitingForVotingTransfer
-                                : (
-                                    _votesForMoreThanAgainst(core)
-                                        ? ProposalState.SucceededFor
-                                        : ProposalState.SucceededAgainst
-                                );
+                        if (_govValidators.validatorsCount() != 0) {
+                            return ProposalState.WaitingForVotingTransfer;
+                        }
+
+                        return _proposalStateBasedOnActionOnAgainstExists(proposalId);
                     }
 
                     if (status == IGovValidators.ProposalState.SucceededFor) {
@@ -567,6 +564,19 @@ contract GovPool is
 
     function _votesForMoreThanAgainst(ProposalCore storage core) internal view returns (bool) {
         return core.votesFor > core.votesAgainst;
+    }
+
+    function _actionsOnAgainstExists(uint256 proposalId) internal view returns (bool) {
+        return _proposals[proposalId].actionsOnAgainst.length != 0;
+    }
+
+    function _proposalStateBasedOnActionOnAgainstExists(
+        uint256 proposalId
+    ) internal view returns (ProposalState) {
+        return
+            _actionsOnAgainstExists(proposalId)
+                ? ProposalState.SucceededAgainst
+                : ProposalState.Defeated;
     }
 
     function _onlyThis() internal view {

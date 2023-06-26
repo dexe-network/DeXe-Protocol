@@ -196,9 +196,8 @@ library GovPoolVote {
         bool useDelegated,
         bool isVoteFor
     ) internal returns (uint256 voteAmount) {
-        EnumerableSet.UintSet storage votedNfts = isVoteFor
-            ? voteInfo.nftsVotedFor
-            : voteInfo.nftsVotedAgainst;
+        EnumerableSet.UintSet storage votedNfts = _votedNfts(voteInfo, isVoteFor);
+
         for (uint256 i; i < nftIds.length; i++) {
             require(votedNfts.add(nftIds[i]), "Gov: NFT already voted");
         }
@@ -221,5 +220,12 @@ library GovPoolVote {
             core.votesAgainst += voteAmount;
             voteInfo.totalVotedAgainst += voteAmount;
         }
+    }
+
+    function _votedNfts(
+        IGovPool.VoteInfo storage voteInfo,
+        bool isVoteFor
+    ) internal view returns (EnumerableSet.UintSet storage) {
+        return isVoteFor ? voteInfo.nftsVotedFor : voteInfo.nftsVotedAgainst;
     }
 }

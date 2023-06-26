@@ -151,9 +151,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     ) external override {
         require(_proposalExists(proposalId, isInternal), "Validators: proposal does not exist");
 
-        ProposalCore storage core = isInternal
-            ? _internalProposals[proposalId].core
-            : _externalProposals[proposalId].core;
+        ProposalCore storage core = _getCore(proposalId, isInternal);
 
         require(_getProposalState(core) == ProposalState.Voting, "Validators: not Voting state");
 
@@ -180,8 +178,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         InternalProposal storage proposal = _internalProposals[proposalId];
 
         require(
-            _getProposalState(proposal.core) == ProposalState.SucceededFor ||
-                _getProposalState(proposal.core) == ProposalState.SucceededAgainst,
+            _getProposalState(proposal.core) == ProposalState.SucceededFor,
             "Validators: not Succeeded state"
         );
 

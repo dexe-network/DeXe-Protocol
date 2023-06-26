@@ -87,12 +87,14 @@ contract DistributionProposal is IDistributionProposal, Initializable {
             uint256 voterVotesAgainst
         ) = IGovPool(govAddress).getTotalVotes(proposalId, voter, false);
 
+        if (totalVotesFor == 0 || voterVotesFor <= voterVotesAgainst) {
+            return 0;
+        }
+
         return
-            totalVotesFor == 0
-                ? 0
-                : proposals[proposalId].rewardAmount.ratio(
-                    voterVotesFor - voterVotesAgainst,
-                    totalVotesFor + totalVotesAgainst
-                );
+            proposals[proposalId].rewardAmount.ratio(
+                voterVotesFor - voterVotesAgainst,
+                totalVotesFor + totalVotesAgainst
+            );
     }
 }
