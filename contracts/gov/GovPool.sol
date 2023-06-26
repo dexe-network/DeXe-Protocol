@@ -565,10 +565,6 @@ contract GovPool is
         return core.votesFor > core.votesAgainst;
     }
 
-    function _actionsOnAgainstExists(uint256 proposalId) internal view returns (bool) {
-        return _proposals[proposalId].actionsOnAgainst.length != 0;
-    }
-
     function _proposalStateBasedOnVoteResults(
         ProposalCore storage core
     ) internal view returns (ProposalState) {

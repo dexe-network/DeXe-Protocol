@@ -105,14 +105,15 @@ library GovPoolCreate {
     {
         require(actionsFor.length != 0, "Gov: invalid array length");
 
-        (address govSettings, address userKeeper, , ) = IGovPool(address(this))
+        (address govSettingsAddress, address userKeeper, , ) = IGovPool(address(this))
             .getHelperContracts();
 
-        address mainExecutor = actionsFor[actionsFor.length - 1].executor;
-        settingsId = IGovSettings(govSettings).executorToSettings(mainExecutor);
+        IGovSettings govSettings = IGovSettings(govSettingsAddress);
 
-        bool forceDefaultSettings = _handleDataForProposal(settingsId, govSettings, actionsFor) ||
-            _handleDataForProposal(settingsId, govSettings, actionsAgainst);
+        address mainExecutor = actionsFor[actionsFor.length - 1].executor;
+        settingsId = govSettings.executorToSettings(mainExecutor);
+
+        bool forceDefaultSettings = _handleDataForProposal(settingsId, govSettings, actionsFor);
 
         if (actionsAgainst.length != 0) {
             forceDefaultSettings =
@@ -123,9 +124,9 @@ library GovPoolCreate {
 
         if (forceDefaultSettings) {
             settingsId = uint256(IGovSettings.ExecutorType.DEFAULT);
-            settings = IGovSettings(govSettings).getDefaultSettings();
+            settings = govSettings.getDefaultSettings();
         } else {
-            settings = IGovSettings(govSettings).getExecutorSettings(mainExecutor);
+            settings = govSettings.getExecutorSettings(mainExecutor);
         }
 
         snapshotId = IGovUserKeeper(userKeeper).createNftPowerSnapshot();
@@ -175,14 +176,12 @@ library GovPoolCreate {
     }
 
     function _handleDataForInternalProposal(
-        address govSettings,
+        IGovSettings govSettings,
         IGovPool.ProposalAction[] calldata actions
     ) internal view {
         for (uint256 i; i < actions.length; i++) {
             bytes4 selector = actions[i].data.getSelector();
-            uint256 executorSettings = IGovSettings(govSettings).executorToSettings(
-                actions[i].executor
-            );
+            uint256 executorSettings = govSettings.executorToSettings(actions[i].executor);
 
             require(
                 actions[i].value == 0 &&
@@ -203,7 +202,7 @@ library GovPoolCreate {
 
     function _handleDataForProposal(
         uint256 settingsId,
-        address govSettings,
+        IGovSettings govSettings,
         IGovPool.ProposalAction[] calldata actions
     ) internal returns (bool) {
         if (settingsId == uint256(IGovSettings.ExecutorType.INTERNAL)) {

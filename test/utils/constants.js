@@ -33,8 +33,8 @@ const ValidatorsProposalState = {
   Voting: 0,
   Defeated: 1,
   Succeeded: 2,
-  Executed: 4,
-  Undefined: 5,
+  Executed: 3,
+  Undefined: 4,
 };
 
 const DEFAULT_CORE_PROPERTIES = {
