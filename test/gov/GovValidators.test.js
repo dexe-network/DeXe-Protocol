@@ -262,6 +262,17 @@ describe("GovValidators", () => {
         await validators.createExternalProposal(1, 1, 1);
         await truffleAssert.reverts(validators.createExternalProposal(1, 1, 1), "Validators: proposal already exists");
       });
+
+      it("should revert if invalid duration value", async () => {
+        await truffleAssert.reverts(validators.createExternalProposal(1, 0, 1), "Validators: duration is zero");
+      });
+
+      it("should revert if invalid quorum value", async () => {
+        await truffleAssert.reverts(
+          validators.createExternalProposal(1, 1, toPercent(101)),
+          "Validators: invalid quorum value"
+        );
+      });
     });
 
     describe("vote()", () => {

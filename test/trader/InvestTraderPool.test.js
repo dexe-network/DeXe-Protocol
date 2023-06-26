@@ -410,6 +410,7 @@ describe("InvestTraderPool", () => {
         await createProposal(wei("500"), [time.plus(1000), wei("500")]);
 
         await truffleAssert.reverts(investProposal(3, wei("100"), SECOND), "TPIP: proposal doesn't exist");
+        await truffleAssert.reverts(investProposal(0, wei("100"), SECOND), "TPIP: proposal doesn't exist");
         await truffleAssert.reverts(investProposal(1, wei("100"), SECOND), "TPIP: proposal is closed");
         await truffleAssert.reverts(investProposal(2, wei("100"), SECOND), "TPIP: proposal is overinvested");
       });
@@ -452,6 +453,34 @@ describe("InvestTraderPool", () => {
         assert.equal((await proposalPool.balanceOf(OWNER, 1)).toFixed(), wei("100"));
         assert.equal((await proposalPool.totalLockedLP()).toFixed(), wei("100"));
         assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("900"));
+      });
+
+      it("should not create proposal if reentrant call", async () => {
+        assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("1000"));
+        assert.equal((await traderPool.balanceOf(OWNER)).toFixed(), wei("1000"));
+
+        const time = toBN(await getCurrentBlockTime());
+
+        const description = "placeholder.com";
+        const value = wei("100");
+        const limits = [time.plus(100000), wei("10000")];
+
+        const divests = await traderPool.getDivestAmountsAndCommissions(OWNER, value);
+
+        const bytecode = await (await ReentrantCallerMock.new()).getBytecode();
+
+        const baseTokenAddress = tokens.WETH.address;
+        await setCode(baseTokenAddress, bytecode);
+
+        const callbackAddress = traderPool.address;
+        const callbackData = traderPool.contract.methods.createProposal("", 0, [0, 0], []).encodeABI();
+
+        await (await ReentrantCallerMock.at(baseTokenAddress)).setCallback(callbackAddress, callbackData);
+
+        await truffleAssert.reverts(
+          traderPool.createProposal(description, value, limits, divests.receptions.receivedAmounts),
+          "ReentrancyGuard: reentrant call"
+        );
       });
 
       it("should not create proposals with incorrect data", async () => {
@@ -497,6 +526,10 @@ describe("InvestTraderPool", () => {
 
         await truffleAssert.reverts(
           proposalPool.changeProposalRestrictions(2, [time.plus(1000000), wei("1000")]),
+          "TPIP: proposal doesn't exist"
+        );
+        await truffleAssert.reverts(
+          proposalPool.changeProposalRestrictions(0, [time.plus(1000000), wei("1000")]),
           "TPIP: proposal doesn't exist"
         );
 
@@ -690,6 +723,7 @@ describe("InvestTraderPool", () => {
 
       it("should check withdrawal in proposal", async () => {
         await truffleAssert.reverts(withdrawProposal(2, wei("900")), "TPIP: proposal doesn't exist");
+        await truffleAssert.reverts(withdrawProposal(0, wei("900")), "TPIP: proposal doesn't exist");
       });
     });
 
@@ -714,6 +748,11 @@ describe("InvestTraderPool", () => {
       it("should check supply in proposal", async () => {
         await truffleAssert.reverts(
           supplyProposal(2, [wei("50"), wei("50")], [tokens.WETH.address, tokens.MANA.address]),
+          "TPIP: proposal doesn't exist"
+        );
+
+        await truffleAssert.reverts(
+          supplyProposal(0, [wei("50"), wei("50")], [tokens.WETH.address, tokens.MANA.address]),
           "TPIP: proposal doesn't exist"
         );
 
@@ -904,10 +943,12 @@ describe("InvestTraderPool", () => {
 
         await truffleAssert.reverts(reinvestProposal(1, SECOND), "TPIP: nothing to divest");
         await truffleAssert.reverts(reinvestProposal(2, SECOND), "TPIP: proposal doesn't exist");
+        await truffleAssert.reverts(reinvestProposal(0, SECOND), "TPIP: proposal doesn't exist");
       });
 
       it("should check reinvest in proposal", async () => {
         await truffleAssert.reverts(convertToDividends(2), "TPIP: proposal doesn't exist");
+        await truffleAssert.reverts(convertToDividends(9), "TPIP: proposal doesn't exist");
         await truffleAssert.reverts(reinvestProposal(1, OWNER), "TPIP: nothing to divest");
       });
 

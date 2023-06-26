@@ -1,5 +1,5 @@
 const { assert } = require("chai");
-const { SECONDS_IN_MONTH, PRECISION } = require("../../scripts/utils/constants");
+const { SECONDS_IN_MONTH, PRECISION, ZERO_ADDR } = require("../../scripts/utils/constants");
 const { ExchangeType, ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
 const { toBN, accounts, wei } = require("../../scripts/utils/utils");
 const { setTime, getCurrentBlockTime } = require("../helpers/block-helper");
@@ -58,6 +58,8 @@ describe("BasicTraderPool", () => {
 
   let traderPool;
   let proposalPool;
+
+  const defaultMinLPOut = toBN(1000000);
 
   const reverter = new Reverter();
 
@@ -427,7 +429,8 @@ describe("BasicTraderPool", () => {
 
         await traderPool.investInitial(
           [wei("100"), wei("500"), wei("10")],
-          [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address]
+          [tokens.DEXE.address, tokens.WETH.address, tokens.USD.address],
+          defaultMinLPOut
         );
 
         assert.equal((await tokens.DEXE.balanceOf(traderPool.address)).toFixed(), wei("100"));
@@ -445,7 +448,7 @@ describe("BasicTraderPool", () => {
         await tokens.WBTC.approve(traderPool.address, wei("100"));
 
         await truffleAssert.reverts(
-          traderPool.investInitial([wei("100")], [tokens.WBTC.address]),
+          traderPool.investInitial([wei("100")], [tokens.WBTC.address], defaultMinLPOut),
           "BP: not in whitelist"
         );
       });
@@ -512,6 +515,47 @@ describe("BasicTraderPool", () => {
         await reinvestProposal(1, await proposalPool.balanceOf(OWNER, 1), OWNER);
 
         await truffleAssert.passes(proposalPool.getDivestAmounts([1], [0]), "pass");
+      });
+
+      it("should not create proposal if reentrant call", async () => {
+        const time = toBN(await getCurrentBlockTime());
+
+        const description = "description";
+        const token = tokens.MANA.address;
+        const value = wei("100");
+        const limits = [time.plus(100000), wei("10000"), wei("2")];
+        const percentage = 0;
+
+        const divests = await traderPool.getDivestAmountsAndCommissions(OWNER, value);
+        const creationTokens = (
+          await proposalPool.getCreationTokens(token, divests.receptions.baseAmount, percentage, [])
+        )[0];
+
+        const bytecode = await (await ReentrantCallerMock.new()).getBytecode();
+
+        const baseTokenAddress = tokens.WETH.address;
+        await setCode(baseTokenAddress, bytecode);
+
+        const callbackAddress = traderPool.address;
+        const callbackData = traderPool.contract.methods
+          .createProposal("", ZERO_ADDR, 0, [0, 0, 0], 0, [], 0, [])
+          .encodeABI();
+
+        await (await ReentrantCallerMock.at(baseTokenAddress)).setCallback(callbackAddress, callbackData);
+
+        await truffleAssert.reverts(
+          traderPool.createProposal(
+            description,
+            token,
+            value,
+            limits,
+            percentage,
+            divests.receptions.receivedAmounts,
+            creationTokens,
+            []
+          ),
+          "ReentrancyGuard: reentrant call"
+        );
       });
 
       it("should not create proposals with incorrect data", async () => {
@@ -693,6 +737,10 @@ describe("BasicTraderPool", () => {
           proposalPool.changeProposalRestrictions(2, [time.plus(1000000), wei("1000"), wei("10")]),
           "TPRP: proposal doesn't exist"
         );
+        await truffleAssert.reverts(
+          proposalPool.changeProposalRestrictions(0, [time.plus(1000000), wei("1000"), wei("10")]),
+          "TPRP: proposal doesn't exist"
+        );
 
         info = (await proposalPool.getProposalInfos(0, 1))[0];
 
@@ -732,6 +780,7 @@ describe("BasicTraderPool", () => {
         );
 
         await truffleAssert.reverts(investProposal(3, wei("100"), SECOND), "TPRP: proposal doesn't exist");
+        await truffleAssert.reverts(investProposal(0, wei("100"), SECOND), "TPRP: proposal doesn't exist");
         await truffleAssert.reverts(investProposal(1, wei("100"), SECOND), "TPRP: proposal is closed");
         await truffleAssert.reverts(investProposal(2, wei("100"), SECOND), "TPRP: proposal is overinvested");
       });
@@ -1052,6 +1101,7 @@ describe("BasicTraderPool", () => {
         await investProposal(1, wei("500"), SECOND);
 
         await truffleAssert.reverts(reinvestProposal(2, wei("250"), OWNER), "TPRP: proposal doesn't exist");
+        await truffleAssert.reverts(reinvestProposal(0, wei("250"), OWNER), "TPRP: proposal doesn't exist");
         await truffleAssert.reverts(reinvestProposal(1, wei("1000"), SECOND), "TPRP: divesting more than balance");
       });
 
@@ -1280,6 +1330,11 @@ describe("BasicTraderPool", () => {
 
         await truffleAssert.reverts(
           exchangeFromExactProposal(2, tokens.WETH.address, wei("250")),
+          "TPRP: proposal doesn't exist"
+        );
+
+        await truffleAssert.reverts(
+          exchangeFromExactProposal(0, tokens.WETH.address, wei("250")),
           "TPRP: proposal doesn't exist"
         );
 

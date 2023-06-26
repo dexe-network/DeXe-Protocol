@@ -105,6 +105,7 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
 
     function addCollateral(uint256 amount, uint256 tokenId) external override {
         require(ownerOf(tokenId) == msg.sender, "ERC721Power: sender isn't an nft owner");
+        require(amount > 0, "ERC721Power: wrong collateral amount");
 
         IERC20(collateralToken).safeTransferFrom(
             msg.sender,
@@ -120,14 +121,17 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
 
     function removeCollateral(uint256 amount, uint256 tokenId) external override {
         require(ownerOf(tokenId) == msg.sender, "ERC721Power: sender isn't an nft owner");
+
+        NftInfo storage nftInfo = nftInfos[tokenId];
+
         require(
-            amount > 0 && amount <= nftInfos[tokenId].currentCollateral,
+            amount > 0 && amount <= nftInfo.currentCollateral,
             "ERC721Power: wrong collateral amount"
         );
 
         recalculateNftPower(tokenId);
 
-        nftInfos[tokenId].currentCollateral -= amount;
+        nftInfo.currentCollateral -= amount;
         totalCollateral -= amount;
 
         IERC20(collateralToken).safeTransfer(

@@ -4,6 +4,10 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20CappedUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
+import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
+import "@dlsl/dev-modules/libs/arrays/SetHelper.sol";
 
 import "../../interfaces/gov/ERC20/IERC20Sale.sol";
 
@@ -13,7 +17,13 @@ contract ERC20Sale is
     ERC20PausableUpgradeable,
     ERC20BurnableUpgradeable
 {
+    using EnumerableSet for EnumerableSet.AddressSet;
+    using Paginator for EnumerableSet.AddressSet;
+    using SetHelper for EnumerableSet.AddressSet;
+
     address public govAddress;
+
+    EnumerableSet.AddressSet internal _blacklistAccounts;
 
     modifier onlyGov() {
         _onlyGov();
@@ -63,11 +73,38 @@ contract ERC20Sale is
         _unpause();
     }
 
+    function blacklist(
+        address[] calldata accounts,
+        bool value
+    ) external override whenNotPaused onlyGov {
+        if (value) {
+            _blacklistAccounts.add(accounts);
+        } else {
+            _blacklistAccounts.remove(accounts);
+        }
+    }
+
+    function totalBlacklistAccounts() external view override returns (uint256) {
+        return _blacklistAccounts.length();
+    }
+
+    function getBlacklistAccounts(
+        uint256 offset,
+        uint256 limit
+    ) external view override returns (address[] memory) {
+        return _blacklistAccounts.part(offset, limit);
+    }
+
     function _beforeTokenTransfer(
         address from,
         address to,
         uint256 amount
     ) internal override(ERC20Upgradeable, ERC20PausableUpgradeable) {
+        require(
+            !_blacklistAccounts.contains(from) && !_blacklistAccounts.contains(to),
+            "ERC20Sale: account is blacklisted"
+        );
+
         super._beforeTokenTransfer(from, to, amount);
     }
 

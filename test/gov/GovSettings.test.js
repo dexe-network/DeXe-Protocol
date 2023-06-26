@@ -112,6 +112,20 @@ describe("GovSettings", () => {
   afterEach(reverter.revert);
 
   describe("incorrect settings", () => {
+    it("should revert when invalid length of additionalProposalExecutors and proposalSettings", async () => {
+      await truffleAssert.reverts(
+        settings.__GovSettings_init(
+          GOV_POOL_ADDRESS,
+          DP_ADDRESS,
+          VALIDATORS_ADDRESS,
+          USER_KEEPER_ADDRESS,
+          [DEFAULT_SETTINGS, INTERNAL_SETTINGS, DP_SETTINGS, VALIDATORS_BALANCES_SETTINGS],
+          [OWNER]
+        ),
+        "GovSettings: invalid proposal settings count"
+      );
+    });
+
     it("should revert when delegatedVotingAllowed is on for DP", async () => {
       await truffleAssert.reverts(
         settings.__GovSettings_init(
@@ -518,6 +532,13 @@ describe("GovSettings", () => {
         await truffleAssert.reverts(
           settings.editSettings([1, 10], [newSettings1, newSettings1]),
           "GovSettings: settings do not exist"
+        );
+      });
+
+      it("should revert if invalid distribution data", async () => {
+        await truffleAssert.reverts(
+          settings.editSettings([2], [DEFAULT_SETTINGS]),
+          "GovSettings: invalid distribution settings"
         );
       });
     });

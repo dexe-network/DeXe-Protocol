@@ -79,7 +79,7 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         uint256 lpAmount,
         ITraderPoolInvestProposal.ProposalLimits calldata proposalLimits,
         uint256[] calldata minPositionsOut
-    ) external override onlyTrader onlyBABTHolder {
+    ) external override nonReentrant onlyTrader onlyBABTHolder {
         uint256 baseAmount = _poolParameters.divestPositions(lpAmount, minPositionsOut);
 
         _traderPoolProposal.create(descriptionURL, proposalLimits, lpAmount, baseAmount);

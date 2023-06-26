@@ -53,7 +53,10 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         uint256 proposalId,
         ProposalLimits calldata proposalLimits
     ) external override onlyTraderAdmin onlyBABTHolder {
-        require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
+        require(
+            proposalId <= proposalsTotalNum && proposalId != 0,
+            "TPIP: proposal doesn't exist"
+        );
 
         _proposalInfos[proposalId].proposalLimits = proposalLimits;
 
@@ -98,7 +101,10 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         uint256 lpInvestment,
         uint256 baseInvestment
     ) external override onlyParentTraderPool {
-        require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
+        require(
+            proposalId <= proposalsTotalNum && proposalId != 0,
+            "TPIP: proposal doesn't exist"
+        );
 
         ProposalInfo storage info = _proposalInfos[proposalId];
 
@@ -125,7 +131,10 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         uint256 proposalId,
         address user
     ) external override onlyParentTraderPool returns (uint256 claimedBase) {
-        require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
+        require(
+            proposalId <= proposalsTotalNum && proposalId != 0,
+            "TPIP: proposal doesn't exist"
+        );
 
         (
             uint256 totalClaimed,
@@ -157,7 +166,10 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         uint256 proposalId,
         uint256 amount
     ) external override onlyTraderAdmin onlyBABTHolder {
-        require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
+        require(
+            proposalId <= proposalsTotalNum && proposalId != 0,
+            "TPIP: proposal doesn't exist"
+        );
         require(
             amount <= _proposalInfos[proposalId].newInvestedBase,
             "TPIP: withdrawing more than balance"
@@ -178,7 +190,10 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         uint256[] calldata amounts,
         address[] calldata addresses
     ) external override onlyTraderAdmin onlyBABTHolder {
-        require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
+        require(
+            proposalId <= proposalsTotalNum && proposalId != 0,
+            "TPIP: proposal doesn't exist"
+        );
         require(addresses.length == amounts.length, "TPIP: length mismatch");
 
         for (uint256 i = 0; i < addresses.length; i++) {
@@ -198,7 +213,10 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     function convertInvestedBaseToDividends(
         uint256 proposalId
     ) external override onlyTraderAdmin onlyBABTHolder {
-        require(proposalId <= proposalsTotalNum, "TPIP: proposal doesn't exist");
+        require(
+            proposalId <= proposalsTotalNum && proposalId != 0,
+            "TPIP: proposal doesn't exist"
+        );
 
         uint256 newInvestedBase = _proposalInfos[proposalId].newInvestedBase;
         address baseToken = _parentTraderPoolInfo.baseToken;

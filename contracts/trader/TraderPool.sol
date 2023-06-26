@@ -153,11 +153,12 @@ abstract contract TraderPool is
 
     function investInitial(
         uint256[] calldata amounts,
-        address[] calldata tokens
+        address[] calldata tokens,
+        uint256 minLPOut
     ) public virtual override onlyTraderAdmin onlyBABTHolder {
         require(_investors.length() == 0, "TP: only empty pool");
 
-        _poolParameters.investInitial(_positions, amounts, tokens);
+        _poolParameters.investInitial(_positions, amounts, tokens, minLPOut);
     }
 
     function reinvestCommission(

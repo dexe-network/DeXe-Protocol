@@ -71,7 +71,7 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         uint256[] calldata minDivestOut,
         uint256 minProposalOut,
         address[] calldata optionalPath
-    ) external override onlyTrader onlyBABTHolder {
+    ) external override nonReentrant onlyTrader onlyBABTHolder {
         uint256 baseAmount = _poolParameters.divestPositions(lpAmount, minDivestOut);
 
         _traderPoolProposal.create(
@@ -88,12 +88,16 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         _burn(msg.sender, lpAmount);
     }
 
-    function investInitial(uint256[] calldata amounts, address[] calldata tokens) public override {
+    function investInitial(
+        uint256[] calldata amounts,
+        address[] calldata tokens,
+        uint256 minLPOut
+    ) public override {
         for (uint256 i = 0; i < tokens.length; i++) {
             require(coreProperties.isWhitelistedToken(tokens[i]), "BP: not in whitelist");
         }
 
-        super.investInitial(amounts, tokens);
+        super.investInitial(amounts, tokens, minLPOut);
     }
 
     function investProposal(

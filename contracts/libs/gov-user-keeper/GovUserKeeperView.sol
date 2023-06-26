@@ -28,10 +28,13 @@ library GovUserKeeperView {
         GovUserKeeper userKeeper = GovUserKeeper(address(this));
         votingPowers = new IGovUserKeeper.VotingPowerView[](users.length);
 
+        bool tokenAddressExists = userKeeper.tokenAddress() != address(0);
+        bool nftAddressExists = userKeeper.nftAddress() != address(0);
+
         for (uint256 i = 0; i < users.length; i++) {
             IGovUserKeeper.VotingPowerView memory power = votingPowers[i];
 
-            if (userKeeper.tokenAddress() != address(0)) {
+            if (tokenAddressExists) {
                 (power.power, power.ownedBalance) = userKeeper.tokenBalance(
                     users[i],
                     isMicropools[i],
@@ -39,7 +42,7 @@ library GovUserKeeperView {
                 );
             }
 
-            if (userKeeper.nftAddress() != address(0)) {
+            if (nftAddressExists) {
                 (power.nftIds, power.ownedLength) = userKeeper.nftExactBalance(
                     users[i],
                     isMicropools[i],
