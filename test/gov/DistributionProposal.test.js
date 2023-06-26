@@ -449,6 +449,24 @@ describe("DistributionProposal", () => {
         );
       });
 
+      it("should not claim if not enough votes", async () => {
+        await govPool.createProposal(
+          "example.com",
+          "misc",
+          [
+            [token.address, 0, getBytesTransfer(dp.address, wei("100000"))],
+            [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
+          ],
+          [],
+          { from: SECOND }
+        );
+
+        await govPool.vote(1, 0, [2, 3, 4, 5], false, { from: SECOND });
+        await govPool.vote(1, 0, [1], true, { from: SECOND });
+
+        assert.equal(await dp.getPotentialReward(1, SECOND), 0);
+      });
+
       it("should not claim if not enough ether", async () => {
         await govPool.createProposal(
           "example.com",
