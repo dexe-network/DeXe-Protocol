@@ -1204,6 +1204,20 @@ describe("TraderPool", () => {
         await truffleAssert.reverts(divest(wei("500"), OWNER), "TP: can't divest");
       });
 
+      it("should not divest if minBaseOut check not passed", async () => {
+        await exchangeFromExact(tokens.WETH.address, tokens.MANA.address, wei("1000"));
+
+        const amount = wei("1000");
+
+        const divests = await traderPool.getDivestAmountsAndCommissions(OWNER, amount);
+        const wrongMinBaseOut = [divests.receptions.receivedAmounts[0] + 1];
+
+        await truffleAssert.reverts(
+          traderPool.divest(amount, wrongMinBaseOut, divests.commissions.dexeDexeCommission, { from: SECOND }),
+          "TP: slippage"
+        );
+      });
+
       it("should not invest and divest with profit", async () => {
         await exchangeFromExact(tokens.WETH.address, tokens.MANA.address, wei("1000"));
 
@@ -1217,6 +1231,8 @@ describe("TraderPool", () => {
 
         await invest(wei("1000"), SECOND);
 
+        const manaBalanceBeforeInvest = (await tokens.MANA.balanceOf(traderPool.address)).toFixed();
+
         await tokens.WETH.mint(THIRD, wei("1000"));
         await tokens.WETH.approve(traderPool.address, wei("1000"), { from: THIRD });
 
@@ -1225,6 +1241,7 @@ describe("TraderPool", () => {
 
         let balanceAfter = await tokens.WETH.balanceOf(THIRD);
 
+        assert.equal(manaBalanceBeforeInvest, (await tokens.MANA.balanceOf(traderPool.address)).toFixed());
         assert.isTrue(balanceAfter.lt(wei("1000")));
       });
 
