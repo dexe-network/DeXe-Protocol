@@ -2,7 +2,7 @@
 
 ###### Invest proposal creation methods
 
-**InvestProposal** can be created on `InvestTraderPool`. A proposal is a sub-pool of the main pool, which has its own **LP** tokens and shares of investors' funds. The trader can withdraw funds from this proposal and invest them off-chain. 
+**InvestProposal** can be created on `InvestTraderPool`. A proposal is a sub-pool of the main pool, which has its own **LP** tokens and shares of investors' funds. The trader can withdraw funds from this proposal and invest them off-chain.
 
 Function ***`createProposal()`*** on `InvestTraderPool` is used to create investment proposals.
 
@@ -12,8 +12,9 @@ function createProposal(
     uint256 lpAmount,
     ITraderPoolInvestProposal.ProposalLimits calldata proposalLimits,
     uint256[] calldata minPositionsOut
-) external;
+) external nonReentrant onlyTrader onlyBABTHolder;
 ```
+
 - ***descriptionURL***-  the IPFS URL of the description document
 - ***lpAmount*** - the amount of LP tokens the trader will invest right away
 - ***proposalLimits*** - the certain limits this proposal will have
@@ -25,10 +26,11 @@ The function ***`getDivestAmountsAndCommissions()`*** is used to find out the pr
 function getDivestAmountsAndCommissions(
     address user,
     uint256 amountLP
-) external returns (Receptions memory receptions, Commissions memory commissions);
+) external view returns (Receptions memory receptions, Commissions memory commissions);
 ```
+
 - ***user*** -  the address of the user who is going to invest in the proposal
 - ***amountLP*** - the amount of **LP** tokens the `user` is going to invest
 - **returns** **->**
-    - ***receptions*** - the tokens that the user will receive
-    - ***commissions*** - can be ignored
+  - ***receptions*** - the tokens that the user will receive
+  - ***commissions*** - can be ignored

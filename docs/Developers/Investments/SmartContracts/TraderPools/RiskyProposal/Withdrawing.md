@@ -12,8 +12,9 @@ function reinvestProposal(
     uint256 lp2Amount,
     uint256[] calldata minInvestsOut,
     uint256 minProposalOut
-) external;
+) external onlyBABTHolder;
 ```
+
 - ***proposalId*** - the id of the proposal to divest from
 - ***lp2Amount*** - the amount of proposal **LP** tokens to be divested
 - ***minInvestsOut*** - the minimal amounts of main pool positions tokens to be received
@@ -25,20 +26,22 @@ To get the closing price of a position function ***`getDivestAmounts()`*** on `T
 function getDivestAmounts(
     uint256[] calldata proposalIds,
     uint256[] calldata lp2s
-) external returns (Receptions memory receptions);
+) external view returns (Receptions memory receptions);
 ```
+
 - ***proposalIds*** - the ids of the proposals to divest from
 - ***lp2s*** - the amounts of proposals **LPs** to be divested
-- **returns** **->** 
-    - ***receptions*** - the information about the received tokens
+- **returns** **->**
+  - ***receptions*** - the information about the received tokens
 
 Function ***`getInvestTokens()`*** on `TraderPool` is used to get the amounts of positions tokens that will be given to the investor upon the proposal divest.
 
 ```solidity
 function getInvestTokens(
     uint256 amountInBaseToInvest
-) external returns (Receptions memory receptions);
+) external view returns (Receptions memory receptions);
 ```
+
 - ***amountInBaseToInvest*** - normalized amount of base tokens to be invested
-- **returns** **->** 
-    - ***receptions*** - the information about the received tokens
+- **returns** **->**
+  - ***receptions*** - the information about the received tokens

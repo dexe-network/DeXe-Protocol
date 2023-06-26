@@ -13,7 +13,7 @@ The function that returns the received commissions from the users when the `rein
 ```solidity
 function getReinvestCommissions(
     uint256[] calldata offsetLimits
-) external returns (Commissions memory commissions);
+) external view returns (Commissions memory commissions);
 ```
 - ***offsetLimits*** - the starting indexes and the lengths of the investors array
     - ***starting indexes*** **->** *even positions*
@@ -28,7 +28,7 @@ The function that takes the commission from the users' income. This function sho
 function reinvestCommission(
     uint256[] calldata offsetLimits,
     uint256 minDexeCommissionOut
-) external;
+) external virtual onlyTraderAdmin onlyBABTHolder;
 ```
 - ***offsetLimits*** - the array of starting indexes and the lengths of the investors array
 - ***minDexeCommissionOut*** - the minimal amount of **DEXE** tokens the platform will receive

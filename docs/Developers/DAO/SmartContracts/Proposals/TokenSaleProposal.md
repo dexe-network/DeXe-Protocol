@@ -9,7 +9,8 @@ Function ***`createTiers()`*** is used for tiers creation.
 ```solidity
 function createTiers(TierView[] calldata tiers) external onlyGov;
 ```
-- ***tiers*** - parameters of tiers 
+
+- ***tiers*** - parameters of tiers
 
 ```solidity
 struct TierView {
@@ -25,6 +26,7 @@ struct TierView {
     VestingSettings vestingSettings;
 }
 ```
+
 - ***metadata*** - metadata of the tier (see `TierMetadata`)
 - ***totalTokenProvided*** - total supply of tokens provided for the tier
 - ***saleStartTime*** - start time of token sales
@@ -42,6 +44,7 @@ struct TierMetadata {
     string description;
 }
 ```
+
 - ***name*** - the name of the tier
 - ***description*** - the description of the tier
 
@@ -53,6 +56,7 @@ struct VestingSettings {
     uint64 unlockStep;
 }
 ```
+
 - ***vestingPercentage*** - percentage of the purchased token amount that goes to vesting
 - ***vestingDuration*** - how long vesting lasts from the time of the token purchase
 - ***cliffPeriod*** - how long the user cannot make a vesting withdrawal from the time of the token purchase
@@ -65,20 +69,23 @@ Function ***buy()*** is used to purchase tokens in the given tier.
 ```solidity
 function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable;
 ```
+
 - ***tierId*** - id of tier where tokens will be purchased
 - ***tokenToBuyWith*** - another token that will be used (exchanged) to purchase token on the token sale
-- ***amount*** - amount of another token another to be used for this exchange. 
+- ***amount*** - amount of another token another to be used for this exchange.
 
 #
 
-Function ***`addToWhitelist()`*** is used to add users to the whitelist of tier. 
+Function ***`addToWhitelist()`*** is used to add users to the whitelist of tier.
 
 ❗ If no user added to whitelist, anyone can buy tokens. Otherwise, only users from whitelist can buy tokens.
 
 ```solidity
 function addToWhitelist(WhitelistingRequest[] calldata requests) external onlyGov;
 ```
-- ***requests*** - requests for adding users to the whitelist 
+
+- ***requests*** - requests for adding users to the whitelist
+
 ```solidity
 struct WhitelistingRequest {
     uint256 tierId;
@@ -86,17 +93,19 @@ struct WhitelistingRequest {
     string uri;
 }
 ```
+
 - ***tierId*** - the id of the tier
 - ***users*** -  list of the users to be whitelisted
 - ***uri*** - tokens metadata uri
 
 #
 
-Function ***`latestTierId()`*** is used to get id (index) of the latest tier of the token sale. 
+Function ***`latestTierId()`*** is used to get id (index) of the latest tier of the token sale.
 
 ```solidity
 function latestTierId() external view returns (uint256);
 ```
+
 - **returns** **->** the id of the latest tier
 
 #
@@ -106,15 +115,17 @@ Function ***`offTiers()`*** is used to set given tiers inactive.
 ```solidity
 function offTiers(uint256[] calldata tierIds) external onlyGov;
 ```
+
 - ***tierIds*** - tier ids to set inactive
 
-# 
+#
 
 Function ***`vestingWithdraw()`*** is used to withdraw tokens from given tiers.
 
 ```solidity
 function vestingWithdraw(uint256[] calldata tierIds) external;
 ```
+
 - ***tierIds*** - tier ids to make withdrawals from
 
 #
@@ -122,8 +133,9 @@ function vestingWithdraw(uint256[] calldata tierIds) external;
 Function ***`recover()`*** is used to return to the **DAO** treasury tokens that have not been purchased during sale.
 
 ```solidity
-function recover(uint256[] calldata tierIds) external;
+function recover(uint256[] calldata tierIds) external onlyGov; 
 ```
+
 - ***tierIds*** - tier ids to recover from
 
 #
@@ -136,8 +148,9 @@ function getSaleTokenAmount(
     uint256 tierId,
     address tokenToBuyWith,
     uint256 amount
-) external returns (uint256);
+) public view ifTierExists(tierId) ifTierIsNotOff(tierId) returns (uint256);
 ```
+
 - ***user*** - address of the user that purchases tokens
 - ***tierId*** - in which tier tokens are purchased
 - ***tokenToBuyWith*** - the token which is used for exchange
@@ -146,16 +159,17 @@ function getSaleTokenAmount(
 
 #
 
-Function ***`getVestingWithdrawAmounts()`*** is used to get information about the amount of tokens that user can withdraw (that are unlocked) from given tiers. 
+Function ***`getVestingWithdrawAmounts()`*** is used to get information about the amount of tokens that user can withdraw (that are unlocked) from given tiers.
 
 ```solidity
 function getVestingWithdrawAmounts(
     address user,
     uint256[] calldata tierIds
-) external returns (uint256[] memory vestingWithdrawAmounts);
+) public view returns (uint256[] memory vestingWithdrawAmounts);
 ```
+
 - ***user*** - the address of the user
-- ***tierIds*** - the array of tier ids 
+- ***tierIds*** - the array of tier ids
 - **returns** **->** array of token amounts that can be withdrawn from each tier
 
 #
@@ -165,9 +179,10 @@ Function ***`getRecoverAmounts()`*** is used to get amount of tokens that have n
 ```solidity
 function getRecoverAmounts(
     uint256[] calldata tierIds
-) external returns (uint256[] memory recoveringAmounts);
+) public view returns (uint256[] memory recoveringAmounts);
 ```
-- ***tierIds*** - the array of tier ids 
+
+- ***tierIds*** - the array of tier ids
 - **returns** **->** array of token amounts that can be returned to **DAO** treasury in each tier
 
 #
@@ -178,9 +193,9 @@ Function ***`getTiers()`*** is used to get a list of tiers.
 function getTiers(
     uint256 offset,
     uint256 limit
-) external 
-  returns (TierView[] memory tierViews, TierInfoView[] memory tierInfoViews);
+) external view returns (TierView[] memory tierViews, TierInfoView[] memory tierInfoViews);
 ```
+
 - ***offset*** - offset of the list
 - ***limit*** - limit for amount of elements in the list
 - **returns** **->** list of initial tier parameters

@@ -17,7 +17,7 @@ To get ***minPositionsOut*** and  ***minDexeCommissionsOut***  parameters functi
 function getDivestAmountsAndCommissions(
     address user,
     uint256 amountLP
-) external returns (Receptions memory receptions, Commissions memory commissions);
+) external view returns (Receptions memory receptions, Commissions memory commissions);
 ```
 - ***user*** - address of the user who is withdrawing tokens
 - ***amountLP*** - the amount of LP tokens requested for withdrawal
