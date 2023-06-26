@@ -178,7 +178,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         InternalProposal storage proposal = _internalProposals[proposalId];
 
         require(
-            _getProposalState(proposal.core) == ProposalState.SucceededFor,
+            _getProposalState(proposal.core) == ProposalState.Succeeded,
             "Validators: not Succeeded state"
         );
 
@@ -266,9 +266,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         if (_isQuorumReached(core)) {
             return
-                _votesForMoreThanAgainst(core)
-                    ? ProposalState.SucceededFor
-                    : ProposalState.Defeated;
+                _votesForMoreThanAgainst(core) ? ProposalState.Succeeded : ProposalState.Defeated;
         }
 
         if (core.voteEnd < block.timestamp) {

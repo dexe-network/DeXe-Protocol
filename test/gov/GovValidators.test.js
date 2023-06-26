@@ -499,7 +499,7 @@ describe("GovValidators", () => {
         assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Voting);
 
         await validators.vote(1, wei("1"), true, true, { from: THIRD });
-        assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.SucceededFor);
+        assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Succeeded);
       });
 
       it("should correctly return `Defeated`", async () => {
@@ -576,7 +576,7 @@ describe("GovValidators", () => {
         await validators.createInternalProposal(3, "example.com", [wei("200")], [SECOND], { from: SECOND });
         await validators.vote(1, wei("200"), true, true, { from: THIRD });
 
-        assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.SucceededFor);
+        assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Succeeded);
 
         await validators.execute(1);
 

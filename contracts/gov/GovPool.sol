@@ -385,8 +385,11 @@ contract GovPool is
 
         if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
             if (_quorumReached(core)) {
-                if (!_votesForMoreThanAgainst(core)) {
-                    return _proposalStateBasedOnActionOnAgainstExists(proposalId);
+                if (
+                    !_votesForMoreThanAgainst(core) &&
+                    _proposals[proposalId].actionsOnAgainst.length == 0
+                ) {
+                    return ProposalState.Defeated;
                 }
 
                 if (core.settings.validatorsVote) {
@@ -400,15 +403,11 @@ contract GovPool is
                             return ProposalState.WaitingForVotingTransfer;
                         }
 
-                        return _proposalStateBasedOnActionOnAgainstExists(proposalId);
+                        return _proposalStateBasedOnVoteResults(core);
                     }
 
-                    if (status == IGovValidators.ProposalState.SucceededFor) {
-                        return ProposalState.SucceededFor;
-                    }
-
-                    if (status == IGovValidators.ProposalState.SucceededAgainst) {
-                        return ProposalState.SucceededAgainst;
+                    if (status == IGovValidators.ProposalState.Succeeded) {
+                        return _proposalStateBasedOnVoteResults(core);
                     }
 
                     if (status == IGovValidators.ProposalState.Defeated) {
@@ -418,7 +417,7 @@ contract GovPool is
                     return ProposalState.ValidatorVoting;
                 }
 
-                return ProposalState.SucceededFor;
+                return _proposalStateBasedOnVoteResults(core);
             }
 
             if (voteEnd < block.timestamp) {
@@ -570,13 +569,13 @@ contract GovPool is
         return _proposals[proposalId].actionsOnAgainst.length != 0;
     }
 
-    function _proposalStateBasedOnActionOnAgainstExists(
-        uint256 proposalId
+    function _proposalStateBasedOnVoteResults(
+        ProposalCore storage core
     ) internal view returns (ProposalState) {
         return
-            _actionsOnAgainstExists(proposalId)
-                ? ProposalState.SucceededAgainst
-                : ProposalState.Defeated;
+            _votesForMoreThanAgainst(core)
+                ? ProposalState.SucceededFor
+                : ProposalState.SucceededAgainst;
     }
 
     function _onlyThis() internal view {

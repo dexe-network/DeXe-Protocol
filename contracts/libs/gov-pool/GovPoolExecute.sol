@@ -46,8 +46,7 @@ library GovPoolExecute {
         IGovValidators govValidators = IGovValidators(govValidatorsAddress);
 
         IGovValidators.ProposalState state = govValidators.getProposalState(proposalId, false);
-        bool validatorsVotingSucceeded = state == IGovValidators.ProposalState.SucceededFor ||
-            state == IGovValidators.ProposalState.SucceededAgainst;
+        bool validatorsVotingSucceeded = state == IGovValidators.ProposalState.Succeeded;
 
         if (validatorsVotingSucceeded) {
             govValidators.executeExternalProposal(proposalId);

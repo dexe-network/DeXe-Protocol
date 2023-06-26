@@ -8,8 +8,7 @@ interface IGovValidators {
     enum ProposalState {
         Voting,
         Defeated,
-        SucceededFor,
-        SucceededAgainst,
+        Succeeded,
         Executed,
         Undefined
     }

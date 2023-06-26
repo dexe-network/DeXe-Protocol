@@ -32,8 +32,7 @@ const ProposalState = {
 const ValidatorsProposalState = {
   Voting: 0,
   Defeated: 1,
-  SucceededFor: 2,
-  SucceededAgainst: 3,
+  Succeeded: 2,
   Executed: 4,
   Undefined: 5,
 };
