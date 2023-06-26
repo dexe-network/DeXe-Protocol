@@ -267,7 +267,7 @@ library TraderPoolView {
             for (uint256 i = 0; i < openPositions.length; i++) {
                 receptions.positions[i] = openPositions[i];
 
-                uint currentPositionNormBalance = ERC20(receptions.positions[i])
+                uint256 currentPositionNormBalance = ERC20(receptions.positions[i])
                     .balanceOf(address(this))
                     .to18(ERC20(receptions.positions[i]).decimals());
 

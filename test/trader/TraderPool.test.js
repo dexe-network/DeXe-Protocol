@@ -1214,23 +1214,18 @@ describe("TraderPool", () => {
 
         await tokens.WETH.mint(SECOND, wei("1000"));
         await tokens.WETH.approve(traderPool.address, wei("1000"), { from: SECOND });
+
         await invest(wei("1000"), SECOND);
 
         await tokens.WETH.mint(THIRD, wei("1000"));
-        console.log("LPToken before invest:", (await traderPool.balanceOf(THIRD)).toString());
-        console.log("WETH before invest:", (await tokens.WETH.balanceOf(THIRD)).toString());
         await tokens.WETH.approve(traderPool.address, wei("1000"), { from: THIRD });
+
         await invest(wei("1000"), THIRD);
-
-        console.log("LPToken after invest before divest:", (await traderPool.balanceOf(THIRD)).toString());
-        console.log("WETH after invest before divest:", (await tokens.WETH.balanceOf(THIRD)).toString());
-
         await divest(wei("750"), THIRD);
-        let balanceAfter = await tokens.WETH.balanceOf(THIRD);
-        console.log("LPToken after divest:", (await traderPool.balanceOf(THIRD)).toString());
-        console.log("WETH after divest:", balanceAfter.toString());
 
-        assert.equal(balanceAfter.lt(wei("1000")), true);
+        let balanceAfter = await tokens.WETH.balanceOf(THIRD);
+
+        assert.isTrue(balanceAfter.lt(wei("1000")));
       });
 
       it("should divest investor with commission", async () => {

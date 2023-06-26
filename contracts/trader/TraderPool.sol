@@ -174,10 +174,10 @@ abstract contract TraderPool is
 
     function divest(
         uint256 amountLP,
-        uint256[] calldata minPositionsOut,
+        uint256[] calldata minBaseOut,
         uint256 minDexeCommissionOut
     ) public virtual override onlyBABTHolder {
-        _poolParameters.divest(amountLP, minPositionsOut, minDexeCommissionOut);
+        _poolParameters.divest(amountLP, minBaseOut, minDexeCommissionOut);
     }
 
     function exchange(

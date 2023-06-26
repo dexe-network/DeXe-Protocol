@@ -33,7 +33,7 @@ library TraderPoolDivest {
     function divest(
         ITraderPool.PoolParameters storage poolParameters,
         uint256 amountLP,
-        uint256[] calldata minPositionsOut,
+        uint256[] calldata minBaseOut,
         uint256 minDexeCommissionOut
     ) external {
         TraderPool traderPool = TraderPool(address(this));
@@ -44,14 +44,14 @@ library TraderPoolDivest {
         if (senderTrader) {
             _divestTrader(poolParameters, amountLP);
         } else {
-            _divestInvestor(poolParameters, amountLP, minPositionsOut, minDexeCommissionOut);
+            _divestInvestor(poolParameters, amountLP, minBaseOut, minDexeCommissionOut);
         }
     }
 
     function divestPositions(
         ITraderPool.PoolParameters storage poolParameters,
         uint256 amountLP,
-        uint256[] calldata minPositionsOut
+        uint256[] calldata minBaseOut
     ) public returns (uint256 investorBaseAmount) {
         _checkUserBalance(amountLP);
 
@@ -59,8 +59,7 @@ library TraderPoolDivest {
         address baseToken = poolParameters.baseToken;
         uint256 totalSupply = traderPool.totalSupply();
 
-        investorBaseAmount = baseToken.normThisBalance();
-        investorBaseAmount = investorBaseAmount.ratio(amountLP, totalSupply);
+        investorBaseAmount = baseToken.normThisBalance().ratio(amountLP, totalSupply);
 
         (
             ,
@@ -71,9 +70,12 @@ library TraderPoolDivest {
 
         for (uint256 i = 0; i < positionTokens.length; i++) {
             uint256 amountBase = positionPricesInBase[i].ratio(amountLP, totalSupply);
-            require(amountBase >= minPositionsOut[i], "TP: slippage");
-            uint256 currentPositionBalance = positionTokens[i].normThisBalance();
-            currentPositionBalance = currentPositionBalance.ratio(amountLP, totalSupply);
+            require(amountBase >= minBaseOut[i], "TP: slippage");
+
+            uint256 currentPositionBalance = positionTokens[i].normThisBalance().ratio(
+                amountLP,
+                totalSupply
+            );
             uint256 amountPaid = TraderPool(address(this)).priceFeed().normalizedExchangeToExact(
                 positionTokens[i],
                 baseToken,
@@ -91,12 +93,12 @@ library TraderPoolDivest {
     function _divestInvestor(
         ITraderPool.PoolParameters storage poolParameters,
         uint256 amountLP,
-        uint256[] calldata minPositionsOut,
+        uint256[] calldata minBaseOut,
         uint256 minDexeCommissionOut
     ) internal {
         TraderPool traderPool = TraderPool(address(this));
 
-        uint256 investorBaseAmount = divestPositions(poolParameters, amountLP, minPositionsOut);
+        uint256 investorBaseAmount = divestPositions(poolParameters, amountLP, minBaseOut);
         (uint256 baseCommission, uint256 lpCommission) = poolParameters
             .calculateCommissionOnDivest(msg.sender, investorBaseAmount, amountLP);
         uint256 receivedBase = investorBaseAmount - baseCommission;

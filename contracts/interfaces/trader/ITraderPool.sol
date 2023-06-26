@@ -217,11 +217,11 @@ interface ITraderPool {
     /// @notice The function to divest from the pool. The "getDivestAmountsAndCommissions()" function should be called
     /// to receive minPositionsOut and minDexeCommissionOut parameters
     /// @param amountLP the amount of LP tokens to divest
-    /// @param minPositionsOut the amount of positions tokens to be converted into the base tokens and given to the user
+    /// @param minBaseOut the amount of base tokens to be received from the positions swaps
     /// @param minDexeCommissionOut the DEXE commission in DEXE tokens
     function divest(
         uint256 amountLP,
-        uint256[] calldata minPositionsOut,
+        uint256[] calldata minBaseOut,
         uint256 minDexeCommissionOut
     ) external;
 

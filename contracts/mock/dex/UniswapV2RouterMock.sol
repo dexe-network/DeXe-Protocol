@@ -7,16 +7,14 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract UniswapV2RouterMock {
     using SafeERC20 for IERC20;
 
-    bool internal nonLinear;
+    bool internal _nonLinear;
 
     mapping(address => uint256) public reserves;
-
     mapping(address => mapping(address => uint256)) public bonuses;
-
     mapping(address => mapping(address => address)) public pairs;
 
     function switchToNonLinear() external {
-        nonLinear = true;
+        _nonLinear = true;
     }
 
     function enablePair(address tokenA, address tokenB) external {
@@ -140,7 +138,7 @@ contract UniswapV2RouterMock {
         require(amountOut > 0, "UniswapV2Library: INSUFFICIENT_OUTPUT_AMOUNT");
         require(reserveIn > 0 && reserveOut > 0, "UniswapV2Library: INSUFFICIENT_LIQUIDITY");
 
-        if (nonLinear) {
+        if (_nonLinear) {
             amountIn = (amountOut * reserveIn) / (reserveOut - amountOut);
         } else {
             amountIn = (amountOut * reserveIn) / reserveOut;
@@ -156,7 +154,7 @@ contract UniswapV2RouterMock {
         require(amountIn > 0, "UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT");
         require(reserveIn > 0 && reserveOut > 0, "UniswapV2Library: INSUFFICIENT_LIQUIDITY");
 
-        if (nonLinear) {
+        if (_nonLinear) {
             amountOut = (amountIn * reserveOut) / (reserveIn + amountIn);
         } else {
             amountOut = (amountIn * reserveOut) / reserveIn;
