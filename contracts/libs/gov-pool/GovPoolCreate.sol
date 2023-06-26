@@ -119,7 +119,8 @@ library GovPoolCreate {
             forceDefaultSettings =
                 _handleDataForProposal(settingsId, govSettings, actionsAgainst) ||
                 forceDefaultSettings ||
-                mainExecutor != actionsAgainst[actionsAgainst.length - 1].executor;
+                settingsId !=
+                govSettings.executorToSettings(actionsAgainst[actionsAgainst.length - 1].executor);
         }
 
         if (forceDefaultSettings) {
