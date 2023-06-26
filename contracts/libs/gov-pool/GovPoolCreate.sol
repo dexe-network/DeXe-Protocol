@@ -111,16 +111,14 @@ library GovPoolCreate {
         address mainExecutor = actionsFor[actionsFor.length - 1].executor;
         settingsId = IGovSettings(govSettings).executorToSettings(mainExecutor);
 
-        bool forceDefaultSettings = _handleDataForProposal(settingsId, govSettings, actionsFor);
+        bool forceDefaultSettings = _handleDataForProposal(settingsId, govSettings, actionsFor) ||
+            _handleDataForProposal(settingsId, govSettings, actionsAgainst);
 
         if (actionsAgainst.length != 0) {
-            if (mainExecutor != actionsAgainst[actionsAgainst.length - 1].executor) {
-                forceDefaultSettings = true;
-            } else {
-                forceDefaultSettings =
-                    forceDefaultSettings ||
-                    _handleDataForProposal(settingsId, govSettings, actionsAgainst);
-            }
+            forceDefaultSettings =
+                _handleDataForProposal(settingsId, govSettings, actionsAgainst) ||
+                forceDefaultSettings ||
+                mainExecutor != actionsAgainst[actionsAgainst.length - 1].executor;
         }
 
         if (forceDefaultSettings) {
