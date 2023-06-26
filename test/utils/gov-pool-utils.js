@@ -610,7 +610,7 @@ const getBytesGovClaimRewards = (proposalIds) => {
   );
 };
 
-const getBytesGovVote = (proposalId, voteAmount, voteNftIds) => {
+const getBytesGovVote = (proposalId, voteAmount, voteNftIds, isVoteFor = true) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       inputs: [
@@ -628,6 +628,11 @@ const getBytesGovVote = (proposalId, voteAmount, voteNftIds) => {
           internalType: "uint256[]",
           name: "voteNftIds",
           type: "uint256[]",
+        },
+        {
+          internalType: "bool",
+          name: "isVoteFor",
+          type: "bool",
         },
       ],
       name: "vote",
@@ -635,11 +640,11 @@ const getBytesGovVote = (proposalId, voteAmount, voteNftIds) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [proposalId, voteAmount, voteNftIds]
+    [proposalId, voteAmount, voteNftIds, isVoteFor]
   );
 };
 
-const getBytesGovVoteDelegated = (proposalId, voteAmount, voteNftIds) => {
+const getBytesGovVoteDelegated = (proposalId, voteAmount, voteNftIds, isVoteFor = true) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       inputs: [
@@ -658,13 +663,18 @@ const getBytesGovVoteDelegated = (proposalId, voteAmount, voteNftIds) => {
           name: "voteNftIds",
           type: "uint256[]",
         },
+        {
+          internalType: "bool",
+          name: "isVoteFor",
+          type: "bool",
+        },
       ],
       name: "voteDelegated",
       outputs: [],
       stateMutability: "nonpayable",
       type: "function",
     },
-    [proposalId, voteAmount, voteNftIds]
+    [proposalId, voteAmount, voteNftIds, isVoteFor]
   );
 };
 

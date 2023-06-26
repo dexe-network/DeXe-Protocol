@@ -36,7 +36,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     );
     event InternalProposalExecuted(uint256 proposalId, address executor);
 
-    event Voted(uint256 proposalId, address sender, uint256 vote, bool isInternal);
+    event Voted(uint256 proposalId, address sender, uint256 vote, bool isInternal, bool isVoteFor);
     event ChangedValidatorsBalances(address[] validators, uint256[] newBalance);
 
     /// @dev Access only for addresses that have validator tokens
@@ -97,6 +97,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
                 executed: false,
                 quorum: internalProposalSettings.quorum,
                 votesFor: 0,
+                votesAgainst: 0,
                 snapshotId: uint56(govValidatorsToken.snapshot())
             }),
             descriptionURL: descriptionURL,
@@ -125,6 +126,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
                 executed: false,
                 quorum: quorum,
                 votesFor: 0,
+                votesAgainst: 0,
                 snapshotId: uint56(govValidatorsToken.snapshot())
             })
         });
@@ -139,7 +141,12 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         _changeBalances(newValues, userAddresses);
     }
 
-    function vote(uint256 proposalId, uint256 amount, bool isInternal) external override {
+    function vote(
+        uint256 proposalId,
+        uint256 amount,
+        bool isInternal,
+        bool isVoteFor
+    ) external override {
         require(_proposalExists(proposalId, isInternal), "Validators: proposal does not exist");
 
         ProposalCore storage core = isInternal
@@ -156,9 +163,13 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         addressVoted[proposalId][isInternal][msg.sender] += amount;
 
-        core.votesFor += amount;
+        if (isVoteFor) {
+            core.votesFor += amount;
+        } else {
+            core.votesAgainst += amount;
+        }
 
-        emit Voted(proposalId, msg.sender, amount, isInternal);
+        emit Voted(proposalId, msg.sender, amount, isInternal, isVoteFor);
     }
 
     function execute(uint256 proposalId) external override {
@@ -167,7 +178,8 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         InternalProposal storage proposal = _internalProposals[proposalId];
 
         require(
-            _getProposalState(proposal.core) == ProposalState.Succeeded,
+            _getProposalState(proposal.core) == ProposalState.SucceededFor ||
+                _getProposalState(proposal.core) == ProposalState.SucceededAgainst,
             "Validators: not Succeeded state"
         );
 
@@ -256,7 +268,10 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         }
 
         if (_isQuorumReached(core)) {
-            return ProposalState.Succeeded;
+            return
+                _votesForMoreThanAgainst(core)
+                    ? ProposalState.SucceededFor
+                    : ProposalState.SucceededAgainst;
         }
 
         if (core.voteEnd < block.timestamp) {
@@ -268,7 +283,10 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
     function _isQuorumReached(ProposalCore storage core) internal view returns (bool) {
         uint256 totalSupply = govValidatorsToken.totalSupplyAt(core.snapshotId);
-        uint256 currentQuorum = PERCENTAGE_100.ratio(core.votesFor, totalSupply);
+        uint256 currentQuorum = PERCENTAGE_100.ratio(
+            core.votesFor + core.votesAgainst,
+            totalSupply
+        );
 
         return currentQuorum >= core.quorum;
     }
@@ -309,6 +327,10 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         validatorsCount = validatorsCount_;
 
         emit ChangedValidatorsBalances(userAddresses, newValues);
+    }
+
+    function _votesForMoreThanAgainst(ProposalCore storage core) internal view returns (bool) {
+        return core.votesFor > core.votesAgainst;
     }
 
     function _onlyValidator() internal view {

@@ -23,17 +23,19 @@ const ProposalState = {
   WaitingForVotingTransfer: 1,
   ValidatorVoting: 2,
   Defeated: 3,
-  Succeeded: 4,
-  Executed: 5,
-  Undefined: 6,
+  SucceededFor: 4,
+  SucceededAgainst: 5,
+  Executed: 6,
+  Undefined: 7,
 };
 
 const ValidatorsProposalState = {
   Voting: 0,
   Defeated: 1,
-  Succeeded: 2,
-  Executed: 3,
-  Undefined: 4,
+  SucceededFor: 2,
+  SucceededAgainst: 3,
+  Executed: 4,
+  Undefined: 5,
 };
 
 const DEFAULT_CORE_PROPERTIES = {
