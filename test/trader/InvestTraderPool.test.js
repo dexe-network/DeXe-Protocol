@@ -112,6 +112,7 @@ describe("InvestTraderPool", () => {
     const traderPoolLeverageLib = await TraderPoolLeverageLib.new();
 
     await TraderPoolDivestLib.link(traderPoolCommissionLib);
+    await TraderPoolDivestLib.link(traderPoolPriceLib);
 
     await TraderPoolInvestLib.link(traderPoolPriceLib);
     await TraderPoolInvestLib.link(traderPoolLeverageLib);

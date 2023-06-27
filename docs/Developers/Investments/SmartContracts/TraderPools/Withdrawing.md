@@ -8,10 +8,10 @@ Function ***`divest()`*** is responsible for withdrawing funds from the pool. Du
 
 The platform takes the commission in **DEXE** tokens, so data about **DEXE** price has to be provided. 
 - ***amountLP*** - withdrawal amount of TraderPool LP tokens 
-- ***minPositionsOut*** - minimal active portfolio positions that will be withdrawn
+- ***minBaseOut*** - minimal active portfolio base tokens that will be received
 - ***minDexeCommissionsOut*** - minimal commission of **DeXe** platform
 
-To get ***minPositionsOut*** and  ***minDexeCommissionsOut***  parameters function ***`getDivestAmountsAndCommissions()`*** is used:
+To get ***minBaseOut*** and  ***minDexeCommissionsOut***  parameters function ***`getDivestAmountsAndCommissions()`*** is used:
 
 ```solidity
 function getDivestAmountsAndCommissions(
