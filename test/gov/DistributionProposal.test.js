@@ -467,6 +467,27 @@ describe("DistributionProposal", () => {
         assert.equal(await dp.getPotentialReward(1, SECOND), 0);
       });
 
+      it("should correctly calculate reward", async () => {
+        await govPool.createProposal(
+          "example.com",
+          "misc",
+          [[dp.address, wei("1"), getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))]],
+          [],
+          { from: SECOND }
+        );
+
+        await govPool.vote(1, 0, [1, 2, 3, 4], true, { from: SECOND });
+        await govPool.vote(1, 0, [5], false, { from: SECOND });
+        await govPool.vote(1, 0, [6, 7, 8], true, { from: THIRD });
+        await govPool.vote(1, 0, [9], false, { from: THIRD });
+
+        await setTime(startTime + 10000);
+        await govPool.execute(1);
+
+        assert.equal(await dp.getPotentialReward(1, SECOND), "333333333333333333");
+        assert.equal(await dp.getPotentialReward(1, THIRD), "222222222222222222");
+      });
+
       it("should not claim if not enough ether", async () => {
         await govPool.createProposal(
           "example.com",
