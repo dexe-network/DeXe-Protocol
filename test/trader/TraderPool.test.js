@@ -1262,13 +1262,15 @@ describe("TraderPool", () => {
         await tokens.WETH.mint(THIRD, wei("1000"));
         await tokens.WETH.approve(traderPool.address, wei("1000"), { from: THIRD });
 
+        let balanceBefore = await tokens.WETH.balanceOf(THIRD);
+
         await invest(wei("1000"), THIRD);
-        await divest(wei("750"), THIRD);
+        await divest(await traderPool.balanceOf(THIRD), THIRD);
 
         let balanceAfter = await tokens.WETH.balanceOf(THIRD);
 
         assert.equal(manaBalanceBeforeInvest, (await tokens.MANA.balanceOf(traderPool.address)).toFixed());
-        assert.isTrue(balanceAfter.lt(wei("1000")));
+        assert.isTrue(balanceAfter.lt(balanceBefore));
       });
 
       it("should divest investor with commission", async () => {

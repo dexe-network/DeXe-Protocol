@@ -1211,6 +1211,40 @@ describe("BasicTraderPool", () => {
         );
       });
 
+      it.only("should not get profit from invest and then divest from proposal", async () => {
+        await exchangeToExact(tokens.WETH.address, tokens.MANA.address, wei("500"));
+
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(
+          "description",
+          tokens.WBTC.address,
+          wei("500"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          PRECISION.times(50)
+        );
+
+        await uniswapV2Router.switchToNonLinear();
+
+        await invest(wei("500"), SECOND);
+        await investProposal(1, wei("100"), SECOND);
+
+        await tokens.WETH.mint(THIRD, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"), { from: THIRD });
+        await invest(wei("500"), THIRD);
+
+        const balanceBefore = await traderPool.balanceOf(THIRD);
+        console.log(balanceBefore.toFixed());
+
+        await investProposal(1, wei("100"), THIRD);
+        const balance = await proposalPool.balanceOf(THIRD, 1);
+        await reinvestProposal(1, balance, THIRD);
+
+        const balanceAfter = await traderPool.balanceOf(THIRD);
+        console.log(balanceAfter.toFixed());
+
+        assert.isTrue(balanceAfter.lt(balanceBefore));
+      });
+
       it("should divest sequentially from all proposals", async () => {
         await exchangeFromExact(tokens.WETH.address, tokens.MANA.address, wei("500"));
 
