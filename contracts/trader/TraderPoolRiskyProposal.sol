@@ -441,15 +441,23 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 supply = totalSupply(proposalId);
 
         uint256 baseShare = receivedBase = info.balanceBase.ratio(lp2, supply);
-        uint256 positionShare = info.balancePosition.ratio(lp2, supply);
+        uint256 positionMax = info.balancePosition.ratio(lp2, supply);
 
-        if (positionShare > 0) {
-            uint256 amountGot = priceFeed.normExchangeFromExact(
+        if (positionMax > 0) {
+            uint256 amountGot = priceFeed.getNormPriceOut(
                 info.token,
                 _parentTraderPoolInfo.baseToken,
-                positionShare,
+                info.balancePosition
+            );
+            amountGot = amountGot.ratio(lp2, supply);
+            require(amountGot >= minPositionOut, "TPRP: slippage");
+
+            uint256 positionShare = priceFeed.normExchangeToExact(
+                info.token,
+                _parentTraderPoolInfo.baseToken,
+                amountGot,
                 new address[](0),
-                minPositionOut
+                positionMax
             );
 
             info.balancePosition -= positionShare;
