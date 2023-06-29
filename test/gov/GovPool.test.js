@@ -772,10 +772,13 @@ describe("GovPool", () => {
           await govPool.vote(2, wei("50"), [], false);
 
           let proposal = await getProposalByIndex(1);
+
           assert.equal(proposal.descriptionURL, "example.com");
           assert.equal(proposal.core.votesFor, wei("70"));
           assert.equal(proposal.core.votesAgainst, wei("30"));
+
           proposal = await getProposalByIndex(2);
+
           assert.equal(proposal.core.votesFor, "0");
           assert.equal(proposal.core.votesAgainst, wei("50"));
 
@@ -826,9 +829,12 @@ describe("GovPool", () => {
           await govPool.voteDelegated(2, wei("50"), [], true, { from: THIRD });
 
           let proposal = await getProposalByIndex(1);
+
           assert.equal(proposal.core.votesFor, wei("70"));
           assert.equal(proposal.core.votesAgainst, wei("30"));
+
           proposal = await getProposalByIndex(2);
+
           assert.equal(proposal.core.votesFor, wei("50"));
           assert.equal(proposal.core.votesAgainst, "0");
 
@@ -938,9 +944,12 @@ describe("GovPool", () => {
             await govPool.vote(2, 0, [3], false);
 
             let proposal = await getProposalByIndex(1);
+
             assert.equal(proposal.core.votesFor, SINGLE_NFT_COST.toFixed());
             assert.equal(proposal.core.votesAgainst, "0");
+
             proposal = await getProposalByIndex(2);
+
             assert.equal(proposal.core.votesFor, SINGLE_NFT_COST.toFixed());
             assert.equal(proposal.core.votesAgainst, SINGLE_NFT_COST.toFixed());
 
@@ -969,6 +978,7 @@ describe("GovPool", () => {
             assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.toFixed());
 
             await govPool.vote(1, 0, [2, 3], true);
+
             assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.times(3).plus(1).toFixed());
           });
 

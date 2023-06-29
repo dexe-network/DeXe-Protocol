@@ -286,6 +286,7 @@ describe("GovValidators", () => {
         assert.equal(await validators.addressVoted(1, true, THIRD), wei("0"));
 
         let core = (await getInternalProposalByIndex(1)).proposal.core;
+
         assert.equal(core.votesFor, wei("40"));
         assert.equal(core.votesAgainst, "0");
 
@@ -293,7 +294,9 @@ describe("GovValidators", () => {
 
         assert.equal(await validators.addressVoted(1, true, SECOND), wei("40"));
         assert.equal(await validators.addressVoted(1, true, THIRD), wei("50"));
+
         core = (await getInternalProposalByIndex(1)).proposal.core;
+
         assert.equal(core.votesFor, wei("90"));
         assert.equal(core.votesAgainst, "0");
 
@@ -301,7 +304,9 @@ describe("GovValidators", () => {
 
         assert.equal(await validators.addressVoted(1, true, SECOND), wei("100"));
         assert.equal(await validators.addressVoted(1, true, THIRD), wei("50"));
+
         core = (await getInternalProposalByIndex(1)).proposal.core;
+
         assert.equal(core.votesFor, wei("90"));
         assert.equal(core.votesAgainst, wei("60"));
       });
@@ -313,7 +318,9 @@ describe("GovValidators", () => {
 
         assert.equal(await validators.addressVoted(1, true, SECOND), wei("100"));
         assert.equal(await validators.addressVoted(1, true, THIRD), wei("0"));
+
         let core = (await getInternalProposalByIndex(1)).proposal.core;
+
         assert.equal(core.votesFor, wei("100"));
         assert.equal(core.votesAgainst, "0");
 
@@ -321,7 +328,9 @@ describe("GovValidators", () => {
 
         assert.equal(await validators.addressVoted(1, true, SECOND), wei("100"));
         assert.equal(await validators.addressVoted(1, true, THIRD), wei("200"));
+
         core = (await getInternalProposalByIndex(1)).proposal.core;
+
         assert.equal(core.votesFor, wei("100"));
         assert.equal(core.votesAgainst, wei("200"));
       });
@@ -344,7 +353,9 @@ describe("GovValidators", () => {
 
         assert.equal(await validators.addressVoted(1, true, SECOND), wei("100"));
         assert.equal(await validators.addressVoted(1, true, THIRD), wei("200"));
+
         let core = (await getInternalProposalByIndex(1)).proposal.core;
+
         assert.equal(core.votesFor, wei("100"));
         assert.equal(core.votesAgainst, wei("200"));
 
@@ -355,7 +366,9 @@ describe("GovValidators", () => {
 
         assert.equal(await validators.addressVoted(3, true, SECOND), wei("40"));
         assert.equal(await validators.addressVoted(3, true, THIRD), wei("60"));
+
         core = (await getInternalProposalByIndex(3)).proposal.core;
+
         assert.equal(core.votesFor, wei("60"));
         assert.equal(core.votesAgainst, wei("40"));
       });
@@ -367,7 +380,9 @@ describe("GovValidators", () => {
 
         assert.equal(await validators.addressVoted(2, false, SECOND), wei("40"));
         assert.equal(await validators.addressVoted(2, false, THIRD), wei("0"));
+
         let core = (await validators.getExternalProposal(2)).core;
+
         assert.equal(core.votesFor, wei("40"));
         assert.equal(core.votesAgainst, "0");
 
@@ -375,7 +390,9 @@ describe("GovValidators", () => {
 
         assert.equal(await validators.addressVoted(2, false, SECOND), wei("40"));
         assert.equal(await validators.addressVoted(2, false, THIRD), wei("50"));
+
         core = (await validators.getExternalProposal(2)).core;
+
         assert.equal(core.votesFor, wei("40"));
         assert.equal(core.votesAgainst, wei("50"));
 
@@ -383,7 +400,9 @@ describe("GovValidators", () => {
 
         assert.equal(await validators.addressVoted(2, false, SECOND), wei("100"));
         assert.equal(await validators.addressVoted(2, false, THIRD), wei("50"));
+
         core = (await validators.getExternalProposal(2)).core;
+
         assert.equal(core.votesFor, wei("100"));
         assert.equal(core.votesAgainst, wei("50"));
       });
