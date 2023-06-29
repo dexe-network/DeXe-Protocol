@@ -1211,6 +1211,66 @@ describe("BasicTraderPool", () => {
         );
       });
 
+      it("should not reinvest if minProposalOut check not passed", async () => {
+        await exchangeToExact(tokens.WETH.address, tokens.MANA.address, wei("500"));
+
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(
+          "description",
+          tokens.WBTC.address,
+          wei("500"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          PRECISION.times(50)
+        );
+
+        await uniswapV2Router.switchToNonLinear();
+
+        await invest(wei("500"), SECOND);
+        await investProposal(1, wei("100"), SECOND);
+
+        const amount = await proposalPool.balanceOf(SECOND, 1);
+        const divests = await proposalPool.getDivestAmounts([1], [amount]);
+        const invests = await traderPool.getInvestTokens(divests.baseAmount);
+        let wrongMinProposalOut = divests.receivedAmounts[0] + 1;
+
+        await truffleAssert.reverts(
+          traderPool.reinvestProposal(1, amount, invests.receivedAmounts, wrongMinProposalOut, { from: SECOND }),
+          "TPRP: slippage"
+        );
+      });
+
+      it("should not get profit from invest and then divest from proposal", async () => {
+        await exchangeToExact(tokens.WETH.address, tokens.MANA.address, wei("500"));
+
+        const time = toBN(await getCurrentBlockTime());
+        await createProposal(
+          "description",
+          tokens.WBTC.address,
+          wei("500"),
+          [time.plus(100000), wei("10000"), wei("2")],
+          PRECISION.times(50)
+        );
+
+        await uniswapV2Router.switchToNonLinear();
+
+        await invest(wei("500"), SECOND);
+        await investProposal(1, wei("100"), SECOND);
+
+        await tokens.WETH.mint(THIRD, wei("1000"));
+        await tokens.WETH.approve(traderPool.address, wei("1000"), { from: THIRD });
+        await invest(wei("500"), THIRD);
+
+        const balanceBefore = await traderPool.balanceOf(THIRD);
+
+        await investProposal(1, wei("100"), THIRD);
+        const balance = await proposalPool.balanceOf(THIRD, 1);
+        await reinvestProposal(1, balance, THIRD);
+
+        const balanceAfter = await traderPool.balanceOf(THIRD);
+
+        assert.isTrue(balanceAfter.lt(balanceBefore));
+      });
+
       it("should divest sequentially from all proposals", async () => {
         await exchangeFromExact(tokens.WETH.address, tokens.MANA.address, wei("500"));
 
