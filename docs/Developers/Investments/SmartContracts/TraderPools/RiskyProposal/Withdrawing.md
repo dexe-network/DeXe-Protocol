@@ -11,13 +11,13 @@ function reinvestProposal(
     uint256 proposalId,
     uint256 lp2Amount,
     uint256[] calldata minInvestsOut,
-    uint256 minProposalOut
+    uint256 minBaseOut
 ) external;
 ```
 - ***proposalId*** - the id of the proposal to divest from
 - ***lp2Amount*** - the amount of proposal **LP** tokens to be divested
 - ***minInvestsOut*** - the minimal amounts of main pool positions tokens to be received
-- ***minProposalOut*** - the minimal amount of **base** tokens received on a proposal divest
+- ***minBaseOut*** - the minimal amount of **base** tokens received on a proposal divest
 
 To get the closing price of a position function ***`getDivestAmounts()`*** on `TraderPoolRiskyProposal` is used.
 
