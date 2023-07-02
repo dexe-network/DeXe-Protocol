@@ -206,14 +206,13 @@ describe("TraderPool", () => {
   async function divest(amount, account) {
     const divests = await traderPool.getDivestAmountsAndCommissions(OWNER, amount);
 
-    await traderPool.divest(amount, divests.receptions.receivedAmounts, divests.commissions.dexeDexeCommission, {
+    await traderPool.divest(amount, divests.receptions.receivedAmounts, {
       from: account,
     });
   }
 
   async function reinvestCommission(offsetLimits) {
-    const commissions = await traderPool.getReinvestCommissions(offsetLimits);
-    await traderPool.reinvestCommission(offsetLimits, commissions.dexeDexeCommission);
+    await traderPool.reinvestCommission(offsetLimits);
   }
 
   async function exchangeFromExact(from, to, amount) {
@@ -284,7 +283,7 @@ describe("TraderPool", () => {
           "TP: not an admin"
         );
 
-        await truffleAssert.reverts(traderPool.reinvestCommission([0, 10], 0, { from: SECOND }), "TP: not an admin");
+        await truffleAssert.reverts(traderPool.reinvestCommission([0, 10], { from: SECOND }), "TP: not an admin");
 
         await truffleAssert.reverts(
           traderPool.exchange(tokens.WETH.address, tokens.WBTC.address, wei("500"), 0, [], ExchangeType.FROM_EXACT, {
@@ -992,6 +991,7 @@ describe("TraderPool", () => {
           toBN(wei("2000")).toNumber(),
           toBN(wei("1")).toNumber()
         );
+
         assert.closeTo(
           toBN(leverage.traderLeverageUSDTokens).toNumber(),
           toBN(wei("2400")).toNumber(),
@@ -1058,11 +1058,6 @@ describe("TraderPool", () => {
         );
         assert.closeTo(
           toBN(commission.dexeUSDCommission).toNumber(),
-          toBN(wei("75.15")).toNumber(),
-          toBN(wei("0.001")).toNumber()
-        );
-        assert.closeTo(
-          toBN(commission.dexeDexeCommission).toNumber(),
           toBN(wei("75.15")).toNumber(),
           toBN(wei("0.001")).toNumber()
         );
@@ -1238,10 +1233,7 @@ describe("TraderPool", () => {
         const divests = await traderPool.getDivestAmountsAndCommissions(OWNER, amount);
         const wrongMinBaseOut = [divests.receptions.receivedAmounts[0] + 1];
 
-        await truffleAssert.reverts(
-          traderPool.divest(amount, wrongMinBaseOut, divests.commissions.dexeDexeCommission, { from: SECOND }),
-          "TP: slippage"
-        );
+        await truffleAssert.reverts(traderPool.divest(amount, wrongMinBaseOut, { from: SECOND }), "TP: slippage");
       });
 
       it("should not invest and divest with profit", async () => {
@@ -1509,7 +1501,7 @@ describe("TraderPool", () => {
       });
 
       it("reinvestCommission()", async () => {
-        await truffleAssert.reverts(traderPool.reinvestCommission([0, 10], 0), REVERT_STRING);
+        await truffleAssert.reverts(traderPool.reinvestCommission([0, 10]), REVERT_STRING);
       });
 
       it("divest()", async () => {

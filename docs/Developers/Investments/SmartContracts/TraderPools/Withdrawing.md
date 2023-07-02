@@ -55,7 +55,6 @@ struct Commissions {
     uint256 dexeBaseCommission;
     uint256 dexeLPCommission;
     uint256 dexeUSDCommission;
-    uint256 dexeDexeCommission;
 }
 ```
 - ***traderBaseCommission*** - the total trader's commission in **base** tokens (normalized)
@@ -64,4 +63,3 @@ struct Commissions {
 - ***dexeBaseCommission*** - the total platform's commission in **base** tokens (normalized)
 - ***dexeLPCommission*** - the equivalent platform's commission in **LP** tokens
 - ***dexeUSDCommission*** - the equivalent platform's commission in **USD** (normalized)
-- ***dexeDexeCommission*** - the equivalent platform's commission in **DEXE** tokens (normalized)

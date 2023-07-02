@@ -26,13 +26,9 @@ The function that takes the commission from the users' income. This function sho
 
 ```solidity
 function reinvestCommission(
-    uint256[] calldata offsetLimits,
-    uint256 minDexeCommissionOut
+    uint256[] calldata offsetLimits
 ) external;
 ```
 - ***offsetLimits*** - the array of starting indexes and the lengths of the investors array
-- ***minDexeCommissionOut*** - the minimal amount of **DEXE** tokens the platform will receive
-
-❗ Use `getReinvestCommissions()` function to get ***minDexeCommissionOut*** parameter.
 
 ❗ Function can be called only when there are no open positions.

@@ -10,6 +10,6 @@ contract BundleMock {
         token.approve(address(pool), amount);
 
         pool.invest(amount, new uint256[](0));
-        pool.divest(amount, new uint256[](0), 0);
+        pool.divest(amount, new uint256[](0));
     }
 }
