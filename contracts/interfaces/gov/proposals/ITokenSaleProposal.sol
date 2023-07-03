@@ -240,8 +240,7 @@ interface ITokenSaleProposal {
     /// @notice This function is used to get a list of tiers
     /// @param offset the offset of the list
     /// @param limit the limit for amount of elements in the list
-    /// @return tierViews the list of initial tier parameters
-    /// @return tierInfoViews the list of dynamic tier parameters
+    /// @return tierViews the list of tier views
     function getTierViews(
         uint256 offset,
         uint256 limit
@@ -250,7 +249,7 @@ interface ITokenSaleProposal {
     /// @notice This function is used to get user's infos from tiers
     /// @param user the address of the user whose infos are required
     /// @param tierIds the list of tier ids to get infos from
-    /// @return userInfos the list of user infos
+    /// @return userViews the list of user views
     function getUserViews(
         address user,
         uint256[] calldata tierIds
