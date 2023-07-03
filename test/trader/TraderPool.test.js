@@ -1018,6 +1018,8 @@ describe("TraderPool", () => {
 
         assert.equal((await tokens.WETH.balanceOf(traderPool.address)).toFixed(), wei("3000"));
 
+        const earlyCommission = await traderPool.getReinvestCommissions([0, 5]);
+        assert.deepEqual(earlyCommission, ["0", "0", "0", "0", "0", "0"]);
         await truffleAssert.reverts(reinvestCommission([0, 5]), "TP: no commission available");
 
         await setTime((await getCurrentBlockTime()) + SECONDS_IN_MONTH);
