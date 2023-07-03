@@ -128,8 +128,10 @@ library GovPoolView {
             IGovPool.ProposalState state = IGovPool(address(this)).getProposalState(proposalId);
 
             if (
-                state == IGovPool.ProposalState.Executed ||
-                state == IGovPool.ProposalState.Succeeded ||
+                state == IGovPool.ProposalState.ExecutedFor ||
+                state == IGovPool.ProposalState.ExecutedAgainst ||
+                state == IGovPool.ProposalState.SucceededFor ||
+                state == IGovPool.ProposalState.SucceededAgainst ||
                 state == IGovPool.ProposalState.Defeated
             ) {
                 unlockedProposals[unlockedLength++] = proposalId;

@@ -47,10 +47,8 @@ library GovPoolExecute {
             .getHelperContracts();
         IGovValidators govValidators = IGovValidators(govValidatorsAddress);
 
-        bool validatorsVotingSucceeded = IGovValidators(govValidators).getProposalState(
-            proposalId,
-            false
-        ) == IGovValidators.ProposalState.Succeeded;
+        bool validatorsVotingSucceeded = govValidators.getProposalState(proposalId, false) ==
+            IGovValidators.ProposalState.Succeeded;
 
         if (validatorsVotingSucceeded) {
             govValidators.executeExternalProposal(proposalId);
@@ -82,8 +80,26 @@ library GovPoolExecute {
             (validatorsVotingSucceeded ? 2 : 1);
 
         uint256 totalRewards = creationRewards +
-            settings.executionReward +
-            core.votesFor.ratio(settings.voteRewardsCoefficient, PRECISION);
+            settings.rewardsInfo.executionReward +
+            (
+                propsalState == IGovPool.ProposalState.SucceededFor
+                    ? core.votesFor.ratio(
+                        settings.rewardsInfo.voteForRewardsCoefficient,
+                        PRECISION
+                    )
+                    : core.votesAgainst.ratio(
+                        settings.rewardsInfo.voteAgainstRewardsCoefficient,
+                        PRECISION
+                    )
+            );
+
+        settings.rewardsInfo.rewardToken.payCommission(totalRewards);
+    }
+
+    function _proposalActionsResult(
+        IGovPool.Proposal storage proposal
+    ) internal view returns (IGovPool.ProposalAction[] storage) {
+        IGovPool.ProposalCore storage core = proposal.core;
 
         return
             core.votesFor > core.votesAgainst ? proposal.actionsOnFor : proposal.actionsOnAgainst;
