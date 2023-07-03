@@ -326,7 +326,7 @@ describe("CoreProperties", () => {
       );
     });
 
-    it("should get end timestamp by commpission epoch", async () => {
+    it("should get end timestamp by commission epoch", async () => {
       assert.equal(
         toBN(await coreProperties.getCommissionTimestampByEpoch(1, ComissionPeriods.PERIOD_1)).toFixed(),
         toBN(SECONDS_IN_MONTH - 1).toFixed()

@@ -5,13 +5,10 @@ Withdrawal of funds from the pool is available to investors at any time.
 A trader can withdraw tokens only if there are no open positions in the pool.
 
 Function ***`divest()`*** is responsible for withdrawing funds from the pool. Due to the active portfolio, this function additionally swaps the open positions tokens to the base token. It also calculates the commission of the investor who withdraws the funds.
-
-The platform takes the commission in **DEXE** tokens, so data about **DEXE** price has to be provided. 
 - ***amountLP*** - withdrawal amount of TraderPool LP tokens 
 - ***minBaseOut*** - minimal active portfolio base tokens that will be received
-- ***minDexeCommissionsOut*** - minimal commission of **DeXe** platform
 
-To get ***minBaseOut*** and  ***minDexeCommissionsOut***  parameters function ***`getDivestAmountsAndCommissions()`*** is used:
+To get ***minBaseOut***  parameter function ***`getDivestAmountsAndCommissions()`*** is used:
 
 ```solidity
 function getDivestAmountsAndCommissions(
