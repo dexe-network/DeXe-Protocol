@@ -47,8 +47,8 @@ library GovPoolExecute {
             .getHelperContracts();
         IGovValidators govValidators = IGovValidators(govValidatorsAddress);
 
-        IGovValidators.ProposalState state = govValidators.getProposalState(proposalId, false);
-        bool validatorsVotingSucceeded = state == IGovValidators.ProposalState.Succeeded;
+        bool validatorsVotingSucceeded = govValidators.getProposalState(proposalId, false) ==
+            IGovValidators.ProposalState.Succeeded;
 
         if (validatorsVotingSucceeded) {
             govValidators.executeExternalProposal(proposalId);
@@ -79,7 +79,6 @@ library GovPoolExecute {
         uint256 creationRewards = settings.rewardsInfo.creationReward *
             (validatorsVotingSucceeded ? 2 : 1);
 
-        // TODO: do we need to check if the ProposalState == Defeated?
         uint256 totalRewards = creationRewards +
             settings.rewardsInfo.executionReward +
             (
