@@ -90,6 +90,24 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         }
     }
 
+    function claim(uint256[] calldata tierIds) external override {
+        for (uint256 i = 0; i < tierIds.length; i++) {
+            uint256 claimAmount = _getClaimAmount(msg.sender, tierIds[i]);
+            require(claimAmount > 0, "TSP: zero withdrawal");
+
+            Tier storage tier = _tiers[tierIds[i]];
+
+            tier.users[msg.sender].purchaseInfo.isClaimed = true;
+
+            address saleTokenAddress = tier.tierInitParams.saleTokenAddress;
+
+            ERC20(saleTokenAddress).safeTransfer(
+                msg.sender,
+                claimAmount.from18(ERC20(saleTokenAddress).decimals())
+            );
+        }
+    }
+
     function vestingWithdraw(uint256[] calldata tierIds) external override {
         for (uint256 i = 0; i < tierIds.length; i++) {
             uint256 vestingWithdrawAmount = _getVestingWithdrawAmount(msg.sender, tierIds[i]);
@@ -134,8 +152,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         UserInfo storage userInfo = tier.users[msg.sender];
 
         PurchaseInfo storage purchaseInfo = userInfo.purchaseInfo;
-        uint256 spentAmount = purchaseInfo.spentAmounts.get(tokenToBuyWith) + amount;
-        purchaseInfo.spentAmounts.set(tokenToBuyWith, spentAmount);
+        uint256 newSpentAmount = purchaseInfo.spentAmounts.get(tokenToBuyWith) + amount;
+        purchaseInfo.spentAmounts.set(tokenToBuyWith, newSpentAmount);
         purchaseInfo.claimTotalAmount += claimCurrentAmount;
 
         userInfo.vestingUserInfo.vestingTotalAmount += vestingCurrentAmount;
@@ -195,6 +213,17 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         );
 
         return saleTokenAmount;
+    }
+
+    function getClaimAmounts(
+        address user,
+        uint256[] calldata tierIds
+    ) external view returns (uint256[] memory claimAmounts) {
+        claimAmounts = new uint256[](tierIds.length);
+
+        for (uint256 i = 0; i < tierIds.length; i++) {
+            claimAmounts[i] = _getClaimAmount(user, tierIds[i]);
+        }
     }
 
     function getVestingWithdrawAmounts(
@@ -352,6 +381,24 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         for (uint256 i = 0; i < ids.length; i++) {
             require(balanceOf(to, ids[i]) == 0, "TSP: balance can be only 0 or 1");
         }
+    }
+
+    function _getClaimAmount(
+        address user,
+        uint256 tierId
+    ) internal view ifTierExists(tierId) returns (uint256) {
+        Tier storage tier = _tiers[tierId];
+
+        TierInitParams memory tierInitParams = tier.tierInitParams;
+
+        require(
+            block.timestamp >= tierInitParams.saleEndTime + tierInitParams.claimLockDuration,
+            "TSP: claim is locked"
+        );
+
+        PurchaseInfo storage purchaseInfo = tier.users[user].purchaseInfo;
+
+        return purchaseInfo.isClaimed ? 0 : purchaseInfo.claimTotalAmount;
     }
 
     function _getVestingWithdrawAmount(

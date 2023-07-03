@@ -200,7 +200,11 @@ interface ITokenSaleProposal {
     /// @param tierIds tier ids to recover from
     function recover(uint256[] calldata tierIds) external;
 
-    /// @notice This function is used to withdraw tokens from given tiers
+    /// @notice This function is used to withdraw non-vesting tokens from given tiers
+    /// @param tierIds tier ids to make withdrawals from
+    function claim(uint256[] calldata tierIds) external;
+
+    /// @notice This function is used to withdraw vesting tokens from given tiers
     /// @param tierIds tier ids to make withdrawals from
     function vestingWithdraw(uint256[] calldata tierIds) external;
 
@@ -223,7 +227,16 @@ interface ITokenSaleProposal {
         uint256 amount
     ) external view returns (uint256);
 
-    /// @notice This function is used to get information about the amount of tokens that user can withdraw (that are unlocked) from given tiers
+    /// @notice This function is used to get information about the amount of non-vesting tokens that user can withdraw (that are unlocked) from given tiers
+    /// @param user the address of the user
+    /// @param tierIds the array of tier ids
+    /// @return claimAmounts the array of token amounts that can be withdrawn from each tier
+    function getClaimAmounts(
+        address user,
+        uint256[] calldata tierIds
+    ) external view returns (uint256[] memory claimAmounts);
+
+    /// @notice This function is used to get information about the amount of vesting tokens that user can withdraw (that are unlocked) from given tiers
     /// @param user the address of the user
     /// @param tierIds the array of tier ids
     /// @return vestingWithdrawAmounts the array of token amounts that can be withdrawn from each tier
