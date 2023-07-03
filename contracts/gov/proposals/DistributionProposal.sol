@@ -68,7 +68,7 @@ contract DistributionProposal is IDistributionProposal, Initializable {
 
             dpInfo.claimed[voter] = true;
 
-            rewardToken.sendFunds(voter, reward);
+            rewardToken.sendFunds(voter, reward, false);
 
             emit DistributionProposalClaimed(proposalIds[i], voter, reward);
         }

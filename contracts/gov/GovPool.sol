@@ -150,7 +150,7 @@ contract GovPool is
             _proposals,
             proposalId,
             RewardType.Execute,
-            _proposals[proposalId].core.settings.executionReward,
+            _proposals[proposalId].core.settings.rewardsInfo.executionReward,
             PRECISION
         );
     }
@@ -189,7 +189,7 @@ contract GovPool is
             _proposals,
             proposalId,
             RewardType.Create,
-            _proposals[proposalId].core.settings.creationReward,
+            _proposals[proposalId].core.settings.rewardsInfo.creationReward,
             PRECISION
         );
     }
@@ -201,7 +201,7 @@ contract GovPool is
             _proposals,
             proposalId,
             RewardType.Create,
-            _proposals[proposalId].core.settings.creationReward,
+            _proposals[proposalId].core.settings.rewardsInfo.creationReward,
             PRECISION
         );
 
@@ -228,9 +228,11 @@ contract GovPool is
         _pendingRewards.updateRewards(
             _proposals,
             proposalId,
-            RewardType.Vote,
+            isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst,
             reward,
-            _proposals[proposalId].core.settings.voteRewardsCoefficient
+            isVoteFor
+                ? _proposals[proposalId].core.settings.rewardsInfo.voteForRewardsCoefficient
+                : _proposals[proposalId].core.settings.rewardsInfo.voteAgainstRewardsCoefficient
         );
     }
 
@@ -249,22 +251,6 @@ contract GovPool is
             voteAmount,
             voteNftIds,
             isVoteFor
-        );
-
-        uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
-
-        _pendingRewards.updateRewards(
-            _proposals,
-            proposalId,
-            RewardType.VoteDelegated,
-            micropoolReward,
-            _proposals[proposalId].core.settings.voteRewardsCoefficient
-        );
-
-        _micropoolInfos[msg.sender].updateRewards(
-            reward - micropoolReward,
-            _proposals[proposalId].core.settings.voteRewardsCoefficient,
-            _proposals[proposalId].core.settings.rewardToken
         );
     }
 
@@ -361,7 +347,7 @@ contract GovPool is
             _proposals,
             0,
             RewardType.SaveOffchainResults,
-            _govSettings.getInternalSettings().executionReward,
+            _govSettings.getInternalSettings().rewardsInfo.executionReward,
             PRECISION
         );
 
@@ -380,7 +366,10 @@ contract GovPool is
         }
 
         if (core.executed) {
-            return ProposalState.Executed;
+            return
+                _votesForMoreThanAgainst(core)
+                    ? ProposalState.ExecutedFor
+                    : ProposalState.ExecutedAgainst;
         }
 
         if (core.settings.earlyCompletion || voteEnd < block.timestamp) {

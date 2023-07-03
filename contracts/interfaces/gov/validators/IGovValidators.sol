@@ -9,7 +9,8 @@ interface IGovValidators {
         Voting,
         Defeated,
         Succeeded,
-        Executed,
+        ExecutedFor,
+        ExecutedAgainst,
         Undefined
     }
 
@@ -146,7 +147,8 @@ interface IGovValidators {
     /// `Defeated` - proposal where voting time is over and proposal defeated.
     /// `SucceededFor` - proposal with the required number of votes for.
     /// `SucceededAgainst` - proposal with the required number of votes against.
-    /// `Executed` - executed proposal (only for internal proposal).
+    /// `ExecutedFor` - executed proposal for (only for internal proposal).
+    /// `ExecutedAgainst` - executed proposal against (only for internal proposal).
     /// `Undefined` - nonexistent proposal.
     function getProposalState(
         uint256 proposalId,

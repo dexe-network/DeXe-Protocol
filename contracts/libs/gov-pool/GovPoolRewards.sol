@@ -46,15 +46,27 @@ library GovPoolRewards {
         address rewardToken;
 
         if (proposalId != 0) {
-            rewardToken = proposals[proposalId].core.settings.rewardToken;
+            rewardToken = proposals[proposalId].core.settings.rewardsInfo.rewardToken;
 
-            userRewards.onchainRewards[proposalId] += amountToAdd;
+            if (rewardType == IGovPool.RewardType.VoteFor) {
+                userRewards.onchainRewards[proposalId].rewardFor += amountToAdd;
+            } else {
+                userRewards.onchainRewards[proposalId].rewardAgainst += amountToAdd;
+            }
         } else {
             (address settingsAddress, , , ) = IGovPool(address(this)).getHelperContracts();
 
-            rewardToken = IGovSettings(settingsAddress).getInternalSettings().rewardToken;
+            rewardToken = IGovSettings(settingsAddress)
+                .getInternalSettings()
+                .rewardsInfo
+                .rewardToken;
 
-            userRewards.offchainRewards[rewardToken] += amountToAdd;
+            if (rewardType == IGovPool.RewardType.VoteFor) {
+                userRewards.onchainRewards[proposalId].rewardFor += amountToAdd;
+            } else {
+                userRewards.onchainRewards[proposalId].rewardAgainst += amountToAdd;
+            }
+
             userRewards.offchainTokens.add(rewardToken);
         }
 
@@ -68,11 +80,18 @@ library GovPoolRewards {
     ) external {
         IGovPool.PendingRewards storage userRewards = pendingRewards[msg.sender];
 
+        IGovPool.ProposalState state = IGovPool(address(this)).getProposalState(proposalId);
+
         if (proposalId != 0) {
             require(proposals[proposalId].core.executed, "Gov: proposal is not executed");
 
-            address rewardToken = proposals[proposalId].core.settings.rewardToken;
-            uint256 rewards = userRewards.onchainRewards[proposalId];
+            address rewardToken = proposals[proposalId].core.settings.rewardsInfo.rewardToken;
+            uint256 rewards;
+            if (state == IGovPool.ProposalState.SucceededFor) {
+                rewards = userRewards.onchainRewards[proposalId].rewardFor;
+            } else {
+                rewards = userRewards.onchainRewards[proposalId].rewardAgainst;
+            }
 
             delete userRewards.onchainRewards[proposalId];
 
@@ -82,7 +101,13 @@ library GovPoolRewards {
 
             for (uint256 i = length; i > 0; i--) {
                 address rewardToken = userRewards.offchainTokens.at(i - 1);
-                uint256 rewards = userRewards.offchainRewards[rewardToken];
+
+                uint256 rewards;
+                if (state == IGovPool.ProposalState.SucceededFor) {
+                    rewards = userRewards.offchainRewards[rewardToken].rewardFor;
+                } else {
+                    rewards = userRewards.offchainRewards[rewardToken].rewardAgainst;
+                }
 
                 delete userRewards.offchainRewards[rewardToken];
                 userRewards.offchainTokens.remove(rewardToken);
@@ -111,14 +136,32 @@ library GovPoolRewards {
                 continue;
             }
 
-            rewards.onchainRewards[i] = userRewards.onchainRewards[proposalIds[i]];
+            IGovPool.ProposalState state = IGovPool(address(this)).getProposalState(
+                proposalIds[i]
+            );
+
+            if (state == IGovPool.ProposalState.Defeated) {
+                continue;
+            }
+
+            if (
+                state == IGovPool.ProposalState.SucceededFor ||
+                state == IGovPool.ProposalState.ExecutedFor
+            ) {
+                rewards.onchainRewards[i] = userRewards.onchainRewards[proposalIds[i]].rewardFor;
+            } else {
+                rewards.onchainRewards[i] = userRewards
+                    .onchainRewards[proposalIds[i]]
+                    .rewardAgainst;
+            }
         }
 
         for (uint256 i = 0; i < rewards.offchainTokens.length; i++) {
             address token = userRewards.offchainTokens.at(i);
 
             rewards.offchainTokens[i] = token;
-            rewards.offchainRewards[i] = userRewards.offchainRewards[token];
+            // TODO: so we should save state of offchain proposal to get rewards
+            // rewards.offchainRewards[i] = userRewards.offchainRewards[token];
         }
     }
 
@@ -126,7 +169,7 @@ library GovPoolRewards {
         require(rewardToken != address(0), "Gov: rewards are off");
         require(rewardToken.normThisBalance() >= rewards, "Gov: not enough balance");
 
-        rewardToken.sendFunds(msg.sender, rewards);
+        rewardToken.sendFunds(msg.sender, rewards, true);
 
         emit RewardClaimed(proposalId, msg.sender, rewardToken, rewards);
     }

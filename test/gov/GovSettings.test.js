@@ -22,7 +22,8 @@ const DEFAULT_SETTINGS = {
   minVotesForCreating: wei("3"),
   rewardToken: ZERO_ADDR,
   creationReward: 0,
-  executionReward: 0,
+  executionRewardFor: 0,
+  executionRewardAgainst: 0,
   voteRewardsCoefficient: 0,
   executorDescription: "default",
 };
@@ -39,7 +40,8 @@ const INTERNAL_SETTINGS = {
   minVotesForCreating: wei("2"),
   rewardToken: ZERO_ADDR,
   creationReward: 0,
-  executionReward: 0,
+  executionRewardFor: 0,
+  executionRewardAgainst: 0,
   voteRewardsCoefficient: 0,
   executorDescription: "internal",
 };
@@ -56,7 +58,8 @@ const DP_SETTINGS = {
   minVotesForCreating: wei("3"),
   rewardToken: ZERO_ADDR,
   creationReward: 0,
-  executionReward: 0,
+  executionRewardFor: 0,
+  executionRewardAgainst: 0,
   voteRewardsCoefficient: 0,
   executorDescription: "DP",
 };
@@ -73,7 +76,8 @@ const VALIDATORS_BALANCES_SETTINGS = {
   minVotesForCreating: wei("3"),
   rewardToken: ZERO_ADDR,
   creationReward: 0,
-  executionReward: 0,
+  executionRewardFor: 0,
+  executionRewardAgainst: 0,
   voteRewardsCoefficient: 0,
   executorDescription: "validators",
 };
@@ -168,7 +172,8 @@ describe("GovSettings", () => {
       minVotesForCreating: wei("4"),
       rewardToken: ZERO_ADDR,
       creationReward: 0,
-      executionReward: 0,
+      executionRewardFor: 0,
+      executionRewardAgainst: 0,
       voteRewardsCoefficient: 0,
       executorDescription: "new_settings_1",
     };
@@ -185,7 +190,8 @@ describe("GovSettings", () => {
       minVotesForCreating: wei("4"),
       rewardToken: ZERO_ADDR,
       creationReward: 0,
-      executionReward: 0,
+      executionRewardFor: 0,
+      executionRewardAgainst: 0,
       voteRewardsCoefficient: 0,
       executorDescription: "new_settings_2",
     };
@@ -327,7 +333,8 @@ describe("GovSettings", () => {
           minVotesForCreating: wei("4"),
           rewardToken: ZERO_ADDR,
           creationReward: 0,
-          executionReward: 0,
+          executionRewardFor: 0,
+          executionRewardAgainst: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings_1",
         };
@@ -344,7 +351,8 @@ describe("GovSettings", () => {
           minVotesForCreating: wei("4"),
           rewardToken: ZERO_ADDR,
           creationReward: 0,
-          executionReward: 0,
+          executionRewardFor: 0,
+          executionRewardAgainst: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings_2",
         };
@@ -390,7 +398,8 @@ describe("GovSettings", () => {
           minVotesForCreating: wei("4"),
           rewardToken: ZERO_ADDR,
           creationReward: 0,
-          executionReward: 0,
+          executionRewardFor: 0,
+          executionRewardAgainst: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings",
         };
@@ -411,7 +420,8 @@ describe("GovSettings", () => {
           minVotesForCreating: wei("4"),
           rewardToken: ZERO_ADDR,
           creationReward: 0,
-          executionReward: 0,
+          executionRewardFor: 0,
+          executionRewardAgainst: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings",
         };
@@ -432,7 +442,8 @@ describe("GovSettings", () => {
           minVotesForCreating: wei("4"),
           rewardToken: ZERO_ADDR,
           creationReward: 0,
-          executionReward: 0,
+          executionRewardFor: 0,
+          executionRewardAgainst: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings",
         };
@@ -456,7 +467,8 @@ describe("GovSettings", () => {
           minVotesForCreating: wei("4"),
           rewardToken: ZERO_ADDR,
           creationReward: 0,
-          executionReward: 0,
+          executionRewardFor: 0,
+          executionRewardAgainst: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings",
         };
@@ -479,7 +491,8 @@ describe("GovSettings", () => {
           minVotesForCreating: wei("4"),
           rewardToken: ZERO_ADDR,
           creationReward: 0,
-          executionReward: 0,
+          executionRewardFor: 0,
+          executionRewardAgainst: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings",
         };
@@ -524,7 +537,8 @@ describe("GovSettings", () => {
           minVotesForCreating: wei("4"),
           rewardToken: ZERO_ADDR,
           creationReward: 0,
-          executionReward: 0,
+          executionRewardFor: 0,
+          executionRewardAgainst: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings",
         };
@@ -577,7 +591,8 @@ describe("GovSettings", () => {
           minVotesForCreating: wei("4"),
           rewardToken: ZERO_ADDR,
           creationReward: 0,
-          executionReward: 0,
+          executionRewardFor: 0,
+          executionRewardAgainst: 0,
           voteRewardsCoefficient: 0,
           executorDescription: "new_settings",
         };

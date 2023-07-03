@@ -68,7 +68,7 @@ library GovPoolCreate {
             misc,
             settings.quorum,
             settingsId,
-            settings.rewardToken,
+            settings.rewardsInfo.rewardToken,
             msg.sender
         );
     }

@@ -20,14 +20,17 @@ interface IGovPool {
         Defeated,
         SucceededFor,
         SucceededAgainst,
-        Executed,
+        ExecutedFor,
+        ExecutedAgainst,
         Undefined
     }
 
     enum RewardType {
         Create,
-        Vote,
-        VoteDelegated,
+        VoteFor,
+        VoteAgainst,
+        VoteForDelegated,
+        VoteAgainstDelegated,
         Execute,
         SaveOffchainResults
     }
@@ -150,13 +153,18 @@ interface IGovPool {
         mapping(address => uint256) latestDelegatorStake;
     }
 
+    struct Rewards {
+        uint256 rewardFor;
+        uint256 rewardAgainst;
+    }
+
     /// @notice The struct that holds reward properties (only for internal needs)
     /// @param onchainRewards matching proposal ids to their rewards
     /// @param offchainRewards matching off-chain token addresses to their rewards
     /// @param offchainTokens the list of off-chain token addresses
     struct PendingRewards {
-        mapping(uint256 => uint256) onchainRewards;
-        mapping(address => uint256) offchainRewards;
+        mapping(uint256 => Rewards) onchainRewards;
+        mapping(address => Rewards) offchainRewards;
         EnumerableSet.AddressSet offchainTokens;
     }
 
@@ -331,7 +339,8 @@ interface IGovPool {
     /// 2 -`ValidatorVoting`, validators voting
     /// 3 -`Defeated`, proposal where voting time is over and proposal defeated on first or second step
     /// 4 -`Succeeded`, proposal with the required number of votes on each step
-    /// 5 -`Executed`, executed proposal
+    /// 5 -`ExecutedFor`, executed proposal with the required number of votes on for step
+    /// 6 -`ExecutedAgainst`, executed proposal with the required number of votes on against step
     /// 6 -`Undefined`, nonexistent proposal
     function getProposalState(uint256 proposalId) external view returns (ProposalState);
 

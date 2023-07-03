@@ -237,7 +237,11 @@ const getBytesAddSettings = (settings) => {
             },
             {
               type: "uint256",
-              name: "executionReward",
+              name: "executionRewardFor",
+            },
+            {
+              type: "uint256",
+              name: "executionRewardAgainst",
             },
             {
               type: "uint256",
@@ -315,7 +319,11 @@ const getBytesEditSettings = (ids, settings) => {
             },
             {
               type: "uint256",
-              name: "executionReward",
+              name: "executionRewardFor",
+            },
+            {
+              type: "uint256",
+              name: "executionRewardAgainst",
             },
             {
               type: "uint256",

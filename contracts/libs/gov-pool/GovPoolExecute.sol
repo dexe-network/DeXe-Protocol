@@ -32,9 +32,11 @@ library GovPoolExecute {
 
         GovPool govPool = GovPool(payable(address(this)));
 
+        IGovPool.ProposalState propsalState = govPool.getProposalState(proposalId);
+
         require(
-            govPool.getProposalState(proposalId) == IGovPool.ProposalState.SucceededFor ||
-                govPool.getProposalState(proposalId) == IGovPool.ProposalState.SucceededAgainst,
+            propsalState == IGovPool.ProposalState.SucceededFor ||
+                propsalState == IGovPool.ProposalState.SucceededAgainst,
             "Gov: invalid status"
         );
         require(govPool.latestVoteBlocks(proposalId) < block.number, "Gov: wrong block");
@@ -64,22 +66,35 @@ library GovPoolExecute {
 
         emit ProposalExecuted(proposalId, msg.sender);
 
-        _payCommission(core, validatorsVotingSucceeded);
+        _payCommission(core, validatorsVotingSucceeded, propsalState);
     }
 
     function _payCommission(
         IGovPool.ProposalCore storage core,
-        bool validatorsVotingSucceeded
+        bool validatorsVotingSucceeded,
+        IGovPool.ProposalState propsalState
     ) internal {
         IGovSettings.ProposalSettings storage settings = core.settings;
 
-        uint256 creationRewards = settings.creationReward * (validatorsVotingSucceeded ? 2 : 1);
+        uint256 creationRewards = settings.rewardsInfo.creationReward *
+            (validatorsVotingSucceeded ? 2 : 1);
 
+        // TODO: do we need to check if the ProposalState == Defeated?
         uint256 totalRewards = creationRewards +
-            settings.executionReward +
-            core.votesFor.ratio(settings.voteRewardsCoefficient, PRECISION);
+            settings.rewardsInfo.executionReward +
+            (
+                propsalState == IGovPool.ProposalState.SucceededFor
+                    ? core.votesFor.ratio(
+                        settings.rewardsInfo.voteForRewardsCoefficient,
+                        PRECISION
+                    )
+                    : core.votesAgainst.ratio(
+                        settings.rewardsInfo.voteAgainstRewardsCoefficient,
+                        PRECISION
+                    )
+            );
 
-        settings.rewardToken.payCommission(totalRewards);
+        settings.rewardsInfo.rewardToken.payCommission(totalRewards);
     }
 
     function _proposalActionsResult(

@@ -134,7 +134,7 @@ library GovPoolStaking {
 
             uint256 amountToTransfer = pendingRewards[i].min(rewardTokens[i].normThisBalance());
 
-            rewardTokens[i].sendFunds(msg.sender, amountToTransfer);
+            rewardTokens[i].sendFunds(msg.sender, amountToTransfer, true);
 
             emit StakingRewardClaimed(msg.sender, rewardTokens[i], amountToTransfer);
         }

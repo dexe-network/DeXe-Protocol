@@ -42,6 +42,8 @@ library GovPoolOffchain {
         IGovSettings.ProposalSettings memory internalSettings = IGovSettings(settingsAddress)
             .getInternalSettings();
 
-        internalSettings.rewardToken.payCommission(internalSettings.executionReward);
+        internalSettings.rewardsInfo.rewardToken.payCommission(
+            internalSettings.rewardsInfo.executionReward
+        );
     }
 }
