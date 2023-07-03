@@ -261,10 +261,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
     function _getProposalState(ProposalCore storage core) internal view returns (ProposalState) {
         if (core.executed) {
-            return
-                _votesForMoreThanAgainst(core)
-                    ? ProposalState.ExecutedFor
-                    : ProposalState.ExecutedAgainst;
+            return ProposalState.Executed;
         }
 
         if (_isQuorumReached(core)) {

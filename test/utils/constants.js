@@ -25,8 +25,9 @@ const ProposalState = {
   Defeated: 3,
   SucceededFor: 4,
   SucceededAgainst: 5,
-  Executed: 6,
-  Undefined: 7,
+  ExecutedFor: 6,
+  ExecutedAgainst: 7,
+  Undefined: 8,
 };
 
 const ValidatorsProposalState = {

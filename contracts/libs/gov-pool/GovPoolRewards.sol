@@ -52,9 +52,18 @@ library GovPoolRewards {
         if (proposalId != 0) {
             rewardToken = proposals[proposalId].core.settings.rewardsInfo.rewardToken;
 
-            if (rewardType == IGovPool.RewardType.VoteFor) {
+            if (
+                rewardType == IGovPool.RewardType.VoteFor ||
+                rewardType == IGovPool.RewardType.VoteForDelegated
+            ) {
                 userRewards.onchainRewards[proposalId].rewardFor += amountToAdd;
+            } else if (
+                rewardType == IGovPool.RewardType.VoteAgainst ||
+                rewardType == IGovPool.RewardType.VoteAgainstDelegated
+            ) {
+                userRewards.onchainRewards[proposalId].rewardAgainst += amountToAdd;
             } else {
+                userRewards.onchainRewards[proposalId].rewardFor += amountToAdd;
                 userRewards.onchainRewards[proposalId].rewardAgainst += amountToAdd;
             }
         } else {
@@ -65,12 +74,7 @@ library GovPoolRewards {
                 .rewardsInfo
                 .rewardToken;
 
-            if (rewardType == IGovPool.RewardType.VoteFor) {
-                userRewards.onchainRewards[proposalId].rewardFor += amountToAdd;
-            } else {
-                userRewards.onchainRewards[proposalId].rewardAgainst += amountToAdd;
-            }
-
+            userRewards.offchainRewards[rewardToken] += amountToAdd;
             userRewards.offchainTokens.add(rewardToken);
         }
 
@@ -91,7 +95,7 @@ library GovPoolRewards {
 
             address rewardToken = proposals[proposalId].core.settings.rewardsInfo.rewardToken;
             uint256 rewards;
-            if (state == IGovPool.ProposalState.SucceededFor) {
+            if (state == IGovPool.ProposalState.ExecutedFor) {
                 rewards = userRewards.onchainRewards[proposalId].rewardFor;
             } else {
                 rewards = userRewards.onchainRewards[proposalId].rewardAgainst;
@@ -106,12 +110,7 @@ library GovPoolRewards {
             for (uint256 i = length; i > 0; i--) {
                 address rewardToken = userRewards.offchainTokens.at(i - 1);
 
-                uint256 rewards;
-                if (state == IGovPool.ProposalState.SucceededFor) {
-                    rewards = userRewards.offchainRewards[rewardToken].rewardFor;
-                } else {
-                    rewards = userRewards.offchainRewards[rewardToken].rewardAgainst;
-                }
+                uint256 rewards = userRewards.offchainRewards[rewardToken];
 
                 delete userRewards.offchainRewards[rewardToken];
                 userRewards.offchainTokens.remove(rewardToken);
@@ -140,17 +139,9 @@ library GovPoolRewards {
                 continue;
             }
 
-            IGovPool.ProposalState state = IGovPool(address(this)).getProposalState(
-                proposalIds[i]
-            );
-
-            if (state == IGovPool.ProposalState.Defeated) {
-                continue;
-            }
-
             if (
-                state == IGovPool.ProposalState.SucceededFor ||
-                state == IGovPool.ProposalState.ExecutedFor
+                IGovPool(address(this)).getProposalState(proposalIds[i]) ==
+                IGovPool.ProposalState.ExecutedFor
             ) {
                 rewards.onchainRewards[i] = userRewards.onchainRewards[proposalIds[i]].rewardFor;
             } else {
@@ -164,14 +155,12 @@ library GovPoolRewards {
             address token = userRewards.offchainTokens.at(i);
 
             rewards.offchainTokens[i] = token;
-            // TODO: so we should save state of offchain proposal to get rewards
-            // rewards.offchainRewards[i] = userRewards.offchainRewards[token];
+            rewards.offchainRewards[i] = userRewards.offchainRewards[token];
         }
     }
 
     function _sendRewards(uint256 proposalId, address rewardToken, uint256 rewards) internal {
         require(rewardToken != address(0), "Gov: rewards are off");
-        require(rewardToken.normThisBalance() >= rewards, "Gov: not enough balance");
 
         rewardToken.sendFunds(msg.sender, rewards, true);
 

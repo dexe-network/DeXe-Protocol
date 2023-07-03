@@ -164,7 +164,7 @@ interface IGovPool {
     /// @param offchainTokens the list of off-chain token addresses
     struct PendingRewards {
         mapping(uint256 => Rewards) onchainRewards;
-        mapping(address => Rewards) offchainRewards;
+        mapping(address => uint256) offchainRewards;
         EnumerableSet.AddressSet offchainTokens;
     }
 

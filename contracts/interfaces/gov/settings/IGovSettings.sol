@@ -38,6 +38,7 @@ interface IGovSettings {
         string executorDescription;
     }
 
+    /// @notice The struct holds information about rewards for proposals
     /// @param rewardToken the reward token address
     /// @param creationReward the amount of reward for proposal creation
     /// @param executionRewar the amount of reward for proposal execution

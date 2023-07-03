@@ -9,8 +9,7 @@ interface IGovValidators {
         Voting,
         Defeated,
         Succeeded,
-        ExecutedFor,
-        ExecutedAgainst,
+        Executed,
         Undefined
     }
 
