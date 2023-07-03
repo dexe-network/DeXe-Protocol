@@ -252,6 +252,26 @@ contract GovPool is
             voteNftIds,
             isVoteFor
         );
+
+        uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
+
+        _pendingRewards.updateRewards(
+            _proposals,
+            proposalId,
+            isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
+            micropoolReward,
+            isVoteFor
+                ? _proposals[proposalId].core.settings.rewardsInfo.voteForRewardsCoefficient
+                : _proposals[proposalId].core.settings.rewardsInfo.voteAgainstRewardsCoefficient
+        );
+
+        _micropoolInfos[msg.sender].updateRewards(
+            reward - micropoolReward,
+            isVoteFor
+                ? _proposals[proposalId].core.settings.rewardsInfo.voteForRewardsCoefficient
+                : _proposals[proposalId].core.settings.rewardsInfo.voteAgainstRewardsCoefficient,
+            _proposals[proposalId].core.settings.rewardsInfo.rewardToken
+        );
     }
 
     function withdraw(

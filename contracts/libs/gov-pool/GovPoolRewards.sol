@@ -34,7 +34,11 @@ library GovPoolRewards {
         address nftMultiplier = IGovPool(address(this)).nftMultiplier();
         uint256 amountToAdd = amount.ratio(coefficient, PRECISION);
 
-        if (nftMultiplier != address(0)) {
+        if (
+            rewardType != IGovPool.RewardType.VoteForDelegated &&
+            rewardType != IGovPool.RewardType.VoteAgainstDelegated &&
+            nftMultiplier != address(0)
+        ) {
             amountToAdd += IERC721Multiplier(nftMultiplier).getExtraRewards(
                 msg.sender,
                 amountToAdd
