@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 /**
  * The contract for the additional proposal with custom settings.
@@ -88,6 +88,7 @@ interface ITokenSaleProposal {
 
     /// @notice Purchase parameters. This struct is used in view functions as part of a return argument
     /// @param isClaimed the boolean indicating whether non-vesting tokens have been claimed or not
+    /// @param canClaim the boolean indication whether the user can claim non-vesting tokens
     /// @param claimUnlockTime the time the user can claim its non-vesting tokens
     /// @param claimTotalAmount the total amount of tokens to be claimed
     /// @param boughtTotalAmount the total amount of tokens user bought including vesting and non-vesting tokens
@@ -95,6 +96,7 @@ interface ITokenSaleProposal {
     /// @param purchaseTokenAmounts the list of purchase token amounts
     struct PurchaseView {
         bool isClaimed;
+        bool canClaim;
         uint64 claimUnlockTime;
         uint256 claimTotalAmount;
         uint256 boughtTotalAmount;
@@ -184,7 +186,7 @@ interface ITokenSaleProposal {
 
     /// @notice This function is used for tiers creation
     /// @param tiers parameters of tiers
-    function createTiers(TierView[] calldata tiers) external;
+    function createTiers(TierInitParams[] calldata tiers) external;
 
     /// @notice This function is used to add users to the whitelist of tier
     /// @param requests requests for adding users to the whitelist

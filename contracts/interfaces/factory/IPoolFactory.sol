@@ -72,7 +72,7 @@ interface IPoolFactory {
     /// @param whitelistParams whitelisted users (for participation in tiers)
     /// @param tokenParams parameters of the token
     struct GovTokenSaleProposalDeployParams {
-        ITokenSaleProposal.TierView[] tiersParams;
+        ITokenSaleProposal.TierInitParams[] tiersParams;
         ITokenSaleProposal.WhitelistingRequest[] whitelistParams;
         IERC20Sale.ConstructorParams tokenParams;
     }
