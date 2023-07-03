@@ -43,12 +43,14 @@ contract DistributionProposal is IDistributionProposal, Initializable {
         address token,
         uint256 amount
     ) external payable override onlyGov {
-        require(proposals[proposalId].rewardAddress == address(0), "DP: proposal already exists");
+        IDistributionProposal.DistributionProposalStruct storage proposal = proposals[proposalId];
+
+        require(proposal.rewardAddress == address(0), "DP: proposal already exists");
         require(token != address(0), "DP: zero address");
         require(amount > 0, "DP: zero amount");
 
-        proposals[proposalId].rewardAddress = token;
-        proposals[proposalId].rewardAmount = token == ETHEREUM_ADDRESS
+        proposal.rewardAddress = token;
+        proposal.rewardAmount = token == ETHEREUM_ADDRESS
             ? amount
             : amount.to18(ERC20(token).decimals());
     }
@@ -68,7 +70,7 @@ contract DistributionProposal is IDistributionProposal, Initializable {
 
             dpInfo.claimed[voter] = true;
 
-            rewardToken.sendFunds(voter, reward, false);
+            rewardToken.sendFunds(voter, reward);
 
             emit DistributionProposalClaimed(proposalIds[i], voter, reward);
         }

@@ -32,11 +32,11 @@ library GovPoolExecute {
 
         GovPool govPool = GovPool(payable(address(this)));
 
-        IGovPool.ProposalState propsalState = govPool.getProposalState(proposalId);
+        IGovPool.ProposalState proposalState = govPool.getProposalState(proposalId);
 
         require(
-            propsalState == IGovPool.ProposalState.SucceededFor ||
-                propsalState == IGovPool.ProposalState.SucceededAgainst,
+            proposalState == IGovPool.ProposalState.SucceededFor ||
+                proposalState == IGovPool.ProposalState.SucceededAgainst,
             "Gov: invalid status"
         );
         require(govPool.latestVoteBlocks(proposalId) < block.number, "Gov: wrong block");
@@ -56,7 +56,9 @@ library GovPoolExecute {
 
         IGovPool.ProposalAction[] storage actions = _proposalActionsResult(proposal);
 
-        for (uint256 i; i < actions.length; i++) {
+        uint256 actionsLength = actions.length;
+
+        for (uint256 i; i < actionsLength; i++) {
             (bool status, bytes memory returnedData) = actions[i].executor.call{
                 value: actions[i].value
             }(actions[i].data);
@@ -66,34 +68,25 @@ library GovPoolExecute {
 
         emit ProposalExecuted(proposalId, msg.sender);
 
-        _payCommission(core, validatorsVotingSucceeded, propsalState);
+        _payCommission(core, validatorsVotingSucceeded, proposalState);
     }
 
     function _payCommission(
         IGovPool.ProposalCore storage core,
         bool validatorsVotingSucceeded,
-        IGovPool.ProposalState propsalState
+        IGovPool.ProposalState proposalState
     ) internal {
-        IGovSettings.ProposalSettings storage settings = core.settings;
+        IGovSettings.RewardsInfo storage rewardsInfo = core.settings.rewardsInfo;
 
-        uint256 creationRewards = settings.rewardsInfo.creationReward *
-            (validatorsVotingSucceeded ? 2 : 1);
+        uint256 creationRewards = rewardsInfo.creationReward * (validatorsVotingSucceeded ? 2 : 1);
 
-        uint256 totalRewards = creationRewards +
-            settings.rewardsInfo.executionReward +
-            (
-                propsalState == IGovPool.ProposalState.SucceededFor
-                    ? core.votesFor.ratio(
-                        settings.rewardsInfo.voteForRewardsCoefficient,
-                        PRECISION
-                    )
-                    : core.votesAgainst.ratio(
-                        settings.rewardsInfo.voteAgainstRewardsCoefficient,
-                        PRECISION
-                    )
-            );
+        uint256 voteRewards = proposalState == IGovPool.ProposalState.SucceededFor
+            ? core.votesFor.ratio(rewardsInfo.voteForRewardsCoefficient, PRECISION)
+            : core.votesAgainst.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
 
-        settings.rewardsInfo.rewardToken.payCommission(totalRewards);
+        rewardsInfo.rewardToken.payCommission(
+            creationRewards + rewardsInfo.executionReward + voteRewards
+        );
     }
 
     function _proposalActionsResult(

@@ -42,7 +42,9 @@ library GovPoolCreate {
 
         uint256 proposalId = GovPool(payable(address(this))).latestProposalId();
 
-        proposals[proposalId].core = IGovPool.ProposalCore({
+        IGovPool.Proposal storage proposal = proposals[proposalId];
+
+        proposal.core = IGovPool.ProposalCore({
             settings: settings,
             executed: false,
             voteEnd: uint64(block.timestamp + settings.duration),
@@ -50,14 +52,14 @@ library GovPoolCreate {
             votesAgainst: 0,
             nftPowerSnapshotId: snapshotId
         });
-        proposals[proposalId].descriptionURL = _descriptionURL;
+        proposal.descriptionURL = _descriptionURL;
 
         for (uint256 i; i < actionsOnFor.length; i++) {
-            proposals[proposalId].actionsOnFor.push(actionsOnFor[i]);
+            proposal.actionsOnFor.push(actionsOnFor[i]);
         }
 
         for (uint256 i; i < actionsOnAgainst.length; i++) {
-            proposals[proposalId].actionsOnAgainst.push(actionsOnAgainst[i]);
+            proposal.actionsOnAgainst.push(actionsOnAgainst[i]);
         }
 
         _canCreate(settings, snapshotId);

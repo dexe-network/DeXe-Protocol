@@ -19,22 +19,31 @@ library TokenBalance {
         address token,
         address receiver,
         uint256 amount,
-        bool mintIfNotAnought
+        bool mintIfNotEnough
     ) internal {
         if (token == ETHEREUM_ADDRESS) {
             (bool status, ) = payable(receiver).call{value: amount}("");
+
             require(status, "Gov: failed to send eth");
         } else {
-            if (mintIfNotAnought) {
+            amount = amount.from18(ERC20(token).decimals());
+
+            if (mintIfNotEnough) {
                 uint256 balance = IERC20(token).balanceOf(address(this));
+
                 if (balance < amount) {
                     try IERC20Sale(token).mint(address(this), amount - balance) {} catch {
                         revert("Gov: failed to mint tokens");
                     }
                 }
             }
-            IERC20(token).safeTransfer(receiver, amount.from18(ERC20(token).decimals()));
+
+            IERC20(token).safeTransfer(receiver, amount);
         }
+    }
+
+    function sendFunds(address token, address receiver, uint256 amount) internal {
+        sendFunds(token, receiver, amount, false);
     }
 
     function thisBalance(address token) internal view returns (uint256) {

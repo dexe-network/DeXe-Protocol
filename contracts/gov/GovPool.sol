@@ -225,14 +225,19 @@ contract GovPool is
             isVoteFor
         );
 
+        IGovSettings.RewardsInfo storage rewardsInfo = _proposals[proposalId]
+            .core
+            .settings
+            .rewardsInfo;
+
         _pendingRewards.updateRewards(
             _proposals,
             proposalId,
             isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst,
             reward,
             isVoteFor
-                ? _proposals[proposalId].core.settings.rewardsInfo.voteForRewardsCoefficient
-                : _proposals[proposalId].core.settings.rewardsInfo.voteAgainstRewardsCoefficient
+                ? rewardsInfo.voteForRewardsCoefficient
+                : rewardsInfo.voteAgainstRewardsCoefficient
         );
     }
 
@@ -255,22 +260,27 @@ contract GovPool is
 
         uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
 
+        IGovSettings.RewardsInfo storage rewardsInfo = _proposals[proposalId]
+            .core
+            .settings
+            .rewardsInfo;
+
+        uint256 coefficient = isVoteFor
+            ? rewardsInfo.voteForRewardsCoefficient
+            : rewardsInfo.voteAgainstRewardsCoefficient;
+
         _pendingRewards.updateRewards(
             _proposals,
             proposalId,
             isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
             micropoolReward,
-            isVoteFor
-                ? _proposals[proposalId].core.settings.rewardsInfo.voteForRewardsCoefficient
-                : _proposals[proposalId].core.settings.rewardsInfo.voteAgainstRewardsCoefficient
+            coefficient
         );
 
         _micropoolInfos[msg.sender].updateRewards(
             reward - micropoolReward,
-            isVoteFor
-                ? _proposals[proposalId].core.settings.rewardsInfo.voteForRewardsCoefficient
-                : _proposals[proposalId].core.settings.rewardsInfo.voteAgainstRewardsCoefficient,
-            _proposals[proposalId].core.settings.rewardsInfo.rewardToken
+            coefficient,
+            rewardsInfo.rewardToken
         );
     }
 
@@ -480,12 +490,10 @@ contract GovPool is
         address voter,
         bool isMicropool
     ) external view override returns (uint256, uint256, uint256, uint256) {
-        return (
-            _proposals[proposalId].core.votesFor,
-            _proposals[proposalId].core.votesAgainst,
-            _voteInfos[proposalId][voter][isMicropool].totalVotedFor,
-            _voteInfos[proposalId][voter][isMicropool].totalVotedAgainst
-        );
+        IGovPool.ProposalCore storage core = _proposals[proposalId].core;
+        IGovPool.VoteInfo storage info = _voteInfos[proposalId][voter][isMicropool];
+
+        return (core.votesFor, core.votesAgainst, info.totalVotedFor, info.totalVotedAgainst);
     }
 
     function getUserVotes(
