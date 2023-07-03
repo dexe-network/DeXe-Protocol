@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+
 /**
  * The contract for the additional proposal with custom settings.
  * This contract acts as a marketplace to provide DAO pools with the ability to sell their own ERC20 tokens.
@@ -26,22 +28,24 @@ interface ITokenSaleProposal {
         uint64 unlockStep;
     }
 
-    /// @notice Initial tier parameters. This struct is used to create a new tier and as a return argument in contract view functions
+    /// @notice Initial tier parameters
     /// @param metadata metadata of the tier (see TierMetadata)
     /// @param totalTokenProvided total supply of tokens provided for the tier
     /// @param saleStartTime start time of token sales
     /// @param saleEndTime end time of token sales
+    /// @param claimLockDuration the period of time between the end of the token sale and the non-vesting tokens claiming
     /// @param saleTokenAddress address of the token being sold
     /// @param purchaseTokenAddresses tokens, that can be used for purchasing token of the proposal
     /// @param exchangeRates exchange rates of other tokens to the token of TokenSaleProposal
     /// @param minAllocationPerUser minimal allocation of tokens per one user
     /// @param maxAllocationPerUser maximal allocation of tokens per one user
     /// @param vestingSettings settings for managing tokens vesting (unlocking). While tokens are locked investors won`t be able to withdraw them
-    struct TierView {
+    struct TierInitParams {
         TierMetadata metadata;
         uint256 totalTokenProvided;
         uint64 saleStartTime;
         uint64 saleEndTime;
+        uint64 claimLockDuration;
         address saleTokenAddress;
         address[] purchaseTokenAddresses;
         uint256[] exchangeRates;
@@ -50,73 +54,117 @@ interface ITokenSaleProposal {
         VestingSettings vestingSettings;
     }
 
-    /// @notice Dynamic tier parameters. This struct is used in view functions of contract as a return argument
+    /// @notice Vesting tier-related parameters. This struct is used in view functions of contract as a return argument
+    /// @param vestingStartTime the start time of the vesting when the cliff period ends
+    /// @param vestingEndTime the end time of the vesting
+    struct VestingTierInfo {
+        uint64 vestingStartTime;
+        uint64 vestingEndTime;
+    }
+
+    /// @notice Dynamic tier parameters
     /// @param isOff whether the tier is off
     /// @param whitelisted true if the tier has at least one user in its whitelist, false otherwise
     /// @param totalSold how many tokens were sold
     /// @param uri whitelist uri
-    struct TierInfoView {
+    /// @param vestingTierInfo vesting tier-related params
+    struct TierInfo {
         bool isOff;
         bool whitelisted;
         uint256 totalSold;
         string uri;
+        VestingTierInfo vestingTierInfo;
     }
 
-    /// @notice Purchase parameters. This struct is used in view functions of contract as a return argument
-    /// @param purchaseTime the time of the purchase
-    /// @param latestVestingWithdraw the last time the buyer made a vesting withdrawal
-    /// @param vestingTotalAmount the token amount allocated for vesting
-    /// @param vestingWithdrawnAmount the token amount withdrawn by the user
-    struct Purchase {
-        uint64 purchaseTime;
+    /// @notice Purchase parameters
+    /// @param spentAmounts matching purchase token addresses with spent amounts
+    /// @param claimTotalAmount the total amount to be claimed
+    /// @param isClaimed the boolean indicating whether the purchase has been claimed or not
+    struct PurchaseInfo {
+        EnumerableMap.AddressToUintMap spentAmounts;
+        uint256 claimTotalAmount;
+        bool isClaimed;
+    }
+
+    /// @notice Purchase parameters. This struct is used in view functions as part of a return argument
+    /// @param isClaimed the boolean indicating whether non-vesting tokens have been claimed or not
+    /// @param claimUnlockTime the time the user can claim its non-vesting tokens
+    /// @param claimTotalAmount the total amount of tokens to be claimed
+    /// @param boughtTotalAmount the total amount of tokens user bought including vesting and non-vesting tokens
+    /// @param purchaseTokenAddresses the list of purchase token addresses
+    /// @param purchaseTokenAmounts the list of purchase token amounts
+    struct PurchaseView {
+        bool isClaimed;
+        uint64 claimUnlockTime;
+        uint256 claimTotalAmount;
+        uint256 boughtTotalAmount;
+        address[] purchaseTokenAddresses;
+        uint256[] purchaseTokenAmounts;
+    }
+
+    /// @notice Vesting user-related parameters
+    /// @param latestVestingWithdraw the latest timestamp of the vesting withdrawal
+    /// @param vestingTotalAmount the total amount of user vesting tokens
+    /// @param vestingWithdrawnAmount the total amount of tokens user has withdrawn from vesting
+    struct VestingUserInfo {
         uint64 latestVestingWithdraw;
-        address tokenBoughtWith;
-        uint256 amountBought;
         uint256 vestingTotalAmount;
         uint256 vestingWithdrawnAmount;
     }
 
-    /// @notice Vesting dynamic parameters. This struct is used in view functions of contract as a return argument
-    /// @param cliffEndTime the end time of the cliff period
-    /// @param vestingEndTime the end time of the vesting
+    /// @notice Vesting user-related parameters. This struct is used in view functions as part of a return argument
+    /// @param latestVestingWithdraw the latest timestamp of the vesting withdrawal
     /// @param nextUnlockTime the next time the user will receive vesting funds. It is zero if there are no more locked tokens
     /// @param nextUnlockAmount the token amount which will be unlocked in the next unlock time
-    /// @param amountToWithdraw the token amount which can be withdrawn in the current time
-    /// @param lockedAmount the token amount which is locked in the current time
-    struct VestingView {
-        uint64 cliffEndTime;
-        uint64 vestingEndTime;
+    /// @param vestingTotalAmount the total amount of user vesting tokens
+    /// @param vestingWithdrawnAmount the total amount of tokens user has withdrawn from vesting
+    /// @param amountToWithdraw the vesting token amount which can be withdrawn in the current time
+    /// @param lockedAmount the vesting token amount which is locked in the current time
+    struct VestingUserView {
+        uint64 latestVestingWithdraw;
         uint64 nextUnlockTime;
         uint256 nextUnlockAmount;
+        uint256 vestingTotalAmount;
+        uint256 vestingWithdrawnAmount;
         uint256 amountToWithdraw;
         uint256 lockedAmount;
     }
 
-    /// @notice User parameters. This struct is used in view functions of contract as a return argument
-    /// @param canParticipate true if the user is whitelisted in the corresponding tier, false otherwise
-    /// @param purchase user purchase parameters in the corresponding tier
-    /// @param vestingView user vesting parameters in the corresponding tier
+    /// @notice User parameters
+    /// @param purchaseInfo the information about the user purchase
+    /// @param vestingUserInfo the information about the user vesting
     struct UserInfo {
+        PurchaseInfo purchaseInfo;
+        VestingUserInfo vestingUserInfo;
+    }
+
+    /// @notice User parameters. This struct is used in view functions as a return argument
+    /// @param canParticipate the boolean indicating whether the user is whitelisted in the corresponding tier
+    /// @param purchaseInfo the information about the user purchase
+    /// @param vestingUserInfo the information about the user vesting
+    struct UserView {
         bool canParticipate;
-        Purchase purchase;
-        VestingView vestingView;
+        PurchaseView purchaseView;
+        VestingUserView vestingUserView;
     }
 
-    /// @notice Additional tier parameters (only for internal needs)
-    /// @param tierInfoView dynamic tier parameters
-    /// @param rates matching purchase token addresses with their exchange rates
-    /// @param customers matching customers with their purchase parameters (each customer can make only one purchase)
-    struct TierInfo {
-        TierInfoView tierInfoView;
-        mapping(address => uint256) rates;
-        mapping(address => Purchase) customers;
-    }
-
-    /// @notice All tier parameters (only for internal needs)
-    /// @param tierView initial tier parameters
-    /// @param tierInfo dynamic tier parameters
+    /// @notice Tier parameters
+    /// @param tierInitParams the initial tier parameters
+    /// @param tierInfo the information about the tier
+    /// @param rates the mapping of token addresses to their exchange rates
+    /// @param users the mapping of user addresses to their infos
     struct Tier {
-        TierView tierView;
+        TierInitParams tierInitParams;
+        TierInfo tierInfo;
+        mapping(address => uint256) rates;
+        mapping(address => UserInfo) users;
+    }
+
+    /// @notice Tier parameters. This struct is used in view functions as a return argument
+    /// @param tierInitParams the initial tier parameters
+    /// @param tierInfo the information about the tier
+    struct TierView {
+        TierInitParams tierInitParams;
         TierInfo tierInfo;
     }
 
@@ -194,17 +242,17 @@ interface ITokenSaleProposal {
     /// @param limit the limit for amount of elements in the list
     /// @return tierViews the list of initial tier parameters
     /// @return tierInfoViews the list of dynamic tier parameters
-    function getTiers(
+    function getTierViews(
         uint256 offset,
         uint256 limit
-    ) external view returns (TierView[] memory tierViews, TierInfoView[] memory tierInfoViews);
+    ) external view returns (TierView[] memory tierViews);
 
     /// @notice This function is used to get user's infos from tiers
     /// @param user the address of the user whose infos are required
     /// @param tierIds the list of tier ids to get infos from
     /// @return userInfos the list of user infos
-    function getUserInfos(
+    function getUserViews(
         address user,
         uint256[] calldata tierIds
-    ) external view returns (UserInfo[] memory userInfos);
+    ) external view returns (UserView[] memory userViews);
 }
