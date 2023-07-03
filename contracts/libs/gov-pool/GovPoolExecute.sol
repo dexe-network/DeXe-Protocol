@@ -33,32 +33,31 @@ library GovPoolExecute {
         GovPool govPool = GovPool(payable(address(this)));
 
         require(
-            govPool.getProposalState(proposalId) == IGovPool.ProposalState.Succeeded,
+            govPool.getProposalState(proposalId) == IGovPool.ProposalState.SucceededFor ||
+                govPool.getProposalState(proposalId) == IGovPool.ProposalState.SucceededAgainst,
             "Gov: invalid status"
         );
         require(govPool.latestVoteBlocks(proposalId) < block.number, "Gov: wrong block");
 
         core.executed = true;
 
-        (, , address govValidators, ) = GovPool(payable(address(this))).getHelperContracts();
+        (, , address govValidatorsAddress, ) = GovPool(payable(address(this)))
+            .getHelperContracts();
+        IGovValidators govValidators = IGovValidators(govValidatorsAddress);
 
-        bool validatorsVotingSucceeded = IGovValidators(govValidators).getProposalState(
-            proposalId,
-            false
-        ) == IGovValidators.ProposalState.Succeeded;
+        IGovValidators.ProposalState state = govValidators.getProposalState(proposalId, false);
+        bool validatorsVotingSucceeded = state == IGovValidators.ProposalState.Succeeded;
 
         if (validatorsVotingSucceeded) {
-            IGovValidators(govValidators).executeExternalProposal(proposalId);
+            govValidators.executeExternalProposal(proposalId);
         }
 
-        address[] memory executors = proposal.executors;
-        uint256[] memory values = proposal.values;
-        bytes[] memory data = proposal.data;
+        IGovPool.ProposalAction[] storage actions = _proposalActionsResult(proposal);
 
-        for (uint256 i; i < data.length; i++) {
-            (bool status, bytes memory returnedData) = executors[i].call{value: values[i]}(
-                data[i]
-            );
+        for (uint256 i; i < actions.length; i++) {
+            (bool status, bytes memory returnedData) = actions[i].executor.call{
+                value: actions[i].value
+            }(actions[i].data);
 
             require(status, returnedData.getRevertMsg());
         }
@@ -81,5 +80,14 @@ library GovPoolExecute {
             core.votesFor.ratio(settings.voteRewardsCoefficient, PRECISION);
 
         settings.rewardToken.payCommission(totalRewards);
+    }
+
+    function _proposalActionsResult(
+        IGovPool.Proposal storage proposal
+    ) internal view returns (IGovPool.ProposalAction[] storage) {
+        IGovPool.ProposalCore storage core = proposal.core;
+
+        return
+            core.votesFor > core.votesAgainst ? proposal.actionsOnFor : proposal.actionsOnAgainst;
     }
 }

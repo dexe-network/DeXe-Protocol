@@ -9,7 +9,7 @@ function investInitial(
     uint256[] calldata amounts,
     address[] calldata tokens,
     uint256 minLPOut
-) external;
+) public virtual onlyTraderAdmin onlyBABTHolder;
 ```
 
 ❗ The function will only work if there are no investors in the pool. The tokens will be taken from the trader's wallet.

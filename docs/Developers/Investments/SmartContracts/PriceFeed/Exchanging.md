@@ -1,4 +1,5 @@
-# PriceFeed 
+# PriceFeed
+
 ## 🔄 Exchanging
 
 ### exchangeFromExact
@@ -12,8 +13,9 @@ function exchangeFromExact(
     uint256 amountIn,
     address[] memory optionalPath,
     uint256 minAmountOut
-) external returns (uint256) 
+) public virtual returns (uint256) 
 ```
+
 - ***inToken*** - the token to be exchanged from
 - ***outToken*** - the token to be exchanged to
 - ***amountIn*** - the amount of `inToken` tokens to be exchanged
@@ -23,7 +25,7 @@ function exchangeFromExact(
 
 ***minAmountOut*** serves as a sandwich attack protection mechanism. Function ***`getExchangeFromExactAmount()`*** is used to get this parameter. You also need to consider `slippage`:
 
-`minAmountOut` = ⌊ `getExchangeFromExactAmount` * (*100%* - `slippage`) ⌋
+`minAmountOut` = ⌊ `getExchangeFromExactAmount` *(*100%* - `slippage`) ⌋
 
 ### exchangeToExact
 
@@ -36,8 +38,9 @@ function exchangeToExact(
     uint256 amountOut,
     address[] calldata optionalPath,
     uint256 maxAmountIn
-) external returns (uint256);
+) public virtual returns (uint256);
 ```
+
 - ***inToken*** - the token to be exchanged from
 - ***outToken*** - the token to be exchanged to
 - ***amountOut*** - the amount of outToken tokens to be exchanged
@@ -47,4 +50,4 @@ function exchangeToExact(
 
 ***maxAmountIn*** serves as a sandwich attack protection mechanism. Function ***`getExchangeToExactAmount()`*** is used to get this parameter. You also need to consider `slippage`:
 
-`maxAmountIn` = ⌈ `getExchangeToExactAmount` * (*100%* + `slippage`) ⌉
+`maxAmountIn` = ⌈ `getExchangeToExactAmount` *(*100%* + `slippage`) ⌉

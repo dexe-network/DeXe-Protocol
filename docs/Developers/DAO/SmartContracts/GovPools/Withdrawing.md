@@ -7,7 +7,7 @@ function withdraw(
     address receiver,
     uint256 amount,
     uint256[] calldata nftIds
-) external;
+) external onlyBABTHolder;
 ```
 
 - ***receiver*** - the withdrawal receiver address

@@ -6,11 +6,11 @@ Function ***`changeProposalRestrictions()`*** is used for proposal modification.
 function changeProposalRestrictions(
     uint256 proposalId,
     ProposalLimits calldata proposalLimits
-) external onlyTraderAdmin;
+) external onlyTraderAdmin onlyTraderAdmin onlyBABTHolder;
 ```
+
 - ***proposalId*** - the id of the proposal to change
 - ***proposalLimits*** - the new limits for this proposal in form of `ProposalLimits`
-
 
 ```solidity
 struct ProposalLimits {
@@ -19,6 +19,7 @@ struct ProposalLimits {
     uint256 maxTokenPriceLimit;
 }
 ```
+
 - ***timestampLimit*** - the timestamp after which the proposal will close for the investments
 - ***investLPLimit*** - the maximal invested amount of **LP** tokens after which the proposal will close
 - ***maxTokenPriceLimit*** - the maximal price of the proposal token to the base token after which the investment into the proposal closes

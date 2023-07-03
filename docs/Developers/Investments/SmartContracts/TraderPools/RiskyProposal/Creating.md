@@ -12,6 +12,7 @@ Function ***`createProposal()`*** on the `BasicTraderPool` is used to create a r
 
 ```solidity
 function createProposal(
+    string calldata descriptionURL,
     address token,
     uint256 lpAmount,
     ITraderPoolRiskyProposal.ProposalLimits calldata proposalLimits,
@@ -19,8 +20,10 @@ function createProposal(
     uint256[] calldata minDivestOut,
     uint256 minProposalOut,
     address[] calldata optionalPath
-) external;
+) external nonReentrant onlyTrader onlyBABTHolder;
 ```
+
+- ***descriptionURL*** - the IPFS URL of the description document
 - ***token*** - the token the proposal will be opened to
 - ***lpAmount*** - the amount of **LP** tokens the trader would like to invest into the proposal at its creation
 - ***proposalLimits*** - the certain limits this proposal will have
@@ -37,13 +40,14 @@ To fetch ***minDivestOut*** parameters the function ***`getDivestAmountsAndCommi
 function getDivestAmountsAndCommissions(
     address user,
     uint256 amountLP
-) external returns (Receptions memory receptions, Commissions memory commissions);
+) external view returns (Receptions memory receptions, Commissions memory commissions);
 ```
+
 - ***user*** -  the address of the user who is going to invest in the risky proposal
 - ***amountLP*** - the amount of **LP** tokens the user is willing to invest
 - **returns** **->**
-    - ***receptions***  - the tokens that the user will receive
-    - ***commissions*** - can be ignored
+  - ***receptions***  - the tokens that the user will receive
+  - ***commissions*** - can be ignored
 
 To fetch ***minProposalOut*** parameters the function ***`getCreationTokens()`*** is used.
 
@@ -53,20 +57,21 @@ function getCreationTokens(
     uint256 baseInvestment,
     uint256 instantTradePercentage,
     address[] calldata optionalPath
-) external returns (
+) external view returns (
     uint256 positionTokens, 
     uint256 positionTokenPrice, 
     address[] memory path
 );
 ```
+
 - ***token*** - the address of the proposal token
 - ***baseInvestment*** - the amount of base tokens invested right away
 - ***instantTradePercentage*** - the percentage of tokens that will be traded instantly to a token
 - ***optionalPath*** - the path between the base token and the position token that will be used by the on-chain pathfinder
-- **returns** **->** 
-    - ***positionTokens*** - the amount of position tokens received upon creation
-    - ***positionTokenPrice*** - the price of a proposal token in the base tokens
-    - ***path*** - the path between the tokens that will be used in the swap
+- **returns** **->**
+  - ***positionTokens*** - the amount of position tokens received upon creation
+  - ***positionTokenPrice*** - the price of a proposal token in the base tokens
+  - ***path*** - the path between the tokens that will be used in the swap
 
 When a proposal is created, a trader partially closes positions in the main pool and opens a proposal position.
 
@@ -75,5 +80,5 @@ Function ***`getDivestAmountsAndCommissions()`*** on `TraderPool` is used to rec
 Function ***`proposalPoolAddress()`*** on `BasicTraderPool` is used to get the address of the proposal pool.
 
 ```solidity
-function proposalPoolAddress() external returns (address);
+function proposalPoolAddress() external view returns (address);
 ```

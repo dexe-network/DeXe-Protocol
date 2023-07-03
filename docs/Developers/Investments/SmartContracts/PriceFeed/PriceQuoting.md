@@ -8,16 +8,16 @@ function getExtendedPriceIn(
     address outToken,
     uint256 amountOut,
     address[] memory optionalPath
-) external
-  returns (uint256 amountIn, address[] memory path);
+) public view virtual returns (uint256 amountIn, address[] memory path);
 ```
+
 - ***inToken*** - the token to exchange from
 - ***outToken*** - the received token
 - ***amountOut*** - the amount of `outToken` to be received (in `inToken` decimals)
 - ***optionalPath*** - the optional path between `inToken` and `outToken` that will be used in the pathfinder
 - **returns** **->**
-    - **amountIn** - amount of `inToken` to execute a swap (in `outToken` decimals)
-    - **path** - the tokens path that will be used during the swap
+  - **amountIn** - amount of `inToken` to execute a swap (in `outToken` decimals)
+  - **path** - the tokens path that will be used during the swap
 
 #
 
@@ -29,7 +29,7 @@ function getExtendedPriceOut(
     address outToken,
     uint256 amountIn,
     address[] memory optionalPath
-) external returns (uint256 amountOut, address[] memory path);
+) public view virtual returns (uint256 amountOut, address[] memory path);
 ```
 
 - ***inToken*** - the token to exchange from
@@ -37,5 +37,5 @@ function getExtendedPriceOut(
 - ***amountIn*** - the amount of `inToken` to be exchanged (in `inToken` decimals)
 - ***optionalPath*** - the optional path between `inToken` and `outToken` that will be used in the pathfinder
 - **returns** **->**
-    - **amountOut** - amount of `outToken` after the swap (in `outToken` decimals)
-    - **path** - the tokens path that will be used during the swap
+  - **amountOut** - amount of `outToken` after the swap (in `outToken` decimals)
+  - **path** - the tokens path that will be used during the swap

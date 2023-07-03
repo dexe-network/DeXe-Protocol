@@ -31,38 +31,34 @@ library GovPoolCreate {
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         string calldata _descriptionURL,
         string calldata misc,
-        address[] calldata executors,
-        uint256[] calldata values,
-        bytes[] calldata data
+        IGovPool.ProposalAction[] calldata actionsOnFor,
+        IGovPool.ProposalAction[] calldata actionsOnAgainst
     ) external {
-        require(
-            executors.length > 0 &&
-                executors.length == values.length &&
-                executors.length == data.length,
-            "Gov: invalid array length"
-        );
-
         (
             IGovSettings.ProposalSettings memory settings,
             uint256 settingsId,
             uint256 snapshotId
-        ) = _validateProposal(executors, values, data);
+        ) = _validateProposal(actionsOnFor, actionsOnAgainst);
 
         uint256 proposalId = GovPool(payable(address(this))).latestProposalId();
 
-        proposals[proposalId] = IGovPool.Proposal({
-            core: IGovPool.ProposalCore({
-                settings: settings,
-                executed: false,
-                voteEnd: uint64(block.timestamp + settings.duration),
-                votesFor: 0,
-                nftPowerSnapshotId: snapshotId
-            }),
-            descriptionURL: _descriptionURL,
-            executors: executors,
-            values: values,
-            data: data
+        proposals[proposalId].core = IGovPool.ProposalCore({
+            settings: settings,
+            executed: false,
+            voteEnd: uint64(block.timestamp + settings.duration),
+            votesFor: 0,
+            votesAgainst: 0,
+            nftPowerSnapshotId: snapshotId
         });
+        proposals[proposalId].descriptionURL = _descriptionURL;
+
+        for (uint256 i; i < actionsOnFor.length; i++) {
+            proposals[proposalId].actionsOnFor.push(actionsOnFor[i]);
+        }
+
+        for (uint256 i; i < actionsOnAgainst.length; i++) {
+            proposals[proposalId].actionsOnAgainst.push(actionsOnAgainst[i]);
+        }
 
         _canCreate(settings, snapshotId);
 
@@ -97,6 +93,73 @@ library GovPoolCreate {
         );
     }
 
+    function _validateProposal(
+        IGovPool.ProposalAction[] calldata actionsFor,
+        IGovPool.ProposalAction[] calldata actionsAgainst
+    )
+        internal
+        returns (
+            IGovSettings.ProposalSettings memory settings,
+            uint256 settingsId,
+            uint256 snapshotId
+        )
+    {
+        require(actionsFor.length != 0, "Gov: invalid array length");
+
+        (address govSettingsAddress, address userKeeper, , ) = IGovPool(address(this))
+            .getHelperContracts();
+
+        IGovSettings govSettings = IGovSettings(govSettingsAddress);
+
+        address mainExecutor = actionsFor[actionsFor.length - 1].executor;
+        settingsId = govSettings.executorToSettings(mainExecutor);
+
+        bool forceDefaultSettings = _handleDataForProposal(settingsId, govSettings, actionsFor);
+
+        if (actionsAgainst.length != 0) {
+            forceDefaultSettings =
+                _handleDataForProposal(settingsId, govSettings, actionsAgainst) ||
+                forceDefaultSettings ||
+                settingsId !=
+                govSettings.executorToSettings(actionsAgainst[actionsAgainst.length - 1].executor);
+        }
+
+        if (forceDefaultSettings) {
+            settingsId = uint256(IGovSettings.ExecutorType.DEFAULT);
+            settings = govSettings.getDefaultSettings();
+        } else {
+            settings = govSettings.getExecutorSettings(mainExecutor);
+        }
+
+        snapshotId = IGovUserKeeper(userKeeper).createNftPowerSnapshot();
+    }
+
+    function _handleDataForDistributionProposal(
+        IGovPool.ProposalAction[] calldata actions
+    ) internal {
+        (uint256 decodedId, address token, uint256 amount) = abi.decode(
+            actions[actions.length - 1].data[4:],
+            (uint256, address, uint256)
+        );
+
+        require(
+            decodedId == GovPool(payable(address(this))).latestProposalId(),
+            "Gov: invalid proposalId"
+        );
+
+        for (uint256 i; i < actions.length - 1; i++) {
+            bytes4 selector = actions[i].data.getSelector();
+
+            require(
+                actions[i].value == 0 &&
+                    (selector == IERC20.approve.selector || selector == IERC20.transfer.selector),
+                "Gov: invalid internal data"
+            );
+        }
+
+        emit DPCreated(decodedId, msg.sender, token, amount);
+    }
+
     function _canCreate(
         IGovSettings.ProposalSettings memory settings,
         uint256 snapshotId
@@ -114,58 +177,16 @@ library GovPoolCreate {
         );
     }
 
-    function _validateProposal(
-        address[] calldata executors,
-        uint256[] calldata values,
-        bytes[] calldata data
-    )
-        internal
-        returns (
-            IGovSettings.ProposalSettings memory settings,
-            uint256 settingsId,
-            uint256 snapshotId
-        )
-    {
-        (address govSettings, address userKeeper, , ) = IGovPool(address(this))
-            .getHelperContracts();
-
-        address mainExecutor = executors[executors.length - 1];
-        settingsId = IGovSettings(govSettings).executorToSettings(mainExecutor);
-
-        bool forceDefaultSettings;
-
-        if (settingsId == uint256(IGovSettings.ExecutorType.INTERNAL)) {
-            _handleDataForInternalProposal(govSettings, executors, values, data);
-        } else if (settingsId == uint256(IGovSettings.ExecutorType.VALIDATORS)) {
-            _handleDataForValidatorBalanceProposal(executors, values, data);
-        } else if (settingsId == uint256(IGovSettings.ExecutorType.DISTRIBUTION)) {
-            _handleDataForDistributionProposal(values, data);
-        } else if (settingsId != uint256(IGovSettings.ExecutorType.DEFAULT)) {
-            forceDefaultSettings = _handleDataForExistingSettingsProposal(values, data);
-        }
-
-        if (forceDefaultSettings) {
-            settingsId = uint256(IGovSettings.ExecutorType.DEFAULT);
-            settings = IGovSettings(govSettings).getDefaultSettings();
-        } else {
-            settings = IGovSettings(govSettings).getExecutorSettings(mainExecutor);
-        }
-
-        snapshotId = IGovUserKeeper(userKeeper).createNftPowerSnapshot();
-    }
-
     function _handleDataForInternalProposal(
-        address govSettings,
-        address[] calldata executors,
-        uint256[] calldata values,
-        bytes[] calldata data
+        IGovSettings govSettings,
+        IGovPool.ProposalAction[] calldata actions
     ) internal view {
-        for (uint256 i; i < data.length; i++) {
-            bytes4 selector = data[i].getSelector();
-            uint256 executorSettings = IGovSettings(govSettings).executorToSettings(executors[i]);
+        for (uint256 i; i < actions.length; i++) {
+            bytes4 selector = actions[i].data.getSelector();
+            uint256 executorSettings = govSettings.executorToSettings(actions[i].executor);
 
             require(
-                values[i] == 0 &&
+                actions[i].value == 0 &&
                     executorSettings == uint256(IGovSettings.ExecutorType.INTERNAL) &&
                     (selector == IGovSettings.addSettings.selector ||
                         selector == IGovSettings.editSettings.selector ||
@@ -181,57 +202,53 @@ library GovPoolCreate {
         }
     }
 
-    function _handleDataForValidatorBalanceProposal(
-        address[] calldata executors,
-        uint256[] calldata values,
-        bytes[] calldata data
-    ) internal pure {
-        require(executors.length == 1, "Gov: invalid executors length");
+    function _handleDataForProposal(
+        uint256 settingsId,
+        IGovSettings govSettings,
+        IGovPool.ProposalAction[] calldata actions
+    ) internal returns (bool) {
+        if (settingsId == uint256(IGovSettings.ExecutorType.INTERNAL)) {
+            _handleDataForInternalProposal(govSettings, actions);
+            return false;
+        }
+        if (settingsId == uint256(IGovSettings.ExecutorType.VALIDATORS)) {
+            _handleDataForValidatorBalanceProposal(actions);
+            return false;
+        }
+        if (settingsId == uint256(IGovSettings.ExecutorType.DISTRIBUTION)) {
+            _handleDataForDistributionProposal(actions);
+            return false;
+        }
+        if (settingsId == uint256(IGovSettings.ExecutorType.DEFAULT)) {
+            return false;
+        }
 
-        bytes4 selector = data[0].getSelector();
-
-        require(
-            values[0] == 0 && (selector == IGovValidators.changeBalances.selector),
-            "Gov: invalid internal data"
-        );
+        return _handleDataForExistingSettingsProposal(actions);
     }
 
-    function _handleDataForDistributionProposal(
-        uint256[] calldata values,
-        bytes[] calldata data
-    ) internal {
-        (uint256 decodedId, address token, uint256 amount) = abi.decode(
-            data[data.length - 1][4:],
-            (uint256, address, uint256)
-        );
+    function _handleDataForValidatorBalanceProposal(
+        IGovPool.ProposalAction[] calldata actions
+    ) internal pure {
+        require(actions.length == 1, "Gov: invalid executors length");
 
-        require(
-            decodedId == GovPool(payable(address(this))).latestProposalId(),
-            "Gov: invalid proposalId"
-        );
-
-        for (uint256 i; i < data.length - 1; i++) {
-            bytes4 selector = data[i].getSelector();
+        for (uint256 i; i < actions.length; i++) {
+            bytes4 selector = actions[i].data.getSelector();
 
             require(
-                values[i] == 0 &&
-                    (selector == IERC20.approve.selector || selector == IERC20.transfer.selector),
+                actions[i].value == 0 && (selector == IGovValidators.changeBalances.selector),
                 "Gov: invalid internal data"
             );
         }
-
-        emit DPCreated(decodedId, msg.sender, token, amount);
     }
 
     function _handleDataForExistingSettingsProposal(
-        uint256[] calldata values,
-        bytes[] calldata data
+        IGovPool.ProposalAction[] calldata actions
     ) internal pure returns (bool) {
-        for (uint256 i; i < data.length - 1; i++) {
-            bytes4 selector = data[i].getSelector();
+        for (uint256 i; i < actions.length - 1; i++) {
+            bytes4 selector = actions[i].data.getSelector();
 
             if (
-                values[i] != 0 ||
+                actions[i].value != 0 ||
                 (selector != IERC20.approve.selector && // same as selector != IERC721.approve.selector
                     selector != IERC721.setApprovalForAll.selector) // same as IERC1155.setApprovalForAll.selector
             ) {

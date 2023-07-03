@@ -18,7 +18,8 @@ interface IGovPool {
         WaitingForVotingTransfer,
         ValidatorVoting,
         Defeated,
-        Succeeded,
+        SucceededFor,
+        SucceededAgainst,
         Executed,
         Undefined
     }
@@ -36,27 +37,37 @@ interface IGovPool {
     /// @param executed the boolean flag that sets to true when the proposal gets executed
     /// @param voteEnd the timestamp of voting end for the proposal
     /// @param votesFor the total number votes for proposal from all voters
+    /// @param votesAgainst the total number votes against proposal from all voters
     /// @param nftPowerSnapshotId the id of nft power snapshot
     struct ProposalCore {
         IGovSettings.ProposalSettings settings;
         bool executed;
         uint64 voteEnd;
         uint256 votesFor;
+        uint256 votesAgainst;
         uint256 nftPowerSnapshotId;
+    }
+
+    /// @notice The struct holds information about proposal action
+    /// @param executor the addresse of call's target, bounded by index with `value` and `data`
+    /// @param value the eth value for call, bounded by index with `executor` and `data`
+    /// @param data the of call data, bounded by index with `executor` and `value`
+    struct ProposalAction {
+        address executor;
+        uint256 value;
+        bytes data;
     }
 
     /// @notice The struct holds all information about proposal
     /// @param core the struct that holds information about core properties of proposal
     /// @param descriptionURL the string with link to IPFS doc with proposal description
-    /// @param executors the array with addresses of call's targets, bounded by index with `values` and `data` arrays
-    /// @param values the array of eth value for calls, bounded by index with `executors` and `data` arrays
-    /// @param data the array of call data, bounded by index with `executors` and `values` arrays
+    /// @param actionsOnFor the array of structs with information about actions on for step
+    /// @param actionsOnAgainst the array of structs with information about actions on against step
     struct Proposal {
         ProposalCore core;
         string descriptionURL;
-        address[] executors;
-        uint256[] values;
-        bytes[] data;
+        ProposalAction[] actionsOnFor;
+        ProposalAction[] actionsOnAgainst;
     }
 
     /// @notice The struct that is used in view functions of contract as a return argument
@@ -78,9 +89,12 @@ interface IGovPool {
     /// @param tokensVoted the total erc20 amount voted from one user for the proposal
     /// @param nftsVoted the set of ids of nfts voted from one user for the  proposal
     struct VoteInfo {
-        uint256 totalVoted;
-        uint256 tokensVoted;
-        EnumerableSet.UintSet nftsVoted;
+        uint256 totalVotedFor;
+        uint256 totalVotedAgainst;
+        uint256 tokensVotedFor;
+        uint256 tokensVotedAgainst;
+        EnumerableSet.UintSet nftsVotedFor;
+        EnumerableSet.UintSet nftsVotedAgainst;
     }
 
     /// @notice The struct that is used in view functions of contract as a return argument
@@ -88,9 +102,12 @@ interface IGovPool {
     /// @param tokensVoted the total erc20 amount voted from one user for the proposal
     /// @param nftsVoted the array of ids of nfts voted from one user for the proposal
     struct VoteInfoView {
-        uint256 totalVoted;
-        uint256 tokensVoted;
-        uint256[] nftsVoted;
+        uint256 totalVotedFor;
+        uint256 totalVotedAgainst;
+        uint256 tokensVotedFor;
+        uint256 tokensVotedAgainst;
+        uint256[] nftsVotedFor;
+        uint256[] nftsVotedAgainst;
     }
 
     /// @notice The struct that is used in view functions of contract as a return argument
@@ -187,15 +204,14 @@ interface IGovPool {
     /// @notice For typed proposal, last executor should be typed contract
     /// @notice For external proposal, any configuration of addresses and bytes
     /// @param descriptionURL IPFS url to the proposal's description
-    /// @param executors Executors addresses
-    /// @param values the ether values
-    /// @param data data Bytes
+    /// @param misc the string with additional information
+    /// @param actionsOnFor the array of structs with information about actions on for step
+    /// @param actionsOnAgainst the array of structs with information about actions on against step
     function createProposal(
         string calldata descriptionURL,
         string calldata misc,
-        address[] memory executors,
-        uint256[] calldata values,
-        bytes[] calldata data
+        ProposalAction[] calldata actionsOnFor,
+        ProposalAction[] calldata actionsOnAgainst
     ) external;
 
     /// @notice Move proposal from internal voting to `Validators` contract
@@ -207,16 +223,24 @@ interface IGovPool {
     /// @param proposalId the id of proposal
     /// @param voteAmount the erc20 vote amount
     /// @param voteNftIds the nft ids that will be used in voting
-    function vote(uint256 proposalId, uint256 voteAmount, uint256[] calldata voteNftIds) external;
+    /// @param isVoteFor the bool flag for voting for or against the proposal
+    function vote(
+        uint256 proposalId,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds,
+        bool isVoteFor
+    ) external;
 
     /// @notice The function for voting for proposals with delegated tokens
     /// @param proposalId the id of proposal
     /// @param voteAmount the erc20 vote amount
     /// @param voteNftIds the nft ids that will be used in delegated voting
+    /// @param isVoteFor the bool flag for voting for or against the proposal
     function voteDelegated(
         uint256 proposalId,
         uint256 voteAmount,
-        uint256[] calldata voteNftIds
+        uint256[] calldata voteNftIds,
+        bool isVoteFor
     ) external;
 
     /// @notice The function for depositing tokens to the pool
@@ -319,7 +343,7 @@ interface IGovPool {
         uint256 proposalId,
         address voter,
         bool isMicropool
-    ) external view returns (uint256, uint256);
+    ) external view returns (uint256, uint256, uint256, uint256);
 
     /// @notice The function to get required quorum of proposal
     /// @param proposalId the id of proposal

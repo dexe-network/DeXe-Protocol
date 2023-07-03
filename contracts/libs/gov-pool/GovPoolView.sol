@@ -84,7 +84,9 @@ library GovPoolView {
         uint256 totalLength;
 
         for (uint256 i; i < unlockedIds.length; i++) {
-            totalLength += _voteInfos[unlockedIds.values[i]][user][isMicropool].nftsVoted.length();
+            totalLength +=
+                _voteInfos[unlockedIds.values[i]][user][isMicropool].nftsVotedFor.length() +
+                _voteInfos[unlockedIds.values[i]][user][isMicropool].nftsVotedAgainst.length();
         }
 
         unlockedNfts = new uint256[](totalLength);
@@ -95,7 +97,8 @@ library GovPoolView {
                 isMicropool
             ];
 
-            totalLength = unlockedNfts.insert(totalLength, voteInfo.nftsVoted.values());
+            totalLength = unlockedNfts.insert(totalLength, voteInfo.nftsVotedFor.values());
+            totalLength = unlockedNfts.insert(totalLength, voteInfo.nftsVotedAgainst.values());
         }
     }
 
@@ -126,7 +129,8 @@ library GovPoolView {
 
             if (
                 state == IGovPool.ProposalState.Executed ||
-                state == IGovPool.ProposalState.Succeeded ||
+                state == IGovPool.ProposalState.SucceededFor ||
+                state == IGovPool.ProposalState.SucceededAgainst ||
                 state == IGovPool.ProposalState.Defeated
             ) {
                 unlockedProposals[unlockedLength++] = proposalId;

@@ -36,7 +36,8 @@ library GovPoolUnlock {
 
             if (
                 state != IGovPool.ProposalState.Executed &&
-                state != IGovPool.ProposalState.Succeeded &&
+                state != IGovPool.ProposalState.SucceededFor &&
+                state != IGovPool.ProposalState.SucceededAgainst &&
                 state != IGovPool.ProposalState.Defeated
             ) {
                 continue;
@@ -46,7 +47,10 @@ library GovPoolUnlock {
                 .unlockTokens(proposalId, user, isMicropool)
                 .max(maxUnlocked);
             IGovUserKeeper(userKeeper).unlockNfts(
-                voteInfos[proposalId][user][isMicropool].nftsVoted.values()
+                voteInfos[proposalId][user][isMicropool].nftsVotedFor.values()
+            );
+            IGovUserKeeper(userKeeper).unlockNfts(
+                voteInfos[proposalId][user][isMicropool].nftsVotedAgainst.values()
             );
 
             userProposals.remove(proposalId);

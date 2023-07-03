@@ -171,7 +171,7 @@ describe("GovValidators", () => {
 
         await validators.createInternalProposal(1, "example.com", [100], [SECOND], { from: SECOND });
 
-        await truffleAssert.reverts(validators.vote(1, 1, true), "Validators: caller is not the validator");
+        await truffleAssert.reverts(validators.vote(1, 1, true, true), "Validators: caller is not the validator");
       });
     });
 
@@ -243,6 +243,7 @@ describe("GovValidators", () => {
         assert.equal(external.core.executed, false);
         assert.equal(external.core.quorum, 66);
         assert.equal(external.core.votesFor, 0);
+        assert.equal(external.core.votesAgainst, 0);
         assert.equal(external.core.snapshotId, 1);
 
         assert.equal(await validators.getProposalState(1, false), ValidatorsProposalState.Voting);
@@ -279,39 +280,59 @@ describe("GovValidators", () => {
       it("should vote with existed balance, internal proposals", async () => {
         await validators.createInternalProposal(0, "example.com", [100], [], { from: SECOND });
 
-        await validators.vote(1, wei("40"), true, { from: SECOND });
+        await validators.vote(1, wei("40"), true, true, { from: SECOND });
 
         assert.equal(await validators.addressVoted(1, true, SECOND), wei("40"));
         assert.equal(await validators.addressVoted(1, true, THIRD), wei("0"));
-        assert.equal((await getInternalProposalByIndex(1)).proposal.core.votesFor, wei("40"));
 
-        await validators.vote(1, wei("50"), true, { from: THIRD });
+        let core = (await getInternalProposalByIndex(1)).proposal.core;
+
+        assert.equal(core.votesFor, wei("40"));
+        assert.equal(core.votesAgainst, "0");
+
+        await validators.vote(1, wei("50"), true, true, { from: THIRD });
 
         assert.equal(await validators.addressVoted(1, true, SECOND), wei("40"));
         assert.equal(await validators.addressVoted(1, true, THIRD), wei("50"));
-        assert.equal((await getInternalProposalByIndex(1)).proposal.core.votesFor, wei("90"));
 
-        await validators.vote(1, wei("60"), true, { from: SECOND });
+        core = (await getInternalProposalByIndex(1)).proposal.core;
+
+        assert.equal(core.votesFor, wei("90"));
+        assert.equal(core.votesAgainst, "0");
+
+        await validators.vote(1, wei("60"), true, false, { from: SECOND });
 
         assert.equal(await validators.addressVoted(1, true, SECOND), wei("100"));
         assert.equal(await validators.addressVoted(1, true, THIRD), wei("50"));
-        assert.equal((await getInternalProposalByIndex(1)).proposal.core.votesFor, wei("150"));
+
+        core = (await getInternalProposalByIndex(1)).proposal.core;
+
+        assert.equal(core.votesFor, wei("90"));
+        assert.equal(core.votesAgainst, wei("60"));
       });
 
       it("should vote when amount more than balance, internal proposals", async () => {
         await validators.createInternalProposal(0, "example.com", [100], [], { from: SECOND });
 
-        await validators.vote(1, wei("100"), true, { from: SECOND });
+        await validators.vote(1, wei("100"), true, true, { from: SECOND });
 
         assert.equal(await validators.addressVoted(1, true, SECOND), wei("100"));
         assert.equal(await validators.addressVoted(1, true, THIRD), wei("0"));
-        assert.equal((await getInternalProposalByIndex(1)).proposal.core.votesFor, wei("100"));
 
-        await validators.vote(1, wei("200"), true, { from: THIRD });
+        let core = (await getInternalProposalByIndex(1)).proposal.core;
+
+        assert.equal(core.votesFor, wei("100"));
+        assert.equal(core.votesAgainst, "0");
+
+        await validators.vote(1, wei("200"), true, false, { from: THIRD });
 
         assert.equal(await validators.addressVoted(1, true, SECOND), wei("100"));
         assert.equal(await validators.addressVoted(1, true, THIRD), wei("200"));
-        assert.equal((await getInternalProposalByIndex(1)).proposal.core.votesFor, wei("300"));
+
+        core = (await getInternalProposalByIndex(1)).proposal.core;
+
+        assert.equal(core.votesFor, wei("100"));
+        assert.equal(core.votesAgainst, wei("200"));
       });
 
       it("should correctly vote by snapshot balance, internal proposals", async () => {
@@ -320,71 +341,97 @@ describe("GovValidators", () => {
           from: SECOND,
         });
 
-        await validators.vote(2, wei("200"), true, { from: THIRD });
+        await validators.vote(2, wei("200"), true, true, { from: THIRD });
 
         await validators.execute(2);
 
         assert.equal(await validatorsToken.balanceOf(SECOND), wei("40"));
         assert.equal(await validatorsToken.balanceOf(THIRD), wei("60"));
 
-        await validators.vote(1, wei("100"), true, { from: SECOND });
-        await validators.vote(1, wei("200"), true, { from: THIRD });
+        await validators.vote(1, wei("100"), true, true, { from: SECOND });
+        await validators.vote(1, wei("200"), true, false, { from: THIRD });
 
         assert.equal(await validators.addressVoted(1, true, SECOND), wei("100"));
         assert.equal(await validators.addressVoted(1, true, THIRD), wei("200"));
-        assert.equal((await getInternalProposalByIndex(1)).proposal.core.votesFor, wei("300"));
+
+        let core = (await getInternalProposalByIndex(1)).proposal.core;
+
+        assert.equal(core.votesFor, wei("100"));
+        assert.equal(core.votesAgainst, wei("200"));
 
         await validators.createInternalProposal(0, "example.com", [10], [], { from: SECOND });
 
-        await validators.vote(3, wei("40"), true, { from: SECOND });
-        await validators.vote(3, wei("60"), true, { from: THIRD });
+        await validators.vote(3, wei("40"), true, false, { from: SECOND });
+        await validators.vote(3, wei("60"), true, true, { from: THIRD });
 
         assert.equal(await validators.addressVoted(3, true, SECOND), wei("40"));
         assert.equal(await validators.addressVoted(3, true, THIRD), wei("60"));
-        assert.equal((await getInternalProposalByIndex(3)).proposal.core.votesFor, wei("100"));
+
+        core = (await getInternalProposalByIndex(3)).proposal.core;
+
+        assert.equal(core.votesFor, wei("60"));
+        assert.equal(core.votesAgainst, wei("40"));
       });
 
       it("should vote with existed balance, external proposals", async () => {
         await validators.createExternalProposal(2, 1000, toPercent("51"));
 
-        await validators.vote(2, wei("40"), false, { from: SECOND });
+        await validators.vote(2, wei("40"), false, true, { from: SECOND });
 
         assert.equal(await validators.addressVoted(2, false, SECOND), wei("40"));
         assert.equal(await validators.addressVoted(2, false, THIRD), wei("0"));
-        assert.equal((await validators.getExternalProposal(2)).core.votesFor, wei("40"));
 
-        await validators.vote(2, wei("50"), false, { from: THIRD });
+        let core = (await validators.getExternalProposal(2)).core;
+
+        assert.equal(core.votesFor, wei("40"));
+        assert.equal(core.votesAgainst, "0");
+
+        await validators.vote(2, wei("50"), false, false, { from: THIRD });
 
         assert.equal(await validators.addressVoted(2, false, SECOND), wei("40"));
         assert.equal(await validators.addressVoted(2, false, THIRD), wei("50"));
-        assert.equal((await validators.getExternalProposal(2)).core.votesFor, wei("90"));
 
-        await validators.vote(2, wei("60"), false, { from: SECOND });
+        core = (await validators.getExternalProposal(2)).core;
+
+        assert.equal(core.votesFor, wei("40"));
+        assert.equal(core.votesAgainst, wei("50"));
+
+        await validators.vote(2, wei("60"), false, true, { from: SECOND });
 
         assert.equal(await validators.addressVoted(2, false, SECOND), wei("100"));
         assert.equal(await validators.addressVoted(2, false, THIRD), wei("50"));
-        assert.equal((await validators.getExternalProposal(2)).core.votesFor, wei("150"));
+
+        core = (await validators.getExternalProposal(2)).core;
+
+        assert.equal(core.votesFor, wei("100"));
+        assert.equal(core.votesAgainst, wei("50"));
       });
 
       it("should revert if proposal does not exist", async () => {
         await truffleAssert.reverts(
-          validators.vote(1, 1, false, { from: SECOND }),
+          validators.vote(1, 1, false, true, { from: SECOND }),
           "Validators: proposal does not exist"
         );
       });
 
       it("should revert if not Voting state", async () => {
         await validators.createInternalProposal(0, "example.com", [100], [], { from: SECOND });
-        await validators.vote(1, wei("200"), true, { from: THIRD });
+        await validators.vote(1, wei("200"), true, true, { from: THIRD });
 
-        await truffleAssert.reverts(validators.vote(1, 1, true, { from: SECOND }), "Validators: not Voting state");
+        await truffleAssert.reverts(
+          validators.vote(1, 1, true, true, { from: SECOND }),
+          "Validators: not Voting state"
+        );
       });
 
       it("should revert if vote amount can't be zero", async () => {
         await validators.createInternalProposal(0, "example.com", [100], [], { from: SECOND });
-        await validators.vote(1, wei("100"), true, { from: SECOND });
+        await validators.vote(1, wei("100"), true, true, { from: SECOND });
 
-        await truffleAssert.reverts(validators.vote(1, 1, true, { from: SECOND }), "Validators: excessive vote amount");
+        await truffleAssert.reverts(
+          validators.vote(1, 1, true, true, { from: SECOND }),
+          "Validators: excessive vote amount"
+        );
       });
     });
 
@@ -395,6 +442,7 @@ describe("GovValidators", () => {
         assert.equal(proposal.core.voteEnd, 0);
         assert.equal(proposal.core.quorum, 0);
         assert.equal(proposal.core.votesFor, 0);
+        assert.equal(proposal.core.votesAgainst, 0);
         assert.equal(proposal.core.snapshotId, 0);
       });
     });
@@ -487,12 +535,24 @@ describe("GovValidators", () => {
       it("should correctly return `Voting` state and `Succeeded` state when quorum reached", async () => {
         await validators.createInternalProposal(0, "example.com", [100], [], { from: SECOND });
 
-        await validators.vote(1, wei("100"), true, { from: SECOND });
-        await validators.vote(1, wei("52"), true, { from: THIRD });
+        await validators.vote(1, wei("100"), true, true, { from: SECOND });
+        await validators.vote(1, wei("52"), true, true, { from: THIRD });
 
         assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Voting);
 
-        await validators.vote(1, wei("1"), true, { from: THIRD });
+        await validators.vote(1, wei("1"), true, true, { from: THIRD });
+        assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Succeeded);
+      });
+
+      it("should correctly return `Succeeded` state when quorum reached and an amount of votes for more than against", async () => {
+        await validators.createInternalProposal(0, "example.com", [100], [], { from: SECOND });
+
+        await validators.vote(1, wei("100"), true, true, { from: SECOND });
+        await validators.vote(1, wei("52"), true, false, { from: THIRD });
+
+        assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Voting);
+
+        await validators.vote(1, wei("1"), true, false, { from: THIRD });
         assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Succeeded);
       });
 
@@ -500,8 +560,8 @@ describe("GovValidators", () => {
         let currentTime = await getCurrentBlockTime();
         await validators.createInternalProposal(0, "example.com", [100], [], { from: SECOND });
 
-        await validators.vote(1, wei("100"), true, { from: SECOND });
-        await validators.vote(1, wei("52"), true, { from: THIRD });
+        await validators.vote(1, wei("100"), true, true, { from: SECOND });
+        await validators.vote(1, wei("52"), true, true, { from: THIRD });
 
         await setTime(currentTime + 501);
         assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Voting);
@@ -510,10 +570,19 @@ describe("GovValidators", () => {
         assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Defeated);
       });
 
+      it("should correctly return `Defeated` when an amount of votes for less than against", async () => {
+        await validators.createInternalProposal(0, "example.com", [100], [], { from: SECOND });
+
+        await validators.vote(1, wei("100"), true, false, { from: SECOND });
+        await validators.vote(1, wei("53"), true, true, { from: THIRD });
+
+        assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Defeated);
+      });
+
       it("should correctly return `Executed` state", async () => {
         await validators.createInternalProposal(0, "example.com", [100], [], { from: SECOND });
-        await validators.vote(1, wei("100"), true, { from: SECOND });
-        await validators.vote(1, wei("53"), true, { from: THIRD });
+        await validators.vote(1, wei("100"), true, true, { from: SECOND });
+        await validators.vote(1, wei("53"), true, true, { from: THIRD });
 
         await validators.execute(1);
 
@@ -529,16 +598,16 @@ describe("GovValidators", () => {
     describe("execute()", () => {
       it("should correctly execute `ChangeInternalDuration` proposal", async () => {
         await validators.createInternalProposal(0, "example.com", [1500], [], { from: SECOND });
-        await validators.vote(1, wei("100"), true, { from: SECOND });
-        await validators.vote(1, wei("200"), true, { from: THIRD });
+        await validators.vote(1, wei("100"), true, true, { from: SECOND });
+        await validators.vote(1, wei("200"), true, true, { from: THIRD });
 
         await validators.execute(1);
 
         assert.equal((await validators.internalProposalSettings()).duration, 1500);
 
         await validators.createInternalProposal(0, "example.com", [333], [], { from: THIRD });
-        await validators.vote(2, wei("100"), true, { from: SECOND });
-        await validators.vote(2, wei("200"), true, { from: THIRD });
+        await validators.vote(2, wei("100"), true, true, { from: SECOND });
+        await validators.vote(2, wei("200"), true, true, { from: THIRD });
 
         await validators.execute(2);
 
@@ -547,8 +616,8 @@ describe("GovValidators", () => {
 
       it("should correctly execute `ChangeInternalQuorum` proposal", async () => {
         await validators.createInternalProposal(1, "example.com", [toPercent("20")], [], { from: SECOND });
-        await validators.vote(1, wei("100"), true, { from: SECOND });
-        await validators.vote(1, wei("200"), true, { from: THIRD });
+        await validators.vote(1, wei("100"), true, true, { from: SECOND });
+        await validators.vote(1, wei("200"), true, true, { from: THIRD });
 
         await validators.execute(1);
 
@@ -556,7 +625,7 @@ describe("GovValidators", () => {
 
         await validators.createInternalProposal(2, "example.com", [50, toPercent("15")], [], { from: THIRD });
 
-        await validators.vote(2, wei("100"), true, { from: SECOND });
+        await validators.vote(2, wei("100"), true, true, { from: SECOND });
 
         await validators.execute(2);
 
@@ -568,7 +637,7 @@ describe("GovValidators", () => {
         assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Undefined);
 
         await validators.createInternalProposal(3, "example.com", [wei("200")], [SECOND], { from: SECOND });
-        await validators.vote(1, wei("200"), true, { from: THIRD });
+        await validators.vote(1, wei("200"), true, true, { from: THIRD });
 
         assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Succeeded);
 
@@ -578,8 +647,8 @@ describe("GovValidators", () => {
 
         await validators.createInternalProposal(3, "example.com", [wei("0")], [SECOND], { from: SECOND });
 
-        await validators.vote(2, wei("200"), true, { from: THIRD });
-        await validators.vote(2, wei("100"), true, { from: SECOND });
+        await validators.vote(2, wei("200"), true, true, { from: THIRD });
+        await validators.vote(2, wei("100"), true, true, { from: SECOND });
 
         await validators.execute(2);
 

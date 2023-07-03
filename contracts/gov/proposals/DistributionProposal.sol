@@ -80,15 +80,21 @@ contract DistributionProposal is IDistributionProposal, Initializable {
         uint256 proposalId,
         address voter
     ) public view override returns (uint256) {
-        (uint256 totalVoteWeight, uint256 voteWeight) = IGovPool(govAddress).getTotalVotes(
-            proposalId,
-            voter,
-            false
-        );
+        (
+            uint256 totalVotesFor,
+            uint256 totalVotesAgainst,
+            uint256 voterVotesFor,
+            uint256 voterVotesAgainst
+        ) = IGovPool(govAddress).getTotalVotes(proposalId, voter, false);
+
+        if (totalVotesFor == 0 || voterVotesFor <= voterVotesAgainst) {
+            return 0;
+        }
 
         return
-            totalVoteWeight == 0
-                ? 0
-                : proposals[proposalId].rewardAmount.ratio(voteWeight, totalVoteWeight);
+            proposals[proposalId].rewardAmount.ratio(
+                voterVotesFor - voterVotesAgainst,
+                totalVotesFor + totalVotesAgainst
+            );
     }
 }

@@ -328,12 +328,11 @@ describe("DistributionProposal", () => {
         await govPool.createProposal(
           "example.com",
           "misc",
-          [dp.address],
-          [0],
-          [getBytesDistributionProposal(1, token.address, wei("100"))]
+          [[dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100"))]],
+          []
         );
 
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        await govPool.vote(1, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9], true);
 
         await setTime(startTime + 10000);
       });
@@ -399,14 +398,16 @@ describe("DistributionProposal", () => {
         await govPool.createProposal(
           "example.com",
           "misc",
-          [token.address, dp.address],
-          [0, 0],
-          [getBytesTransfer(dp.address, wei("100000")), getBytesDistributionProposal(1, token.address, wei("100000"))],
+          [
+            [token.address, 0, getBytesTransfer(dp.address, wei("100000"))],
+            [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
+          ],
+          [],
           { from: SECOND }
         );
 
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5], { from: SECOND });
-        await govPool.vote(1, 0, [6, 7, 8, 9], { from: THIRD });
+        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, { from: SECOND });
+        await govPool.vote(1, 0, [6, 7, 8, 9], true, { from: THIRD });
 
         await setTime(startTime + 10000);
         await govPool.execute(1);
@@ -422,14 +423,13 @@ describe("DistributionProposal", () => {
         await govPool.createProposal(
           "example.com",
           "misc",
-          [dp.address],
-          [wei("1")],
-          [getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))],
+          [[dp.address, wei("1"), getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))]],
+          [],
           { from: SECOND }
         );
 
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5], { from: SECOND });
-        await govPool.vote(1, 0, [6, 7, 8, 9], { from: THIRD });
+        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, { from: SECOND });
+        await govPool.vote(1, 0, [6, 7, 8, 9], true, { from: THIRD });
 
         await setTime(startTime + 10000);
         await govPool.execute(1);
@@ -449,18 +449,56 @@ describe("DistributionProposal", () => {
         );
       });
 
+      it("should not claim if not enough votes", async () => {
+        await govPool.createProposal(
+          "example.com",
+          "misc",
+          [
+            [token.address, 0, getBytesTransfer(dp.address, wei("100000"))],
+            [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
+          ],
+          [],
+          { from: SECOND }
+        );
+
+        await govPool.vote(1, 0, [2, 3, 4, 5], false, { from: SECOND });
+        await govPool.vote(1, 0, [1], true, { from: SECOND });
+
+        assert.equal(await dp.getPotentialReward(1, SECOND), 0);
+      });
+
+      it("should correctly calculate reward", async () => {
+        await govPool.createProposal(
+          "example.com",
+          "misc",
+          [[dp.address, wei("1"), getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))]],
+          [],
+          { from: SECOND }
+        );
+
+        await govPool.vote(1, 0, [1, 2, 3, 4], true, { from: SECOND });
+        await govPool.vote(1, 0, [5], false, { from: SECOND });
+        await govPool.vote(1, 0, [6, 7, 8], true, { from: THIRD });
+        await govPool.vote(1, 0, [9], false, { from: THIRD });
+
+        await setTime(startTime + 10000);
+        await govPool.execute(1);
+
+        assert.equal(await dp.getPotentialReward(1, SECOND), "333333333333333333");
+        assert.equal(await dp.getPotentialReward(1, THIRD), "222222222222222222");
+      });
+
       it("should not claim if not enough ether", async () => {
         await govPool.createProposal(
           "example.com",
           "misc",
-          [dp.address],
-          [0],
-          [getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))],
+          [[dp.address, 0, getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))]],
+          [],
           { from: SECOND }
         );
 
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5], { from: SECOND });
-        await govPool.vote(1, 0, [6, 7, 8, 9], { from: THIRD });
+        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, { from: SECOND });
+        await govPool.vote(1, 0, [6, 7, 8, 9], true, { from: THIRD });
 
         await setTime(startTime + 10000);
         await govPool.execute(1);
@@ -472,16 +510,18 @@ describe("DistributionProposal", () => {
         await govPool.createProposal(
           "example.com",
           "misc",
-          [token.address, dp.address],
-          [0, 0],
-          [getBytesApprove(dp.address, wei("100000")), getBytesDistributionProposal(1, token.address, wei("100000"))],
+          [
+            [token.address, 0, getBytesApprove(dp.address, wei("100000"))],
+            [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
+          ],
+          [],
           { from: SECOND }
         );
 
         await token.mint(dp.address, wei("10"));
 
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5], { from: SECOND });
-        await govPool.vote(1, 0, [6, 7, 8, 9], { from: THIRD });
+        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, { from: SECOND });
+        await govPool.vote(1, 0, [6, 7, 8, 9], true, { from: THIRD });
 
         await setTime(startTime + 10000);
         await govPool.execute(1);
@@ -494,14 +534,16 @@ describe("DistributionProposal", () => {
         await govPool.createProposal(
           "example.com",
           "misc",
-          [token.address, dp.address],
-          [0, 0],
-          [getBytesTransfer(dp.address, wei("100000")), getBytesDistributionProposal(1, token.address, wei("100000"))],
+          [
+            [token.address, 0, getBytesTransfer(dp.address, wei("100000"))],
+            [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
+          ],
+          [],
           { from: SECOND }
         );
 
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5], { from: SECOND });
-        await govPool.vote(1, 0, [6, 7, 8, 9], { from: THIRD });
+        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, { from: SECOND });
+        await govPool.vote(1, 0, [6, 7, 8, 9], true, { from: THIRD });
 
         await setTime(startTime + 10000);
         await govPool.execute(1);
