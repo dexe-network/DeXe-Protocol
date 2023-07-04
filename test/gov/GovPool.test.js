@@ -2636,7 +2636,7 @@ describe("GovPool", () => {
         assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("16"));
       });
 
-      it("should revert when mint failed", async () => {
+      it("should not revert when mint failed, but during transfer", async () => {
         let newToken = await ERC20.new("NT", "NT");
 
         NEW_SETTINGS.rewardsInfo.rewardToken = newToken.address;
@@ -2664,7 +2664,7 @@ describe("GovPool", () => {
 
         await govPool.execute(2);
 
-        await truffleAssert.reverts(govPool.claimRewards([2]), "Gov: failed to mint tokens");
+        await truffleAssert.reverts(govPool.claimRewards([2]), "ERC20: transfer amount exceeds balance");
 
         assert.equal((await newToken.balanceOf(treasury)).toFixed(), "0");
         assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("0"));

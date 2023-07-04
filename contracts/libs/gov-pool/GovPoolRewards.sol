@@ -51,8 +51,8 @@ library GovPoolRewards {
 
         if (proposalId != 0) {
             rewardToken = proposals[proposalId].core.settings.rewardsInfo.rewardToken;
-
             IGovPool.Rewards storage userProposalRewards = userRewards.onchainRewards[proposalId];
+
             if (
                 rewardType == IGovPool.RewardType.VoteFor ||
                 rewardType == IGovPool.RewardType.VoteForDelegated
@@ -110,7 +110,6 @@ library GovPoolRewards {
 
             for (uint256 i = length; i > 0; i--) {
                 address rewardToken = userRewards.offchainTokens.at(i - 1);
-
                 uint256 rewards = userRewards.offchainRewards[rewardToken];
 
                 delete userRewards.offchainRewards[rewardToken];

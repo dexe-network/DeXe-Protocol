@@ -32,9 +32,7 @@ library TokenBalance {
                 uint256 balance = IERC20(token).balanceOf(address(this));
 
                 if (balance < amount) {
-                    try IERC20Sale(token).mint(address(this), amount - balance) {} catch {
-                        revert("Gov: failed to mint tokens");
-                    }
+                    try IERC20Sale(token).mint(address(this), amount - balance) {} catch {}
                 }
             }
 
