@@ -33,8 +33,7 @@ library TraderPoolDivest {
     function divest(
         ITraderPool.PoolParameters storage poolParameters,
         uint256 amountLP,
-        uint256[] calldata minBaseOut,
-        uint256 minDexeCommissionOut
+        uint256[] calldata minBaseOut
     ) external {
         TraderPool traderPool = TraderPool(address(this));
 
@@ -44,7 +43,7 @@ library TraderPoolDivest {
         if (senderTrader) {
             _divestTrader(poolParameters, amountLP);
         } else {
-            _divestInvestor(poolParameters, amountLP, minBaseOut, minDexeCommissionOut);
+            _divestInvestor(poolParameters, amountLP, minBaseOut);
         }
     }
 
@@ -93,8 +92,7 @@ library TraderPoolDivest {
     function _divestInvestor(
         ITraderPool.PoolParameters storage poolParameters,
         uint256 amountLP,
-        uint256[] calldata minBaseOut,
-        uint256 minDexeCommissionOut
+        uint256[] calldata minBaseOut
     ) internal {
         TraderPool traderPool = TraderPool(address(this));
 
@@ -112,11 +110,7 @@ library TraderPoolDivest {
         );
 
         if (baseCommission > 0) {
-            poolParameters.distributeCommission(
-                baseCommission,
-                lpCommission,
-                minDexeCommissionOut
-            );
+            poolParameters.distributeCommission(baseCommission, lpCommission);
         }
     }
 
