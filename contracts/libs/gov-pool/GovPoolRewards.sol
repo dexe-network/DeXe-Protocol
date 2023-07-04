@@ -28,11 +28,29 @@ library GovPoolRewards {
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId,
         IGovPool.RewardType rewardType,
-        uint256 amount,
-        uint256 coefficient
+        uint256 amount
     ) external {
+        IGovSettings.RewardsInfo storage rewardsInfo = proposals[proposalId]
+            .core
+            .settings
+            .rewardsInfo;
+
+        uint256 amountToAdd;
+        if (
+            rewardType == IGovPool.RewardType.VoteFor ||
+            rewardType == IGovPool.RewardType.VoteForDelegated
+        ) {
+            amountToAdd = amount.ratio(rewardsInfo.voteForRewardsCoefficient, PRECISION);
+        } else if (
+            rewardType == IGovPool.RewardType.VoteAgainst ||
+            rewardType == IGovPool.RewardType.VoteAgainstDelegated
+        ) {
+            amountToAdd = amount.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
+        } else {
+            amountToAdd = amount;
+        }
+
         address nftMultiplier = IGovPool(address(this)).nftMultiplier();
-        uint256 amountToAdd = amount.ratio(coefficient, PRECISION);
 
         if (
             rewardType != IGovPool.RewardType.VoteForDelegated &&
@@ -50,7 +68,7 @@ library GovPoolRewards {
         address rewardToken;
 
         if (proposalId != 0) {
-            rewardToken = proposals[proposalId].core.settings.rewardsInfo.rewardToken;
+            rewardToken = rewardsInfo.rewardToken;
             IGovPool.Rewards storage userProposalRewards = userRewards.onchainRewards[proposalId];
 
             if (

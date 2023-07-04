@@ -26,6 +26,7 @@ library GovPoolCreate {
         address sender
     );
     event DPCreated(uint256 proposalId, address sender, address token, uint256 amount);
+    event MovedToValidators(uint256 proposalId, address sender);
 
     function createProposal(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
@@ -93,6 +94,8 @@ library GovPoolCreate {
             core.settings.durationValidators,
             core.settings.quorumValidators
         );
+
+        emit MovedToValidators(proposalId, msg.sender);
     }
 
     function _validateProposal(

@@ -20,19 +20,30 @@ library GovPoolStaking {
 
     function updateRewards(
         IGovPool.MicropoolInfo storage micropool,
-        uint256 amount,
-        uint256 coefficient,
-        address rewardToken
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        uint256 proposalId,
+        IGovPool.RewardType rewardType,
+        uint256 amount
     ) external {
         uint256 totalStake = micropool.totalStake;
         if (totalStake == 0) {
             return;
         }
 
-        uint256 amountToAdd = amount.ratio(coefficient, PRECISION);
+        IGovSettings.RewardsInfo storage rewardsInfo = proposals[proposalId]
+            .core
+            .settings
+            .rewardsInfo;
 
-        micropool.rewardTokens.add(rewardToken);
-        micropool.rewardTokenInfos[rewardToken].cumulativeSum += amountToAdd.ratio(
+        uint256 amountToAdd = amount.ratio(
+            rewardType == IGovPool.RewardType.VoteForDelegated
+                ? rewardsInfo.voteForRewardsCoefficient
+                : rewardsInfo.voteAgainstRewardsCoefficient,
+            PRECISION
+        );
+
+        micropool.rewardTokens.add(rewardsInfo.rewardToken);
+        micropool.rewardTokenInfos[rewardsInfo.rewardToken].cumulativeSum += amountToAdd.ratio(
             PRECISION,
             totalStake
         );

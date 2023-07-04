@@ -86,10 +86,8 @@ contract GovPool is
     mapping(address => MicropoolInfo) internal _micropoolInfos;
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
-    event MovedToValidators(uint256 proposalId, address sender);
     event Deposited(uint256 amount, uint256[] nfts, address sender);
     event Withdrawn(uint256 amount, uint256[] nfts, address sender);
-    event OffchainResultsSaved(string resultsHash, address sender);
 
     modifier onlyThis() {
         _onlyThis();
@@ -146,12 +144,10 @@ contract GovPool is
     function execute(uint256 proposalId) public override onlyBABTHolder {
         _proposals.execute(proposalId);
 
-        _pendingRewards.updateRewards(
-            _proposals,
+        updateRewards(
             proposalId,
             RewardType.Execute,
-            _proposals[proposalId].core.settings.rewardsInfo.executionReward,
-            PRECISION
+            _proposals[proposalId].core.settings.rewardsInfo.executionReward
         );
     }
 
@@ -185,27 +181,21 @@ contract GovPool is
 
         _proposals.createProposal(_descriptionURL, misc, actionsOnFor, actionsOnAgainst);
 
-        _pendingRewards.updateRewards(
-            _proposals,
+        updateRewards(
             proposalId,
             RewardType.Create,
-            _proposals[proposalId].core.settings.rewardsInfo.creationReward,
-            PRECISION
+            _proposals[proposalId].core.settings.rewardsInfo.creationReward
         );
     }
 
     function moveProposalToValidators(uint256 proposalId) external override {
         _proposals.moveProposalToValidators(proposalId);
 
-        _pendingRewards.updateRewards(
-            _proposals,
+        updateRewards(
             proposalId,
             RewardType.Create,
-            _proposals[proposalId].core.settings.rewardsInfo.creationReward,
-            PRECISION
+            _proposals[proposalId].core.settings.rewardsInfo.creationReward
         );
-
-        emit MovedToValidators(proposalId, msg.sender);
     }
 
     function vote(
@@ -225,20 +215,7 @@ contract GovPool is
             isVoteFor
         );
 
-        IGovSettings.RewardsInfo storage rewardsInfo = _proposals[proposalId]
-            .core
-            .settings
-            .rewardsInfo;
-
-        _pendingRewards.updateRewards(
-            _proposals,
-            proposalId,
-            isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst,
-            reward,
-            isVoteFor
-                ? rewardsInfo.voteForRewardsCoefficient
-                : rewardsInfo.voteAgainstRewardsCoefficient
-        );
+        updateRewards(proposalId, isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst, reward);
     }
 
     function voteDelegated(
@@ -260,27 +237,17 @@ contract GovPool is
 
         uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
 
-        IGovSettings.RewardsInfo storage rewardsInfo = _proposals[proposalId]
-            .core
-            .settings
-            .rewardsInfo;
-
-        uint256 coefficient = isVoteFor
-            ? rewardsInfo.voteForRewardsCoefficient
-            : rewardsInfo.voteAgainstRewardsCoefficient;
-
-        _pendingRewards.updateRewards(
-            _proposals,
+        updateRewards(
             proposalId,
             isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
-            micropoolReward,
-            coefficient
+            micropoolReward
         );
 
         _micropoolInfos[msg.sender].updateRewards(
-            reward - micropoolReward,
-            coefficient,
-            rewardsInfo.rewardToken
+            _proposals,
+            proposalId,
+            isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
+            reward - micropoolReward
         );
     }
 
@@ -343,7 +310,7 @@ contract GovPool is
 
     function claimRewards(uint256[] calldata proposalIds) external override onlyBABTHolder {
         for (uint256 i; i < proposalIds.length; i++) {
-            _pendingRewards.claimReward(_proposals, proposalIds[i]);
+            claimReward(proposalIds[i]);
         }
     }
 
@@ -373,15 +340,19 @@ contract GovPool is
     ) external override onlyBABTHolder {
         resultsHash.saveOffchainResults(signature, _offChain);
 
-        _pendingRewards.updateRewards(
-            _proposals,
+        updateRewards(
             0,
             RewardType.SaveOffchainResults,
-            _govSettings.getInternalSettings().rewardsInfo.executionReward,
-            PRECISION
+            _govSettings.getInternalSettings().rewardsInfo.executionReward
         );
+    }
 
-        emit OffchainResultsSaved(resultsHash, msg.sender);
+    function updateRewards(uint256 proposalId, RewardType rewardType, uint256 amount) internal {
+        _pendingRewards.updateRewards(_proposals, proposalId, rewardType, amount);
+    }
+
+    function claimReward(uint256 proposalId) internal {
+        _pendingRewards.claimReward(_proposals, proposalId);
     }
 
     receive() external payable {}
