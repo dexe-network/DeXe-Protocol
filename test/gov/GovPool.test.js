@@ -2767,6 +2767,43 @@ describe("GovPool", () => {
           assertNoZerosBalanceDistribution([balance1, balance2, balance3, micropoolBalance], [32, 32, 16, 20]);
         });
 
+        it("should claim delegate reward properly if nft multiplier has been set", async () => {
+          await token.mint(SECOND, wei("25000000000000000000000000"));
+          await token.approve(userKeeper.address, wei("25000000000000000000000000"), { from: SECOND });
+          await govPool.deposit(SECOND, wei("25000000000000000000000000"), [], { from: SECOND });
+
+          const bytesSetAddress = getBytesSetNftMultiplierAddress(nftMultiplier.address);
+          await govPool.createProposal("example.com", "misc", [[govPool.address, 0, bytesSetAddress]], []);
+          await govPool.vote(1, wei("25000000000000000000000000"), [], true, { from: SECOND });
+          await govPool.moveProposalToValidators(1);
+          await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
+          await govPool.execute(1);
+          await nftMultiplier.mint(micropool, PRECISION.times("2.5"), 10000000000);
+          await nftMultiplier.lock(1, { from: micropool });
+
+          await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
+
+          await token.mint(delegator1, wei("100000000000000000000000000"));
+          await token.approve(userKeeper.address, wei("100000000000000000000000000"), { from: delegator1 });
+          await govPool.deposit(delegator1, wei("100000000000000000000000000"), [], { from: delegator1 });
+          await govPool.delegate(micropool, wei("100000000000000000000000000"), [10, 11, 12, 13], { from: delegator1 });
+
+          await govPool.voteDelegated(2, wei("100000000000000000000000000"), [], true, { from: micropool });
+
+          await setTime((await getCurrentBlockTime()) + 10000);
+
+          await govPool.moveProposalToValidators(2);
+
+          await validators.vote(2, wei("100"), false, true);
+          await validators.vote(2, wei("1000000000000"), false, true, { from: SECOND });
+
+          await govPool.execute(2);
+
+          await govPool.claimRewards([2], { from: micropool });
+
+          assert.equal((await rewardToken.balanceOf(micropool)).toFixed(), wei("20000000000000000000000000")); // 100000000000000000000000000 * 0.2
+        });
+
         it("should give the proper rewards with multiple async delegates", async () => {
           await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
 
