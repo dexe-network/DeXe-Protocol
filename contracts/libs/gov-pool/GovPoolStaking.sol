@@ -36,9 +36,7 @@ library GovPoolStaking {
             .rewardsInfo;
 
         uint256 amountToAdd = amount.ratio(
-            rewardType == IGovPool.RewardType.VoteForDelegated
-                ? rewardsInfo.voteForRewardsCoefficient
-                : rewardsInfo.voteAgainstRewardsCoefficient,
+            _coefficientBasedOnVote(rewardsInfo, rewardType),
             PRECISION
         );
 
@@ -106,6 +104,16 @@ library GovPoolStaking {
                 realRewards: realRewards
             });
         }
+    }
+
+    function _coefficientBasedOnVote(
+        IGovSettings.RewardsInfo storage rewardsInfo,
+        IGovPool.RewardType rewardType
+    ) internal view returns (uint256) {
+        return
+            rewardType == IGovPool.RewardType.VoteForDelegated
+                ? rewardsInfo.voteForRewardsCoefficient
+                : rewardsInfo.voteAgainstRewardsCoefficient;
     }
 
     function _recalculateStakingState(

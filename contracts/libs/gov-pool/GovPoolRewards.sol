@@ -35,20 +35,7 @@ library GovPoolRewards {
             .settings
             .rewardsInfo;
 
-        uint256 amountToAdd;
-        if (
-            rewardType == IGovPool.RewardType.VoteFor ||
-            rewardType == IGovPool.RewardType.VoteForDelegated
-        ) {
-            amountToAdd = amount.ratio(rewardsInfo.voteForRewardsCoefficient, PRECISION);
-        } else if (
-            rewardType == IGovPool.RewardType.VoteAgainst ||
-            rewardType == IGovPool.RewardType.VoteAgainstDelegated
-        ) {
-            amountToAdd = amount.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
-        } else {
-            amountToAdd = amount;
-        }
+        uint256 amountToAdd = _calculateRewardForVoting(rewardsInfo, rewardType, amount);
 
         address nftMultiplier = IGovPool(address(this)).nftMultiplier();
 
@@ -181,5 +168,27 @@ library GovPoolRewards {
         rewardToken.sendFunds(msg.sender, rewards, true);
 
         emit RewardClaimed(proposalId, msg.sender, rewardToken, rewards);
+    }
+
+    function _calculateRewardForVoting(
+        IGovSettings.RewardsInfo storage rewardsInfo,
+        IGovPool.RewardType rewardType,
+        uint256 amount
+    ) internal view returns (uint256) {
+        if (
+            rewardType == IGovPool.RewardType.VoteFor ||
+            rewardType == IGovPool.RewardType.VoteForDelegated
+        ) {
+            return amount.ratio(rewardsInfo.voteForRewardsCoefficient, PRECISION);
+        }
+
+        if (
+            rewardType == IGovPool.RewardType.VoteAgainst ||
+            rewardType == IGovPool.RewardType.VoteAgainstDelegated
+        ) {
+            return amount.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
+        }
+
+        return amount;
     }
 }

@@ -144,7 +144,7 @@ contract GovPool is
     function execute(uint256 proposalId) public override onlyBABTHolder {
         _proposals.execute(proposalId);
 
-        updateRewards(
+        _updateRewards(
             proposalId,
             RewardType.Execute,
             _proposals[proposalId].core.settings.rewardsInfo.executionReward
@@ -181,7 +181,7 @@ contract GovPool is
 
         _proposals.createProposal(_descriptionURL, misc, actionsOnFor, actionsOnAgainst);
 
-        updateRewards(
+        _updateRewards(
             proposalId,
             RewardType.Create,
             _proposals[proposalId].core.settings.rewardsInfo.creationReward
@@ -191,7 +191,7 @@ contract GovPool is
     function moveProposalToValidators(uint256 proposalId) external override {
         _proposals.moveProposalToValidators(proposalId);
 
-        updateRewards(
+        _updateRewards(
             proposalId,
             RewardType.Create,
             _proposals[proposalId].core.settings.rewardsInfo.creationReward
@@ -215,7 +215,11 @@ contract GovPool is
             isVoteFor
         );
 
-        updateRewards(proposalId, isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst, reward);
+        _updateRewards(
+            proposalId,
+            isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst,
+            reward
+        );
     }
 
     function voteDelegated(
@@ -237,7 +241,7 @@ contract GovPool is
 
         uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
 
-        updateRewards(
+        _updateRewards(
             proposalId,
             isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
             micropoolReward
@@ -310,7 +314,7 @@ contract GovPool is
 
     function claimRewards(uint256[] calldata proposalIds) external override onlyBABTHolder {
         for (uint256 i; i < proposalIds.length; i++) {
-            claimReward(proposalIds[i]);
+            _pendingRewards.claimReward(_proposals, proposalIds[i]);
         }
     }
 
@@ -340,19 +344,11 @@ contract GovPool is
     ) external override onlyBABTHolder {
         resultsHash.saveOffchainResults(signature, _offChain);
 
-        updateRewards(
+        _updateRewards(
             0,
             RewardType.SaveOffchainResults,
             _govSettings.getInternalSettings().rewardsInfo.executionReward
         );
-    }
-
-    function updateRewards(uint256 proposalId, RewardType rewardType, uint256 amount) internal {
-        _pendingRewards.updateRewards(_proposals, proposalId, rewardType, amount);
-    }
-
-    function claimReward(uint256 proposalId) internal {
-        _pendingRewards.claimReward(_proposals, proposalId);
     }
 
     receive() external payable {}
@@ -527,6 +523,10 @@ contract GovPool is
         require(nftMultiplierAddress != address(0), "Gov: new nft address is zero");
 
         nftMultiplier = nftMultiplierAddress;
+    }
+
+    function _updateRewards(uint256 proposalId, RewardType rewardType, uint256 amount) internal {
+        _pendingRewards.updateRewards(_proposals, proposalId, rewardType, amount);
     }
 
     function _unlock(address user, bool isMicropool) internal {
