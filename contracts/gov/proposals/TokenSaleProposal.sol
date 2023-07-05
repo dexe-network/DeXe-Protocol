@@ -10,12 +10,13 @@ import "@openzeppelin/contracts/utils/Multicall.sol";
 
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
-import "../../interfaces/gov/IGovPool.sol";
-import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
 import "../../interfaces/core/ISBT721.sol";
 
 import "../../libs/token-sale-proposal/TokenSaleProposalDecode.sol";
+import "../../libs/token-sale-proposal/TokenSaleProposalBuy.sol";
+import "../../libs/token-sale-proposal/TokenSaleProposalVesting.sol";
+
 import "../../libs/math/MathHelper.sol";
 import "../../libs/utils/TokenBalance.sol";
 
@@ -29,6 +30,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Mult
     using DecimalsConverter for uint256;
     using EnumerableMap for EnumerableMap.AddressToUintMap;
     using TokenSaleProposalDecode for Tier;
+    using TokenSaleProposalVesting for Tier;
+    using TokenSaleProposalBuy for Tier;
 
     address public govAddress;
     ISBT721 public babt;
@@ -112,63 +115,12 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Mult
 
     function vestingWithdraw(uint256[] calldata tierIds) external override {
         for (uint256 i = 0; i < tierIds.length; i++) {
-            uint256 vestingWithdrawAmount = _getVestingWithdrawAmount(msg.sender, tierIds[i]);
-            require(vestingWithdrawAmount > 0, "TSP: zero withdrawal");
-
-            Tier storage tier = _tiers[tierIds[i]];
-
-            VestingUserInfo storage vestingUserInfo = tier.users[msg.sender].vestingUserInfo;
-
-            vestingUserInfo.latestVestingWithdraw = uint64(block.timestamp);
-            vestingUserInfo.vestingWithdrawnAmount += vestingWithdrawAmount;
-
-            IERC20(tier.tierInitParams.saleTokenAddress).sendFunds(
-                msg.sender,
-                vestingWithdrawAmount
-            );
+            _getTier(tierIds[i]).vestingWithdraw();
         }
     }
 
     function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable {
-        bool isNativeCurrency = tokenToBuyWith == ETHEREUM_ADDRESS;
-        uint256 saleTokenAmount = getSaleTokenAmount(
-            msg.sender,
-            tierId,
-            tokenToBuyWith,
-            isNativeCurrency ? msg.value : amount
-        );
-
-        Tier storage tier = _tiers[tierId];
-        TierInfo storage tierInfo = tier.tierInfo;
-
-        TierInitParams memory tierInitParams = tier.tierInitParams;
-
-        uint256 vestingCurrentAmount = saleTokenAmount.percentage(
-            tierInitParams.vestingSettings.vestingPercentage
-        );
-        uint256 claimCurrentAmount = saleTokenAmount - vestingCurrentAmount;
-
-        tier.tierInfo.totalSold += saleTokenAmount;
-
-        UserInfo storage userInfo = tier.users[msg.sender];
-
-        PurchaseInfo storage purchaseInfo = userInfo.purchaseInfo;
-        uint256 newSpentAmount = purchaseInfo.spentAmounts.get(tokenToBuyWith) + amount;
-        purchaseInfo.spentAmounts.set(tokenToBuyWith, newSpentAmount);
-        purchaseInfo.claimTotalAmount += claimCurrentAmount;
-
-        userInfo.vestingUserInfo.vestingTotalAmount += vestingCurrentAmount;
-
-        if (isNativeCurrency) {
-            (bool success, ) = govAddress.call{value: msg.value}("");
-            require(success, "TSP: failed to transfer ether");
-        } else {
-            IERC20(tokenToBuyWith).safeTransferFrom(
-                msg.sender,
-                govAddress,
-                amount.from18(ERC20(tokenToBuyWith).decimals())
-            );
-        }
+        _getTier(tierId).buy(tierId, tokenToBuyWith, amount);
 
         emit Bought(tierId, msg.sender);
     }
@@ -246,42 +198,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Mult
         uint256 tierId,
         address tokenToBuyWith,
         uint256 amount
-    ) public view ifTierExists(tierId) ifTierIsNotOff(tierId) returns (uint256) {
-        require(amount > 0, "TSP: zero amount");
-        require(_canParticipate(user, tierId), "TSP: not whitelisted");
-
-        Tier storage tier = _tiers[tierId];
-
-        TierInitParams memory tierInitParams = tier.tierInitParams;
-
-        require(
-            tierInitParams.saleStartTime <= block.timestamp &&
-                block.timestamp <= tierInitParams.saleEndTime,
-            "TSP: cannot buy now"
-        );
-
-        uint256 exchangeRate = tier.rates[tokenToBuyWith];
-        uint256 saleTokenAmount = amount.ratio(exchangeRate, PRECISION);
-
-        require(saleTokenAmount != 0, "TSP: incorrect token");
-        require(
-            tierInitParams.maxAllocationPerUser == 0 ||
-                (tierInitParams.minAllocationPerUser <= saleTokenAmount &&
-                    saleTokenAmount <= tierInitParams.maxAllocationPerUser),
-            "TSP: wrong allocation"
-        );
-        require(
-            tier.tierInfo.totalSold + saleTokenAmount <= tierInitParams.totalTokenProvided,
-            "TSP: insufficient sale token amount"
-        );
-        require(
-            IERC20(tierInitParams.saleTokenAddress).balanceOf(address(this)).to18(
-                ERC20(tierInitParams.saleTokenAddress).decimals()
-            ) >= saleTokenAmount,
-            "TSP: insufficient contract balance"
-        );
-
-        return saleTokenAmount;
+    ) public view ifTierIsNotOff(tierId) returns (uint256) {
+        return _getTier(tierId).getSaleTokenAmount(user, tierId, tokenToBuyWith, amount);
     }
 
     function getClaimAmounts(
@@ -302,7 +220,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Mult
         vestingWithdrawAmounts = new uint256[](tierIds.length);
 
         for (uint256 i = 0; i < tierIds.length; i++) {
-            vestingWithdrawAmounts[i] = _getVestingWithdrawAmount(user, tierIds[i]);
+            vestingWithdrawAmounts[i] = _getTier(tierIds[i]).getVestingWithdrawAmount(user);
         }
     }
 
@@ -341,7 +259,13 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Mult
         userViews = new UserView[](tierIds.length);
 
         for (uint256 i = 0; i < userViews.length; i++) {
-            userViews[i] = _getUserView(user, tierIds[i]);
+            Tier storage tier = _getTier(tierIds[i]);
+
+            userViews[i] = UserView({
+                canParticipate: tier.canParticipate(tierIds[i], user),
+                purchaseView: tier.getPurchaseView(user),
+                vestingUserView: tier.getVestingUserView(user)
+            });
         }
     }
 
@@ -490,23 +414,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Mult
         return purchaseInfo.isClaimed ? 0 : purchaseInfo.claimTotalAmount;
     }
 
-    function _getVestingWithdrawAmount(
-        address user,
-        uint256 tierId
-    ) internal view ifTierExists(tierId) returns (uint256) {
-        Tier storage tier = _tiers[tierId];
-
-        VestingUserInfo memory vestingUserInfo = tier.users[user].vestingUserInfo;
-
-        return
-            _countPrefixVestingAmount(
-                block.timestamp,
-                vestingUserInfo.vestingTotalAmount,
-                tier.tierInfo.vestingTierInfo,
-                tier.tierInitParams.vestingSettings
-            ) - vestingUserInfo.vestingWithdrawnAmount;
-    }
-
     function _getRecoverAmount(
         uint256 tierId
     ) internal view ifTierExists(tierId) returns (uint256) {
@@ -522,164 +429,14 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Mult
         return tierInitParams.totalTokenProvided - tierInfo.totalSold;
     }
 
-    function _getUserView(
-        address user,
-        uint256 tierId
-    ) internal view ifTierExists(tierId) returns (UserView memory userView) {
-        Tier storage tier = _tiers[tierId];
-        UserInfo storage userInfo = tier.users[user];
-        PurchaseInfo storage purchaseInfo = userInfo.purchaseInfo;
-
-        TierInitParams memory tierInitParams = tier.tierInitParams;
-        VestingUserInfo memory vestingUserInfo = userInfo.vestingUserInfo;
-        VestingTierInfo memory vestingTierInfo = tier.tierInfo.vestingTierInfo;
-        VestingSettings memory vestingSettings = tierInitParams.vestingSettings;
-
-        userView.canParticipate = _canParticipate(user, tierId);
-
-        PurchaseView memory purchaseView;
-        purchaseView.isClaimed = purchaseInfo.isClaimed;
-        purchaseView.claimUnlockTime =
-            tierInitParams.saleEndTime +
-            tierInitParams.claimLockDuration;
-        purchaseView.canClaim = purchaseView.claimUnlockTime <= block.timestamp;
-        purchaseView.claimTotalAmount = purchaseInfo.claimTotalAmount;
-        purchaseView.boughtTotalAmount =
-            purchaseView.claimTotalAmount +
-            vestingUserInfo.vestingTotalAmount;
-        purchaseView.lockedAmount = purchaseInfo.lockedAmount;
-        purchaseView.lockedId = purchaseInfo.lockedId;
-
-        uint256 purchaseTokenLength = purchaseInfo.spentAmounts.length();
-
-        purchaseView.purchaseTokenAddresses = new address[](purchaseTokenLength);
-        purchaseView.purchaseTokenAmounts = new uint256[](purchaseTokenLength);
-
-        for (uint256 i = 0; i < purchaseTokenLength; i++) {
-            (address purchaseTokenAddress, uint256 purchaseTokenAmount) = purchaseInfo
-                .spentAmounts
-                .at(i);
-
-            purchaseView.purchaseTokenAddresses[i] = purchaseTokenAddress;
-            purchaseView.purchaseTokenAmounts[i] = purchaseTokenAmount;
-        }
-
-        userView.purchaseView = purchaseView;
-
-        if (vestingUserInfo.vestingTotalAmount == 0) {
-            return userView;
-        }
-
-        VestingUserView memory vestingUserView;
-        vestingUserView.latestVestingWithdraw = vestingUserInfo.latestVestingWithdraw;
-        vestingUserView.vestingTotalAmount = vestingUserInfo.vestingTotalAmount;
-        vestingUserView.vestingWithdrawnAmount = vestingUserInfo.vestingWithdrawnAmount;
-
-        if (block.timestamp < vestingTierInfo.vestingStartTime) {
-            vestingUserView.nextUnlockTime =
-                vestingTierInfo.vestingStartTime +
-                vestingSettings.unlockStep;
-        } else if (block.timestamp < vestingTierInfo.vestingEndTime) {
-            vestingUserView.nextUnlockTime = uint64(block.timestamp) + vestingSettings.unlockStep;
-            vestingUserView.nextUnlockTime -=
-                (vestingUserView.nextUnlockTime - vestingTierInfo.vestingStartTime) %
-                vestingSettings.unlockStep;
-            vestingUserView.nextUnlockTime = uint64(
-                uint256(vestingUserView.nextUnlockTime).min(vestingTierInfo.vestingEndTime)
-            );
-        }
-
-        uint256 currentPrefixVestingAmount = _countPrefixVestingAmount(
-            block.timestamp,
-            vestingUserView.vestingTotalAmount,
-            vestingTierInfo,
-            vestingSettings
-        );
-
-        if (vestingUserView.nextUnlockTime != 0) {
-            vestingUserView.nextUnlockAmount =
-                _countPrefixVestingAmount(
-                    vestingUserView.nextUnlockTime,
-                    vestingUserView.vestingTotalAmount,
-                    vestingTierInfo,
-                    vestingSettings
-                ) -
-                currentPrefixVestingAmount;
-        }
-
-        vestingUserView.amountToWithdraw =
-            currentPrefixVestingAmount -
-            vestingUserView.vestingWithdrawnAmount;
-        vestingUserView.lockedAmount =
-            vestingUserView.vestingTotalAmount -
-            currentPrefixVestingAmount;
-
-        userView.vestingUserView = vestingUserView;
-    }
-
-    function _canParticipate(
-        address user,
-        uint256 tierId
-    ) internal view returns (bool canParticipate) {
-        Tier storage tier = _tiers[tierId];
-        ParticipationType participationType = tier
-            .tierInitParams
-            .participationDetails
-            .participationType;
-
-        if (participationType == ParticipationType.DAOVotes) {
-            (, address govUserKeeper, , ) = IGovPool(govAddress).getHelperContracts();
-            canParticipate =
-                IGovUserKeeper(govUserKeeper)
-                .votingPower(
-                    _asSingletonArray(msg.sender),
-                    _asSingletonArray(false),
-                    _asSingletonArray(true)
-                )[0].power >
-                tier.decodeDAOVotes();
-        } else if (participationType == ParticipationType.Whitelist) {
-            canParticipate = balanceOf(msg.sender, tierId) > 0;
-        } else if (participationType == ParticipationType.BABT) {
-            canParticipate = babt.balanceOf(msg.sender) > 0;
-        } else {
-            PurchaseInfo storage purchaseInfo = tier.users[user].purchaseInfo;
-
-            if (participationType == ParticipationType.TokenLock) {
-                canParticipate = purchaseInfo.lockedAmount > 0;
-            } else {
-                canParticipate = purchaseInfo.lockedId > 0;
-            }
-        }
-    }
-
     function _onlyGov() internal view {
         require(govAddress == address(0) || msg.sender == govAddress, "TSP: not a Gov contract");
     }
 
-    function _countPrefixVestingAmount(
-        uint256 timestamp,
-        uint256 vestingTotalAmount,
-        VestingTierInfo memory vestingTierInfo,
-        VestingSettings memory vestingSettings
-    ) private pure returns (uint256) {
-        if (timestamp < vestingTierInfo.vestingStartTime) {
-            return 0;
-        }
-
-        if (timestamp >= vestingTierInfo.vestingEndTime) {
-            return vestingTotalAmount;
-        }
-
-        uint256 beforeLastSegmentAmount = vestingTotalAmount.ratio(
-            vestingSettings.vestingDuration -
-                (vestingSettings.vestingDuration % vestingSettings.unlockStep),
-            vestingSettings.vestingDuration
-        );
-        uint256 segmentsTotal = vestingSettings.vestingDuration / vestingSettings.unlockStep;
-        uint256 segmentsBefore = (timestamp - vestingTierInfo.vestingStartTime) /
-            vestingSettings.unlockStep;
-
-        return beforeLastSegmentAmount.ratio(segmentsBefore, segmentsTotal);
+    function _getTier(
+        uint256 tierId
+    ) private view ifTierExists(tierId) returns (Tier storage tier) {
+        return _tiers[tierId];
     }
 
     function _validateVestingSettings(
@@ -716,15 +473,5 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Mult
         } else {
             return participationDetails.data.length == 32;
         }
-    }
-
-    function _asSingletonArray(bool element) private pure returns (bool[] memory arr) {
-        arr = new bool[](1);
-        arr[0] = element;
-    }
-
-    function _asSingletonArray(address element) private pure returns (address[] memory arr) {
-        arr = new address[](1);
-        arr[0] = element;
     }
 }
