@@ -647,7 +647,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Mult
             if (participationType == ParticipationType.TokenLock) {
                 canParticipate = purchaseInfo.lockedAmount > 0;
             } else {
-                canParticipate = purchaseInfo.lockedId != 0;
+                canParticipate = purchaseInfo.lockedId > 0;
             }
         }
     }
