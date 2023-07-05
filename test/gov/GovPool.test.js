@@ -44,6 +44,7 @@ const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const ERC721Power = artifacts.require("ERC721Power");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const ERC20 = artifacts.require("ERC20");
 const BABTMock = artifacts.require("BABTMock");
 const ExecutorTransferMock = artifacts.require("ExecutorTransferMock");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
@@ -66,6 +67,7 @@ GovSettings.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 ERC721EnumMock.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
+ERC20.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
@@ -276,10 +278,13 @@ describe("GovPool", () => {
             quorumValidators: PRECISION.times("100").toFixed(),
             minVotesForVoting: nftAddress === nftPower.address ? 0 : wei("20"),
             minVotesForCreating: wei("3"),
-            rewardToken: rewardToken.address,
-            creationReward: wei("10"),
-            executionReward: wei("5"),
-            voteRewardsCoefficient: PRECISION.toFixed(),
+            rewardsInfo: {
+              rewardToken: rewardToken.address,
+              creationReward: wei("10"),
+              executionReward: wei("5"),
+              voteForRewardsCoefficient: PRECISION.toFixed(),
+              voteAgainstRewardsCoefficient: PRECISION.toFixed(),
+            },
             executorDescription: "default",
           },
           {
@@ -292,10 +297,13 @@ describe("GovPool", () => {
             quorumValidators: PRECISION.times("61").toFixed(),
             minVotesForVoting: wei("10"),
             minVotesForCreating: wei("2"),
-            rewardToken: rewardToken.address,
-            creationReward: wei("10"),
-            executionReward: wei("5"),
-            voteRewardsCoefficient: PRECISION.toFixed(),
+            rewardsInfo: {
+              rewardToken: rewardToken.address,
+              creationReward: wei("10"),
+              executionReward: wei("5"),
+              voteForRewardsCoefficient: PRECISION.toFixed(),
+              voteAgainstRewardsCoefficient: PRECISION.toFixed(),
+            },
             executorDescription: "internal",
           },
           {
@@ -308,10 +316,13 @@ describe("GovPool", () => {
             quorumValidators: PRECISION.times("100").toFixed(),
             minVotesForVoting: wei("20"),
             minVotesForCreating: wei("3"),
-            rewardToken: rewardToken.address,
-            creationReward: wei("10"),
-            executionReward: wei("5"),
-            voteRewardsCoefficient: PRECISION.toFixed(),
+            rewardsInfo: {
+              rewardToken: rewardToken.address,
+              creationReward: wei("10"),
+              executionReward: wei("5"),
+              voteForRewardsCoefficient: PRECISION.toFixed(),
+              voteAgainstRewardsCoefficient: PRECISION.toFixed(),
+            },
             executorDescription: "DP",
           },
           {
@@ -324,10 +335,13 @@ describe("GovPool", () => {
             quorumValidators: PRECISION.times("61").toFixed(),
             minVotesForVoting: wei("10"),
             minVotesForCreating: wei("2"),
-            rewardToken: rewardToken.address,
-            creationReward: wei("10"),
-            executionReward: wei("5"),
-            voteRewardsCoefficient: PRECISION.toFixed(),
+            rewardsInfo: {
+              rewardToken: rewardToken.address,
+              creationReward: wei("10"),
+              executionReward: wei("5"),
+              voteForRewardsCoefficient: PRECISION.toFixed(),
+              voteAgainstRewardsCoefficient: PRECISION.toFixed(),
+            },
             executorDescription: "validators",
           },
         ],
@@ -689,10 +703,13 @@ describe("GovPool", () => {
           quorumValidators: PRECISION.times("1").toFixed(),
           minVotesForVoting: 0,
           minVotesForCreating: 0,
-          rewardToken: ZERO_ADDR,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
+          rewardsInfo: {
+            rewardToken: ZERO_ADDR,
+            creationReward: 0,
+            executionReward: 0,
+            voteForRewardsCoefficient: 0,
+            voteAgainstRewardsCoefficient: 0,
+          },
           executorDescription: "new_settings",
         };
 
@@ -908,10 +925,13 @@ describe("GovPool", () => {
             quorumValidators: PRECISION.times("61").toFixed(),
             minVotesForVoting: wei("3500"),
             minVotesForCreating: wei("2"),
-            rewardToken: rewardToken.address,
-            creationReward: wei("10"),
-            executionReward: wei("5"),
-            voteRewardsCoefficient: PRECISION.toFixed(),
+            rewardsInfo: {
+              rewardToken: rewardToken.address,
+              creationReward: wei("10"),
+              executionReward: wei("5"),
+              voteForRewardsCoefficient: PRECISION.toFixed(),
+              voteAgainstRewardsCoefficient: PRECISION.toFixed(),
+            },
             executorDescription: "new_internal_settings",
           };
 
@@ -1058,10 +1078,13 @@ describe("GovPool", () => {
           quorumValidators: 1,
           minVotesForVoting: 1,
           minVotesForCreating: 1,
-          rewardToken: ZERO_ADDR,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
+          rewardsInfo: {
+            rewardToken: ZERO_ADDR,
+            creationReward: 0,
+            executionReward: 0,
+            voteForRewardsCoefficient: 0,
+            voteAgainstRewardsCoefficient: 0,
+          },
           executorDescription: "new_settings",
         };
 
@@ -1089,10 +1112,13 @@ describe("GovPool", () => {
             quorumValidators: 1,
             minVotesForVoting: 1,
             minVotesForCreating: 1,
-            rewardToken: ZERO_ADDR,
-            creationReward: 0,
-            executionReward: 0,
-            voteRewardsCoefficient: 0,
+            rewardsInfo: {
+              rewardToken: ZERO_ADDR,
+              creationReward: 0,
+              executionReward: 0,
+              voteForRewardsCoefficient: 0,
+              voteAgainstRewardsCoefficient: 0,
+            },
             executorDescription: "new_settings",
           };
 
@@ -1108,7 +1134,7 @@ describe("GovPool", () => {
           await govPool.execute(3);
         }
 
-        it("should return Executed state", async () => {
+        it("should return ExecutedFor state", async () => {
           await disableValidatorsVote();
 
           await govPool.createProposal(
@@ -1121,7 +1147,23 @@ describe("GovPool", () => {
 
           await govPool.execute(4);
 
-          assert.equal(await govPool.getProposalState(4), ProposalState.Executed);
+          assert.equal(await govPool.getProposalState(4), ProposalState.ExecutedFor);
+        });
+
+        it("should return ExecutedAgainst state", async () => {
+          await disableValidatorsVote();
+
+          await govPool.createProposal(
+            "example.com",
+            "misc",
+            [[settings.address, 0, getBytesEditSettings([1], [NEW_SETTINGS])]],
+            [[settings.address, 0, getBytesEditSettings([1], [NEW_SETTINGS])]]
+          );
+          await govPool.vote(4, wei("100000000000000000000"), [], false, { from: SECOND });
+
+          await govPool.execute(4);
+
+          assert.equal(await govPool.getProposalState(4), ProposalState.ExecutedAgainst);
         });
 
         it("should return Voting state", async () => {
@@ -1352,10 +1394,13 @@ describe("GovPool", () => {
           quorumValidators: PRECISION.times("100").toFixed(),
           minVotesForVoting: wei("20"),
           minVotesForCreating: wei("3"),
-          rewardToken: ZERO_ADDR,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
+          rewardsInfo: {
+            rewardToken: ZERO_ADDR,
+            creationReward: 0,
+            executionReward: 0,
+            voteForRewardsCoefficient: 0,
+            voteAgainstRewardsCoefficient: 0,
+          },
           executorDescription: "new_settings",
         };
 
@@ -1592,10 +1637,13 @@ describe("GovPool", () => {
         quorumValidators: 1,
         minVotesForVoting: 1,
         minVotesForCreating: 1,
-        rewardToken: ZERO_ADDR,
-        creationReward: 0,
-        executionReward: 0,
-        voteRewardsCoefficient: 0,
+        rewardsInfo: {
+          rewardToken: ZERO_ADDR,
+          creationReward: 0,
+          executionReward: 0,
+          voteForRewardsCoefficient: 0,
+          voteAgainstRewardsCoefficient: 0,
+        },
         executorDescription: "new_settings",
       };
 
@@ -1609,10 +1657,13 @@ describe("GovPool", () => {
         quorumValidators: PRECISION.times("1").toFixed(),
         minVotesForVoting: wei("1"),
         minVotesForCreating: wei("1"),
-        rewardToken: ZERO_ADDR,
-        creationReward: 0,
-        executionReward: 0,
-        voteRewardsCoefficient: 0,
+        rewardsInfo: {
+          rewardToken: ZERO_ADDR,
+          creationReward: 0,
+          executionReward: 0,
+          voteForRewardsCoefficient: 0,
+          voteAgainstRewardsCoefficient: 0,
+        },
         executorDescription: "new_internal_settings",
       };
 
@@ -1798,7 +1849,7 @@ describe("GovPool", () => {
 
         await govPool.execute(1);
 
-        assert.equal(await govPool.getProposalState(1), ProposalState.Executed);
+        assert.equal(await govPool.getProposalState(1), ProposalState.ExecutedFor);
         assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
         assert.equal(toBN(await settings.executorToSettings(executorTransfer.address)).toFixed(), "4");
 
@@ -2008,10 +2059,13 @@ describe("GovPool", () => {
               quorumValidators: 0,
               minVotesForVoting: 0,
               minVotesForCreating: 0,
-              rewardToken: ZERO_ADDR,
-              creationReward: 0,
-              executionReward: 0,
-              voteRewardsCoefficient: 0,
+              rewardsInfo: {
+                rewardToken: ZERO_ADDR,
+                creationReward: 0,
+                executionReward: 0,
+                voteForRewardsCoefficient: 0,
+                voteAgainstRewardsCoefficient: 0,
+              },
               executorDescription: "new_internal_settings",
             };
 
@@ -2133,10 +2187,13 @@ describe("GovPool", () => {
           quorumValidators: PRECISION.times("100").toFixed(),
           minVotesForVoting: wei("20"),
           minVotesForCreating: wei("3"),
-          rewardToken: ZERO_ADDR,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
+          rewardsInfo: {
+            rewardToken: ZERO_ADDR,
+            creationReward: 0,
+            executionReward: 0,
+            voteForRewardsCoefficient: 0,
+            voteAgainstRewardsCoefficient: 0,
+          },
           executorDescription: "new_settings",
         };
 
@@ -2244,10 +2301,13 @@ describe("GovPool", () => {
         quorumValidators: 1,
         minVotesForVoting: 1,
         minVotesForCreating: 1,
-        rewardToken: ETHER_ADDR,
-        creationReward: wei("10"),
-        executionReward: wei("5"),
-        voteRewardsCoefficient: PRECISION.toFixed(),
+        rewardsInfo: {
+          rewardToken: ETHER_ADDR,
+          creationReward: wei("10"),
+          executionReward: wei("5"),
+          voteForRewardsCoefficient: PRECISION.toFixed(),
+          voteAgainstRewardsCoefficient: PRECISION.toFixed(),
+        },
         executorDescription: "new_settings",
       };
 
@@ -2264,12 +2324,49 @@ describe("GovPool", () => {
         await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
       });
 
-      it("should claim reward", async () => {
+      it("should claim reward on For", async () => {
         const bytes = getBytesAddSettings([NEW_SETTINGS]);
 
         await govPool.createProposal("example.com", "misc", [[settings.address, 0, bytes]], []);
         await govPool.vote(1, wei("1000"), [], true);
         await govPool.vote(1, wei("100000000000000000000"), [], true, { from: SECOND });
+
+        await govPool.moveProposalToValidators(1);
+        await validators.vote(1, wei("100"), false, true);
+        await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
+
+        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), "0");
+
+        let rewards = await govPool.getPendingRewards(OWNER, [1]);
+
+        assert.deepEqual(rewards.onchainRewards, ["0"]);
+        assert.deepEqual(rewards.offchainTokens, []);
+        assert.deepEqual(rewards.offchainRewards, []);
+
+        await govPool.execute(1);
+
+        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("20000000000000000205"));
+
+        rewards = await govPool.getPendingRewards(OWNER, [1]);
+
+        assert.deepEqual(rewards.onchainRewards, [wei("1025")]);
+
+        await govPool.claimRewards([1]);
+
+        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("1025"));
+      });
+
+      it("should claim reward on Against", async () => {
+        const bytes = getBytesAddSettings([NEW_SETTINGS]);
+
+        await govPool.createProposal(
+          "example.com",
+          "misc",
+          [[settings.address, 0, bytes]],
+          [[settings.address, 0, bytes]]
+        );
+        await govPool.vote(1, wei("1000"), [], false);
+        await govPool.vote(1, wei("100000000000000000000"), [], false, { from: SECOND });
 
         await govPool.moveProposalToValidators(1);
         await validators.vote(1, wei("100"), false, true);
@@ -2462,10 +2559,13 @@ describe("GovPool", () => {
           quorumValidators: 1,
           minVotesForVoting: 1,
           minVotesForCreating: 1,
-          rewardToken: ZERO_ADDR,
-          creationReward: wei("10"),
-          executionReward: wei("5"),
-          voteRewardsCoefficient: PRECISION.toFixed(),
+          rewardsInfo: {
+            rewardToken: ZERO_ADDR,
+            creationReward: wei("10"),
+            executionReward: wei("5"),
+            voteForRewardsCoefficient: PRECISION.toFixed(),
+            voteAgainstRewardsCoefficient: PRECISION.toFixed(),
+          },
           executorDescription: "new_settings",
         };
 
@@ -2504,10 +2604,10 @@ describe("GovPool", () => {
         await truffleAssert.reverts(govPool.claimRewards([1]), "Gov: proposal is not executed");
       });
 
-      it("should revert when balance < rewards", async () => {
+      it("should mint when balance < rewards", async () => {
         let newToken = await ERC20Mock.new("NT", "NT", 18);
 
-        NEW_SETTINGS.rewardToken = newToken.address;
+        NEW_SETTINGS.rewardsInfo.rewardToken = newToken.address;
 
         const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
 
@@ -2527,9 +2627,47 @@ describe("GovPool", () => {
         );
         await govPool.vote(2, wei("1"), [], true);
 
+        assert.equal((await newToken.balanceOf(treasury)).toFixed(), "0");
+        assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("0"));
+
+        await executeAndClaim(2, OWNER);
+
+        assert.equal((await newToken.balanceOf(treasury)).toFixed(), wei("0"));
+        assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("16"));
+      });
+
+      it("should not revert when mint failed, but during transfer", async () => {
+        let newToken = await ERC20.new("NT", "NT");
+
+        NEW_SETTINGS.rewardsInfo.rewardToken = newToken.address;
+
+        const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
+
+        await govPool.createProposal("example.com", "misc", [[settings.address, 0, bytes]], []);
+        await govPool.vote(1, wei("100000000000000000000"), [], true, { from: SECOND });
+
+        await govPool.moveProposalToValidators(1);
+        await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
+
+        await govPool.execute(1);
+
+        await govPool.createProposal(
+          "example.com",
+          "misc",
+          [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]],
+          []
+        );
+        await govPool.vote(2, wei("1"), [], true);
+
+        assert.equal((await newToken.balanceOf(treasury)).toFixed(), "0");
+        assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("0"));
+
         await govPool.execute(2);
 
-        await truffleAssert.reverts(govPool.claimRewards([2]), "Gov: not enough balance");
+        await truffleAssert.reverts(govPool.claimRewards([2]), "ERC20: transfer amount exceeds balance");
+
+        assert.equal((await newToken.balanceOf(treasury)).toFixed(), "0");
+        assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("0"));
       });
     });
 
@@ -2544,10 +2682,13 @@ describe("GovPool", () => {
         quorumValidators: 1,
         minVotesForVoting: 1,
         minVotesForCreating: 1,
-        rewardToken: ETHER_ADDR,
-        creationReward: wei("10"),
-        executionReward: wei("5"),
-        voteRewardsCoefficient: PRECISION.toFixed(),
+        rewardsInfo: {
+          rewardToken: ETHER_ADDR,
+          creationReward: wei("10"),
+          executionReward: wei("5"),
+          voteForRewardsCoefficient: PRECISION.toFixed(),
+          voteAgainstRewardsCoefficient: PRECISION.toFixed(),
+        },
         executorDescription: "new_settings",
       };
 
@@ -2624,6 +2765,43 @@ describe("GovPool", () => {
           const balance3 = await rewardToken.balanceOf(delegator3);
 
           assertNoZerosBalanceDistribution([balance1, balance2, balance3, micropoolBalance], [32, 32, 16, 20]);
+        });
+
+        it("should claim delegate reward properly if nft multiplier has been set", async () => {
+          await token.mint(SECOND, wei("25000000000000000000000000"));
+          await token.approve(userKeeper.address, wei("25000000000000000000000000"), { from: SECOND });
+          await govPool.deposit(SECOND, wei("25000000000000000000000000"), [], { from: SECOND });
+
+          const bytesSetAddress = getBytesSetNftMultiplierAddress(nftMultiplier.address);
+          await govPool.createProposal("example.com", "misc", [[govPool.address, 0, bytesSetAddress]], []);
+          await govPool.vote(1, wei("25000000000000000000000000"), [], true, { from: SECOND });
+          await govPool.moveProposalToValidators(1);
+          await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
+          await govPool.execute(1);
+          await nftMultiplier.mint(micropool, PRECISION.times("2.5"), 10000000000);
+          await nftMultiplier.lock(1, { from: micropool });
+
+          await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
+
+          await token.mint(delegator1, wei("100000000000000000000000000"));
+          await token.approve(userKeeper.address, wei("100000000000000000000000000"), { from: delegator1 });
+          await govPool.deposit(delegator1, wei("100000000000000000000000000"), [], { from: delegator1 });
+          await govPool.delegate(micropool, wei("100000000000000000000000000"), [10, 11, 12, 13], { from: delegator1 });
+
+          await govPool.voteDelegated(2, wei("100000000000000000000000000"), [], true, { from: micropool });
+
+          await setTime((await getCurrentBlockTime()) + 10000);
+
+          await govPool.moveProposalToValidators(2);
+
+          await validators.vote(2, wei("100"), false, true);
+          await validators.vote(2, wei("1000000000000"), false, true, { from: SECOND });
+
+          await govPool.execute(2);
+
+          await govPool.claimRewards([2], { from: micropool });
+
+          assert.equal((await rewardToken.balanceOf(micropool)).toFixed(), wei("20000000000000000000000000")); // 100000000000000000000000000 * 0.2
         });
 
         it("should give the proper rewards with multiple async delegates", async () => {
@@ -2750,7 +2928,7 @@ describe("GovPool", () => {
 
           await newRewardToken.mint(govPool.address, wei("10000000000000000000000"));
 
-          NEW_SETTINGS.rewardToken = newRewardToken.address;
+          NEW_SETTINGS.rewardsInfo.rewardToken = newRewardToken.address;
 
           const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
 
@@ -2837,11 +3015,11 @@ describe("GovPool", () => {
 
           await newRewardToken.mint(govPool.address, wei("80000000000000000000"));
 
-          NEW_SETTINGS.rewardToken = newRewardToken.address;
+          NEW_SETTINGS.rewardsInfo.rewardToken = newRewardToken.address;
           NEW_SETTINGS.earlyCompletion = false;
           NEW_SETTINGS.duration = 2;
-          NEW_SETTINGS.creationReward = 0;
-          NEW_SETTINGS.executionReward = 0;
+          NEW_SETTINGS.rewardsInfo.creationReward = 0;
+          NEW_SETTINGS.rewardsInfo.executionReward = 0;
 
           const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
 

@@ -228,20 +228,30 @@ const getBytesAddSettings = (settings) => {
               name: "minVotesForCreating",
             },
             {
-              type: "address",
-              name: "rewardToken",
-            },
-            {
-              type: "uint256",
-              name: "creationReward",
-            },
-            {
-              type: "uint256",
-              name: "executionReward",
-            },
-            {
-              type: "uint256",
-              name: "voteRewardsCoefficient",
+              components: [
+                {
+                  name: "rewardToken",
+                  type: "address",
+                },
+                {
+                  name: "creationReward",
+                  type: "uint256",
+                },
+                {
+                  name: "executionReward",
+                  type: "uint256",
+                },
+                {
+                  name: "voteForRewardsCoefficient",
+                  type: "uint256",
+                },
+                {
+                  name: "voteAgainstRewardsCoefficient",
+                  type: "uint256",
+                },
+              ],
+              name: "rewardsInfo",
+              type: "tuple",
             },
             {
               type: "string",
@@ -306,20 +316,30 @@ const getBytesEditSettings = (ids, settings) => {
               name: "minVotesForCreating",
             },
             {
-              type: "address",
-              name: "rewardToken",
-            },
-            {
-              type: "uint256",
-              name: "creationReward",
-            },
-            {
-              type: "uint256",
-              name: "executionReward",
-            },
-            {
-              type: "uint256",
-              name: "voteRewardsCoefficient",
+              components: [
+                {
+                  name: "rewardToken",
+                  type: "address",
+                },
+                {
+                  name: "creationReward",
+                  type: "uint256",
+                },
+                {
+                  name: "executionReward",
+                  type: "uint256",
+                },
+                {
+                  name: "voteForRewardsCoefficient",
+                  type: "uint256",
+                },
+                {
+                  name: "voteAgainstRewardsCoefficient",
+                  type: "uint256",
+                },
+              ],
+              name: "rewardsInfo",
+              type: "tuple",
             },
             {
               type: "string",

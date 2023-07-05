@@ -20,10 +20,13 @@ const DEFAULT_SETTINGS = {
   quorumValidators: PRECISION.times("100").toFixed(),
   minVotesForVoting: wei("20"),
   minVotesForCreating: wei("3"),
-  rewardToken: ZERO_ADDR,
-  creationReward: 0,
-  executionReward: 0,
-  voteRewardsCoefficient: 0,
+  rewardsInfo: {
+    rewardToken: ZERO_ADDR,
+    creationReward: 0,
+    executionReward: 0,
+    voteForRewardsCoefficient: 0,
+    voteAgainstRewardsCoefficient: 0,
+  },
   executorDescription: "default",
 };
 
@@ -37,10 +40,13 @@ const INTERNAL_SETTINGS = {
   quorumValidators: PRECISION.times("61").toFixed(),
   minVotesForVoting: wei("10"),
   minVotesForCreating: wei("2"),
-  rewardToken: ZERO_ADDR,
-  creationReward: 0,
-  executionReward: 0,
-  voteRewardsCoefficient: 0,
+  rewardsInfo: {
+    rewardToken: ZERO_ADDR,
+    creationReward: 0,
+    executionReward: 0,
+    voteForRewardsCoefficient: 0,
+    voteAgainstRewardsCoefficient: 0,
+  },
   executorDescription: "internal",
 };
 
@@ -54,10 +60,13 @@ const DP_SETTINGS = {
   quorumValidators: PRECISION.times("100").toFixed(),
   minVotesForVoting: wei("20"),
   minVotesForCreating: wei("3"),
-  rewardToken: ZERO_ADDR,
-  creationReward: 0,
-  executionReward: 0,
-  voteRewardsCoefficient: 0,
+  rewardsInfo: {
+    rewardToken: ZERO_ADDR,
+    creationReward: 0,
+    executionReward: 0,
+    voteForRewardsCoefficient: 0,
+    voteAgainstRewardsCoefficient: 0,
+  },
   executorDescription: "DP",
 };
 
@@ -71,10 +80,13 @@ const VALIDATORS_BALANCES_SETTINGS = {
   quorumValidators: PRECISION.times("100").toFixed(),
   minVotesForVoting: wei("20"),
   minVotesForCreating: wei("3"),
-  rewardToken: ZERO_ADDR,
-  creationReward: 0,
-  executionReward: 0,
-  voteRewardsCoefficient: 0,
+  rewardsInfo: {
+    rewardToken: ZERO_ADDR,
+    creationReward: 0,
+    executionReward: 0,
+    voteForRewardsCoefficient: 0,
+    voteAgainstRewardsCoefficient: 0,
+  },
   executorDescription: "validators",
 };
 
@@ -166,10 +178,13 @@ describe("GovSettings", () => {
       quorumValidators: toPercent("2"),
       minVotesForVoting: wei("3"),
       minVotesForCreating: wei("4"),
-      rewardToken: ZERO_ADDR,
-      creationReward: 0,
-      executionReward: 0,
-      voteRewardsCoefficient: 0,
+      rewardsInfo: {
+        rewardToken: ZERO_ADDR,
+        creationReward: 0,
+        executionReward: 0,
+        voteForRewardsCoefficient: 0,
+        voteAgainstRewardsCoefficient: 0,
+      },
       executorDescription: "new_settings_1",
     };
 
@@ -183,10 +198,13 @@ describe("GovSettings", () => {
       quorumValidators: toPercent("3"),
       minVotesForVoting: wei("4"),
       minVotesForCreating: wei("4"),
-      rewardToken: ZERO_ADDR,
-      creationReward: 0,
-      executionReward: 0,
-      voteRewardsCoefficient: 0,
+      rewardsInfo: {
+        rewardToken: ZERO_ADDR,
+        creationReward: 0,
+        executionReward: 0,
+        voteForRewardsCoefficient: 0,
+        voteAgainstRewardsCoefficient: 0,
+      },
       executorDescription: "new_settings_2",
     };
 
@@ -325,10 +343,13 @@ describe("GovSettings", () => {
           quorumValidators: toPercent("2"),
           minVotesForVoting: wei("3"),
           minVotesForCreating: wei("4"),
-          rewardToken: ZERO_ADDR,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
+          rewardsInfo: {
+            rewardToken: ZERO_ADDR,
+            creationReward: 0,
+            executionReward: 0,
+            voteForRewardsCoefficient: 0,
+            voteAgainstRewardsCoefficient: 0,
+          },
           executorDescription: "new_settings_1",
         };
 
@@ -342,10 +363,13 @@ describe("GovSettings", () => {
           quorumValidators: toPercent("3"),
           minVotesForVoting: wei("4"),
           minVotesForCreating: wei("4"),
-          rewardToken: ZERO_ADDR,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
+          rewardsInfo: {
+            rewardToken: ZERO_ADDR,
+            creationReward: 0,
+            executionReward: 0,
+            voteForRewardsCoefficient: 0,
+            voteAgainstRewardsCoefficient: 0,
+          },
           executorDescription: "new_settings_2",
         };
 
@@ -388,10 +412,13 @@ describe("GovSettings", () => {
           quorumValidators: toPercent("2"),
           minVotesForVoting: wei("3"),
           minVotesForCreating: wei("4"),
-          rewardToken: ZERO_ADDR,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
+          rewardsInfo: {
+            rewardToken: ZERO_ADDR,
+            creationReward: 0,
+            executionReward: 0,
+            voteForRewardsCoefficient: 0,
+            voteAgainstRewardsCoefficient: 0,
+          },
           executorDescription: "new_settings",
         };
 
@@ -409,10 +436,13 @@ describe("GovSettings", () => {
           quorumValidators: toPercent("2"),
           minVotesForVoting: wei("3"),
           minVotesForCreating: wei("4"),
-          rewardToken: ZERO_ADDR,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
+          rewardsInfo: {
+            rewardToken: ZERO_ADDR,
+            creationReward: 0,
+            executionReward: 0,
+            voteForRewardsCoefficient: 0,
+            voteAgainstRewardsCoefficient: 0,
+          },
           executorDescription: "new_settings",
         };
 
@@ -430,10 +460,13 @@ describe("GovSettings", () => {
           quorumValidators: toPercent("2"),
           minVotesForVoting: wei("3"),
           minVotesForCreating: wei("4"),
-          rewardToken: ZERO_ADDR,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
+          rewardsInfo: {
+            rewardToken: ZERO_ADDR,
+            creationReward: 0,
+            executionReward: 0,
+            voteForRewardsCoefficient: 0,
+            voteAgainstRewardsCoefficient: 0,
+          },
           executorDescription: "new_settings",
         };
 
@@ -454,10 +487,13 @@ describe("GovSettings", () => {
           quorumValidators: toPercent("100.0001"),
           minVotesForVoting: wei("3"),
           minVotesForCreating: wei("4"),
-          rewardToken: ZERO_ADDR,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
+          rewardsInfo: {
+            rewardToken: ZERO_ADDR,
+            creationReward: 0,
+            executionReward: 0,
+            voteForRewardsCoefficient: 0,
+            voteAgainstRewardsCoefficient: 0,
+          },
           executorDescription: "new_settings",
         };
 
@@ -477,10 +513,13 @@ describe("GovSettings", () => {
           quorumValidators: toPercent("2"),
           minVotesForVoting: wei("3"),
           minVotesForCreating: wei("4"),
-          rewardToken: ZERO_ADDR,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
+          rewardsInfo: {
+            rewardToken: ZERO_ADDR,
+            creationReward: 0,
+            executionReward: 0,
+            voteForRewardsCoefficient: 0,
+            voteAgainstRewardsCoefficient: 0,
+          },
           executorDescription: "new_settings",
         };
 
@@ -522,10 +561,13 @@ describe("GovSettings", () => {
           quorumValidators: toPercent("2"),
           minVotesForVoting: wei("3"),
           minVotesForCreating: wei("4"),
-          rewardToken: ZERO_ADDR,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
+          rewardsInfo: {
+            rewardToken: ZERO_ADDR,
+            creationReward: 0,
+            executionReward: 0,
+            voteForRewardsCoefficient: 0,
+            voteAgainstRewardsCoefficient: 0,
+          },
           executorDescription: "new_settings",
         };
 
@@ -575,10 +617,13 @@ describe("GovSettings", () => {
           quorumValidators: toPercent("2"),
           minVotesForVoting: wei("3"),
           minVotesForCreating: wei("4"),
-          rewardToken: ZERO_ADDR,
-          creationReward: 0,
-          executionReward: 0,
-          voteRewardsCoefficient: 0,
+          rewardsInfo: {
+            rewardToken: ZERO_ADDR,
+            creationReward: 0,
+            executionReward: 0,
+            voteForRewardsCoefficient: 0,
+            voteAgainstRewardsCoefficient: 0,
+          },
           executorDescription: "new_settings",
         };
 

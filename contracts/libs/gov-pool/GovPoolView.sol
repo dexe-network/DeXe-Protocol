@@ -84,9 +84,11 @@ library GovPoolView {
         uint256 totalLength;
 
         for (uint256 i; i < unlockedIds.length; i++) {
-            totalLength +=
-                _voteInfos[unlockedIds.values[i]][user][isMicropool].nftsVotedFor.length() +
-                _voteInfos[unlockedIds.values[i]][user][isMicropool].nftsVotedAgainst.length();
+            IGovPool.VoteInfo storage voteInfo = _voteInfos[unlockedIds.values[i]][user][
+                isMicropool
+            ];
+
+            totalLength += voteInfo.nftsVotedFor.length() + voteInfo.nftsVotedAgainst.length();
         }
 
         unlockedNfts = new uint256[](totalLength);
@@ -128,7 +130,8 @@ library GovPoolView {
             IGovPool.ProposalState state = IGovPool(address(this)).getProposalState(proposalId);
 
             if (
-                state == IGovPool.ProposalState.Executed ||
+                state == IGovPool.ProposalState.ExecutedFor ||
+                state == IGovPool.ProposalState.ExecutedAgainst ||
                 state == IGovPool.ProposalState.SucceededFor ||
                 state == IGovPool.ProposalState.SucceededAgainst ||
                 state == IGovPool.ProposalState.Defeated
@@ -149,7 +152,9 @@ library GovPoolView {
         uint256 limit
     ) internal view returns (IGovPool.ProposalView[] memory proposalViews) {
         GovPool govPool = GovPool(payable(address(this)));
-        (, , address validators, ) = govPool.getHelperContracts();
+        (, , address validatorsAddress, ) = govPool.getHelperContracts();
+
+        IGovValidators validators = IGovValidators(validatorsAddress);
 
         uint256 to = (offset + limit).min(govPool.latestProposalId()).max(offset);
 
@@ -158,13 +163,10 @@ library GovPoolView {
         for (uint256 i = offset; i < to; i++) {
             proposalViews[i - offset] = IGovPool.ProposalView({
                 proposal: proposals[i + 1],
-                validatorProposal: IGovValidators(validators).getExternalProposal(i + 1),
+                validatorProposal: validators.getExternalProposal(i + 1),
                 proposalState: govPool.getProposalState(i + 1),
                 requiredQuorum: govPool.getProposalRequiredQuorum(i + 1),
-                requiredValidatorsQuorum: IGovValidators(validators).getProposalRequiredQuorum(
-                    i + 1,
-                    false
-                )
+                requiredValidatorsQuorum: validators.getProposalRequiredQuorum(i + 1, false)
             });
         }
     }

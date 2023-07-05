@@ -13,6 +13,8 @@ library GovPoolOffchain {
     using ECDSA for bytes32;
     using GovPoolCommission for address;
 
+    event OffchainResultsSaved(string resultsHash, address sender);
+
     function saveOffchainResults(
         string calldata resultsHash,
         bytes calldata signature,
@@ -30,6 +32,8 @@ library GovPoolOffchain {
         offChain.usedHashes[signHash_] = true;
 
         _payCommission();
+
+        emit OffchainResultsSaved(resultsHash, msg.sender);
     }
 
     function getSignHash(string calldata resultsHash) public view returns (bytes32) {
@@ -42,6 +46,8 @@ library GovPoolOffchain {
         IGovSettings.ProposalSettings memory internalSettings = IGovSettings(settingsAddress)
             .getInternalSettings();
 
-        internalSettings.rewardToken.payCommission(internalSettings.executionReward);
+        internalSettings.rewardsInfo.rewardToken.payCommission(
+            internalSettings.rewardsInfo.executionReward
+        );
     }
 }

@@ -20,19 +20,28 @@ library GovPoolStaking {
 
     function updateRewards(
         IGovPool.MicropoolInfo storage micropool,
-        uint256 amount,
-        uint256 coefficient,
-        address rewardToken
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        uint256 proposalId,
+        IGovPool.RewardType rewardType,
+        uint256 amount
     ) external {
         uint256 totalStake = micropool.totalStake;
         if (totalStake == 0) {
             return;
         }
 
-        uint256 amountToAdd = amount.ratio(coefficient, PRECISION);
+        IGovSettings.RewardsInfo storage rewardsInfo = proposals[proposalId]
+            .core
+            .settings
+            .rewardsInfo;
 
-        micropool.rewardTokens.add(rewardToken);
-        micropool.rewardTokenInfos[rewardToken].cumulativeSum += amountToAdd.ratio(
+        uint256 amountToAdd = amount.ratio(
+            _coefficientBasedOnVote(rewardsInfo, rewardType),
+            PRECISION
+        );
+
+        micropool.rewardTokens.add(rewardsInfo.rewardToken);
+        micropool.rewardTokenInfos[rewardsInfo.rewardToken].cumulativeSum += amountToAdd.ratio(
             PRECISION,
             totalStake
         );
@@ -97,6 +106,16 @@ library GovPoolStaking {
         }
     }
 
+    function _coefficientBasedOnVote(
+        IGovSettings.RewardsInfo storage rewardsInfo,
+        IGovPool.RewardType rewardType
+    ) internal view returns (uint256) {
+        return
+            rewardType == IGovPool.RewardType.VoteForDelegated
+                ? rewardsInfo.voteForRewardsCoefficient
+                : rewardsInfo.voteAgainstRewardsCoefficient;
+    }
+
     function _recalculateStakingState(
         IGovPool.MicropoolInfo storage micropool,
         address delegatee,
@@ -134,7 +153,7 @@ library GovPoolStaking {
 
             uint256 amountToTransfer = pendingRewards[i].min(rewardTokens[i].normThisBalance());
 
-            rewardTokens[i].sendFunds(msg.sender, amountToTransfer);
+            rewardTokens[i].sendFunds(msg.sender, amountToTransfer, true);
 
             emit StakingRewardClaimed(msg.sender, rewardTokens[i], amountToTransfer);
         }

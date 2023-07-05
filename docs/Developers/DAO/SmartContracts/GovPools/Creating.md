@@ -59,7 +59,8 @@ struct ProposalSettings {
     uint256 minVotesForCreating;
     address rewardToken;
     uint256 creationReward;
-    uint256 executionReward;
+    uint256 executionRewardFor;
+    uint256 executionRewardAgainst;
     uint256 voteRewardsCoefficient;
     string executorDescription;
 }
@@ -79,7 +80,8 @@ struct ProposalSettings {
 - ***minVotesForCreating*** - the minimal needed voting power to create the proposal
 - ***rewardToken*** - the reward token address
 - ***creationReward*** - the amount of reward for proposal creation
-- ***executionReward*** - the amount of reward for proposal execution
+- ***executionReward*** - the amount of reward for proposal execution if the proposal is accepted
+- ***executionRewardAgainst*** - the amount of reward for proposal execution if the proposal is rejected
 - ***voteRewardsCoefficient*** - the reward multiplier for voting
 - ***executorDescription*** - the settings description string
 

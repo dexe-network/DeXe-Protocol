@@ -22,10 +22,7 @@ interface IGovSettings {
     /// @param quorumValidators the percentage of total validator token supply to confirm the proposal
     /// @param minVotesForVoting the minimal needed voting power to vote for the proposal
     /// @param minVotesForCreating the minimal needed voting power to create the proposal
-    /// @param rewardToken the reward token address
-    /// @param creationReward the amount of reward for proposal creation
-    /// @param executionReward the amount of reward for proposal execution
-    /// @param voteRewardsCoefficient the reward multiplier for voting
+    /// @param rewardsInfo the reward info for proposal creation and execution
     /// @param executorDescription the settings description string
     struct ProposalSettings {
         bool earlyCompletion;
@@ -37,11 +34,22 @@ interface IGovSettings {
         uint128 quorumValidators;
         uint256 minVotesForVoting;
         uint256 minVotesForCreating;
+        RewardsInfo rewardsInfo;
+        string executorDescription;
+    }
+
+    /// @notice The struct holds information about rewards for proposals
+    /// @param rewardToken the reward token address
+    /// @param creationReward the amount of reward for proposal creation
+    /// @param executionRewar the amount of reward for proposal execution
+    /// @param voteForRewardsCoefficient the reward multiplier for voting for the proposal
+    /// @param voteAgainstRewardsCoefficient the reward multiplier for voting against the proposal
+    struct RewardsInfo {
         address rewardToken;
         uint256 creationReward;
         uint256 executionReward;
-        uint256 voteRewardsCoefficient;
-        string executorDescription;
+        uint256 voteForRewardsCoefficient;
+        uint256 voteAgainstRewardsCoefficient;
     }
 
     /// @notice The function to get settings of this executor

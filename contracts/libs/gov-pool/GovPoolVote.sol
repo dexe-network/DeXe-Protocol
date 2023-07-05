@@ -31,11 +31,11 @@ library GovPoolVote {
     ) external returns (uint256) {
         require(voteAmount > 0 || voteNftIds.length > 0, "Gov: empty vote");
 
-        bool useDelegated = !proposals[proposalId].core.settings.delegatedVotingAllowed;
-
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
         EnumerableSet.UintSet storage votes = votedInProposals[msg.sender][false];
         IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][msg.sender][false];
+
+        bool useDelegated = !core.settings.delegatedVotingAllowed;
 
         return
             _vote(
@@ -62,12 +62,11 @@ library GovPoolVote {
         bool isVoteFor
     ) external returns (uint256) {
         require(voteAmount > 0 || voteNftIds.length > 0, "Gov: empty delegated vote");
-        require(
-            proposals[proposalId].core.settings.delegatedVotingAllowed,
-            "Gov: delegated voting is off"
-        );
 
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
+
+        require(core.settings.delegatedVotingAllowed, "Gov: delegated voting is off");
+
         EnumerableSet.UintSet storage votes = votedInProposals[msg.sender][true];
         IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][msg.sender][true];
 
@@ -159,10 +158,12 @@ library GovPoolVote {
         bool useDelegated,
         bool isVoteFor
     ) internal {
-        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
 
-        IGovUserKeeper(userKeeper).lockTokens(proposalId, msg.sender, isMicropool, amount);
-        (uint256 tokenBalance, uint256 ownedBalance) = IGovUserKeeper(userKeeper).tokenBalance(
+        IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
+
+        userKeeper.lockTokens(proposalId, msg.sender, isMicropool, amount);
+        (uint256 tokenBalance, uint256 ownedBalance) = userKeeper.tokenBalance(
             msg.sender,
             isMicropool,
             useDelegated
@@ -202,16 +203,15 @@ library GovPoolVote {
             require(votedNfts.add(nftIds[i]), "Gov: NFT already voted");
         }
 
-        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
 
-        IGovUserKeeper(userKeeper).lockNfts(msg.sender, isMicropool, useDelegated, nftIds);
+        IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
-        IGovUserKeeper(userKeeper).updateNftPowers(nftIds);
+        userKeeper.lockNfts(msg.sender, isMicropool, useDelegated, nftIds);
 
-        voteAmount = IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(
-            nftIds,
-            core.nftPowerSnapshotId
-        );
+        userKeeper.updateNftPowers(nftIds);
+
+        voteAmount = userKeeper.getNftsPowerInTokensBySnapshot(nftIds, core.nftPowerSnapshotId);
 
         if (isVoteFor) {
             core.votesFor += voteAmount;

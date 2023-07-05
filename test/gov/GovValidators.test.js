@@ -286,7 +286,6 @@ describe("GovValidators", () => {
         assert.equal(await validators.addressVoted(1, true, THIRD), wei("0"));
 
         let core = (await getInternalProposalByIndex(1)).proposal.core;
-
         assert.equal(core.votesFor, wei("40"));
         assert.equal(core.votesAgainst, "0");
 

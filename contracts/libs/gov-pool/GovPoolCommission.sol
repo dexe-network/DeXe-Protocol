@@ -28,6 +28,6 @@ library GovPoolCommission {
             commissionAmount.percentage(commissionPercentage)
         );
 
-        rewardToken.sendFunds(commissionReceivers[1], commission);
+        rewardToken.sendFunds(commissionReceivers[1], commission, true);
     }
 }
