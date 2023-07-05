@@ -21,7 +21,7 @@ library GovPoolExecute {
     using TokenBalance for address;
     using GovPoolCommission for address;
 
-    event ProposalExecuted(uint256 proposalId, address sender);
+    event ProposalExecuted(uint256 proposalId, bool isFor, address sender);
 
     function execute(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
@@ -66,7 +66,11 @@ library GovPoolExecute {
             require(status, returnedData.getRevertMsg());
         }
 
-        emit ProposalExecuted(proposalId, msg.sender);
+        emit ProposalExecuted(
+            proposalId,
+            proposalState == IGovPool.ProposalState.SucceededFor,
+            msg.sender
+        );
 
         _payCommission(core, validatorsVotingSucceeded, proposalState);
     }
