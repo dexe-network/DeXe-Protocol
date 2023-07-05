@@ -8,6 +8,20 @@ import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
  * This contract acts as a marketplace to provide DAO pools with the ability to sell their own ERC20 tokens.
  */
 interface ITokenSaleProposal {
+    /// @notice The enum that represents the type of requirements to participate in the tier
+    /// @param DAOVotes indicates that the user must have the required voting power
+    /// @param Whitelist indicates that the user must be included in the whitelist of the tier
+    /// @param BABT indicates that the user must own the BABT token
+    /// @param TokenLock indicates that the user must lock a specific amount of tokens in the tier
+    /// @param NftLock indicates that the user must lock an nft in the tier.
+    enum ParticipationType {
+        DAOVotes,
+        Whitelist,
+        BABT,
+        TokenLock,
+        NftLock
+    }
+
     /// @notice Metadata of the tier that is part of the initial tier parameters
     /// @param name the name of the tier
     /// @param description the description of the tier
@@ -26,6 +40,14 @@ interface ITokenSaleProposal {
         uint64 vestingDuration;
         uint64 cliffPeriod;
         uint64 unlockStep;
+    }
+
+    /// @notice Participation details that are part of the initial tier parameters
+    /// @param participationType the type of requirements to participate in the tier
+    /// @param data the additional data associated with the participation requirements
+    struct ParticipationDetails {
+        ParticipationType participationType;
+        bytes data;
     }
 
     /// @notice Initial tier parameters
@@ -52,9 +74,10 @@ interface ITokenSaleProposal {
         uint256 minAllocationPerUser;
         uint256 maxAllocationPerUser;
         VestingSettings vestingSettings;
+        ParticipationDetails participationDetails;
     }
 
-    /// @notice Vesting tier-related parameters. This struct is used in view functions of contract as a return argument
+    /// @notice Vesting tier-related parameters
     /// @param vestingStartTime the start time of the vesting when the cliff period ends
     /// @param vestingEndTime the end time of the vesting
     struct VestingTierInfo {
@@ -64,13 +87,11 @@ interface ITokenSaleProposal {
 
     /// @notice Dynamic tier parameters
     /// @param isOff whether the tier is off
-    /// @param whitelisted true if the tier has at least one user in its whitelist, false otherwise
     /// @param totalSold how many tokens were sold
     /// @param uri whitelist uri
     /// @param vestingTierInfo vesting tier-related params
     struct TierInfo {
         bool isOff;
-        bool whitelisted;
         uint256 totalSold;
         string uri;
         VestingTierInfo vestingTierInfo;
@@ -80,10 +101,14 @@ interface ITokenSaleProposal {
     /// @param spentAmounts matching purchase token addresses with spent amounts
     /// @param claimTotalAmount the total amount to be claimed
     /// @param isClaimed the boolean indicating whether the purchase has been claimed or not
+    /// @param lockedAmount the locked participation token amount
+    /// @param lockedId the locked participation token id
     struct PurchaseInfo {
         EnumerableMap.AddressToUintMap spentAmounts;
         uint256 claimTotalAmount;
         bool isClaimed;
+        uint256 lockedAmount;
+        uint256 lockedId;
     }
 
     /// @notice Purchase parameters. This struct is used in view functions as part of a return argument
@@ -92,6 +117,8 @@ interface ITokenSaleProposal {
     /// @param claimUnlockTime the time the user can claim its non-vesting tokens
     /// @param claimTotalAmount the total amount of tokens to be claimed
     /// @param boughtTotalAmount the total amount of tokens user bought including vesting and non-vesting tokens
+    /// @param lockedAmount the locked participation token amount
+    /// @param lockedId the locked participation token id
     /// @param purchaseTokenAddresses the list of purchase token addresses
     /// @param purchaseTokenAmounts the list of purchase token amounts
     struct PurchaseView {
@@ -100,6 +127,8 @@ interface ITokenSaleProposal {
         uint64 claimUnlockTime;
         uint256 claimTotalAmount;
         uint256 boughtTotalAmount;
+        uint256 lockedAmount;
+        uint256 lockedId;
         address[] purchaseTokenAddresses;
         uint256[] purchaseTokenAmounts;
     }
@@ -213,6 +242,23 @@ interface ITokenSaleProposal {
     /// @param tokenToBuyWith the token that will be used (exchanged) to purchase token on the token sale
     /// @param amount the amount of the token to be used for this exchange
     function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable;
+
+    /// @notice This function is used to lock the specified amount of tokens to participate in the given tier
+    /// @param tierId the id of the tier to lock the tokens for
+    function lockParticipationTokens(uint256 tierId) external payable;
+
+    /// @notice This function is used to lock the specified nft to participate in the given tier
+    /// @param tierId the id of the tier to lock the nft for
+    /// @param tokenId the id of the nft to lock
+    function lockParticipationNft(uint256 tierId, uint256 tokenId) external;
+
+    /// @notice This function is used to unlock participation tokens
+    /// @param tierId the id of the tier to unlock the tokens for
+    function unlockParticipationTokens(uint256 tierId) external;
+
+    /// @notice This function is used to unlock the participation nft
+    /// @param tierId the id of the tier to unlock the nft for
+    function unlockParticipationNft(uint256 tierId) external;
 
     /// @notice This function is used to get amount of `TokenSaleProposal` tokens that can be purchased
     /// @param user the address of the user that purchases tokens

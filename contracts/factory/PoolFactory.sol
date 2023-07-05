@@ -149,7 +149,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             validatorsProxy,
             parameters
         );
-        TokenSaleProposal(tokenSaleProxy).__TokenSaleProposal_init(poolProxy);
+        TokenSaleProposal(tokenSaleProxy).__TokenSaleProposal_init(poolProxy, _babt);
 
         GovSettings(settingsProxy).transferOwnership(poolProxy);
         GovUserKeeper(userKeeperProxy).transferOwnership(poolProxy);

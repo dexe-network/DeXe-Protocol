@@ -4,24 +4,34 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/utils/Multicall.sol";
 
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
+import "../../interfaces/gov/IGovPool.sol";
+import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
+import "../../interfaces/core/ISBT721.sol";
 
+import "../../libs/token-sale-proposal/TokenSaleProposalDecode.sol";
 import "../../libs/math/MathHelper.sol";
+import "../../libs/utils/TokenBalance.sol";
 
 import "../../core/Globals.sol";
 
-contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
+contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Multicall {
     using MathHelper for uint256;
+    using TokenBalance for *;
     using Math for uint256;
-    using SafeERC20 for ERC20;
+    using SafeERC20 for IERC20;
     using DecimalsConverter for uint256;
     using EnumerableMap for EnumerableMap.AddressToUintMap;
+    using TokenSaleProposalDecode for Tier;
 
     address public govAddress;
+    ISBT721 public babt;
 
     uint256 public override latestTierId;
 
@@ -49,10 +59,11 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         _;
     }
 
-    function __TokenSaleProposal_init(address _govAddress) external initializer {
+    function __TokenSaleProposal_init(address _govAddress, ISBT721 _babt) external initializer {
         require(_govAddress != address(0), "TSP: zero gov address");
 
         govAddress = _govAddress;
+        babt = _babt;
     }
 
     function createTiers(TierInitParams[] calldata tiers) external override onlyGov {
@@ -82,11 +93,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
             tier.tierInfo.totalSold += recoveringAmount;
 
-            address saleTokenAddress = tier.tierInitParams.saleTokenAddress;
-            ERC20(saleTokenAddress).safeTransfer(
-                msg.sender,
-                recoveringAmount.from18(ERC20(saleTokenAddress).decimals())
-            );
+            IERC20(tier.tierInitParams.saleTokenAddress).sendFunds(msg.sender, recoveringAmount);
         }
     }
 
@@ -99,12 +106,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
             tier.users[msg.sender].purchaseInfo.isClaimed = true;
 
-            address saleTokenAddress = tier.tierInitParams.saleTokenAddress;
-
-            ERC20(saleTokenAddress).safeTransfer(
-                msg.sender,
-                claimAmount.from18(ERC20(saleTokenAddress).decimals())
-            );
+            IERC20(tier.tierInitParams.saleTokenAddress).sendFunds(msg.sender, claimAmount);
         }
     }
 
@@ -120,10 +122,9 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             vestingUserInfo.latestVestingWithdraw = uint64(block.timestamp);
             vestingUserInfo.vestingWithdrawnAmount += vestingWithdrawAmount;
 
-            address saleTokenAddress = tier.tierInitParams.saleTokenAddress;
-            ERC20(saleTokenAddress).safeTransfer(
+            IERC20(tier.tierInitParams.saleTokenAddress).sendFunds(
                 msg.sender,
-                vestingWithdrawAmount.from18(ERC20(saleTokenAddress).decimals())
+                vestingWithdrawAmount
             );
         }
     }
@@ -162,7 +163,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             (bool success, ) = govAddress.call{value: msg.value}("");
             require(success, "TSP: failed to transfer ether");
         } else {
-            ERC20(tokenToBuyWith).safeTransferFrom(
+            IERC20(tokenToBuyWith).safeTransferFrom(
                 msg.sender,
                 govAddress,
                 amount.from18(ERC20(tokenToBuyWith).decimals())
@@ -170,6 +171,74 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         }
 
         emit Bought(tierId, msg.sender);
+    }
+
+    function lockParticipationTokens(
+        uint256 tierId
+    ) external payable override ifTierExists(tierId) {
+        Tier storage tier = _tiers[tierId];
+        PurchaseInfo storage purchaseInfo = tier.users[msg.sender].purchaseInfo;
+
+        (address token, uint256 amount) = tier.decodeTokenLock();
+
+        require(purchaseInfo.lockedAmount == 0, "TSP: already locked");
+
+        purchaseInfo.lockedAmount = amount;
+
+        if (token != ETHEREUM_ADDRESS) {
+            IERC20(token).safeTransferFrom(
+                msg.sender,
+                address(this),
+                amount.from18(ERC20(token).decimals())
+            );
+        } else {
+            require(msg.value == amount, "TSP: wrong lock amount");
+        }
+    }
+
+    function lockParticipationNft(
+        uint256 tierId,
+        uint256 tokenId
+    ) external override ifTierExists(tierId) {
+        Tier storage tier = _tiers[tierId];
+        PurchaseInfo storage purchaseInfo = tier.users[msg.sender].purchaseInfo;
+
+        address token = tier.decodeNftLock();
+
+        require(purchaseInfo.lockedId == 0, "TSP: already locked");
+
+        purchaseInfo.lockedId = tokenId;
+
+        IERC721(token).safeTransferFrom(msg.sender, address(this), tokenId);
+    }
+
+    function unlockParticipationTokens(uint256 tierId) external override ifTierExists(tierId) {
+        Tier storage tier = _tiers[tierId];
+        PurchaseInfo storage purchaseInfo = tier.users[msg.sender].purchaseInfo;
+
+        (address token, uint256 amount) = tier.decodeTokenLock();
+
+        require(block.timestamp >= tier.tierInitParams.saleEndTime, "TSP: sale is not over");
+        require(purchaseInfo.lockedAmount == amount, "TSP: not locked");
+
+        purchaseInfo.lockedAmount = 0;
+
+        token.sendFunds(msg.sender, amount);
+    }
+
+    function unlockParticipationNft(uint256 tierId) external override ifTierExists(tierId) {
+        Tier storage tier = _tiers[tierId];
+        PurchaseInfo storage purchaseInfo = tier.users[msg.sender].purchaseInfo;
+
+        address token = tier.decodeNftLock();
+        uint256 tokenId = purchaseInfo.lockedId;
+
+        require(block.timestamp >= tier.tierInitParams.saleEndTime, "TSP: sale is not over");
+        require(tokenId != 0, "TSP: not locked");
+
+        purchaseInfo.lockedId = 0;
+
+        IERC721(token).safeTransferFrom(address(this), msg.sender, tokenId);
     }
 
     function getSaleTokenAmount(
@@ -206,7 +275,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             "TSP: insufficient sale token amount"
         );
         require(
-            ERC20(tierInitParams.saleTokenAddress).balanceOf(address(this)).to18(
+            IERC20(tierInitParams.saleTokenAddress).balanceOf(address(this)).to18(
                 ERC20(tierInitParams.saleTokenAddress).decimals()
             ) >= saleTokenAmount,
             "TSP: insufficient contract balance"
@@ -300,6 +369,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             "TSP: vesting settings validation failed"
         );
         require(
+            _validateParticipationDetails(tierInitParams.participationDetails),
+            "TSP: participation details validation failed"
+        );
+        require(
             tierInitParams.purchaseTokenAddresses.length != 0,
             "TSP: purchase tokens are not provided"
         );
@@ -319,6 +392,17 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         tierInitParams.totalTokenProvided = tierInitParams.totalTokenProvided.to18(
             saleTokenDecimals
         );
+
+        if (tierInitParams.participationDetails.participationType == ParticipationType.TokenLock) {
+            (address token, uint256 amount) = abi.decode(
+                tierInitParams.participationDetails.data,
+                (address, uint256)
+            );
+            tierInitParams.participationDetails.data = abi.encode(
+                token,
+                amount.to18(ERC20(token).decimals())
+            );
+        }
 
         Tier storage tier = _tiers[++latestTierId];
 
@@ -350,10 +434,15 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     function _addToWhitelist(
         WhitelistingRequest calldata request
     ) internal ifTierExists(request.tierId) ifTierIsNotOff(request.tierId) {
-        TierInfo storage tierInfo = _tiers[request.tierId].tierInfo;
+        Tier storage tier = _tiers[request.tierId];
 
-        tierInfo.uri = request.uri;
-        tierInfo.whitelisted = true;
+        require(
+            tier.tierInitParams.participationDetails.participationType ==
+                ParticipationType.Whitelist,
+            "TSP: wrong participation type"
+        );
+
+        tier.tierInfo.uri = request.uri;
 
         for (uint256 i = 0; i < request.users.length; i++) {
             _mint(request.users[i], request.tierId, 1, "");
@@ -458,6 +547,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         purchaseView.boughtTotalAmount =
             purchaseView.claimTotalAmount +
             vestingUserInfo.vestingTotalAmount;
+        purchaseView.lockedAmount = purchaseInfo.lockedAmount;
+        purchaseView.lockedId = purchaseInfo.lockedId;
 
         uint256 purchaseTokenLength = purchaseInfo.spentAmounts.length();
 
@@ -526,8 +617,39 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         userView.vestingUserView = vestingUserView;
     }
 
-    function _canParticipate(address user, uint256 tierId) internal view returns (bool) {
-        return _tiers[tierId].tierInfo.whitelisted || balanceOf(user, tierId) == 1;
+    function _canParticipate(
+        address user,
+        uint256 tierId
+    ) internal view returns (bool canParticipate) {
+        Tier storage tier = _tiers[tierId];
+        ParticipationType participationType = tier
+            .tierInitParams
+            .participationDetails
+            .participationType;
+
+        if (participationType == ParticipationType.DAOVotes) {
+            (, address govUserKeeper, , ) = IGovPool(govAddress).getHelperContracts();
+            canParticipate =
+                IGovUserKeeper(govUserKeeper)
+                .votingPower(
+                    _asSingletonArray(msg.sender),
+                    _asSingletonArray(false),
+                    _asSingletonArray(true)
+                )[0].power >
+                tier.decodeDAOVotes();
+        } else if (participationType == ParticipationType.Whitelist) {
+            canParticipate = balanceOf(msg.sender, tierId) > 0;
+        } else if (participationType == ParticipationType.BABT) {
+            canParticipate = babt.balanceOf(msg.sender) > 0;
+        } else {
+            PurchaseInfo storage purchaseInfo = tier.users[user].purchaseInfo;
+
+            if (participationType == ParticipationType.TokenLock) {
+                canParticipate = purchaseInfo.lockedAmount > 0;
+            } else {
+                canParticipate = purchaseInfo.lockedId != 0;
+            }
+        }
     }
 
     function _onlyGov() internal view {
@@ -578,5 +700,31 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
             vestingSettings.unlockStep != 0 &&
             vestingSettings.vestingPercentage <= PERCENTAGE_100 &&
             vestingSettings.vestingDuration >= vestingSettings.unlockStep;
+    }
+
+    function _validateParticipationDetails(
+        ParticipationDetails memory participationDetails
+    ) private pure returns (bool) {
+        if (participationDetails.participationType == ParticipationType.DAOVotes) {
+            return participationDetails.data.length == 32;
+        } else if (participationDetails.participationType == ParticipationType.Whitelist) {
+            return participationDetails.data.length == 0;
+        } else if (participationDetails.participationType == ParticipationType.BABT) {
+            return participationDetails.data.length == 0;
+        } else if (participationDetails.participationType == ParticipationType.TokenLock) {
+            return participationDetails.data.length == 64;
+        } else {
+            return participationDetails.data.length == 32;
+        }
+    }
+
+    function _asSingletonArray(bool element) private pure returns (bool[] memory arr) {
+        arr = new bool[](1);
+        arr[0] = element;
+    }
+
+    function _asSingletonArray(address element) private pure returns (address[] memory arr) {
+        arr = new address[](1);
+        arr[0] = element;
     }
 }
