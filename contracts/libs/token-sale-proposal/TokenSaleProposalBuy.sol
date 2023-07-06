@@ -28,6 +28,10 @@ library TokenSaleProposalBuy {
         address tokenToBuyWith,
         uint256 amount
     ) external {
+        ITokenSaleProposal.UserInfo storage userInfo = tier.users[msg.sender];
+        ITokenSaleProposal.PurchaseInfo storage purchaseInfo = userInfo.purchaseInfo;
+        ITokenSaleProposal.TierInitParams memory tierInitParams = tier.tierInitParams;
+
         bool isNativeCurrency = tokenToBuyWith == ETHEREUM_ADDRESS;
         uint256 saleTokenAmount = getSaleTokenAmount(
             tier,
@@ -36,12 +40,6 @@ library TokenSaleProposalBuy {
             tokenToBuyWith,
             isNativeCurrency ? msg.value : amount
         );
-
-        ITokenSaleProposal.TierInfo storage tierInfo = tier.tierInfo;
-        ITokenSaleProposal.UserInfo storage userInfo = tier.users[msg.sender];
-        ITokenSaleProposal.PurchaseInfo storage purchaseInfo = userInfo.purchaseInfo;
-
-        ITokenSaleProposal.TierInitParams memory tierInitParams = tier.tierInitParams;
 
         uint256 vestingCurrentAmount = saleTokenAmount.percentage(
             tierInitParams.vestingSettings.vestingPercentage
@@ -77,10 +75,10 @@ library TokenSaleProposalBuy {
         address tokenToBuyWith,
         uint256 amount
     ) public view returns (uint256) {
+        ITokenSaleProposal.TierInitParams memory tierInitParams = tier.tierInitParams;
+
         require(amount > 0, "TSP: zero amount");
         require(canParticipate(tier, tierId, user), "TSP: not whitelisted");
-
-        ITokenSaleProposal.TierInitParams memory tierInitParams = tier.tierInitParams;
 
         require(
             tierInitParams.saleStartTime <= block.timestamp &&
@@ -121,7 +119,6 @@ library TokenSaleProposalBuy {
             .tierInitParams
             .participationDetails
             .participationType;
-
         TokenSaleProposal tokenSaleProposal = TokenSaleProposal(address(this));
 
         if (participationType == ITokenSaleProposal.ParticipationType.DAOVotes) {
@@ -156,7 +153,6 @@ library TokenSaleProposalBuy {
     ) external view returns (ITokenSaleProposal.PurchaseView memory purchaseView) {
         ITokenSaleProposal.UserInfo storage userInfo = tier.users[user];
         ITokenSaleProposal.PurchaseInfo storage purchaseInfo = userInfo.purchaseInfo;
-
         ITokenSaleProposal.TierInitParams memory tierInitParams = tier.tierInitParams;
 
         purchaseView.isClaimed = purchaseInfo.isClaimed;
