@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
 import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
+
 import "../../libs/utils/TokenBalance.sol";
 import "./TokenSaleProposalDecode.sol";
 

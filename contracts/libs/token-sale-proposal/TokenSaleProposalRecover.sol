@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
+
 import "../../libs/utils/TokenBalance.sol";
 
 library TokenSaleProposalRecover {
