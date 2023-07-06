@@ -51,16 +51,16 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Mult
     }
 
     function createTiers(TierInitParams[] calldata tierInitParams) external override onlyGov {
-        uint256 newTierId = latestTierId + 1;
+        uint256 newTierId = latestTierId;
 
         latestTierId += tierInitParams.length;
 
         for (uint256 i = 0; i < tierInitParams.length; i++) {
+            ++newTierId;
+
             _tiers.createTier(newTierId, tierInitParams[i]);
 
             emit TierCreated(newTierId, tierInitParams[i].saleTokenAddress);
-
-            ++newTierId;
         }
     }
 
