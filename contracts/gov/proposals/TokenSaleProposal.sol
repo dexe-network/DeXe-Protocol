@@ -16,7 +16,7 @@ import "../../libs/token-sale-proposal/TokenSaleProposalRecover.sol";
 
 contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Multicall {
     using TokenSaleProposalCreate for *;
-    using TokenSaleProposalBuy for *;
+    using TokenSaleProposalBuy for Tier;
     using TokenSaleProposalVesting for Tier;
     using TokenSaleProposalWhitelist for Tier;
     using TokenSaleProposalClaim for Tier;
