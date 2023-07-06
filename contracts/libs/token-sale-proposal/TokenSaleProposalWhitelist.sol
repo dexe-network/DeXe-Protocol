@@ -6,12 +6,12 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
-import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
+import "../../gov/proposals/TokenSaleProposal.sol";
 
 import "../../libs/utils/TokenBalance.sol";
 import "./TokenSaleProposalDecode.sol";
 
-library TokenSaleProposalLock {
+library TokenSaleProposalWhitelist {
     using TokenSaleProposalDecode for ITokenSaleProposal.Tier;
     using TokenBalance for address;
     using DecimalsConverter for uint256;
@@ -74,5 +74,22 @@ library TokenSaleProposalLock {
         purchaseInfo.lockedId = 0;
 
         IERC721(token).safeTransferFrom(address(this), msg.sender, tokenId);
+    }
+
+    function addToWhitelist(
+        ITokenSaleProposal.Tier storage tier,
+        ITokenSaleProposal.WhitelistingRequest calldata request
+    ) external {
+        require(
+            tier.tierInitParams.participationDetails.participationType ==
+                ITokenSaleProposal.ParticipationType.Whitelist,
+            "TSP: wrong participation type"
+        );
+
+        tier.tierInfo.uri = request.uri;
+
+        for (uint256 i = 0; i < request.users.length; i++) {
+            TokenSaleProposal(address(this)).mint(request.users[i], request.tierId);
+        }
     }
 }

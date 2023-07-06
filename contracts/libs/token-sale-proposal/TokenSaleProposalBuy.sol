@@ -8,7 +8,6 @@ import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
-import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
 
 import "../../gov/proposals/TokenSaleProposal.sol";
 
@@ -79,7 +78,6 @@ library TokenSaleProposalBuy {
 
         require(amount > 0, "TSP: zero amount");
         require(canParticipate(tier, tierId, user), "TSP: not whitelisted");
-
         require(
             tierInitParams.saleStartTime <= block.timestamp &&
                 block.timestamp <= tierInitParams.saleEndTime,

@@ -2,41 +2,23 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/Multicall.sol";
-
-import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
 import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
 import "../../interfaces/core/ISBT721.sol";
 
-import "../../libs/token-sale-proposal/TokenSaleProposalDecode.sol";
 import "../../libs/token-sale-proposal/TokenSaleProposalCreate.sol";
 import "../../libs/token-sale-proposal/TokenSaleProposalBuy.sol";
 import "../../libs/token-sale-proposal/TokenSaleProposalVesting.sol";
-import "../../libs/token-sale-proposal/TokenSaleProposalLock.sol";
+import "../../libs/token-sale-proposal/TokenSaleProposalWhitelist.sol";
 import "../../libs/token-sale-proposal/TokenSaleProposalClaim.sol";
 import "../../libs/token-sale-proposal/TokenSaleProposalRecover.sol";
 
-import "../../libs/math/MathHelper.sol";
-import "../../libs/utils/TokenBalance.sol";
-
-import "../../core/Globals.sol";
-
 contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Multicall {
-    using MathHelper for uint256;
-    using TokenBalance for *;
-    using Math for uint256;
-    using SafeERC20 for IERC20;
-    using DecimalsConverter for uint256;
-    using TokenSaleProposalDecode for Tier;
     using TokenSaleProposalCreate for *;
-    using TokenSaleProposalBuy for Tier;
+    using TokenSaleProposalBuy for *;
     using TokenSaleProposalVesting for Tier;
-    using TokenSaleProposalLock for Tier;
+    using TokenSaleProposalWhitelist for Tier;
     using TokenSaleProposalClaim for Tier;
     using TokenSaleProposalRecover for Tier;
 
@@ -56,6 +38,11 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Mult
         _;
     }
 
+    modifier onlyThis() {
+        _onlyThis();
+        _;
+    }
+
     function __TokenSaleProposal_init(address _govAddress, ISBT721 _babt) external initializer {
         require(_govAddress != address(0), "TSP: zero gov address");
 
@@ -63,37 +50,23 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Mult
         babt = _babt;
     }
 
-    function createTiers(TierInitParams[] calldata tiers) external override onlyGov {
-        uint256 tierIdFrom = latestTierId + 1;
+    function createTiers(TierInitParams[] calldata tierInitParams) external override onlyGov {
+        uint256 newTierId = latestTierId + 1;
 
-        latestTierId += tiers.length;
+        latestTierId += tierInitParams.length;
 
-        for (uint256 i = 0; i < tiers.length; i++) {
-            _tiers.createTier(tiers[i], tierIdFrom + i);
+        for (uint256 i = 0; i < tierInitParams.length; i++) {
+            _tiers.createTier(newTierId, tierInitParams[i]);
 
-            emit TierCreated(tierIdFrom + i, tiers[i].saleTokenAddress);
+            emit TierCreated(newTierId, tierInitParams[i].saleTokenAddress);
+
+            ++newTierId;
         }
     }
 
     function addToWhitelist(WhitelistingRequest[] calldata requests) external override onlyGov {
         for (uint256 i = 0; i < requests.length; i++) {
-            WhitelistingRequest calldata request = requests[i];
-
-            Tier storage tier = _getActiveTier(request.tierId);
-
-            require(
-                tier.tierInitParams.participationDetails.participationType ==
-                    ParticipationType.Whitelist,
-                "TSP: wrong participation type"
-            );
-
-            tier.tierInfo.uri = request.uri;
-
-            for (uint256 j = 0; j < request.users.length; j++) {
-                _mint(request.users[j], request.tierId, 1, "");
-
-                emit Whitelisted(request.tierId, request.users[j]);
-            }
+            _getActiveTier(requests[i].tierId).addToWhitelist(requests[i]);
         }
     }
 
@@ -143,6 +116,12 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Mult
         _getTier(tierId).unlockParticipationNft();
     }
 
+    function mint(address user, uint256 tierId) external onlyThis {
+        _mint(user, tierId, 1, "");
+
+        emit Whitelisted(tierId, user);
+    }
+
     function getSaleTokenAmount(
         address user,
         uint256 tierId,
@@ -188,18 +167,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Mult
         uint256 offset,
         uint256 limit
     ) external view returns (TierView[] memory tierViews) {
-        uint256 to = (offset + limit).min(latestTierId).max(offset);
-
-        tierViews = new TierView[](to - offset);
-
-        for (uint256 i = offset; i < to; i++) {
-            Tier storage tier = _tiers[i + 1];
-
-            tierViews[i - offset] = TierView({
-                tierInitParams: tier.tierInitParams,
-                tierInfo: tier.tierInfo
-            });
-        }
+        return _tiers.getTierViews(offset, limit);
     }
 
     function getUserViews(
@@ -242,6 +210,10 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Mult
 
     function _onlyGov() internal view {
         require(govAddress == address(0) || msg.sender == govAddress, "TSP: not a Gov contract");
+    }
+
+    function _onlyThis() internal view {
+        require(address(this) == msg.sender, "TSP: not this contract");
     }
 
     function _getTier(uint256 tierId) private view returns (Tier storage tier) {

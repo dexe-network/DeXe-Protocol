@@ -2,20 +2,24 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
 import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
 
+import "../../gov/proposals/TokenSaleProposal.sol";
+
 import "../../core/Globals.sol";
 
 library TokenSaleProposalCreate {
     using DecimalsConverter for uint256;
+    using Math for uint256;
 
     function createTier(
         mapping(uint256 => ITokenSaleProposal.Tier) storage tiers,
-        ITokenSaleProposal.TierInitParams memory tierInitParams,
-        uint256 newTierId
+        uint256 newTierId,
+        ITokenSaleProposal.TierInitParams memory tierInitParams
     ) external {
         require(tierInitParams.saleTokenAddress != address(0), "TSP: sale token cannot be zero");
         require(
@@ -97,6 +101,27 @@ library TokenSaleProposalCreate {
             vestingStartTime: vestingStartTime,
             vestingEndTime: vestingStartTime + tierInitParams.vestingSettings.vestingDuration
         });
+    }
+
+    function getTierViews(
+        mapping(uint256 => ITokenSaleProposal.Tier) storage tiers,
+        uint256 offset,
+        uint256 limit
+    ) external view returns (ITokenSaleProposal.TierView[] memory tierViews) {
+        uint256 to = (offset + limit).min(TokenSaleProposal(address(this)).latestTierId()).max(
+            offset
+        );
+
+        tierViews = new ITokenSaleProposal.TierView[](to - offset);
+
+        for (uint256 i = offset; i < to; i++) {
+            ITokenSaleProposal.Tier storage tier = tiers[i + 1];
+
+            tierViews[i - offset] = ITokenSaleProposal.TierView({
+                tierInitParams: tier.tierInitParams,
+                tierInfo: tier.tierInfo
+            });
+        }
     }
 
     function _validateVestingSettings(
