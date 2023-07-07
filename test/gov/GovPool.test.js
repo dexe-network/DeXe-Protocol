@@ -508,7 +508,10 @@ describe("GovPool", () => {
         const beforeUnlock = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
         assert.equal(beforeUnlock.tokens.toFixed(), wei("900"));
-        assert.deepEqual(beforeUnlock.nfts[0].slice(0, beforeUnlock.nfts[1]), ["1", "3", "4"]);
+        assert.deepEqual(
+          beforeUnlock.nfts.map((e) => e.toFixed()),
+          ["1", "3", "4"]
+        );
 
         await setTime(startTime + 1000);
         await govPool.unlockInProposals([1], OWNER, false);
@@ -516,14 +519,20 @@ describe("GovPool", () => {
         const afterUnlock = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
         assert.equal(afterUnlock.tokens.toFixed(), wei("1000"));
-        assert.deepEqual(afterUnlock.nfts[0].slice(0, afterUnlock.nfts[1]), ["1", "2", "3", "4"]);
+        assert.deepEqual(
+          afterUnlock.nfts.map((e) => e.toFixed()),
+          ["1", "2", "3", "4"]
+        );
       });
 
       it("should unlock all", async () => {
         const beforeUnlock = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
         assert.equal(beforeUnlock.tokens.toFixed(), wei("900"));
-        assert.deepEqual(beforeUnlock.nfts[0].slice(0, beforeUnlock.nfts[1]), ["1", "3", "4"]);
+        assert.deepEqual(
+          beforeUnlock.nfts.map((e) => e.toFixed()),
+          ["1", "3", "4"]
+        );
 
         await setTime(startTime + 1000);
         await govPool.unlock(OWNER, false);
@@ -531,7 +540,10 @@ describe("GovPool", () => {
         const afterUnlock = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
         assert.equal(afterUnlock.tokens.toFixed(), wei("1000"));
-        assert.deepEqual(afterUnlock.nfts[0].slice(0, afterUnlock.nfts[1]), ["1", "2", "3", "4"]);
+        assert.deepEqual(
+          afterUnlock.nfts.map((e) => e.toFixed()),
+          ["1", "2", "3", "4"]
+        );
       });
     });
 
@@ -1563,7 +1575,7 @@ describe("GovPool", () => {
         let withdrawable = await govPool.getWithdrawableAssets(SECOND, ZERO_ADDR);
 
         assert.equal(toBN(withdrawable.tokens).toFixed(), wei("500"));
-        assert.equal(withdrawable.nfts[1], "0");
+        assert.equal(withdrawable.nfts.length, "0");
 
         await govPool.vote(1, wei("1000"), [1, 2, 3, 4], true);
 
@@ -1574,7 +1586,7 @@ describe("GovPool", () => {
         withdrawable = await govPool.getWithdrawableAssets(SECOND, ZERO_ADDR);
 
         assert.equal(toBN(withdrawable.tokens).toFixed(), wei("1000"));
-        assert.equal(withdrawable.nfts[1], "0");
+        assert.equal(withdrawable.nfts.length, "0");
 
         assert.equal(toBN(await token.balanceOf(SECOND)).toFixed(), "0");
 
@@ -1597,14 +1609,14 @@ describe("GovPool", () => {
         let withdrawable = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
         assert.equal(toBN(withdrawable.tokens).toFixed(), "0");
-        assert.equal(withdrawable.nfts[1], "0");
+        assert.equal(withdrawable.nfts.length, "0");
 
         await govPool.unlockInProposals([1], OWNER, false);
 
         withdrawable = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
         assert.equal(toBN(withdrawable.tokens).toFixed(), "0");
-        assert.equal(withdrawable.nfts[1], "0");
+        assert.equal(withdrawable.nfts.length, "0");
 
         await setTime((await getCurrentBlockTime()) + 10000);
 
@@ -1630,14 +1642,14 @@ describe("GovPool", () => {
         let withdrawable = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
         assert.equal(toBN(withdrawable.tokens).toFixed(), "0");
-        assert.equal(withdrawable.nfts[1], "0");
+        assert.equal(withdrawable.nfts.length, "0");
 
         await govPool.unlockInProposals([1], OWNER, false);
 
         withdrawable = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
         assert.equal(toBN(withdrawable.tokens).toFixed(), "0");
-        assert.equal(withdrawable.nfts[1], "0");
+        assert.equal(withdrawable.nfts.length, "0");
       });
 
       it("should not unlock nonexisting proposals", async () => {
@@ -1676,7 +1688,10 @@ describe("GovPool", () => {
         let undelegateable = await govPool.getWithdrawableAssets(OWNER, SECOND);
 
         assert.equal(toBN(undelegateable.tokens).toFixed(), wei("100"));
-        assert.deepEqual(undelegateable.nfts[0], ["2"]);
+        assert.deepEqual(
+          undelegateable.nfts.map((e) => e.toFixed()),
+          ["2"]
+        );
 
         await govPool.vote(1, wei("500"), [1, 3], true);
 
@@ -1685,7 +1700,10 @@ describe("GovPool", () => {
         undelegateable = await govPool.getWithdrawableAssets(OWNER, SECOND);
 
         assert.equal(toBN(undelegateable.tokens).toFixed(), wei("500"));
-        assert.deepEqual(undelegateable.nfts[0], ["2", "4"]);
+        assert.deepEqual(
+          undelegateable.nfts.map((e) => e.toFixed()),
+          ["2", "4"]
+        );
 
         await govPool.undelegate(SECOND, wei("250"), [2]);
         await govPool.undelegate(SECOND, wei("250"), []);

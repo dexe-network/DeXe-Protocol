@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
-import "../../libs/data-structures/ShrinkableArray.sol";
-import "../../libs/math/MathHelper.sol";
+import "../utils/ArrayCropper.sol";
+import "../math/MathHelper.sol";
 
 import "../../gov/ERC721/ERC721Power.sol";
 import "../../gov/user-keeper/GovUserKeeper.sol";
@@ -15,8 +15,7 @@ import "../../gov/user-keeper/GovUserKeeper.sol";
 library GovUserKeeperView {
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using ShrinkableArray for uint256[];
-    using ShrinkableArray for ShrinkableArray.UintArray;
+    using ArrayCropper for uint256[];
     using MathHelper for uint256;
     using Math for uint256;
 
@@ -140,73 +139,63 @@ library GovUserKeeperView {
 
     function getUndelegateableAssets(
         address delegatee,
-        ShrinkableArray.UintArray calldata lockedProposals,
+        uint256[] calldata lockedProposals,
         uint256[] calldata unlockedNfts,
         IGovUserKeeper.BalanceInfo storage balanceInfo,
         IGovUserKeeper.UserInfo storage delegatorInfo,
         mapping(uint256 => uint256) storage nftLockedNums
-    )
-        external
-        view
-        returns (uint256 undelegateableTokens, ShrinkableArray.UintArray memory undelegateableNfts)
-    {
-        (
-            uint256 withdrawableTokens,
-            ShrinkableArray.UintArray memory withdrawableNfts
-        ) = _getFreeAssets(lockedProposals, unlockedNfts, balanceInfo, nftLockedNums);
+    ) external view returns (uint256 undelegateableTokens, uint256[] memory undelegateableNfts) {
+        (uint256 withdrawableTokens, uint256[] memory withdrawableNfts) = _getFreeAssets(
+            lockedProposals,
+            unlockedNfts,
+            balanceInfo,
+            nftLockedNums
+        );
 
         undelegateableTokens = delegatorInfo.delegatedTokens[delegatee].min(withdrawableTokens);
         EnumerableSet.UintSet storage delegatedNfts = delegatorInfo.delegatedNfts[delegatee];
 
-        uint256[] memory nfts = new uint256[](withdrawableNfts.length);
+        undelegateableNfts = new uint256[](withdrawableNfts.length);
         uint256 nftsLength;
 
-        for (uint256 i; i < nfts.length; i++) {
-            if (delegatedNfts.contains(withdrawableNfts.values[i])) {
-                nfts[nftsLength++] = withdrawableNfts.values[i];
+        for (uint256 i; i < undelegateableNfts.length; i++) {
+            if (delegatedNfts.contains(withdrawableNfts[i])) {
+                undelegateableNfts[nftsLength++] = withdrawableNfts[i];
             }
         }
 
-        undelegateableNfts = nfts.transform().crop(nftsLength);
+        undelegateableNfts = undelegateableNfts.crop(nftsLength);
     }
 
     function getWithdrawableAssets(
-        ShrinkableArray.UintArray calldata lockedProposals,
+        uint256[] calldata lockedProposals,
         uint256[] calldata unlockedNfts,
         IGovUserKeeper.BalanceInfo storage balanceInfo,
         mapping(uint256 => uint256) storage nftLockedNums
-    )
-        external
-        view
-        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts)
-    {
+    ) external view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts) {
         return _getFreeAssets(lockedProposals, unlockedNfts, balanceInfo, nftLockedNums);
     }
 
     function _getFreeAssets(
-        ShrinkableArray.UintArray calldata lockedProposals,
+        uint256[] calldata lockedProposals,
         uint256[] calldata unlockedNfts,
         IGovUserKeeper.BalanceInfo storage balanceInfo,
         mapping(uint256 => uint256) storage nftLockedNums
-    )
-        private
-        view
-        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts)
-    {
+    ) private view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts) {
         uint256 newLockedAmount;
 
         for (uint256 i; i < lockedProposals.length; i++) {
             newLockedAmount = newLockedAmount.max(
-                balanceInfo.lockedInProposals[lockedProposals.values[i]]
+                balanceInfo.lockedInProposals[lockedProposals[i]]
             );
         }
 
         withdrawableTokens = balanceInfo.tokenBalance - newLockedAmount;
 
-        uint256[] memory nfts = new uint256[](balanceInfo.nftBalance.length());
+        withdrawableNfts = new uint256[](balanceInfo.nftBalance.length());
         uint256 nftsLength;
 
-        for (uint256 i; i < nfts.length; i++) {
+        for (uint256 i; i < withdrawableNfts.length; i++) {
             uint256 nftId = balanceInfo.nftBalance.at(i);
             uint256 nftLockAmount = nftLockedNums[nftId];
 
@@ -219,10 +208,10 @@ library GovUserKeeperView {
             }
 
             if (nftLockAmount == 0) {
-                nfts[nftsLength++] = nftId;
+                withdrawableNfts[nftsLength++] = nftId;
             }
         }
 
-        withdrawableNfts = nfts.transform().crop(nftsLength);
+        withdrawableNfts = withdrawableNfts.crop(nftsLength);
     }
 }

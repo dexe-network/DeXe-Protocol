@@ -3,8 +3,6 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "../../libs/data-structures/ShrinkableArray.sol";
-
 import "../core/ICoreProperties.sol";
 import "../core/ISBT721.sol";
 import "./settings/IGovSettings.sol";
@@ -458,7 +456,7 @@ interface IGovPool {
     function getWithdrawableAssets(
         address delegator,
         address delegatee
-    ) external view returns (uint256, ShrinkableArray.UintArray memory);
+    ) external view returns (uint256, uint256[] memory);
 
     /// @notice The function to get on-chain and off-chain rewards
     /// @param user the address of the user whose rewards are required

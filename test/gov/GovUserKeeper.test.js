@@ -477,14 +477,12 @@ describe("GovUserKeeper", () => {
         await userKeeper.delegateNfts(OWNER, SECOND, [1, 3]);
         await userKeeper.delegateNfts(THIRD, SECOND, [8]);
 
-        const undelegateable = await userKeeper.getUndelegateableAssets(
-          OWNER,
-          SECOND,
-          { values: [], length: 0 },
-          [1, 2, 8]
-        );
+        const undelegateable = await userKeeper.getUndelegateableAssets(OWNER, SECOND, [], [1, 2, 8]);
 
-        assert.deepEqual(undelegateable.undelegateableNfts[0], ["1", "3", "0"]);
+        assert.deepEqual(
+          undelegateable.undelegateableNfts.map((e) => e.toFixed()),
+          ["1", "3"]
+        );
 
         await truffleAssert.reverts(userKeeper.undelegateNfts(OWNER, SECOND, [6]), "GovUK: NFT is not owned or locked");
         await truffleAssert.reverts(userKeeper.undelegateNfts(OWNER, SECOND, [4]), "GovUK: NFT is not owned or locked");
@@ -506,8 +504,8 @@ describe("GovUserKeeper", () => {
         await userKeeper.lockTokens(1, SECOND, false, wei("5"));
         await userKeeper.lockTokens(1, THIRD, false, wei("30"));
 
-        const withdrawableSecond = await userKeeper.getWithdrawableAssets(SECOND, { values: [1], length: 1 }, []);
-        const withdrawableThird = await userKeeper.getWithdrawableAssets(THIRD, { values: [1], length: 1 }, []);
+        const withdrawableSecond = await userKeeper.getWithdrawableAssets(SECOND, [1], []);
+        const withdrawableThird = await userKeeper.getWithdrawableAssets(THIRD, [1], []);
 
         assert.equal(withdrawableSecond.withdrawableTokens.toFixed(), wei("485"));
         assert.equal(withdrawableThird.withdrawableTokens.toFixed(), wei("470"));
@@ -516,12 +514,12 @@ describe("GovUserKeeper", () => {
       it("should unlock", async () => {
         await userKeeper.lockTokens(1, SECOND, false, wei("10"));
 
-        let withdrawable = await userKeeper.getWithdrawableAssets(SECOND, { values: [1], length: 1 }, []);
+        let withdrawable = await userKeeper.getWithdrawableAssets(SECOND, [1], []);
         assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("490"));
 
         await userKeeper.unlockTokens(1, SECOND, false);
 
-        withdrawable = await userKeeper.getWithdrawableAssets(SECOND, { values: [1], length: 1 }, []);
+        withdrawable = await userKeeper.getWithdrawableAssets(SECOND, [1], []);
         assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("500"));
       });
     });
@@ -537,7 +535,7 @@ describe("GovUserKeeper", () => {
       });
 
       it("should withdraw tokens", async () => {
-        const withdrawable = await userKeeper.getWithdrawableAssets(THIRD, { values: [], length: 0 }, []);
+        const withdrawable = await userKeeper.getWithdrawableAssets(THIRD, [], []);
 
         assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("900"));
 
@@ -590,7 +588,7 @@ describe("GovUserKeeper", () => {
         await userKeeper.lockTokens(2, THIRD, false, wei("300"));
         await userKeeper.lockTokens(3, THIRD, false, wei("500"));
 
-        const withdrawable = await userKeeper.getWithdrawableAssets(THIRD, { values: [], length: 0 }, []);
+        const withdrawable = await userKeeper.getWithdrawableAssets(THIRD, [], []);
         assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("900"));
 
         await userKeeper.unlockTokens(1, THIRD, false);
@@ -608,7 +606,7 @@ describe("GovUserKeeper", () => {
         await userKeeper.lockTokens(2, THIRD, false, wei("300"));
         await userKeeper.lockTokens(3, THIRD, false, wei("500"));
 
-        let withdrawable = await userKeeper.getWithdrawableAssets(THIRD, { values: [2], length: 1 }, []);
+        let withdrawable = await userKeeper.getWithdrawableAssets(THIRD, [2], []);
         assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("600"));
 
         await userKeeper.unlockTokens(1, THIRD, false);
@@ -621,7 +619,7 @@ describe("GovUserKeeper", () => {
 
         assert.equal((await token.balanceOf(THIRD)).toFixed(), wei("600"));
 
-        withdrawable = await userKeeper.getWithdrawableAssets(THIRD, { values: [], length: 0 }, []);
+        withdrawable = await userKeeper.getWithdrawableAssets(THIRD, [], []);
         assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("300"));
 
         await userKeeper.unlockTokens(2, THIRD, false);
@@ -644,19 +642,21 @@ describe("GovUserKeeper", () => {
         await userKeeper.lockNfts(SECOND, false, false, [2]);
         await userKeeper.lockNfts(THIRD, false, false, [3]);
 
-        const withdrawableSecond = await userKeeper.getWithdrawableAssets(SECOND, { values: [], length: 0 }, []);
-        let ids = withdrawableSecond.withdrawableNfts[0];
-        let length = withdrawableSecond.withdrawableNfts[1];
+        const withdrawableSecond = await userKeeper.getWithdrawableAssets(SECOND, [], []);
 
-        assert.equal(length, "0");
-        assert.deepEqual(ids, ["0", "0"]);
+        assert.equal(withdrawableSecond.withdrawableNfts.length, "0");
+        assert.deepEqual(
+          withdrawableSecond.withdrawableNfts.map((e) => e.toFixed()),
+          []
+        );
 
-        const withdrawableThird = await userKeeper.getWithdrawableAssets(THIRD, { values: [], length: 0 }, []);
-        ids = withdrawableThird.withdrawableNfts[0];
-        length = withdrawableThird.withdrawableNfts[1];
+        const withdrawableThird = await userKeeper.getWithdrawableAssets(THIRD, [], []);
 
-        assert.equal(length, "1");
-        assert.deepEqual(ids, ["4", "0"]);
+        assert.equal(withdrawableThird.withdrawableNfts.length, "1");
+        assert.deepEqual(
+          withdrawableThird.withdrawableNfts.map((e) => e.toFixed()),
+          ["4"]
+        );
       });
 
       it("should not lock wrong delegated NFTs", async () => {
@@ -668,21 +668,23 @@ describe("GovUserKeeper", () => {
       it("should unlock nfts", async () => {
         await userKeeper.lockNfts(SECOND, false, false, [1, 2]);
 
-        let withdrawableSecond = await userKeeper.getWithdrawableAssets(SECOND, { values: [], length: 0 }, []);
-        let ids = withdrawableSecond.withdrawableNfts[0];
-        let length = withdrawableSecond.withdrawableNfts[1];
+        let withdrawableSecond = await userKeeper.getWithdrawableAssets(SECOND, [], []);
 
-        assert.equal(length, "0");
-        assert.deepEqual(ids, ["0", "0"]);
+        assert.equal(withdrawableSecond.withdrawableNfts.length, "0");
+        assert.deepEqual(
+          withdrawableSecond.withdrawableNfts.map((e) => e.toFixed()),
+          []
+        );
 
         await userKeeper.unlockNfts([2]);
 
-        withdrawableSecond = await userKeeper.getWithdrawableAssets(SECOND, { values: [], length: 0 }, []);
-        ids = withdrawableSecond.withdrawableNfts[0];
-        length = withdrawableSecond.withdrawableNfts[1];
+        withdrawableSecond = await userKeeper.getWithdrawableAssets(SECOND, [], []);
 
-        assert.equal(length, "1");
-        assert.deepEqual(ids, ["2", "0"]);
+        assert.equal(withdrawableSecond.withdrawableNfts.length, "1");
+        assert.deepEqual(
+          withdrawableSecond.withdrawableNfts.map((e) => e.toFixed()),
+          ["2"]
+        );
       });
 
       it("should not unlock unlocked NFTs", async () => {
@@ -704,9 +706,12 @@ describe("GovUserKeeper", () => {
       it("should withdraw nfts", async () => {
         await userKeeper.lockNfts(SECOND, false, false, [1, 2]);
 
-        const withdrawable = await userKeeper.getWithdrawableAssets(SECOND, { values: [], length: 0 }, [1, 8]);
+        const withdrawable = await userKeeper.getWithdrawableAssets(SECOND, [], [1, 8]);
 
-        assert.deepEqual(withdrawable.withdrawableNfts[0], ["1", "0"]);
+        assert.deepEqual(
+          withdrawable.withdrawableNfts.map((e) => e.toFixed()),
+          ["1"]
+        );
 
         await userKeeper.unlockNfts([1, 2]);
 
