@@ -13,7 +13,7 @@ interface ITokenSaleProposal {
     /// @param Whitelist indicates that the user must be included in the whitelist of the tier
     /// @param BABT indicates that the user must own the BABT token
     /// @param TokenLock indicates that the user must lock a specific amount of tokens in the tier
-    /// @param NftLock indicates that the user must lock an nft in the tier.
+    /// @param NftLock indicates that the user must lock an nft in the tier
     enum ParticipationType {
         DAOVotes,
         Whitelist,
