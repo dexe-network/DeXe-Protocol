@@ -384,11 +384,7 @@ contract GovPool is
                             return ProposalState.WaitingForVotingTransfer;
                         }
 
-                        if (_executionBlocked(core)) {
-                            return ProposalState.Locked;
-                        }
-
-                        return _proposalStateBasedOnVoteResults(core);
+                        return _proposalStateBasedOnVoteResultsAndLock(core);
                     }
 
                     if (status == IGovValidators.ProposalState.Locked) {
@@ -406,11 +402,7 @@ contract GovPool is
                     return ProposalState.ValidatorVoting;
                 }
 
-                if (_executionBlocked(core)) {
-                    return ProposalState.Locked;
-                }
-
-                return _proposalStateBasedOnVoteResults(core);
+                return _proposalStateBasedOnVoteResultsAndLock(core);
             }
 
             if (voteEnd < block.timestamp) {
@@ -552,8 +544,14 @@ contract GovPool is
         return core.votesFor > core.votesAgainst;
     }
 
-    function _executionBlocked(ProposalCore storage core) internal view returns (bool) {
-        return block.timestamp <= core.executeAfter;
+    function _proposalStateBasedOnVoteResultsAndLock(
+        ProposalCore storage core
+    ) internal view returns (ProposalState) {
+        if (block.timestamp <= core.executeAfter) {
+            return ProposalState.Locked;
+        }
+
+        return _proposalStateBasedOnVoteResults(core);
     }
 
     function _proposalStateBasedOnVoteResults(
