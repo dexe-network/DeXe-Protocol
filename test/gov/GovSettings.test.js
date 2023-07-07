@@ -471,6 +471,31 @@ describe("GovSettings", () => {
           delegatedVotingAllowed: false,
           validatorsVote: true,
           duration: 50,
+          durationValidators: 100,
+          quorum: toPercent("0"),
+          quorumValidators: toPercent("100.0001"),
+          minVotesForVoting: wei("3"),
+          minVotesForCreating: wei("4"),
+          executionDelay: 0,
+          rewardsInfo: {
+            rewardToken: ZERO_ADDR,
+            creationReward: 0,
+            executionReward: 0,
+            voteForRewardsCoefficient: 0,
+            voteAgainstRewardsCoefficient: 0,
+          },
+          executorDescription: "new_settings",
+        };
+
+        await truffleAssert.reverts(settings.addSettings([newSettings]), "GovSettings: invalid quorum value");
+      });
+
+      it("should revert if invalid duration value", async () => {
+        const newSettings = {
+          earlyCompletion: false,
+          delegatedVotingAllowed: false,
+          validatorsVote: true,
+          duration: 50,
           durationValidators: 0,
           quorum: toPercent("1"),
           quorumValidators: toPercent("2"),

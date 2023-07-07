@@ -4,7 +4,7 @@ const { toPercent } = require("../utils/utils");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
-const { ValidatorsProposalState, ProposalType } = require("../utils/constants");
+const { ValidatorsProposalState, ProposalType, ProposalState } = require("../utils/constants");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
 
 const GovValidators = artifacts.require("GovValidators");
@@ -71,6 +71,19 @@ describe("GovValidators", () => {
             "Validator Token",
             "VT",
             [100, 0, PRECISION.times("101").toFixed()],
+            [SECOND],
+            [wei("100")]
+          ),
+          "Validators: invalid quorum value"
+        );
+      });
+
+      it("should revert if invalid quorum value", async () => {
+        await truffleAssert.reverts(
+          validators.__GovValidators_init(
+            "Validator Token",
+            "VT",
+            [100, 0, PRECISION.times("0").toFixed()],
             [SECOND],
             [wei("100")]
           ),
@@ -739,6 +752,38 @@ describe("GovValidators", () => {
         await validators.execute(2);
 
         assert.equal((await validators.internalProposalSettings()).duration, 333);
+      });
+
+      it("should correctly execute `ChangeInternalExecutionDelay` proposal", async () => {
+        await validators.createInternalProposal(ProposalType.ChangeInternalExecutionDelay, "example.com", [1500], [], {
+          from: SECOND,
+        });
+        await validators.vote(1, wei("100"), true, true, { from: SECOND });
+        await validators.vote(1, wei("200"), true, true, { from: THIRD });
+
+        await validators.execute(1);
+
+        assert.equal((await validators.internalProposalSettings()).executionDelay, 1500);
+
+        await validators.createInternalProposal(ProposalType.ChangeInternalExecutionDelay, "example.com", [333], [], {
+          from: THIRD,
+        });
+        await validators.vote(2, wei("100"), true, true, { from: SECOND });
+        await validators.vote(2, wei("200"), true, true, { from: THIRD });
+
+        assert.equal(await validators.getProposalState(2, true), ValidatorsProposalState.Locked);
+
+        await setTime((await getCurrentBlockTime()) + 1499);
+
+        assert.equal(await validators.getProposalState(2, true), ValidatorsProposalState.Locked);
+
+        await setTime((await getCurrentBlockTime()) + 2);
+
+        assert.equal(await validators.getProposalState(2, true), ValidatorsProposalState.Succeeded);
+
+        await validators.execute(2);
+
+        assert.equal((await validators.internalProposalSettings()).executionDelay, 333);
       });
 
       it("should correctly execute `ChangeInternalQuorum` proposal", async () => {
