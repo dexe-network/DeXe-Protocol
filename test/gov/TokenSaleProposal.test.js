@@ -464,7 +464,7 @@ describe.only("TokenSaleProposal", () => {
             unlockStep: "3",
           },
           participationDetails: {
-            participationType: ParticipationType.BABT,
+            participationType: ParticipationType.Whitelist,
             data: "0x",
           },
         },
@@ -676,7 +676,7 @@ describe.only("TokenSaleProposal", () => {
         it("should not whitelist if the tier does not exist", async () => {
           const nonexistentWhitelisting = [
             {
-              tierId: 3,
+              tierId: 10,
               users: [SECOND],
               uri: "",
             },
@@ -769,11 +769,6 @@ describe.only("TokenSaleProposal", () => {
           assert.equal((await tsp.balanceOf(SECOND, 1)).toFixed(), "1");
           assert.equal((await tsp.balanceOf(OWNER, 2)).toFixed(), "1");
           assert.equal((await tsp.balanceOf(THIRD, 2)).toFixed(), "1");
-
-          assert.deepEqual(
-            (await tsp.getTiers(0, 2)).tierInfoViews.map((tierInfoView) => tierInfoView.whitelisted),
-            [true, true]
-          );
         });
 
         it("should whitelist properly if all conditions are met", async () => {
@@ -803,7 +798,7 @@ describe.only("TokenSaleProposal", () => {
           await acceptProposal([tsp.address], [0], [getBytesAddToWhitelistTSP(whitelistingRequests)]);
 
           assert.deepEqual(
-            (await tsp.getTiers(0, 2)).tierInfoViews.map((tierInfoView) => tierInfoView.uri),
+            (await tsp.getTierViews(0, 2)).map((t) => t.tierInfo.uri),
             ["uri1_second", "uri2_owner"]
           );
           assert.equal(await tsp.uri(1), "uri1_second");
@@ -821,7 +816,7 @@ describe.only("TokenSaleProposal", () => {
           await acceptProposal([tsp.address], [0], [getBytesAddToWhitelistTSP(zeroUriWhitelistingRequest)]);
 
           assert.deepEqual(
-            (await tsp.getTiers(0, 2)).tierInfoViews.map((tierInfoView) => tierInfoView.uri),
+            (await tsp.getTierViews(0, 2)).map((t) => t.tierInfo.uri),
             ["", "uri2_owner"]
           );
           assert.equal(await tsp.uri(1), "");
