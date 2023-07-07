@@ -200,7 +200,7 @@ describe("GovValidators", () => {
           validators.createInternalProposal(ProposalType.ChangeBalances, "example.com", [13, 15], [OWNER], {
             from: SECOND,
           }),
-          "Validators: invalid length"
+          "Validators: invalid array length"
         );
       });
 
@@ -209,7 +209,7 @@ describe("GovValidators", () => {
           validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [0], [], {
             from: SECOND,
           }),
-          "Validators: invalid duration value"
+          "Validators: duration is zero"
         );
       });
 
@@ -237,7 +237,7 @@ describe("GovValidators", () => {
             [],
             { from: SECOND }
           ),
-          "Validators: invalid duration or quorum values"
+          "Validators: invalid quorum value"
         );
       });
 

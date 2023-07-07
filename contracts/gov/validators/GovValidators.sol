@@ -196,7 +196,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         ProposalType proposalType = proposal.proposalType;
 
-        ProposalSettings memory proposalSettings = internalProposalSettings;
+        ProposalSettings storage proposalSettings = internalProposalSettings;
 
         if (proposalType == ProposalType.ChangeInternalDuration) {
             proposalSettings.duration = uint64(proposal.newValues[0]);
