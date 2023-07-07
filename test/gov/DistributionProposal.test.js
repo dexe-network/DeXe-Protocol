@@ -146,8 +146,11 @@ describe("DistributionProposal", () => {
     await validators.__GovValidators_init(
       poolParams.validatorsParams.name,
       poolParams.validatorsParams.symbol,
-      poolParams.validatorsParams.duration,
-      poolParams.validatorsParams.quorum,
+      [
+        poolParams.validatorsParams.proposalSettings.duration,
+        poolParams.validatorsParams.proposalSettings.executionDelay,
+        poolParams.validatorsParams.proposalSettings.quorum,
+      ],
       poolParams.validatorsParams.validators,
       poolParams.validatorsParams.balances
     );
@@ -218,6 +221,7 @@ describe("DistributionProposal", () => {
               quorumValidators: PRECISION.times("100").toFixed(),
               minVotesForVoting: wei("20"),
               minVotesForCreating: wei("3"),
+              executionDelay: 0,
               rewardsInfo: {
                 rewardToken: ZERO_ADDR,
                 creationReward: 0,
@@ -237,6 +241,7 @@ describe("DistributionProposal", () => {
               quorumValidators: PRECISION.times("61").toFixed(),
               minVotesForVoting: wei("10"),
               minVotesForCreating: wei("2"),
+              executionDelay: 0,
               rewardsInfo: {
                 rewardToken: ZERO_ADDR,
                 creationReward: 0,
@@ -256,6 +261,7 @@ describe("DistributionProposal", () => {
               quorumValidators: PRECISION.times("100").toFixed(),
               minVotesForVoting: wei("20"),
               minVotesForCreating: wei("3"),
+              executionDelay: 0,
               rewardsInfo: {
                 rewardToken: ZERO_ADDR,
                 creationReward: 0,
@@ -275,6 +281,7 @@ describe("DistributionProposal", () => {
               quorumValidators: PRECISION.times("61").toFixed(),
               minVotesForVoting: wei("10"),
               minVotesForCreating: wei("2"),
+              executionDelay: 0,
               rewardsInfo: {
                 rewardToken: ZERO_ADDR,
                 creationReward: 0,
@@ -290,8 +297,11 @@ describe("DistributionProposal", () => {
         validatorsParams: {
           name: "Validator Token",
           symbol: "VT",
-          duration: 600,
-          quorum: PRECISION.times("51").toFixed(),
+          proposalSettings: {
+            duration: 600,
+            executionDelay: 0,
+            quorum: PRECISION.times("51").toFixed(),
+          },
           validators: [OWNER, SECOND],
           balances: [wei("100"), wei("1000000000000")],
         },

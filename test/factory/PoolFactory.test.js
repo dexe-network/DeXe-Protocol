@@ -487,6 +487,7 @@ describe("PoolFactory", () => {
               quorumValidators: PRECISION.times("100").toFixed(),
               minVotesForVoting: wei("20"),
               minVotesForCreating: wei("5"),
+              executionDelay: 0,
               rewardsInfo: {
                 rewardToken: ZERO_ADDR,
                 creationReward: 0,
@@ -506,6 +507,7 @@ describe("PoolFactory", () => {
               quorumValidators: PRECISION.times("61").toFixed(),
               minVotesForVoting: wei("10"),
               minVotesForCreating: wei("5"),
+              executionDelay: 0,
               rewardsInfo: {
                 rewardToken: ZERO_ADDR,
                 creationReward: 0,
@@ -525,6 +527,7 @@ describe("PoolFactory", () => {
               quorumValidators: PRECISION.times("61").toFixed(),
               minVotesForVoting: wei("10"),
               minVotesForCreating: wei("5"),
+              executionDelay: 0,
               rewardsInfo: {
                 rewardToken: ZERO_ADDR,
                 creationReward: 0,
@@ -544,6 +547,7 @@ describe("PoolFactory", () => {
               quorumValidators: PRECISION.times("61").toFixed(),
               minVotesForVoting: wei("10"),
               minVotesForCreating: wei("5"),
+              executionDelay: 0,
               rewardsInfo: {
                 rewardToken: ZERO_ADDR,
                 creationReward: 0,
@@ -559,8 +563,11 @@ describe("PoolFactory", () => {
         validatorsParams: {
           name: "Validator Token",
           symbol: "VT",
-          duration: 500,
-          quorum: PRECISION.times("51").toFixed(),
+          proposalSettings: {
+            duration: 500,
+            executionDelay: 0,
+            quorum: PRECISION.times("51").toFixed(),
+          },
           validators: [OWNER],
           balances: [wei("100")],
         },
@@ -628,6 +635,7 @@ describe("PoolFactory", () => {
         quorumValidators: PRECISION.times("61").toFixed(),
         minVotesForVoting: wei("10"),
         minVotesForCreating: wei("5"),
+        executionDelay: 0,
         rewardsInfo: {
           rewardToken: ZERO_ADDR,
           creationReward: 0,

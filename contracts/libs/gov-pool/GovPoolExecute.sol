@@ -39,7 +39,6 @@ library GovPoolExecute {
                 proposalState == IGovPool.ProposalState.SucceededAgainst,
             "Gov: invalid status"
         );
-        require(govPool.latestVoteBlocks(proposalId) < block.number, "Gov: wrong block");
 
         core.executed = true;
 

@@ -8,8 +8,11 @@ import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
 import "../../gov/GovPool.sol";
 
+import "../../libs/math/MathHelper.sol";
+
 library GovPoolVote {
     using EnumerableSet for EnumerableSet.UintSet;
+    using MathHelper for uint256;
 
     event Voted(
         uint256 proposalId,
@@ -106,14 +109,18 @@ library GovPoolVote {
             "Gov: vote limit reached"
         );
 
-        govPool.setLatestVoteBlock(proposalId);
-
         _voteTokens(core, voteInfo, proposalId, voteAmount, isMicropool, useDelegated, isVoteFor);
         reward =
             _voteNfts(core, voteInfo, voteNftIds, isMicropool, useDelegated, isVoteFor) +
             voteAmount;
 
         require(reward >= core.settings.minVotesForVoting, "Gov: low current vote power");
+
+        if (core.executeAfter == 0 && _quorumReached(core)) {
+            core.executeAfter = core.settings.earlyCompletion
+                ? uint64(block.timestamp) + core.settings.executionDelay
+                : core.voteEnd + core.settings.executionDelay;
+        }
 
         emit Voted(
             proposalId,
@@ -227,5 +234,15 @@ library GovPoolVote {
         bool isVoteFor
     ) internal view returns (EnumerableSet.UintSet storage) {
         return isVoteFor ? voteInfo.nftsVotedFor : voteInfo.nftsVotedAgainst;
+    }
+
+    function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {
+        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+
+        return
+            PERCENTAGE_100.ratio(
+                core.votesFor + core.votesAgainst,
+                IGovUserKeeper(userKeeperAddress).getTotalVoteWeight()
+            ) >= core.settings.quorum;
     }
 }

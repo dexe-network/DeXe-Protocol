@@ -278,8 +278,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         GovValidators(validatorsProxy).__GovValidators_init(
             parameters.validatorsParams.name,
             parameters.validatorsParams.symbol,
-            parameters.validatorsParams.duration,
-            parameters.validatorsParams.quorum,
+            parameters.validatorsParams.proposalSettings,
             parameters.validatorsParams.validators,
             parameters.validatorsParams.balances
         );

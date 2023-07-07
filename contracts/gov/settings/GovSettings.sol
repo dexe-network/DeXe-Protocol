@@ -103,6 +103,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
     function _validateProposalSettings(ProposalSettings calldata _settings) internal pure {
         require(_settings.duration > 0, "GovSettings: invalid vote duration value");
         require(_settings.quorum <= PERCENTAGE_100, "GovSettings: invalid quorum value");
+        require(_settings.quorum > 0, "GovSettings: invalid quorum value");
         require(
             _settings.durationValidators > 0,
             "GovSettings: invalid validator vote duration value"

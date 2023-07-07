@@ -166,8 +166,15 @@ library GovPoolView {
                 validatorProposal: validators.getExternalProposal(i + 1),
                 proposalState: govPool.getProposalState(i + 1),
                 requiredQuorum: govPool.getProposalRequiredQuorum(i + 1),
-                requiredValidatorsQuorum: validators.getProposalRequiredQuorum(i + 1, false)
+                requiredValidatorsQuorum: validators.getProposalRequiredQuorum(i + 1, false),
+                executeAfter: 0
             });
+            proposalViews[i - offset].executeAfter = proposalViews[i - offset]
+                .validatorProposal
+                .core
+                .executeAfter != proposalViews[i - offset].proposal.core.settings.executionDelay
+                ? proposalViews[i - offset].validatorProposal.core.executeAfter
+                : proposalViews[i - offset].proposal.core.executeAfter;
         }
     }
 }

@@ -76,7 +76,6 @@ contract GovPool is
     OffChain internal _offChain;
 
     mapping(uint256 => Proposal) internal _proposals; // proposalId => info
-    mapping(uint256 => uint256) public latestVoteBlocks; // proposalId => block
 
     mapping(uint256 => mapping(address => mapping(bool => VoteInfo))) internal _voteInfos; // proposalId => voter => isMicropool => info
     mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
@@ -334,10 +333,6 @@ contract GovPool is
         _setNftMultiplierAddress(nftMultiplierAddress);
     }
 
-    function setLatestVoteBlock(uint256 proposalId) external override onlyThis {
-        latestVoteBlocks[proposalId] = block.number;
-    }
-
     function saveOffchainResults(
         string calldata resultsHash,
         bytes calldata signature
@@ -389,7 +384,15 @@ contract GovPool is
                             return ProposalState.WaitingForVotingTransfer;
                         }
 
+                        if (block.timestamp <= core.executeAfter) {
+                            return ProposalState.Locked;
+                        }
+
                         return _proposalStateBasedOnVoteResults(core);
+                    }
+
+                    if (status == IGovValidators.ProposalState.Locked) {
+                        return ProposalState.Locked;
                     }
 
                     if (status == IGovValidators.ProposalState.Succeeded) {
@@ -401,6 +404,10 @@ contract GovPool is
                     }
 
                     return ProposalState.ValidatorVoting;
+                }
+
+                if (block.timestamp <= core.executeAfter) {
+                    return ProposalState.Locked;
                 }
 
                 return _proposalStateBasedOnVoteResults(core);

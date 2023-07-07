@@ -20,6 +20,7 @@ interface IGovPool {
         Defeated,
         SucceededFor,
         SucceededAgainst,
+        Locked,
         ExecutedFor,
         ExecutedAgainst,
         Undefined
@@ -39,6 +40,7 @@ interface IGovPool {
     /// @param settings the struct that holds information about settings of the proposal
     /// @param executed the boolean flag that sets to true when the proposal gets executed
     /// @param voteEnd the timestamp of voting end for the proposal
+    /// @param executeAfter the timestamp of execution in seconds after voting end
     /// @param votesFor the total number votes for proposal from all voters
     /// @param votesAgainst the total number votes against proposal from all voters
     /// @param nftPowerSnapshotId the id of nft power snapshot
@@ -46,6 +48,7 @@ interface IGovPool {
         IGovSettings.ProposalSettings settings;
         bool executed;
         uint64 voteEnd;
+        uint64 executeAfter;
         uint256 votesFor;
         uint256 votesAgainst;
         uint256 nftPowerSnapshotId;
@@ -79,12 +82,14 @@ interface IGovPool {
     /// @param proposalState the value from enum `ProposalState`, that shows proposal state at current time
     /// @param requiredQuorum the required votes amount to confirm the proposal
     /// @param requiredValidatorsQuorum the the required validator votes to confirm the proposal
+    /// @param executeAfter the timestamp of start available execution in seconds
     struct ProposalView {
         Proposal proposal;
         IGovValidators.ExternalProposal validatorProposal;
         ProposalState proposalState;
         uint256 requiredQuorum;
         uint256 requiredValidatorsQuorum;
+        uint64 executeAfter;
     }
 
     /// @notice The struct that holds information about the votes of the user in a single proposal
@@ -314,10 +319,6 @@ interface IGovPool {
     /// @param nftMultiplierAddress the address of nft multiplier
     function setNftMultiplierAddress(address nftMultiplierAddress) external;
 
-    /// @notice The function for setting `block.number` of the latest vote
-    /// @param proposalId Proposal ID
-    function setLatestVoteBlock(uint256 proposalId) external;
-
     /// @notice The function for saving ipfs hash of off-chain proposal results
     /// @param resultsHash the ipfs results hash
     /// @param signature the signature from verifier
@@ -338,10 +339,12 @@ interface IGovPool {
     /// 1 -`WaitingForVotingTransfer`, approved proposal that waiting `moveProposalToValidators()` call
     /// 2 -`ValidatorVoting`, validators voting
     /// 3 -`Defeated`, proposal where voting time is over and proposal defeated on first or second step
-    /// 4 -`Succeeded`, proposal with the required number of votes on each step
-    /// 5 -`ExecutedFor`, executed proposal with the required number of votes on for step
-    /// 6 -`ExecutedAgainst`, executed proposal with the required number of votes on against step
-    /// 6 -`Undefined`, nonexistent proposal
+    /// 4 -`SucceededFor`, successful proposal with votes for but not executed yet
+    /// 5 -`SucceededAgainst`, successful proposal with votes against but not executed yet
+    /// 6 -`Locked`, successful proposal but temporarily locked for execution
+    /// 7 -`ExecutedFor`, executed proposal with the required number of votes on for step
+    /// 8 -`ExecutedAgainst`, executed proposal with the required number of votes on against step
+    /// 9 -`Undefined`, nonexistent proposal
     function getProposalState(uint256 proposalId) external view returns (ProposalState);
 
     /// @notice The function for getting total votes in the proposal by one voter

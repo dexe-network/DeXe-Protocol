@@ -49,6 +49,7 @@ library GovPoolCreate {
             settings: settings,
             executed: false,
             voteEnd: uint64(block.timestamp + settings.duration),
+            executeAfter: 0,
             votesFor: 0,
             votesAgainst: 0,
             nftPowerSnapshotId: snapshotId
@@ -91,8 +92,11 @@ library GovPoolCreate {
 
         IGovValidators(govValidators).createExternalProposal(
             proposalId,
-            core.settings.durationValidators,
-            core.settings.quorumValidators
+            IGovValidators.ProposalSettings(
+                core.settings.durationValidators,
+                core.settings.executionDelay,
+                core.settings.quorumValidators
+            )
         );
 
         emit MovedToValidators(proposalId, msg.sender);

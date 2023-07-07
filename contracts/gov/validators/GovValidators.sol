@@ -17,7 +17,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
     GovValidatorsToken public govValidatorsToken;
 
-    InternalProposalSettings public internalProposalSettings;
+    ProposalSettings public internalProposalSettings;
 
     uint256 public override latestInternalProposalId;
     uint256 public validatorsCount;
@@ -48,21 +48,20 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     function __GovValidators_init(
         string calldata name,
         string calldata symbol,
-        uint64 duration,
-        uint128 quorum,
+        ProposalSettings calldata proposalSettings,
         address[] calldata validators,
         uint256[] calldata balances
     ) external initializer {
         __Ownable_init();
 
         require(validators.length == balances.length, "Validators: invalid array length");
-        require(duration > 0, "Validators: duration is zero");
-        require(quorum <= PERCENTAGE_100, "Validators: invalid quorum value");
+        require(proposalSettings.duration > 0, "Validators: duration is zero");
+        require(proposalSettings.quorum <= PERCENTAGE_100, "Validators: invalid quorum value");
+        require(proposalSettings.quorum > 0, "Validators: invalid quorum value");
 
         govValidatorsToken = new GovValidatorsToken(name, symbol);
 
-        internalProposalSettings.duration = duration;
-        internalProposalSettings.quorum = quorum;
+        internalProposalSettings = proposalSettings;
 
         _changeBalances(balances, validators);
     }
@@ -75,11 +74,13 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     ) external override onlyValidator {
         if (proposalType == ProposalType.ChangeInternalDuration) {
             require(newValues[0] > 0, "Validators: invalid duration value");
-        } else if (proposalType == ProposalType.ChangeInternalQuorum) {
+        } else if (proposalType == ProposalType.ChangeInternalExecutionDelay) {} else if (
+            proposalType == ProposalType.ChangeInternalQuorum
+        ) {
             require(newValues[0] <= PERCENTAGE_100, "Validators: invalid quorum value");
-        } else if (proposalType == ProposalType.ChangeInternalDurationAndQuorum) {
+        } else if (proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum) {
             require(
-                newValues[0] > 0 && newValues[1] <= PERCENTAGE_100,
+                newValues[0] > 0 && newValues[2] <= PERCENTAGE_100,
                 "Validators: invalid duration or quorum values"
             );
         } else {
@@ -94,6 +95,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             proposalType: proposalType,
             core: ProposalCore({
                 voteEnd: uint64(block.timestamp + internalProposalSettings.duration),
+                executeAfter: internalProposalSettings.executionDelay,
                 executed: false,
                 quorum: internalProposalSettings.quorum,
                 votesFor: 0,
@@ -115,25 +117,26 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
     function createExternalProposal(
         uint256 proposalId,
-        uint64 duration,
-        uint128 quorum
+        ProposalSettings calldata proposalSettings
     ) external override onlyOwner {
         require(!_proposalExists(proposalId, false), "Validators: proposal already exists");
-        require(duration > 0, "Validators: duration is zero");
-        require(quorum <= PERCENTAGE_100, "Validators: invalid quorum value");
+        require(proposalSettings.duration > 0, "Validators: duration is zero");
+        require(proposalSettings.quorum <= PERCENTAGE_100, "Validators: invalid quorum value");
+        require(proposalSettings.quorum > 0, "Validators: invalid quorum value");
 
         _externalProposals[proposalId] = ExternalProposal({
             core: ProposalCore({
-                voteEnd: uint64(block.timestamp + duration),
+                voteEnd: uint64(block.timestamp + proposalSettings.duration),
                 executed: false,
-                quorum: quorum,
+                quorum: proposalSettings.quorum,
+                executeAfter: proposalSettings.executionDelay,
                 votesFor: 0,
                 votesAgainst: 0,
                 snapshotId: uint56(govValidatorsToken.snapshot())
             })
         });
 
-        emit ExternalProposalCreated(proposalId, quorum);
+        emit ExternalProposalCreated(proposalId, proposalSettings.quorum);
     }
 
     function changeBalances(
@@ -169,6 +172,10 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             core.votesAgainst += amount;
         }
 
+        if (_isQuorumReached(core)) {
+            core.executeAfter += uint64(block.timestamp);
+        }
+
         emit Voted(proposalId, msg.sender, amount, isInternal, isVoteFor);
     }
 
@@ -188,11 +195,14 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         if (proposalType == ProposalType.ChangeInternalDuration) {
             internalProposalSettings.duration = uint64(proposal.newValues[0]);
+        } else if (proposalType == ProposalType.ChangeInternalExecutionDelay) {
+            internalProposalSettings.executionDelay = uint64(proposal.newValues[0]);
         } else if (proposalType == ProposalType.ChangeInternalQuorum) {
             internalProposalSettings.quorum = uint128(proposal.newValues[0]);
-        } else if (proposalType == ProposalType.ChangeInternalDurationAndQuorum) {
+        } else if (proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum) {
             internalProposalSettings.duration = uint64(proposal.newValues[0]);
-            internalProposalSettings.quorum = uint128(proposal.newValues[1]);
+            internalProposalSettings.executionDelay = uint64(proposal.newValues[1]);
+            internalProposalSettings.quorum = uint128(proposal.newValues[2]);
         } else {
             _changeBalances(proposal.newValues, proposal.userAddresses);
         }
@@ -265,8 +275,15 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         }
 
         if (_isQuorumReached(core)) {
-            return
-                _votesForMoreThanAgainst(core) ? ProposalState.Succeeded : ProposalState.Defeated;
+            if (_votesForMoreThanAgainst(core)) {
+                if (block.timestamp <= core.executeAfter) {
+                    return ProposalState.Locked;
+                }
+
+                return ProposalState.Succeeded;
+            }
+
+            return ProposalState.Defeated;
         }
 
         if (core.voteEnd < block.timestamp) {
