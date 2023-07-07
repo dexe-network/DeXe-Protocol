@@ -54,10 +54,8 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     ) external initializer {
         __Ownable_init();
 
-        require(validators.length == balances.length, "Validators: invalid array length");
-        require(proposalSettings.duration > 0, "Validators: duration is zero");
-        require(proposalSettings.quorum <= PERCENTAGE_100, "Validators: invalid quorum value");
-        require(proposalSettings.quorum > 0, "Validators: invalid quorum value");
+        _validateChangeBalances(balances, validators);
+        _validateProposalSettings(proposalSettings);
 
         govValidatorsToken = new GovValidatorsToken(name, symbol);
 
@@ -72,32 +70,39 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         uint256[] calldata newValues,
         address[] calldata users
     ) external override onlyValidator {
-        if (proposalType == ProposalType.ChangeInternalDuration) {
-            require(newValues[0] > 0, "Validators: invalid duration value");
-        } else if (proposalType == ProposalType.ChangeInternalExecutionDelay) {} else if (
-            proposalType == ProposalType.ChangeInternalQuorum
-        ) {
-            require(newValues[0] <= PERCENTAGE_100, "Validators: invalid quorum value");
-        } else if (proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum) {
-            require(
-                newValues[0] > 0 && newValues[2] <= PERCENTAGE_100,
-                "Validators: invalid duration or quorum values"
-            );
+        if (proposalType == ProposalType.ChangeBalances) {
+            _validateChangeBalances(newValues, users);
         } else {
-            require(newValues.length == users.length, "Validators: invalid length");
+            ProposalSettings memory proposalSettings = ProposalSettings({
+                duration: 1,
+                executionDelay: 0,
+                quorum: 1
+            });
 
-            for (uint256 i = 0; i < users.length; i++) {
-                require(users[i] != address(0), "Validators: invalid address");
+            if (proposalType == ProposalType.ChangeInternalDuration) {
+                proposalSettings.duration = uint64(newValues[0]);
+            } else if (proposalType == ProposalType.ChangeInternalQuorum) {
+                proposalSettings.quorum = uint128(newValues[0]);
+            } else if (
+                proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum
+            ) {
+                proposalSettings.duration = uint64(newValues[0]);
+                proposalSettings.executionDelay = uint64(newValues[1]);
+                proposalSettings.quorum = uint128(newValues[2]);
             }
+
+            _validateProposalSettings(proposalSettings);
         }
+
+        ProposalSettings storage _internalProposalSettings = internalProposalSettings;
 
         _internalProposals[++latestInternalProposalId] = InternalProposal({
             proposalType: proposalType,
             core: ProposalCore({
-                voteEnd: uint64(block.timestamp + internalProposalSettings.duration),
-                executeAfter: internalProposalSettings.executionDelay,
+                voteEnd: uint64(block.timestamp + _internalProposalSettings.duration),
+                executeAfter: _internalProposalSettings.executionDelay,
                 executed: false,
-                quorum: internalProposalSettings.quorum,
+                quorum: _internalProposalSettings.quorum,
                 votesFor: 0,
                 votesAgainst: 0,
                 snapshotId: uint56(govValidatorsToken.snapshot())
@@ -110,7 +115,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         emit InternalProposalCreated(
             latestInternalProposalId,
             descriptionURL,
-            internalProposalSettings.quorum,
+            _internalProposalSettings.quorum,
             msg.sender
         );
     }
@@ -120,9 +125,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         ProposalSettings calldata proposalSettings
     ) external override onlyOwner {
         require(!_proposalExists(proposalId, false), "Validators: proposal already exists");
-        require(proposalSettings.duration > 0, "Validators: duration is zero");
-        require(proposalSettings.quorum <= PERCENTAGE_100, "Validators: invalid quorum value");
-        require(proposalSettings.quorum > 0, "Validators: invalid quorum value");
+        _validateProposalSettings(proposalSettings);
 
         _externalProposals[proposalId] = ExternalProposal({
             core: ProposalCore({
@@ -172,7 +175,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             core.votesAgainst += amount;
         }
 
-        if (_isQuorumReached(core)) {
+        if (_quorumReached(core)) {
             core.executeAfter += uint64(block.timestamp);
         }
 
@@ -193,16 +196,18 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         ProposalType proposalType = proposal.proposalType;
 
+        ProposalSettings memory proposalSettings = internalProposalSettings;
+
         if (proposalType == ProposalType.ChangeInternalDuration) {
-            internalProposalSettings.duration = uint64(proposal.newValues[0]);
+            proposalSettings.duration = uint64(proposal.newValues[0]);
         } else if (proposalType == ProposalType.ChangeInternalExecutionDelay) {
-            internalProposalSettings.executionDelay = uint64(proposal.newValues[0]);
+            proposalSettings.executionDelay = uint64(proposal.newValues[0]);
         } else if (proposalType == ProposalType.ChangeInternalQuorum) {
-            internalProposalSettings.quorum = uint128(proposal.newValues[0]);
+            proposalSettings.quorum = uint128(proposal.newValues[0]);
         } else if (proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum) {
-            internalProposalSettings.duration = uint64(proposal.newValues[0]);
-            internalProposalSettings.executionDelay = uint64(proposal.newValues[1]);
-            internalProposalSettings.quorum = uint128(proposal.newValues[2]);
+            proposalSettings.duration = uint64(proposal.newValues[0]);
+            proposalSettings.executionDelay = uint64(proposal.newValues[1]);
+            proposalSettings.quorum = uint128(proposal.newValues[2]);
         } else {
             _changeBalances(proposal.newValues, proposal.userAddresses);
         }
@@ -274,7 +279,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             return ProposalState.Executed;
         }
 
-        if (_isQuorumReached(core)) {
+        if (_quorumReached(core)) {
             if (_votesForMoreThanAgainst(core)) {
                 if (block.timestamp <= core.executeAfter) {
                     return ProposalState.Locked;
@@ -293,7 +298,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         return ProposalState.Voting;
     }
 
-    function _isQuorumReached(ProposalCore storage core) internal view returns (bool) {
+    function _quorumReached(ProposalCore storage core) internal view returns (bool) {
         uint256 totalSupply = govValidatorsToken.totalSupplyAt(core.snapshotId);
         uint256 currentQuorum = PERCENTAGE_100.ratio(
             core.votesFor + core.votesAgainst,
@@ -346,6 +351,23 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         validatorsCount = validatorsCount_;
 
         emit ChangedValidatorsBalances(userAddresses, newValues);
+    }
+
+    function _validateProposalSettings(ProposalSettings memory proposalSettings) internal pure {
+        require(proposalSettings.duration > 0, "Validators: duration is zero");
+        require(proposalSettings.quorum <= PERCENTAGE_100, "Validators: invalid quorum value");
+        require(proposalSettings.quorum > 0, "Validators: invalid quorum value");
+    }
+
+    function _validateChangeBalances(
+        uint256[] memory newValues,
+        address[] memory userAddresses
+    ) internal pure {
+        require(newValues.length == userAddresses.length, "Validators: invalid array length");
+
+        for (uint256 i = 0; i < userAddresses.length; i++) {
+            require(userAddresses[i] != address(0), "Validators: invalid address");
+        }
     }
 
     function _votesForMoreThanAgainst(ProposalCore storage core) internal view returns (bool) {

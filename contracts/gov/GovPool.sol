@@ -365,7 +365,7 @@ contract GovPool is
         }
 
         if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
-            if (_quorumReached(core)) {
+            if (core.quorumReached()) {
                 if (
                     !_votesForMoreThanAgainst(core) &&
                     _proposals[proposalId].actionsOnAgainst.length == 0
@@ -384,7 +384,7 @@ contract GovPool is
                             return ProposalState.WaitingForVotingTransfer;
                         }
 
-                        if (block.timestamp <= core.executeAfter) {
+                        if (_executionBlocked(core)) {
                             return ProposalState.Locked;
                         }
 
@@ -406,7 +406,7 @@ contract GovPool is
                     return ProposalState.ValidatorVoting;
                 }
 
-                if (block.timestamp <= core.executeAfter) {
+                if (_executionBlocked(core)) {
                     return ProposalState.Locked;
                 }
 
@@ -548,16 +548,12 @@ contract GovPool is
         _votedInProposals.unlockInProposals(_voteInfos, proposalIds, user, isMicropool);
     }
 
-    function _quorumReached(ProposalCore storage core) internal view returns (bool) {
-        return
-            PERCENTAGE_100.ratio(
-                core.votesFor + core.votesAgainst,
-                _govUserKeeper.getTotalVoteWeight()
-            ) >= core.settings.quorum;
-    }
-
     function _votesForMoreThanAgainst(ProposalCore storage core) internal view returns (bool) {
         return core.votesFor > core.votesAgainst;
+    }
+
+    function _executionBlocked(ProposalCore storage core) internal view returns (bool) {
+        return block.timestamp <= core.executeAfter;
     }
 
     function _proposalStateBasedOnVoteResults(

@@ -87,6 +87,16 @@ library GovPoolVote {
             );
     }
 
+    function quorumReached(IGovPool.ProposalCore storage core) public view returns (bool) {
+        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+
+        return
+            PERCENTAGE_100.ratio(
+                core.votesFor + core.votesAgainst,
+                IGovUserKeeper(userKeeperAddress).getTotalVoteWeight()
+            ) >= core.settings.quorum;
+    }
+
     function _vote(
         IGovPool.ProposalCore storage core,
         EnumerableSet.UintSet storage votes,
@@ -116,7 +126,7 @@ library GovPoolVote {
 
         require(reward >= core.settings.minVotesForVoting, "Gov: low current vote power");
 
-        if (core.executeAfter == 0 && _quorumReached(core)) {
+        if (core.executeAfter == 0 && quorumReached(core)) {
             core.executeAfter = core.settings.earlyCompletion
                 ? uint64(block.timestamp) + core.settings.executionDelay
                 : core.voteEnd + core.settings.executionDelay;
@@ -234,15 +244,5 @@ library GovPoolVote {
         bool isVoteFor
     ) internal view returns (EnumerableSet.UintSet storage) {
         return isVoteFor ? voteInfo.nftsVotedFor : voteInfo.nftsVotedAgainst;
-    }
-
-    function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {
-        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
-
-        return
-            PERCENTAGE_100.ratio(
-                core.votesFor + core.votesAgainst,
-                IGovUserKeeper(userKeeperAddress).getTotalVoteWeight()
-            ) >= core.settings.quorum;
     }
 }
