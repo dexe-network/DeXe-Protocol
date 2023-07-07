@@ -70,29 +70,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         uint256[] calldata newValues,
         address[] calldata users
     ) external override onlyValidator {
-        if (proposalType == ProposalType.ChangeBalances) {
-            _validateChangeBalances(newValues, users);
-        } else {
-            ProposalSettings memory proposalSettings = ProposalSettings({
-                duration: 1,
-                executionDelay: 0,
-                quorum: 1
-            });
-
-            if (proposalType == ProposalType.ChangeInternalDuration) {
-                proposalSettings.duration = uint64(newValues[0]);
-            } else if (proposalType == ProposalType.ChangeInternalQuorum) {
-                proposalSettings.quorum = uint128(newValues[0]);
-            } else if (
-                proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum
-            ) {
-                proposalSettings.duration = uint64(newValues[0]);
-                proposalSettings.executionDelay = uint64(newValues[1]);
-                proposalSettings.quorum = uint128(newValues[2]);
-            }
-
-            _validateProposalSettings(proposalSettings);
-        }
+        _validateInternalProposal(proposalType, newValues, users);
 
         ProposalSettings storage _internalProposalSettings = internalProposalSettings;
 
@@ -376,5 +354,35 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
     function _onlyValidator() internal view {
         require(isValidator(msg.sender), "Validators: caller is not the validator");
+    }
+
+    function _validateInternalProposal(
+        ProposalType proposalType,
+        uint256[] calldata newValues,
+        address[] calldata users
+    ) internal pure {
+        if (proposalType == ProposalType.ChangeBalances) {
+            _validateChangeBalances(newValues, users);
+        } else {
+            ProposalSettings memory proposalSettings = ProposalSettings({
+                duration: 1,
+                executionDelay: 0,
+                quorum: 1
+            });
+
+            if (proposalType == ProposalType.ChangeInternalDuration) {
+                proposalSettings.duration = uint64(newValues[0]);
+            } else if (proposalType == ProposalType.ChangeInternalQuorum) {
+                proposalSettings.quorum = uint128(newValues[0]);
+            } else if (
+                proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum
+            ) {
+                proposalSettings.duration = uint64(newValues[0]);
+                proposalSettings.executionDelay = uint64(newValues[1]);
+                proposalSettings.quorum = uint128(newValues[2]);
+            }
+
+            _validateProposalSettings(proposalSettings);
+        }
     }
 }

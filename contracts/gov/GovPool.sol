@@ -359,7 +359,7 @@ contract GovPool is
 
         if (core.executed) {
             return
-                _votesForMoreThanAgainst(core)
+                core.votesForMoreThanAgainst()
                     ? ProposalState.ExecutedFor
                     : ProposalState.ExecutedAgainst;
         }
@@ -367,7 +367,7 @@ contract GovPool is
         if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
             if (core.quorumReached()) {
                 if (
-                    !_votesForMoreThanAgainst(core) &&
+                    !core.votesForMoreThanAgainst() &&
                     _proposals[proposalId].actionsOnAgainst.length == 0
                 ) {
                     return ProposalState.Defeated;
@@ -384,7 +384,7 @@ contract GovPool is
                             return ProposalState.WaitingForVotingTransfer;
                         }
 
-                        return _proposalStateBasedOnVoteResultsAndLock(core);
+                        return core.proposalStateBasedOnVoteResultsAndLock();
                     }
 
                     if (status == IGovValidators.ProposalState.Locked) {
@@ -392,7 +392,7 @@ contract GovPool is
                     }
 
                     if (status == IGovValidators.ProposalState.Succeeded) {
-                        return _proposalStateBasedOnVoteResults(core);
+                        return core.proposalStateBasedOnVoteResults();
                     }
 
                     if (status == IGovValidators.ProposalState.Defeated) {
@@ -402,7 +402,7 @@ contract GovPool is
                     return ProposalState.ValidatorVoting;
                 }
 
-                return _proposalStateBasedOnVoteResultsAndLock(core);
+                return core.proposalStateBasedOnVoteResultsAndLock();
             }
 
             if (voteEnd < block.timestamp) {
@@ -538,29 +538,6 @@ contract GovPool is
         bool isMicropool
     ) internal {
         _votedInProposals.unlockInProposals(_voteInfos, proposalIds, user, isMicropool);
-    }
-
-    function _votesForMoreThanAgainst(ProposalCore storage core) internal view returns (bool) {
-        return core.votesFor > core.votesAgainst;
-    }
-
-    function _proposalStateBasedOnVoteResultsAndLock(
-        ProposalCore storage core
-    ) internal view returns (ProposalState) {
-        if (block.timestamp <= core.executeAfter) {
-            return ProposalState.Locked;
-        }
-
-        return _proposalStateBasedOnVoteResults(core);
-    }
-
-    function _proposalStateBasedOnVoteResults(
-        ProposalCore storage core
-    ) internal view returns (ProposalState) {
-        return
-            _votesForMoreThanAgainst(core)
-                ? ProposalState.SucceededFor
-                : ProposalState.SucceededAgainst;
     }
 
     function _onlyThis() internal view {

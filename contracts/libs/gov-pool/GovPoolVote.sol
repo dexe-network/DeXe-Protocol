@@ -97,6 +97,31 @@ library GovPoolVote {
             ) >= core.settings.quorum;
     }
 
+    function votesForMoreThanAgainst(
+        IGovPool.ProposalCore storage core
+    ) internal view returns (bool) {
+        return core.votesFor > core.votesAgainst;
+    }
+
+    function proposalStateBasedOnVoteResultsAndLock(
+        IGovPool.ProposalCore storage core
+    ) internal view returns (IGovPool.ProposalState) {
+        if (block.timestamp <= core.executeAfter) {
+            return IGovPool.ProposalState.Locked;
+        }
+
+        return proposalStateBasedOnVoteResults(core);
+    }
+
+    function proposalStateBasedOnVoteResults(
+        IGovPool.ProposalCore storage core
+    ) internal view returns (IGovPool.ProposalState) {
+        return
+            votesForMoreThanAgainst(core)
+                ? IGovPool.ProposalState.SucceededFor
+                : IGovPool.ProposalState.SucceededAgainst;
+    }
+
     function _vote(
         IGovPool.ProposalCore storage core,
         EnumerableSet.UintSet storage votes,
@@ -127,9 +152,9 @@ library GovPoolVote {
         require(reward >= core.settings.minVotesForVoting, "Gov: low current vote power");
 
         if (core.executeAfter == 0 && quorumReached(core)) {
-            core.executeAfter = core.settings.earlyCompletion
-                ? uint64(block.timestamp) + core.settings.executionDelay
-                : core.voteEnd + core.settings.executionDelay;
+            core.executeAfter =
+                core.settings.executionDelay +
+                (core.settings.earlyCompletion ? uint64(block.timestamp) : core.voteEnd);
         }
 
         emit Voted(

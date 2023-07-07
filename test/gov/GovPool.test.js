@@ -2243,7 +2243,6 @@ describe("GovPool", () => {
               quorum: proposalView.validatorProposal.core.quorum,
             },
           },
-          // TODO: add `executeAfter`
         };
       };
 
