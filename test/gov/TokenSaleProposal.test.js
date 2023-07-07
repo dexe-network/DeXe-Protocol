@@ -261,57 +261,62 @@ describe.only("TokenSaleProposal", () => {
       await govPool.execute(proposalId);
     };
 
-    const tierViewToObject = (tierView) => {
+    const tierInitParamsToObject = (tierInitParams) => {
       return {
         metadata: {
-          name: tierView.metadata.name,
-          description: tierView.metadata.description,
+          name: tierInitParams.metadata.name,
+          description: tierInitParams.metadata.description,
         },
-        totalTokenProvided: tierView.totalTokenProvided,
-        saleStartTime: tierView.saleStartTime,
-        saleEndTime: tierView.saleEndTime,
-        saleTokenAddress: tierView.saleTokenAddress,
-        purchaseTokenAddresses: tierView.purchaseTokenAddresses,
-        exchangeRates: tierView.exchangeRates,
-        minAllocationPerUser: tierView.minAllocationPerUser,
-        maxAllocationPerUser: tierView.maxAllocationPerUser,
+        totalTokenProvided: tierInitParams.totalTokenProvided,
+        saleStartTime: tierInitParams.saleStartTime,
+        saleEndTime: tierInitParams.saleEndTime,
+        claimLockDuration: tierInitParams.claimLockDuration,
+        saleTokenAddress: tierInitParams.saleTokenAddress,
+        purchaseTokenAddresses: tierInitParams.purchaseTokenAddresses,
+        exchangeRates: tierInitParams.exchangeRates,
+        minAllocationPerUser: tierInitParams.minAllocationPerUser,
+        maxAllocationPerUser: tierInitParams.maxAllocationPerUser,
         vestingSettings: {
-          vestingPercentage: tierView.vestingSettings.vestingPercentage,
-          vestingDuration: tierView.vestingSettings.vestingDuration,
-          cliffPeriod: tierView.vestingSettings.cliffPeriod,
-          unlockStep: tierView.vestingSettings.unlockStep,
+          vestingPercentage: tierInitParams.vestingSettings.vestingPercentage,
+          vestingDuration: tierInitParams.vestingSettings.vestingDuration,
+          cliffPeriod: tierInitParams.vestingSettings.cliffPeriod,
+          unlockStep: tierInitParams.vestingSettings.unlockStep,
+        },
+        participationDetails: {
+          participationType: tierInitParams.participationDetails.participationType,
+          data: tierInitParams.participationDetails.data,
         },
       };
     };
 
-    const tierViewsToObject = (tierViews) => {
-      return tierViews.map((tierView) => tierViewToObject(tierView));
+    const tierInitParamsToObjects = (tierInitParams) => {
+      return tierInitParams.map((e) => tierInitParamsToObject(e));
     };
 
-    const userInfoToObject = (userInfo) => {
+    const userViewToObject = (userView) => {
       return {
-        canParticipate: userInfo.canParticipate,
-        purchase: {
-          purchaseTime: userInfo.purchase.purchaseTime,
-          tokenBoughtWith: userInfo.purchase.tokenBoughtWith,
-          amountBought: userInfo.purchase.amountBought,
-          vestingTotalAmount: userInfo.purchase.vestingTotalAmount,
-          vestingWithdrawnAmount: userInfo.purchase.vestingWithdrawnAmount,
-          latestVestingWithdraw: userInfo.purchase.latestVestingWithdraw,
+        canParticipate: userView.canParticipate,
+        purchaseView: {
+          isClaimed: userView.purchaseView.isClaimed,
+          canClaim: userView.purchaseView.canClaim,
+          claimUnlockTime: userView.purchaseView.claimUnlockTime,
+          claimTotalAmount: userView.purchaseView.claimTotalAmount,
+          boughtTotalAmount: userView.purchaseView.boughtTotalAmount,
+          lockedAmount: userView.purchaseView.lockedAmount,
+          lockedId: userView.purchaseView.lockedId,
+          purchaseTokenAddresses: userView.purchaseView.purchaseTokenAddresses,
+          purchaseTokenAmounts: userView.purchaseView.purchaseTokenAmounts,
         },
-        vestingView: {
-          cliffEndTime: userInfo.vestingView.cliffEndTime,
-          vestingEndTime: userInfo.vestingView.vestingEndTime,
-          nextUnlockTime: userInfo.vestingView.nextUnlockTime,
-          nextUnlockAmount: userInfo.vestingView.nextUnlockAmount,
-          amountToWithdraw: userInfo.vestingView.amountToWithdraw,
-          lockedAmount: userInfo.vestingView.lockedAmount,
+        vestingUserView: {
+          latestVestingWithdraw: userView.vestingUserView.latestVestingWithdraw,
+          vestingTotalAmount: userView.vestingUserView.vestingTotalAmount,
+          vestingWithdrawnAmount: userView.vestingUserView.vestingWithdrawnAmount,
         },
       };
     };
 
-    const userInfosToObject = (userInfos) => {
-      return userInfos.map((userInfo) => userInfoToObject(userInfo));
+    const userViewsToObjects = (userViews) => {
+      return userViews.map((e) => userViewToObject(e));
     };
 
     let POOL_PARAMETERS;
@@ -446,7 +451,7 @@ describe.only("TokenSaleProposal", () => {
           totalTokenProvided: wei(1000),
           saleStartTime: (timeNow + 100).toString(),
           saleEndTime: (timeNow + 200).toString(),
-          claimLockPeriod: 10,
+          claimLockDuration: "10",
           saleTokenAddress: erc20Sale.address,
           purchaseTokenAddresses: [purchaseToken1.address, ETHER_ADDR],
           exchangeRates: [PRECISION.times(3).toFixed(), PRECISION.times(100).toFixed()],
@@ -471,7 +476,7 @@ describe.only("TokenSaleProposal", () => {
           totalTokenProvided: wei(1000),
           saleStartTime: (timeNow + 1000).toString(),
           saleEndTime: (timeNow + 2000).toString(),
-          claimLockPeriod: "0",
+          claimLockDuration: "0",
           saleTokenAddress: saleToken.address,
           purchaseTokenAddresses: [purchaseToken1.address, purchaseToken2.address],
           exchangeRates: [PRECISION.times(4).toFixed(), PRECISION.idiv(4).toFixed()],
@@ -491,7 +496,7 @@ describe.only("TokenSaleProposal", () => {
       ];
     });
 
-    describe.only("latestTierId", () => {
+    describe("latestTierId", () => {
       it("latestTierId should increase when tiers are created", async () => {
         assert.equal(await tsp.latestTierId(), 0);
 
@@ -641,7 +646,7 @@ describe.only("TokenSaleProposal", () => {
       it("should create tiers if all conditions are met", async () => {
         await acceptProposal([tsp.address], [0], [getBytesCreateTiersTSP(JSON.parse(JSON.stringify(tiers)))]);
 
-        assert.deepEqual(tierViewsToObject((await tsp.getTiers(0, 2)).tierViews), tiers);
+        assert.deepEqual(tierInitParamsToObjects((await tsp.getTierViews(0, 2)).map((t) => t.tierInitParams)), tiers);
       });
     });
 
@@ -1056,7 +1061,7 @@ describe.only("TokenSaleProposal", () => {
             (await tsp.getVestingWithdrawAmounts(OWNER, [2])).map((amount) => amount.toFixed()),
             ["0"]
           );
-          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [2])), userInfos);
+          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [2])), userInfos);
         });
 
         it("should do multiple various time withdraws properly", async () => {
@@ -1096,7 +1101,7 @@ describe.only("TokenSaleProposal", () => {
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
             ["0"]
           );
-          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
+          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
           await truffleAssert.reverts(tsp.vestingWithdraw([1]), "TSP: zero withdrawal");
 
@@ -1108,7 +1113,7 @@ describe.only("TokenSaleProposal", () => {
             ["0"]
           );
 
-          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
+          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
           await truffleAssert.reverts(tsp.vestingWithdraw([1]), "TSP: zero withdrawal");
 
@@ -1124,7 +1129,7 @@ describe.only("TokenSaleProposal", () => {
           userInfos[0].vestingView.nextUnlockTime = (purchaseTime + 75).toString();
           userInfos[0].vestingView.nextUnlockAmount = wei("3.6");
 
-          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
+          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
           await tsp.vestingWithdraw([1]);
 
@@ -1132,7 +1137,7 @@ describe.only("TokenSaleProposal", () => {
           userInfos[0].purchase.vestingWithdrawnAmount = wei("86.4");
           userInfos[0].vestingView.amountToWithdraw = "0";
 
-          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
+          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei("566.4"));
           assert.deepEqual(
@@ -1146,7 +1151,7 @@ describe.only("TokenSaleProposal", () => {
           userInfos[0].vestingView.amountToWithdraw = wei("21.6");
           userInfos[0].vestingView.lockedAmount = wei("12");
 
-          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
+          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
           await setTime(purchaseTime + 99);
 
@@ -1155,7 +1160,7 @@ describe.only("TokenSaleProposal", () => {
           userInfos[0].vestingView.lockedAmount = wei("1.2");
           userInfos[0].vestingView.nextUnlockAmount = wei("1.2");
 
-          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
+          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
           assert.deepEqual(
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
@@ -1169,7 +1174,7 @@ describe.only("TokenSaleProposal", () => {
           userInfos[0].vestingView.amountToWithdraw = wei("33.6");
           userInfos[0].vestingView.lockedAmount = "0";
 
-          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
+          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
           await tsp.vestingWithdraw([1]);
 
@@ -1177,7 +1182,7 @@ describe.only("TokenSaleProposal", () => {
           userInfos[0].purchase.latestVestingWithdraw = (purchaseTime + 101).toString();
           userInfos[0].purchase.vestingWithdrawnAmount = wei("120");
 
-          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
+          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
           assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei("600"));
           assert.deepEqual(
@@ -1192,7 +1197,7 @@ describe.only("TokenSaleProposal", () => {
             ["0"]
           );
 
-          assert.deepEqual(userInfosToObject(await tsp.getUserInfos(OWNER, [1])), userInfos);
+          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
 
           await truffleAssert.reverts(tsp.vestingWithdraw([1]), "TSP: zero withdrawal");
         });

@@ -37,11 +37,11 @@ const ValidatorsProposalState = {
 };
 
 const ParticipationType = {
-  DAOVotes: 0,
-  Whitelist: 1,
-  BABT: 2,
-  TokenLock: 3,
-  NftLock: 4,
+  DAOVotes: "0",
+  Whitelist: "1",
+  BABT: "2",
+  TokenLock: "3",
+  NftLock: "4",
 };
 
 const DEFAULT_CORE_PROPERTIES = {
