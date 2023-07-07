@@ -139,6 +139,33 @@ library GovPoolCreate {
         snapshotId = IGovUserKeeper(userKeeper).createNftPowerSnapshot();
     }
 
+    function _handleDataForProposal(
+        uint256 settingsId,
+        IGovSettings govSettings,
+        IGovPool.ProposalAction[] calldata actions
+    ) internal returns (bool) {
+        if (settingsId == uint256(IGovSettings.ExecutorType.INTERNAL)) {
+            _handleDataForInternalProposal(govSettings, actions);
+            return false;
+        }
+
+        if (settingsId == uint256(IGovSettings.ExecutorType.VALIDATORS)) {
+            _handleDataForValidatorBalanceProposal(actions);
+            return false;
+        }
+
+        if (settingsId == uint256(IGovSettings.ExecutorType.DISTRIBUTION)) {
+            _handleDataForDistributionProposal(actions);
+            return false;
+        }
+
+        if (settingsId == uint256(IGovSettings.ExecutorType.DEFAULT)) {
+            return false;
+        }
+
+        return _handleDataForExistingSettingsProposal(actions);
+    }
+
     function _handleDataForDistributionProposal(
         IGovPool.ProposalAction[] calldata actions
     ) internal {
@@ -205,30 +232,6 @@ library GovPoolCreate {
                 "Gov: invalid internal data"
             );
         }
-    }
-
-    function _handleDataForProposal(
-        uint256 settingsId,
-        IGovSettings govSettings,
-        IGovPool.ProposalAction[] calldata actions
-    ) internal returns (bool) {
-        if (settingsId == uint256(IGovSettings.ExecutorType.INTERNAL)) {
-            _handleDataForInternalProposal(govSettings, actions);
-            return false;
-        }
-        if (settingsId == uint256(IGovSettings.ExecutorType.VALIDATORS)) {
-            _handleDataForValidatorBalanceProposal(actions);
-            return false;
-        }
-        if (settingsId == uint256(IGovSettings.ExecutorType.DISTRIBUTION)) {
-            _handleDataForDistributionProposal(actions);
-            return false;
-        }
-        if (settingsId == uint256(IGovSettings.ExecutorType.DEFAULT)) {
-            return false;
-        }
-
-        return _handleDataForExistingSettingsProposal(actions);
     }
 
     function _handleDataForValidatorBalanceProposal(

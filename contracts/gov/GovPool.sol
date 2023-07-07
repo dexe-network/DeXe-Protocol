@@ -41,8 +41,6 @@ contract GovPool is
     using Math for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using ShrinkableArray for uint256[];
-    using ShrinkableArray for ShrinkableArray.UintArray;
     using GovPoolOffchain for *;
     using GovUserKeeperLocal for *;
     using GovPoolView for *;
@@ -484,7 +482,7 @@ contract GovPool is
     function getWithdrawableAssets(
         address delegator,
         address delegatee
-    ) external view override returns (uint256 tokens, ShrinkableArray.UintArray memory nfts) {
+    ) external view override returns (uint256 tokens, uint256[] memory nfts) {
         return
             delegatee == address(0)
                 ? delegator.getWithdrawableAssets(_votedInProposals, _voteInfos)
