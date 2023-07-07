@@ -3,7 +3,7 @@ const { toBN, accounts, wei } = require("../../scripts/utils/utils");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
-const { ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
+const { ComissionPeriods, DEFAULT_CORE_PROPERTIES, ParticipationType } = require("../utils/constants");
 const { toPercent } = require("../utils/utils");
 const { getCurrentBlockTime } = require("../helpers/block-helper");
 
@@ -48,6 +48,12 @@ const GovPoolVoteLib = artifacts.require("GovPoolVote");
 const GovPoolViewLib = artifacts.require("GovPoolView");
 const GovPoolStakingLib = artifacts.require("GovPoolStaking");
 const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
+const TokenSaleProposalCreateLib = artifacts.require("TokenSaleProposalCreate");
+const TokenSaleProposalBuyLib = artifacts.require("TokenSaleProposalBuy");
+const TokenSaleProposalVestingLib = artifacts.require("TokenSaleProposalVesting");
+const TokenSaleProposalWhitelistLib = artifacts.require("TokenSaleProposalWhitelist");
+const TokenSaleProposalClaimLib = artifacts.require("TokenSaleProposalClaim");
+const TokenSaleProposalRecoverLib = artifacts.require("TokenSaleProposalRecover");
 
 ContractsRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
@@ -115,6 +121,20 @@ describe("PoolFactory", () => {
     await GovPool.link(govPoolViewLib);
     await GovPool.link(govPoolStakingLib);
     await GovPool.link(govPoolOffchainLib);
+
+    const tspCreateLib = await TokenSaleProposalCreateLib.new();
+    const tspBuyLib = await TokenSaleProposalBuyLib.new();
+    const tspVestingLib = await TokenSaleProposalVestingLib.new();
+    const tspWhitelistLib = await TokenSaleProposalWhitelistLib.new();
+    const tspClaimLib = await TokenSaleProposalClaimLib.new();
+    const tspRecoverLib = await TokenSaleProposalRecoverLib.new();
+
+    await TokenSaleProposal.link(tspCreateLib);
+    await TokenSaleProposal.link(tspBuyLib);
+    await TokenSaleProposal.link(tspVestingLib);
+    await TokenSaleProposal.link(tspWhitelistLib);
+    await TokenSaleProposal.link(tspClaimLib);
+    await TokenSaleProposal.link(tspRecoverLib);
 
     const traderPoolPriceLib = await TraderPoolPriceLib.new();
 
@@ -578,6 +598,7 @@ describe("PoolFactory", () => {
             totalTokenProvided: wei("100"),
             saleStartTime: 0,
             saleEndTime: 1000000,
+            claimLockDuration: 0,
             saleTokenAddress: ZERO_ADDR,
             purchaseTokenAddresses: [testERC20.address],
             exchangeRates: [PRECISION.toFixed()],
@@ -588,6 +609,10 @@ describe("PoolFactory", () => {
               vestingDuration: 86400,
               cliffPeriod: 0,
               unlockStep: 1,
+            },
+            participationDetails: {
+              participationType: ParticipationType.Whitelist,
+              data: "0x",
             },
           },
         ],
@@ -686,6 +711,7 @@ describe("PoolFactory", () => {
           totalTokenProvided: wei("100"),
           saleStartTime: await getCurrentBlockTime(),
           saleEndTime: (await getCurrentBlockTime()) + 10000,
+          claimLockDuration: 0,
           saleTokenAddress: testERC20.address,
           purchaseTokenAddresses: [testERC20.address],
           exchangeRates: [PRECISION.toFixed()],
@@ -696,6 +722,10 @@ describe("PoolFactory", () => {
             vestingDuration: 86400,
             cliffPeriod: 0,
             unlockStep: 1,
+          },
+          participationDetails: {
+            participationType: ParticipationType.BABT,
+            data: "0x",
           },
         });
 
