@@ -30,18 +30,14 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     using ArrayHelper for address[];
     using UniswapV2PathFinder for EnumerableSet.AddressSet;
 
-    IUniswapV2Factory public uniswapFactory;
-    IUniswapV2Router02 public uniswapV2Router;
+    IUniswapV2Factory public override uniswapFactory;
+    IUniswapV2Router02 public override uniswapV2Router;
     address internal _usdAddress;
     address internal _dexeAddress;
 
     EnumerableSet.AddressSet internal _pathTokens;
 
     mapping(address => mapping(address => mapping(address => address[]))) internal _savedPaths; // pool => token from => token to => path
-
-    function __PriceFeed_init() external initializer {
-        __Ownable_init();
-    }
 
     function setDependencies(address contractsRegistry) public virtual override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
@@ -50,60 +46,6 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         uniswapV2Router = IUniswapV2Router02(registry.getUniswapV2RouterContract());
         _usdAddress = registry.getUSDContract();
         _dexeAddress = registry.getDEXEContract();
-    }
-
-    /// @notice this function sets path tokens that are used throughout the platform to calculate prices
-    function addPathTokens(address[] calldata pathTokens) external override onlyOwner {
-        _pathTokens.add(pathTokens);
-    }
-
-    function removePathTokens(address[] calldata pathTokens) external override onlyOwner {
-        _pathTokens.remove(pathTokens);
-    }
-
-    function exchangeFromExact(
-        address inToken,
-        address outToken,
-        uint256 amountIn,
-        address[] memory optionalPath,
-        uint256 minAmountOut
-    ) public virtual override returns (uint256) {
-        if (amountIn == 0) {
-            return 0;
-        }
-
-        if (inToken == outToken) {
-            return amountIn;
-        }
-
-        if (optionalPath.length == 0) {
-            optionalPath = _savedPaths[msg.sender][inToken][outToken];
-        }
-
-        FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceOut(
-            inToken,
-            outToken,
-            amountIn,
-            optionalPath
-        );
-
-        require(foundPath.path.length > 0, "PriceFeed: unreachable asset");
-
-        if (foundPath.withProvidedPath) {
-            _savePath(inToken, outToken, foundPath.path);
-        }
-
-        _grabTokens(inToken, amountIn);
-
-        uint256[] memory outs = uniswapV2Router.swapExactTokensForTokens(
-            amountIn,
-            minAmountOut,
-            foundPath.path,
-            msg.sender,
-            block.timestamp
-        );
-
-        return outs[outs.length - 1];
     }
 
     function exchangeToExact(
@@ -151,6 +93,64 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         IERC20(inToken).safeTransfer(msg.sender, maxAmountIn - ins[0]);
 
         return ins[0];
+    }
+
+    function exchangeFromExact(
+        address inToken,
+        address outToken,
+        uint256 amountIn,
+        address[] memory optionalPath,
+        uint256 minAmountOut
+    ) public virtual override returns (uint256) {
+        if (amountIn == 0) {
+            return 0;
+        }
+
+        if (inToken == outToken) {
+            return amountIn;
+        }
+
+        if (optionalPath.length == 0) {
+            optionalPath = _savedPaths[msg.sender][inToken][outToken];
+        }
+
+        FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceOut(
+            inToken,
+            outToken,
+            amountIn,
+            optionalPath
+        );
+
+        require(foundPath.path.length > 0, "PriceFeed: unreachable asset");
+
+        if (foundPath.withProvidedPath) {
+            _savePath(inToken, outToken, foundPath.path);
+        }
+
+        _grabTokens(inToken, amountIn);
+
+        uint256[] memory outs = uniswapV2Router.swapExactTokensForTokens(
+            amountIn,
+            minAmountOut,
+            foundPath.path,
+            msg.sender,
+            block.timestamp
+        );
+
+        return outs[outs.length - 1];
+    }
+
+    function __PriceFeed_init() external initializer {
+        __Ownable_init();
+    }
+
+    /// @notice this function sets path tokens that are used throughout the platform to calculate prices
+    function addPathTokens(address[] calldata pathTokens) external override onlyOwner {
+        _pathTokens.add(pathTokens);
+    }
+
+    function removePathTokens(address[] calldata pathTokens) external override onlyOwner {
+        _pathTokens.remove(pathTokens);
     }
 
     function normalizedExchangeFromExact(

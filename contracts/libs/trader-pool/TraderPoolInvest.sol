@@ -26,13 +26,28 @@ library TraderPoolInvest {
     using EnumerableSet for EnumerableSet.AddressSet;
     using PriceFeedLocal for IPriceFeed;
 
+    /// @notice Emitted when position is opened
+    /// @param position Address of the position
     event PositionOpened(address position);
+
+    /// @notice Emitted when active portfolio is exchanged
+    /// @param fromToken Address of the token to exchange from
+    /// @param toToken Address of the token to exchange to
+    /// @param fromVolume Amount of the token to exchange from
+    /// @param toVolume Amount of the token to exchange to
     event ActivePortfolioExchanged(
         address fromToken,
         address toToken,
         uint256 fromVolume,
         uint256 toVolume
     );
+
+    /// @notice Emitted when exchange is performed
+    /// @param sender Address of the sender
+    /// @param fromToken Address of the token to exchange from
+    /// @param toToken Address of the token to exchange to
+    /// @param fromVolume Amount of the token to exchange from
+    /// @param toVolume Amount of the token to exchange to
     event Exchanged(
         address sender,
         address fromToken,
@@ -40,6 +55,36 @@ library TraderPoolInvest {
         uint256 fromVolume,
         uint256 toVolume
     );
+
+    function investPositions(
+        ITraderPool.PoolParameters storage poolParameters,
+        address baseHolder,
+        uint256 amountInBaseToInvest,
+        uint256[] calldata minPositionsOut
+    ) public returns (uint256 toMintLP) {
+        address baseToken = poolParameters.baseToken;
+        (
+            uint256 totalBase,
+            ,
+            address[] memory positionTokens,
+            uint256[] memory positionPricesInBase
+        ) = poolParameters.getNormalizedPoolPriceAndPositions();
+
+        toMintLP = _transferBase(poolParameters, baseHolder, totalBase, amountInBaseToInvest);
+
+        for (uint256 i = 0; i < positionTokens.length; i++) {
+            uint256 amount = positionPricesInBase[i].ratio(amountInBaseToInvest, totalBase);
+            uint256 amountGot = TraderPool(address(this)).priceFeed().normalizedExchangeFromExact(
+                baseToken,
+                positionTokens[i],
+                amount,
+                new address[](0),
+                minPositionsOut[i]
+            );
+
+            emit ActivePortfolioExchanged(baseToken, positionTokens[i], amount, amountGot);
+        }
+    }
 
     function invest(
         ITraderPool.PoolParameters storage poolParameters,
@@ -135,36 +180,6 @@ library TraderPoolInvest {
 
         traderPool.updateTo(msg.sender, toMintLP, totalInvestedBaseAmount);
         traderPool.mint(msg.sender, toMintLP);
-    }
-
-    function investPositions(
-        ITraderPool.PoolParameters storage poolParameters,
-        address baseHolder,
-        uint256 amountInBaseToInvest,
-        uint256[] calldata minPositionsOut
-    ) public returns (uint256 toMintLP) {
-        address baseToken = poolParameters.baseToken;
-        (
-            uint256 totalBase,
-            ,
-            address[] memory positionTokens,
-            uint256[] memory positionPricesInBase
-        ) = poolParameters.getNormalizedPoolPriceAndPositions();
-
-        toMintLP = _transferBase(poolParameters, baseHolder, totalBase, amountInBaseToInvest);
-
-        for (uint256 i = 0; i < positionTokens.length; i++) {
-            uint256 amount = positionPricesInBase[i].ratio(amountInBaseToInvest, totalBase);
-            uint256 amountGot = TraderPool(address(this)).priceFeed().normalizedExchangeFromExact(
-                baseToken,
-                positionTokens[i],
-                amount,
-                new address[](0),
-                minPositionsOut[i]
-            );
-
-            emit ActivePortfolioExchanged(baseToken, positionTokens[i], amount, amountGot);
-        }
     }
 
     function _transferBase(

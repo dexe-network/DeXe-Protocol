@@ -73,6 +73,10 @@ interface ICoreProperties {
         GovParameters govParams;
     }
 
+    /// @notice The function to initialize the CoreProperties contract
+    /// @param _coreParameters the parameters
+    function __CoreProperties_init(CoreParameters calldata _coreParameters) external;
+
     /// @notice The function to set CoreParameters
     /// @param _coreParameters the parameters
     function setCoreParameters(CoreParameters calldata _coreParameters) external;

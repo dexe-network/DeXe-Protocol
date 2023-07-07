@@ -17,30 +17,9 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
 
     uint256 internal _firstExchange;
 
-    event ProposalDivested(
-        uint256 proposalId,
-        address user,
-        uint256 divestedLP2,
-        uint256 receivedLP,
-        uint256 receivedBase
-    );
-
     modifier onlyProposalPool() {
         _onlyProposalPool();
         _;
-    }
-
-    function __InvestTraderPool_init(
-        string calldata name,
-        string calldata symbol,
-        ITraderPool.PoolParameters calldata _poolParameters,
-        address traderPoolProposal
-    ) public initializer {
-        __TraderPool_init(name, symbol, _poolParameters);
-
-        _traderPoolProposal = ITraderPoolInvestProposal(traderPoolProposal);
-
-        IERC20(_poolParameters.baseToken).safeApprove(traderPoolProposal, MAX_UINT);
     }
 
     function setDependencies(address contractsRegistry) public override dependant {
@@ -72,6 +51,19 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         _setFirstExchangeTime();
 
         super.exchange(from, to, amount, amountBound, optionalPath, exType);
+    }
+
+    function __InvestTraderPool_init(
+        string calldata name,
+        string calldata symbol,
+        ITraderPool.PoolParameters calldata _poolParameters,
+        address traderPoolProposal
+    ) external initializer {
+        __TraderPool_init(name, symbol, _poolParameters);
+
+        _traderPoolProposal = ITraderPoolInvestProposal(traderPoolProposal);
+
+        IERC20(_poolParameters.baseToken).safeApprove(traderPoolProposal, MAX_UINT);
     }
 
     function createProposal(
@@ -127,18 +119,6 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         emit ProposalDivested(proposalId, msg.sender, 0, toMintLP, receivedBase);
     }
 
-    function checkLeave(address user) external override onlyProposalPool {
-        _checkLeave(user, 0);
-    }
-
-    function checkJoin(address user) external override onlyProposalPool {
-        _checkJoin(user);
-    }
-
-    function proposalPoolAddress() external view override returns (address) {
-        return address(_traderPoolProposal);
-    }
-
     function totalEmission() public view override returns (uint256) {
         return totalSupply() + _traderPoolProposal.totalLockedLP();
     }
@@ -153,6 +133,18 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         uint256 delay = coreProperties.getDelayForRiskyPool();
 
         return delay != 0 ? (_firstExchange != 0 ? _firstExchange + delay : MAX_UINT) : 0;
+    }
+
+    function checkLeave(address user) external override onlyProposalPool {
+        _checkLeave(user, 0);
+    }
+
+    function checkJoin(address user) external override onlyProposalPool {
+        _checkJoin(user);
+    }
+
+    function proposalPoolAddress() external view override returns (address) {
+        return address(_traderPoolProposal);
     }
 
     function _setFirstExchangeTime() internal {

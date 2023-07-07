@@ -21,18 +21,16 @@ contract DistributionProposal is IDistributionProposal, Initializable {
     using DecimalsConverter for uint256;
     using TokenBalance for address;
 
-    address public govAddress;
+    address public override govAddress;
 
     mapping(uint256 => IDistributionProposal.DistributionProposalStruct) public proposals;
-
-    event DistributionProposalClaimed(uint256 proposalId, address sender, uint256 amount);
 
     modifier onlyGov() {
         require(msg.sender == govAddress, "DP: not a Gov contract");
         _;
     }
 
-    function __DistributionProposal_init(address _govAddress) external initializer {
+    function __DistributionProposal_init(address _govAddress) external override initializer {
         require(_govAddress != address(0), "DP: _govAddress is zero");
 
         govAddress = _govAddress;

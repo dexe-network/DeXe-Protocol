@@ -26,21 +26,18 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
     using MathHelper for uint256;
     using TokenBalance for address;
 
+    mapping(address => UserInfo) public userInfos;
+
     ERC20 internal _dexe;
     ICoreProperties internal _coreProperties;
 
     uint256 internal _poolReserved;
 
-    mapping(address => UserInfo) public userInfos;
     mapping(string => AcceptedClaims) internal _acceptedClaimsInfo;
 
     StringSet.Set internal _acceptedClaims;
 
-    event Deposited(uint256 amount, address investor);
-    event Withdrawn(uint256 amount, address investor);
-    event Paidout(uint256 insurancePayout, uint256 userStakePayout, address investor);
-
-    function __Insurance_init() external initializer {
+    function __Insurance_init() external override initializer {
         __Ownable_init();
     }
 
@@ -118,17 +115,17 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         return deposit * _coreProperties.getInsuranceFactor();
     }
 
-    function getInsurance(address user) external view override returns (uint256, uint256) {
-        uint256 deposit = userInfos[user].stake;
-
-        return (deposit, getReceivedInsurance(deposit));
-    }
-
     function getMaxTreasuryPayout() public view override returns (uint256) {
         return
             (address(_dexe).thisBalance() - _poolReserved).percentage(
                 _coreProperties.getMaxInsurancePoolShare()
             );
+    }
+
+    function getInsurance(address user) external view override returns (uint256, uint256) {
+        uint256 deposit = userInfos[user].stake;
+
+        return (deposit, getReceivedInsurance(deposit));
     }
 
     function acceptedClaimsCount() external view override returns (uint256) {

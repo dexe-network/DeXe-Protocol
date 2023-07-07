@@ -21,30 +21,17 @@ library TraderPoolDivest {
     using MathHelper for uint256;
     using TokenBalance for address;
 
+    /// @notice Emitted when active portfolio is exchanged
+    /// @param fromToken Address of the token to exchange from
+    /// @param toToken Address of the token to exchange to
+    /// @param fromVolume Amount of the token to exchange from
+    /// @param toVolume Amount of the token to exchange to
     event ActivePortfolioExchanged(
         address fromToken,
         address toToken,
         uint256 fromVolume,
         uint256 toVolume
     );
-
-    function divest(
-        ITraderPool.PoolParameters storage poolParameters,
-        uint256 amountLP,
-        uint256[] calldata minPositionsOut,
-        uint256 minDexeCommissionOut
-    ) external {
-        TraderPool traderPool = TraderPool(address(this));
-
-        bool senderTrader = traderPool.isTrader(msg.sender);
-        require(!senderTrader || traderPool.openPositions().length == 0, "TP: can't divest");
-
-        if (senderTrader) {
-            _divestTrader(poolParameters, amountLP);
-        } else {
-            _divestInvestor(poolParameters, amountLP, minPositionsOut, minDexeCommissionOut);
-        }
-    }
 
     function divestPositions(
         ITraderPool.PoolParameters storage poolParameters,
@@ -74,6 +61,24 @@ library TraderPoolDivest {
             investorBaseAmount += amountGot;
 
             emit ActivePortfolioExchanged(_openPositions[i], baseToken, amount, amountGot);
+        }
+    }
+
+    function divest(
+        ITraderPool.PoolParameters storage poolParameters,
+        uint256 amountLP,
+        uint256[] calldata minPositionsOut,
+        uint256 minDexeCommissionOut
+    ) external {
+        TraderPool traderPool = TraderPool(address(this));
+
+        bool senderTrader = traderPool.isTrader(msg.sender);
+        require(!senderTrader || traderPool.openPositions().length == 0, "TP: can't divest");
+
+        if (senderTrader) {
+            _divestTrader(poolParameters, amountLP);
+        } else {
+            _divestInvestor(poolParameters, amountLP, minPositionsOut, minDexeCommissionOut);
         }
     }
 

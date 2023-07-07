@@ -15,29 +15,17 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     using Math for uint256;
     using MathHelper for uint256;
 
-    GovValidatorsToken public govValidatorsToken;
+    GovValidatorsToken public override govValidatorsToken;
+
+    uint256 public override latestInternalProposalId;
+    uint256 public override validatorsCount;
 
     ProposalSettings public internalProposalSettings;
 
-    uint256 public override latestInternalProposalId;
-    uint256 public validatorsCount;
+    mapping(uint256 => mapping(bool => mapping(address => uint256))) public addressVoted; // proposalId => isInternal => user => voted amount
 
     mapping(uint256 => InternalProposal) internal _internalProposals; // proposalId => info
     mapping(uint256 => ExternalProposal) internal _externalProposals; // proposalId => info
-
-    mapping(uint256 => mapping(bool => mapping(address => uint256))) public addressVoted; // proposalId => isInternal => user => voted amount
-
-    event ExternalProposalCreated(uint256 proposalId, uint256 quorum);
-    event InternalProposalCreated(
-        uint256 proposalId,
-        string proposalDescription,
-        uint256 quorum,
-        address sender
-    );
-    event InternalProposalExecuted(uint256 proposalId, address executor);
-
-    event Voted(uint256 proposalId, address sender, uint256 vote, bool isInternal, bool isVoteFor);
-    event ChangedValidatorsBalances(address[] validators, uint256[] newBalance);
 
     /// @dev Access only for addresses that have validator tokens
     modifier onlyValidator() {
@@ -51,7 +39,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         ProposalSettings calldata proposalSettings,
         address[] calldata validators,
         uint256[] calldata balances
-    ) external initializer {
+    ) external override initializer {
         __Ownable_init();
 
         _validateChangeBalances(balances, validators);
@@ -197,29 +185,6 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         _externalProposals[proposalId].core.executed = true;
     }
 
-    function getExternalProposal(
-        uint256 index
-    ) external view override returns (ExternalProposal memory) {
-        return _externalProposals[index];
-    }
-
-    function getInternalProposals(
-        uint256 offset,
-        uint256 limit
-    ) external view override returns (InternalProposalView[] memory internalProposals) {
-        uint256 to = (offset + limit).min(latestInternalProposalId).max(offset);
-
-        internalProposals = new InternalProposalView[](to - offset);
-
-        for (uint256 i = offset; i < to; i++) {
-            internalProposals[i - offset] = InternalProposalView({
-                proposal: _internalProposals[i + 1],
-                proposalState: getProposalState(i + 1, true),
-                requiredQuorum: getProposalRequiredQuorum(i + 1, true)
-            });
-        }
-    }
-
     function getProposalState(
         uint256 proposalId,
         bool isInternal
@@ -248,8 +213,62 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             govValidatorsToken.totalSupplyAt(core.snapshotId).ratio(core.quorum, PERCENTAGE_100);
     }
 
+    function getExternalProposal(
+        uint256 index
+    ) external view override returns (ExternalProposal memory) {
+        return _externalProposals[index];
+    }
+
+    function getInternalProposals(
+        uint256 offset,
+        uint256 limit
+    ) external view override returns (InternalProposalView[] memory internalProposals) {
+        uint256 to = (offset + limit).min(latestInternalProposalId).max(offset);
+
+        internalProposals = new InternalProposalView[](to - offset);
+
+        for (uint256 i = offset; i < to; i++) {
+            internalProposals[i - offset] = InternalProposalView({
+                proposal: _internalProposals[i + 1],
+                proposalState: getProposalState(i + 1, true),
+                requiredQuorum: getProposalRequiredQuorum(i + 1, true)
+            });
+        }
+    }
+
     function isValidator(address user) public view override returns (bool) {
         return govValidatorsToken.balanceOf(user) > 0;
+    }
+
+    function _changeBalances(uint256[] memory newValues, address[] memory userAddresses) internal {
+        GovValidatorsToken validatorsToken = govValidatorsToken;
+        uint256 length = newValues.length;
+
+        uint256 validatorsCount_ = validatorsCount;
+
+        for (uint256 i = 0; i < length; i++) {
+            address user = userAddresses[i];
+            uint256 newBalance = newValues[i];
+            uint256 balance = validatorsToken.balanceOf(user);
+
+            if (balance < newBalance) {
+                validatorsToken.mint(user, newBalance - balance);
+
+                if (balance == 0) {
+                    validatorsCount_++;
+                }
+            } else if (balance > newBalance) {
+                validatorsToken.burn(user, balance - newBalance);
+
+                if (newBalance == 0) {
+                    validatorsCount_--;
+                }
+            }
+        }
+
+        validatorsCount = validatorsCount_;
+
+        emit ChangedValidatorsBalances(userAddresses, newValues);
     }
 
     function _getProposalState(ProposalCore storage core) internal view returns (ProposalState) {
@@ -300,35 +319,12 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         return core.voteEnd != 0;
     }
 
-    function _changeBalances(uint256[] memory newValues, address[] memory userAddresses) internal {
-        GovValidatorsToken validatorsToken = govValidatorsToken;
-        uint256 length = newValues.length;
+    function _votesForMoreThanAgainst(ProposalCore storage core) internal view returns (bool) {
+        return core.votesFor > core.votesAgainst;
+    }
 
-        uint256 validatorsCount_ = validatorsCount;
-
-        for (uint256 i = 0; i < length; i++) {
-            address user = userAddresses[i];
-            uint256 newBalance = newValues[i];
-            uint256 balance = validatorsToken.balanceOf(user);
-
-            if (balance < newBalance) {
-                validatorsToken.mint(user, newBalance - balance);
-
-                if (balance == 0) {
-                    validatorsCount_++;
-                }
-            } else if (balance > newBalance) {
-                validatorsToken.burn(user, balance - newBalance);
-
-                if (newBalance == 0) {
-                    validatorsCount_--;
-                }
-            }
-        }
-
-        validatorsCount = validatorsCount_;
-
-        emit ChangedValidatorsBalances(userAddresses, newValues);
+    function _onlyValidator() internal view {
+        require(isValidator(msg.sender), "Validators: caller is not the validator");
     }
 
     function _validateProposalSettings(ProposalSettings memory proposalSettings) internal pure {
@@ -346,14 +342,6 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         for (uint256 i = 0; i < userAddresses.length; i++) {
             require(userAddresses[i] != address(0), "Validators: invalid address");
         }
-    }
-
-    function _votesForMoreThanAgainst(ProposalCore storage core) internal view returns (bool) {
-        return core.votesFor > core.votesAgainst;
-    }
-
-    function _onlyValidator() internal view {
-        require(isValidator(msg.sender), "Validators: caller is not the validator");
     }
 
     function _validateInternalProposal(

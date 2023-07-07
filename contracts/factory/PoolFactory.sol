@@ -36,28 +36,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
     mapping(bytes32 => bool) private _usedSalts;
 
-    event TraderPoolDeployed(
-        string poolType,
-        string symbol,
-        string name,
-        address at,
-        address proposalContract,
-        address trader,
-        address basicToken,
-        uint256 commission,
-        string descriptionURL
-    );
-    event DaoPoolDeployed(
-        string name,
-        address govPool,
-        address dp,
-        address validators,
-        address settings,
-        address govUserKeeper,
-        address sender
-    );
-    event DaoTokenSaleDeployed(address govPool, address tokenSale, address token);
-
     function setDependencies(address contractsRegistry) public override {
         super.setDependencies(contractsRegistry);
 

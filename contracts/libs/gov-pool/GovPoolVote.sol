@@ -14,6 +14,12 @@ library GovPoolVote {
     using EnumerableSet for EnumerableSet.UintSet;
     using MathHelper for uint256;
 
+    /// @notice Emitted when user votes
+    /// @param proposalId ID of the proposal
+    /// @param sender Address of the sender
+    /// @param personalVote Amount of the personal vote
+    /// @param delegatedVote Amount of the delegated vote
+    /// @param isVoteFor True if vote is for, false if against
     event Voted(
         uint256 proposalId,
         address sender,
@@ -97,31 +103,6 @@ library GovPoolVote {
             ) >= core.settings.quorum;
     }
 
-    function votesForMoreThanAgainst(
-        IGovPool.ProposalCore storage core
-    ) internal view returns (bool) {
-        return core.votesFor > core.votesAgainst;
-    }
-
-    function proposalStateBasedOnVoteResultsAndLock(
-        IGovPool.ProposalCore storage core
-    ) internal view returns (IGovPool.ProposalState) {
-        if (block.timestamp <= core.executeAfter) {
-            return IGovPool.ProposalState.Locked;
-        }
-
-        return proposalStateBasedOnVoteResults(core);
-    }
-
-    function proposalStateBasedOnVoteResults(
-        IGovPool.ProposalCore storage core
-    ) internal view returns (IGovPool.ProposalState) {
-        return
-            votesForMoreThanAgainst(core)
-                ? IGovPool.ProposalState.SucceededFor
-                : IGovPool.ProposalState.SucceededAgainst;
-    }
-
     function _vote(
         IGovPool.ProposalCore storage core,
         EnumerableSet.UintSet storage votes,
@@ -163,31 +144,6 @@ library GovPoolVote {
             isMicropool ? 0 : reward,
             isMicropool ? reward : 0,
             isVoteFor
-        );
-    }
-
-    function _canVote(
-        IGovPool.ProposalCore storage core,
-        uint256 proposalId,
-        bool isMicropool,
-        bool useDelegated
-    ) internal view {
-        IGovPool govPool = IGovPool(address(this));
-        (, address userKeeper, , ) = govPool.getHelperContracts();
-
-        require(
-            govPool.getProposalState(proposalId) == IGovPool.ProposalState.Voting,
-            "Gov: vote unavailable"
-        );
-        require(
-            IGovUserKeeper(userKeeper).canVote(
-                msg.sender,
-                isMicropool,
-                useDelegated,
-                core.settings.minVotesForVoting,
-                core.nftPowerSnapshotId
-            ),
-            "Gov: low voting power"
         );
     }
 
@@ -262,6 +218,56 @@ library GovPoolVote {
             core.votesAgainst += voteAmount;
             voteInfo.totalVotedAgainst += voteAmount;
         }
+    }
+
+    function votesForMoreThanAgainst(
+        IGovPool.ProposalCore storage core
+    ) internal view returns (bool) {
+        return core.votesFor > core.votesAgainst;
+    }
+
+    function proposalStateBasedOnVoteResultsAndLock(
+        IGovPool.ProposalCore storage core
+    ) internal view returns (IGovPool.ProposalState) {
+        if (block.timestamp <= core.executeAfter) {
+            return IGovPool.ProposalState.Locked;
+        }
+
+        return proposalStateBasedOnVoteResults(core);
+    }
+
+    function proposalStateBasedOnVoteResults(
+        IGovPool.ProposalCore storage core
+    ) internal view returns (IGovPool.ProposalState) {
+        return
+            votesForMoreThanAgainst(core)
+                ? IGovPool.ProposalState.SucceededFor
+                : IGovPool.ProposalState.SucceededAgainst;
+    }
+
+    function _canVote(
+        IGovPool.ProposalCore storage core,
+        uint256 proposalId,
+        bool isMicropool,
+        bool useDelegated
+    ) internal view {
+        IGovPool govPool = IGovPool(address(this));
+        (, address userKeeper, , ) = govPool.getHelperContracts();
+
+        require(
+            govPool.getProposalState(proposalId) == IGovPool.ProposalState.Voting,
+            "Gov: vote unavailable"
+        );
+        require(
+            IGovUserKeeper(userKeeper).canVote(
+                msg.sender,
+                isMicropool,
+                useDelegated,
+                core.settings.minVotesForVoting,
+                core.nftPowerSnapshotId
+            ),
+            "Gov: low voting power"
+        );
     }
 
     function _votedNfts(

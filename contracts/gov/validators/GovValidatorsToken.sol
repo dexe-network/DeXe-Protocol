@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Snapshot.sol";
 import "../../interfaces/gov/validators/IGovValidatorsToken.sol";
 
 contract GovValidatorsToken is IGovValidatorsToken, ERC20Snapshot {
-    address public immutable validator;
+    address public immutable override validator;
 
     modifier onlyValidator() {
         _onlyValidator();

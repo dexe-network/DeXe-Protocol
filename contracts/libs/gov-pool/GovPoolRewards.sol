@@ -14,7 +14,19 @@ library GovPoolRewards {
     using TokenBalance for address;
     using MathHelper for uint256;
 
+    /// @notice Emitted when reward is claimed
+    /// @param proposalId ID of the proposal
+    /// @param sender Address of the sender
+    /// @param token Address of the token
+    /// @param amount Amount of the token
     event RewardClaimed(uint256 proposalId, address sender, address token, uint256 amount);
+
+    /// @notice Emitted when reward is credited
+    /// @param proposalId ID of the proposal
+    /// @param rewardType Type of the reward
+    /// @param rewardToken Address of the reward token
+    /// @param amount Amount of the reward token
+    /// @param sender Address of the sender
     event RewardCredited(
         uint256 proposalId,
         IGovPool.RewardType rewardType,

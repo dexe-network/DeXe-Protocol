@@ -20,7 +20,58 @@ library TraderPoolCommission {
     using Math for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    /// @notice Emitted when commission is claimed
+    /// @param sender Address of the sender
+    /// @param traderLpClaimed Amount of the trader LP tokens claimed
+    /// @param traderBaseClaimed Amount of the trader base tokens claimed
     event CommissionClaimed(address sender, uint256 traderLpClaimed, uint256 traderBaseClaimed);
+
+    function distributeCommission(
+        ITraderPool.PoolParameters storage poolParameters,
+        uint256 baseToDistribute,
+        uint256 lpToDistribute,
+        uint256 minDexeCommissionOut
+    ) public {
+        require(baseToDistribute > 0, "TP: no commission available");
+
+        TraderPool traderPool = TraderPool(address(this));
+        IERC20 dexeToken = traderPool.dexeToken();
+
+        (
+            uint256 dexePercentage,
+            ,
+            uint128[] memory poolPercentages,
+            address[3] memory commissionReceivers
+        ) = traderPool.coreProperties().getDEXECommissionPercentages();
+
+        (uint256 dexeLPCommission, uint256 dexeBaseCommission) = _calculateDexeCommission(
+            baseToDistribute,
+            lpToDistribute,
+            dexePercentage
+        );
+        uint256 dexeCommission = traderPool.priceFeed().normalizedExchangeFromExact(
+            poolParameters.baseToken,
+            address(dexeToken),
+            dexeBaseCommission,
+            new address[](0),
+            minDexeCommissionOut
+        );
+
+        traderPool.mint(poolParameters.trader, lpToDistribute - dexeLPCommission);
+
+        for (uint256 i = 0; i < commissionReceivers.length; i++) {
+            dexeToken.safeTransfer(
+                commissionReceivers[i],
+                dexeCommission.percentage(poolPercentages[i])
+            );
+        }
+
+        emit CommissionClaimed(
+            msg.sender,
+            lpToDistribute - dexeLPCommission,
+            baseToDistribute - dexeBaseCommission
+        );
+    }
 
     function reinvestCommission(
         mapping(address => ITraderPool.InvestorInfo) storage investorsInfo,
@@ -71,53 +122,6 @@ library TraderPoolCommission {
             allBaseCommission,
             allLPCommission,
             minDexeCommissionOut
-        );
-    }
-
-    function distributeCommission(
-        ITraderPool.PoolParameters storage poolParameters,
-        uint256 baseToDistribute,
-        uint256 lpToDistribute,
-        uint256 minDexeCommissionOut
-    ) public {
-        require(baseToDistribute > 0, "TP: no commission available");
-
-        TraderPool traderPool = TraderPool(address(this));
-        IERC20 dexeToken = traderPool.dexeToken();
-
-        (
-            uint256 dexePercentage,
-            ,
-            uint128[] memory poolPercentages,
-            address[3] memory commissionReceivers
-        ) = traderPool.coreProperties().getDEXECommissionPercentages();
-
-        (uint256 dexeLPCommission, uint256 dexeBaseCommission) = _calculateDexeCommission(
-            baseToDistribute,
-            lpToDistribute,
-            dexePercentage
-        );
-        uint256 dexeCommission = traderPool.priceFeed().normalizedExchangeFromExact(
-            poolParameters.baseToken,
-            address(dexeToken),
-            dexeBaseCommission,
-            new address[](0),
-            minDexeCommissionOut
-        );
-
-        traderPool.mint(poolParameters.trader, lpToDistribute - dexeLPCommission);
-
-        for (uint256 i = 0; i < commissionReceivers.length; i++) {
-            dexeToken.safeTransfer(
-                commissionReceivers[i],
-                dexeCommission.percentage(poolPercentages[i])
-            );
-        }
-
-        emit CommissionClaimed(
-            msg.sender,
-            lpToDistribute - dexeLPCommission,
-            baseToDistribute - dexeBaseCommission
         );
     }
 
@@ -174,15 +178,6 @@ library TraderPoolCommission {
         );
     }
 
-    function _calculateDexeCommission(
-        uint256 baseToDistribute,
-        uint256 lpToDistribute,
-        uint256 dexePercentage
-    ) internal pure returns (uint256 lpCommission, uint256 baseCommission) {
-        lpCommission = lpToDistribute.percentage(dexePercentage);
-        baseCommission = baseToDistribute.percentage(dexePercentage);
-    }
-
     function _calculateInvestorCommission(
         ITraderPool.PoolParameters storage poolParameters,
         uint256 investorBaseAmount,
@@ -195,5 +190,14 @@ library TraderPoolCommission {
             );
             lpCommission = investorLPAmount.ratio(baseCommission, investorBaseAmount);
         }
+    }
+
+    function _calculateDexeCommission(
+        uint256 baseToDistribute,
+        uint256 lpToDistribute,
+        uint256 dexePercentage
+    ) internal pure returns (uint256 lpCommission, uint256 baseCommission) {
+        lpCommission = lpToDistribute.percentage(dexePercentage);
+        baseCommission = baseToDistribute.percentage(dexePercentage);
     }
 }

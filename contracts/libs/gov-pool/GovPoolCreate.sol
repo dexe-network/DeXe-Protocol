@@ -16,6 +16,14 @@ import "../../gov/GovPool.sol";
 library GovPoolCreate {
     using DataHelper for bytes;
 
+    /// @notice The event emitted when a new proposal is created
+    /// @param proposalId the id of the newly created proposal
+    /// @param proposalDescription the description of the newly created proposal
+    /// @param misc the misc
+    /// @param quorum the quorum
+    /// @param proposalSettings the proposalSettings
+    /// @param rewardToken the rewardToken
+    /// @param sender the sender
     event ProposalCreated(
         uint256 proposalId,
         string proposalDescription,
@@ -25,7 +33,17 @@ library GovPoolCreate {
         address rewardToken,
         address sender
     );
+
+    /// @notice The event emitted when a new distribution proposal is created
+    /// @param proposalId the id of the newly created proposal
+    /// @param sender the sender
+    /// @param token the token
+    /// @param amount the amount
     event DPCreated(uint256 proposalId, address sender, address token, uint256 amount);
+
+    /// @notice The event emitted when a new proposal is moved to validators
+    /// @param proposalId the id of the newly created proposal
+    /// @param sender the sender
     event MovedToValidators(uint256 proposalId, address sender);
 
     function createProposal(
@@ -169,6 +187,30 @@ library GovPoolCreate {
         emit DPCreated(decodedId, msg.sender, token, amount);
     }
 
+    function _handleDataForProposal(
+        uint256 settingsId,
+        IGovSettings govSettings,
+        IGovPool.ProposalAction[] calldata actions
+    ) internal returns (bool) {
+        if (settingsId == uint256(IGovSettings.ExecutorType.INTERNAL)) {
+            _handleDataForInternalProposal(govSettings, actions);
+            return false;
+        }
+        if (settingsId == uint256(IGovSettings.ExecutorType.VALIDATORS)) {
+            _handleDataForValidatorBalanceProposal(actions);
+            return false;
+        }
+        if (settingsId == uint256(IGovSettings.ExecutorType.DISTRIBUTION)) {
+            _handleDataForDistributionProposal(actions);
+            return false;
+        }
+        if (settingsId == uint256(IGovSettings.ExecutorType.DEFAULT)) {
+            return false;
+        }
+
+        return _handleDataForExistingSettingsProposal(actions);
+    }
+
     function _canCreate(
         IGovSettings.ProposalSettings memory settings,
         uint256 snapshotId
@@ -209,30 +251,6 @@ library GovPoolCreate {
                 "Gov: invalid internal data"
             );
         }
-    }
-
-    function _handleDataForProposal(
-        uint256 settingsId,
-        IGovSettings govSettings,
-        IGovPool.ProposalAction[] calldata actions
-    ) internal returns (bool) {
-        if (settingsId == uint256(IGovSettings.ExecutorType.INTERNAL)) {
-            _handleDataForInternalProposal(govSettings, actions);
-            return false;
-        }
-        if (settingsId == uint256(IGovSettings.ExecutorType.VALIDATORS)) {
-            _handleDataForValidatorBalanceProposal(actions);
-            return false;
-        }
-        if (settingsId == uint256(IGovSettings.ExecutorType.DISTRIBUTION)) {
-            _handleDataForDistributionProposal(actions);
-            return false;
-        }
-        if (settingsId == uint256(IGovSettings.ExecutorType.DEFAULT)) {
-            return false;
-        }
-
-        return _handleDataForExistingSettingsProposal(actions);
     }
 
     function _handleDataForValidatorBalanceProposal(

@@ -14,30 +14,9 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
 
     ITraderPoolRiskyProposal internal _traderPoolProposal;
 
-    event ProposalDivested(
-        uint256 proposalId,
-        address user,
-        uint256 divestedLP2,
-        uint256 receivedLP,
-        uint256 receivedBase
-    );
-
     modifier onlyProposalPool() {
         _onlyProposalPool();
         _;
-    }
-
-    function __BasicTraderPool_init(
-        string calldata name,
-        string calldata symbol,
-        ITraderPool.PoolParameters calldata _poolParameters,
-        address traderPoolProposal
-    ) public initializer {
-        __TraderPool_init(name, symbol, _poolParameters);
-
-        _traderPoolProposal = ITraderPoolRiskyProposal(traderPoolProposal);
-
-        IERC20(_poolParameters.baseToken).safeApprove(traderPoolProposal, MAX_UINT);
     }
 
     function setDependencies(address contractsRegistry) public override dependant {
@@ -60,6 +39,31 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         );
 
         super.exchange(from, to, amount, amountBound, optionalPath, exType);
+    }
+
+    function investInitial(
+        uint256[] calldata amounts,
+        address[] calldata tokens,
+        uint256 minLPOut
+    ) public override {
+        for (uint256 i = 0; i < tokens.length; i++) {
+            require(coreProperties.isWhitelistedToken(tokens[i]), "BP: not in whitelist");
+        }
+
+        super.investInitial(amounts, tokens, minLPOut);
+    }
+
+    function __BasicTraderPool_init(
+        string calldata name,
+        string calldata symbol,
+        ITraderPool.PoolParameters calldata _poolParameters,
+        address traderPoolProposal
+    ) external override initializer {
+        __TraderPool_init(name, symbol, _poolParameters);
+
+        _traderPoolProposal = ITraderPoolRiskyProposal(traderPoolProposal);
+
+        IERC20(_poolParameters.baseToken).safeApprove(traderPoolProposal, MAX_UINT);
     }
 
     function createProposal(
@@ -86,18 +90,6 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         );
 
         _burn(msg.sender, lpAmount);
-    }
-
-    function investInitial(
-        uint256[] calldata amounts,
-        address[] calldata tokens,
-        uint256 minLPOut
-    ) public override {
-        for (uint256 i = 0; i < tokens.length; i++) {
-            require(coreProperties.isWhitelistedToken(tokens[i]), "BP: not in whitelist");
-        }
-
-        super.investInitial(amounts, tokens, minLPOut);
     }
 
     function investProposal(
@@ -147,10 +139,6 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         _checkJoin(user);
     }
 
-    function proposalPoolAddress() external view override returns (address) {
-        return address(_traderPoolProposal);
-    }
-
     function totalEmission() public view override returns (uint256) {
         return totalSupply() + _traderPoolProposal.totalLockedLP();
     }
@@ -159,6 +147,10 @@ contract BasicTraderPool is IBasicTraderPool, TraderPool {
         return
             balanceOf(investor) == 0 &&
             _traderPoolProposal.getTotalActiveInvestments(investor) == 0;
+    }
+
+    function proposalPoolAddress() external view override returns (address) {
+        return address(_traderPoolProposal);
     }
 
     function _onlyProposalPool() internal view {

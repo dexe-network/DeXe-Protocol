@@ -21,6 +21,10 @@ library GovPoolExecute {
     using TokenBalance for address;
     using GovPoolCommission for address;
 
+    /// @notice Emitted when proposal is executed
+    /// @param proposalId ID of the proposal
+    /// @param isFor True if proposal is executed for, false if against
+    /// @param sender Address of the sender
     event ProposalExecuted(uint256 proposalId, bool isFor, address sender);
 
     function execute(

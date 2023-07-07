@@ -20,15 +20,11 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     using SafeERC20 for ERC20;
     using DecimalsConverter for uint256;
 
-    address public govAddress;
+    address public override govAddress;
 
     uint256 public override latestTierId;
 
     mapping(uint256 => Tier) internal _tiers;
-
-    event TierCreated(uint256 tierId, address saleToken);
-    event Bought(uint256 tierId, address buyer);
-    event Whitelisted(uint256 tierId, address user);
 
     modifier onlyGov() {
         _onlyGov();
@@ -48,7 +44,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         _;
     }
 
-    function __TokenSaleProposal_init(address _govAddress) external initializer {
+    function __TokenSaleProposal_init(address _govAddress) external override initializer {
         require(_govAddress != address(0), "TSP: zero gov address");
 
         govAddress = _govAddress;
@@ -72,7 +68,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         }
     }
 
-    function recover(uint256[] calldata tierIds) external onlyGov {
+    function recover(uint256[] calldata tierIds) external override onlyGov {
         for (uint256 i = 0; i < tierIds.length; i++) {
             uint256 recoveringAmount = _getRecoverAmount(tierIds[i]);
 
@@ -109,7 +105,11 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         }
     }
 
-    function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable {
+    function buy(
+        uint256 tierId,
+        address tokenToBuyWith,
+        uint256 amount
+    ) external payable override {
         bool isNativeCurrency = tokenToBuyWith == ETHEREUM_ADDRESS;
         uint256 saleTokenAmount = getSaleTokenAmount(
             msg.sender,
@@ -163,7 +163,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         uint256 tierId,
         address tokenToBuyWith,
         uint256 amount
-    ) public view ifTierExists(tierId) ifTierIsNotOff(tierId) returns (uint256) {
+    ) public view override ifTierExists(tierId) ifTierIsNotOff(tierId) returns (uint256) {
         require(amount > 0, "TSP: zero amount");
         require(_canParticipate(user, tierId), "TSP: not whitelisted");
 
@@ -205,7 +205,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     function getVestingWithdrawAmounts(
         address user,
         uint256[] calldata tierIds
-    ) public view returns (uint256[] memory vestingWithdrawAmounts) {
+    ) public view override returns (uint256[] memory vestingWithdrawAmounts) {
         vestingWithdrawAmounts = new uint256[](tierIds.length);
 
         for (uint256 i = 0; i < tierIds.length; i++) {
@@ -215,7 +215,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
     function getRecoverAmounts(
         uint256[] calldata tierIds
-    ) public view returns (uint256[] memory recoveringAmounts) {
+    ) public view override returns (uint256[] memory recoveringAmounts) {
         recoveringAmounts = new uint256[](tierIds.length);
 
         for (uint256 i = 0; i < recoveringAmounts.length; i++) {
@@ -223,10 +223,19 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         }
     }
 
+    function uri(uint256 tierId) public view override returns (string memory) {
+        return _tiers[tierId].tierInfo.tierInfoView.uri;
+    }
+
     function getTiers(
         uint256 offset,
         uint256 limit
-    ) external view returns (TierView[] memory tierViews, TierInfoView[] memory tierInfoViews) {
+    )
+        external
+        view
+        override
+        returns (TierView[] memory tierViews, TierInfoView[] memory tierInfoViews)
+    {
         uint256 to = (offset + limit).min(latestTierId).max(offset);
 
         tierViews = new TierView[](to - offset);
@@ -246,7 +255,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     function getUserInfos(
         address user,
         uint256[] calldata tierIds
-    ) external view returns (UserInfo[] memory userInfos) {
+    ) external view override returns (UserInfo[] memory userInfos) {
         userInfos = new UserInfo[](tierIds.length);
 
         for (uint256 i = 0; i < userInfos.length; i++) {
@@ -302,10 +311,6 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
             userInfos[i].vestingView = vestingView;
         }
-    }
-
-    function uri(uint256 tierId) public view override returns (string memory) {
-        return _tiers[tierId].tierInfo.tierInfoView.uri;
     }
 
     function _createTier(TierView memory tierView) internal {

@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "../../libs/data-structures/ShrinkableArray.sol";
 
+import "../core/ICoreProperties.sol";
+import "../core/ISBT721.sol";
 import "./settings/IGovSettings.sol";
 import "./validators/IGovValidators.sol";
 
@@ -193,9 +195,49 @@ interface IGovPool {
         mapping(bytes32 => bool) usedHashes;
     }
 
-    /// @notice The function to get nft multiplier
-    /// @return `address` of nft multiplier
-    function nftMultiplier() external view returns (address);
+    /// @notice The event emitted when delegated
+    /// @param from the address of delegator
+    /// @param to the address of delegatee
+    /// @param amount the amount of delegation
+    /// @param nfts the array of nft ids
+    /// @param isDelegate the bool flag for delegation or undelegation
+    event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
+
+    /// @notice The event emitted when deposited
+    /// @param amount the amount of deposit
+    /// @param nfts the array of nft ids
+    /// @param sender the address of sender
+    event Deposited(uint256 amount, uint256[] nfts, address sender);
+
+    /// @notice The event emitted when withdrawn
+    /// @param amount the amount of withdrawal
+    /// @param nfts the array of nft ids
+    /// @param sender the address of sender
+    event Withdrawn(uint256 amount, uint256[] nfts, address sender);
+
+    /// @notice The function to initialize the contract
+    /// @param govSettingAddress the address of gov settings contract
+    /// @param govUserKeeperAddress the address of gov user keeper contract
+    /// @param distributionProposalAddress the address of distribution proposal contract
+    /// @param validatorsAddress the address of validators contract
+    /// @param nftMultiplierAddress the address of nft multiplier contract
+    /// @param _verifier the address of verifier
+    /// @param _onlyBABTHolders the bool flag for KYC restriction
+    /// @param _deployerBABTid the id of BABT token in the deployer's wallet
+    /// @param _descriptionURL the string with url
+    /// @param _name the string with name
+    function __GovPool_init(
+        address govSettingAddress,
+        address govUserKeeperAddress,
+        address distributionProposalAddress,
+        address validatorsAddress,
+        address nftMultiplierAddress,
+        address _verifier,
+        bool _onlyBABTHolders,
+        uint256 _deployerBABTid,
+        string calldata _descriptionURL,
+        string calldata _name
+    ) external;
 
     /// @notice The function to get helper contract of this pool
     /// @return settings settings address
@@ -323,6 +365,42 @@ interface IGovPool {
     /// @param resultsHash the ipfs results hash
     /// @param signature the signature from verifier
     function saveOffchainResults(string calldata resultsHash, bytes calldata signature) external;
+
+    /// @notice The function for getting the percentage of rewards for micropool
+    /// @return the percentage of rewards for micropool
+    function PERCENTAGE_MICROPOOL_REWARDS() external view returns (uint256);
+
+    /// @notice The function for getting the address of the core properties contract
+    /// @return the address of the core properties contract
+    function coreProperties() external view returns (ICoreProperties);
+
+    /// @notice The function for getting the address of the nft multiplier contract
+    /// @return the address of the nft multiplier contract
+    function nftMultiplier() external view returns (address);
+
+    /// @notice The function for getting the address of the babt token
+    /// @return the address of the babt token
+    function babt() external view returns (ISBT721);
+
+    /// @notice The function for getting if only babt holders can interact with the pool
+    /// @return the bool flag
+    function onlyBABTHolders() external view returns (bool);
+
+    /// @notice The function for getting the description url
+    /// @return the string with url
+    function descriptionURL() external view returns (string memory);
+
+    /// @notice The function for getting the name of the pool
+    /// @return the string with name
+    function name() external view returns (string memory);
+
+    /// @notice The function for getting the number of last proposal
+    /// @return the number of last proposal
+    function latestProposalId() external view returns (uint256);
+
+    /// @notice The function for getting the address of the babt token distributor
+    /// @return the address of the babt token distributor
+    function deployerBABTid() external view returns (uint256);
 
     /// @notice The paginated function for getting proposal info list
     /// @param offset the proposal starting index

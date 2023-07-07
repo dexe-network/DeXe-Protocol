@@ -43,6 +43,22 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
         _;
     }
 
+    function recalculateNftPower(uint256 tokenId) public override returns (uint256 newPower) {
+        if (block.timestamp < powerCalcStartTimestamp) {
+            return 0;
+        }
+
+        newPower = getNftPower(tokenId);
+
+        NftInfo storage nftInfo = nftInfos[tokenId];
+
+        totalPower -= nftInfo.lastUpdate != 0 ? nftInfo.currentPower : getMaxPowerForNft(tokenId);
+        totalPower += newPower;
+
+        nftInfo.lastUpdate = uint64(block.timestamp);
+        nftInfo.currentPower = newPower;
+    }
+
     function __ERC721Power_init(
         string calldata name,
         string calldata symbol,
@@ -138,22 +154,6 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
             msg.sender,
             amount.from18(ERC20(collateralToken).decimals())
         );
-    }
-
-    function recalculateNftPower(uint256 tokenId) public override returns (uint256 newPower) {
-        if (block.timestamp < powerCalcStartTimestamp) {
-            return 0;
-        }
-
-        newPower = getNftPower(tokenId);
-
-        NftInfo storage nftInfo = nftInfos[tokenId];
-
-        totalPower -= nftInfo.lastUpdate != 0 ? nftInfo.currentPower : getMaxPowerForNft(tokenId);
-        totalPower += newPower;
-
-        nftInfo.lastUpdate = uint64(block.timestamp);
-        nftInfo.currentPower = newPower;
     }
 
     function getMaxPowerForNft(uint256 tokenId) public view override returns (uint256) {

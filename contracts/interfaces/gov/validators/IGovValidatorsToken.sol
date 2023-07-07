@@ -20,4 +20,8 @@ interface IGovValidatorsToken is IERC20 {
     /// @notice Create tokens snapshot
     /// @return Snapshot ID
     function snapshot() external returns (uint256);
+
+    /// @notice Get address of the `Validators` contract
+    /// @return Address
+    function validator() external view returns (address);
 }
