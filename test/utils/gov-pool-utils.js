@@ -394,6 +394,11 @@ const getBytesCreateTiersTSP = (tiers) => {
               type: "uint64",
             },
             {
+              internalType: "uint64",
+              name: "claimLockDuration",
+              type: "uint64",
+            },
+            {
               internalType: "address",
               name: "saleTokenAddress",
               type: "address",
@@ -445,9 +450,26 @@ const getBytesCreateTiersTSP = (tiers) => {
               name: "vestingSettings",
               type: "tuple",
             },
+            {
+              components: [
+                {
+                  internalType: "enum ITokenSaleProposal.ParticipationType",
+                  name: "participationType",
+                  type: "uint8",
+                },
+                {
+                  internalType: "bytes",
+                  name: "data",
+                  type: "bytes",
+                },
+              ],
+              internalType: "struct ITokenSaleProposal.ParticipationDetails",
+              name: "participationDetails",
+              type: "tuple",
+            },
           ],
-          internalType: "struct ITokenSaleProposal.TierView[]",
-          name: "tiers",
+          internalType: "struct ITokenSaleProposal.TierInitParams[]",
+          name: "tierInitParams",
           type: "tuple[]",
         },
       ],

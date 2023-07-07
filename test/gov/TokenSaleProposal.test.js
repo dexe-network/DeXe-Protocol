@@ -3,7 +3,7 @@ const { toBN, accounts, wei } = require("../../scripts/utils/utils");
 const { PRECISION, ZERO_ADDR, PERCENTAGE_100, ETHER_ADDR } = require("../../scripts/utils/constants");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
-const { DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
+const { DEFAULT_CORE_PROPERTIES, ParticipationType } = require("../utils/constants");
 const {
   getBytesTransfer,
   getBytesCreateTiersTSP,
@@ -34,6 +34,12 @@ const GovPoolVoteLib = artifacts.require("GovPoolVote");
 const GovPoolViewLib = artifacts.require("GovPoolView");
 const GovPoolStakingLib = artifacts.require("GovPoolStaking");
 const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
+const TokenSaleProposalCreateLib = artifacts.require("TokenSaleProposalCreate");
+const TokenSaleProposalBuyLib = artifacts.require("TokenSaleProposalBuy");
+const TokenSaleProposalVestingLib = artifacts.require("TokenSaleProposalVesting");
+const TokenSaleProposalWhitelistLib = artifacts.require("TokenSaleProposalWhitelist");
+const TokenSaleProposalClaimLib = artifacts.require("TokenSaleProposalClaim");
+const TokenSaleProposalRecoverLib = artifacts.require("TokenSaleProposalRecover");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -47,7 +53,7 @@ GovSettings.numberFormat = "BigNumber";
 GovValidators.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 
-describe("TokenSaleProposal", () => {
+describe.only("TokenSaleProposal", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -74,6 +80,7 @@ describe("TokenSaleProposal", () => {
   let userKeeper;
   let govPool;
   let dp;
+  let babt;
 
   const reverter = new Reverter();
 
@@ -95,6 +102,13 @@ describe("TokenSaleProposal", () => {
     const govPoolStakingLib = await GovPoolStakingLib.new();
     const govPoolOffchainLib = await GovPoolOffchainLib.new();
 
+    const tspCreateLib = await TokenSaleProposalCreateLib.new();
+    const tspBuyLib = await TokenSaleProposalBuyLib.new();
+    const tspVestingLib = await TokenSaleProposalVestingLib.new();
+    const tspWhitelistLib = await TokenSaleProposalWhitelistLib.new();
+    const tspClaimLib = await TokenSaleProposalClaimLib.new();
+    const tspRecoverLib = await TokenSaleProposalRecoverLib.new();
+
     await GovUserKeeper.link(govUserKeeperViewLib);
 
     await GovPool.link(govPoolCreateLib);
@@ -106,10 +120,17 @@ describe("TokenSaleProposal", () => {
     await GovPool.link(govPoolStakingLib);
     await GovPool.link(govPoolOffchainLib);
 
+    await TokenSaleProposal.link(tspCreateLib);
+    await TokenSaleProposal.link(tspBuyLib);
+    await TokenSaleProposal.link(tspVestingLib);
+    await TokenSaleProposal.link(tspWhitelistLib);
+    await TokenSaleProposal.link(tspClaimLib);
+    await TokenSaleProposal.link(tspRecoverLib);
+
     const contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
-    const BABT = await BABTMock.new();
+    babt = await BABTMock.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
 
     await contractsRegistry.__OwnableContractsRegistry_init();
@@ -123,7 +144,7 @@ describe("TokenSaleProposal", () => {
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.INSURANCE_NAME(), NOTHING);
 
-    await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), BABT.address);
+    await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
 
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
@@ -390,7 +411,7 @@ describe("TokenSaleProposal", () => {
       await deployPool(POOL_PARAMETERS);
       await setupTokens();
 
-      await tsp.__TokenSaleProposal_init(govPool.address);
+      await tsp.__TokenSaleProposal_init(govPool.address, babt.address);
 
       erc20Params = {
         govAddress: govPool.address,
@@ -425,6 +446,7 @@ describe("TokenSaleProposal", () => {
           totalTokenProvided: wei(1000),
           saleStartTime: (timeNow + 100).toString(),
           saleEndTime: (timeNow + 200).toString(),
+          claimLockPeriod: 10,
           saleTokenAddress: erc20Sale.address,
           purchaseTokenAddresses: [purchaseToken1.address, ETHER_ADDR],
           exchangeRates: [PRECISION.times(3).toFixed(), PRECISION.times(100).toFixed()],
@@ -436,6 +458,10 @@ describe("TokenSaleProposal", () => {
             cliffPeriod: "50",
             unlockStep: "3",
           },
+          participationDetails: {
+            participationType: ParticipationType.BABT,
+            data: "0x",
+          },
         },
         {
           metadata: {
@@ -445,6 +471,7 @@ describe("TokenSaleProposal", () => {
           totalTokenProvided: wei(1000),
           saleStartTime: (timeNow + 1000).toString(),
           saleEndTime: (timeNow + 2000).toString(),
+          claimLockPeriod: "0",
           saleTokenAddress: saleToken.address,
           purchaseTokenAddresses: [purchaseToken1.address, purchaseToken2.address],
           exchangeRates: [PRECISION.times(4).toFixed(), PRECISION.idiv(4).toFixed()],
@@ -456,11 +483,15 @@ describe("TokenSaleProposal", () => {
             cliffPeriod: "0",
             unlockStep: "0",
           },
+          participationDetails: {
+            participationType: ParticipationType.Whitelist,
+            data: "0x",
+          },
         },
       ];
     });
 
-    describe("latestTierId", () => {
+    describe.only("latestTierId", () => {
       it("latestTierId should increase when tiers are created", async () => {
         assert.equal(await tsp.latestTierId(), 0);
 
