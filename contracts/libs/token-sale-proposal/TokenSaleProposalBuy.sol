@@ -47,8 +47,8 @@ library TokenSaleProposalBuy {
 
         tier.tierInfo.totalSold += saleTokenAmount;
 
-        uint256 newSpentAmount = purchaseInfo.spentAmounts.get(tokenToBuyWith) + amount;
-        purchaseInfo.spentAmounts.set(tokenToBuyWith, newSpentAmount);
+        (, uint256 previousSpentAmount) = purchaseInfo.spentAmounts.tryGet(tokenToBuyWith);
+        purchaseInfo.spentAmounts.set(tokenToBuyWith, previousSpentAmount + amount);
         purchaseInfo.claimTotalAmount += claimCurrentAmount;
 
         userInfo.vestingUserInfo.vestingTotalAmount += vestingCurrentAmount;

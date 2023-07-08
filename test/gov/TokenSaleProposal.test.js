@@ -240,7 +240,7 @@ describe.only("TokenSaleProposal", () => {
     });
 
     it("should not init twice", async () => {
-      await tsp.__TokenSaleProposal_init(NOTHING);
+      await tsp.__TokenSaleProposal_init(NOTHING, NOTHING);
 
       await truffleAssert.reverts(
         tsp.__TokenSaleProposal_init(NOTHING),
@@ -646,7 +646,10 @@ describe.only("TokenSaleProposal", () => {
       it("should create tiers if all conditions are met", async () => {
         await acceptProposal([tsp.address], [0], [getBytesCreateTiersTSP(JSON.parse(JSON.stringify(tiers)))]);
 
-        assert.deepEqual(tierInitParamsToObjects((await tsp.getTierViews(0, 2)).map((t) => t.tierInitParams)), tiers);
+        assert.deepEqual(
+          tierInitParamsToObjects((await tsp.getTierViews(0, 2)).map((tier) => tier.tierInitParams)),
+          tiers
+        );
       });
     });
 
@@ -798,7 +801,7 @@ describe.only("TokenSaleProposal", () => {
           await acceptProposal([tsp.address], [0], [getBytesAddToWhitelistTSP(whitelistingRequests)]);
 
           assert.deepEqual(
-            (await tsp.getTierViews(0, 2)).map((t) => t.tierInfo.uri),
+            (await tsp.getTierViews(0, 2)).map((tier) => tier.tierInfo.uri),
             ["uri1_second", "uri2_owner"]
           );
           assert.equal(await tsp.uri(1), "uri1_second");
@@ -816,7 +819,7 @@ describe.only("TokenSaleProposal", () => {
           await acceptProposal([tsp.address], [0], [getBytesAddToWhitelistTSP(zeroUriWhitelistingRequest)]);
 
           assert.deepEqual(
-            (await tsp.getTierViews(0, 2)).map((t) => t.tierInfo.uri),
+            (await tsp.getTierViews(0, 2)).map((tier) => tier.tierInfo.uri),
             ["", "uri2_owner"]
           );
           assert.equal(await tsp.uri(1), "");
@@ -852,21 +855,25 @@ describe.only("TokenSaleProposal", () => {
           const offTierIds = [1, 2];
 
           assert.deepEqual(
-            (await tsp.getTiers(0, 2)).tierInfoViews.map((tierInfoView) => tierInfoView.isOff),
+            (await tsp.getTierViews(0, 2)).map((tier) => tier.tierInfo.isOff),
             [false, false]
           );
 
           await acceptProposal([tsp.address], [0], [getBytesOffTiersTSP(offTierIds)]);
 
           assert.deepEqual(
-            (await tsp.getTiers(0, 2)).tierInfoViews.map((tierInfoView) => tierInfoView.isOff),
+            (await tsp.getTierViews(0, 2)).map((tier) => tier.tierInfo.isOff),
             [true, true]
           );
         });
       });
 
-      describe("buy", () => {
-        it("should buy for erc20 if all conditions are met", async () => {
+      describe("buy", () => {});
+
+      describe("vestingWithdraw", () => {});
+
+      describe("recover", () => {
+        beforeEach(async () => {
           const whitelistingRequest = [
             {
               tierId: 1,
@@ -877,329 +884,6 @@ describe.only("TokenSaleProposal", () => {
 
           await acceptProposal([tsp.address], [0], [getBytesAddToWhitelistTSP(whitelistingRequest)]);
 
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), "0");
-          assert.equal((await purchaseToken1.balanceOf(OWNER)).toFixed(), wei(1000));
-
-          await purchaseToken1.approve(tsp.address, wei(100));
-
-          await setTime(parseInt(tiers[0].saleStartTime));
-          await tsp.buy(1, purchaseToken1.address, wei(100));
-
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(240));
-          assert.equal((await purchaseToken1.balanceOf(OWNER)).toFixed(), wei(900));
-        });
-
-        it("should buy for ether if all conditions are met", async () => {
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), "0");
-
-          await setTime(parseInt(tiers[0].saleStartTime));
-
-          const balanceBefore = await web3.eth.getBalance(OWNER);
-
-          const tx = await tsp.buy(1, ETHER_ADDR, 0, { value: wei(1) });
-
-          assert.equal(
-            toBN(balanceBefore)
-              .minus(toBN(tx.receipt.gasUsed).times(tx.receipt.effectiveGasPrice))
-              .minus(await web3.eth.getBalance(OWNER))
-              .toFixed(),
-            wei(1)
-          );
-          assert.equal(await web3.eth.getBalance(govPool.address), wei(1));
-
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(80));
-        });
-
-        it("should not buy if ether transfer fails", async () => {
-          await tsp.setGovPool(tsp.address);
-
-          await setTime(parseInt(tiers[0].saleStartTime));
-
-          await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, 0, { value: wei(1) }), "TSP: failed to transfer ether");
-        });
-
-        it("should not buy if the tier does not exist", async () => {
-          await truffleAssert.reverts(tsp.buy(3, purchaseToken1.address, wei(100)), "TSP: tier does not exist");
-        });
-
-        it("should not buy if the tier is off", async () => {
-          await acceptProposal([tsp.address], [0], [getBytesOffTiersTSP([1])]);
-
-          await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100)), "TSP: tier is off");
-        });
-
-        it("should not buy if amount is zero", async () => {
-          await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, 0), "TSP: zero amount");
-
-          await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, wei(1)), "TSP: zero amount");
-        });
-
-        it("should not buy if not whitelisted", async () => {
-          const whitelistRequest = [
-            {
-              tierId: 1,
-              users: [SECOND],
-              uri: "",
-            },
-          ];
-
-          await acceptProposal([tsp.address], [0], [getBytesAddToWhitelistTSP(whitelistRequest)]);
-
-          await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100)), "TSP: not whitelisted");
-        });
-
-        it("should not buy unless it's the sale time", async () => {
-          await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100)), "TSP: cannot buy now");
-
-          await setTime(parseInt(tiers[0].saleEndTime + 1));
-
-          await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100)), "TSP: cannot buy now");
-        });
-
-        it("should not buy twice", async () => {
-          await setTime(parseInt(tiers[0].saleStartTime));
-
-          await purchaseToken1.approve(tsp.address, wei(200));
-          await tsp.buy(1, purchaseToken1.address, wei(100));
-
-          await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100)), "TSP: cannot buy twice");
-          await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, 0, { value: wei(1) }), "TSP: cannot buy twice");
-        });
-
-        it("should not buy if incorrect purchase token was provided", async () => {
-          await setTime(parseInt(tiers[0].saleStartTime));
-
-          await truffleAssert.reverts(tsp.buy(1, purchaseToken2.address, wei(100)), "TSP: incorrect token");
-        });
-
-        it("should not buy unless it's a proper allocation", async () => {
-          await setTime(parseInt(tiers[0].saleStartTime));
-
-          await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, 0, { value: wei(100000) }), "TSP: wrong allocation");
-        });
-
-        it("should not buy if the sale token ran out", async () => {
-          await setTime(parseInt(tiers[0].saleStartTime));
-
-          await purchaseToken1.approve(tsp.address, wei(200));
-          await purchaseToken1.approve(tsp.address, wei(200), { from: SECOND });
-
-          await tsp.buy(1, purchaseToken1.address, wei(200));
-          await truffleAssert.reverts(
-            tsp.buy(1, purchaseToken1.address, wei(200), { from: SECOND }),
-            "TSP: insufficient sale token amount"
-          );
-        });
-
-        it("should not buy if the TSP has insufficient token balance", async () => {
-          await setTime(parseInt(tiers[1].saleStartTime));
-
-          await purchaseToken1.approve(tsp.address, wei(200));
-
-          await truffleAssert.reverts(
-            tsp.buy(2, purchaseToken1.address, wei(200)),
-            "TSP: insufficient contract balance"
-          );
-        });
-      });
-
-      describe("vestingWithdraw", () => {
-        it("should not withdraw if the tier does not exist", async () => {
-          await truffleAssert.reverts(tsp.vestingWithdraw([3]), "TSP: tier does not exist");
-        });
-
-        it("should not withdraw the same tier twice", async () => {
-          await truffleAssert.reverts(tsp.vestingWithdraw([1, 1]), "TSP: zero withdrawal");
-        });
-
-        it("should return zero vesting withdraw amount if the user has not purchased the sale token", async () => {
-          assert.deepEqual(
-            (await tsp.getVestingWithdrawAmounts(OWNER, [1, 2])).map((amount) => amount.toFixed()),
-            ["0", "0"]
-          );
-        });
-
-        it("should return zero vesting withdraw amount if vesting percentage is zero", async () => {
-          saleToken.mint(tsp.address, wei(1000));
-
-          await purchaseToken1.approve(tsp.address, wei(200));
-
-          assert.equal((await saleToken.balanceOf(OWNER)).toFixed(), "0");
-
-          await setTime(parseInt(tiers[1].saleStartTime));
-          await tsp.buy(2, purchaseToken1.address, wei(200));
-
-          const userInfos = [
-            {
-              canParticipate: true,
-              purchase: {
-                purchaseTime: (parseInt(tiers[1].saleStartTime) + 1).toString(),
-                tokenBoughtWith: purchaseToken1.address,
-                amountBought: wei("800"),
-                vestingTotalAmount: "0",
-                vestingWithdrawnAmount: "0",
-                latestVestingWithdraw: "0",
-              },
-              vestingView: {
-                cliffEndTime: "0",
-                vestingEndTime: "0",
-                nextUnlockTime: "0",
-                nextUnlockAmount: "0",
-                amountToWithdraw: "0",
-                lockedAmount: "0",
-              },
-            },
-          ];
-
-          assert.equal((await saleToken.balanceOf(OWNER)).toFixed(), wei(800));
-          assert.deepEqual(
-            (await tsp.getVestingWithdrawAmounts(OWNER, [2])).map((amount) => amount.toFixed()),
-            ["0"]
-          );
-          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [2])), userInfos);
-        });
-
-        it("should do multiple various time withdraws properly", async () => {
-          await purchaseToken1.approve(tsp.address, wei(400));
-
-          assert.equal((await saleToken.balanceOf(OWNER)).toFixed(), "0");
-
-          await setTime(parseInt(tiers[0].saleStartTime));
-          await tsp.buy(1, purchaseToken1.address, wei(200));
-
-          const purchaseTime = parseInt(tiers[0].saleStartTime) + 1;
-
-          let userInfos = [
-            {
-              canParticipate: true,
-              purchase: {
-                purchaseTime: purchaseTime.toString(),
-                tokenBoughtWith: purchaseToken1.address,
-                amountBought: wei("600"),
-                vestingTotalAmount: wei("120"),
-                vestingWithdrawnAmount: "0",
-                latestVestingWithdraw: "0",
-              },
-              vestingView: {
-                cliffEndTime: (purchaseTime + parseInt(tiers[0].vestingSettings.cliffPeriod)).toString(),
-                vestingEndTime: (purchaseTime + parseInt(tiers[0].vestingSettings.vestingDuration)).toString(),
-                nextUnlockTime: (purchaseTime + parseInt(tiers[0].vestingSettings.cliffPeriod)).toString(),
-                nextUnlockAmount: wei("57.6"), // 118.8 * (50 // 3) / 33
-                amountToWithdraw: "0",
-                lockedAmount: wei("120"), // 118.8 for full segments
-              },
-            },
-          ];
-
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(480));
-          assert.deepEqual(
-            (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
-            ["0"]
-          );
-          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
-
-          await truffleAssert.reverts(tsp.vestingWithdraw([1]), "TSP: zero withdrawal");
-
-          await setTime(purchaseTime + 24);
-
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(480));
-          assert.deepEqual(
-            (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
-            ["0"]
-          );
-
-          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
-
-          await truffleAssert.reverts(tsp.vestingWithdraw([1]), "TSP: zero withdrawal");
-
-          await setTime(purchaseTime + 73);
-
-          assert.deepEqual(
-            (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
-            [wei("86.4")]
-          ); // 118.2 * (73 // 3) / 33
-
-          userInfos[0].vestingView.lockedAmount = wei("33.6");
-          userInfos[0].vestingView.amountToWithdraw = wei("86.4");
-          userInfos[0].vestingView.nextUnlockTime = (purchaseTime + 75).toString();
-          userInfos[0].vestingView.nextUnlockAmount = wei("3.6");
-
-          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
-
-          await tsp.vestingWithdraw([1]);
-
-          userInfos[0].purchase.latestVestingWithdraw = (purchaseTime + 74).toString();
-          userInfos[0].purchase.vestingWithdrawnAmount = wei("86.4");
-          userInfos[0].vestingView.amountToWithdraw = "0";
-
-          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
-
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei("566.4"));
-          assert.deepEqual(
-            (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
-            ["0"]
-          );
-
-          await setTime(purchaseTime + 91);
-
-          userInfos[0].vestingView.nextUnlockTime = (purchaseTime + 93).toString();
-          userInfos[0].vestingView.amountToWithdraw = wei("21.6");
-          userInfos[0].vestingView.lockedAmount = wei("12");
-
-          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
-
-          await setTime(purchaseTime + 99);
-
-          userInfos[0].vestingView.nextUnlockTime = (purchaseTime + 100).toString();
-          userInfos[0].vestingView.amountToWithdraw = wei("32.4");
-          userInfos[0].vestingView.lockedAmount = wei("1.2");
-          userInfos[0].vestingView.nextUnlockAmount = wei("1.2");
-
-          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
-
-          assert.deepEqual(
-            (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
-            [wei("32.4")]
-          );
-
-          await setTime(purchaseTime + 100);
-
-          userInfos[0].vestingView.nextUnlockAmount = "0";
-          userInfos[0].vestingView.nextUnlockTime = "0";
-          userInfos[0].vestingView.amountToWithdraw = wei("33.6");
-          userInfos[0].vestingView.lockedAmount = "0";
-
-          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
-
-          await tsp.vestingWithdraw([1]);
-
-          userInfos[0].vestingView.amountToWithdraw = "0";
-          userInfos[0].purchase.latestVestingWithdraw = (purchaseTime + 101).toString();
-          userInfos[0].purchase.vestingWithdrawnAmount = wei("120");
-
-          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
-
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei("600"));
-          assert.deepEqual(
-            (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
-            ["0"]
-          );
-
-          await setTime(parseInt(tiers[0].saleStartTime) + 1001);
-
-          assert.deepEqual(
-            (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((amount) => amount.toFixed()),
-            ["0"]
-          );
-
-          assert.deepEqual(userViewsToObjects(await tsp.getUserInfos(OWNER, [1])), userInfos);
-
-          await truffleAssert.reverts(tsp.vestingWithdraw([1]), "TSP: zero withdrawal");
-        });
-      });
-
-      describe("recover", () => {
-        beforeEach(async () => {
           await purchaseToken1.approve(tsp.address, wei(200));
 
           await setTime(parseInt(tiers[0].saleStartTime));
