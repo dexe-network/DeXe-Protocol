@@ -61,7 +61,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
     }
 
     function isLocked(uint256 tokenId) public view override returns (bool) {
-        NftInfo memory info = _tokens[tokenId];
+        NftInfo storage info = _tokens[tokenId];
 
         return info.lockedAt != 0 && info.lockedAt + info.duration >= block.timestamp;
     }
@@ -95,7 +95,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
             return (0, 0);
         }
 
-        NftInfo memory info = _tokens[latestLockedTokenId];
+        NftInfo storage info = _tokens[latestLockedTokenId];
 
         multiplier = info.multiplier;
         timeLeft = info.lockedAt + info.duration - block.timestamp;

@@ -151,6 +151,8 @@ library GovPoolRewards {
         rewards.offchainRewards = new uint256[](tokensLength);
         rewards.offchainTokens = new address[](tokensLength);
 
+        IGovPool govPool = IGovPool(address(this));
+
         for (uint256 i = 0; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
 
@@ -160,7 +162,7 @@ library GovPoolRewards {
 
             IGovPool.Rewards storage userProposalRewards = userRewards.onchainRewards[proposalId];
 
-            rewards.onchainRewards[i] = IGovPool(address(this)).getProposalState(proposalId) ==
+            rewards.onchainRewards[i] = govPool.getProposalState(proposalId) ==
                 IGovPool.ProposalState.ExecutedFor
                 ? userProposalRewards.rewardFor
                 : userProposalRewards.rewardAgainst;

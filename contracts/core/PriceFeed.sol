@@ -354,20 +354,28 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     }
 
     function _savePath(address inToken, address outToken, address[] memory path) internal {
-        if (
-            keccak256(abi.encode(path)) !=
-            keccak256(abi.encode(_savedPaths[msg.sender][inToken][outToken]))
-        ) {
-            _savedPaths[msg.sender][inToken][outToken] = path;
-            _savedPaths[msg.sender][outToken][inToken] = path.reverse();
+        mapping(address => mapping(address => address[])) storage savedPath = _savedPaths[
+            msg.sender
+        ];
+
+        mapping(address => address[]) storage savedPathFrom = savedPath[inToken];
+
+        if (keccak256(abi.encode(path)) != keccak256(abi.encode(savedPathFrom[outToken]))) {
+            savedPathFrom[outToken] = path;
+            savedPath[outToken][inToken] = path.reverse();
         }
     }
 
-    function _grabTokens(address token, uint256 amount) internal {
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+    function _grabTokens(address tokenAddress, uint256 amount) internal {
+        IERC20 token = IERC20(tokenAddress);
 
-        if (IERC20(token).allowance(address(this), address(uniswapV2Router)) == 0) {
-            IERC20(token).safeApprove(address(uniswapV2Router), MAX_UINT);
+        address addressThis = address(this);
+        address uniswapV2RouterAddress = address(uniswapV2Router);
+
+        token.safeTransferFrom(msg.sender, addressThis, amount);
+
+        if (token.allowance(addressThis, uniswapV2RouterAddress) == 0) {
+            token.safeApprove(uniswapV2RouterAddress, MAX_UINT);
         }
     }
 }

@@ -22,9 +22,11 @@ library GovPoolUnlock {
         IGovPool govPool = IGovPool(address(this));
         (, address userKeeper, , ) = govPool.getHelperContracts();
 
+        IGovUserKeeper govUserKeeper = IGovUserKeeper(userKeeper);
+
         EnumerableSet.UintSet storage userProposals = votedInProposals[user][isMicropool];
 
-        uint256 maxLockedAmount = IGovUserKeeper(userKeeper).maxLockedAmount(user, isMicropool);
+        uint256 maxLockedAmount = govUserKeeper.maxLockedAmount(user, isMicropool);
         uint256 maxUnlocked;
 
         for (uint256 i; i < proposalIds.length; i++) {
@@ -44,25 +46,20 @@ library GovPoolUnlock {
                 continue;
             }
 
-            maxUnlocked = IGovUserKeeper(userKeeper)
-                .unlockTokens(proposalId, user, isMicropool)
-                .max(maxUnlocked);
-            IGovUserKeeper(userKeeper).unlockNfts(
-                voteInfos[proposalId][user][isMicropool].nftsVotedFor.values()
+            maxUnlocked = govUserKeeper.unlockTokens(proposalId, user, isMicropool).max(
+                maxUnlocked
             );
-            IGovUserKeeper(userKeeper).unlockNfts(
-                voteInfos[proposalId][user][isMicropool].nftsVotedAgainst.values()
-            );
+
+            IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][user][isMicropool];
+
+            govUserKeeper.unlockNfts(voteInfo.nftsVotedFor.values());
+            govUserKeeper.unlockNfts(voteInfo.nftsVotedAgainst.values());
 
             userProposals.remove(proposalId);
         }
 
         if (maxLockedAmount <= maxUnlocked) {
-            IGovUserKeeper(userKeeper).updateMaxTokenLockedAmount(
-                userProposals.values(),
-                user,
-                isMicropool
-            );
+            govUserKeeper.updateMaxTokenLockedAmount(userProposals.values(), user, isMicropool);
         }
     }
 }

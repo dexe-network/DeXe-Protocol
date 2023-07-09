@@ -56,11 +56,11 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         uint256 baseInvestment
     ) external override onlyParentTraderPool returns (uint256 proposalId) {
         require(
-            proposalLimits.timestampLimit == 0 || proposalLimits.timestampLimit >= block.timestamp,
+            _zeroOrGreater(proposalLimits.timestampLimit, block.timestamp),
             "TPIP: wrong timestamp"
         );
         require(
-            proposalLimits.investLPLimit == 0 || proposalLimits.investLPLimit >= lpInvestment,
+            _zeroOrGreater(proposalLimits.investLPLimit, lpInvestment),
             "TPIP: wrong investment limit"
         );
         require(lpInvestment > 0 && baseInvestment > 0, "TPIP: zero investment");
@@ -69,16 +69,18 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
         address trader = _parentTraderPoolInfo.trader;
 
-        _proposalInfos[proposalId].proposalLimits = proposalLimits;
+        ProposalInfo storage info = _proposalInfos[proposalId];
+
+        info.proposalLimits = proposalLimits;
 
         emit ProposalCreated(proposalId, proposalLimits);
 
         _transferAndMintLP(proposalId, trader, lpInvestment, baseInvestment);
 
-        _proposalInfos[proposalId].descriptionURL = descriptionURL;
-        _proposalInfos[proposalId].lpLocked = lpInvestment;
-        _proposalInfos[proposalId].investedBase = baseInvestment;
-        _proposalInfos[proposalId].newInvestedBase = baseInvestment;
+        info.descriptionURL = descriptionURL;
+        info.lpLocked = lpInvestment;
+        info.investedBase = baseInvestment;
+        info.newInvestedBase = baseInvestment;
     }
 
     function invest(
@@ -95,13 +97,11 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         ProposalInfo storage info = _proposalInfos[proposalId];
 
         require(
-            info.proposalLimits.timestampLimit == 0 ||
-                block.timestamp <= info.proposalLimits.timestampLimit,
+            _zeroOrGreater(info.proposalLimits.timestampLimit, block.timestamp),
             "TPIP: proposal is closed"
         );
         require(
-            info.proposalLimits.investLPLimit == 0 ||
-                info.lpLocked + lpInvestment <= info.proposalLimits.investLPLimit,
+            _zeroOrGreater(info.proposalLimits.investLPLimit, info.lpLocked + lpInvestment),
             "TPIP: proposal is overinvested"
         );
 
@@ -135,14 +135,13 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         if (addresses[0] == _parentTraderPoolInfo.baseToken) {
             claimedBase = claimed[0];
             addresses[0] = address(0);
+            ProposalInfo storage info = _proposalInfos[proposalId];
 
-            _proposalInfos[proposalId].lpLocked -= claimed[0].min(
-                _proposalInfos[proposalId].lpLocked
-            );
+            info.lpLocked -= claimedBase.min(info.lpLocked);
 
-            _updateFromData(user, proposalId, claimed[0]);
-            investedBase -= claimed[0].min(investedBase);
-            totalLockedLP -= claimed[0].min(totalLockedLP); // intentional base from LP subtraction
+            _updateFromData(user, proposalId, claimedBase);
+            investedBase -= claimedBase.min(investedBase);
+            totalLockedLP -= claimedBase.min(totalLockedLP); // intentional base from LP subtraction
         }
 
         _payout(user, claimed, addresses);
@@ -156,12 +155,12 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             proposalId <= proposalsTotalNum && proposalId != 0,
             "TPIP: proposal doesn't exist"
         );
-        require(
-            amount <= _proposalInfos[proposalId].newInvestedBase,
-            "TPIP: withdrawing more than balance"
-        );
 
-        _proposalInfos[proposalId].newInvestedBase -= amount;
+        ProposalInfo storage info = _proposalInfos[proposalId];
+
+        require(amount <= info.newInvestedBase, "TPIP: withdrawing more than balance");
+
+        info.newInvestedBase -= amount;
 
         IERC20(_parentTraderPoolInfo.baseToken).safeTransfer(
             _parentTraderPoolInfo.trader,
@@ -204,12 +203,14 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
             "TPIP: proposal doesn't exist"
         );
 
-        uint256 newInvestedBase = _proposalInfos[proposalId].newInvestedBase;
+        ProposalInfo storage info = _proposalInfos[proposalId];
+
+        uint256 newInvestedBase = info.newInvestedBase;
         address baseToken = _parentTraderPoolInfo.baseToken;
 
         _updateCumulativeSum(proposalId, newInvestedBase, baseToken);
 
-        delete _proposalInfos[proposalId].newInvestedBase;
+        delete info.newInvestedBase;
 
         emit ProposalConverted(proposalId, msg.sender, newInvestedBase, baseToken);
     }
@@ -299,14 +300,17 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
         address baseToken = _parentTraderPoolInfo.baseToken;
         uint256 baseIndex;
 
+        mapping(address => uint256) storage rewardsStored = _userRewardInfos[user][proposalId]
+            .rewardsStored;
+
         for (uint256 i = 0; i < length; i++) {
             address token = rewardInfo.rewardTokens.at(i);
 
-            claimed[i] = _userRewardInfos[user][proposalId].rewardsStored[token];
+            claimed[i] = rewardsStored[token];
             addresses[i] = token;
             totalClaimed += claimed[i];
 
-            delete _userRewardInfos[user][proposalId].rewardsStored[token];
+            delete rewardsStored[token];
 
             if (token == baseToken) {
                 baseIndex = i;
@@ -357,5 +361,9 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
     function _baseInProposal(uint256 proposalId) internal view override returns (uint256) {
         return _proposalInfos[proposalId].investedBase;
+    }
+
+    function _zeroOrGreater(uint256 a, uint256 b) internal pure returns (bool) {
+        return a == 0 || a >= b;
     }
 }

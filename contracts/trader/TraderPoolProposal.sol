@@ -127,14 +127,19 @@ abstract contract TraderPoolProposal is
         uint256 proposalId,
         uint256 lp2Amount
     ) internal returns (uint256 lpTransfer, uint256 baseTransfer) {
-        uint256 baseBalance = _baseBalances[user][proposalId];
-        uint256 lpBalance = _lpBalances[user][proposalId];
+        mapping(uint256 => uint256) storage baseUserBalance = _baseBalances[user];
+        mapping(uint256 => uint256) storage lpUserBalance = _lpBalances[user];
 
-        baseTransfer = baseBalance.ratio(lp2Amount, balanceOf(user, proposalId)).min(baseBalance);
-        lpTransfer = lpBalance.ratio(lp2Amount, balanceOf(user, proposalId)).min(lpBalance);
+        uint256 baseBalance = baseUserBalance[proposalId];
+        uint256 lpBalance = lpUserBalance[proposalId];
 
-        _baseBalances[user][proposalId] -= baseTransfer;
-        _lpBalances[user][proposalId] -= lpTransfer;
+        uint256 userBalance = balanceOf(user, proposalId);
+
+        baseTransfer = baseBalance.ratio(lp2Amount, userBalance).min(baseBalance);
+        lpTransfer = lpBalance.ratio(lp2Amount, userBalance).min(lpBalance);
+
+        baseUserBalance[proposalId] -= baseTransfer;
+        lpUserBalance[proposalId] -= lpTransfer;
         totalLPBalances[user] -= lpTransfer;
     }
 
@@ -153,13 +158,14 @@ abstract contract TraderPoolProposal is
 
     function _checkLeave(address user, uint256 proposalId, uint256 lp2Amount) internal {
         if (balanceOf(user, proposalId) == lp2Amount) {
-            _activeInvestments[user].remove(proposalId);
+            EnumerableSet.UintSet storage activeInvestments = _activeInvestments[user];
+            activeInvestments.remove(proposalId);
 
             if (user != _parentTraderPoolInfo.trader) {
                 _investors[proposalId].remove(user);
             }
 
-            if (_activeInvestments[user].length() == 0) {
+            if (activeInvestments.length() == 0) {
                 ITraderPoolMemberHook(_parentTraderPoolInfo.parentPoolAddress).checkLeave(user);
             }
 

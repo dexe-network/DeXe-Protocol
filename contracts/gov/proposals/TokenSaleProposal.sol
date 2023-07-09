@@ -32,10 +32,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     }
 
     modifier ifTierExists(uint256 tierId) {
-        require(
-            _tiers[tierId].tierView.saleTokenAddress != address(0),
-            "TSP: tier does not exist"
-        );
+        _ifTierExists(tierId);
         _;
     }
 
@@ -121,7 +118,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         Tier storage tier = _tiers[tierId];
         TierInfo storage tierInfo = tier.tierInfo;
 
-        TierView memory tierView = tier.tierView;
+        TierView storage tierView = tier.tierView;
 
         uint256 vestingTotalAmount = saleTokenAmount.percentage(
             tierView.vestingSettings.vestingPercentage
@@ -170,7 +167,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         Tier storage tier = _tiers[tierId];
         TierInfo storage tierInfo = tier.tierInfo;
 
-        TierView memory tierView = tier.tierView;
+        TierView storage tierView = tier.tierView;
 
         require(
             tierView.saleStartTime <= block.timestamp && block.timestamp <= tierView.saleEndTime,
@@ -260,7 +257,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
 
         for (uint256 i = 0; i < userInfos.length; i++) {
             Tier storage tier = _tiers[tierIds[i]];
-            Purchase memory purchase = tier.tierInfo.customers[user];
+            Purchase storage purchase = tier.tierInfo.customers[user];
 
             userInfos[i].canParticipate = _canParticipate(user, tierIds[i]);
             userInfos[i].purchase = purchase;
@@ -269,7 +266,7 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
                 continue;
             }
 
-            VestingSettings memory vestingSettings = tier.tierView.vestingSettings;
+            VestingSettings storage vestingSettings = tier.tierView.vestingSettings;
             VestingView memory vestingView;
 
             uint256 currentPrefixVestingAmount = _countPrefixVestingAmount(
@@ -409,8 +406,8 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
     ) internal view ifTierExists(tierId) returns (uint256) {
         Tier storage tier = _tiers[tierId];
 
-        Purchase memory purchase = tier.tierInfo.customers[user];
-        VestingSettings memory vestingSettings = tier.tierView.vestingSettings;
+        Purchase storage purchase = tier.tierInfo.customers[user];
+        VestingSettings storage vestingSettings = tier.tierView.vestingSettings;
 
         return
             _countPrefixVestingAmount(block.timestamp, purchase, vestingSettings) -
@@ -438,11 +435,18 @@ contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable {
         require(govAddress == address(0) || msg.sender == govAddress, "TSP: not a Gov contract");
     }
 
+    function _ifTierExists(uint256 tierId) internal view {
+        require(
+            _tiers[tierId].tierView.saleTokenAddress != address(0),
+            "TSP: tier does not exist"
+        );
+    }
+
     function _countPrefixVestingAmount(
         uint256 timestamp,
-        Purchase memory purchase,
-        VestingSettings memory vestingSettings
-    ) private pure returns (uint256) {
+        Purchase storage purchase,
+        VestingSettings storage vestingSettings
+    ) private view returns (uint256) {
         if (
             purchase.purchaseTime == 0 ||
             vestingSettings.vestingPercentage == 0 ||

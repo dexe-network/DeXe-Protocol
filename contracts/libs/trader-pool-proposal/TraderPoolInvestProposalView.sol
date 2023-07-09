@@ -25,18 +25,26 @@ library TraderPoolInvestProposalView {
         uint256 offset,
         uint256 limit
     ) external view returns (ITraderPoolInvestProposal.ProposalInfoExtended[] memory proposals) {
-        uint256 to = (offset + limit)
-            .min(TraderPoolInvestProposal(address(this)).proposalsTotalNum())
-            .max(offset);
+        TraderPoolInvestProposal traderPoolInvestProposal = TraderPoolInvestProposal(
+            address(this)
+        );
+
+        uint256 to = (offset + limit).min(traderPoolInvestProposal.proposalsTotalNum()).max(
+            offset
+        );
 
         proposals = new ITraderPoolInvestProposal.ProposalInfoExtended[](to - offset);
 
         for (uint256 i = offset; i < to; i++) {
-            proposals[i - offset].proposalInfo = proposalInfos[i + 1];
-            proposals[i - offset].lp2Supply = TraderPoolInvestProposal(address(this)).totalSupply(
-                i + 1
-            );
-            proposals[i - offset].totalInvestors = investors[i + 1].length();
+            ITraderPoolInvestProposal.ProposalInfoExtended memory proposalInfo = proposals[
+                i - offset
+            ];
+
+            uint256 nextProposalId = i + 1;
+
+            proposalInfo.proposalInfo = proposalInfos[nextProposalId];
+            proposalInfo.lp2Supply = traderPoolInvestProposal.totalSupply(nextProposalId);
+            proposalInfo.totalInvestors = investors[nextProposalId].length();
         }
     }
 
@@ -51,14 +59,21 @@ library TraderPoolInvestProposalView {
         uint256 to = (offset + limit).min(activeInvestments.length()).max(offset);
         investments = new ITraderPoolInvestProposal.ActiveInvestmentInfo[](to - offset);
 
+        TraderPoolInvestProposal traderPoolInvestProposal = TraderPoolInvestProposal(
+            address(this)
+        );
+
+        mapping(uint256 => uint256) storage baseBalance = baseBalances[user];
+        mapping(uint256 => uint256) storage lpBalance = lpBalances[user];
+
         for (uint256 i = offset; i < to; i++) {
             uint256 proposalId = activeInvestments.at(i);
 
             investments[i - offset] = ITraderPoolInvestProposal.ActiveInvestmentInfo(
                 proposalId,
-                TraderPoolInvestProposal(address(this)).balanceOf(user, proposalId),
-                baseBalances[user][proposalId],
-                lpBalances[user][proposalId]
+                traderPoolInvestProposal.balanceOf(user, proposalId),
+                baseBalance[proposalId],
+                lpBalance[proposalId]
             );
         }
     }
@@ -72,9 +87,13 @@ library TraderPoolInvestProposalView {
     ) external view returns (ITraderPoolInvestProposal.Receptions memory receptions) {
         receptions.rewards = new ITraderPoolInvestProposal.Reception[](proposalIds.length);
 
-        IPriceFeed priceFeed = ITraderPoolInvestProposal(address(this)).priceFeed();
-        uint256 proposalsTotalNum = TraderPoolInvestProposal(address(this)).proposalsTotalNum();
-        address baseToken = ITraderPoolInvestProposal(address(this)).getBaseToken();
+        TraderPoolInvestProposal traderPoolInvestProposal = TraderPoolInvestProposal(
+            address(this)
+        );
+
+        IPriceFeed priceFeed = traderPoolInvestProposal.priceFeed();
+        uint256 proposalsTotalNum = traderPoolInvestProposal.proposalsTotalNum();
+        address baseToken = traderPoolInvestProposal.getBaseToken();
 
         for (uint256 i = 0; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
@@ -88,27 +107,29 @@ library TraderPoolInvestProposalView {
             ][proposalId];
             ITraderPoolInvestProposal.RewardInfo storage rewardInfo = rewardInfos[proposalId];
 
-            uint256 balance = TraderPoolInvestProposal(address(this)).balanceOf(user, proposalId);
+            uint256 balance = traderPoolInvestProposal.balanceOf(user, proposalId);
 
-            receptions.rewards[i].tokens = rewardInfo.rewardTokens.values();
-            receptions.rewards[i].amounts = new uint256[](receptions.rewards[i].tokens.length);
+            ITraderPoolInvestProposal.Reception memory reception = receptions.rewards[i];
 
-            for (uint256 j = 0; j < receptions.rewards[i].tokens.length; j++) {
-                address token = receptions.rewards[i].tokens[j];
+            reception.tokens = rewardInfo.rewardTokens.values();
+            reception.amounts = new uint256[](reception.tokens.length);
 
-                receptions.rewards[i].amounts[j] =
+            for (uint256 j = 0; j < reception.tokens.length; j++) {
+                address token = reception.tokens[j];
+
+                reception.amounts[j] =
                     userRewardInfo.rewardsStored[token] +
                     (rewardInfo.cumulativeSums[token] - userRewardInfo.cumulativeSumsStored[token])
                         .ratio(balance, PRECISION);
 
                 if (token == baseToken) {
-                    receptions.totalBaseAmount += receptions.rewards[i].amounts[j];
-                    receptions.baseAmountFromRewards += receptions.rewards[i].amounts[j];
+                    receptions.totalBaseAmount += reception.amounts[j];
+                    receptions.baseAmountFromRewards += reception.amounts[j];
                 } else {
                     receptions.totalBaseAmount += priceFeed.getNormPriceOut(
                         token,
                         baseToken,
-                        receptions.rewards[i].amounts[j]
+                        reception.amounts[j]
                     );
                 }
             }

@@ -62,7 +62,6 @@ library TraderPoolInvest {
         uint256 amountInBaseToInvest,
         uint256[] calldata minPositionsOut
     ) public returns (uint256 toMintLP) {
-        address baseToken = poolParameters.baseToken;
         (
             uint256 totalBase,
             ,
@@ -72,17 +71,24 @@ library TraderPoolInvest {
 
         toMintLP = _transferBase(poolParameters, baseHolder, totalBase, amountInBaseToInvest);
 
+        IPriceFeed priceFeed = TraderPool(address(this)).priceFeed();
+
         for (uint256 i = 0; i < positionTokens.length; i++) {
             uint256 amount = positionPricesInBase[i].ratio(amountInBaseToInvest, totalBase);
-            uint256 amountGot = TraderPool(address(this)).priceFeed().normalizedExchangeFromExact(
-                baseToken,
+            uint256 amountGot = priceFeed.normalizedExchangeFromExact(
+                poolParameters.baseToken,
                 positionTokens[i],
                 amount,
                 new address[](0),
                 minPositionsOut[i]
             );
 
-            emit ActivePortfolioExchanged(baseToken, positionTokens[i], amount, amountGot);
+            emit ActivePortfolioExchanged(
+                poolParameters.baseToken,
+                positionTokens[i],
+                amount,
+                amountGot
+            );
         }
     }
 
@@ -116,17 +122,14 @@ library TraderPoolInvest {
         address[] calldata tokens,
         uint256 minLPOut
     ) external {
-        TraderPool traderPool = TraderPool(address(this));
-        IPriceFeed priceFeed = traderPool.priceFeed();
+        IPriceFeed priceFeed = TraderPool(address(this)).priceFeed();
+        ICoreProperties coreProperties = TraderPool(address(this)).coreProperties();
         uint256 totalInvestedBaseAmount;
 
         (uint256 totalBase, , , ) = poolParameters.getNormalizedPoolPriceAndPositions();
 
         for (uint256 i = 0; i < tokens.length; i++) {
-            require(
-                !traderPool.coreProperties().isBlacklistedToken(tokens[i]),
-                "TP: token in blacklist"
-            );
+            require(!coreProperties.isBlacklistedToken(tokens[i]), "TP: token in blacklist");
 
             IERC20Metadata(tokens[i]).safeTransferFrom(
                 msg.sender,
@@ -170,7 +173,7 @@ library TraderPoolInvest {
         }
 
         require(
-            positions.length() <= traderPool.coreProperties().getMaximumOpenPositions(),
+            positions.length() <= coreProperties.getMaximumOpenPositions(),
             "TP: max positions"
         );
 
@@ -178,8 +181,8 @@ library TraderPoolInvest {
 
         require(toMintLP >= minLPOut, "TP: minLPOut < toLP");
 
-        traderPool.updateTo(msg.sender, toMintLP, totalInvestedBaseAmount);
-        traderPool.mint(msg.sender, toMintLP);
+        TraderPool(address(this)).updateTo(msg.sender, toMintLP, totalInvestedBaseAmount);
+        TraderPool(address(this)).mint(msg.sender, toMintLP);
     }
 
     function _transferBase(

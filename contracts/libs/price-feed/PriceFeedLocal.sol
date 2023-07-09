@@ -11,9 +11,12 @@ import "../../core/Globals.sol";
 library PriceFeedLocal {
     using SafeERC20 for IERC20;
 
-    function checkAllowance(IPriceFeed priceFeed, address token) internal {
-        if (IERC20(token).allowance(address(this), address(priceFeed)) == 0) {
-            IERC20(token).safeApprove(address(priceFeed), MAX_UINT);
+    function checkAllowance(IPriceFeed priceFeed, address tokenAddress) internal {
+        IERC20 token = IERC20(tokenAddress);
+        address priceFeedAddress = address(priceFeed);
+
+        if (token.allowance(address(this), priceFeedAddress) == 0) {
+            token.safeApprove(priceFeedAddress, MAX_UINT);
         }
     }
 

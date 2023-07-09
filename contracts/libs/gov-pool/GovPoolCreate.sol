@@ -99,11 +99,13 @@ library GovPoolCreate {
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId
     ) external {
-        IGovPool.ProposalCore storage core = proposals[proposalId].core;
-        (, , address govValidators, ) = IGovPool(address(this)).getHelperContracts();
+        IGovSettings.ProposalSettings storage settings = proposals[proposalId].core.settings;
+        IGovPool govPool = IGovPool(address(this));
+
+        (, , address govValidators, ) = govPool.getHelperContracts();
 
         require(
-            IGovPool(address(this)).getProposalState(proposalId) ==
+            govPool.getProposalState(proposalId) ==
                 IGovPool.ProposalState.WaitingForVotingTransfer,
             "Gov: can't be moved"
         );
@@ -111,9 +113,9 @@ library GovPoolCreate {
         IGovValidators(govValidators).createExternalProposal(
             proposalId,
             IGovValidators.ProposalSettings(
-                core.settings.durationValidators,
-                core.settings.executionDelay,
-                core.settings.quorumValidators
+                settings.durationValidators,
+                settings.executionDelay,
+                settings.quorumValidators
             )
         );
 

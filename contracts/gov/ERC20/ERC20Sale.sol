@@ -100,8 +100,10 @@ contract ERC20Sale is
         address to,
         uint256 amount
     ) internal override(ERC20Upgradeable, ERC20PausableUpgradeable) {
+        EnumerableSet.AddressSet storage blacklistAccounts = _blacklistAccounts;
+
         require(
-            !_blacklistAccounts.contains(from) && !_blacklistAccounts.contains(to),
+            !blacklistAccounts.contains(from) && !blacklistAccounts.contains(to),
             "ERC20Sale: account is blacklisted"
         );
 

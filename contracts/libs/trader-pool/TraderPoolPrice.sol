@@ -27,8 +27,10 @@ library TraderPoolPrice {
             uint256[] memory positionPricesInBase
         )
     {
-        IPriceFeed priceFeed = TraderPool(address(this)).priceFeed();
-        positionTokens = TraderPool(address(this)).openPositions();
+        TraderPool traderPool = TraderPool(address(this));
+
+        IPriceFeed priceFeed = traderPool.priceFeed();
+        positionTokens = traderPool.openPositions();
         totalPriceInBase = currentBaseAmount = poolParameters.baseToken.normThisBalance();
 
         positionPricesInBase = new uint256[](positionTokens.length);

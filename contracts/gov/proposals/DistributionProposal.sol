@@ -26,7 +26,7 @@ contract DistributionProposal is IDistributionProposal, Initializable {
     mapping(uint256 => IDistributionProposal.DistributionProposalStruct) public proposals;
 
     modifier onlyGov() {
-        require(msg.sender == govAddress, "DP: not a Gov contract");
+        _onlyGov();
         _;
     }
 
@@ -96,5 +96,9 @@ contract DistributionProposal is IDistributionProposal, Initializable {
                 voterVotesFor - voterVotesAgainst,
                 totalVotesFor + totalVotesAgainst
             );
+    }
+
+    function _onlyGov() internal view {
+        require(msg.sender == govAddress, "DP: not a Gov contract");
     }
 }

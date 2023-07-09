@@ -334,11 +334,13 @@ abstract contract TraderPool is
 
         if (balanceOf(user) == 0) {
             if (!isTrader(user)) {
-                _investors.add(user);
+                EnumerableSet.AddressSet storage investors = _investors;
+
+                investors.add(user);
                 investorsInfo[user].commissionUnlockEpoch = getNextCommissionEpoch();
 
                 require(
-                    _investors.length() <= coreProperties.getMaximumPoolInvestors(),
+                    investors.length() <= coreProperties.getMaximumPoolInvestors(),
                     "TP: max investors"
                 );
             }

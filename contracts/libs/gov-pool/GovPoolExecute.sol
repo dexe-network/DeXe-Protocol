@@ -46,8 +46,7 @@ library GovPoolExecute {
 
         core.executed = true;
 
-        (, , address govValidatorsAddress, ) = GovPool(payable(address(this)))
-            .getHelperContracts();
+        (, , address govValidatorsAddress, ) = govPool.getHelperContracts();
         IGovValidators govValidators = IGovValidators(govValidatorsAddress);
 
         bool validatorsVotingSucceeded = govValidators.getProposalState(proposalId, false) ==

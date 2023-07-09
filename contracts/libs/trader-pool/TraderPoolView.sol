@@ -79,11 +79,15 @@ library TraderPoolView {
         ITraderPool.PoolParameters storage poolParameters,
         EnumerableSet.AddressSet storage positions
     ) external view returns (ITraderPool.PoolInfo memory poolInfo) {
-        poolInfo.ticker = ERC20(address(this)).symbol();
-        poolInfo.name = ERC20(address(this)).name();
+        address addressThis = address(this);
+        ERC20 erc20 = ERC20(addressThis);
+        TraderPool traderPool = TraderPool(addressThis);
+
+        poolInfo.ticker = erc20.symbol();
+        poolInfo.name = erc20.name();
 
         poolInfo.parameters = poolParameters;
-        poolInfo.openPositions = TraderPool(address(this)).openPositions();
+        poolInfo.openPositions = traderPool.openPositions();
 
         poolInfo.baseAndPositionBalances = new uint256[](poolInfo.openPositions.length + 1);
         poolInfo.baseAndPositionBalances[0] = poolInfo.parameters.baseToken.normThisBalance();
@@ -93,18 +97,16 @@ library TraderPoolView {
         }
 
         poolInfo.totalBlacklistedPositions = positions.length() - poolInfo.openPositions.length;
-        poolInfo.totalInvestors = TraderPool(address(this)).totalInvestors();
+        poolInfo.totalInvestors = traderPool.totalInvestors();
 
         (poolInfo.totalPoolBase, poolInfo.totalPoolUSD) = poolParameters
             .getNormalizedPoolPriceAndUSD();
 
-        poolInfo.lpSupply = IERC20(address(this)).totalSupply();
-        poolInfo.lpLockedInProposals =
-            TraderPool(address(this)).totalEmission() -
-            poolInfo.lpSupply;
+        poolInfo.lpSupply = erc20.totalSupply();
+        poolInfo.lpLockedInProposals = traderPool.totalEmission() - poolInfo.lpSupply;
 
         if (poolInfo.lpSupply > 0) {
-            poolInfo.traderLPBalance = IERC20(address(this)).balanceOf(poolParameters.trader);
+            poolInfo.traderLPBalance = erc20.balanceOf(poolParameters.trader);
             poolInfo.traderUSD = poolInfo.totalPoolUSD.ratio(
                 poolInfo.traderLPBalance,
                 poolInfo.lpSupply
