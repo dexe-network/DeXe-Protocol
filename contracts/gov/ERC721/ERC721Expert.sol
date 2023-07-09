@@ -8,9 +8,8 @@ import "../../interfaces/gov/ERC721/IERC721Expert.sol";
 
 contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgradeable {
     uint private _maxIssued;
-    string public baseURI;
 
-    mapping(address => uint) private _badges;
+    mapping(address => uint) private _attachments;
 
     function __ERC721Expert_init(
         string calldata name,
@@ -26,7 +25,7 @@ contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgr
 
     function getIdByExpert(address expert) public view returns (uint) {
         require(isExpert(expert), "ERC721Expert: User is not an expert");
-        return _badges[expert];
+        return _attachments[expert];
     }
 
     function mint(address to, string calldata uri_) external onlyOwner returns (uint tokenId) {
@@ -35,7 +34,7 @@ contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgr
         tokenId = ++_maxIssued;
         _mint(to, tokenId);
         _setTokenURI(tokenId, uri_);
-        _badges[to] = tokenId;
+        _attachments[to] = tokenId;
 
         emit Issued(owner(), to, tokenId, BurnAuth.OwnerOnly);
     }
@@ -44,7 +43,7 @@ contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgr
         require(_exists(tokenId), "ERC721Expert: Cannot burn non-existent badge");
         address _expert = ownerOf(tokenId);
         _burn(tokenId);
-        _badges[_expert] = 0;
+        _attachments[_expert] = 0;
     }
 
     function burnAuth(uint256 tokenId) external view override returns (BurnAuth) {
@@ -55,11 +54,14 @@ contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgr
     function supportsInterface(
         bytes4 interfaceId
     ) public view virtual override(ERC721Upgradeable, IERC165Upgradeable) returns (bool) {
-        return interfaceId == bytes4(0x0489b56f) || super.supportsInterface(interfaceId);
+        return
+            interfaceId == bytes4(0x0489b56f) ||
+            interfaceId == type(IERC721Expert).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
-    function _baseURI() internal view override returns (string memory) {
-        return baseURI;
+    function _baseURI() internal pure override returns (string memory) {
+        return "";
     }
 
     function _transfer(address from, address to, uint tokenId) internal pure override {

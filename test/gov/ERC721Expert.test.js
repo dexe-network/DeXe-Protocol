@@ -41,7 +41,6 @@ describe("ERC721Expert", () => {
 
       assert.equal(await nft.name(), NAME);
       assert.equal(await nft.symbol(), SYMBOL);
-      assert.equal(await nft.baseURI(), "");
     });
 
     it("should not initialize twice", async () => {
@@ -115,6 +114,7 @@ describe("ERC721Expert", () => {
         assert.isTrue(await nft.supportsInterface("0x80ac58cd"));
         assert.isTrue(await nft.supportsInterface("0x5b5e139f"));
         assert.isTrue(await nft.supportsInterface("0x0489b56f"));
+        assert.isTrue(await nft.supportsInterface("0x8043e201"));
       });
     });
 
