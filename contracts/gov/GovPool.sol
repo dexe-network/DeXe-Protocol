@@ -200,7 +200,8 @@ contract GovPool is
         uint256 proposalId,
         uint256 voteAmount,
         uint256[] calldata voteNftIds,
-        bool isVoteFor
+        bool isVoteFor,
+        bool reallocate
     ) external override onlyBABTHolder {
         _unlock(msg.sender, false);
 
@@ -210,7 +211,8 @@ contract GovPool is
             proposalId,
             voteAmount,
             voteNftIds,
-            isVoteFor
+            isVoteFor,
+            reallocate
         );
 
         _updateRewards(
@@ -224,7 +226,8 @@ contract GovPool is
         uint256 proposalId,
         uint256 voteAmount,
         uint256[] calldata voteNftIds,
-        bool isVoteFor
+        bool isVoteFor,
+        bool reallocate
     ) external override onlyBABTHolder {
         _unlock(msg.sender, true);
 
@@ -234,7 +237,8 @@ contract GovPool is
             proposalId,
             voteAmount,
             voteNftIds,
-            isVoteFor
+            isVoteFor,
+            reallocate
         );
 
         uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);

@@ -234,8 +234,8 @@ describe("TokenSaleProposal", () => {
 
       const proposalId = await govPool.latestProposalId();
 
-      await govPool.vote(proposalId, wei("1000"), [], true);
-      await govPool.vote(proposalId, wei("100000000000000000000"), [], true, { from: SECOND });
+      await govPool.vote(proposalId, wei("1000"), [], true, false);
+      await govPool.vote(proposalId, wei("100000000000000000000"), [], true, false, { from: SECOND });
 
       await govPool.execute(proposalId);
     };

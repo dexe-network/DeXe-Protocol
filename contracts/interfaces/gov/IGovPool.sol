@@ -230,11 +230,13 @@ interface IGovPool {
     /// @param voteAmount the erc20 vote amount
     /// @param voteNftIds the nft ids that will be used in voting
     /// @param isVoteFor the bool flag for voting for or against the proposal
+    /// @param reallocate the bool flag for relocatable votes
     function vote(
         uint256 proposalId,
         uint256 voteAmount,
         uint256[] calldata voteNftIds,
-        bool isVoteFor
+        bool isVoteFor,
+        bool reallocate
     ) external;
 
     /// @notice The function for voting for proposals with delegated tokens
@@ -242,11 +244,13 @@ interface IGovPool {
     /// @param voteAmount the erc20 vote amount
     /// @param voteNftIds the nft ids that will be used in delegated voting
     /// @param isVoteFor the bool flag for voting for or against the proposal
+    /// @param reallocate the bool flag for relocatable votes
     function voteDelegated(
         uint256 proposalId,
         uint256 voteAmount,
         uint256[] calldata voteNftIds,
-        bool isVoteFor
+        bool isVoteFor,
+        bool reallocate
     ) external;
 
     /// @notice The function for depositing tokens to the pool

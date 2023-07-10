@@ -344,7 +344,7 @@ describe("DistributionProposal", () => {
           []
         );
 
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9], true);
+        await govPool.vote(1, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9], true, false);
 
         await setTime(startTime + 10000);
       });
@@ -418,8 +418,8 @@ describe("DistributionProposal", () => {
           { from: SECOND }
         );
 
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, { from: SECOND });
-        await govPool.vote(1, 0, [6, 7, 8, 9], true, { from: THIRD });
+        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, false, { from: SECOND });
+        await govPool.vote(1, 0, [6, 7, 8, 9], true, false, { from: THIRD });
 
         await setTime(startTime + 10000);
         await govPool.execute(1);
@@ -440,8 +440,8 @@ describe("DistributionProposal", () => {
           { from: SECOND }
         );
 
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, { from: SECOND });
-        await govPool.vote(1, 0, [6, 7, 8, 9], true, { from: THIRD });
+        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, false, { from: SECOND });
+        await govPool.vote(1, 0, [6, 7, 8, 9], true, false, { from: THIRD });
 
         await setTime(startTime + 10000);
         await govPool.execute(1);
@@ -473,8 +473,8 @@ describe("DistributionProposal", () => {
           { from: SECOND }
         );
 
-        await govPool.vote(1, 0, [2, 3, 4, 5], false, { from: SECOND });
-        await govPool.vote(1, 0, [1], true, { from: SECOND });
+        await govPool.vote(1, 0, [2, 3, 4, 5], false, false, { from: SECOND });
+        await govPool.vote(1, 0, [1], true, false, { from: SECOND });
 
         assert.equal(await dp.getPotentialReward(1, SECOND), 0);
       });
@@ -488,10 +488,10 @@ describe("DistributionProposal", () => {
           { from: SECOND }
         );
 
-        await govPool.vote(1, 0, [1, 2, 3, 4], true, { from: SECOND });
-        await govPool.vote(1, 0, [5], false, { from: SECOND });
-        await govPool.vote(1, 0, [6, 7, 8], true, { from: THIRD });
-        await govPool.vote(1, 0, [9], false, { from: THIRD });
+        await govPool.vote(1, 0, [1, 2, 3, 4], true, false, { from: SECOND });
+        await govPool.vote(1, 0, [5], false, false, { from: SECOND });
+        await govPool.vote(1, 0, [6, 7, 8], true, false, { from: THIRD });
+        await govPool.vote(1, 0, [9], false, false, { from: THIRD });
 
         await setTime(startTime + 10000);
         await govPool.execute(1);
@@ -509,8 +509,8 @@ describe("DistributionProposal", () => {
           { from: SECOND }
         );
 
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, { from: SECOND });
-        await govPool.vote(1, 0, [6, 7, 8, 9], true, { from: THIRD });
+        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, false, { from: SECOND });
+        await govPool.vote(1, 0, [6, 7, 8, 9], true, false, { from: THIRD });
 
         await setTime(startTime + 10000);
         await govPool.execute(1);
@@ -532,8 +532,8 @@ describe("DistributionProposal", () => {
 
         await token.mint(dp.address, wei("10"));
 
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, { from: SECOND });
-        await govPool.vote(1, 0, [6, 7, 8, 9], true, { from: THIRD });
+        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, false, { from: SECOND });
+        await govPool.vote(1, 0, [6, 7, 8, 9], true, false, { from: THIRD });
 
         await setTime(startTime + 10000);
         await govPool.execute(1);
@@ -554,8 +554,8 @@ describe("DistributionProposal", () => {
           { from: SECOND }
         );
 
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, { from: SECOND });
-        await govPool.vote(1, 0, [6, 7, 8, 9], true, { from: THIRD });
+        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, false, { from: SECOND });
+        await govPool.vote(1, 0, [6, 7, 8, 9], true, false, { from: THIRD });
 
         await setTime(startTime + 10000);
         await govPool.execute(1);

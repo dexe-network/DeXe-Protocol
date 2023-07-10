@@ -8,8 +8,11 @@ import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
 import "../../gov/GovPool.sol";
 
+import "../utils/ArrayCropper.sol";
+
 library GovPoolVote {
     using EnumerableSet for EnumerableSet.UintSet;
+    using ArrayCropper for uint256[];
 
     event Voted(
         uint256 proposalId,
@@ -27,27 +30,27 @@ library GovPoolVote {
         uint256 proposalId,
         uint256 voteAmount,
         uint256[] calldata voteNftIds,
-        bool isVoteFor
+        bool isVoteFor,
+        bool reallocate
     ) external returns (uint256) {
         require(voteAmount > 0 || voteNftIds.length > 0, "Gov: empty vote");
 
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
-        EnumerableSet.UintSet storage votes = votedInProposals[msg.sender][false];
-        IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][msg.sender][false];
 
         bool useDelegated = !core.settings.delegatedVotingAllowed;
 
         return
             _vote(
                 core,
-                votes,
-                voteInfo,
+                votedInProposals[msg.sender][false],
+                voteInfos[proposalId][msg.sender][false],
                 proposalId,
                 voteAmount,
                 voteNftIds,
                 false,
                 useDelegated,
-                isVoteFor
+                isVoteFor,
+                reallocate
             );
     }
 
@@ -59,7 +62,8 @@ library GovPoolVote {
         uint256 proposalId,
         uint256 voteAmount,
         uint256[] calldata voteNftIds,
-        bool isVoteFor
+        bool isVoteFor,
+        bool reallocate
     ) external returns (uint256) {
         require(voteAmount > 0 || voteNftIds.length > 0, "Gov: empty delegated vote");
 
@@ -67,20 +71,18 @@ library GovPoolVote {
 
         require(core.settings.delegatedVotingAllowed, "Gov: delegated voting is off");
 
-        EnumerableSet.UintSet storage votes = votedInProposals[msg.sender][true];
-        IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][msg.sender][true];
-
         return
             _vote(
                 core,
-                votes,
-                voteInfo,
+                votedInProposals[msg.sender][true],
+                voteInfos[proposalId][msg.sender][true],
                 proposalId,
                 voteAmount,
                 voteNftIds,
                 true,
                 false,
-                isVoteFor
+                isVoteFor,
+                reallocate
             );
     }
 
@@ -93,7 +95,8 @@ library GovPoolVote {
         uint256[] calldata voteNftIds,
         bool isMicropool,
         bool useDelegated,
-        bool isVoteFor
+        bool isVoteFor,
+        bool reallocate
     ) internal returns (uint256 reward) {
         _canVote(core, proposalId, isMicropool, useDelegated);
 
@@ -108,11 +111,29 @@ library GovPoolVote {
 
         govPool.setLatestVoteBlock(proposalId);
 
-        _voteTokens(core, voteInfo, proposalId, voteAmount, isMicropool, useDelegated, isVoteFor);
+        _voteTokens(
+            core,
+            voteInfo,
+            proposalId,
+            voteAmount,
+            isMicropool,
+            useDelegated,
+            isVoteFor,
+            reallocate
+        );
         reward =
-            _voteNfts(core, voteInfo, voteNftIds, isMicropool, useDelegated, isVoteFor) +
+            _voteNfts(
+                core,
+                voteInfo,
+                voteNftIds,
+                isMicropool,
+                useDelegated,
+                isVoteFor,
+                reallocate
+            ) +
             voteAmount;
 
+        // TODO: so the user can not reallocate his small vote
         require(reward >= core.settings.minVotesForVoting, "Gov: low current vote power");
 
         emit Voted(
@@ -156,13 +177,26 @@ library GovPoolVote {
         uint256 amount,
         bool isMicropool,
         bool useDelegated,
-        bool isVoteFor
+        bool isVoteFor,
+        bool reallocate
     ) internal {
         (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
 
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
-        userKeeper.lockTokens(proposalId, msg.sender, isMicropool, amount);
+        uint256 amountToReallocate;
+
+        if (reallocate) {
+            uint256 tokensAbleToReallocate = isVoteFor
+                ? voteInfo.tokensVotedAgainst
+                : voteInfo.tokensVotedFor;
+
+            amountToReallocate = tokensAbleToReallocate > amount ? amount : tokensAbleToReallocate;
+        }
+
+        uint256 amountToLock = amount - amountToReallocate;
+
+        userKeeper.lockTokens(proposalId, msg.sender, isMicropool, amountToLock);
         (uint256 tokenBalance, uint256 ownedBalance) = userKeeper.tokenBalance(
             msg.sender,
             isMicropool,
@@ -170,7 +204,7 @@ library GovPoolVote {
         );
 
         require(
-            amount <=
+            amountToLock <=
                 tokenBalance -
                     ownedBalance -
                     voteInfo.tokensVotedFor -
@@ -182,10 +216,16 @@ library GovPoolVote {
             core.votesFor += amount;
             voteInfo.totalVotedFor += amount;
             voteInfo.tokensVotedFor += amount;
+
+            voteInfo.totalVotedAgainst -= amountToReallocate;
+            voteInfo.tokensVotedAgainst -= amountToReallocate;
         } else {
             core.votesAgainst += amount;
             voteInfo.totalVotedAgainst += amount;
             voteInfo.tokensVotedAgainst += amount;
+
+            voteInfo.totalVotedFor -= amountToReallocate;
+            voteInfo.tokensVotedFor -= amountToReallocate;
         }
     }
 
@@ -195,23 +235,66 @@ library GovPoolVote {
         uint256[] calldata nftIds,
         bool isMicropool,
         bool useDelegated,
-        bool isVoteFor
+        bool isVoteFor,
+        bool reallocate
     ) internal returns (uint256 voteAmount) {
-        EnumerableSet.UintSet storage votedNfts = _votedNfts(voteInfo, isVoteFor);
+        uint256[] memory nftIdsToLock = new uint256[](nftIds.length);
+        uint256[] memory nftIdsToReallocate = new uint256[](nftIds.length);
 
-        for (uint256 i; i < nftIds.length; i++) {
-            require(votedNfts.add(nftIds[i]), "Gov: NFT already voted");
+        {
+            uint256 nftIdsToLockAmount;
+            uint256 nftIdsToReallocateAmount;
+
+            (
+                EnumerableSet.UintSet storage votedNfts,
+                EnumerableSet.UintSet storage votedOpposedNfts
+            ) = _votedNfts(voteInfo, isVoteFor);
+
+            for (uint256 i; i < nftIds.length; i++) {
+                require(votedNfts.add(nftIds[i]), "Gov: NFT already voted");
+
+                if (reallocate) {
+                    votedOpposedNfts.remove(nftIds[i]);
+
+                    nftIdsToReallocate[nftIdsToReallocateAmount++] = nftIds[i];
+                } else {
+                    require(!votedOpposedNfts.contains(nftIds[i]), "Gov: NFT already voted");
+
+                    nftIdsToLock[nftIdsToLockAmount++] = nftIds[i];
+                }
+            }
+
+            nftIdsToLock = nftIdsToLock.crop(nftIdsToLockAmount);
+            nftIdsToReallocate = nftIdsToReallocate.crop(nftIdsToReallocateAmount);
         }
 
         (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
 
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
-        userKeeper.lockNfts(msg.sender, isMicropool, useDelegated, nftIds);
+        userKeeper.lockNfts(msg.sender, isMicropool, useDelegated, nftIdsToLock);
 
-        userKeeper.updateNftPowers(nftIds);
+        userKeeper.updateNftPowers(nftIdsToLock);
 
-        voteAmount = userKeeper.getNftsPowerInTokensBySnapshot(nftIds, core.nftPowerSnapshotId);
+        if (reallocate || nftIdsToReallocate.length > 0) {
+            voteAmount = userKeeper.getNftsPowerInTokensBySnapshot(
+                nftIdsToReallocate,
+                core.nftPowerSnapshotId
+            );
+
+            if (isVoteFor) {
+                core.votesAgainst -= voteAmount;
+                voteInfo.totalVotedAgainst -= voteAmount;
+            } else {
+                core.votesFor -= voteAmount;
+                voteInfo.totalVotedFor -= voteAmount;
+            }
+        }
+
+        voteAmount += userKeeper.getNftsPowerInTokensBySnapshot(
+            nftIdsToLock,
+            core.nftPowerSnapshotId
+        );
 
         if (isVoteFor) {
             core.votesFor += voteAmount;
@@ -225,7 +308,10 @@ library GovPoolVote {
     function _votedNfts(
         IGovPool.VoteInfo storage voteInfo,
         bool isVoteFor
-    ) internal view returns (EnumerableSet.UintSet storage) {
-        return isVoteFor ? voteInfo.nftsVotedFor : voteInfo.nftsVotedAgainst;
+    ) internal view returns (EnumerableSet.UintSet storage, EnumerableSet.UintSet storage) {
+        return
+            isVoteFor
+                ? (voteInfo.nftsVotedFor, voteInfo.nftsVotedAgainst)
+                : (voteInfo.nftsVotedAgainst, voteInfo.nftsVotedFor);
     }
 }
