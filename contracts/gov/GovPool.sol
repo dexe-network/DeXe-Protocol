@@ -74,7 +74,6 @@ contract GovPool is
     OffChain internal _offChain;
 
     mapping(uint256 => Proposal) internal _proposals; // proposalId => info
-    mapping(uint256 => uint256) public latestVoteBlocks; // proposalId => block
 
     mapping(uint256 => mapping(address => mapping(bool => VoteInfo))) internal _voteInfos; // proposalId => voter => isMicropool => info
     mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
@@ -332,10 +331,6 @@ contract GovPool is
         _setNftMultiplierAddress(nftMultiplierAddress);
     }
 
-    function setLatestVoteBlock(uint256 proposalId) external override onlyThis {
-        latestVoteBlocks[proposalId] = block.number;
-    }
-
     function saveOffchainResults(
         string calldata resultsHash,
         bytes calldata signature
@@ -362,15 +357,15 @@ contract GovPool is
 
         if (core.executed) {
             return
-                _votesForMoreThanAgainst(core)
+                core._votesForMoreThanAgainst()
                     ? ProposalState.ExecutedFor
                     : ProposalState.ExecutedAgainst;
         }
 
         if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
-            if (_quorumReached(core)) {
+            if (core._quorumReached()) {
                 if (
-                    !_votesForMoreThanAgainst(core) &&
+                    !core._votesForMoreThanAgainst() &&
                     _proposals[proposalId].actionsOnAgainst.length == 0
                 ) {
                     return ProposalState.Defeated;
@@ -387,11 +382,15 @@ contract GovPool is
                             return ProposalState.WaitingForVotingTransfer;
                         }
 
-                        return _proposalStateBasedOnVoteResults(core);
+                        return core._proposalStateBasedOnVoteResultsAndLock();
+                    }
+
+                    if (status == IGovValidators.ProposalState.Locked) {
+                        return ProposalState.Locked;
                     }
 
                     if (status == IGovValidators.ProposalState.Succeeded) {
-                        return _proposalStateBasedOnVoteResults(core);
+                        return core._proposalStateBasedOnVoteResults();
                     }
 
                     if (status == IGovValidators.ProposalState.Defeated) {
@@ -401,7 +400,7 @@ contract GovPool is
                     return ProposalState.ValidatorVoting;
                 }
 
-                return _proposalStateBasedOnVoteResults(core);
+                return core._proposalStateBasedOnVoteResultsAndLock();
             }
 
             if (voteEnd < block.timestamp) {
@@ -537,27 +536,6 @@ contract GovPool is
         bool isMicropool
     ) internal {
         _votedInProposals.unlockInProposals(_voteInfos, proposalIds, user, isMicropool);
-    }
-
-    function _quorumReached(ProposalCore storage core) internal view returns (bool) {
-        return
-            PERCENTAGE_100.ratio(
-                core.votesFor + core.votesAgainst,
-                _govUserKeeper.getTotalVoteWeight()
-            ) >= core.settings.quorum;
-    }
-
-    function _votesForMoreThanAgainst(ProposalCore storage core) internal view returns (bool) {
-        return core.votesFor > core.votesAgainst;
-    }
-
-    function _proposalStateBasedOnVoteResults(
-        ProposalCore storage core
-    ) internal view returns (ProposalState) {
-        return
-            _votesForMoreThanAgainst(core)
-                ? ProposalState.SucceededFor
-                : ProposalState.SucceededAgainst;
     }
 
     function _onlyThis() internal view {

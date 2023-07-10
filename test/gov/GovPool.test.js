@@ -23,7 +23,7 @@ const {
   getBytesGovVoteDelegated,
 } = require("../utils/gov-pool-utils");
 const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
-const { ProposalState, DEFAULT_CORE_PROPERTIES, ValidatorsProposalState } = require("../utils/constants");
+const { ProposalState, DEFAULT_CORE_PROPERTIES, ValidatorsProposalState, ProposalType } = require("../utils/constants");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
@@ -227,8 +227,11 @@ describe("GovPool", () => {
     await validators.__GovValidators_init(
       poolParams.validatorsParams.name,
       poolParams.validatorsParams.symbol,
-      poolParams.validatorsParams.duration,
-      poolParams.validatorsParams.quorum,
+      [
+        poolParams.validatorsParams.proposalSettings.duration,
+        poolParams.validatorsParams.proposalSettings.executionDelay,
+        poolParams.validatorsParams.proposalSettings.quorum,
+      ],
       poolParams.validatorsParams.validators,
       poolParams.validatorsParams.balances
     );
@@ -278,6 +281,7 @@ describe("GovPool", () => {
             quorumValidators: PRECISION.times("100").toFixed(),
             minVotesForVoting: nftAddress === nftPower.address ? 0 : wei("20"),
             minVotesForCreating: wei("3"),
+            executionDelay: 0,
             rewardsInfo: {
               rewardToken: rewardToken.address,
               creationReward: wei("10"),
@@ -297,6 +301,7 @@ describe("GovPool", () => {
             quorumValidators: PRECISION.times("61").toFixed(),
             minVotesForVoting: wei("10"),
             minVotesForCreating: wei("2"),
+            executionDelay: 0,
             rewardsInfo: {
               rewardToken: rewardToken.address,
               creationReward: wei("10"),
@@ -316,6 +321,7 @@ describe("GovPool", () => {
             quorumValidators: PRECISION.times("100").toFixed(),
             minVotesForVoting: wei("20"),
             minVotesForCreating: wei("3"),
+            executionDelay: 0,
             rewardsInfo: {
               rewardToken: rewardToken.address,
               creationReward: wei("10"),
@@ -335,6 +341,7 @@ describe("GovPool", () => {
             quorumValidators: PRECISION.times("61").toFixed(),
             minVotesForVoting: wei("10"),
             minVotesForCreating: wei("2"),
+            executionDelay: 0,
             rewardsInfo: {
               rewardToken: rewardToken.address,
               creationReward: wei("10"),
@@ -350,8 +357,11 @@ describe("GovPool", () => {
       validatorsParams: {
         name: "Validator Token",
         symbol: "VT",
-        duration: 600,
-        quorum: PRECISION.times("51").toFixed(),
+        proposalSettings: {
+          duration: 600,
+          executionDelay: 0,
+          quorum: PRECISION.times("51").toFixed(),
+        },
         validators: [OWNER, SECOND],
         balances: [wei("100"), wei("1000000000000")],
       },
@@ -570,6 +580,7 @@ describe("GovPool", () => {
         assert.equal(proposal.core.settings[6], defaultSettings.quorumValidators);
         assert.equal(proposal.core.settings[7], defaultSettings.minVotesForVoting);
         assert.equal(proposal.core.settings[8], defaultSettings.minVotesForCreating);
+        assert.equal(proposal.core.settings[9], defaultSettings.executionDelay);
 
         assert.isFalse(proposal.core.executed);
         assert.equal(proposal.descriptionURL, "example.com");
@@ -589,6 +600,7 @@ describe("GovPool", () => {
         assert.equal(proposal.core.settings[6], defaultSettings.quorumValidators);
         assert.equal(proposal.core.settings[7], defaultSettings.minVotesForVoting);
         assert.equal(proposal.core.settings[8], defaultSettings.minVotesForCreating);
+        assert.equal(proposal.core.settings[9], defaultSettings.executionDelay);
 
         assert.isFalse(proposal.core.executed);
         assert.equal(proposal.descriptionURL, "example2.com");
@@ -715,6 +727,7 @@ describe("GovPool", () => {
           quorumValidators: PRECISION.times("1").toFixed(),
           minVotesForVoting: 0,
           minVotesForCreating: 0,
+          executionDelay: 0,
           rewardsInfo: {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
@@ -937,6 +950,7 @@ describe("GovPool", () => {
             quorumValidators: PRECISION.times("61").toFixed(),
             minVotesForVoting: wei("3500"),
             minVotesForCreating: wei("2"),
+            executionDelay: 0,
             rewardsInfo: {
               rewardToken: rewardToken.address,
               creationReward: wei("10"),
@@ -1090,6 +1104,7 @@ describe("GovPool", () => {
           quorumValidators: 1,
           minVotesForVoting: 1,
           minVotesForCreating: 1,
+          executionDelay: 0,
           rewardsInfo: {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
@@ -1124,6 +1139,7 @@ describe("GovPool", () => {
             quorumValidators: 1,
             minVotesForVoting: 1,
             minVotesForCreating: 1,
+            executionDelay: 0,
             rewardsInfo: {
               rewardToken: ZERO_ADDR,
               creationReward: 0,
@@ -1143,6 +1159,7 @@ describe("GovPool", () => {
           await govPool.vote(3, wei("100000000000000000000"), [], true, { from: SECOND });
           await govPool.moveProposalToValidators(3);
           await validators.vote(3, wei("1000000000000"), false, true, { from: SECOND });
+
           await govPool.execute(3);
         }
 
@@ -1229,6 +1246,8 @@ describe("GovPool", () => {
 
           await govPool.vote(4, wei("100000000000000000000"), [], true, { from: SECOND });
 
+          await setTime((await getCurrentBlockTime()) + 1);
+
           assert.equal(await govPool.getProposalState(4), ProposalState.SucceededFor);
         });
 
@@ -1243,6 +1262,8 @@ describe("GovPool", () => {
           );
 
           await govPool.vote(4, wei("100000000000000000000"), [], false, { from: SECOND });
+
+          await setTime((await getCurrentBlockTime()) + 1);
 
           assert.equal(await govPool.getProposalState(4), ProposalState.SucceededAgainst);
         });
@@ -1276,8 +1297,9 @@ describe("GovPool", () => {
         });
 
         it("should return SucceededFor state when quorum has reached and votes for and with validators but there count is 0", async () => {
-          await validators.createInternalProposal(3, "", [0, 0], [OWNER, SECOND]);
+          await validators.createInternalProposal(ProposalType.ChangeBalances, "", [0, 0], [OWNER, SECOND]);
           await validators.vote(1, wei("1000000000000"), true, true, { from: SECOND });
+
           await validators.execute(1);
 
           await govPool.createProposal(
@@ -1290,12 +1312,16 @@ describe("GovPool", () => {
           await govPool.vote(3, wei("100000000000000000000"), [], true, { from: SECOND });
 
           assert.equal((await validators.validatorsCount()).toFixed(), "0");
+
+          await setTime((await getCurrentBlockTime()) + 1);
+
           assert.equal(await govPool.getProposalState(3), ProposalState.SucceededFor);
         });
 
         it("should return SucceededAgainst state when quorum has reached and votes for and with validators but there count is 0", async () => {
-          await validators.createInternalProposal(3, "", [0, 0], [OWNER, SECOND]);
+          await validators.createInternalProposal(ProposalType.ChangeBalances, "", [0, 0], [OWNER, SECOND]);
           await validators.vote(1, wei("1000000000000"), true, true, { from: SECOND });
+
           await validators.execute(1);
 
           await govPool.createProposal(
@@ -1308,6 +1334,9 @@ describe("GovPool", () => {
           await govPool.vote(3, wei("100000000000000000000"), [], false, { from: SECOND });
 
           assert.equal((await validators.validatorsCount()).toFixed(), "0");
+
+          await setTime((await getCurrentBlockTime()) + 1);
+
           assert.equal(await govPool.getProposalState(3), ProposalState.SucceededAgainst);
         });
 
@@ -1326,6 +1355,38 @@ describe("GovPool", () => {
           assert.equal(await govPool.getProposalState(3), ProposalState.ValidatorVoting);
         });
 
+        it("should return Locked state when quorum has reached and votes for and without validators", async () => {
+          await disableValidatorsVote();
+
+          await govPool.createProposal(
+            "example.com",
+            "misc",
+            [[settings.address, 0, getBytesEditSettings([3], [NEW_SETTINGS])]],
+            [[settings.address, 0, getBytesEditSettings([3], [NEW_SETTINGS])]]
+          );
+
+          await govPool.vote(4, wei("100000000000000000000"), [], true, { from: SECOND });
+
+          assert.equal(await govPool.getProposalState(4), ProposalState.Locked);
+        });
+
+        it("should return Locked state when quorum has reached and votes for and with validators voted successful", async () => {
+          await govPool.createProposal(
+            "example.com",
+            "misc",
+            [[settings.address, 0, getBytesEditSettings([3], [NEW_SETTINGS])]],
+            [[settings.address, 0, getBytesEditSettings([3], [NEW_SETTINGS])]]
+          );
+
+          await govPool.vote(3, wei("100000000000000000000"), [], true, { from: SECOND });
+
+          await govPool.moveProposalToValidators(3);
+
+          await validators.vote(3, wei("1000000000000"), false, true, { from: SECOND });
+
+          assert.equal(await govPool.getProposalState(3), ProposalState.Locked);
+        });
+
         it("should return SucceededFor state when quorum has reached and votes for and with validators voted successful", async () => {
           await govPool.createProposal(
             "example.com",
@@ -1339,6 +1400,8 @@ describe("GovPool", () => {
           await govPool.moveProposalToValidators(3);
 
           await validators.vote(3, wei("1000000000000"), false, true, { from: SECOND });
+
+          await setTime((await getCurrentBlockTime()) + 1);
 
           assert.equal(await govPool.getProposalState(3), ProposalState.SucceededFor);
         });
@@ -1356,6 +1419,8 @@ describe("GovPool", () => {
           await govPool.moveProposalToValidators(3);
 
           await validators.vote(3, wei("1000000000000"), false, true, { from: SECOND });
+
+          await setTime((await getCurrentBlockTime()) + 1);
 
           assert.equal(await govPool.getProposalState(3), ProposalState.SucceededAgainst);
         });
@@ -1406,6 +1471,7 @@ describe("GovPool", () => {
           quorumValidators: PRECISION.times("100").toFixed(),
           minVotesForVoting: wei("20"),
           minVotesForCreating: wei("3"),
+          executionDelay: 0,
           rewardsInfo: {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
@@ -1456,6 +1522,8 @@ describe("GovPool", () => {
 
           await validators.vote(4, wei("1000000000000"), false, true, { from: SECOND });
 
+          await setTime((await getCurrentBlockTime()) + 1);
+
           assert.equal(await govPool.getProposalState(4), ProposalState.SucceededAgainst);
         });
 
@@ -1480,8 +1548,9 @@ describe("GovPool", () => {
 
           assert.equal((await govPool.getProposalState(3)).toFixed(), ProposalState.WaitingForVotingTransfer);
 
-          await validators.createInternalProposal(3, "", [0, 0], [OWNER, SECOND]);
+          await validators.createInternalProposal(ProposalType.ChangeBalances, "", [0, 0], [OWNER, SECOND]);
           await validators.vote(1, wei("1000000000000"), true, true, { from: SECOND });
+
           await validators.execute(1);
 
           assert.equal((await validators.validatorsCount()).toFixed(), "0");
@@ -1655,6 +1724,7 @@ describe("GovPool", () => {
         quorumValidators: 1,
         minVotesForVoting: 1,
         minVotesForCreating: 1,
+        executionDelay: 101,
         rewardsInfo: {
           rewardToken: ZERO_ADDR,
           creationReward: 0,
@@ -1675,6 +1745,7 @@ describe("GovPool", () => {
         quorumValidators: PRECISION.times("1").toFixed(),
         minVotesForVoting: wei("1"),
         minVotesForCreating: wei("1"),
+        executionDelay: 0,
         rewardsInfo: {
           rewardToken: ZERO_ADDR,
           creationReward: 0,
@@ -1707,6 +1778,10 @@ describe("GovPool", () => {
         await validators.vote(1, wei("100"), false, true);
         await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
 
+        assert.equal((await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR)).tokens.toFixed(), 0);
+
+        await setTime((await getCurrentBlockTime()) + 1);
+
         assert.equal((await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR)).tokens.toFixed(), wei("1000"));
 
         await govPool.execute(1);
@@ -1723,6 +1798,7 @@ describe("GovPool", () => {
         assert.equal(addedSettings.quorumValidators, 1);
         assert.equal(addedSettings.minVotesForVoting, 1);
         assert.equal(addedSettings.minVotesForCreating, 1);
+        assert.equal(addedSettings.executionDelay, 101);
 
         assert.isTrue((await getProposalByIndex(1)).core.executed);
       });
@@ -1745,6 +1821,10 @@ describe("GovPool", () => {
         await validators.vote(1, wei("100"), false, true);
         await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
 
+        assert.equal((await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR)).tokens.toFixed(), 0);
+
+        await setTime((await getCurrentBlockTime()) + 1);
+
         assert.equal((await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR)).tokens.toFixed(), wei("1000"));
 
         await govPool.execute(1);
@@ -1761,6 +1841,7 @@ describe("GovPool", () => {
         assert.equal(addedSettings.quorumValidators, 1);
         assert.equal(addedSettings.minVotesForVoting, 1);
         assert.equal(addedSettings.minVotesForCreating, 1);
+        assert.equal(addedSettings.executionDelay, 101);
 
         assert.isTrue((await getProposalByIndex(1)).core.executed);
       });
@@ -2061,11 +2142,7 @@ describe("GovPool", () => {
           });
         });
 
-        describe("setLatestVoteBlock", () => {
-          it("should revert when call is from non govPool address", async () => {
-            await truffleAssert.reverts(govPool.setLatestVoteBlock(1), "Gov: not this contract");
-          });
-
+        describe("vote and execute in one block", () => {
           describe("vote-execute flashloan protection", () => {
             const USER_KEERER_SETTINGS = {
               earlyCompletion: true,
@@ -2077,6 +2154,7 @@ describe("GovPool", () => {
               quorumValidators: 0,
               minVotesForVoting: 0,
               minVotesForCreating: 0,
+              executionDelay: 0,
               rewardsInfo: {
                 rewardToken: ZERO_ADDR,
                 creationReward: 0,
@@ -2141,7 +2219,7 @@ describe("GovPool", () => {
                 govPool.multicall([getBytesGovVote(3, wei("100000000000000000000"), []), getBytesGovExecute(3)], {
                   from: SECOND,
                 }),
-                "Gov: wrong block"
+                "Gov: invalid status"
               );
             });
 
@@ -2159,7 +2237,7 @@ describe("GovPool", () => {
                     from: SECOND,
                   }
                 ),
-                "Gov: wrong block"
+                "Gov: invalid status"
               );
             });
           });
@@ -2179,6 +2257,7 @@ describe("GovPool", () => {
           validatorProposal: {
             core: {
               voteEnd: proposalView.validatorProposal.core.voteEnd,
+              executeAfter: proposalView.validatorProposal.core.executeAfter,
               quorum: proposalView.validatorProposal.core.quorum,
             },
           },
@@ -2205,6 +2284,7 @@ describe("GovPool", () => {
           quorumValidators: PRECISION.times("100").toFixed(),
           minVotesForVoting: wei("20"),
           minVotesForCreating: wei("3"),
+          executionDelay: 0,
           rewardsInfo: {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
@@ -2232,6 +2312,7 @@ describe("GovPool", () => {
               validatorProposal: {
                 core: {
                   voteEnd: "0",
+                  executeAfter: "0",
                   quorum: "0",
                 },
               },
@@ -2246,6 +2327,7 @@ describe("GovPool", () => {
               validatorProposal: {
                 core: {
                   voteEnd: "0",
+                  executeAfter: "0",
                   quorum: "0",
                 },
               },
@@ -2260,6 +2342,7 @@ describe("GovPool", () => {
               validatorProposal: {
                 core: {
                   voteEnd: (durationValidators + startTime + 1000000 + 1).toString(),
+                  executeAfter: "0",
                   quorum: quorumValidators,
                 },
               },
@@ -2319,6 +2402,7 @@ describe("GovPool", () => {
         quorumValidators: 1,
         minVotesForVoting: 1,
         minVotesForCreating: 1,
+        executionDelay: 0,
         rewardsInfo: {
           rewardToken: ETHER_ADDR,
           creationReward: wei("10"),
@@ -2577,6 +2661,7 @@ describe("GovPool", () => {
           quorumValidators: 1,
           minVotesForVoting: 1,
           minVotesForCreating: 1,
+          executionDelay: 0,
           rewardsInfo: {
             rewardToken: ZERO_ADDR,
             creationReward: wei("10"),
@@ -2700,6 +2785,7 @@ describe("GovPool", () => {
         quorumValidators: 1,
         minVotesForVoting: 1,
         minVotesForCreating: 1,
+        executionDelay: 0,
         rewardsInfo: {
           rewardToken: ETHER_ADDR,
           creationReward: wei("10"),
@@ -2795,6 +2881,7 @@ describe("GovPool", () => {
           await govPool.vote(1, wei("25000000000000000000000000"), [], true, { from: SECOND });
           await govPool.moveProposalToValidators(1);
           await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
+
           await govPool.execute(1);
           await nftMultiplier.mint(micropool, PRECISION.times("2.5"), 10000000000);
           await nftMultiplier.lock(1, { from: micropool });
@@ -3049,6 +3136,7 @@ describe("GovPool", () => {
           await govPool.moveProposalToValidators(1);
 
           await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
+
           await govPool.execute(1);
 
           await govPool.createProposal(
