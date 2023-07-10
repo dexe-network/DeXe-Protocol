@@ -87,7 +87,7 @@ library GovPoolVote {
             );
     }
 
-    function quorumReached(IGovPool.ProposalCore storage core) public view returns (bool) {
+    function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {
         (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
 
         return
@@ -97,27 +97,27 @@ library GovPoolVote {
             ) >= core.settings.quorum;
     }
 
-    function votesForMoreThanAgainst(
+    function _votesForMoreThanAgainst(
         IGovPool.ProposalCore storage core
     ) internal view returns (bool) {
         return core.votesFor > core.votesAgainst;
     }
 
-    function proposalStateBasedOnVoteResultsAndLock(
+    function _proposalStateBasedOnVoteResultsAndLock(
         IGovPool.ProposalCore storage core
     ) internal view returns (IGovPool.ProposalState) {
         if (block.timestamp <= core.executeAfter) {
             return IGovPool.ProposalState.Locked;
         }
 
-        return proposalStateBasedOnVoteResults(core);
+        return _proposalStateBasedOnVoteResults(core);
     }
 
-    function proposalStateBasedOnVoteResults(
+    function _proposalStateBasedOnVoteResults(
         IGovPool.ProposalCore storage core
     ) internal view returns (IGovPool.ProposalState) {
         return
-            votesForMoreThanAgainst(core)
+            _votesForMoreThanAgainst(core)
                 ? IGovPool.ProposalState.SucceededFor
                 : IGovPool.ProposalState.SucceededAgainst;
     }
@@ -151,7 +151,7 @@ library GovPoolVote {
 
         require(reward >= core.settings.minVotesForVoting, "Gov: low current vote power");
 
-        if (core.executeAfter == 0 && quorumReached(core)) {
+        if (core.executeAfter == 0 && _quorumReached(core)) {
             core.executeAfter =
                 core.settings.executionDelay +
                 (core.settings.earlyCompletion ? uint64(block.timestamp) : core.voteEnd);

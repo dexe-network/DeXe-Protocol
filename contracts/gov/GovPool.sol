@@ -357,15 +357,15 @@ contract GovPool is
 
         if (core.executed) {
             return
-                core.votesForMoreThanAgainst()
+                core._votesForMoreThanAgainst()
                     ? ProposalState.ExecutedFor
                     : ProposalState.ExecutedAgainst;
         }
 
         if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
-            if (core.quorumReached()) {
+            if (core._quorumReached()) {
                 if (
-                    !core.votesForMoreThanAgainst() &&
+                    !core._votesForMoreThanAgainst() &&
                     _proposals[proposalId].actionsOnAgainst.length == 0
                 ) {
                     return ProposalState.Defeated;
@@ -382,7 +382,7 @@ contract GovPool is
                             return ProposalState.WaitingForVotingTransfer;
                         }
 
-                        return core.proposalStateBasedOnVoteResultsAndLock();
+                        return core._proposalStateBasedOnVoteResultsAndLock();
                     }
 
                     if (status == IGovValidators.ProposalState.Locked) {
@@ -390,7 +390,7 @@ contract GovPool is
                     }
 
                     if (status == IGovValidators.ProposalState.Succeeded) {
-                        return core.proposalStateBasedOnVoteResults();
+                        return core._proposalStateBasedOnVoteResults();
                     }
 
                     if (status == IGovValidators.ProposalState.Defeated) {
@@ -400,7 +400,7 @@ contract GovPool is
                     return ProposalState.ValidatorVoting;
                 }
 
-                return core.proposalStateBasedOnVoteResultsAndLock();
+                return core._proposalStateBasedOnVoteResultsAndLock();
             }
 
             if (voteEnd < block.timestamp) {
