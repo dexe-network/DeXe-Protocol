@@ -125,15 +125,15 @@ library TokenSaleProposalBuy {
             _canParticipate =
                 IGovUserKeeper(govUserKeeper)
                 .votingPower(
-                    _asSingletonArray(msg.sender),
+                    _asSingletonArray(user),
                     _asSingletonArray(false),
                     _asSingletonArray(true)
                 )[0].power >
                 tier.decodeDAOVotes();
         } else if (participationType == ITokenSaleProposal.ParticipationType.Whitelist) {
-            _canParticipate = tokenSaleProposal.balanceOf(msg.sender, tierId) > 0;
+            _canParticipate = tokenSaleProposal.balanceOf(user, tierId) > 0;
         } else if (participationType == ITokenSaleProposal.ParticipationType.BABT) {
-            _canParticipate = tokenSaleProposal.babt().balanceOf(msg.sender) > 0;
+            _canParticipate = tokenSaleProposal.babt().balanceOf(user) > 0;
         } else {
             ITokenSaleProposal.PurchaseInfo storage purchaseInfo = tier.users[user].purchaseInfo;
 

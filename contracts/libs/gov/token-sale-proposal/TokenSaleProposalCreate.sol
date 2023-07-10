@@ -74,7 +74,7 @@ library TokenSaleProposalCreate {
             );
             tierInitParams.participationDetails.data = abi.encode(
                 token,
-                amount.to18(ERC20(token).decimals())
+                token == ETHEREUM_ADDRESS ? amount : amount.to18(ERC20(token).decimals())
             );
         }
 

@@ -7,17 +7,7 @@ library TokenSaleProposalDecode {
     function decodeDAOVotes(
         ITokenSaleProposal.Tier storage tier
     ) internal view returns (uint256 amount) {
-        ITokenSaleProposal.ParticipationDetails memory participationDetails = tier
-            .tierInitParams
-            .participationDetails;
-
-        require(
-            participationDetails.participationType ==
-                ITokenSaleProposal.ParticipationType.DAOVotes,
-            "TSP: wrong participation type"
-        );
-
-        amount = abi.decode(participationDetails.data, (uint256));
+        amount = abi.decode(tier.tierInitParams.participationDetails.data, (uint256));
     }
 
     function decodeTokenLock(

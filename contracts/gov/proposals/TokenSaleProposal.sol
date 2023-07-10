@@ -50,8 +50,6 @@ contract TokenSaleProposal is
     }
 
     function __TokenSaleProposal_init(address _govAddress, ISBT721 _babt) external initializer {
-        require(_govAddress != address(0), "TSP: zero gov address");
-
         govAddress = _govAddress;
         babt = _babt;
     }

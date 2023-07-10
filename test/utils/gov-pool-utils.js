@@ -576,6 +576,78 @@ const getBytesRecoverTSP = (tierIds) => {
   );
 };
 
+const getBytesBuyTSP = (tierId, tokenToBuyWith, amount) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "uint256",
+          name: "tierId",
+          type: "uint256",
+        },
+        {
+          internalType: "address",
+          name: "tokenToBuyWith",
+          type: "address",
+        },
+        {
+          internalType: "uint256",
+          name: "amount",
+          type: "uint256",
+        },
+      ],
+      name: "buy",
+      outputs: [],
+      stateMutability: "payable",
+      type: "function",
+    },
+    [tierId, tokenToBuyWith, amount]
+  );
+};
+
+const getBytesLockParticipationTokensTSP = (tierId) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "uint256",
+          name: "tierId",
+          type: "uint256",
+        },
+      ],
+      name: "lockParticipationTokens",
+      outputs: [],
+      stateMutability: "payable",
+      type: "function",
+    },
+    [tierId]
+  );
+};
+
+const getBytesLockParticipationNftTSP = (tierId, tokenId) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "uint256",
+          name: "tierId",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256",
+          name: "tokenId",
+          type: "uint256",
+        },
+      ],
+      name: "lockParticipationNft",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [tierId, tokenId]
+  );
+};
+
 const getBytesChangeVerifier = (newAddress) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -796,6 +868,9 @@ module.exports = {
   getBytesAddToWhitelistTSP,
   getBytesOffTiersTSP,
   getBytesRecoverTSP,
+  getBytesBuyTSP,
+  getBytesLockParticipationTokensTSP,
+  getBytesLockParticipationNftTSP,
   getBytesChangeVerifier,
   getBytesChangeBABTRestriction,
   getBytesGovExecute,
