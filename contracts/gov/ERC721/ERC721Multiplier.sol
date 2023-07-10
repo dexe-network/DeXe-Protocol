@@ -17,6 +17,9 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
     mapping(uint256 => NftInfo) private _tokens;
     mapping(address => uint256) private _latestLockedTokenIds;
 
+    event Minted(address to, uint256 tokenId, uint256 multiplier, uint256 duration);
+    event Locked(address from, uint256 tokenId, uint256 multiplier, uint256 duration);
+
     function __ERC721Multiplier_init(
         string calldata name,
         string calldata symbol
@@ -60,20 +63,6 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         baseURI = uri;
     }
 
-    function isLocked(uint256 tokenId) public view override returns (bool) {
-        NftInfo storage info = _tokens[tokenId];
-
-        return info.lockedAt != 0 && info.lockedAt + info.duration >= block.timestamp;
-    }
-
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override(IERC165Upgradeable, ERC721EnumerableUpgradeable) returns (bool) {
-        return
-            interfaceId == type(IERC721Multiplier).interfaceId ||
-            super.supportsInterface(interfaceId);
-    }
-
     function getExtraRewards(
         address whose,
         uint256 rewards
@@ -88,7 +77,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
 
     function getCurrentMultiplier(
         address whose
-    ) external view override returns (uint256 multiplier, uint256 timeLeft) {
+    ) external view returns (uint256 multiplier, uint256 timeLeft) {
         uint256 latestLockedTokenId = _latestLockedTokenIds[whose];
 
         if (!isLocked(latestLockedTokenId)) {
@@ -99,6 +88,20 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
 
         multiplier = info.multiplier;
         timeLeft = info.lockedAt + info.duration - block.timestamp;
+    }
+
+    function isLocked(uint256 tokenId) public view override returns (bool) {
+        NftInfo memory info = _tokens[tokenId];
+
+        return info.lockedAt != 0 && info.lockedAt + info.duration >= block.timestamp;
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(IERC165Upgradeable, ERC721EnumerableUpgradeable) returns (bool) {
+        return
+            interfaceId == type(IERC721Multiplier).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     function _baseURI() internal view override returns (string memory) {

@@ -16,16 +16,6 @@ interface IDistributionProposal {
         mapping(address => bool) claimed;
     }
 
-    /// @notice This event is emitted when a new distribution proposal is created
-    /// @param proposalId the id of the proposal
-    /// @param sender the address of the sender
-    /// @param amount the total amount of rewards
-    event DistributionProposalClaimed(uint256 proposalId, address sender, uint256 amount);
-
-    /// @notice The function to initialize the contract
-    /// @param _govAddress the address of the governance contract
-    function __DistributionProposal_init(address _govAddress) external;
-
     /// @notice Executed by `Gov` contract, creates a DP
     /// @param proposalId the id of distribution proposal in Gov pool
     /// @param token the rewards token address
@@ -36,10 +26,6 @@ interface IDistributionProposal {
     /// @param voter Voter address
     /// @param proposalIds the array of proposal ids
     function claim(address voter, uint256[] calldata proposalIds) external;
-
-    /// @notice The function to get the address of the governance contract
-    /// @return the address of the governance contract
-    function govAddress() external view returns (address);
 
     /// @notice Return potential reward. If user hasn't voted, or `getTotalVotesWeight` is zero, return zero
     /// @param proposalId the proposal id

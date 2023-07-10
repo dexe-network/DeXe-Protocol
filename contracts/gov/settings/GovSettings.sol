@@ -8,10 +8,13 @@ import "../../interfaces/gov/settings/IGovSettings.sol";
 import "../../core/Globals.sol";
 
 contract GovSettings is IGovSettings, OwnableUpgradeable {
-    uint256 public override newSettingsId;
+    uint256 public newSettingsId;
 
     mapping(uint256 => ProposalSettings) public settings; // settingsId => info
     mapping(address => uint256) public executorToSettings; // executor => seetingsId
+
+    event SettingsChanged(uint256 settingsId, string description);
+    event ExecutorChanged(uint256 settingsId, address executor);
 
     function __GovSettings_init(
         address govPoolAddress,
@@ -20,7 +23,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         address govUserKeeperAddress,
         ProposalSettings[] calldata proposalSettings,
         address[] calldata additionalProposalExecutors
-    ) external override initializer {
+    ) external initializer {
         require(
             additionalProposalExecutors.length + 4 == proposalSettings.length,
             "GovSettings: invalid proposal settings count"
@@ -97,6 +100,31 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         }
     }
 
+    function _validateProposalSettings(ProposalSettings calldata _settings) internal pure {
+        require(_settings.duration > 0, "GovSettings: invalid vote duration value");
+        require(_settings.quorum <= PERCENTAGE_100, "GovSettings: invalid quorum value");
+        require(_settings.quorum > 0, "GovSettings: invalid quorum value");
+        require(
+            _settings.durationValidators > 0,
+            "GovSettings: invalid validator vote duration value"
+        );
+        require(
+            _settings.quorumValidators <= PERCENTAGE_100,
+            "GovSettings: invalid validator quorum value"
+        );
+    }
+
+    function _validateDistributionSettings(ProposalSettings calldata _settings) internal pure {
+        require(
+            !_settings.delegatedVotingAllowed && !_settings.earlyCompletion,
+            "GovSettings: invalid distribution settings"
+        );
+    }
+
+    function _settingsExist(uint256 settingsId) internal view returns (bool) {
+        return settings[settingsId].duration > 0;
+    }
+
     function getDefaultSettings() external view override returns (ProposalSettings memory) {
         return settings[uint256(ExecutorType.DEFAULT)];
     }
@@ -121,30 +149,5 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         settings[settingsId] = _settings;
 
         emit SettingsChanged(settingsId, _settings.executorDescription);
-    }
-
-    function _settingsExist(uint256 settingsId) internal view returns (bool) {
-        return settings[settingsId].duration > 0;
-    }
-
-    function _validateProposalSettings(ProposalSettings calldata _settings) internal pure {
-        require(_settings.duration > 0, "GovSettings: invalid vote duration value");
-        require(_settings.quorum <= PERCENTAGE_100, "GovSettings: invalid quorum value");
-        require(_settings.quorum > 0, "GovSettings: invalid quorum value");
-        require(
-            _settings.durationValidators > 0,
-            "GovSettings: invalid validator vote duration value"
-        );
-        require(
-            _settings.quorumValidators <= PERCENTAGE_100,
-            "GovSettings: invalid validator quorum value"
-        );
-    }
-
-    function _validateDistributionSettings(ProposalSettings calldata _settings) internal pure {
-        require(
-            !_settings.delegatedVotingAllowed && !_settings.earlyCompletion,
-            "GovSettings: invalid distribution settings"
-        );
     }
 }

@@ -13,9 +13,6 @@ library GovPoolOffchain {
     using ECDSA for bytes32;
     using GovPoolCommission for address;
 
-    /// @notice Emitted when offchain results are saved
-    /// @param resultsHash Hash of the results
-    /// @param sender Address of the sender
     event OffchainResultsSaved(string resultsHash, address sender);
 
     function saveOffchainResults(

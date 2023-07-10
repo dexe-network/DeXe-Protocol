@@ -93,52 +93,6 @@ interface ITraderPoolInvestProposal is ITraderPoolProposal {
         Reception[] rewards;
     }
 
-    /// @notice Emitted when the proposal is created
-    /// @param proposalId the id of the created proposal
-    /// @param proposalLimits the limits of the created proposal
-    event ProposalCreated(
-        uint256 proposalId,
-        ITraderPoolInvestProposal.ProposalLimits proposalLimits
-    );
-
-    /// @notice Emitted when the proposal withdraws the funds
-    /// @param proposalId the id of the proposal
-    /// @param sender the address of the sender
-    /// @param amount the amount of base tokens withdrawn
-    event ProposalWithdrawn(uint256 proposalId, address sender, uint256 amount);
-
-    /// @notice Emitted when the proposal supplies the funds
-    /// @param proposalId the id of the proposal
-    /// @param sender the address of the sender
-    /// @param amounts the amounts of tokens supplied
-    /// @param tokens the addresses of tokens supplied
-    event ProposalSupplied(
-        uint256 proposalId,
-        address sender,
-        uint256[] amounts,
-        address[] tokens
-    );
-
-    /// @notice Emitted when the proposal claims the rewards
-    /// @param proposalId the id of the proposal
-    /// @param user the address of the user
-    /// @param amounts the amounts of tokens claimed
-    /// @param tokens the addresses of tokens claimed
-    event ProposalClaimed(uint256 proposalId, address user, uint256[] amounts, address[] tokens);
-
-    /// @notice Emitted when the proposal converts
-    /// @param proposalId the id of the proposal
-    /// @param user the address of the user
-    /// @param amount the amount of base tokens converted
-    /// @param baseToken the address of the base token
-    event ProposalConverted(uint256 proposalId, address user, uint256 amount, address baseToken);
-
-    /// @notice The function to initialize the proposal
-    /// @param parentTraderPoolInfo the information about the parent pool
-    function __TraderPoolInvestProposal_init(
-        ParentTraderPoolInfo calldata parentTraderPoolInfo
-    ) external;
-
     /// @notice The function to change the proposal limits
     /// @param proposalId the id of the proposal to change
     /// @param proposalLimits the new limits for this proposal

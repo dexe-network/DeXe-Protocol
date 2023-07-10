@@ -41,13 +41,6 @@ library TraderPoolInvest {
         uint256 fromVolume,
         uint256 toVolume
     );
-
-    /// @notice Emitted when exchange is performed
-    /// @param sender Address of the sender
-    /// @param fromToken Address of the token to exchange from
-    /// @param toToken Address of the token to exchange to
-    /// @param fromVolume Amount of the token to exchange from
-    /// @param toVolume Amount of the token to exchange to
     event Exchanged(
         address sender,
         address fromToken,
@@ -55,42 +48,6 @@ library TraderPoolInvest {
         uint256 fromVolume,
         uint256 toVolume
     );
-
-    function investPositions(
-        ITraderPool.PoolParameters storage poolParameters,
-        address baseHolder,
-        uint256 amountInBaseToInvest,
-        uint256[] calldata minPositionsOut
-    ) public returns (uint256 toMintLP) {
-        (
-            uint256 totalBase,
-            ,
-            address[] memory positionTokens,
-            uint256[] memory positionPricesInBase
-        ) = poolParameters.getNormalizedPoolPriceAndPositions();
-
-        toMintLP = _transferBase(poolParameters, baseHolder, totalBase, amountInBaseToInvest);
-
-        IPriceFeed priceFeed = TraderPool(address(this)).priceFeed();
-
-        for (uint256 i = 0; i < positionTokens.length; i++) {
-            uint256 amount = positionPricesInBase[i].ratio(amountInBaseToInvest, totalBase);
-            uint256 amountGot = priceFeed.normalizedExchangeFromExact(
-                poolParameters.baseToken,
-                positionTokens[i],
-                amount,
-                new address[](0),
-                minPositionsOut[i]
-            );
-
-            emit ActivePortfolioExchanged(
-                poolParameters.baseToken,
-                positionTokens[i],
-                amount,
-                amountGot
-            );
-        }
-    }
 
     function invest(
         ITraderPool.PoolParameters storage poolParameters,
@@ -122,14 +79,17 @@ library TraderPoolInvest {
         address[] calldata tokens,
         uint256 minLPOut
     ) external {
-        IPriceFeed priceFeed = TraderPool(address(this)).priceFeed();
-        ICoreProperties coreProperties = TraderPool(address(this)).coreProperties();
+        TraderPool traderPool = TraderPool(address(this));
+        IPriceFeed priceFeed = traderPool.priceFeed();
         uint256 totalInvestedBaseAmount;
 
         (uint256 totalBase, , , ) = poolParameters.getNormalizedPoolPriceAndPositions();
 
         for (uint256 i = 0; i < tokens.length; i++) {
-            require(!coreProperties.isBlacklistedToken(tokens[i]), "TP: token in blacklist");
+            require(
+                !traderPool.coreProperties().isBlacklistedToken(tokens[i]),
+                "TP: token in blacklist"
+            );
 
             IERC20Metadata(tokens[i]).safeTransferFrom(
                 msg.sender,
@@ -173,7 +133,7 @@ library TraderPoolInvest {
         }
 
         require(
-            positions.length() <= coreProperties.getMaximumOpenPositions(),
+            positions.length() <= traderPool.coreProperties().getMaximumOpenPositions(),
             "TP: max positions"
         );
 
@@ -181,8 +141,8 @@ library TraderPoolInvest {
 
         require(toMintLP >= minLPOut, "TP: minLPOut < toLP");
 
-        TraderPool(address(this)).updateTo(msg.sender, toMintLP, totalInvestedBaseAmount);
-        TraderPool(address(this)).mint(msg.sender, toMintLP);
+        traderPool.updateTo(msg.sender, toMintLP, totalInvestedBaseAmount);
+        traderPool.mint(msg.sender, toMintLP);
     }
 
     function _transferBase(

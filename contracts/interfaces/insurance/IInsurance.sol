@@ -24,25 +24,6 @@ interface IInsurance {
         uint256 lastDepositTimestamp;
     }
 
-    /// @notice The event emitted when the user deposits DEXE tokens
-    /// @param amount the amount of DEXE tokens deposited
-    /// @param investor the address of the investor
-    event Deposited(uint256 amount, address investor);
-
-    /// @notice The event emitted when the user withdraws DEXE tokens
-    /// @param amount the amount of DEXE tokens withdrawn
-    /// @param investor the address of the investor
-    event Withdrawn(uint256 amount, address investor);
-
-    /// @notice The event emitted when paid out the insurance
-    /// @param insurancePayout the amount of DEXE tokens paid out as insurance
-    /// @param userStakePayout the amount of DEXE tokens paid out as user's stake
-    /// @param investor the address of the investor
-    event Paidout(uint256 insurancePayout, uint256 userStakePayout, address investor);
-
-    /// @notice The function to initialize the contract
-    function __Insurance_init() external;
-
     /// @notice The function to buy an insurance for the deposited DEXE tokens. Minimal insurance is specified by the DAO
     /// @param deposit the amount of DEXE tokens to be deposited
     function buyInsurance(uint256 deposit) external;

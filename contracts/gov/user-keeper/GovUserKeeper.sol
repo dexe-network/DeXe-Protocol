@@ -32,8 +32,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     using DecimalsConverter for uint256;
     using GovUserKeeperView for *;
 
-    address public override tokenAddress;
-    address public override nftAddress;
+    address public tokenAddress;
+    address public nftAddress;
 
     NFTInfo internal _nftInfo;
 
@@ -45,6 +45,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     mapping(uint256 => uint256) internal _nftLockedNums; // tokenId => locked num
 
     mapping(uint256 => uint256) public nftSnapshot; // snapshot id => totalNftsPower
+
+    event SetERC20(address token);
+    event SetERC721(address token);
 
     modifier withSupportedToken() {
         _withSupportedToken();

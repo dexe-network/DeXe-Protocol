@@ -91,62 +91,6 @@ interface ITraderPoolRiskyProposal is ITraderPoolProposal {
         uint256[] receivedAmounts; // should be used as minAmountOut
     }
 
-    /// @notice Emitted when proposal is created
-    /// @param proposalId ID of the proposal
-    /// @param token Address of the token
-    /// @param proposalLimits Proposal limits
-    event ProposalCreated(
-        uint256 proposalId,
-        address token,
-        ITraderPoolRiskyProposal.ProposalLimits proposalLimits
-    );
-
-    /// @notice Emitted when proposal position is opened
-    /// @param proposalId ID of the proposal
-    /// @param positionToken Address of the position token
-    event ProposalPositionOpened(uint256 proposalId, address positionToken);
-
-    /// @notice Emitted when proposal is exchanged
-    /// @param proposalId ID of the proposal
-    /// @param sender Address of the sender
-    /// @param fromToken Address of the from token
-    /// @param toToken Address of the to token
-    /// @param fromVolume Amount of the from token
-    /// @param toVolume Amount of the to token
-    event ProposalExchanged(
-        uint256 proposalId,
-        address sender,
-        address fromToken,
-        address toToken,
-        uint256 fromVolume,
-        uint256 toVolume
-    );
-
-    /// @notice Emitted when active portfolio is exchanged
-    /// @param proposalId ID of the proposal
-    /// @param fromToken Address of the from token
-    /// @param toToken Address of the to token
-    /// @param fromVolume Amount of the from token
-    /// @param toVolume Amount of the to token
-    event ProposalActivePortfolioExchanged(
-        uint256 proposalId,
-        address fromToken,
-        address toToken,
-        uint256 fromVolume,
-        uint256 toVolume
-    );
-
-    /// @notice Emitted when proposal position is closed
-    /// @param proposalId ID of the proposal
-    /// @param positionToken Address of the position token
-    event ProposalPositionClosed(uint256 proposalId, address positionToken);
-
-    /// @notice The function to initialize the proposal
-    /// @param parentTraderPoolInfo the information about the parent trader pool
-    function __TraderPoolRiskyProposal_init(
-        ParentTraderPoolInfo calldata parentTraderPoolInfo
-    ) external;
-
     /// @notice The function to change the proposal investment restrictions
     /// @param proposalId the id of the proposal to change the restriction for
     /// @param proposalLimits the new limits for the proposal

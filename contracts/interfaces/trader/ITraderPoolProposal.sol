@@ -22,62 +22,9 @@ interface ITraderPoolProposal {
         uint8 baseTokenDecimals;
     }
 
-    /// @notice Emitted when proposal is changed
-    /// @param proposalId ID of the proposal
-    /// @param sender Address of the sender
-    event ProposalRestrictionsChanged(uint256 proposalId, address sender);
-
-    /// @notice Emitted when investor joins the proposal
-    /// @param proposalId ID of the proposal
-    /// @param investor Address of the investor
-    event ProposalJoined(uint256 proposalId, address investor);
-
-    /// @notice Emitted when investor leaves the proposal
-    /// @param proposalId ID of the proposal
-    /// @param investor Address of the investor
-    event ProposalLeft(uint256 proposalId, address investor);
-
-    /// @notice Emitted when proposal is invested
-    /// @param proposalId ID of the proposal
-    /// @param user Address of the user
-    /// @param investedLP Amount of the LP tokens invested
-    /// @param investedBase Amount of the base tokens invested
-    /// @param receivedLP2 Amount of the LP2 tokens received
-    event ProposalInvested(
-        uint256 proposalId,
-        address user,
-        uint256 investedLP,
-        uint256 investedBase,
-        uint256 receivedLP2
-    );
-
-    /// @notice Emitted when proposal is divested
-    /// @param proposalId ID of the proposal
-    /// @param user Address of the user
-    /// @param divestedLP2 Amount of the LP2 tokens divested
-    /// @param receivedLP Amount of the LP tokens received
-    /// @param receivedBase Amount of the base tokens received
-    event ProposalDivested(
-        uint256 proposalId,
-        address user,
-        uint256 divestedLP2,
-        uint256 receivedLP,
-        uint256 receivedBase
-    );
-
-    /// @notice The function to initialize the proposal
-    /// @param parentTraderPoolInfo the parent trader pool information
-    function __TraderPoolProposal_init(
-        ParentTraderPoolInfo calldata parentTraderPoolInfo
-    ) external;
-
     /// @notice The function that returns the PriceFeed this proposal uses
     /// @return the price feed address
     function priceFeed() external view returns (IPriceFeed);
-
-    /// @notice The function that returns the total amount of proposals created
-    /// @return the total amount of proposals
-    function proposalsTotalNum() external view returns (uint256);
 
     /// @notice The function that returns the amount of currently locked LP tokens in all proposals
     /// @return the amount of locked LP tokens in all proposals

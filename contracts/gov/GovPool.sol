@@ -51,25 +51,25 @@ contract GovPool is
     using GovPoolExecute for *;
     using GovPoolStaking for *;
 
-    uint256 public constant override PERCENTAGE_MICROPOOL_REWARDS = PERCENTAGE_100 / 5; // 20%
-
-    string public override descriptionURL;
-    string public override name;
-
-    uint256 public override latestProposalId;
-    uint256 public override deployerBABTid;
-
-    ICoreProperties public override coreProperties;
-
-    address public override nftMultiplier;
-    ISBT721 public override babt;
-
-    bool public override onlyBABTHolders;
+    uint256 public constant PERCENTAGE_MICROPOOL_REWARDS = PERCENTAGE_100 / 5; // 20%
 
     IGovSettings internal _govSettings;
     IGovUserKeeper internal _govUserKeeper;
     IGovValidators internal _govValidators;
     address internal _distributionProposal;
+
+    ICoreProperties public coreProperties;
+
+    address public nftMultiplier;
+    ISBT721 public babt;
+
+    bool public onlyBABTHolders;
+
+    string public descriptionURL;
+    string public name;
+
+    uint256 public latestProposalId;
+    uint256 public deployerBABTid;
 
     OffChain internal _offChain;
 
@@ -81,6 +81,10 @@ contract GovPool is
     mapping(address => PendingRewards) internal _pendingRewards; // user => pending rewards
 
     mapping(address => MicropoolInfo) internal _micropoolInfos;
+
+    event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
+    event Deposited(uint256 amount, uint256[] nfts, address sender);
+    event Withdrawn(uint256 amount, uint256[] nfts, address sender);
 
     modifier onlyThis() {
         _onlyThis();
@@ -103,7 +107,7 @@ contract GovPool is
         uint256 _deployerBABTid,
         string calldata _descriptionURL,
         string calldata _name
-    ) external override initializer {
+    ) external initializer {
         _govSettings = IGovSettings(govSettingAddress);
         _govUserKeeper = IGovUserKeeper(govUserKeeperAddress);
         _govValidators = IGovValidators(validatorsAddress);

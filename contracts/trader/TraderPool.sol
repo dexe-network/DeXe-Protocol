@@ -35,9 +35,9 @@ abstract contract TraderPool is
     using TraderPoolDivest for *;
     using TraderPoolView for *;
 
-    IERC20 public override dexeToken;
-    IPriceFeed public override priceFeed;
-    ICoreProperties public override coreProperties;
+    IERC20 public dexeToken;
+    IPriceFeed public priceFeed;
+    ICoreProperties public coreProperties;
     ISBT721 internal _babt;
 
     EnumerableSet.AddressSet internal _traderAdmins;
@@ -50,6 +50,11 @@ abstract contract TraderPool is
 
     mapping(address => uint256) public latestInvestBlocks; // user => block
     mapping(address => InvestorInfo) public investorsInfo;
+
+    event Joined(address user);
+    event Left(address user);
+    event Invested(address user, uint256 investedBase, uint256 receivedLP);
+    event Divested(address user, uint256 divestedLP, uint256 receivedBase);
 
     modifier onlyTraderAdmin() {
         _onlyTraderAdmin();
@@ -71,6 +76,34 @@ abstract contract TraderPool is
         _;
     }
 
+    function isPrivateInvestor(address who) public view override returns (bool) {
+        return _privateInvestors.contains(who);
+    }
+
+    function isTraderAdmin(address who) public view override returns (bool) {
+        return _traderAdmins.contains(who);
+    }
+
+    function isTrader(address who) public view override returns (bool) {
+        return _poolParameters.trader == who;
+    }
+
+    function isBABTHolder(address who) public view override returns (bool) {
+        return !_poolParameters.onlyBABTHolders || _babt.balanceOf(who) > 0;
+    }
+
+    function __TraderPool_init(
+        string calldata name,
+        string calldata symbol,
+        PoolParameters calldata poolParameters
+    ) public onlyInitializing {
+        __ERC20_init(name, symbol);
+        __ReentrancyGuard_init();
+
+        _poolParameters = poolParameters;
+        _traderAdmins.add(poolParameters.trader);
+    }
+
     function setDependencies(address contractsRegistry) public virtual override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
@@ -78,37 +111,6 @@ abstract contract TraderPool is
         priceFeed = IPriceFeed(registry.getPriceFeedContract());
         coreProperties = ICoreProperties(registry.getCorePropertiesContract());
         _babt = ISBT721(registry.getBABTContract());
-    }
-
-    function divest(
-        uint256 amountLP,
-        uint256[] calldata minPositionsOut,
-        uint256 minDexeCommissionOut
-    ) public virtual override onlyBABTHolder {
-        _poolParameters.divest(amountLP, minPositionsOut, minDexeCommissionOut);
-    }
-
-    function exchange(
-        address from,
-        address to,
-        uint256 amount,
-        uint256 amountBound,
-        address[] calldata optionalPath,
-        ExchangeType exType
-    ) public virtual override onlyTraderAdmin onlyBABTHolder {
-        _poolParameters.exchange(_positions, from, to, amount, amountBound, optionalPath, exType);
-    }
-
-    function __TraderPool_init(
-        string calldata name,
-        string calldata symbol,
-        PoolParameters calldata poolParameters
-    ) public override onlyInitializing {
-        __ERC20_init(name, symbol);
-        __ReentrancyGuard_init();
-
-        _poolParameters = poolParameters;
-        _traderAdmins.add(poolParameters.trader);
     }
 
     function modifyAdmins(
@@ -171,19 +173,34 @@ abstract contract TraderPool is
         );
     }
 
-    function mint(address account, uint256 amount) external override onlyThis {
+    function divest(
+        uint256 amountLP,
+        uint256[] calldata minPositionsOut,
+        uint256 minDexeCommissionOut
+    ) public virtual override onlyBABTHolder {
+        _poolParameters.divest(amountLP, minPositionsOut, minDexeCommissionOut);
+    }
+
+    function exchange(
+        address from,
+        address to,
+        uint256 amount,
+        uint256 amountBound,
+        address[] calldata optionalPath,
+        ExchangeType exType
+    ) public virtual override onlyTraderAdmin onlyBABTHolder {
+        _poolParameters.exchange(_positions, from, to, amount, amountBound, optionalPath, exType);
+    }
+
+    function mint(address account, uint256 amount) external onlyThis {
         _mint(account, amount);
     }
 
-    function burn(address account, uint256 amount) external override onlyThis {
+    function burn(address account, uint256 amount) external onlyThis {
         _burn(account, amount);
     }
 
-    function updateTo(
-        address user,
-        uint256 lpAmount,
-        uint256 baseAmount
-    ) external override onlyThis {
+    function updateTo(address user, uint256 lpAmount, uint256 baseAmount) external onlyThis {
         _updateTo(user, lpAmount, baseAmount);
     }
 
@@ -191,31 +208,15 @@ abstract contract TraderPool is
         address user,
         uint256 lpAmount,
         uint256 baseAmount
-    ) external override onlyThis returns (uint256 baseTransfer) {
+    ) external onlyThis returns (uint256 baseTransfer) {
         return _updateFrom(user, lpAmount, baseAmount);
     }
 
-    function setLatestInvestBlock(address user) external override onlyThis {
+    function setLatestInvestBlock(address user) external onlyThis {
         latestInvestBlocks[user] = block.number;
     }
 
     function proposalPoolAddress() external view virtual override returns (address);
-
-    function isPrivateInvestor(address who) public view override returns (bool) {
-        return _privateInvestors.contains(who);
-    }
-
-    function isTraderAdmin(address who) public view override returns (bool) {
-        return _traderAdmins.contains(who);
-    }
-
-    function isTrader(address who) public view override returns (bool) {
-        return _poolParameters.trader == who;
-    }
-
-    function isBABTHolder(address who) public view override returns (bool) {
-        return !_poolParameters.onlyBABTHolders || _babt.balanceOf(who) > 0;
-    }
 
     function totalEmission() public view virtual override returns (uint256);
 
@@ -223,16 +224,12 @@ abstract contract TraderPool is
         address investor
     ) public view virtual override returns (bool);
 
-    function openPositions() public view returns (address[] memory) {
-        return coreProperties.getFilteredPositions(_positions.values());
-    }
-
-    function getNextCommissionEpoch() public view override returns (uint256) {
-        return _poolParameters.getNextCommissionEpoch();
-    }
-
     function totalInvestors() external view override returns (uint256) {
         return _investors.length();
+    }
+
+    function openPositions() public view returns (address[] memory) {
+        return coreProperties.getFilteredPositions(_positions.values());
     }
 
     function getUsersInfo(
@@ -268,6 +265,10 @@ abstract contract TraderPool is
         uint256[] calldata offsetLimits
     ) external view override returns (Commissions memory commissions) {
         return _poolParameters.getReinvestCommissions(_investors, offsetLimits);
+    }
+
+    function getNextCommissionEpoch() public view override returns (uint256) {
+        return _poolParameters.getNextCommissionEpoch();
     }
 
     function getDivestAmountsAndCommissions(

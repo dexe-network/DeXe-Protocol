@@ -11,32 +11,6 @@ import "./ITraderPool.sol";
  * investment proposals and the trader will be able to do whetever he wants to do with the received funds
  */
 interface IInvestTraderPool is ITraderPoolMemberHook {
-    /// @notice Emitted when proposal is divested
-    /// @param proposalId ID of the proposal
-    /// @param user Address of the user
-    /// @param divestedLP2 Amount of the LP2 tokens divested
-    /// @param receivedLP Amount of the LP tokens received
-    /// @param receivedBase Amount of the base tokens received
-    event ProposalDivested(
-        uint256 proposalId,
-        address user,
-        uint256 divestedLP2,
-        uint256 receivedLP,
-        uint256 receivedBase
-    );
-
-    /// @notice Function to initialize the pool
-    /// @param name Name of the pool
-    /// @param symbol Symbol of the pool
-    /// @param _poolParameters Pool parameters
-    /// @param traderPoolProposal Address of the trader pool proposal
-    function __InvestTraderPool_init(
-        string calldata name,
-        string calldata symbol,
-        ITraderPool.PoolParameters calldata _poolParameters,
-        address traderPoolProposal
-    ) external;
-
     /// @notice This function creates an investment proposal that users will be able to invest in
     /// @param descriptionURL the IPFS URL of the description document
     /// @param lpAmount the amount of LP tokens the trader will invest rightaway

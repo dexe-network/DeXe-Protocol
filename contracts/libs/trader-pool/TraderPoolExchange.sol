@@ -17,16 +17,7 @@ library TraderPoolExchange {
     using PriceFeedLocal for IPriceFeed;
     using TokenBalance for address;
 
-    /// @notice Emitted when position is opened
-    /// @param position Address of the position
     event PositionOpened(address position);
-
-    /// @notice Emitted when exchange is performed
-    /// @param sender Address of the sender
-    /// @param fromToken Address of the token to exchange from
-    /// @param toToken Address of the token to exchange to
-    /// @param fromVolume Amount of the token to exchange from
-    /// @param toVolume Amount of the token to exchange to
     event Exchanged(
         address sender,
         address fromToken,
@@ -34,9 +25,6 @@ library TraderPoolExchange {
         uint256 fromVolume,
         uint256 toVolume
     );
-
-    /// @notice Emitted when position is closed
-    /// @param position Address of the position
     event PositionClosed(address position);
 
     function exchange(

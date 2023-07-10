@@ -150,46 +150,6 @@ interface ITraderPool {
         uint256 traderLPBalance;
     }
 
-    /// @notice Emitted when the trader is joined
-    /// @param user Address of the user
-    event Joined(address user);
-
-    /// @notice Emitted when the trader is left
-    /// @param user Address of the user
-    event Left(address user);
-
-    /// @notice Emitted when the trader invests into the pool
-    /// @param user Address of the user
-    /// @param investedBase Amount of the base tokens invested
-    /// @param receivedLP Amount of the LP tokens received
-    event Invested(address user, uint256 investedBase, uint256 receivedLP);
-
-    /// @notice Emitted when the trader divests from the pool
-    /// @param user Address of the user
-    /// @param divestedLP Amount of the base tokens divested
-    /// @param receivedBase Amount of the LP tokens divested
-    event Divested(address user, uint256 divestedLP, uint256 receivedBase);
-
-    /// @notice The function to initialize the pool
-    /// @param name Name of the pool
-    /// @param symbol Symbol of the pool
-    /// @param poolParameters Pool parameters
-    function __TraderPool_init(
-        string calldata name,
-        string calldata symbol,
-        PoolParameters calldata poolParameters
-    ) external;
-
-    /// @notice The function that returns the address of the dexe token
-    /// @return the address of the base token
-    function dexeToken() external view returns (IERC20);
-
-    /// @notice The function that returns the address of the price feed
-    function priceFeed() external view returns (IPriceFeed);
-
-    /// @notice The function that returns the address of the core properties
-    function coreProperties() external view returns (ICoreProperties);
-
     /// @notice The function that checks whether the specified address is a private investor
     /// @param who the address to check
     /// @return true if the pool is private and who is a private investor, false otherwise
@@ -285,36 +245,6 @@ interface ITraderPool {
         address[] calldata optionalPath,
         ExchangeType exType
     ) external;
-
-    /// @notice The function to mint tokens
-    /// @param account the address to mint tokens to
-    /// @param amount the amount of tokens to mint
-    function mint(address account, uint256 amount) external;
-
-    /// @notice The function to burn tokens
-    /// @param account the address to burn tokens from
-    /// @param amount the amount of tokens to burn
-    function burn(address account, uint256 amount) external;
-
-    /// @notice The function to update the pool
-    /// @param user the address of the user to update
-    /// @param lpAmount the amount of LP tokens to update
-    /// @param baseAmount the amount of base tokens to update
-    function updateTo(address user, uint256 lpAmount, uint256 baseAmount) external;
-
-    /// @notice The function to update the pool
-    /// @param user the address of the user to update
-    /// @param lpAmount the amount of LP tokens to update
-    /// @param baseAmount the amount of base tokens to update
-    function updateFrom(
-        address user,
-        uint256 lpAmount,
-        uint256 baseAmount
-    ) external returns (uint256 baseTransfer);
-
-    /// @notice The function to set the latest invest block
-    /// @param user the address of the user to update
-    function setLatestInvestBlock(address user) external;
 
     /// @notice The function to get an address of a proposal pool used by this contract
     /// @return the address of the proposal pool

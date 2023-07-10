@@ -24,46 +24,6 @@ interface IPoolRegistry {
         address poolAddress
     ) external;
 
-    /// @notice The function to get the name of the basic pool
-    /// @return the name of the basic pool
-    function BASIC_POOL_NAME() external view returns (string memory);
-
-    /// @notice The function to get the name of the invest pool
-    /// @return the name of the invest pool
-    function INVEST_POOL_NAME() external view returns (string memory);
-
-    /// @notice The function to get the name of the risky proposal pool
-    /// @return the name of the risky proposal pool
-    function RISKY_PROPOSAL_NAME() external view returns (string memory);
-
-    /// @notice The function to get the name of the invest proposal pool
-    /// @return the name of the invest proposal pool
-    function INVEST_PROPOSAL_NAME() external view returns (string memory);
-
-    /// @notice The function to get the name of the gov pool
-    /// @return the name of the gov pool
-    function GOV_POOL_NAME() external view returns (string memory);
-
-    /// @notice The function to get the name of the settings contract
-    /// @return the name of the settings contract
-    function SETTINGS_NAME() external view returns (string memory);
-
-    /// @notice The function to get the name of the validators contract
-    /// @return the name of the validators contract
-    function VALIDATORS_NAME() external view returns (string memory);
-
-    /// @notice The function to get the name of the user keeper contract
-    /// @return the name of the user keeper contract
-    function USER_KEEPER_NAME() external view returns (string memory);
-
-    /// @notice The function to get the name of the distribution proposal pool
-    /// @return the name of the distribution proposal pool
-    function DISTRIBUTION_PROPOSAL_NAME() external view returns (string memory);
-
-    /// @notice The function to get the name of the token sale proposal pool
-    /// @return the name of the token sale proposal pool
-    function TOKEN_SALE_PROPOSAL_NAME() external view returns (string memory);
-
     /// @notice The function that counts associated pools by their type
     /// @param user the owner of the pool
     /// @param name the type of the pool

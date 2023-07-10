@@ -30,9 +30,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
     EnumerableSet.AddressSet internal _whitelistTokens;
     EnumerableSet.AddressSet internal _blacklistTokens;
 
-    function __CoreProperties_init(
-        CoreParameters calldata _coreParameters
-    ) external override initializer {
+    function __CoreProperties_init(CoreParameters calldata _coreParameters) external initializer {
         __Ownable_init();
 
         coreParameters = _coreParameters;

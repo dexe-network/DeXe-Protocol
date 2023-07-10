@@ -7,10 +7,14 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../interfaces/user/IUserRegistry.sol";
 
 contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
-    bytes32 public override documentHash;
+    bytes32 public documentHash;
 
     mapping(bytes32 => mapping(address => bytes32)) internal _signatureHashes;
     mapping(address => string) internal _users;
+
+    event UpdatedProfile(address user, string url);
+    event Agreed(address user, bytes32 documentHash);
+    event SetDocumentHash(bytes32 hash);
 
     function __UserRegistry_init(string calldata name) public initializer {
         __EIP712_init(name, "1");
@@ -50,14 +54,6 @@ contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
         changeProfile(url);
     }
 
-    function userInfos(address user) public view returns (UserInfo memory) {
-        return
-            UserInfo({
-                profileURL: _users[user],
-                signatureHash: _signatureHashes[documentHash][user]
-            });
-    }
-
     function agreed(address user) external view override returns (bool) {
         return _signatureHashes[documentHash][user] != 0;
     }
@@ -66,5 +62,13 @@ contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
         documentHash = hash;
 
         emit SetDocumentHash(hash);
+    }
+
+    function userInfos(address user) public view returns (UserInfo memory) {
+        return
+            UserInfo({
+                profileURL: _users[user],
+                signatureHash: _signatureHashes[documentHash][user]
+            });
     }
 }

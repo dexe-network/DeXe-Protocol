@@ -130,25 +130,6 @@ interface ITokenSaleProposal {
         string uri;
     }
 
-    /// @notice This event is emitted when a new tier is created
-    /// @param tierId the id of the tier
-    /// @param saleToken the address of the token being sold
-    event TierCreated(uint256 tierId, address saleToken);
-
-    /// @notice This event is emitted when buying
-    /// @param tierId the id of the tier
-    /// @param buyer the address of the buyer
-    event Bought(uint256 tierId, address buyer);
-
-    /// @notice This event is emitted when a user is whitelisted
-    /// @param tierId the id of the tier
-    /// @param user the address of the user
-    event Whitelisted(uint256 tierId, address user);
-
-    /// @notice This function is used to initialize the contract
-    /// @param _govAddress the address of the governance contract
-    function __TokenSaleProposal_init(address _govAddress) external;
-
     /// @notice This function is used to get id (index) of the latest tier of the token sale
     /// @return the id of the latest tier
     function latestTierId() external view returns (uint256);
@@ -178,10 +159,6 @@ interface ITokenSaleProposal {
     /// @param tokenToBuyWith the token that will be used (exchanged) to purchase token on the token sale
     /// @param amount the amount of the token to be used for this exchange
     function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable;
-
-    /// @notice This function is used to get address of the governance contract
-    /// @return the address of the governance contract
-    function govAddress() external view returns (address);
 
     /// @notice This function is used to get amount of `TokenSaleProposal` tokens that can be purchased
     /// @param user the address of the user that purchases tokens

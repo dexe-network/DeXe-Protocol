@@ -10,21 +10,8 @@ import "../../trader/TraderPool.sol";
 library TraderPoolModify {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    /// @notice Emitted when admins are modified
-    /// @param sender Address of the sender
-    /// @param admins Array of the admins
-    /// @param add True if admins are added, false if removed
     event ModifiedAdmins(address sender, address[] admins, bool add);
-
-    /// @notice Emitted when private investors are modified
-    /// @param sender Address of the sender
-    /// @param privateInvestors Array of the private investors
-    /// @param add True if private investors are added, false if removed
     event ModifiedPrivateInvestors(address sender, address[] privateInvestors, bool add);
-
-    /// @notice Emitted when description URL is changed
-    /// @param sender Address of the sender
-    /// @param descriptionURL New description URL
     event DescriptionURLChanged(address sender, string descriptionURL);
 
     function modifyAdmins(

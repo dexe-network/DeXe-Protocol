@@ -35,7 +35,7 @@ abstract contract TraderPoolProposal is
 
     IPriceFeed public override priceFeed;
 
-    uint256 public override proposalsTotalNum;
+    uint256 public proposalsTotalNum;
 
     uint256 public override totalLockedLP;
     uint256 public override investedBase;
@@ -46,6 +46,24 @@ abstract contract TraderPoolProposal is
     mapping(address => mapping(uint256 => uint256)) internal _baseBalances; // user => proposal id => base invested
     mapping(address => mapping(uint256 => uint256)) internal _lpBalances; // user => proposal id => LP invested
     mapping(address => uint256) public override totalLPBalances; // user => LP invested
+
+    event ProposalRestrictionsChanged(uint256 proposalId, address sender);
+    event ProposalJoined(uint256 proposalId, address investor);
+    event ProposalLeft(uint256 proposalId, address investor);
+    event ProposalInvested(
+        uint256 proposalId,
+        address user,
+        uint256 investedLP,
+        uint256 investedBase,
+        uint256 receivedLP2
+    );
+    event ProposalDivested(
+        uint256 proposalId,
+        address user,
+        uint256 divestedLP2,
+        uint256 receivedLP,
+        uint256 receivedBase
+    );
 
     modifier onlyParentTraderPool() {
         _onlyParentTraderPool();
@@ -64,7 +82,7 @@ abstract contract TraderPoolProposal is
 
     function __TraderPoolProposal_init(
         ParentTraderPoolInfo calldata parentTraderPoolInfo
-    ) public override onlyInitializing {
+    ) public onlyInitializing {
         __ERC1155Supply_init();
 
         _parentTraderPoolInfo = parentTraderPoolInfo;

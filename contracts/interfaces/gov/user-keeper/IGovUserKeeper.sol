@@ -73,14 +73,6 @@ interface IGovUserKeeper {
         uint256[] perNftPower;
     }
 
-    /// @notice The event emitted when the ERC20 address is set
-    /// @param token the address of erc20 token
-    event SetERC20(address token);
-
-    /// @notice The event emitted when the ERC721 address is set
-    /// @param token the address of erc721 token
-    event SetERC721(address token);
-
     /// @notice The function for depositing tokens
     /// @param payer the address of depositor
     /// @param receiver the deposit receiver address
@@ -206,14 +198,6 @@ interface IGovUserKeeper {
         uint256 totalPowerInTokens,
         uint256 nftsTotalSupply
     ) external;
-
-    /// @notice The function for getting token address
-    /// @return `tokenAddress` the address of erc20 token
-    function tokenAddress() external view returns (address);
-
-    /// @notice The function for getting nft address
-    /// @return `nftAddress` the address of erc721 token
-    function nftAddress() external view returns (address);
 
     /// @notice The function for getting information about nft contract
     /// @return `NFTInfo` struct

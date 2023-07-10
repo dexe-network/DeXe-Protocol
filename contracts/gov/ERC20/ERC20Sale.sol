@@ -21,7 +21,7 @@ contract ERC20Sale is
     using Paginator for EnumerableSet.AddressSet;
     using SetHelper for EnumerableSet.AddressSet;
 
-    address public override govAddress;
+    address public govAddress;
 
     EnumerableSet.AddressSet internal _blacklistAccounts;
 
@@ -34,7 +34,7 @@ contract ERC20Sale is
         address _govAddress,
         address _saleAddress,
         ConstructorParams calldata params
-    ) external override initializer {
+    ) external initializer {
         __ERC20_init(params.name, params.symbol);
         __ERC20Capped_init(params.cap);
 

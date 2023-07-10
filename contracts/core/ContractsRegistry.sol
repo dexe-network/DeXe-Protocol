@@ -8,24 +8,24 @@ import "@dlsl/dev-modules/contracts-registry/presets/OwnableContractsRegistry.so
 import "../interfaces/core/IContractsRegistry.sol";
 
 contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPSUpgradeable {
-    string public constant override USER_REGISTRY_NAME = "USER_REGISTRY";
+    string public constant USER_REGISTRY_NAME = "USER_REGISTRY";
 
-    string public constant override POOL_FACTORY_NAME = "POOL_FACTORY";
-    string public constant override POOL_REGISTRY_NAME = "POOL_REGISTRY";
+    string public constant POOL_FACTORY_NAME = "POOL_FACTORY";
+    string public constant POOL_REGISTRY_NAME = "POOL_REGISTRY";
 
-    string public constant override DEXE_NAME = "DEXE";
-    string public constant override USD_NAME = "USD";
-    string public constant override BABT_NAME = "BABT";
+    string public constant DEXE_NAME = "DEXE";
+    string public constant USD_NAME = "USD";
+    string public constant BABT_NAME = "BABT";
 
-    string public constant override PRICE_FEED_NAME = "PRICE_FEED";
-    string public constant override UNISWAP_V2_ROUTER_NAME = "UNISWAP_V2_ROUTER";
-    string public constant override UNISWAP_V2_FACTORY_NAME = "UNISWAP_V2_FACTORY";
+    string public constant PRICE_FEED_NAME = "PRICE_FEED";
+    string public constant UNISWAP_V2_ROUTER_NAME = "UNISWAP_V2_ROUTER";
+    string public constant UNISWAP_V2_FACTORY_NAME = "UNISWAP_V2_FACTORY";
 
-    string public constant override INSURANCE_NAME = "INSURANCE";
-    string public constant override TREASURY_NAME = "TREASURY";
-    string public constant override DIVIDENDS_NAME = "DIVIDENDS";
+    string public constant INSURANCE_NAME = "INSURANCE";
+    string public constant TREASURY_NAME = "TREASURY";
+    string public constant DIVIDENDS_NAME = "DIVIDENDS";
 
-    string public constant override CORE_PROPERTIES_NAME = "CORE_PROPERTIES";
+    string public constant CORE_PROPERTIES_NAME = "CORE_PROPERTIES";
 
     function getUserRegistryContract() external view override returns (address) {
         return getContract(USER_REGISTRY_NAME);

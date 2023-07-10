@@ -14,17 +14,17 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     using Paginator for EnumerableSet.AddressSet;
     using Math for uint256;
 
-    string public constant override BASIC_POOL_NAME = "BASIC_POOL";
-    string public constant override INVEST_POOL_NAME = "INVEST_POOL";
-    string public constant override RISKY_PROPOSAL_NAME = "RISKY_POOL_PROPOSAL";
-    string public constant override INVEST_PROPOSAL_NAME = "INVEST_POOL_PROPOSAL";
+    string public constant BASIC_POOL_NAME = "BASIC_POOL";
+    string public constant INVEST_POOL_NAME = "INVEST_POOL";
+    string public constant RISKY_PROPOSAL_NAME = "RISKY_POOL_PROPOSAL";
+    string public constant INVEST_PROPOSAL_NAME = "INVEST_POOL_PROPOSAL";
 
-    string public constant override GOV_POOL_NAME = "GOV_POOL";
-    string public constant override SETTINGS_NAME = "SETTINGS";
-    string public constant override VALIDATORS_NAME = "VALIDATORS";
-    string public constant override USER_KEEPER_NAME = "USER_KEEPER";
-    string public constant override DISTRIBUTION_PROPOSAL_NAME = "DISTRIBUTION_PROPOSAL";
-    string public constant override TOKEN_SALE_PROPOSAL_NAME = "TOKEN_SALE_PROPOSAL";
+    string public constant GOV_POOL_NAME = "GOV_POOL";
+    string public constant SETTINGS_NAME = "SETTINGS";
+    string public constant VALIDATORS_NAME = "VALIDATORS";
+    string public constant USER_KEEPER_NAME = "USER_KEEPER";
+    string public constant DISTRIBUTION_PROPOSAL_NAME = "DISTRIBUTION_PROPOSAL";
+    string public constant TOKEN_SALE_PROPOSAL_NAME = "TOKEN_SALE_PROPOSAL";
 
     address internal _poolFactory;
 
@@ -52,16 +52,8 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         address user,
         string calldata name,
         address poolAddress
-    ) external override onlyPoolFactory {
+    ) external onlyPoolFactory {
         _ownerPools[user][name].add(poolAddress);
-    }
-
-    function isBasicPool(address potentialPool) public view override returns (bool) {
-        return _isPool(BASIC_POOL_NAME, potentialPool);
-    }
-
-    function isInvestPool(address potentialPool) public view override returns (bool) {
-        return _isPool(INVEST_POOL_NAME, potentialPool);
     }
 
     function countAssociatedPools(
@@ -105,6 +97,14 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
             poolInfos[i] = traderPool.getPoolInfo();
             leverageInfos[i] = traderPool.getLeverageInfo();
         }
+    }
+
+    function isBasicPool(address potentialPool) public view override returns (bool) {
+        return _isPool(BASIC_POOL_NAME, potentialPool);
+    }
+
+    function isInvestPool(address potentialPool) public view override returns (bool) {
+        return _isPool(INVEST_POOL_NAME, potentialPool);
     }
 
     function isTraderPool(address potentialPool) external view override returns (bool) {

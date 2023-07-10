@@ -54,32 +54,6 @@ interface IGovSettings {
         uint256 voteAgainstRewardsCoefficient;
     }
 
-    /// @notice The event emitted when the settings are changed
-    /// @param settingsId the id of the settings
-    /// @param description the description of the settings
-    event SettingsChanged(uint256 settingsId, string description);
-
-    /// @notice The event emitted when the executor is changed
-    /// @param settingsId the id of the settings
-    /// @param executor the address of the executor
-    event ExecutorChanged(uint256 settingsId, address executor);
-
-    /// @notice The function to initialize the contract
-    /// @param govPoolAddress the address of the governance pool
-    /// @param distributionProposalAddress the address of the distribution proposal
-    /// @param validatorsAddress the address of the validators contract
-    /// @param govUserKeeperAddress the address of the user keeper contract
-    /// @param proposalSettings list of infos about settings for proposal types
-    /// @param additionalProposalExecutors list of additional proposal executors
-    function __GovSettings_init(
-        address govPoolAddress,
-        address distributionProposalAddress,
-        address validatorsAddress,
-        address govUserKeeperAddress,
-        ProposalSettings[] calldata proposalSettings,
-        address[] calldata additionalProposalExecutors
-    ) external;
-
     /// @notice The function to get settings of this executor
     /// @param executor the executor
     /// @return setting id of the executor
@@ -104,10 +78,6 @@ interface IGovSettings {
         address[] calldata executors,
         uint256[] calldata settingsIds
     ) external;
-
-    /// @notice The function to get new settings id
-    /// @return new settings id
-    function newSettingsId() external returns (uint256);
 
     /// @notice The function to get default settings
     /// @return default setting

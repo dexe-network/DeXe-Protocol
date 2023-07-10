@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
-
 /**
  * This is the price feed contract which is used to fetch the spot prices from the UniswapV2 protocol + execute swaps
  * on its pairs. The protocol does not require price oracles to be secure and reliable. There also is a pathfinder
@@ -19,9 +16,6 @@ interface IPriceFeed {
         uint256[] amounts;
         bool withProvidedPath;
     }
-
-    /// @notice The function to initialize the contract
-    function __PriceFeed_init() external;
 
     /// @notice This function sets path tokens that will be used in the pathfinder
     /// @param pathTokens the array of tokens to be added into the path finder
@@ -96,14 +90,6 @@ interface IPriceFeed {
         address[] calldata optionalPath,
         uint256 maxAmountIn
     ) external returns (uint256);
-
-    /// @notice The function that return address of the UniswapV2Factory contract
-    /// @return the address of the UniswapV2Factory contract
-    function uniswapFactory() external view returns (IUniswapV2Factory);
-
-    /// @notice The function that return address of the UniswapV2Router02 contract
-    /// @return the address of the UniswapV2Router02 contract
-    function uniswapV2Router() external view returns (IUniswapV2Router02);
 
     /// @notice This function tries to find the optimal exchange rate (the price) between "inToken" and "outToken" using
     /// custom pathfinder, saved paths and optional specified path. The optimality is reached when the amount of

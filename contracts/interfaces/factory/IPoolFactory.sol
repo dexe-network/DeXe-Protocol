@@ -98,52 +98,6 @@ interface IPoolFactory {
         uint256 commissionPercentage;
     }
 
-    /// @notice The event emitted when a new pool is deployed
-    /// @param poolType the type of the pool
-    /// @param symbol the symbol of the pool
-    /// @param name the name of the pool
-    /// @param at the address of the pool
-    /// @param proposalContract the address of the proposal contract
-    /// @param trader the address of the trader
-    /// @param basicToken the address of the base token
-    /// @param commission the commission percentage
-    /// @param descriptionURL the IPFS URL of the pool description
-    event TraderPoolDeployed(
-        string poolType,
-        string symbol,
-        string name,
-        address at,
-        address proposalContract,
-        address trader,
-        address basicToken,
-        uint256 commission,
-        string descriptionURL
-    );
-
-    /// @notice The event emitted when a new pool is deployed
-    /// @param name the name of the pool
-    /// @param govPool the address of the gov pool
-    /// @param dp the address of the dao pool
-    /// @param validators the address of the validators contract
-    /// @param settings the address of the settings contract
-    /// @param govUserKeeper the address of the user keeper contract
-    /// @param sender the address of the sender
-    event DaoPoolDeployed(
-        string name,
-        address govPool,
-        address dp,
-        address validators,
-        address settings,
-        address govUserKeeper,
-        address sender
-    );
-
-    /// @notice The event emitted when a new pool is deployed
-    /// @param govPool the address of the gov pool
-    /// @param tokenSale the address of the token sale contract
-    /// @param token the address of the token contract
-    event DaoTokenSaleDeployed(address govPool, address tokenSale, address token);
-
     /// @notice The function to deploy gov pools
     /// @param parameters the pool deploy parameters
     function deployGovPool(GovPoolDeployParams calldata parameters) external;

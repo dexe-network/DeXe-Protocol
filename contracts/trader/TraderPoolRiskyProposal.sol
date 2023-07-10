@@ -25,36 +25,32 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
 
     mapping(uint256 => ProposalInfo) internal _proposalInfos; // proposal id => info
 
-    function divest(
+    event ProposalCreated(
         uint256 proposalId,
-        address user,
-        uint256 lp2,
-        uint256 minPositionOut
-    ) public override onlyParentTraderPool returns (uint256 receivedBase) {
-        require(
-            proposalId <= proposalsTotalNum && proposalId != 0,
-            "TPRP: proposal doesn't exist"
-        );
-        require(balanceOf(user, proposalId) >= lp2, "TPRP: divesting more than balance");
-
-        if (user == _parentTraderPoolInfo.trader) {
-            receivedBase = _divestProposalTrader(proposalId, lp2);
-        } else {
-            receivedBase = _divestActivePortfolio(proposalId, lp2, minPositionOut);
-        }
-
-        (uint256 lpToBurn, uint256 baseToBurn) = _updateFrom(user, proposalId, lp2, false);
-        _burn(user, proposalId, lp2);
-
-        _proposalInfos[proposalId].lpLocked -= lpToBurn;
-
-        totalLockedLP -= lpToBurn;
-        investedBase -= baseToBurn;
-    }
+        address token,
+        ITraderPoolRiskyProposal.ProposalLimits proposalLimits
+    );
+    event ProposalPositionOpened(uint256 proposalId, address positionToken);
+    event ProposalExchanged(
+        uint256 proposalId,
+        address sender,
+        address fromToken,
+        address toToken,
+        uint256 fromVolume,
+        uint256 toVolume
+    );
+    event ProposalActivePortfolioExchanged(
+        uint256 proposalId,
+        address fromToken,
+        address toToken,
+        uint256 fromVolume,
+        uint256 toVolume
+    );
+    event ProposalPositionClosed(uint256 proposalId, address positionToken);
 
     function __TraderPoolRiskyProposal_init(
         ParentTraderPoolInfo calldata parentTraderPoolInfo
-    ) external override initializer {
+    ) public initializer {
         __TraderPoolProposal_init(parentTraderPoolInfo);
     }
 
@@ -193,6 +189,33 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         }
     }
 
+    function divest(
+        uint256 proposalId,
+        address user,
+        uint256 lp2,
+        uint256 minPositionOut
+    ) public override onlyParentTraderPool returns (uint256 receivedBase) {
+        require(
+            proposalId <= proposalsTotalNum && proposalId != 0,
+            "TPRP: proposal doesn't exist"
+        );
+        require(balanceOf(user, proposalId) >= lp2, "TPRP: divesting more than balance");
+
+        if (user == _parentTraderPoolInfo.trader) {
+            receivedBase = _divestProposalTrader(proposalId, lp2);
+        } else {
+            receivedBase = _divestActivePortfolio(proposalId, lp2, minPositionOut);
+        }
+
+        (uint256 lpToBurn, uint256 baseToBurn) = _updateFrom(user, proposalId, lp2, false);
+        _burn(user, proposalId, lp2);
+
+        _proposalInfos[proposalId].lpLocked -= lpToBurn;
+
+        totalLockedLP -= lpToBurn;
+        investedBase -= baseToBurn;
+    }
+
     function exchange(
         uint256 proposalId,
         address from,
@@ -265,20 +288,6 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         }
     }
 
-    function getInvestmentPercentage(
-        uint256 proposalId,
-        address user,
-        uint256 toBeInvested
-    ) public view override returns (uint256) {
-        uint256 lpBalance = totalLPBalances[user] +
-            IERC20(_parentTraderPoolInfo.parentPoolAddress).balanceOf(user);
-
-        return
-            lpBalance > 0
-                ? (_lpBalances[user][proposalId] + toBeInvested).ratio(PERCENTAGE_100, lpBalance)
-                : PERCENTAGE_100;
-    }
-
     function getProposalInfos(
         uint256 offset,
         uint256 limit
@@ -343,6 +352,20 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
                 proposalId,
                 baseInvestment
             );
+    }
+
+    function getInvestmentPercentage(
+        uint256 proposalId,
+        address user,
+        uint256 toBeInvested
+    ) public view override returns (uint256) {
+        uint256 lpBalance = totalLPBalances[user] +
+            IERC20(_parentTraderPoolInfo.parentPoolAddress).balanceOf(user);
+
+        return
+            lpBalance > 0
+                ? (_lpBalances[user][proposalId] + toBeInvested).ratio(PERCENTAGE_100, lpBalance)
+                : PERCENTAGE_100;
     }
 
     function getUserInvestmentsLimits(

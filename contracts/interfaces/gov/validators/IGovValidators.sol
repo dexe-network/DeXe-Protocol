@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "../../../gov/validators/GovValidatorsToken.sol";
-
 /**
  * This is the voting contract that is queried on the proposal's second voting stage
  */
@@ -81,59 +79,6 @@ interface IGovValidators {
         ProposalState proposalState;
         uint256 requiredQuorum;
     }
-
-    /// @notice The event emitted when the external proposal is created
-    /// @param proposalId the id of the proposal
-    /// @param quorum the percentage of validators token supply to confirm the proposal
-    event ExternalProposalCreated(uint256 proposalId, uint256 quorum);
-
-    /// @notice The event emitted when the internal proposal is created
-    /// @param proposalId the id of the proposal
-    /// @param proposalDescription the description of the proposal
-    /// @param quorum the percentage of validators token supply to confirm the proposal
-    /// @param sender the address of the sender
-    event InternalProposalCreated(
-        uint256 proposalId,
-        string proposalDescription,
-        uint256 quorum,
-        address sender
-    );
-
-    /// @notice The event emitted when the internal proposal is executed
-    /// @param proposalId the id of the proposal
-    /// @param executor the address of the executor
-    event InternalProposalExecuted(uint256 proposalId, address executor);
-
-    /// @notice The event emitted when validators vote in proposal
-    /// @param proposalId the id of the proposal
-    /// @param sender the address of the sender
-    /// @param vote the number of votes
-    /// @param isInternal the boolean flag, if true then proposal is internal
-    /// @param isVoteFor the boolean flag, if true then vote is for proposal
-    event Voted(uint256 proposalId, address sender, uint256 vote, bool isInternal, bool isVoteFor);
-
-    /// @notice The event emitted when validators balances are changed
-    /// @param validators the array of validators addresses
-    /// @param newBalance the array of new balances
-    event ChangedValidatorsBalances(address[] validators, uint256[] newBalance);
-
-    /// @notice The function for initializing the contract
-    /// @param name the name of the validators token
-    /// @param symbol the symbol of the validators token
-    /// @param proposalSettings the struct with settings for proposals
-    /// @param validators the array of validators addresses
-    /// @param balances the array of initial token balances of the validators
-    function __GovValidators_init(
-        string calldata name,
-        string calldata symbol,
-        ProposalSettings calldata proposalSettings,
-        address[] calldata validators,
-        uint256[] calldata balances
-    ) external;
-
-    /// @notice The function for getting the address of the validators token
-    /// @return the address of the validators token
-    function govValidatorsToken() external view returns (GovValidatorsToken);
 
     /// @notice The function for getting the latest id of the internal proposal
     /// @return `id` of latest internal proposal

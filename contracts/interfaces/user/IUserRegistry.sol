@@ -13,20 +13,6 @@ interface IUserRegistry {
         bytes32 signatureHash;
     }
 
-    /// @notice Emitted when user profile is updated
-    /// @param user Address of the user
-    /// @param url IPFS URL to the user's profile data
-    event UpdatedProfile(address user, string url);
-
-    /// @notice Emitted when user agrees to the privacy policy
-    /// @param user Address of the user
-    /// @param documentHash Hash of the privacy policy document
-    event Agreed(address user, bytes32 documentHash);
-
-    /// @notice Emitted when the privacy policy document hash is set
-    /// @param hash Hash of the privacy policy document
-    event SetDocumentHash(bytes32 hash);
-
     /// @notice The function to change the user profile
     /// @param url the IPFS URL to the new profile settings
     function changeProfile(string calldata url) external;
@@ -52,8 +38,4 @@ interface IUserRegistry {
     /// @notice The function to set the hash of the document the user has to sign
     /// @param hash the has of the document the user has to sign
     function setPrivacyPolicyDocumentHash(bytes32 hash) external;
-
-    /// @notice The function to get the hash of the document the user has to sign
-    /// @return the hash of the document the user has to sign
-    function documentHash() external view returns (bytes32);
 }

@@ -29,9 +29,23 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
     mapping(address => mapping(uint256 => UserRewardInfo)) internal _userRewardInfos; // user => proposal id => user reward info
 
+    event ProposalCreated(
+        uint256 proposalId,
+        ITraderPoolInvestProposal.ProposalLimits proposalLimits
+    );
+    event ProposalWithdrawn(uint256 proposalId, address sender, uint256 amount);
+    event ProposalSupplied(
+        uint256 proposalId,
+        address sender,
+        uint256[] amounts,
+        address[] tokens
+    );
+    event ProposalClaimed(uint256 proposalId, address user, uint256[] amounts, address[] tokens);
+    event ProposalConverted(uint256 proposalId, address user, uint256 amount, address baseToken);
+
     function __TraderPoolInvestProposal_init(
         ParentTraderPoolInfo calldata parentTraderPoolInfo
-    ) external override initializer {
+    ) public initializer {
         __TraderPoolProposal_init(parentTraderPoolInfo);
     }
 
