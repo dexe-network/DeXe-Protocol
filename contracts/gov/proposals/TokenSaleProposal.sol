@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts/utils/Multicall.sol";
 
 import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
@@ -14,7 +15,12 @@ import "../../libs/gov/token-sale-proposal/TokenSaleProposalWhitelist.sol";
 import "../../libs/gov/token-sale-proposal/TokenSaleProposalClaim.sol";
 import "../../libs/gov/token-sale-proposal/TokenSaleProposalRecover.sol";
 
-contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Multicall {
+contract TokenSaleProposal is
+    ITokenSaleProposal,
+    ERC721HolderUpgradeable,
+    ERC1155SupplyUpgradeable,
+    Multicall
+{
     using TokenSaleProposalCreate for *;
     using TokenSaleProposalBuy for Tier;
     using TokenSaleProposalVesting for Tier;
