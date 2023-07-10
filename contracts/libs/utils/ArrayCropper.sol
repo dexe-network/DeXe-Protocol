@@ -9,7 +9,7 @@ library ArrayCropper {
         uint256[] memory arr,
         uint256 newLength
     ) internal pure returns (uint256[] memory) {
-        require(newLength <= arr.length, "ArrayCropper: expanding is not possible");
+        require(newLength <= arr.length, "ArrayCropper: not crop");
 
         assembly {
             mstore(arr, newLength)
@@ -25,7 +25,7 @@ library ArrayCropper {
         address[] memory arr,
         uint256 newLength
     ) internal pure returns (address[] memory) {
-        require(newLength <= arr.length, "ArrayCropper: expanding is not possible");
+        require(newLength <= arr.length, "ArrayCropper: not crop");
 
         assembly {
             mstore(arr, newLength)

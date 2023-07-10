@@ -124,7 +124,8 @@ library GovPoolView {
             }
         }
 
-        return (unlockedIds.crop(unlockedLength), lockedIds.crop(lockedLength));
+        unlockedIds.crop(unlockedLength);
+        lockedIds.crop(lockedLength);
     }
 
     function getProposals(
