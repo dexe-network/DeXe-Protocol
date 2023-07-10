@@ -23,9 +23,11 @@ const ProposalState = {
   WaitingForVotingTransfer: 1,
   ValidatorVoting: 2,
   Defeated: 3,
-  Succeeded: 4,
-  Executed: 5,
-  Undefined: 6,
+  SucceededFor: 4,
+  SucceededAgainst: 5,
+  ExecutedFor: 6,
+  ExecutedAgainst: 7,
+  Undefined: 8,
 };
 
 const ValidatorsProposalState = {

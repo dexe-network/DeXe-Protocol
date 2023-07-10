@@ -9,6 +9,7 @@ Function ***`claim()`*** is used for claiming distribution proposal rewards.
 ```solidity
 function claim(address voter, uint256[] calldata proposalIds) external;
 ```
+
 - ***voter*** - the address of the voter
 - ***proposalIds*** - the array of proposal ids
 
@@ -17,7 +18,11 @@ function claim(address voter, uint256[] calldata proposalIds) external;
 Function ***`getPotentialReward()`*** is used to get potential reward of the user for participation in voting.
 
 ```solidity
-function getPotentialReward(uint256 proposalId, address voter) external returns (uint256);
+function getPotentialReward(
+    uint256 proposalId,
+    address voter
+) public view returns (uint256);
 ```
+
 - ***proposalId*** - the proposal id
 - ***voter*** - the address of the voter

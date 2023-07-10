@@ -34,12 +34,14 @@ interface IGovValidators {
     /// @param voteEnd the timestamp of voting end of the proposal
     /// @param quorum the percentage of validators token supply to confirm the proposal
     /// @param votesFor the total number of votes in proposal from all voters
+    /// @param votesAgainst the total number of votes against proposal from all voters
     struct ProposalCore {
         bool executed;
         uint56 snapshotId;
         uint64 voteEnd;
         uint128 quorum;
         uint256 votesFor;
+        uint256 votesAgainst;
     }
 
     /// @notice The struct holds information about the internal proposal
@@ -113,7 +115,8 @@ interface IGovValidators {
     /// @param proposalId Proposal ID, internal or external
     /// @param amount Amount of tokens to vote
     /// @param isInternal If `true`, you will vote in internal proposal
-    function vote(uint256 proposalId, uint256 amount, bool isInternal) external;
+    /// @param isVoteFor If `true`, you will vote for proposal, else against
+    function vote(uint256 proposalId, uint256 amount, bool isInternal, bool isVoteFor) external;
 
     /// @notice Only for internal proposals. External proposals should be executed from governance.
     /// @param proposalId Internal proposal ID

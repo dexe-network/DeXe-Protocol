@@ -12,6 +12,7 @@ function getRewards(
     address user
 ) external view returns (Receptions memory receptions);
 ```
+
 - ***proposalIds*** - the array of proposals ids
 - ***user*** - the address of the user to get rewards of
 - **returns** **->** the information about the received rewards
@@ -23,15 +24,18 @@ function getInvestTokens(
     uint256 amountInBaseToInvest
 ) external returns (Receptions memory receptions);
 ```
+
 - ***amountInBaseToInvest*** - normalized amount of base tokens to be invested
 - **returns** **->** the information about the tokens received
 
 3) Call ***`reinvestProposal()`*** on `InvestTraderPool`. This function invests all the profit from the proposal into this pool.
+
 ```solidity
 function reinvestProposal(
     uint256 proposalId, 
     uint256[] calldata minPositionsOut
-) external;
+) external onlyBABTHolder;
 ```
+
 - ***proposalId*** - the id of the proposal to take the profit from
 - ***minPositionsOut*** - the amounts of position tokens received on investment

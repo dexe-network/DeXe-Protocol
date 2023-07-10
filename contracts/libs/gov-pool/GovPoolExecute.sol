@@ -21,7 +21,7 @@ library GovPoolExecute {
     using TokenBalance for address;
     using GovPoolCommission for address;
 
-    event ProposalExecuted(uint256 proposalId, address sender);
+    event ProposalExecuted(uint256 proposalId, bool isFor, address sender);
 
     function execute(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
@@ -32,54 +32,73 @@ library GovPoolExecute {
 
         GovPool govPool = GovPool(payable(address(this)));
 
+        IGovPool.ProposalState proposalState = govPool.getProposalState(proposalId);
+
         require(
-            govPool.getProposalState(proposalId) == IGovPool.ProposalState.Succeeded,
+            proposalState == IGovPool.ProposalState.SucceededFor ||
+                proposalState == IGovPool.ProposalState.SucceededAgainst,
             "Gov: invalid status"
         );
         require(govPool.latestVoteBlocks(proposalId) < block.number, "Gov: wrong block");
 
         core.executed = true;
 
-        (, , address govValidators, ) = GovPool(payable(address(this))).getHelperContracts();
+        (, , address govValidatorsAddress, ) = GovPool(payable(address(this)))
+            .getHelperContracts();
+        IGovValidators govValidators = IGovValidators(govValidatorsAddress);
 
-        bool validatorsVotingSucceeded = IGovValidators(govValidators).getProposalState(
-            proposalId,
-            false
-        ) == IGovValidators.ProposalState.Succeeded;
+        bool validatorsVotingSucceeded = govValidators.getProposalState(proposalId, false) ==
+            IGovValidators.ProposalState.Succeeded;
 
         if (validatorsVotingSucceeded) {
-            IGovValidators(govValidators).executeExternalProposal(proposalId);
+            govValidators.executeExternalProposal(proposalId);
         }
 
-        address[] memory executors = proposal.executors;
-        uint256[] memory values = proposal.values;
-        bytes[] memory data = proposal.data;
+        IGovPool.ProposalAction[] storage actions = _proposalActionsResult(proposal);
 
-        for (uint256 i; i < data.length; i++) {
-            (bool status, bytes memory returnedData) = executors[i].call{value: values[i]}(
-                data[i]
-            );
+        uint256 actionsLength = actions.length;
+
+        for (uint256 i; i < actionsLength; i++) {
+            (bool status, bytes memory returnedData) = actions[i].executor.call{
+                value: actions[i].value
+            }(actions[i].data);
 
             require(status, returnedData.getRevertMsg());
         }
 
-        emit ProposalExecuted(proposalId, msg.sender);
+        emit ProposalExecuted(
+            proposalId,
+            proposalState == IGovPool.ProposalState.SucceededFor,
+            msg.sender
+        );
 
-        _payCommission(core, validatorsVotingSucceeded);
+        _payCommission(core, validatorsVotingSucceeded, proposalState);
     }
 
     function _payCommission(
         IGovPool.ProposalCore storage core,
-        bool validatorsVotingSucceeded
+        bool validatorsVotingSucceeded,
+        IGovPool.ProposalState proposalState
     ) internal {
-        IGovSettings.ProposalSettings storage settings = core.settings;
+        IGovSettings.RewardsInfo storage rewardsInfo = core.settings.rewardsInfo;
 
-        uint256 creationRewards = settings.creationReward * (validatorsVotingSucceeded ? 2 : 1);
+        uint256 creationRewards = rewardsInfo.creationReward * (validatorsVotingSucceeded ? 2 : 1);
 
-        uint256 totalRewards = creationRewards +
-            settings.executionReward +
-            core.votesFor.ratio(settings.voteRewardsCoefficient, PRECISION);
+        uint256 voteRewards = proposalState == IGovPool.ProposalState.SucceededFor
+            ? core.votesFor.ratio(rewardsInfo.voteForRewardsCoefficient, PRECISION)
+            : core.votesAgainst.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
 
-        settings.rewardToken.payCommission(totalRewards);
+        rewardsInfo.rewardToken.payCommission(
+            creationRewards + rewardsInfo.executionReward + voteRewards
+        );
+    }
+
+    function _proposalActionsResult(
+        IGovPool.Proposal storage proposal
+    ) internal view returns (IGovPool.ProposalAction[] storage) {
+        IGovPool.ProposalCore storage core = proposal.core;
+
+        return
+            core.votesFor > core.votesAgainst ? proposal.actionsOnFor : proposal.actionsOnAgainst;
     }
 }

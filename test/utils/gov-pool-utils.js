@@ -228,20 +228,30 @@ const getBytesAddSettings = (settings) => {
               name: "minVotesForCreating",
             },
             {
-              type: "address",
-              name: "rewardToken",
-            },
-            {
-              type: "uint256",
-              name: "creationReward",
-            },
-            {
-              type: "uint256",
-              name: "executionReward",
-            },
-            {
-              type: "uint256",
-              name: "voteRewardsCoefficient",
+              components: [
+                {
+                  name: "rewardToken",
+                  type: "address",
+                },
+                {
+                  name: "creationReward",
+                  type: "uint256",
+                },
+                {
+                  name: "executionReward",
+                  type: "uint256",
+                },
+                {
+                  name: "voteForRewardsCoefficient",
+                  type: "uint256",
+                },
+                {
+                  name: "voteAgainstRewardsCoefficient",
+                  type: "uint256",
+                },
+              ],
+              name: "rewardsInfo",
+              type: "tuple",
             },
             {
               type: "string",
@@ -306,20 +316,30 @@ const getBytesEditSettings = (ids, settings) => {
               name: "minVotesForCreating",
             },
             {
-              type: "address",
-              name: "rewardToken",
-            },
-            {
-              type: "uint256",
-              name: "creationReward",
-            },
-            {
-              type: "uint256",
-              name: "executionReward",
-            },
-            {
-              type: "uint256",
-              name: "voteRewardsCoefficient",
+              components: [
+                {
+                  name: "rewardToken",
+                  type: "address",
+                },
+                {
+                  name: "creationReward",
+                  type: "uint256",
+                },
+                {
+                  name: "executionReward",
+                  type: "uint256",
+                },
+                {
+                  name: "voteForRewardsCoefficient",
+                  type: "uint256",
+                },
+                {
+                  name: "voteAgainstRewardsCoefficient",
+                  type: "uint256",
+                },
+              ],
+              name: "rewardsInfo",
+              type: "tuple",
             },
             {
               type: "string",
@@ -632,7 +652,7 @@ const getBytesGovClaimRewards = (proposalIds) => {
   );
 };
 
-const getBytesGovVote = (proposalId, voteAmount, voteNftIds) => {
+const getBytesGovVote = (proposalId, voteAmount, voteNftIds, isVoteFor = true) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       inputs: [
@@ -650,6 +670,11 @@ const getBytesGovVote = (proposalId, voteAmount, voteNftIds) => {
           internalType: "uint256[]",
           name: "voteNftIds",
           type: "uint256[]",
+        },
+        {
+          internalType: "bool",
+          name: "isVoteFor",
+          type: "bool",
         },
       ],
       name: "vote",
@@ -657,11 +682,11 @@ const getBytesGovVote = (proposalId, voteAmount, voteNftIds) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [proposalId, voteAmount, voteNftIds]
+    [proposalId, voteAmount, voteNftIds, isVoteFor]
   );
 };
 
-const getBytesGovVoteDelegated = (proposalId, voteAmount, voteNftIds) => {
+const getBytesGovVoteDelegated = (proposalId, voteAmount, voteNftIds, isVoteFor = true) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       inputs: [
@@ -680,13 +705,18 @@ const getBytesGovVoteDelegated = (proposalId, voteAmount, voteNftIds) => {
           name: "voteNftIds",
           type: "uint256[]",
         },
+        {
+          internalType: "bool",
+          name: "isVoteFor",
+          type: "bool",
+        },
       ],
       name: "voteDelegated",
       outputs: [],
       stateMutability: "nonpayable",
       type: "function",
     },
-    [proposalId, voteAmount, voteNftIds]
+    [proposalId, voteAmount, voteNftIds, isVoteFor]
   );
 };
 

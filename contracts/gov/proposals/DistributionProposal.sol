@@ -43,12 +43,14 @@ contract DistributionProposal is IDistributionProposal, Initializable {
         address token,
         uint256 amount
     ) external payable override onlyGov {
-        require(proposals[proposalId].rewardAddress == address(0), "DP: proposal already exists");
+        IDistributionProposal.DistributionProposalStruct storage proposal = proposals[proposalId];
+
+        require(proposal.rewardAddress == address(0), "DP: proposal already exists");
         require(token != address(0), "DP: zero address");
         require(amount > 0, "DP: zero amount");
 
-        proposals[proposalId].rewardAddress = token;
-        proposals[proposalId].rewardAmount = token == ETHEREUM_ADDRESS
+        proposal.rewardAddress = token;
+        proposal.rewardAmount = token == ETHEREUM_ADDRESS
             ? amount
             : amount.to18(ERC20(token).decimals());
     }
@@ -80,15 +82,21 @@ contract DistributionProposal is IDistributionProposal, Initializable {
         uint256 proposalId,
         address voter
     ) public view override returns (uint256) {
-        (uint256 totalVoteWeight, uint256 voteWeight) = IGovPool(govAddress).getTotalVotes(
-            proposalId,
-            voter,
-            false
-        );
+        (
+            uint256 totalVotesFor,
+            uint256 totalVotesAgainst,
+            uint256 voterVotesFor,
+            uint256 voterVotesAgainst
+        ) = IGovPool(govAddress).getTotalVotes(proposalId, voter, false);
+
+        if (totalVotesFor == 0 || voterVotesFor <= voterVotesAgainst) {
+            return 0;
+        }
 
         return
-            totalVoteWeight == 0
-                ? 0
-                : proposals[proposalId].rewardAmount.ratio(voteWeight, totalVoteWeight);
+            proposals[proposalId].rewardAmount.ratio(
+                voterVotesFor - voterVotesAgainst,
+                totalVotesFor + totalVotesAgainst
+            );
     }
 }

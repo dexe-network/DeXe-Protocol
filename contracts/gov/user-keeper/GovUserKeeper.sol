@@ -27,8 +27,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     using MathHelper for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using ShrinkableArray for uint256[];
-    using ShrinkableArray for ShrinkableArray.UintArray;
     using ArrayHelper for uint256[];
     using Paginator for EnumerableSet.UintSet;
     using DecimalsConverter for uint256;
@@ -606,33 +604,35 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function getUndelegateableAssets(
         address delegator,
         address delegatee,
-        ShrinkableArray.UintArray calldata lockedProposals,
+        uint256[] calldata lockedProposals,
         uint256[] calldata unlockedNfts
     )
         external
         view
         override
-        returns (uint256 undelegateableTokens, ShrinkableArray.UintArray memory undelegateableNfts)
+        returns (uint256 undelegateableTokens, uint256[] memory undelegateableNfts)
     {
+        UserInfo storage delegatorInfo = _usersInfo[delegator];
+
         return
             delegatee.getUndelegateableAssets(
                 lockedProposals,
                 unlockedNfts,
                 _getBalanceInfoStorage(delegatee, true),
-                _usersInfo[delegator],
+                delegatorInfo,
                 _nftLockedNums
             );
     }
 
     function getWithdrawableAssets(
         address voter,
-        ShrinkableArray.UintArray calldata lockedProposals,
+        uint256[] calldata lockedProposals,
         uint256[] calldata unlockedNfts
     )
         external
         view
         override
-        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts)
+        returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts)
     {
         return
             lockedProposals.getWithdrawableAssets(

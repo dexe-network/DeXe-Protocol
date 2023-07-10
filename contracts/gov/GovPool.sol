@@ -41,8 +41,6 @@ contract GovPool is
     using Math for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using ShrinkableArray for uint256[];
-    using ShrinkableArray for ShrinkableArray.UintArray;
     using GovPoolOffchain for *;
     using GovUserKeeperLocal for *;
     using GovPoolView for *;
@@ -86,10 +84,8 @@ contract GovPool is
     mapping(address => MicropoolInfo) internal _micropoolInfos;
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
-    event MovedToValidators(uint256 proposalId, address sender);
     event Deposited(uint256 amount, uint256[] nfts, address sender);
     event Withdrawn(uint256 amount, uint256[] nfts, address sender);
-    event OffchainResultsSaved(string resultsHash, address sender);
 
     modifier onlyThis() {
         _onlyThis();
@@ -146,12 +142,10 @@ contract GovPool is
     function execute(uint256 proposalId) public override onlyBABTHolder {
         _proposals.execute(proposalId);
 
-        _pendingRewards.updateRewards(
-            _proposals,
+        _updateRewards(
             proposalId,
             RewardType.Execute,
-            _proposals[proposalId].core.settings.executionReward,
-            PRECISION
+            _proposals[proposalId].core.settings.rewardsInfo.executionReward
         );
     }
 
@@ -178,41 +172,35 @@ contract GovPool is
     function createProposal(
         string calldata _descriptionURL,
         string calldata misc,
-        address[] calldata executors,
-        uint256[] calldata values,
-        bytes[] calldata data
+        ProposalAction[] calldata actionsOnFor,
+        ProposalAction[] calldata actionsOnAgainst
     ) external override onlyBABTHolder {
         uint256 proposalId = ++latestProposalId;
 
-        _proposals.createProposal(_descriptionURL, misc, executors, values, data);
+        _proposals.createProposal(_descriptionURL, misc, actionsOnFor, actionsOnAgainst);
 
-        _pendingRewards.updateRewards(
-            _proposals,
+        _updateRewards(
             proposalId,
             RewardType.Create,
-            _proposals[proposalId].core.settings.creationReward,
-            PRECISION
+            _proposals[proposalId].core.settings.rewardsInfo.creationReward
         );
     }
 
     function moveProposalToValidators(uint256 proposalId) external override {
         _proposals.moveProposalToValidators(proposalId);
 
-        _pendingRewards.updateRewards(
-            _proposals,
+        _updateRewards(
             proposalId,
             RewardType.Create,
-            _proposals[proposalId].core.settings.creationReward,
-            PRECISION
+            _proposals[proposalId].core.settings.rewardsInfo.creationReward
         );
-
-        emit MovedToValidators(proposalId, msg.sender);
     }
 
     function vote(
         uint256 proposalId,
         uint256 voteAmount,
-        uint256[] calldata voteNftIds
+        uint256[] calldata voteNftIds,
+        bool isVoteFor
     ) external override onlyBABTHolder {
         _unlock(msg.sender, false);
 
@@ -221,22 +209,22 @@ contract GovPool is
             _voteInfos,
             proposalId,
             voteAmount,
-            voteNftIds
+            voteNftIds,
+            isVoteFor
         );
 
-        _pendingRewards.updateRewards(
-            _proposals,
+        _updateRewards(
             proposalId,
-            RewardType.Vote,
-            reward,
-            _proposals[proposalId].core.settings.voteRewardsCoefficient
+            isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst,
+            reward
         );
     }
 
     function voteDelegated(
         uint256 proposalId,
         uint256 voteAmount,
-        uint256[] calldata voteNftIds
+        uint256[] calldata voteNftIds,
+        bool isVoteFor
     ) external override onlyBABTHolder {
         _unlock(msg.sender, true);
 
@@ -245,23 +233,23 @@ contract GovPool is
             _voteInfos,
             proposalId,
             voteAmount,
-            voteNftIds
+            voteNftIds,
+            isVoteFor
         );
 
         uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
 
-        _pendingRewards.updateRewards(
-            _proposals,
+        _updateRewards(
             proposalId,
-            RewardType.VoteDelegated,
-            micropoolReward,
-            _proposals[proposalId].core.settings.voteRewardsCoefficient
+            isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
+            micropoolReward
         );
 
         _micropoolInfos[msg.sender].updateRewards(
-            reward - micropoolReward,
-            _proposals[proposalId].core.settings.voteRewardsCoefficient,
-            _proposals[proposalId].core.settings.rewardToken
+            _proposals,
+            proposalId,
+            isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
+            reward - micropoolReward
         );
     }
 
@@ -354,15 +342,11 @@ contract GovPool is
     ) external override onlyBABTHolder {
         resultsHash.saveOffchainResults(signature, _offChain);
 
-        _pendingRewards.updateRewards(
-            _proposals,
+        _updateRewards(
             0,
             RewardType.SaveOffchainResults,
-            _govSettings.getInternalSettings().executionReward,
-            PRECISION
+            _govSettings.getInternalSettings().rewardsInfo.executionReward
         );
-
-        emit OffchainResultsSaved(resultsHash, msg.sender);
     }
 
     receive() external payable {}
@@ -377,11 +361,21 @@ contract GovPool is
         }
 
         if (core.executed) {
-            return ProposalState.Executed;
+            return
+                _votesForMoreThanAgainst(core)
+                    ? ProposalState.ExecutedFor
+                    : ProposalState.ExecutedAgainst;
         }
 
         if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
             if (_quorumReached(core)) {
+                if (
+                    !_votesForMoreThanAgainst(core) &&
+                    _proposals[proposalId].actionsOnAgainst.length == 0
+                ) {
+                    return ProposalState.Defeated;
+                }
+
                 if (core.settings.validatorsVote) {
                     IGovValidators.ProposalState status = _govValidators.getProposalState(
                         proposalId,
@@ -389,14 +383,15 @@ contract GovPool is
                     );
 
                     if (status == IGovValidators.ProposalState.Undefined) {
-                        return
-                            _govValidators.validatorsCount() > 0
-                                ? ProposalState.WaitingForVotingTransfer
-                                : ProposalState.Succeeded;
+                        if (_govValidators.validatorsCount() != 0) {
+                            return ProposalState.WaitingForVotingTransfer;
+                        }
+
+                        return _proposalStateBasedOnVoteResults(core);
                     }
 
                     if (status == IGovValidators.ProposalState.Succeeded) {
-                        return ProposalState.Succeeded;
+                        return _proposalStateBasedOnVoteResults(core);
                     }
 
                     if (status == IGovValidators.ProposalState.Defeated) {
@@ -404,9 +399,9 @@ contract GovPool is
                     }
 
                     return ProposalState.ValidatorVoting;
-                } else {
-                    return ProposalState.Succeeded;
                 }
+
+                return _proposalStateBasedOnVoteResults(core);
             }
 
             if (voteEnd < block.timestamp) {
@@ -459,11 +454,11 @@ contract GovPool is
         uint256 proposalId,
         address voter,
         bool isMicropool
-    ) external view override returns (uint256, uint256) {
-        return (
-            _proposals[proposalId].core.votesFor,
-            _voteInfos[proposalId][voter][isMicropool].totalVoted
-        );
+    ) external view override returns (uint256, uint256, uint256, uint256) {
+        IGovPool.ProposalCore storage core = _proposals[proposalId].core;
+        IGovPool.VoteInfo storage info = _voteInfos[proposalId][voter][isMicropool];
+
+        return (core.votesFor, core.votesAgainst, info.totalVotedFor, info.totalVotedAgainst);
     }
 
     function getUserVotes(
@@ -475,16 +470,19 @@ contract GovPool is
 
         return
             VoteInfoView({
-                totalVoted: info.totalVoted,
-                tokensVoted: info.tokensVoted,
-                nftsVoted: info.nftsVoted.values()
+                totalVotedFor: info.totalVotedFor,
+                totalVotedAgainst: info.totalVotedAgainst,
+                tokensVotedFor: info.tokensVotedFor,
+                tokensVotedAgainst: info.tokensVotedAgainst,
+                nftsVotedFor: info.nftsVotedFor.values(),
+                nftsVotedAgainst: info.nftsVotedAgainst.values()
             });
     }
 
     function getWithdrawableAssets(
         address delegator,
         address delegatee
-    ) external view override returns (uint256 tokens, ShrinkableArray.UintArray memory nfts) {
+    ) external view override returns (uint256 tokens, uint256[] memory nfts) {
         return
             delegatee == address(0)
                 ? delegator.getWithdrawableAssets(_votedInProposals, _voteInfos)
@@ -525,6 +523,10 @@ contract GovPool is
         nftMultiplier = nftMultiplierAddress;
     }
 
+    function _updateRewards(uint256 proposalId, RewardType rewardType, uint256 amount) internal {
+        _pendingRewards.updateRewards(_proposals, proposalId, rewardType, amount);
+    }
+
     function _unlock(address user, bool isMicropool) internal {
         _unlockInProposals(_votedInProposals[user][isMicropool].values(), user, isMicropool);
     }
@@ -539,8 +541,23 @@ contract GovPool is
 
     function _quorumReached(ProposalCore storage core) internal view returns (bool) {
         return
-            PERCENTAGE_100.ratio(core.votesFor, _govUserKeeper.getTotalVoteWeight()) >=
-            core.settings.quorum;
+            PERCENTAGE_100.ratio(
+                core.votesFor + core.votesAgainst,
+                _govUserKeeper.getTotalVoteWeight()
+            ) >= core.settings.quorum;
+    }
+
+    function _votesForMoreThanAgainst(ProposalCore storage core) internal view returns (bool) {
+        return core.votesFor > core.votesAgainst;
+    }
+
+    function _proposalStateBasedOnVoteResults(
+        ProposalCore storage core
+    ) internal view returns (ProposalState) {
+        return
+            _votesForMoreThanAgainst(core)
+                ? ProposalState.SucceededFor
+                : ProposalState.SucceededAgainst;
     }
 
     function _onlyThis() internal view {

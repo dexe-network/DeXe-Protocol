@@ -9,20 +9,16 @@ Function ***`vote()`*** is used for voting with own tokens.
 ```solidity
 function vote(
     uint256 proposalId,
-    uint256 depositAmount,
-    uint256[] calldata depositNftIds,
     uint256 voteAmount,
-    uint256[] calldata voteNftIds
-) external;
+    uint256[] calldata voteNftIds,
+    bool isVoteFor
+) external onlyBABTHolder;
 ```
 
 - ***proposalId*** - the id of proposal
-- ***depositAmount*** - the deposit amount in ERC20
-    - may be **0** if tokens were already deposited
-- ***depositNftIds*** - the deposit **NFT** ids
-    - may be **0** if tokens were already deposited
 - ***voteAmount*** - the **ERC20** vote amount
 - ***voteNftIds*** - the **NFT** ids that will be used in voting
+- ***isVoteFor*** - `true` if the vote is for the proposal, `false` if against
 
 ❗ Values `voteAmount`, `voteNftIds` should be less or equal to the total deposit.
 
@@ -34,10 +30,12 @@ Function ***`voteDelegated()`*** is used for voting with delegated tokens.
 function voteDelegated(
     uint256 proposalId,
     uint256 voteAmount,
-    uint256[] calldata voteNftIds
-) external;
+    uint256[] calldata voteNftIds,
+    bool isVoteFor
+) external onlyBABTHolder;
 ```
 
 - ***proposalId*** - the id of proposal
 - ***voteAmount*** - the **ERC20** vote amount
 - ***voteNftIds*** - the **NFT** ids that will be used in delegated voting
+- ***isVoteFor*** - `true` if the vote is for the proposal, `false` if against
