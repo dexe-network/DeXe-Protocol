@@ -384,10 +384,5 @@ library TraderPoolView {
         commissions.traderBaseCommission = baseCommission - commissions.dexeBaseCommission;
         commissions.traderLPCommission = lpCommission - commissions.dexeLPCommission;
         commissions.traderUSDCommission = usdCommission - commissions.dexeUSDCommission;
-
-        (commissions.dexeDexeCommission, ) = priceFeed.getNormalizedPriceOutDEXE(
-            poolParameters.baseToken,
-            commissions.dexeBaseCommission
-        );
     }
 }
