@@ -7,12 +7,12 @@ import "@openzeppelin/contracts/utils/Multicall.sol";
 import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
 import "../../interfaces/core/ISBT721.sol";
 
-import "../../libs/token-sale-proposal/TokenSaleProposalCreate.sol";
-import "../../libs/token-sale-proposal/TokenSaleProposalBuy.sol";
-import "../../libs/token-sale-proposal/TokenSaleProposalVesting.sol";
-import "../../libs/token-sale-proposal/TokenSaleProposalWhitelist.sol";
-import "../../libs/token-sale-proposal/TokenSaleProposalClaim.sol";
-import "../../libs/token-sale-proposal/TokenSaleProposalRecover.sol";
+import "../../libs/gov/token-sale-proposal/TokenSaleProposalCreate.sol";
+import "../../libs/gov/token-sale-proposal/TokenSaleProposalBuy.sol";
+import "../../libs/gov/token-sale-proposal/TokenSaleProposalVesting.sol";
+import "../../libs/gov/token-sale-proposal/TokenSaleProposalWhitelist.sol";
+import "../../libs/gov/token-sale-proposal/TokenSaleProposalClaim.sol";
+import "../../libs/gov/token-sale-proposal/TokenSaleProposalRecover.sol";
 
 contract TokenSaleProposal is ITokenSaleProposal, ERC1155SupplyUpgradeable, Multicall {
     using TokenSaleProposalCreate for *;

@@ -17,15 +17,15 @@ import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/ISBT721.sol";
 
-import "../libs/gov-user-keeper/GovUserKeeperLocal.sol";
-import "../libs/gov-pool/GovPoolView.sol";
-import "../libs/gov-pool/GovPoolCreate.sol";
-import "../libs/gov-pool/GovPoolRewards.sol";
-import "../libs/gov-pool/GovPoolVote.sol";
-import "../libs/gov-pool/GovPoolUnlock.sol";
-import "../libs/gov-pool/GovPoolExecute.sol";
-import "../libs/gov-pool/GovPoolStaking.sol";
-import "../libs/gov-pool/GovPoolOffchain.sol";
+import "../libs/gov/gov-user-keeper/GovUserKeeperLocal.sol";
+import "../libs/gov/gov-pool/GovPoolView.sol";
+import "../libs/gov/gov-pool/GovPoolCreate.sol";
+import "../libs/gov/gov-pool/GovPoolRewards.sol";
+import "../libs/gov/gov-pool/GovPoolVote.sol";
+import "../libs/gov/gov-pool/GovPoolUnlock.sol";
+import "../libs/gov/gov-pool/GovPoolExecute.sol";
+import "../libs/gov/gov-pool/GovPoolStaking.sol";
+import "../libs/gov/gov-pool/GovPoolOffchain.sol";
 import "../libs/math/MathHelper.sol";
 
 import "../core/Globals.sol";
