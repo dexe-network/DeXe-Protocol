@@ -266,16 +266,25 @@ library TraderPoolView {
 
             for (uint256 i = 0; i < openPositions.length; i++) {
                 receptions.positions[i] = openPositions[i];
-                receptions.givenAmounts[i] = ERC20(receptions.positions[i])
+
+                uint256 currentPositionNormBalance = ERC20(receptions.positions[i])
                     .balanceOf(address(this))
-                    .ratio(amountLP, totalSupply)
                     .to18(ERC20(receptions.positions[i]).decimals());
 
-                receptions.receivedAmounts[i] = priceFeed.getNormPriceOut(
+                receptions.receivedAmounts[i] = priceFeed
+                    .getNormPriceOut(
+                        receptions.positions[i],
+                        address(baseToken),
+                        currentPositionNormBalance
+                    )
+                    .ratio(amountLP, totalSupply);
+
+                receptions.givenAmounts[i] = priceFeed.getNormPriceIn(
                     receptions.positions[i],
                     address(baseToken),
-                    receptions.givenAmounts[i]
+                    receptions.receivedAmounts[i]
                 );
+
                 receptions.baseAmount += receptions.receivedAmounts[i];
             }
 
@@ -375,10 +384,5 @@ library TraderPoolView {
         commissions.traderBaseCommission = baseCommission - commissions.dexeBaseCommission;
         commissions.traderLPCommission = lpCommission - commissions.dexeLPCommission;
         commissions.traderUSDCommission = usdCommission - commissions.dexeUSDCommission;
-
-        (commissions.dexeDexeCommission, ) = priceFeed.getNormalizedPriceOutDEXE(
-            poolParameters.baseToken,
-            commissions.dexeBaseCommission
-        );
     }
 }

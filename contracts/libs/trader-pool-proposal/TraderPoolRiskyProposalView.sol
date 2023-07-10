@@ -217,14 +217,21 @@ library TraderPoolRiskyProposalView {
 
             if (propSupply > 0) {
                 receptions.positions[i] = proposalInfos[proposalId].token;
-                receptions.givenAmounts[i] = proposalInfos[proposalId].balancePosition.ratio(
-                    lp2s[i],
-                    propSupply
-                );
+
                 receptions.receivedAmounts[i] = priceFeed.getNormPriceOut(
                     proposalInfos[proposalId].token,
                     parentTraderPoolInfo.baseToken,
-                    receptions.givenAmounts[i]
+                    proposalInfos[proposalId].balancePosition
+                );
+                receptions.receivedAmounts[i] = receptions.receivedAmounts[i].ratio(
+                    lp2s[i],
+                    propSupply
+                );
+
+                receptions.givenAmounts[i] = priceFeed.getNormPriceIn(
+                    proposalInfos[proposalId].token,
+                    parentTraderPoolInfo.baseToken,
+                    receptions.receivedAmounts[i]
                 );
 
                 receptions.baseAmount +=

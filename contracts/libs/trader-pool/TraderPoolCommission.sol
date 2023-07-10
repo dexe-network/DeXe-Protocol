@@ -26,7 +26,6 @@ library TraderPoolCommission {
         mapping(address => ITraderPool.InvestorInfo) storage investorsInfo,
         EnumerableSet.AddressSet storage investors,
         uint256[] calldata offsetLimits,
-        uint256 minDexeCommissionOut,
         ITraderPool.PoolParameters storage poolParameters
     ) external {
         require(TraderPool(address(this)).openPositions().length == 0, "TP: positions are open");
@@ -66,24 +65,18 @@ library TraderPoolCommission {
             }
         }
 
-        distributeCommission(
-            poolParameters,
-            allBaseCommission,
-            allLPCommission,
-            minDexeCommissionOut
-        );
+        distributeCommission(poolParameters, allBaseCommission, allLPCommission);
     }
 
     function distributeCommission(
         ITraderPool.PoolParameters storage poolParameters,
         uint256 baseToDistribute,
-        uint256 lpToDistribute,
-        uint256 minDexeCommissionOut
+        uint256 lpToDistribute
     ) public {
         require(baseToDistribute > 0, "TP: no commission available");
 
         TraderPool traderPool = TraderPool(address(this));
-        IERC20 dexeToken = traderPool.dexeToken();
+        IERC20 baseToken = IERC20(poolParameters.baseToken);
 
         (
             uint256 dexePercentage,
@@ -97,20 +90,13 @@ library TraderPoolCommission {
             lpToDistribute,
             dexePercentage
         );
-        uint256 dexeCommission = traderPool.priceFeed().normalizedExchangeFromExact(
-            poolParameters.baseToken,
-            address(dexeToken),
-            dexeBaseCommission,
-            new address[](0),
-            minDexeCommissionOut
-        );
 
         traderPool.mint(poolParameters.trader, lpToDistribute - dexeLPCommission);
 
         for (uint256 i = 0; i < commissionReceivers.length; i++) {
-            dexeToken.safeTransfer(
+            baseToken.safeTransfer(
                 commissionReceivers[i],
-                dexeCommission.percentage(poolPercentages[i])
+                dexeBaseCommission.percentage(poolPercentages[i])
             );
         }
 

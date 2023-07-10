@@ -27,6 +27,7 @@ async function linkPools(deployer) {
   await deployer.deploy(TraderPoolCommissionLib);
   await deployer.deploy(TraderPoolLeverageLib);
 
+  await deployer.link(TraderPoolPriceLib, TraderPoolDivestLib);
   await deployer.link(TraderPoolCommissionLib, TraderPoolDivestLib);
 
   await deployer.link(TraderPoolPriceLib, TraderPoolInvestLib);
