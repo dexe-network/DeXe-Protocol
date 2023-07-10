@@ -612,14 +612,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         override
         returns (uint256 undelegateableTokens, uint256[] memory undelegateableNfts)
     {
-        UserInfo storage delegatorInfo = _usersInfo[delegator];
-
         return
             delegatee.getUndelegateableAssets(
                 lockedProposals,
                 unlockedNfts,
                 _getBalanceInfoStorage(delegatee, true),
-                delegatorInfo,
+                _usersInfo[delegator],
                 _nftLockedNums
             );
     }

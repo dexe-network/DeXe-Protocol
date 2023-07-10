@@ -63,20 +63,6 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         baseURI = uri;
     }
 
-    function isLocked(uint256 tokenId) public view override returns (bool) {
-        NftInfo storage info = _tokens[tokenId];
-
-        return info.lockedAt != 0 && info.lockedAt + info.duration >= block.timestamp;
-    }
-
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override(IERC165Upgradeable, ERC721EnumerableUpgradeable) returns (bool) {
-        return
-            interfaceId == type(IERC721Multiplier).interfaceId ||
-            super.supportsInterface(interfaceId);
-    }
-
     function getExtraRewards(
         address whose,
         uint256 rewards
@@ -102,6 +88,20 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
 
         multiplier = info.multiplier;
         timeLeft = info.lockedAt + info.duration - block.timestamp;
+    }
+
+    function isLocked(uint256 tokenId) public view override returns (bool) {
+        NftInfo memory info = _tokens[tokenId];
+
+        return info.lockedAt != 0 && info.lockedAt + info.duration >= block.timestamp;
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(IERC165Upgradeable, ERC721EnumerableUpgradeable) returns (bool) {
+        return
+            interfaceId == type(IERC721Multiplier).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     function _baseURI() internal view override returns (string memory) {
