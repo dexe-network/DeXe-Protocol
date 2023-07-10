@@ -18,13 +18,15 @@ interface IERC721Expert is IERC721Upgradeable {
         BurnAuth burnAuth
     );
 
-    function burnAuth(uint256 tokenId) external view returns (BurnAuth);
+    function mint(address to, string calldata uri_) external returns (uint256 tokenId);
+
+    function burn(uint256 tokenId) external;
+
+    function setTokenURI(uint256 tokenId, string calldata uri_) external;
 
     function isExpert(address expert) external view returns (bool);
 
-    function getIdByExpert(address expert) external view returns (uint);
+    function getIdByExpert(address expert) external view returns (uint256);
 
-    function mint(address to, string calldata uri_) external returns (uint tokenId);
-
-    function burn(uint tokenId) external;
+    function burnAuth(uint256 tokenId) external view returns (BurnAuth);
 }

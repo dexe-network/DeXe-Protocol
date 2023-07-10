@@ -1,7 +1,5 @@
 const { assert } = require("chai");
 const { accounts } = require("../../scripts/utils/utils");
-const { setTime, getCurrentBlockTime } = require("../helpers/block-helper");
-const { PRECISION } = require("../../scripts/utils/constants");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
@@ -99,12 +97,15 @@ describe("ERC721Expert", () => {
 
     async function badgeNotExists(contract, token) {
       assert.equal(await contract.isExpert(token.owner), false);
+
       await truffleAssert.reverts(contract.getIdByExpert(token.owner), "ERC721Expert: User is not an expert");
       await truffleAssert.reverts(
         contract.burnAuth(token.id),
         "ERC721Expert: Cannot find Burn Auth for non existant badge"
       );
+
       assert.equal(await contract.balanceOf(token.owner), 0);
+
       await truffleAssert.reverts(contract.tokenURI(token.id), "ERC721URIStorage: URI query for nonexistent token");
     }
 
@@ -114,7 +115,7 @@ describe("ERC721Expert", () => {
         assert.isTrue(await nft.supportsInterface("0x80ac58cd"));
         assert.isTrue(await nft.supportsInterface("0x5b5e139f"));
         assert.isTrue(await nft.supportsInterface("0x0489b56f"));
-        assert.isTrue(await nft.supportsInterface("0x8043e201"));
+        assert.isTrue(await nft.supportsInterface("0x966376c5"));
       });
     });
 
@@ -133,7 +134,9 @@ describe("ERC721Expert", () => {
 
       it("emits issued", async () => {
         let token = TOKENS[0];
+
         const tx = await nft.mint(token.owner, token.uri, { from: OWNER });
+
         truffleAssert.eventEmitted(tx, "Issued", (e) => {
           return (
             e.from === OWNER &&
@@ -148,12 +151,39 @@ describe("ERC721Expert", () => {
         await mint(TOKENS[0], OWNER);
         await truffleAssert.reverts(mint(TOKENS[2], OWNER), "ERC721Expert: Cannot mint more than one expert badge");
       });
+    });
 
-      it("cannot mint with empty URI", async () => {
+    describe("setTokenUri()", () => {
+      it("cannot set URI for not existant badge", async () => {
+        let token = TOKENS[0];
+
+        await mint(token, OWNER);
         await truffleAssert.reverts(
-          nft.mint(SECOND, "", { from: OWNER }),
-          "ERC721Expert: URI field could not be empty"
+          nft.setTokenURI(TOKENS[1].id, "URI256"),
+          "ERC721URIStorage: URI set of nonexistent token"
         );
+      });
+
+      it("cannot set URI if not owner", async () => {
+        let token = TOKENS[0];
+
+        await mint(token, OWNER);
+        await truffleAssert.reverts(
+          nft.setTokenURI(token.id, "URI256", { from: SECOND }),
+          "Ownable: caller is not the owner"
+        );
+      });
+
+      it("can set URI", async () => {
+        let token = TOKENS[0];
+
+        await mint(token, OWNER);
+
+        let newUri = "URI256";
+
+        await nft.setTokenURI(token.id, newUri, { from: OWNER });
+
+        assert.equal(await nft.tokenURI(token.id), newUri);
       });
     });
 
@@ -162,7 +192,7 @@ describe("ERC721Expert", () => {
         await mint(TOKENS[0], OWNER);
         await truffleAssert.reverts(
           nft.transferFrom(SECOND, THIRD, 1, { from: SECOND }),
-          "ERC721Expert: Expert badge cannot be transfered"
+          "ERC721Expert: Expert badge cannot be transferred"
         );
       });
 
@@ -174,6 +204,7 @@ describe("ERC721Expert", () => {
     describe("burn()", () => {
       it("could not burn if not owner", async () => {
         let token = TOKENS[0];
+
         await mint(token, OWNER);
         await truffleAssert.reverts(burn(token, SECOND), "Ownable: caller is not the owner");
       });
@@ -190,30 +221,35 @@ describe("ERC721Expert", () => {
 
       it("could not burn non existant badge", async () => {
         let token = TOKENS[0];
+
         await truffleAssert.reverts(burn(token, OWNER), "ERC721Expert: Cannot burn non-existent badge");
       });
 
       it("keeps correct order of creation", async () => {
         for (let i = 0; i < 2; i++) {
           let token = TOKENS[i];
+
           await mint(token, OWNER);
           await badgeExists(nft, token);
         }
 
         for (let i = 0; i < 2; i++) {
           let token = TOKENS[i];
+
           await burn(token, OWNER);
           await badgeNotExists(nft, token);
         }
 
         for (let i = 2; i < 4; i++) {
           let token = TOKENS[i];
+
           await mint(token, OWNER);
           await badgeExists(nft, token);
         }
 
         for (let i = 2; i < 4; i++) {
           let token = TOKENS[i];
+
           await burn(token, OWNER);
           await badgeNotExists(nft, token);
         }
