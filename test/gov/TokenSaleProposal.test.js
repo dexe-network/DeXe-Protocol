@@ -25,6 +25,7 @@ const GovSettings = artifacts.require("GovSettings");
 const GovValidators = artifacts.require("GovValidators");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const ERC721Mock = artifacts.require("ERC721Mock");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
@@ -46,6 +47,7 @@ PoolRegistry.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
 GovPool.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
+ERC721Mock.numberFormat = "BigNumber";
 ERC20Sale.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 TokenSaleProposal.numberFormat = "BigNumber";
@@ -74,6 +76,8 @@ describe.only("TokenSaleProposal", () => {
   let poolRegistry;
 
   let token;
+  let participationToken;
+  let participationNft;
 
   let settings;
   let validators;
@@ -81,6 +85,9 @@ describe.only("TokenSaleProposal", () => {
   let govPool;
   let dp;
   let babt;
+
+  const defaultDaoVotes = toBN("100");
+  const defaultTokenAmount = toBN("100");
 
   const reverter = new Reverter();
 
@@ -132,6 +139,8 @@ describe.only("TokenSaleProposal", () => {
     const _poolRegistry = await PoolRegistry.new();
     babt = await BABTMock.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
+    participationToken = await ERC20Mock.new("PTMock", "PTMock", 18);
+    participationNft = await ERC721Mock.new("PNFTMock", "PNFTMock");
 
     await contractsRegistry.__OwnableContractsRegistry_init();
 
@@ -236,14 +245,14 @@ describe.only("TokenSaleProposal", () => {
     });
 
     it("should not init if govAddress is zero", async () => {
-      await truffleAssert.reverts(tsp.__TokenSaleProposal_init(ZERO_ADDR), "TSP: zero gov address");
+      await truffleAssert.reverts(tsp.__TokenSaleProposal_init(ZERO_ADDR, NOTHING), "TSP: zero gov address");
     });
 
     it("should not init twice", async () => {
       await tsp.__TokenSaleProposal_init(NOTHING, NOTHING);
 
       await truffleAssert.reverts(
-        tsp.__TokenSaleProposal_init(NOTHING),
+        tsp.__TokenSaleProposal_init(NOTHING, NOTHING),
         "Initializable: contract is already initialized"
       );
     });
@@ -501,8 +510,86 @@ describe.only("TokenSaleProposal", () => {
             unlockStep: "0",
           },
           participationDetails: {
-            participationType: ParticipationType.Whitelist,
+            participationType: ParticipationType.DAOVotes,
+            data: web3.eth.abi.encodeParameter("uint256", defaultDaoVotes),
+          },
+        },
+        {
+          metadata: {
+            name: "tier 3",
+            description: "the third tier",
+          },
+          totalTokenProvided: wei(1000),
+          saleStartTime: (timeNow + 1000).toString(),
+          saleEndTime: (timeNow + 2000).toString(),
+          claimLockDuration: "0",
+          saleTokenAddress: saleToken.address,
+          purchaseTokenAddresses: [purchaseToken1.address, purchaseToken2.address],
+          exchangeRates: [PRECISION.times(4).toFixed(), PRECISION.idiv(4).toFixed()],
+          minAllocationPerUser: "0",
+          maxAllocationPerUser: "0",
+          vestingSettings: {
+            vestingPercentage: "0",
+            vestingDuration: "0",
+            cliffPeriod: "0",
+            unlockStep: "0",
+          },
+          participationDetails: {
+            participationType: ParticipationType.BABT,
             data: "0x",
+          },
+        },
+        {
+          metadata: {
+            name: "tier 4",
+            description: "the fourth tier",
+          },
+          totalTokenProvided: wei(1000),
+          saleStartTime: (timeNow + 1000).toString(),
+          saleEndTime: (timeNow + 2000).toString(),
+          claimLockDuration: "0",
+          saleTokenAddress: saleToken.address,
+          purchaseTokenAddresses: [purchaseToken1.address, purchaseToken2.address],
+          exchangeRates: [PRECISION.times(4).toFixed(), PRECISION.idiv(4).toFixed()],
+          minAllocationPerUser: "0",
+          maxAllocationPerUser: "0",
+          vestingSettings: {
+            vestingPercentage: "0",
+            vestingDuration: "0",
+            cliffPeriod: "0",
+            unlockStep: "0",
+          },
+          participationDetails: {
+            participationType: ParticipationType.TokenLock,
+            data: web3.eth.abi.encodeParameters(
+              ["address", "uint256"],
+              [participationToken.address, defaultTokenAmount]
+            ),
+          },
+        },
+        {
+          metadata: {
+            name: "tier 5",
+            description: "the fifth tier",
+          },
+          totalTokenProvided: wei(1000),
+          saleStartTime: (timeNow + 1000).toString(),
+          saleEndTime: (timeNow + 2000).toString(),
+          claimLockDuration: "0",
+          saleTokenAddress: saleToken.address,
+          purchaseTokenAddresses: [purchaseToken1.address, purchaseToken2.address],
+          exchangeRates: [PRECISION.times(4).toFixed(), PRECISION.idiv(4).toFixed()],
+          minAllocationPerUser: "0",
+          maxAllocationPerUser: "0",
+          vestingSettings: {
+            vestingPercentage: "0",
+            vestingDuration: "0",
+            cliffPeriod: "0",
+            unlockStep: "0",
+          },
+          participationDetails: {
+            participationType: ParticipationType.NftLock,
+            data: web3.eth.abi.encodeParameter("address", participationNft.address),
           },
         },
       ];
@@ -514,15 +601,12 @@ describe.only("TokenSaleProposal", () => {
 
         await saleToken.mint(govPool.address, tiers[1].totalTokenProvided);
 
-        await acceptProposal(
-          [
-            [saleToken.address, 0, getBytesTransfer(tsp.address, tiers[1].totalTokenProvided)],
-            [tsp.address, 0, getBytesCreateTiersTSP(tiers)],
-          ],
-          []
-        );
+        await acceptProposal([
+          [saleToken.address, 0, getBytesTransfer(tsp.address, tiers[1].totalTokenProvided)],
+          [tsp.address, 0, getBytesCreateTiersTSP(tiers)],
+        ]);
 
-        assert.equal(await tsp.latestTierId(), 2);
+        assert.equal(await tsp.latestTierId(), 5);
       });
     });
 
@@ -535,7 +619,7 @@ describe.only("TokenSaleProposal", () => {
         tiers[0].saleTokenAddress = ZERO_ADDR;
 
         await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]], []),
+          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
           "TSP: sale token cannot be zero"
         );
       });
@@ -544,7 +628,7 @@ describe.only("TokenSaleProposal", () => {
         tiers[0].saleTokenAddress = ETHER_ADDR;
 
         await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]], []),
+          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
           "TSP: cannot sale native currency"
         );
       });
@@ -553,7 +637,7 @@ describe.only("TokenSaleProposal", () => {
         tiers[0].totalTokenProvided = 0;
 
         await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]], []),
+          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
           "TSP: sale token is not provided"
         );
       });
@@ -562,7 +646,7 @@ describe.only("TokenSaleProposal", () => {
         tiers[0].saleStartTime = tiers[0].saleEndTime + 1;
 
         await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]], []),
+          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
           "TSP: saleEndTime is less than saleStartTime"
         );
       });
@@ -571,7 +655,7 @@ describe.only("TokenSaleProposal", () => {
         tiers[0].minAllocationPerUser = tiers[0].maxAllocationPerUser + 1;
 
         await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]], []),
+          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
           "TSP: wrong allocation"
         );
       });
@@ -580,7 +664,7 @@ describe.only("TokenSaleProposal", () => {
         tiers[0].vestingSettings.vestingPercentage = toBN(PERCENTAGE_100).plus(1).toFixed();
 
         await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]], []),
+          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
           "TSP: vesting settings validation failed"
         );
       });
@@ -589,7 +673,7 @@ describe.only("TokenSaleProposal", () => {
         tiers[0].vestingSettings.unlockStep = 0;
 
         await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]], []),
+          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
           "TSP: vesting settings validation failed"
         );
       });
@@ -598,7 +682,7 @@ describe.only("TokenSaleProposal", () => {
         tiers[0].vestingSettings.vestingDuration = 0;
 
         await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]], []),
+          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
           "TSP: vesting settings validation failed"
         );
       });
@@ -607,7 +691,7 @@ describe.only("TokenSaleProposal", () => {
         tiers[0].purchaseTokenAddresses = [];
 
         await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]], []),
+          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
           "TSP: purchase tokens are not provided"
         );
       });
@@ -616,7 +700,7 @@ describe.only("TokenSaleProposal", () => {
         tiers[0].purchaseTokenAddresses = [];
 
         await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]], []),
+          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
           "TSP: purchase tokens are not provided"
         );
       });
@@ -625,7 +709,7 @@ describe.only("TokenSaleProposal", () => {
         tiers[0].purchaseTokenAddresses = tiers[0].purchaseTokenAddresses.slice(0, 1);
 
         await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]], []),
+          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
           "TSP: tokens and rates lengths mismatch"
         );
       });
@@ -634,7 +718,7 @@ describe.only("TokenSaleProposal", () => {
         tiers[0].purchaseTokenAddresses[1] = ZERO_ADDR;
 
         await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]], []),
+          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
           "TSP: purchase token cannot be zero"
         );
       });
@@ -653,16 +737,16 @@ describe.only("TokenSaleProposal", () => {
         tiers[0].purchaseTokenAddresses[0] = tiers[0].purchaseTokenAddresses[1];
 
         await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]], []),
+          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
           "TSP: purchase tokens are duplicated"
         );
       });
 
       it("should create tiers if all conditions are met", async () => {
-        await acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(JSON.parse(JSON.stringify(tiers)))]], []);
+        await acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(JSON.parse(JSON.stringify(tiers)))]]);
 
         assert.deepEqual(
-          tierInitParamsToObjects((await tsp.getTierViews(0, 2)).map((tier) => tier.tierInitParams)),
+          tierInitParamsToObjects((await tsp.getTierViews(0, 5)).map((tier) => tier.tierInitParams)),
           tiers
         );
       });
@@ -671,176 +755,23 @@ describe.only("TokenSaleProposal", () => {
     describe("if tiers are created", () => {
       beforeEach(async () => {
         // `getBytesCreateTiersTSP` modifies `tiers`, so it's needed to make a deep copy
-        await acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(JSON.parse(JSON.stringify(tiers)))]], []);
+        await acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(JSON.parse(JSON.stringify(tiers)))]]);
 
         await purchaseToken1.mint(OWNER, wei(1000));
 
         await network.provider.send("hardhat_setBalance", [OWNER, "0x" + wei("100000")]);
       });
 
-      describe("addToWhitelist", () => {
-        it("should not whitelist if caller is not govPool", async () => {
-          const whitelistingRequest = [
-            {
-              tierId: 1,
-              users: [SECOND],
-              uri: "",
-            },
-          ];
+      describe("canParticipate", () => {
+        describe("DaoVotes", () => {});
 
-          await truffleAssert.reverts(tsp.addToWhitelist(whitelistingRequest), "TSP: not a Gov contract");
-        });
+        describe("Whitelist", () => {});
 
-        it("should not whitelist if the tier does not exist", async () => {
-          const nonexistentWhitelisting = [
-            {
-              tierId: 10,
-              users: [SECOND],
-              uri: "",
-            },
-          ];
+        describe("BABT", () => {});
 
-          await truffleAssert.reverts(
-            acceptProposal([[tsp.address, 0, getBytesAddToWhitelistTSP(nonexistentWhitelisting)]], []),
-            "TSP: tier does not exist"
-          );
-        });
+        describe("TokenLock", () => {});
 
-        it("should not whitelist if the tier is off", async () => {
-          await acceptProposal([[tsp.address, 0, getBytesOffTiersTSP([1])]], []);
-
-          const offTierWhitelisting = [
-            {
-              tierId: 1,
-              users: [OWNER, SECOND],
-              uri: "",
-            },
-          ];
-
-          await truffleAssert.reverts(
-            acceptProposal([[tsp.address, 0, getBytesAddToWhitelistTSP(offTierWhitelisting)]], []),
-            "TSP: tier is off"
-          );
-        });
-
-        it("should not whitelist twice", async () => {
-          const doubleWhitelisting = [
-            {
-              tierId: 1,
-              users: [SECOND],
-              uri: "",
-            },
-            {
-              tierId: 1,
-              users: [SECOND],
-              uri: "",
-            },
-          ];
-
-          await truffleAssert.reverts(
-            acceptProposal([[tsp.address, 0, getBytesAddToWhitelistTSP(doubleWhitelisting)]], []),
-            "TSP: balance can be only 0 or 1"
-          );
-        });
-
-        it("should not transfer whitelist token", async () => {
-          const whitelistingRequest = [
-            {
-              tierId: 1,
-              users: [SECOND],
-              uri: "",
-            },
-          ];
-
-          await acceptProposal([[tsp.address, 0, getBytesAddToWhitelistTSP(whitelistingRequest)]], []);
-
-          await tsp.setApprovalForAll(THIRD, true, { from: SECOND });
-
-          await truffleAssert.reverts(
-            tsp.safeTransferFrom(SECOND, THIRD, 1, 1, [], { from: THIRD }),
-            "TSP: only for minting"
-          );
-        });
-
-        it("should whitelist properly if all conditions are met", async () => {
-          const whitelistingRequests = [
-            {
-              tierId: 1,
-              users: [SECOND],
-              uri: "",
-            },
-            {
-              tierId: 2,
-              users: [OWNER, THIRD],
-              uri: "",
-            },
-          ];
-
-          assert.equal((await tsp.totalSupply(1)).toFixed(), "0");
-          assert.equal((await tsp.totalSupply(2)).toFixed(), "0");
-
-          await acceptProposal([[tsp.address, 0, getBytesAddToWhitelistTSP(whitelistingRequests)]], []);
-
-          assert.equal((await tsp.totalSupply(1)).toFixed(), "1");
-          assert.equal((await tsp.totalSupply(2)).toFixed(), "2");
-
-          assert.equal((await tsp.balanceOf(SECOND, 1)).toFixed(), "1");
-          assert.equal((await tsp.balanceOf(OWNER, 2)).toFixed(), "1");
-          assert.equal((await tsp.balanceOf(THIRD, 2)).toFixed(), "1");
-        });
-
-        it("should whitelist properly if all conditions are met", async () => {
-          const whitelistingRequests = [
-            {
-              tierId: 1,
-              users: [OWNER],
-              uri: "uri1_owner",
-            },
-            {
-              tierId: 1,
-              users: [SECOND],
-              uri: "uri1_second",
-            },
-            {
-              tierId: 2,
-              users: [SECOND],
-              uri: "uri2_second",
-            },
-            {
-              tierId: 2,
-              users: [OWNER],
-              uri: "uri2_owner",
-            },
-          ];
-
-          await acceptProposal([[tsp.address, 0, getBytesAddToWhitelistTSP(whitelistingRequests)]], []);
-
-          assert.deepEqual(
-            (await tsp.getTierViews(0, 2)).map((tier) => tier.tierInfo.uri),
-            ["uri1_second", "uri2_owner"]
-          );
-          assert.equal(await tsp.uri(1), "uri1_second");
-          assert.equal(await tsp.uri(2), "uri2_owner");
-          assert.equal(await tsp.uri(3), "");
-
-          const zeroUriWhitelistingRequest = [
-            {
-              tierId: 1,
-              users: [THIRD],
-              uri: "",
-            },
-          ];
-
-          await acceptProposal([[tsp.address, 0, getBytesAddToWhitelistTSP(zeroUriWhitelistingRequest)]], []);
-
-          assert.deepEqual(
-            (await tsp.getTierViews(0, 2)).map((tier) => tier.tierInfo.uri),
-            ["", "uri2_owner"]
-          );
-          assert.equal(await tsp.uri(1), "");
-          assert.equal(await tsp.uri(2), "uri2_owner");
-          assert.equal(await tsp.uri(3), "");
-        });
+        describe("NFTLock", () => {});
       });
 
       describe("offTiers", () => {
@@ -849,10 +780,10 @@ describe.only("TokenSaleProposal", () => {
         });
 
         it("should not off tiers if the tier does not exist", async () => {
-          const nonexistentOffTier = [3];
+          const nonexistentOffTier = [10];
 
           await truffleAssert.reverts(
-            acceptProposal([[tsp.address, 0, getBytesOffTiersTSP(nonexistentOffTier)]], []),
+            acceptProposal([[tsp.address, 0, getBytesOffTiersTSP(nonexistentOffTier)]]),
             "TSP: tier does not exist"
           );
         });
@@ -861,7 +792,7 @@ describe.only("TokenSaleProposal", () => {
           const doubleOffTier = [1, 1];
 
           await truffleAssert.reverts(
-            acceptProposal([[tsp.address, 0, getBytesOffTiersTSP(doubleOffTier)]], []),
+            acceptProposal([[tsp.address, 0, getBytesOffTiersTSP(doubleOffTier)]]),
             "TSP: tier is off"
           );
         });
@@ -874,7 +805,7 @@ describe.only("TokenSaleProposal", () => {
             [false, false]
           );
 
-          await acceptProposal([[tsp.address, 0, getBytesOffTiersTSP(offTierIds)]], []);
+          await acceptProposal([[tsp.address, 0, getBytesOffTiersTSP(offTierIds)]]);
 
           assert.deepEqual(
             (await tsp.getTierViews(0, 2)).map((tier) => tier.tierInfo.isOff),
@@ -897,7 +828,7 @@ describe.only("TokenSaleProposal", () => {
             },
           ];
 
-          await acceptProposal([[tsp.address, 0, getBytesAddToWhitelistTSP(whitelistingRequest)]], []);
+          await acceptProposal([[tsp.address, 0, getBytesAddToWhitelistTSP(whitelistingRequest)]]);
 
           await purchaseToken1.approve(tsp.address, wei(200));
 
@@ -918,27 +849,27 @@ describe.only("TokenSaleProposal", () => {
 
         it("should not recover if the tier does not exist", async () => {
           await truffleAssert.reverts(
-            acceptProposal([[tsp.address, 0, getBytesRecoverTSP([3])]], []),
+            acceptProposal([[tsp.address, 0, getBytesRecoverTSP([10])]]),
             "TSP: tier does not exist"
           );
         });
 
         it("should not recover the same tier twice", async () => {
           await truffleAssert.reverts(
-            acceptProposal([[tsp.address, 0, getBytesRecoverTSP([1, 1])]], []),
+            acceptProposal([[tsp.address, 0, getBytesRecoverTSP([1, 1])]]),
             "TSP: zero recovery"
           );
         });
 
         it("should recover if the tier is off", async () => {
-          await acceptProposal([[tsp.address, 0, getBytesOffTiersTSP([1])]], []);
+          await acceptProposal([[tsp.address, 0, getBytesOffTiersTSP([1])]]);
 
           assert.deepEqual(
             (await tsp.getRecoverAmounts([1, 2])).map((amount) => amount.toFixed()),
             [wei("400"), "0"]
           );
 
-          await acceptProposal([[tsp.address, 0, getBytesRecoverTSP([1])]], []);
+          await acceptProposal([[tsp.address, 0, getBytesRecoverTSP([1])]]);
 
           assert.equal((await erc20Sale.balanceOf(govPool.address)).toFixed(), wei("400"));
           assert.equal((await saleToken.balanceOf(govPool.address)).toFixed(), "0");
@@ -952,7 +883,7 @@ describe.only("TokenSaleProposal", () => {
             [wei("400"), "0"]
           );
 
-          await acceptProposal([[tsp.address, 0, getBytesRecoverTSP([1])]], []);
+          await acceptProposal([[tsp.address, 0, getBytesRecoverTSP([1])]]);
 
           assert.equal((await erc20Sale.balanceOf(govPool.address)).toFixed(), wei("400"));
           assert.equal((await saleToken.balanceOf(govPool.address)).toFixed(), "0");
