@@ -155,10 +155,8 @@ contract GovPool is
     ) public override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty deposit");
 
-        IGovUserKeeper govUserKeeper = _govUserKeeper;
-
-        govUserKeeper.depositTokens.exec(receiver, amount);
-        govUserKeeper.depositNfts.exec(receiver, nftIds);
+        _govUserKeeper.depositTokens.exec(receiver, amount);
+        _govUserKeeper.depositNfts.exec(receiver, nftIds);
 
         emit Deposited(amount, nftIds, receiver);
     }
@@ -263,10 +261,8 @@ contract GovPool is
 
         _unlock(msg.sender, false);
 
-        IGovUserKeeper govUserKeeper = _govUserKeeper;
-
-        govUserKeeper.withdrawTokens.exec(receiver, amount);
-        govUserKeeper.withdrawNfts.exec(receiver, nftIds);
+        _govUserKeeper.withdrawTokens.exec(receiver, amount);
+        _govUserKeeper.withdrawNfts.exec(receiver, nftIds);
 
         emit Withdrawn(amount, nftIds, receiver);
     }

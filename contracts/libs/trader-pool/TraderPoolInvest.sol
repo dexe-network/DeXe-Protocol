@@ -49,6 +49,42 @@ library TraderPoolInvest {
         uint256 toVolume
     );
 
+    function investPositions(
+        ITraderPool.PoolParameters storage poolParameters,
+        address baseHolder,
+        uint256 amountInBaseToInvest,
+        uint256[] calldata minPositionsOut
+    ) public returns (uint256 toMintLP) {
+        (
+            uint256 totalBase,
+            ,
+            address[] memory positionTokens,
+            uint256[] memory positionPricesInBase
+        ) = poolParameters.getNormalizedPoolPriceAndPositions();
+
+        toMintLP = _transferBase(poolParameters, baseHolder, totalBase, amountInBaseToInvest);
+
+        IPriceFeed priceFeed = TraderPool(address(this)).priceFeed();
+
+        for (uint256 i = 0; i < positionTokens.length; i++) {
+            uint256 amount = positionPricesInBase[i].ratio(amountInBaseToInvest, totalBase);
+            uint256 amountGot = priceFeed.normalizedExchangeFromExact(
+                poolParameters.baseToken,
+                positionTokens[i],
+                amount,
+                new address[](0),
+                minPositionsOut[i]
+            );
+
+            emit ActivePortfolioExchanged(
+                poolParameters.baseToken,
+                positionTokens[i],
+                amount,
+                amountGot
+            );
+        }
+    }
+
     function invest(
         ITraderPool.PoolParameters storage poolParameters,
         uint256 amountInBaseToInvest,

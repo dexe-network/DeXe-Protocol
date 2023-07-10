@@ -63,7 +63,7 @@ library TraderPoolDivest {
 
         for (uint256 i = 0; i < _openPositions.length; i++) {
             uint256 amount = _openPositions[i].normThisBalance().ratio(amountLP, totalSupply);
-            uint256 amountGot = traderPool.priceFeed().normalizedExchangeFromExact(
+            uint256 amountGot = TraderPool(address(this)).priceFeed().normalizedExchangeFromExact(
                 _openPositions[i],
                 baseToken,
                 amount,

@@ -37,10 +37,8 @@ library TraderPoolExchange {
         address[] calldata optionalPath,
         ITraderPool.ExchangeType exType
     ) external {
-        TraderPool traderPool = TraderPool(address(this));
-
-        ICoreProperties coreProperties = traderPool.coreProperties();
-        IPriceFeed priceFeed = traderPool.priceFeed();
+        ICoreProperties coreProperties = TraderPool(address(this)).coreProperties();
+        IPriceFeed priceFeed = TraderPool(address(this)).priceFeed();
 
         require(from != to, "TP: ambiguous exchange");
         require(!coreProperties.isBlacklistedToken(to), "TP: blacklisted token");
@@ -97,10 +95,8 @@ library TraderPoolExchange {
         address[] calldata optionalPath,
         ITraderPool.ExchangeType exType
     ) external view returns (uint256, address[] memory) {
-        TraderPool traderPool = TraderPool(address(this));
-
-        IPriceFeed priceFeed = traderPool.priceFeed();
-        ICoreProperties coreProperties = traderPool.coreProperties();
+        IPriceFeed priceFeed = TraderPool(address(this)).priceFeed();
+        ICoreProperties coreProperties = TraderPool(address(this)).coreProperties();
 
         if (
             coreProperties.isBlacklistedToken(to) ||

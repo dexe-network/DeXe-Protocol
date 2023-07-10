@@ -57,20 +57,16 @@ library TraderPoolLeverage {
     function _getNormalizedLeveragePoolPriceInUSD(
         ITraderPool.PoolParameters storage poolParameters
     ) internal view returns (uint256 totalInUSD, uint256 traderInUSD) {
-        address addressThis = address(this);
-        TraderPool traderPool = TraderPool(addressThis);
-
-        address proposalPool = traderPool.proposalPoolAddress();
-        uint256 totalEmission = traderPool.totalEmission();
-        uint256 traderBalance = IERC20(addressThis).balanceOf(poolParameters.trader);
+        address trader = poolParameters.trader;
+        address proposalPool = TraderPool(address(this)).proposalPoolAddress();
+        uint256 totalEmission = TraderPool(address(this)).totalEmission();
+        uint256 traderBalance = IERC20(address(this)).balanceOf(trader);
 
         (, totalInUSD) = poolParameters.getNormalizedPoolPriceAndUSD();
 
         if (proposalPool != address(0)) {
-            ITraderPoolProposal proposal = ITraderPoolProposal(proposalPool);
-
-            totalInUSD += proposal.getInvestedBaseInUSD();
-            traderBalance += proposal.totalLPBalances(poolParameters.trader);
+            totalInUSD += ITraderPoolProposal(proposalPool).getInvestedBaseInUSD();
+            traderBalance += ITraderPoolProposal(proposalPool).totalLPBalances(trader);
         }
 
         if (totalEmission > 0) {

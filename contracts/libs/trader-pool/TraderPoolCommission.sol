@@ -29,11 +29,9 @@ library TraderPoolCommission {
         uint256 minDexeCommissionOut,
         ITraderPool.PoolParameters storage poolParameters
     ) external {
-        TraderPool traderPool = TraderPool(address(this));
+        require(TraderPool(address(this)).openPositions().length == 0, "TP: positions are open");
 
-        require(traderPool.openPositions().length == 0, "TP: positions are open");
-
-        uint256 totalSupply = traderPool.totalSupply();
+        uint256 totalSupply = TraderPool(address(this)).totalSupply();
         uint256 nextCommissionEpoch = getNextCommissionEpoch(poolParameters);
         uint256 allBaseCommission;
         uint256 allLPCommission;
@@ -59,7 +57,7 @@ library TraderPoolCommission {
                     if (lpCommission > 0) {
                         info.investedBase = investorBaseAmount - baseCommission;
 
-                        traderPool.burn(investor, lpCommission);
+                        TraderPool(address(this)).burn(investor, lpCommission);
 
                         allBaseCommission += baseCommission;
                         allLPCommission += lpCommission;

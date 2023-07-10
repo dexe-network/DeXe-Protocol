@@ -173,9 +173,7 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
             return 0;
         }
 
-        NftInfo storage nftInfo = nftInfos[tokenId];
-
-        uint256 collateral = nftInfo.currentCollateral;
+        uint256 collateral = nftInfos[tokenId].currentCollateral;
 
         // Calculate the minimum possible power based on the collateral of the nft
         uint256 maxNftPower = getMaxPowerForNft(tokenId);
@@ -183,8 +181,8 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
         minNftPower = maxNftPower.min(minNftPower);
 
         // Get last update and current power. Or set them to default if it is first iteration
-        uint64 lastUpdate = nftInfo.lastUpdate;
-        uint256 currentPower = nftInfo.currentPower;
+        uint64 lastUpdate = nftInfos[tokenId].lastUpdate;
+        uint256 currentPower = nftInfos[tokenId].currentPower;
 
         if (lastUpdate == 0) {
             lastUpdate = powerCalcStartTimestamp;

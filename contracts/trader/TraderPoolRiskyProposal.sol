@@ -81,11 +81,11 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         require(token.isContract(), "TPRP: not a contract");
         require(token != _parentTraderPoolInfo.baseToken, "TPRP: wrong proposal token");
         require(
-            _zeroOrGreater(proposalLimits.timestampLimit, block.timestamp),
+            proposalLimits.timestampLimit == 0 || proposalLimits.timestampLimit >= block.timestamp,
             "TPRP: wrong timestamp"
         );
         require(
-            _zeroOrGreater(proposalLimits.investLPLimit, lpInvestment),
+            proposalLimits.investLPLimit == 0 || proposalLimits.investLPLimit >= lpInvestment,
             "TPRP: wrong investment limit"
         );
         require(lpInvestment > 0 && baseInvestment > 0, "TPRP: zero investment");
@@ -99,12 +99,10 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         priceFeed.checkAllowance(baseToken);
         priceFeed.checkAllowance(token);
 
-        ProposalInfo storage info = _proposalInfos[proposalId];
-
-        info.descriptionURL = descriptionURL;
-        info.token = token;
-        info.tokenDecimals = ERC20(token).decimals();
-        info.proposalLimits = proposalLimits;
+        _proposalInfos[proposalId].descriptionURL = descriptionURL;
+        _proposalInfos[proposalId].token = token;
+        _proposalInfos[proposalId].tokenDecimals = ERC20(token).decimals();
+        _proposalInfos[proposalId].proposalLimits = proposalLimits;
 
         uint256 baseToExchange = baseInvestment.percentage(instantTradePercentage);
 
@@ -138,21 +136,21 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         );
 
         ProposalInfo storage info = _proposalInfos[proposalId];
-        ProposalLimits storage proposalLimits = info.proposalLimits;
 
         require(
-            _zeroOrGreater(proposalLimits.timestampLimit, block.timestamp),
+            info.proposalLimits.timestampLimit == 0 ||
+                block.timestamp <= info.proposalLimits.timestampLimit,
             "TPRP: proposal is closed"
         );
         require(
-            _zeroOrGreater(proposalLimits.investLPLimit, info.lpLocked + lpInvestment),
+            info.proposalLimits.investLPLimit == 0 ||
+                info.lpLocked + lpInvestment <= info.proposalLimits.investLPLimit,
             "TPRP: proposal is overinvested"
         );
         require(
-            _zeroOrGreater(
-                proposalLimits.maxTokenPriceLimit,
-                priceFeed.getNormPriceIn(_parentTraderPoolInfo.baseToken, info.token, DECIMALS)
-            ),
+            info.proposalLimits.maxTokenPriceLimit == 0 ||
+                priceFeed.getNormPriceIn(_parentTraderPoolInfo.baseToken, info.token, DECIMALS) <=
+                info.proposalLimits.maxTokenPriceLimit,
             "TPRP: token price too high"
         );
 
@@ -479,18 +477,12 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     }
 
     function _baseInProposal(uint256 proposalId) internal view override returns (uint256) {
-        ProposalInfo storage info = _proposalInfos[proposalId];
-
         return
-            info.balanceBase +
+            _proposalInfos[proposalId].balanceBase +
             priceFeed.getNormPriceOut(
-                info.token,
+                _proposalInfos[proposalId].token,
                 _parentTraderPoolInfo.baseToken,
-                info.balancePosition
+                _proposalInfos[proposalId].balancePosition
             );
-    }
-
-    function _zeroOrGreater(uint256 a, uint256 b) internal pure returns (bool) {
-        return a == 0 || a >= b;
     }
 }

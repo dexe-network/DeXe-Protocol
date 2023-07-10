@@ -109,16 +109,14 @@ contract InvestTraderPool is IInvestTraderPool, TraderPool {
         uint256 proposalId,
         uint256[] calldata minPositionsOut
     ) external override onlyBABTHolder {
-        ITraderPoolInvestProposal traderPoolProposal = _traderPoolProposal;
-
-        uint256 receivedBase = traderPoolProposal.divest(proposalId, msg.sender);
+        uint256 receivedBase = _traderPoolProposal.divest(proposalId, msg.sender);
 
         if (receivedBase == 0) {
             return;
         }
 
         uint256 toMintLP = _poolParameters.investPositions(
-            address(traderPoolProposal),
+            address(_traderPoolProposal),
             receivedBase,
             minPositionsOut
         );

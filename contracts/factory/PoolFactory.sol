@@ -130,8 +130,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         address tokenSaleProxy = _deployTokenSale(parameters, tokenSaleParameters, poolProxy);
 
-        TokenSaleProposal tokenSaleProposal = TokenSaleProposal(tokenSaleProxy);
-
         emit DaoTokenSaleDeployed(
             poolProxy,
             tokenSaleProxy,
@@ -140,8 +138,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         _updateSalt(parameters.name);
 
-        tokenSaleProposal.createTiers(tokenSaleParameters.tiersParams);
-        tokenSaleProposal.addToWhitelist(tokenSaleParameters.whitelistParams);
+        TokenSaleProposal(tokenSaleProxy).createTiers(tokenSaleParameters.tiersParams);
+        TokenSaleProposal(tokenSaleProxy).addToWhitelist(tokenSaleParameters.whitelistParams);
 
         _initGovPool(
             poolProxy,
@@ -151,7 +149,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             validatorsProxy,
             parameters
         );
-        tokenSaleProposal.__TokenSaleProposal_init(poolProxy);
+        TokenSaleProposal(tokenSaleProxy).__TokenSaleProposal_init(poolProxy);
 
         GovSettings(settingsProxy).transferOwnership(poolProxy);
         GovUserKeeper(userKeeperProxy).transferOwnership(poolProxy);
@@ -236,14 +234,12 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         }
 
         PoolRegistry poolRegistry = _poolRegistry;
-        address poolRegistryAddress = address(poolRegistry);
-
         bytes32 govSalt = _calculateGovSalt(deployer, poolName);
 
         return (
-            _predictPoolAddress(poolRegistryAddress, poolRegistry.GOV_POOL_NAME(), govSalt),
+            _predictPoolAddress(address(poolRegistry), poolRegistry.GOV_POOL_NAME(), govSalt),
             _predictPoolAddress(
-                poolRegistryAddress,
+                address(poolRegistry),
                 poolRegistry.TOKEN_SALE_PROPOSAL_NAME(),
                 govSalt
             ),

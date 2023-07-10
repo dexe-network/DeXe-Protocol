@@ -137,8 +137,10 @@ library GovPoolVote {
 
         votes.add(proposalId);
 
+        GovPool govPool = GovPool(payable(address(this)));
+
         require(
-            votes.length() <= GovPool(payable(address(this))).coreProperties().getGovVotesLimit(),
+            votes.length() <= govPool.coreProperties().getGovVotesLimit(),
             "Gov: vote limit reached"
         );
 

@@ -20,9 +20,7 @@ library GovPoolCommission {
             .coreProperties()
             .getDEXECommissionPercentages();
 
-        address insuranceCommissionReceiver = commissionReceivers[1];
-
-        if (rewardToken == address(0) || insuranceCommissionReceiver == address(this)) {
+        if (rewardToken == address(0) || commissionReceivers[1] == address(this)) {
             return;
         }
 
@@ -30,6 +28,6 @@ library GovPoolCommission {
             commissionAmount.percentage(commissionPercentage)
         );
 
-        rewardToken.sendFunds(insuranceCommissionReceiver, commission, true);
+        rewardToken.sendFunds(commissionReceivers[1], commission, true);
     }
 }

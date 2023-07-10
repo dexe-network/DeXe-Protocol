@@ -92,10 +92,8 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         leverageInfos = new ITraderPool.LeverageInfo[](pools.length);
 
         for (uint256 i = 0; i < pools.length; i++) {
-            ITraderPool traderPool = ITraderPool(pools[i]);
-
-            poolInfos[i] = traderPool.getPoolInfo();
-            leverageInfos[i] = traderPool.getLeverageInfo();
+            poolInfos[i] = ITraderPool(pools[i]).getPoolInfo();
+            leverageInfos[i] = ITraderPool(pools[i]).getLeverageInfo();
         }
     }
 

@@ -28,7 +28,7 @@ contract DistributionProposal is IDistributionProposal, Initializable {
     event DistributionProposalClaimed(uint256 proposalId, address sender, uint256 amount);
 
     modifier onlyGov() {
-        _onlyGov();
+        require(msg.sender == govAddress, "DP: not a Gov contract");
         _;
     }
 
@@ -98,9 +98,5 @@ contract DistributionProposal is IDistributionProposal, Initializable {
                 voterVotesFor - voterVotesAgainst,
                 totalVotesFor + totalVotesAgainst
             );
-    }
-
-    function _onlyGov() internal view {
-        require(msg.sender == govAddress, "DP: not a Gov contract");
     }
 }

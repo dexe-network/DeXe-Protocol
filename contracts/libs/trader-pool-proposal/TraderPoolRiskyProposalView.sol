@@ -27,38 +27,36 @@ library TraderPoolRiskyProposalView {
         uint256 offset,
         uint256 limit
     ) external view returns (ITraderPoolRiskyProposal.ProposalInfoExtended[] memory proposals) {
-        TraderPoolRiskyProposal traderPoolRiskyProposal = TraderPoolRiskyProposal(address(this));
-
-        uint256 to = (offset + limit).min(traderPoolRiskyProposal.proposalsTotalNum()).max(offset);
+        uint256 to = (offset + limit)
+            .min(TraderPoolRiskyProposal(address(this)).proposalsTotalNum())
+            .max(offset);
 
         proposals = new ITraderPoolRiskyProposal.ProposalInfoExtended[](to - offset);
 
-        IPriceFeed priceFeed = traderPoolRiskyProposal.priceFeed();
-        address baseToken = traderPoolRiskyProposal.getBaseToken();
+        IPriceFeed priceFeed = ITraderPoolRiskyProposal(address(this)).priceFeed();
+        address baseToken = ITraderPoolRiskyProposal(address(this)).getBaseToken();
 
         for (uint256 i = offset; i < to; i++) {
-            ITraderPoolRiskyProposal.ProposalInfoExtended memory proposalInfo = proposals[
-                i - offset
-            ];
+            proposals[i - offset].proposalInfo = proposalInfos[i + 1];
 
-            proposalInfo.proposalInfo = proposalInfos[i + 1];
-
-            proposalInfo.totalProposalBase =
-                proposalInfo.proposalInfo.balanceBase +
+            proposals[i - offset].totalProposalBase =
+                proposals[i - offset].proposalInfo.balanceBase +
                 priceFeed.getNormPriceOut(
-                    proposalInfo.proposalInfo.token,
+                    proposals[i - offset].proposalInfo.token,
                     baseToken,
-                    proposalInfo.proposalInfo.balancePosition
+                    proposals[i - offset].proposalInfo.balancePosition
                 );
-            (proposalInfo.totalProposalUSD, ) = priceFeed.getNormalizedPriceOutUSD(
+            (proposals[i - offset].totalProposalUSD, ) = priceFeed.getNormalizedPriceOutUSD(
                 baseToken,
-                proposalInfo.totalProposalBase
+                proposals[i - offset].totalProposalBase
             );
-            proposalInfo.lp2Supply = traderPoolRiskyProposal.totalSupply(i + 1);
-            proposalInfo.totalInvestors = investors[i + 1].length();
-            proposalInfo.positionTokenPrice = priceFeed.getNormPriceIn(
+            proposals[i - offset].lp2Supply = TraderPoolRiskyProposal(address(this)).totalSupply(
+                i + 1
+            );
+            proposals[i - offset].totalInvestors = investors[i + 1].length();
+            proposals[i - offset].positionTokenPrice = priceFeed.getNormPriceIn(
                 baseToken,
-                proposalInfo.proposalInfo.token,
+                proposals[i - offset].proposalInfo.token,
                 DECIMALS
             );
         }
@@ -77,8 +75,6 @@ library TraderPoolRiskyProposalView {
 
         investments = new ITraderPoolRiskyProposal.ActiveInvestmentInfo[](to - offset);
 
-        mapping(uint256 => uint256) storage baseBalance = baseBalances[user];
-
         for (uint256 i = offset; i < to; i++) {
             uint256 proposalId = activeInvestments.at(i);
             uint256 balance = TraderPoolRiskyProposal(address(this)).balanceOf(user, proposalId);
@@ -87,7 +83,7 @@ library TraderPoolRiskyProposalView {
             investments[i - offset] = ITraderPoolRiskyProposal.ActiveInvestmentInfo(
                 proposalId,
                 balance,
-                baseBalance[proposalId],
+                baseBalances[user][proposalId],
                 lpBalances[user][proposalId],
                 proposalInfos[proposalId].balanceBase.ratio(balance, supply),
                 proposalInfos[proposalId].balancePosition.ratio(balance, supply)
@@ -109,8 +105,6 @@ library TraderPoolRiskyProposalView {
         uint256 lpBalance = proposal.totalLPBalances(user) +
             IERC20(parentTraderPoolInfo.parentPoolAddress).balanceOf(user);
 
-        mapping(uint256 => uint256) storage lpUserBalance = lpBalances[user];
-
         for (uint256 i = 0; i < proposalIds.length; i++) {
             if (user != trader) {
                 uint256 proposalId = proposalIds[i];
@@ -118,8 +112,8 @@ library TraderPoolRiskyProposalView {
                 uint256 maxPercentage = proposal.getInvestmentPercentage(proposalId, trader, 0);
                 uint256 maxInvestment = lpBalance.percentage(maxPercentage);
 
-                lps[i] = maxInvestment > lpUserBalance[proposalId]
-                    ? maxInvestment - lpUserBalance[proposalId]
+                lps[i] = maxInvestment > lpBalances[user][proposalId]
+                    ? maxInvestment - lpBalances[user][proposalId]
                     : 0;
             } else {
                 lps[i] = MAX_UINT;
@@ -165,13 +159,14 @@ library TraderPoolRiskyProposalView {
         uint256 proposalId,
         uint256 baseInvestment
     ) external view returns (uint256 baseAmount, uint256 positionAmount, uint256 lp2Amount) {
-        TraderPoolRiskyProposal traderPoolRiskyProposal = TraderPoolRiskyProposal(address(this));
-
-        if (_zeroOrGreater(proposalId, traderPoolRiskyProposal.proposalsTotalNum())) {
+        if (
+            proposalId == 0 ||
+            proposalId > TraderPoolRiskyProposal(address(this)).proposalsTotalNum()
+        ) {
             return (0, 0, 0);
         }
 
-        IPriceFeed priceFeed = traderPoolRiskyProposal.priceFeed();
+        IPriceFeed priceFeed = ITraderPoolRiskyProposal(address(this)).priceFeed();
         uint256 tokensPrice = priceFeed.getNormPriceOut(
             info.token,
             parentTraderPoolInfo.baseToken,
@@ -192,7 +187,7 @@ library TraderPoolRiskyProposalView {
                 baseToExchange
             );
             lp2Amount = lp2Amount.ratio(
-                traderPoolRiskyProposal.totalSupply(proposalId),
+                TraderPoolRiskyProposal(address(this)).totalSupply(proposalId),
                 totalBase
             );
         }
@@ -204,23 +199,21 @@ library TraderPoolRiskyProposalView {
         uint256[] calldata proposalIds,
         uint256[] calldata lp2s
     ) external view returns (ITraderPoolRiskyProposal.Receptions memory receptions) {
-        TraderPoolRiskyProposal traderPoolRiskyProposal = TraderPoolRiskyProposal(address(this));
-
         receptions.positions = new address[](proposalIds.length);
         receptions.givenAmounts = new uint256[](proposalIds.length);
         receptions.receivedAmounts = new uint256[](proposalIds.length);
 
-        IPriceFeed priceFeed = traderPoolRiskyProposal.priceFeed();
-        uint256 proposalsTotalNum = traderPoolRiskyProposal.proposalsTotalNum();
+        IPriceFeed priceFeed = ITraderPoolRiskyProposal(address(this)).priceFeed();
+        uint256 proposalsTotalNum = TraderPoolRiskyProposal(address(this)).proposalsTotalNum();
 
         for (uint256 i = 0; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
 
-            if (_zeroOrGreater(proposalId, proposalsTotalNum)) {
+            if (proposalId == 0 || proposalId > proposalsTotalNum) {
                 continue;
             }
 
-            uint256 propSupply = traderPoolRiskyProposal.totalSupply(proposalId);
+            uint256 propSupply = TraderPoolRiskyProposal(address(this)).totalSupply(proposalId);
 
             if (propSupply > 0) {
                 receptions.positions[i] = proposalInfos[proposalId].token;
@@ -250,8 +243,10 @@ library TraderPoolRiskyProposalView {
         address[] calldata optionalPath,
         ITraderPoolRiskyProposal.ExchangeType exType
     ) external view returns (uint256, address[] memory) {
-        TraderPoolRiskyProposal traderPoolRiskyProposal = TraderPoolRiskyProposal(address(this));
-        if (_zeroOrGreater(proposalId, traderPoolRiskyProposal.proposalsTotalNum())) {
+        if (
+            proposalId == 0 ||
+            proposalId > TraderPoolRiskyProposal(address(this)).proposalsTotalNum()
+        ) {
             return (0, new address[](0));
         }
 
@@ -268,15 +263,11 @@ library TraderPoolRiskyProposalView {
             to = baseToken;
         }
 
-        IPriceFeed priceFeed = traderPoolRiskyProposal.priceFeed();
+        IPriceFeed priceFeed = ITraderPoolRiskyProposal(address(this)).priceFeed();
 
         return
             exType == ITraderPoolRiskyProposal.ExchangeType.FROM_EXACT
                 ? priceFeed.getNormalizedExtendedPriceOut(from, to, amount, optionalPath)
                 : priceFeed.getNormalizedExtendedPriceIn(from, to, amount, optionalPath);
-    }
-
-    function _zeroOrGreater(uint256 a, uint256 b) internal pure returns (bool) {
-        return a == 0 || a > b;
     }
 }

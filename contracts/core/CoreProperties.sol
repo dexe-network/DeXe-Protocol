@@ -75,10 +75,8 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
     }
 
     function setTraderLeverageParams(uint32 threshold, uint32 slope) external override onlyOwner {
-        TraderParameters storage traderParams = coreParameters.traderParams;
-
-        traderParams.leverageThreshold = threshold;
-        traderParams.leverageSlope = slope;
+        coreParameters.traderParams.leverageThreshold = threshold;
+        coreParameters.traderParams.leverageSlope = slope;
     }
 
     function setCommissionInitTimestamp(uint64 timestamp) external override onlyOwner {
@@ -94,22 +92,19 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         uint128 govCommission,
         uint128[] calldata distributionPercentages
     ) external override onlyOwner {
-        CoreParameters storage coreParams = coreParameters;
-        TraderParameters storage traderParams = coreParams.traderParams;
-
-        traderParams.dexeCommissionPercentage = dexeCommission;
-        traderParams.dexeCommissionDistributionPercentages = distributionPercentages;
-        coreParams.govParams.govCommissionPercentage = govCommission;
+        coreParameters.traderParams.dexeCommissionPercentage = dexeCommission;
+        coreParameters
+            .traderParams
+            .dexeCommissionDistributionPercentages = distributionPercentages;
+        coreParameters.govParams.govCommissionPercentage = govCommission;
     }
 
     function setTraderCommissionPercentages(
         uint256 minTraderCommission,
         uint256[] calldata maxTraderCommissions
     ) external override onlyOwner {
-        TraderParameters storage traderParams = coreParameters.traderParams;
-
-        traderParams.minTraderCommission = minTraderCommission;
-        traderParams.maxTraderCommissions = maxTraderCommissions;
+        coreParameters.traderParams.minTraderCommission = minTraderCommission;
+        coreParameters.traderParams.maxTraderCommissions = maxTraderCommissions;
     }
 
     function setDelayForRiskyPool(uint64 delayForRiskyPool) external override onlyOwner {
@@ -187,9 +182,10 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
     }
 
     function getTraderLeverageParams() external view override returns (uint32, uint32) {
-        TraderParameters storage traderParams = coreParameters.traderParams;
-
-        return (traderParams.leverageThreshold, traderParams.leverageSlope);
+        return (
+            coreParameters.traderParams.leverageThreshold,
+            coreParameters.traderParams.leverageSlope
+        );
     }
 
     function getCommissionInitTimestamp() public view override returns (uint64) {
