@@ -112,6 +112,7 @@ describe("InvestTraderPool", () => {
     const traderPoolLeverageLib = await TraderPoolLeverageLib.new();
 
     await TraderPoolDivestLib.link(traderPoolCommissionLib);
+    await TraderPoolDivestLib.link(traderPoolPriceLib);
 
     await TraderPoolInvestLib.link(traderPoolPriceLib);
     await TraderPoolInvestLib.link(traderPoolLeverageLib);
@@ -220,8 +221,7 @@ describe("InvestTraderPool", () => {
   }
 
   async function reinvestCommission(offsetLimits) {
-    const commissions = await traderPool.getReinvestCommissions(offsetLimits);
-    await traderPool.reinvestCommission(offsetLimits, commissions.dexeDexeCommission);
+    await traderPool.reinvestCommission(offsetLimits);
   }
 
   async function exchangeFromExact(from, to, amount) {

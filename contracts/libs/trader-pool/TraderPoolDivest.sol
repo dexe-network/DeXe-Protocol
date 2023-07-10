@@ -12,12 +12,14 @@ import "../../trader/TraderPool.sol";
 
 import "./TraderPoolCommission.sol";
 import "../math/MathHelper.sol";
+import "./TraderPoolPrice.sol";
 import "../utils/TokenBalance.sol";
 
 library TraderPoolDivest {
     using SafeERC20 for IERC20;
     using DecimalsConverter for uint256;
     using TraderPoolCommission for *;
+    using TraderPoolPrice for *;
     using MathHelper for uint256;
     using TokenBalance for address;
 
@@ -31,8 +33,7 @@ library TraderPoolDivest {
     function divest(
         ITraderPool.PoolParameters storage poolParameters,
         uint256 amountLP,
-        uint256[] calldata minPositionsOut,
-        uint256 minDexeCommissionOut
+        uint256[] calldata minBaseOut
     ) external {
         TraderPool traderPool = TraderPool(address(this));
 
@@ -42,50 +43,60 @@ library TraderPoolDivest {
         if (senderTrader) {
             _divestTrader(poolParameters, amountLP);
         } else {
-            _divestInvestor(poolParameters, amountLP, minPositionsOut, minDexeCommissionOut);
+            _divestInvestor(poolParameters, amountLP, minBaseOut);
         }
     }
 
     function divestPositions(
         ITraderPool.PoolParameters storage poolParameters,
         uint256 amountLP,
-        uint256[] calldata minPositionsOut
+        uint256[] calldata minBaseOut
     ) public returns (uint256 investorBaseAmount) {
         _checkUserBalance(amountLP);
 
         TraderPool traderPool = TraderPool(address(this));
-
-        address[] memory _openPositions = traderPool.openPositions();
         address baseToken = poolParameters.baseToken;
         uint256 totalSupply = traderPool.totalSupply();
 
         investorBaseAmount = baseToken.normThisBalance().ratio(amountLP, totalSupply);
 
-        for (uint256 i = 0; i < _openPositions.length; i++) {
-            uint256 amount = _openPositions[i].normThisBalance().ratio(amountLP, totalSupply);
-            uint256 amountGot = TraderPool(address(this)).priceFeed().normalizedExchangeFromExact(
-                _openPositions[i],
+        (
+            ,
+            ,
+            address[] memory positionTokens,
+            uint256[] memory positionPricesInBase
+        ) = poolParameters.getNormalizedPoolPriceAndPositions();
+
+        for (uint256 i = 0; i < positionTokens.length; i++) {
+            uint256 amountBase = positionPricesInBase[i].ratio(amountLP, totalSupply);
+            require(amountBase >= minBaseOut[i], "TP: slippage");
+
+            uint256 currentPositionBalance = positionTokens[i].normThisBalance().ratio(
+                amountLP,
+                totalSupply
+            );
+            uint256 amountPaid = TraderPool(address(this)).priceFeed().normalizedExchangeToExact(
+                positionTokens[i],
                 baseToken,
-                amount,
+                amountBase,
                 new address[](0),
-                minPositionsOut[i]
+                currentPositionBalance
             );
 
-            investorBaseAmount += amountGot;
+            investorBaseAmount += amountBase;
 
-            emit ActivePortfolioExchanged(_openPositions[i], baseToken, amount, amountGot);
+            emit ActivePortfolioExchanged(positionTokens[i], baseToken, amountPaid, amountBase);
         }
     }
 
     function _divestInvestor(
         ITraderPool.PoolParameters storage poolParameters,
         uint256 amountLP,
-        uint256[] calldata minPositionsOut,
-        uint256 minDexeCommissionOut
+        uint256[] calldata minBaseOut
     ) internal {
         TraderPool traderPool = TraderPool(address(this));
 
-        uint256 investorBaseAmount = divestPositions(poolParameters, amountLP, minPositionsOut);
+        uint256 investorBaseAmount = divestPositions(poolParameters, amountLP, minBaseOut);
         (uint256 baseCommission, uint256 lpCommission) = poolParameters
             .calculateCommissionOnDivest(msg.sender, investorBaseAmount, amountLP);
         uint256 receivedBase = investorBaseAmount - baseCommission;
@@ -99,11 +110,7 @@ library TraderPoolDivest {
         );
 
         if (baseCommission > 0) {
-            poolParameters.distributeCommission(
-                baseCommission,
-                lpCommission,
-                minDexeCommissionOut
-            );
+            poolParameters.distributeCommission(baseCommission, lpCommission);
         }
     }
 

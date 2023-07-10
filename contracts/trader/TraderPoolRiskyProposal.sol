@@ -191,7 +191,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         uint256 proposalId,
         address user,
         uint256 lp2,
-        uint256 minPositionOut
+        uint256 minBaseOut
     ) public override onlyParentTraderPool returns (uint256 receivedBase) {
         require(
             proposalId <= proposalsTotalNum && proposalId != 0,
@@ -202,7 +202,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
         if (user == _parentTraderPoolInfo.trader) {
             receivedBase = _divestProposalTrader(proposalId, lp2);
         } else {
-            receivedBase = _divestActivePortfolio(proposalId, lp2, minPositionOut);
+            receivedBase = _divestActivePortfolio(proposalId, lp2, minBaseOut);
         }
 
         (uint256 lpToBurn, uint256 baseToBurn) = _updateFrom(user, proposalId, lp2, false);
@@ -435,21 +435,30 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
     function _divestActivePortfolio(
         uint256 proposalId,
         uint256 lp2,
-        uint256 minPositionOut
+        uint256 minBaseOut
     ) internal returns (uint256 receivedBase) {
         ProposalInfo storage info = _proposalInfos[proposalId];
         uint256 supply = totalSupply(proposalId);
 
         uint256 baseShare = receivedBase = info.balanceBase.ratio(lp2, supply);
-        uint256 positionShare = info.balancePosition.ratio(lp2, supply);
+        uint256 positionMax = info.balancePosition.ratio(lp2, supply);
 
-        if (positionShare > 0) {
-            uint256 amountGot = priceFeed.normExchangeFromExact(
+        if (positionMax > 0) {
+            uint256 amountGot = priceFeed.getNormPriceOut(
                 info.token,
                 _parentTraderPoolInfo.baseToken,
-                positionShare,
+                info.balancePosition
+            );
+
+            amountGot = amountGot.ratio(lp2, supply);
+            require(amountGot >= minBaseOut, "TPRP: slippage");
+
+            uint256 positionShare = priceFeed.normExchangeToExact(
+                info.token,
+                _parentTraderPoolInfo.baseToken,
+                amountGot,
                 new address[](0),
-                minPositionOut
+                positionMax
             );
 
             info.balancePosition -= positionShare;

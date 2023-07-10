@@ -162,23 +162,16 @@ abstract contract TraderPool is
     }
 
     function reinvestCommission(
-        uint256[] calldata offsetLimits,
-        uint256 minDexeCommissionOut
+        uint256[] calldata offsetLimits
     ) external virtual override onlyTraderAdmin onlyBABTHolder {
-        investorsInfo.reinvestCommission(
-            _investors,
-            offsetLimits,
-            minDexeCommissionOut,
-            _poolParameters
-        );
+        investorsInfo.reinvestCommission(_investors, offsetLimits, _poolParameters);
     }
 
     function divest(
         uint256 amountLP,
-        uint256[] calldata minPositionsOut,
-        uint256 minDexeCommissionOut
+        uint256[] calldata minBaseOut
     ) public virtual override onlyBABTHolder {
-        _poolParameters.divest(amountLP, minPositionsOut, minDexeCommissionOut);
+        _poolParameters.divest(amountLP, minBaseOut);
     }
 
     function exchange(

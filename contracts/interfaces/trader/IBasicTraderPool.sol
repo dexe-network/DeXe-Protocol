@@ -52,11 +52,11 @@ interface IBasicTraderPool is ITraderPoolMemberHook {
     /// @param proposalId the id of the proposal to divest from
     /// @param lp2Amount the amount of proposal LP tokens to be divested
     /// @param minInvestsOut the minimal amounts of main pool positions tokens to be received
-    /// @param minProposalOut the minimal amount of base tokens received on a proposal divest
+    /// @param minBaseOut the minimal amount of base tokens received on a proposal divest
     function reinvestProposal(
         uint256 proposalId,
         uint256 lp2Amount,
         uint256[] calldata minInvestsOut,
-        uint256 minProposalOut
+        uint256 minBaseOut
     ) external;
 }
