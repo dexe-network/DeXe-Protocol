@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/utils/Create2.sol";
 
 import "../../gov/ERC20/ERC20Sale.sol";
 
-library GovTokenSaleDeployer {
+library GovTokenDeployer {
     function deployToken(
         address poolProxy,
         address tokenSaleProxy,

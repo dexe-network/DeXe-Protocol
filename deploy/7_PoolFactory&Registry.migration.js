@@ -2,13 +2,13 @@ const Proxy = artifacts.require("ERC1967Proxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 
 const PoolFactory = artifacts.require("PoolFactory");
-const GovTokenSaleDeployerLib = artifacts.require("GovTokenSaleDeployer");
+const GovTokenDeployerLib = artifacts.require("GovTokenDeployer");
 const PoolRegistry = artifacts.require("PoolRegistry");
 
 async function link(deployer) {
-  await deployer.deploy(GovTokenSaleDeployerLib);
+  await deployer.deploy(GovTokenDeployerLib);
 
-  await deployer.link(GovTokenSaleDeployerLib, PoolFactory);
+  await deployer.link(GovTokenDeployerLib, PoolFactory);
 }
 
 module.exports = async (deployer, logger) => {

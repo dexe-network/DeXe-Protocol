@@ -23,12 +23,12 @@ import "../trader/TraderPoolInvestProposal.sol";
 import "../core/CoreProperties.sol";
 import "./PoolRegistry.sol";
 
-import "../libs/factory/GovTokenSaleDeployer.sol";
+import "../libs/factory/GovTokenDeployer.sol";
 
 import "../core/Globals.sol";
 
 contract PoolFactory is IPoolFactory, AbstractPoolFactory {
-    using GovTokenSaleDeployer for *;
+    using GovTokenDeployer for *;
 
     PoolRegistry internal _poolRegistry;
     CoreProperties internal _coreProperties;
