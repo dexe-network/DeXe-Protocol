@@ -31,15 +31,18 @@ library TokenSaleProposalBuy {
         ITokenSaleProposal.PurchaseInfo storage purchaseInfo = userInfo.purchaseInfo;
         ITokenSaleProposal.TierInitParams memory tierInitParams = tier.tierInitParams;
 
-        bool isNativeCurrency = tokenToBuyWith == ETHEREUM_ADDRESS;
+        require(
+            tokenToBuyWith != ETHEREUM_ADDRESS || amount == msg.value,
+            "TSP: wrong native amount"
+        );
+
         uint256 saleTokenAmount = getSaleTokenAmount(
             tier,
             msg.sender,
             tierId,
             tokenToBuyWith,
-            isNativeCurrency ? msg.value : amount
+            amount
         );
-
         uint256 vestingCurrentAmount = saleTokenAmount.percentage(
             tierInitParams.vestingSettings.vestingPercentage
         );
@@ -55,7 +58,7 @@ library TokenSaleProposalBuy {
 
         address govAddress = TokenSaleProposal(address(this)).govAddress();
 
-        if (isNativeCurrency) {
+        if (tokenToBuyWith == ETHEREUM_ADDRESS) {
             (bool success, ) = govAddress.call{value: msg.value}("");
             require(success, "TSP: failed to transfer ether");
         } else {
@@ -77,7 +80,7 @@ library TokenSaleProposalBuy {
         ITokenSaleProposal.TierInitParams memory tierInitParams = tier.tierInitParams;
 
         require(amount > 0, "TSP: zero amount");
-        require(canParticipate(tier, tierId, user), "TSP: not whitelisted");
+        require(canParticipate(tier, tierId, user), "TSP: cannot participate");
         require(
             tierInitParams.saleStartTime <= block.timestamp &&
                 block.timestamp <= tierInitParams.saleEndTime,
@@ -97,12 +100,6 @@ library TokenSaleProposalBuy {
         require(
             tier.tierInfo.totalSold + saleTokenAmount <= tierInitParams.totalTokenProvided,
             "TSP: insufficient sale token amount"
-        );
-        require(
-            IERC20(tierInitParams.saleTokenAddress).balanceOf(address(this)).to18(
-                ERC20(tierInitParams.saleTokenAddress).decimals()
-            ) >= saleTokenAmount,
-            "TSP: insufficient contract balance"
         );
 
         return saleTokenAmount;
