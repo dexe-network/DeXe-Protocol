@@ -22,6 +22,14 @@ library GovPoolVote {
         bool isVoteFor
     );
 
+    event VotesCancelled(
+        uint256 proposalId,
+        address sender,
+        uint256 personalCanceledReward,
+        uint256 delegatedCanceledReward,
+        bool isVoteFor
+    );
+
     function vote(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         mapping(address => mapping(bool => EnumerableSet.UintSet)) storage votedInProposals,
@@ -85,6 +93,56 @@ library GovPoolVote {
                 false,
                 isVoteFor
             );
+    }
+
+    function cancelVotes(
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        mapping(uint256 => mapping(address => mapping(bool => IGovPool.VoteInfo)))
+            storage voteInfos,
+        uint256 proposalId,
+        bool isMicropool,
+        uint256 voteAmount,
+        uint256[] calldata nftIds,
+        bool isVoteFor
+    ) external returns (uint256 reallocatedReward) {
+        IGovPool govPool = IGovPool(address(this));
+
+        require(
+            govPool.getProposalState(proposalId) == IGovPool.ProposalState.Voting,
+            "Gov: vote unavailable"
+        );
+
+        IGovPool.ProposalCore storage core = proposals[proposalId].core;
+        IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][msg.sender][isMicropool];
+
+        (IGovPool.VoteOption storage voteOption, ) = _voteOptions(voteInfo, isVoteFor);
+
+        require(voteOption.tokensVoted >= voteAmount, "Gov: not enough tokens");
+
+        _saveTokenResult(core, voteInfo, voteAmount, isVoteFor, false);
+
+        for (uint256 i; i < nftIds.length; i++) {
+            require(voteOption.nftsVoted.remove(nftIds[i]), "Gov: NFT was not voted");
+        }
+
+        (, address userKeeper, , ) = govPool.getHelperContracts();
+
+        uint256 nftVoteAmount = IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(
+            nftIds,
+            core.nftPowerSnapshotId
+        );
+
+        _saveTokenResult(core, voteInfo, nftVoteAmount, isVoteFor, false);
+
+        reallocatedReward = voteAmount + nftVoteAmount;
+
+        emit VotesCancelled(
+            proposalId,
+            msg.sender,
+            isMicropool ? 0 : reallocatedReward,
+            isMicropool ? reallocatedReward : 0,
+            isVoteFor
+        );
     }
 
     function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {
@@ -268,8 +326,12 @@ library GovPoolVote {
 
         _addVoteAmountToCore(core, amount, isVoteFor, isPlus);
 
-        voteOption.totalVoted += amount;
-        voteOption.tokensVoted += amount;
+        voteOption.totalVoted = isPlus
+            ? voteOption.totalVoted + amount
+            : voteOption.totalVoted - amount;
+        voteOption.tokensVoted = isPlus
+            ? voteOption.tokensVoted + amount
+            : voteOption.tokensVoted - amount;
     }
 
     function _saveNftResult(
@@ -283,7 +345,9 @@ library GovPoolVote {
 
         _addVoteAmountToCore(core, amount, isVoteFor, isPlus);
 
-        voteOption.totalVoted += amount;
+        voteOption.totalVoted = isPlus
+            ? voteOption.totalVoted + amount
+            : voteOption.totalVoted - amount;
     }
 
     function _addVoteAmountToCore(

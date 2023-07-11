@@ -45,6 +45,46 @@ library GovPoolStaking {
             PRECISION,
             totalStake
         );
+
+        // TODO: may we change bool to enum?
+        micropool.proposalCreditedRewards[proposalId][
+            rewardType == IGovPool.RewardType.VoteForDelegated
+        ] += amountToAdd;
+    }
+
+    function cancelRewards(
+        IGovPool.MicropoolInfo storage micropool,
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        uint256 proposalId,
+        IGovPool.RewardType rewardType,
+        uint256 amount
+    ) external {
+        uint256 totalStake = micropool.totalStake;
+        if (totalStake == 0) {
+            return;
+        }
+
+        IGovSettings.RewardsInfo storage rewardsInfo = proposals[proposalId]
+            .core
+            .settings
+            .rewardsInfo;
+
+        uint256 amountToCancel = amount.ratio(
+            _coefficientBasedOnVote(rewardsInfo, rewardType),
+            PRECISION
+        );
+
+        // TODO: should we delete rewardToken from micropool.rewardTokens if cumulativeSum is empty?
+
+        // TODO: what formula should we use here?
+        micropool.rewardTokenInfos[rewardsInfo.rewardToken].cumulativeSum -= amountToCancel.ratio(
+            PRECISION,
+            totalStake
+        );
+
+        micropool.proposalCreditedRewards[proposalId][
+            rewardType == IGovPool.RewardType.VoteForDelegated
+        ] -= amountToCancel;
     }
 
     function stake(IGovPool.MicropoolInfo storage micropool, address delegatee) external {
@@ -187,6 +227,10 @@ library GovPoolStaking {
             ];
 
             IGovPool.DelegatorInfo storage delegatorInfo = rewardTokenInfo.delegators[delegator];
+
+            if (rewardTokenInfo.cumulativeSum <= delegatorInfo.latestCumulativeSum) {
+                pendingRewards[i] = delegatorInfo.pendingRewards;
+            }
 
             pendingRewards[i] =
                 delegatorInfo.pendingRewards +

@@ -154,16 +154,25 @@ interface IGovPool {
     /// @param rewardTokens the list of reward tokens
     /// @param rewardTokenInfos matching reward tokens to their parameters
     /// @param latestDelegatorStake matching delegators to their latest stakes
+    /// @param proposalCreditedRewards matching proposal ids to their credited rewards
     struct MicropoolInfo {
         uint256 totalStake;
         EnumerableSet.AddressSet rewardTokens;
         mapping(address => RewardTokenInfo) rewardTokenInfos;
         mapping(address => uint256) latestDelegatorStake;
+        mapping(uint256 => mapping(bool => uint256)) proposalCreditedRewards; // proposal => isFor => reward amount
     }
 
+    /// @notice The struct that holds rewards for proposal (only for internal needs)
+    /// @param rewardFor the reward for votes for
+    /// @param rewardAgainst the reward for votes against
+    /// @param rewardForDelegated the reward for delegated votes for
+    /// @param rewardAgainstDelegated the reward for delegated votes against
     struct Rewards {
         uint256 rewardFor;
         uint256 rewardAgainst;
+        uint256 rewardForDelegated;
+        uint256 rewardAgainstDelegated;
     }
 
     /// @notice The struct that holds reward properties (only for internal needs)

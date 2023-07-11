@@ -252,6 +252,65 @@ contract GovPool is
         );
     }
 
+    function cancelVotes(
+        uint256 proposalId,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds,
+        bool isVoteFor
+    ) external onlyBABTHolder {
+        uint256 reward = _proposals.cancelVotes(
+            _voteInfos,
+            proposalId,
+            false,
+            voteAmount,
+            voteNftIds,
+            isVoteFor
+        );
+
+        if (proposalId != 0) {
+            _pendingRewards.updateRewards(
+                _proposals,
+                proposalId,
+                isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst,
+                reward
+            );
+        }
+    }
+
+    function cancelVotesDelegated(
+        uint256 proposalId,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds,
+        bool isVoteFor
+    ) external onlyBABTHolder {
+        uint256 reward = _proposals.cancelVotes(
+            _voteInfos,
+            proposalId,
+            true,
+            voteAmount,
+            voteNftIds,
+            isVoteFor
+        );
+
+        if (proposalId != 0) {
+            uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
+
+            _pendingRewards.cancelRewards(
+                _proposals,
+                proposalId,
+                isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
+                micropoolReward
+            );
+
+            _micropoolInfos[msg.sender].cancelRewards(
+                _proposals,
+                proposalId,
+                isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
+                reward - micropoolReward
+            );
+        }
+    }
+
     function withdraw(
         address receiver,
         uint256 amount,

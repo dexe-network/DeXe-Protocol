@@ -22,6 +22,13 @@ library GovPoolRewards {
         uint256 amount,
         address sender
     );
+    event RewardCanceled(
+        uint256 proposalId,
+        IGovPool.RewardType rewardType,
+        address rewardToken,
+        uint256 amount,
+        address sender
+    );
 
     function updateRewards(
         mapping(address => IGovPool.PendingRewards) storage pendingRewards,
@@ -58,16 +65,14 @@ library GovPoolRewards {
             rewardToken = rewardsInfo.rewardToken;
             IGovPool.Rewards storage userProposalRewards = userRewards.onchainRewards[proposalId];
 
-            if (
-                rewardType == IGovPool.RewardType.VoteFor ||
-                rewardType == IGovPool.RewardType.VoteForDelegated
-            ) {
+            if (rewardType == IGovPool.RewardType.VoteFor) {
                 userProposalRewards.rewardFor += amountToAdd;
-            } else if (
-                rewardType == IGovPool.RewardType.VoteAgainst ||
-                rewardType == IGovPool.RewardType.VoteAgainstDelegated
-            ) {
+            } else if (rewardType == IGovPool.RewardType.VoteForDelegated) {
+                userProposalRewards.rewardForDelegated += amountToAdd;
+            } else if (rewardType == IGovPool.RewardType.VoteAgainst) {
                 userProposalRewards.rewardAgainst += amountToAdd;
+            } else if (rewardType == IGovPool.RewardType.VoteAgainstDelegated) {
+                userProposalRewards.rewardAgainstDelegated += amountToAdd;
             } else {
                 userProposalRewards.rewardFor += amountToAdd;
                 userProposalRewards.rewardAgainst += amountToAdd;
@@ -87,6 +92,56 @@ library GovPoolRewards {
         emit RewardCredited(proposalId, rewardType, rewardToken, amountToAdd, msg.sender);
     }
 
+    function cancelRewards(
+        mapping(address => IGovPool.PendingRewards) storage pendingRewards,
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        uint256 proposalId,
+        IGovPool.RewardType rewardType,
+        uint256 amount
+    ) external {
+        IGovSettings.RewardsInfo storage rewardsInfo = proposals[proposalId]
+            .core
+            .settings
+            .rewardsInfo;
+
+        uint256 amountToCancel = _calculateRewardForVoting(rewardsInfo, rewardType, amount);
+
+        address nftMultiplier = IGovPool(address(this)).nftMultiplier();
+
+        if (
+            rewardType != IGovPool.RewardType.VoteForDelegated &&
+            rewardType != IGovPool.RewardType.VoteAgainstDelegated &&
+            nftMultiplier != address(0)
+        ) {
+            amountToCancel += IERC721Multiplier(nftMultiplier).getExtraRewards(
+                msg.sender,
+                amountToCancel
+            );
+        }
+
+        IGovPool.Rewards storage userProposalRewards = pendingRewards[msg.sender].onchainRewards[
+            proposalId
+        ];
+
+        if (rewardType == IGovPool.RewardType.VoteFor) {
+            userProposalRewards.rewardFor -= amountToCancel;
+        } else if (rewardType == IGovPool.RewardType.VoteForDelegated) {
+            userProposalRewards.rewardForDelegated -= amountToCancel;
+        } else if (rewardType == IGovPool.RewardType.VoteAgainst) {
+            userProposalRewards.rewardAgainst -= amountToCancel;
+        } else {
+            userProposalRewards.rewardAgainstDelegated -= amountToCancel;
+        }
+
+        emit RewardCanceled(
+            proposalId,
+            rewardType,
+            rewardsInfo.rewardToken,
+            amountToCancel,
+            msg.sender
+        );
+    }
+
     function claimReward(
         mapping(address => IGovPool.PendingRewards) storage pendingRewards,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
@@ -104,8 +159,8 @@ library GovPoolRewards {
             IGovPool.Rewards storage userProposalRewards = userRewards.onchainRewards[proposalId];
 
             uint256 rewards = state == IGovPool.ProposalState.ExecutedFor
-                ? userProposalRewards.rewardFor
-                : userProposalRewards.rewardAgainst;
+                ? userProposalRewards.rewardFor + userProposalRewards.rewardForDelegated
+                : userProposalRewards.rewardAgainst + userProposalRewards.rewardAgainstDelegated;
 
             delete userRewards.onchainRewards[proposalId];
 
@@ -150,8 +205,8 @@ library GovPoolRewards {
 
             rewards.onchainRewards[i] = IGovPool(address(this)).getProposalState(proposalId) ==
                 IGovPool.ProposalState.ExecutedFor
-                ? userProposalRewards.rewardFor
-                : userProposalRewards.rewardAgainst;
+                ? userProposalRewards.rewardFor + userProposalRewards.rewardForDelegated
+                : userProposalRewards.rewardAgainst + userProposalRewards.rewardAgainstDelegated;
         }
 
         for (uint256 i = 0; i < rewards.offchainTokens.length; i++) {
