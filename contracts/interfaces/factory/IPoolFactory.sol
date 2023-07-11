@@ -66,6 +66,15 @@ interface IPoolFactory {
         string name;
     }
 
+    // TODO: ADD DOCS
+    struct GovPoolDependencies {
+        address settingsProxy;
+        address dpProxy;
+        address userKeeperProxy;
+        address validatorsProxy;
+        address expertNft;
+    }
+
     /// @notice The token sale proposal parameters
     /// @param tiersParams tiers parameters
     /// @param whitelistParams whitelisted users (for participation in tiers)

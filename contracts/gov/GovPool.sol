@@ -16,6 +16,7 @@ import "../interfaces/gov/IGovPool.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/ISBT721.sol";
+import "../interfaces/factory/IPoolFactory.sol";
 
 import "../libs/gov-user-keeper/GovUserKeeperLocal.sol";
 import "../libs/gov-pool/GovPoolView.sol";
@@ -61,6 +62,7 @@ contract GovPool is
     ICoreProperties public coreProperties;
 
     address public nftMultiplier;
+    address public expertNft;
     ISBT721 public babt;
 
     bool public onlyBABTHolders;
@@ -97,10 +99,7 @@ contract GovPool is
     }
 
     function __GovPool_init(
-        address govSettingAddress,
-        address govUserKeeperAddress,
-        address distributionProposalAddress,
-        address validatorsAddress,
+        IPoolFactory.GovPoolDependencies memory govPoolDeps,
         address nftMultiplierAddress,
         address _verifier,
         bool _onlyBABTHolders,
@@ -108,10 +107,11 @@ contract GovPool is
         string calldata _descriptionURL,
         string calldata _name
     ) external initializer {
-        _govSettings = IGovSettings(govSettingAddress);
-        _govUserKeeper = IGovUserKeeper(govUserKeeperAddress);
-        _govValidators = IGovValidators(validatorsAddress);
-        _distributionProposal = distributionProposalAddress;
+        _govSettings = IGovSettings(govPoolDeps.settingsProxy);
+        _govUserKeeper = IGovUserKeeper(govPoolDeps.userKeeperProxy);
+        _govValidators = IGovValidators(govPoolDeps.validatorsProxy);
+        _distributionProposal = govPoolDeps.dpProxy;
+        expertNft = govPoolDeps.expertNft;
 
         if (nftMultiplierAddress != address(0)) {
             _setNftMultiplierAddress(nftMultiplierAddress);
