@@ -48,10 +48,10 @@ library GovPoolUnlock {
                 .unlockTokens(proposalId, user, isMicropool)
                 .max(maxUnlocked);
             IGovUserKeeper(userKeeper).unlockNfts(
-                voteInfos[proposalId][user][isMicropool].nftsVotedFor.values()
+                voteInfos[proposalId][user][isMicropool].voteFor.nftsVoted.values()
             );
             IGovUserKeeper(userKeeper).unlockNfts(
-                voteInfos[proposalId][user][isMicropool].nftsVotedAgainst.values()
+                voteInfos[proposalId][user][isMicropool].voteAgainst.nftsVoted.values()
             );
 
             userProposals.remove(proposalId);

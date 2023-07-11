@@ -457,7 +457,12 @@ contract GovPool is
         IGovPool.ProposalCore storage core = _proposals[proposalId].core;
         IGovPool.VoteInfo storage info = _voteInfos[proposalId][voter][isMicropool];
 
-        return (core.votesFor, core.votesAgainst, info.totalVotedFor, info.totalVotedAgainst);
+        return (
+            core.votesFor,
+            core.votesAgainst,
+            info.voteFor.totalVoted,
+            info.voteAgainst.totalVoted
+        );
     }
 
     function getUserVotes(
@@ -469,12 +474,12 @@ contract GovPool is
 
         return
             VoteInfoView({
-                totalVotedFor: info.totalVotedFor,
-                totalVotedAgainst: info.totalVotedAgainst,
-                tokensVotedFor: info.tokensVotedFor,
-                tokensVotedAgainst: info.tokensVotedAgainst,
-                nftsVotedFor: info.nftsVotedFor.values(),
-                nftsVotedAgainst: info.nftsVotedAgainst.values()
+                totalVotedFor: info.voteFor.totalVoted,
+                totalVotedAgainst: info.voteAgainst.totalVoted,
+                tokensVotedFor: info.voteFor.tokensVoted,
+                tokensVotedAgainst: info.voteAgainst.tokensVoted,
+                nftsVotedFor: info.voteFor.nftsVoted.values(),
+                nftsVotedAgainst: info.voteAgainst.nftsVoted.values()
             });
     }
 

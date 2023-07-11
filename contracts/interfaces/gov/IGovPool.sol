@@ -90,17 +90,22 @@ interface IGovPool {
         uint64 executeAfter;
     }
 
+    /// @notice The struct that holds information about the vote option of the user in a single proposal
+    /// @param totalVoted the total power of votes from one user for the choice of the proposal
+    /// @param tokensVoted the total erc20 amount voted from one user for the choice of the proposal
+    /// @param nftsVoted the set of ids of nfts voted from one user for the choice of the proposal
+    struct VoteOption {
+        uint256 totalVoted;
+        uint256 tokensVoted;
+        EnumerableSet.UintSet nftsVoted;
+    }
+
     /// @notice The struct that holds information about the votes of the user in a single proposal
-    /// @param totalVoted the total power of votes from one user for the proposal
-    /// @param tokensVoted the total erc20 amount voted from one user for the proposal
-    /// @param nftsVoted the set of ids of nfts voted from one user for the  proposal
+    /// @param voteFor the struct that holds information about the votes of the user for the proposal
+    /// @param voteAgainst the struct that holds information about the votes of the user against the proposal
     struct VoteInfo {
-        uint256 totalVotedFor;
-        uint256 totalVotedAgainst;
-        uint256 tokensVotedFor;
-        uint256 tokensVotedAgainst;
-        EnumerableSet.UintSet nftsVotedFor;
-        EnumerableSet.UintSet nftsVotedAgainst;
+        VoteOption voteFor;
+        VoteOption voteAgainst;
     }
 
     /// @notice The struct that is used in view functions of contract as a return argument

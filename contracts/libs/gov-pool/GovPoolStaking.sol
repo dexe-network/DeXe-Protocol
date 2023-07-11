@@ -190,6 +190,7 @@ library GovPoolStaking {
 
             pendingRewards[i] =
                 delegatorInfo.pendingRewards +
+                // overflow is impossible here?
                 (rewardTokenInfo.cumulativeSum - delegatorInfo.latestCumulativeSum).ratio(
                     previousDelegatorStake,
                     rewardsDeviation
