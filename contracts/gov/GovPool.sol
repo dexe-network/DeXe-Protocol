@@ -268,7 +268,7 @@ contract GovPool is
         );
 
         if (proposalId != 0) {
-            _pendingRewards.updateRewards(
+            _pendingRewards.cancelRewards(
                 _proposals,
                 proposalId,
                 isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst,

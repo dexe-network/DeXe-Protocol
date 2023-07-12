@@ -132,7 +132,7 @@ library GovPoolVote {
             core.nftPowerSnapshotId
         );
 
-        _saveTokenResult(core, voteInfo, nftVoteAmount, isVoteFor, false);
+        _saveNftResult(core, voteInfo, nftVoteAmount, isVoteFor, false);
 
         reallocatedReward = voteAmount + nftVoteAmount;
 
