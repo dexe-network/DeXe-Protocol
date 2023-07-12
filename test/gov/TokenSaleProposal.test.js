@@ -909,16 +909,28 @@ describe.only("TokenSaleProposal", () => {
           await participationToken.mint(OWNER, defaultTokenAmount);
           await participationToken.approve(tsp.address, defaultTokenAmount);
 
+          assert.equal((await participationToken.balanceOf(OWNER)).toFixed(), defaultTokenAmount);
+
           await tsp.lockParticipationTokens(4);
 
+          assert.equal((await participationToken.balanceOf(OWNER)).toFixed(), "0");
           assert.equal((await tsp.getUserViews(OWNER, [4]))[0].purchaseView.lockedAmount, defaultTokenAmount.toFixed());
         });
 
         it("should lock participation tokens if all conditions are met (native)", async () => {
           assert.equal((await tsp.getUserViews(OWNER, [6]))[0].purchaseView.lockedAmount, "0");
 
-          await tsp.lockParticipationTokens(6, { value: defaultTokenAmount });
+          const etherBalanceBefore = await web3.eth.getBalance(OWNER);
 
+          const tx = await tsp.lockParticipationTokens(6, { value: defaultTokenAmount });
+
+          assert.equal(
+            toBN(etherBalanceBefore)
+              .minus(toBN(tx.receipt.gasUsed).times(tx.receipt.effectiveGasPrice))
+              .minus(await web3.eth.getBalance(OWNER))
+              .toFixed(),
+            defaultTokenAmount.toFixed()
+          );
           assert.equal((await tsp.getUserViews(OWNER, [6]))[0].purchaseView.lockedAmount, defaultTokenAmount.toFixed());
         });
       });
@@ -957,13 +969,16 @@ describe.only("TokenSaleProposal", () => {
           await participationNft.safeMint(OWNER, 1);
           await participationNft.approve(tsp.address, 1);
 
+          assert.equal((await participationNft.balanceOf(OWNER)).toFixed(), "1");
+
           await tsp.lockParticipationNft(5, 1);
 
           assert.equal((await tsp.getUserViews(OWNER, [5]))[0].purchaseView.lockedId, "1");
+          assert.equal((await participationNft.balanceOf(OWNER)).toFixed(), "0");
         });
       });
 
-      describe.only("unlockParticipationTokens", () => {
+      describe("unlockParticipationTokens", () => {
         it("should not unlock participation tokens if tier does not exist", async () => {
           await truffleAssert.reverts(tsp.unlockParticipationTokens(10), "TSP: tier does not exist");
         });
@@ -982,14 +997,81 @@ describe.only("TokenSaleProposal", () => {
           await truffleAssert.reverts(tsp.unlockParticipationTokens(4), "TSP: not locked");
         });
 
-        it("should unlock participation tokens if all conditions are met", async () => {
+        it("should unlock participation tokens if all conditions are met (erc20)", async () => {
           await setTime(+tiers[3].saleStartTime);
+
+          await participationToken.mint(OWNER, defaultTokenAmount);
+          await participationToken.approve(tsp.address, defaultTokenAmount);
+
+          await tsp.lockParticipationTokens(4);
+
+          await setTime(+tiers[3].saleEndTime);
+
+          assert.equal((await participationToken.balanceOf(OWNER)).toFixed(), "0");
+
+          await tsp.unlockParticipationTokens(4);
+
+          assert.equal((await participationToken.balanceOf(OWNER)).toFixed(), defaultTokenAmount.toFixed());
+          assert.equal((await tsp.getUserViews(OWNER, [4]))[0].purchaseView.lockedAmount, "0");
+        });
+
+        it("should unlock participation tokens if all conditions are met (native)", async () => {
+          await setTime(+tiers[5].saleStartTime);
+
+          await tsp.lockParticipationTokens(6, { value: defaultTokenAmount });
+
+          await setTime(+tiers[5].saleEndTime);
+
+          const etherBalanceBefore = await web3.eth.getBalance(OWNER);
+
+          const tx = await tsp.unlockParticipationTokens(6);
+
+          assert.equal(
+            toBN(etherBalanceBefore)
+              .minus(toBN(tx.receipt.gasUsed).times(tx.receipt.effectiveGasPrice))
+              .minus(await web3.eth.getBalance(OWNER))
+              .toFixed(),
+            defaultTokenAmount.negated().toFixed()
+          );
+          assert.equal((await tsp.getUserViews(OWNER, [6]))[0].purchaseView.lockedAmount, "0");
         });
       });
 
       describe("unlockParticipationNft", () => {
         it("should not unlock participation nft if tier does not exist", async () => {
-          await truffleAssert.reverts(tsp.unlockParticipationNft(10, 1), "TSP: tier does not exist");
+          await truffleAssert.reverts(tsp.unlockParticipationNft(10), "TSP: tier does not exist");
+        });
+
+        it("should not unlock participation nft if wrong participation type", async () => {
+          await truffleAssert.reverts(tsp.unlockParticipationNft(4), "TSP: wrong participation type");
+        });
+
+        it("should not unlock participation nft if sale is not over", async () => {
+          await truffleAssert.reverts(tsp.unlockParticipationNft(5), "TSP: sale is not over");
+        });
+
+        it("should not unlock participation nft if not locked", async () => {
+          await setTime(+tiers[4].saleEndTime);
+
+          await truffleAssert.reverts(tsp.unlockParticipationNft(5), "TSP: not locked");
+        });
+
+        it("should unlock participation nft if all conditions are met", async () => {
+          await setTime(+tiers[4].saleStartTime);
+
+          await participationNft.safeMint(OWNER, 1);
+          await participationNft.approve(tsp.address, 1);
+
+          await tsp.lockParticipationNft(5, 1);
+
+          await setTime(+tiers[4].saleEndTime);
+
+          assert.equal((await participationNft.balanceOf(OWNER)).toFixed(), "0");
+
+          await tsp.unlockParticipationNft(5);
+
+          assert.equal((await participationNft.balanceOf(OWNER)).toFixed(), "1");
+          assert.equal((await tsp.getUserViews(OWNER, [4]))[0].purchaseView.lockedId, "0");
         });
       });
 
