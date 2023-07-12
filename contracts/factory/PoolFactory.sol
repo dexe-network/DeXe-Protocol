@@ -73,31 +73,31 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         GovPoolDependencies memory govPoolDeps;
 
-        govPoolDeps.validatorsProxy = _deploy(_poolRegistry.VALIDATORS_NAME());
-        govPoolDeps.userKeeperProxy = _deploy(_poolRegistry.USER_KEEPER_NAME());
-        govPoolDeps.dpProxy = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
-        govPoolDeps.settingsProxy = _deploy(_poolRegistry.SETTINGS_NAME());
+        govPoolDeps.validatorsAddress = _deploy(_poolRegistry.VALIDATORS_NAME());
+        govPoolDeps.userKeeperAddress = _deploy(_poolRegistry.USER_KEEPER_NAME());
+        govPoolDeps.distributionAddress = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
+        govPoolDeps.settingsAddress = _deploy(_poolRegistry.SETTINGS_NAME());
         address poolProxy = _deploy2(poolType, parameters.name);
 
         emit DaoPoolDeployed(
             parameters.name,
             poolProxy,
-            govPoolDeps.dpProxy,
-            govPoolDeps.validatorsProxy,
-            govPoolDeps.settingsProxy,
-            govPoolDeps.userKeeperProxy,
+            govPoolDeps.distributionAddress,
+            govPoolDeps.validatorsAddress,
+            govPoolDeps.settingsAddress,
+            govPoolDeps.userKeeperAddress,
             msg.sender
         );
 
-        govPoolDeps.expertNft = _deployExpertNft(poolProxy, parameters.name);
+        govPoolDeps.expertNftAddress = _deployExpertNft(poolProxy, parameters.name);
 
         _updateSalt(parameters.name);
 
         _initGovPool(poolProxy, govPoolDeps, parameters);
 
-        GovSettings(govPoolDeps.settingsProxy).transferOwnership(poolProxy);
-        GovUserKeeper(govPoolDeps.userKeeperProxy).transferOwnership(poolProxy);
-        GovValidators(govPoolDeps.validatorsProxy).transferOwnership(poolProxy);
+        GovSettings(govPoolDeps.settingsAddress).transferOwnership(poolProxy);
+        GovUserKeeper(govPoolDeps.userKeeperAddress).transferOwnership(poolProxy);
+        GovValidators(govPoolDeps.validatorsAddress).transferOwnership(poolProxy);
 
         _register(poolType, poolProxy);
         _injectDependencies(poolProxy);
@@ -111,19 +111,19 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         GovPoolDependencies memory govPoolDeps;
 
-        govPoolDeps.validatorsProxy = _deploy(_poolRegistry.VALIDATORS_NAME());
-        govPoolDeps.userKeeperProxy = _deploy(_poolRegistry.USER_KEEPER_NAME());
-        govPoolDeps.dpProxy = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
-        govPoolDeps.settingsProxy = _deploy(_poolRegistry.SETTINGS_NAME());
+        govPoolDeps.validatorsAddress = _deploy(_poolRegistry.VALIDATORS_NAME());
+        govPoolDeps.userKeeperAddress = _deploy(_poolRegistry.USER_KEEPER_NAME());
+        govPoolDeps.distributionAddress = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
+        govPoolDeps.settingsAddress = _deploy(_poolRegistry.SETTINGS_NAME());
         address poolProxy = _deploy2(poolType, parameters.name);
 
         emit DaoPoolDeployed(
             parameters.name,
             poolProxy,
-            govPoolDeps.dpProxy,
-            govPoolDeps.validatorsProxy,
-            govPoolDeps.settingsProxy,
-            govPoolDeps.userKeeperProxy,
+            govPoolDeps.distributionAddress,
+            govPoolDeps.validatorsAddress,
+            govPoolDeps.settingsAddress,
+            govPoolDeps.userKeeperAddress,
             msg.sender
         );
 
@@ -135,7 +135,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.userKeeperParams.tokenAddress
         );
 
-        govPoolDeps.expertNft = _deployExpertNft(poolProxy, parameters.name);
+        govPoolDeps.expertNftAddress = _deployExpertNft(poolProxy, parameters.name);
 
         _updateSalt(parameters.name);
 
@@ -145,9 +145,9 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _initGovPool(poolProxy, govPoolDeps, parameters);
         TokenSaleProposal(tokenSaleProxy).__TokenSaleProposal_init(poolProxy);
 
-        GovSettings(govPoolDeps.settingsProxy).transferOwnership(poolProxy);
-        GovUserKeeper(govPoolDeps.userKeeperProxy).transferOwnership(poolProxy);
-        GovValidators(govPoolDeps.validatorsProxy).transferOwnership(poolProxy);
+        GovSettings(govPoolDeps.settingsAddress).transferOwnership(poolProxy);
+        GovUserKeeper(govPoolDeps.userKeeperAddress).transferOwnership(poolProxy);
+        GovValidators(govPoolDeps.validatorsAddress).transferOwnership(poolProxy);
 
         _register(poolType, poolProxy);
         _injectDependencies(poolProxy);
@@ -273,25 +273,27 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             babtId = _babt.tokenIdOf(msg.sender);
         }
 
-        GovValidators(govPoolDeps.validatorsProxy).__GovValidators_init(
+        GovValidators(govPoolDeps.validatorsAddress).__GovValidators_init(
             parameters.validatorsParams.name,
             parameters.validatorsParams.symbol,
             parameters.validatorsParams.proposalSettings,
             parameters.validatorsParams.validators,
             parameters.validatorsParams.balances
         );
-        GovUserKeeper(govPoolDeps.userKeeperProxy).__GovUserKeeper_init(
+        GovUserKeeper(govPoolDeps.userKeeperAddress).__GovUserKeeper_init(
             parameters.userKeeperParams.tokenAddress,
             parameters.userKeeperParams.nftAddress,
             parameters.userKeeperParams.totalPowerInTokens,
             parameters.userKeeperParams.nftsTotalSupply
         );
-        DistributionProposal(payable(govPoolDeps.dpProxy)).__DistributionProposal_init(poolProxy);
-        GovSettings(govPoolDeps.settingsProxy).__GovSettings_init(
+        DistributionProposal(payable(govPoolDeps.distributionAddress)).__DistributionProposal_init(
+            poolProxy
+        );
+        GovSettings(govPoolDeps.settingsAddress).__GovSettings_init(
             address(poolProxy),
-            address(govPoolDeps.dpProxy),
-            address(govPoolDeps.validatorsProxy),
-            address(govPoolDeps.userKeeperProxy),
+            address(govPoolDeps.distributionAddress),
+            address(govPoolDeps.validatorsAddress),
+            address(govPoolDeps.userKeeperAddress),
             parameters.settingsParams.proposalSettings,
             parameters.settingsParams.additionalProposalExecutors
         );

@@ -68,11 +68,11 @@ interface IPoolFactory {
 
     // TODO: ADD DOCS
     struct GovPoolDependencies {
-        address settingsProxy;
-        address dpProxy;
-        address userKeeperProxy;
-        address validatorsProxy;
-        address expertNft;
+        address settingsAddress;
+        address userKeeperAddress;
+        address distributionAddress;
+        address validatorsAddress;
+        address expertNftAddress;
     }
 
     /// @notice The token sale proposal parameters

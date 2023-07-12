@@ -107,11 +107,11 @@ contract GovPool is
         string calldata _descriptionURL,
         string calldata _name
     ) external initializer {
-        _govSettings = IGovSettings(govPoolDeps.settingsProxy);
-        _govUserKeeper = IGovUserKeeper(govPoolDeps.userKeeperProxy);
-        _govValidators = IGovValidators(govPoolDeps.validatorsProxy);
-        _distributionProposal = govPoolDeps.dpProxy;
-        expertNft = govPoolDeps.expertNft;
+        _govSettings = IGovSettings(govPoolDeps.settingsAddress);
+        _govUserKeeper = IGovUserKeeper(govPoolDeps.userKeeperAddress);
+        _govValidators = IGovValidators(govPoolDeps.validatorsAddress);
+        _distributionProposal = govPoolDeps.distributionAddress;
+        expertNft = govPoolDeps.expertNftAddress;
 
         if (nftMultiplierAddress != address(0)) {
             _setNftMultiplierAddress(nftMultiplierAddress);
