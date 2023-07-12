@@ -7,8 +7,8 @@ import "../../gov/ERC20/ERC20Sale.sol";
 import "../../gov/ERC721/ERC721Expert.sol";
 
 library GovTokenDeployer {
-    bytes constant EXPERT_NAME_POSTFIX = bytes(" Expert Nft");
-    bytes constant EXPERT_SYMBOL_POSTFIX = bytes(" EXPNFT");
+    bytes internal constant EXPERT_NAME_POSTFIX = bytes(" Expert Nft");
+    bytes internal constant EXPERT_SYMBOL_POSTFIX = bytes(" EXPNFT");
 
     function deployToken(
         address poolProxy,
