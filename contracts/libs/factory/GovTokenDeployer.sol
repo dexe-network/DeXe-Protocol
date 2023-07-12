@@ -7,6 +7,9 @@ import "../../gov/ERC20/ERC20Sale.sol";
 import "../../gov/ERC721/ERC721Expert.sol";
 
 library GovTokenDeployer {
+    bytes constant EXPERT_NAME_POSTFIX = bytes(" Expert Nft");
+    bytes constant EXPERT_SYMBOL_POSTFIX = bytes(" EXPNFT");
+
     function deployToken(
         address poolProxy,
         address tokenSaleProxy,
@@ -29,7 +32,10 @@ library GovTokenDeployer {
     function deployExpertNft(address poolProxy, string calldata name_) external returns (address) {
         ERC721Expert nft = new ERC721Expert();
 
-        nft.__ERC721Expert_init(name_, "");
+        nft.__ERC721Expert_init(
+            string(bytes.concat(bytes(name_), EXPERT_NAME_POSTFIX)),
+            string(bytes.concat(bytes(name_), EXPERT_SYMBOL_POSTFIX))
+        );
         nft.transferOwnership(poolProxy);
 
         return address(nft);

@@ -11,6 +11,7 @@ const ContractsRegistry = artifacts.require("ContractsRegistry");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC721Mock = artifacts.require("ERC721Mock");
 const BABTMock = artifacts.require("BABTMock");
+const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
@@ -681,6 +682,21 @@ describe("PoolFactory", () => {
         assert.equal(settings[0], POOL_PARAMETERS.settingsParams.proposalSettings[2].earlyCompletion);
 
         assert.equal(await govPool.nftMultiplier(), testERC721Multiplier.address);
+      });
+
+      it("should deploy pool with Expert Nft", async () => {
+        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
+        const predictedGovAddress = (await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name))[0];
+        await poolFactory.deployGovPool(POOL_PARAMETERS);
+        let govPool = await GovPool.at(predictedGovAddress);
+
+        let nftAddress = await govPool.expertNft();
+        assert.isTrue(nftAddress != ZERO_ADDR);
+        let expertNft = await ERC721Expert.at(nftAddress);
+
+        assert.equal(await expertNft.owner(), predictedGovAddress);
+        assert.equal(await expertNft.name(), POOL_PARAMETERS.name + " Expert Nft");
+        assert.equal(await expertNft.symbol(), POOL_PARAMETERS.name + " EXPNFT");
       });
 
       it("should deploy pool from address with BABT", async () => {
