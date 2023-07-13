@@ -62,6 +62,7 @@ interface ITokenSaleProposal {
     /// @param minAllocationPerUser minimal allocation of tokens per one user
     /// @param maxAllocationPerUser maximal allocation of tokens per one user
     /// @param vestingSettings settings for managing tokens vesting (unlocking). While tokens are locked investors won`t be able to withdraw them
+    /// @param participationDetails participation requirement parameters
     struct TierInitParams {
         TierMetadata metadata;
         uint256 totalTokenProvided;
