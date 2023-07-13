@@ -96,6 +96,7 @@ describe("DistributionProposal", () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
+    const _dexeExpertNft = await ERC721Expert.new();
     const BABT = await BABTMock.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721EnumMock.new("Mock", "Mock");
@@ -111,6 +112,7 @@ describe("DistributionProposal", () => {
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.INSURANCE_NAME(), NOTHING);
 
+    await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), _dexeExpertNft.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), BABT.address);
 
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());

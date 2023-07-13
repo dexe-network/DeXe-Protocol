@@ -13,6 +13,7 @@ import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
 import "../interfaces/gov/IGovPool.sol";
+import "../interfaces/gov/ERC721/IERC721Expert.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/ISBT721.sol";
@@ -63,6 +64,7 @@ contract GovPool is
 
     address public nftMultiplier;
     address public expertNft;
+    IERC721Expert public dexeExpertNft;
     ISBT721 public babt;
 
     bool public onlyBABTHolders;
@@ -166,6 +168,7 @@ contract GovPool is
 
         coreProperties = ICoreProperties(registry.getCorePropertiesContract());
         babt = ISBT721(registry.getBABTContract());
+        dexeExpertNft = IERC721Expert(registry.getDexeExpertNftContract());
     }
 
     function createProposal(

@@ -172,6 +172,7 @@ describe("PoolFactory", () => {
     const DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     const USD = await ERC20Mock.new("USD", "USD", 6);
     babt = await BABTMock.new();
+    const _dexeExpertNft = await ERC721Expert.new();
     const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeed.new();
     const _poolRegistry = await PoolRegistry.new();
@@ -188,6 +189,7 @@ describe("PoolFactory", () => {
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
+    await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), _dexeExpertNft.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), uniswapV2Router.address);
 

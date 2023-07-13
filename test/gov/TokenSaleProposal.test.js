@@ -112,6 +112,7 @@ describe("TokenSaleProposal", () => {
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
     const BABT = await BABTMock.new();
+    const _dexeExpertNft = await ERC721Expert.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
 
     await contractsRegistry.__OwnableContractsRegistry_init();
@@ -125,6 +126,7 @@ describe("TokenSaleProposal", () => {
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.INSURANCE_NAME(), NOTHING);
 
+    await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), _dexeExpertNft.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), BABT.address);
 
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
