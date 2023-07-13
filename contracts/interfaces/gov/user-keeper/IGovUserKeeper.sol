@@ -105,6 +105,12 @@ interface IGovUserKeeper {
     /// @param amount the erc20 requested amount
     function requestTokens(address delegator, address delegatee, uint256 amount) external;
 
+    /// @notice The function for requesting nfts
+    /// @param delegator the address of delegator
+    /// @param delegatee the address of delegatee
+    /// @param nftIds the array of requested nft ids
+    function requestNfts(address delegator, address delegatee, uint256[] calldata nftIds) external;
+
     /// @notice The function for undelegating tokens
     /// @param delegator the address of delegator
     /// @param delegatee the address of delegatee

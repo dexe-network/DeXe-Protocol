@@ -146,8 +146,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         Micropool storage micropoolInfo = _micropoolsInfo[delegatee];
 
         require(
-            delegatorInfo.delegatedTokens[delegatee] >=
-                amount + delegatorInfo.requestedTokens[delegatee],
+            amount <=
+                delegatorInfo.delegatedTokens[delegatee] -
+                    delegatorInfo.requestedTokens[delegatee],
             "Not enough"
         );
 
@@ -211,19 +212,21 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address receiver,
         uint256[] calldata nftIds
     ) external override onlyOwner withSupportedNft {
-        BalanceInfo storage payerInfo = _usersInfo[payer].balanceInfo;
+        BalanceInfo storage payerBalance = _usersInfo[payer].balanceInfo;
 
         IERC721 nft = IERC721(nftAddress);
 
         for (uint256 i; i < nftIds.length; i++) {
+            uint256 nftId = nftIds[i];
+
             require(
-                payerInfo.nftBalance.contains(nftIds[i]) && _nftLockedNums[nftIds[i]] == 0,
+                payerBalance.nftBalance.contains(nftId) && _nftLockedNums[nftId] == 0,
                 "GovUK: NFT is not owned or locked"
             );
 
-            payerInfo.nftBalance.remove(nftIds[i]);
+            payerBalance.nftBalance.remove(nftId);
 
-            nft.safeTransferFrom(address(this), receiver, nftIds[i]);
+            nft.safeTransferFrom(address(this), receiver, nftId);
         }
     }
 
@@ -251,13 +254,34 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
     }
 
+    function requestNfts(
+        address delegator,
+        address delegatee,
+        uint256[] calldata nftIds
+    ) external override onlyOwner withSupportedNft {
+        UserInfo storage delegatorInfo = _usersInfo[delegator];
+        Micropool storage micropoolInfo = _micropoolsInfo[delegatee];
+
+        for (uint256 i; i < nftIds.length; i++) {
+            uint256 nftId = nftIds[i];
+
+            require(
+                delegatorInfo.delegatedNfts[delegatee].contains(nftId),
+                "GovUK: NFT is not owned"
+            );
+
+            micropoolInfo.requestedNfts.add(nftId);
+            delegatorInfo.requestedNfts[delegatee].add(nftId);
+        }
+    }
+
     function undelegateNfts(
         address delegator,
         address delegatee,
         uint256[] calldata nftIds
     ) external override onlyOwner withSupportedNft {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
-        BalanceInfo storage micropoolInfo = _micropoolsInfo[delegatee].balanceInfo;
+        Micropool storage micropoolInfo = _micropoolsInfo[delegatee];
 
         for (uint256 i; i < nftIds.length; i++) {
             require(
@@ -266,10 +290,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
                 "GovUK: NFT is not owned or locked"
             );
 
-            micropoolInfo.nftBalance.remove(nftIds[i]);
+            micropoolInfo.balanceInfo.nftBalance.remove(nftIds[i]);
+            micropoolInfo.requestedNfts.remove(nftIds[i]);
 
             delegatorInfo.balanceInfo.nftBalance.add(nftIds[i]);
             delegatorInfo.delegatedNfts[delegatee].remove(nftIds[i]);
+            delegatorInfo.requestedNfts[delegatee].remove(nftIds[i]);
         }
 
         if (
@@ -676,15 +702,17 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address delegator,
         address delegatee
     ) external view override returns (uint256) {
-        (uint256 delegatedNftsPower, ) = _usersInfo[delegator]
+        UserInfo storage delegatorInfo = _usersInfo[delegator];
+
+        (uint256 delegatedNftsPower, ) = delegatorInfo
             .delegatedNfts[delegatee]
             .values()
             .nftVotingPower(false);
 
         return
-            _usersInfo[delegator].delegatedTokens[delegatee] +
+            delegatorInfo.delegatedTokens[delegatee] +
             delegatedNftsPower -
-            _usersInfo[delegator].requestedTokens[delegatee];
+            delegatorInfo.requestedTokens[delegatee];
     }
 
     function _setERC20Address(address _tokenAddress) internal {
