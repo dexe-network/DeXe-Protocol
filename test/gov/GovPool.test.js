@@ -43,6 +43,7 @@ const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const ERC721Power = artifacts.require("ERC721Power");
+const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC20 = artifacts.require("ERC20");
 const BABTMock = artifacts.require("BABTMock");
@@ -66,6 +67,7 @@ GovValidators.numberFormat = "BigNumber";
 GovSettings.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 ERC721EnumMock.numberFormat = "BigNumber";
+ERC721Expert.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 ERC20.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
@@ -159,6 +161,7 @@ describe("GovPool", () => {
     contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
+    const _dexeExpertNft = await ERC721Expert.new();
     babt = await BABTMock.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721EnumMock.new("Mock", "Mock");
@@ -190,6 +193,7 @@ describe("GovPool", () => {
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.INSURANCE_NAME(), NOTHING);
 
+    await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), _dexeExpertNft.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
 
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
@@ -213,6 +217,7 @@ describe("GovPool", () => {
     validators = await GovValidators.new();
     userKeeper = await GovUserKeeper.new();
     dp = await DistributionProposal.new();
+    expertNft = await ERC721Expert.new();
     govPool = await GovPool.new();
 
     await settings.__GovSettings_init(
@@ -243,11 +248,9 @@ describe("GovPool", () => {
     );
 
     await dp.__DistributionProposal_init(govPool.address);
+    await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
     await govPool.__GovPool_init(
-      settings.address,
-      userKeeper.address,
-      dp.address,
-      validators.address,
+      [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address],
       poolParams.nftMultiplierAddress,
       OWNER,
       poolParams.onlyBABTHolders,
@@ -259,6 +262,7 @@ describe("GovPool", () => {
     await settings.transferOwnership(govPool.address);
     await validators.transferOwnership(govPool.address);
     await userKeeper.transferOwnership(govPool.address);
+    await expertNft.transferOwnership(govPool.address);
 
     await poolRegistry.addProxyPool(NAME, govPool.address, {
       from: FACTORY,
@@ -451,10 +455,7 @@ describe("GovPool", () => {
       it("should not initialize twice", async () => {
         await truffleAssert.reverts(
           govPool.__GovPool_init(
-            settings.address,
-            userKeeper.address,
-            dp.address,
-            validators.address,
+            [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address],
             POOL_PARAMETERS.nftMultiplierAddress,
             OWNER,
             POOL_PARAMETERS.onlyBABTHolders,

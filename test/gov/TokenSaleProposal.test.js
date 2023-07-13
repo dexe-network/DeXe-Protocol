@@ -25,6 +25,7 @@ const GovSettings = artifacts.require("GovSettings");
 const GovValidators = artifacts.require("GovValidators");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const ERC721Expert = artifacts.require("ERC721Expert");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
@@ -41,6 +42,7 @@ CoreProperties.numberFormat = "BigNumber";
 GovPool.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 ERC20Sale.numberFormat = "BigNumber";
+ERC721Expert.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 TokenSaleProposal.numberFormat = "BigNumber";
 GovSettings.numberFormat = "BigNumber";
@@ -110,6 +112,7 @@ describe("TokenSaleProposal", () => {
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
     const BABT = await BABTMock.new();
+    const _dexeExpertNft = await ERC721Expert.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
 
     await contractsRegistry.__OwnableContractsRegistry_init();
@@ -123,6 +126,7 @@ describe("TokenSaleProposal", () => {
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.INSURANCE_NAME(), NOTHING);
 
+    await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), _dexeExpertNft.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), BABT.address);
 
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
@@ -146,6 +150,7 @@ describe("TokenSaleProposal", () => {
     validators = await GovValidators.new();
     userKeeper = await GovUserKeeper.new();
     dp = await DistributionProposal.new();
+    expertNft = await ERC721Expert.new();
     govPool = await GovPool.new();
     tsp = await TokenSaleProposal.new();
 
@@ -177,11 +182,9 @@ describe("TokenSaleProposal", () => {
     );
 
     await dp.__DistributionProposal_init(govPool.address);
+    await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
     await govPool.__GovPool_init(
-      settings.address,
-      userKeeper.address,
-      dp.address,
-      validators.address,
+      [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address],
       poolParams.nftMultiplierAddress,
       OWNER,
       poolParams.onlyBABTHolders,
@@ -193,6 +196,7 @@ describe("TokenSaleProposal", () => {
     await settings.transferOwnership(govPool.address);
     await validators.transferOwnership(govPool.address);
     await userKeeper.transferOwnership(govPool.address);
+    await expertNft.transferOwnership(govPool.address);
 
     await poolRegistry.addProxyPool(NAME, govPool.address, {
       from: FACTORY,
