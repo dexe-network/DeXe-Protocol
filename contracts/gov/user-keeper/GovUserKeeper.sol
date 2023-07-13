@@ -42,7 +42,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     uint256 internal _latestPowerSnapshotId;
 
     mapping(address => UserInfo) internal _usersInfo; // user => info
-    mapping(address => BalanceInfo) internal _micropoolsInfo; // user = micropool address => info
+    mapping(address => Micropool) internal _micropoolsInfo; // user = micropool address => micropool
 
     mapping(uint256 => uint256) internal _nftLockedNums; // tokenId => locked num
 
@@ -134,7 +134,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         delegatorInfo.delegatees.add(delegatee);
         delegatorInfo.delegatedTokens[delegatee] += amount;
 
-        _micropoolsInfo[delegatee].tokenBalance += amount;
+        _micropoolsInfo[delegatee].balanceInfo.tokenBalance += amount;
     }
 
     function requestTokens(
@@ -143,7 +143,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 amount
     ) external override onlyOwner withSupportedToken {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
-        BalanceInfo storage micropoolInfo = _micropoolsInfo[delegatee];
+        Micropool storage micropoolInfo = _micropoolsInfo[delegatee];
 
         require(
             delegatorInfo.delegatedTokens[delegatee] >=
@@ -161,18 +161,20 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 amount
     ) external override onlyOwner withSupportedToken {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
-        BalanceInfo storage micropoolInfo = _micropoolsInfo[delegatee];
+        Micropool storage micropoolInfo = _micropoolsInfo[delegatee];
+        BalanceInfo storage micropoolBalanceInfo = micropoolInfo.balanceInfo;
 
         uint256 delegated = delegatorInfo.delegatedTokens[delegatee];
-        uint256 availableAmount = micropoolInfo.tokenBalance - micropoolInfo.maxTokensLocked;
+        uint256 availableAmount = micropoolBalanceInfo.tokenBalance -
+            micropoolBalanceInfo.maxTokensLocked;
 
         require(
             amount <= delegated && amount <= availableAmount,
             "GovUK: amount exceeds delegation"
         );
 
-        micropoolInfo.tokenBalance -= amount;
-        micropoolInfo.requestedTokens -= amount.min(delegatorInfo.requestedTokens);
+        micropoolBalanceInfo.tokenBalance -= amount;
+        micropoolInfo.requestedTokens -= amount.min(micropoolInfo.requestedTokens);
 
         delegatorInfo.balanceInfo.tokenBalance += amount;
         delegatorInfo.delegatedTokens[delegatee] -= amount;
@@ -231,7 +233,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256[] calldata nftIds
     ) external override onlyOwner withSupportedNft {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
-        BalanceInfo storage micropoolInfo = _micropoolsInfo[delegatee];
+        BalanceInfo storage micropoolInfo = _micropoolsInfo[delegatee].balanceInfo;
 
         for (uint256 i; i < nftIds.length; i++) {
             require(
@@ -255,7 +257,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256[] calldata nftIds
     ) external override onlyOwner withSupportedNft {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
-        BalanceInfo storage micropoolInfo = _micropoolsInfo[delegatee];
+        BalanceInfo storage micropoolInfo = _micropoolsInfo[delegatee].balanceInfo;
 
         for (uint256 i; i < nftIds.length; i++) {
             require(
@@ -450,7 +452,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             );
             totalBalance += ownedBalance;
         } else {
-            ownedBalance += _micropoolsInfo[voter].requestedBalance;
+            ownedBalance += _micropoolsInfo[voter].requestedTokens;
         }
     }
 
@@ -728,7 +730,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address voter,
         bool isMicropool
     ) internal view returns (BalanceInfo storage) {
-        return isMicropool ? _micropoolsInfo[voter] : _usersInfo[voter].balanceInfo;
+        return isMicropool ? _micropoolsInfo[voter].balanceInfo : _usersInfo[voter].balanceInfo;
     }
 
     function _withSupportedToken() internal view {

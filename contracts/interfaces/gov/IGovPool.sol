@@ -272,6 +272,12 @@ interface IGovPool {
     /// @param nftIds the array of nft ids to delegate
     function delegate(address delegatee, uint256 amount, uint256[] calldata nftIds) external;
 
+    /// @notice The function for requesting delegated tokens
+    /// @param delegatee the delegation target address (person who will be delegated)
+    /// @param amount the erc20 delegation amount
+    /// @param nftIds the array of nft ids to delegate
+    function request(address delegatee, uint256 amount, uint256[] calldata nftIds) external;
+
     /// @notice The function for undelegating delegated tokens
     /// @param delegatee the undelegation target address (person who will be undelegated)
     /// @param amount the erc20 undelegation amount

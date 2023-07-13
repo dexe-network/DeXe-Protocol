@@ -99,6 +99,12 @@ interface IGovUserKeeper {
     /// @param amount the erc20 delegation amount
     function delegateTokens(address delegator, address delegatee, uint256 amount) external;
 
+    /// @notice The function for requesting tokens
+    /// @param delegator the address of delegator
+    /// @param delegatee the address of delegatee
+    /// @param amount the erc20 requested amount
+    function requestTokens(address delegator, address delegatee, uint256 amount) external;
+
     /// @notice The function for undelegating tokens
     /// @param delegator the address of delegator
     /// @param delegatee the address of delegatee
