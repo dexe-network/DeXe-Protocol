@@ -31,10 +31,9 @@ library TokenSaleProposalBuy {
         ITokenSaleProposal.PurchaseInfo storage purchaseInfo = userInfo.purchaseInfo;
         ITokenSaleProposal.TierInitParams memory tierInitParams = tier.tierInitParams;
 
-        require(
-            tokenToBuyWith != ETHEREUM_ADDRESS || amount == msg.value,
-            "TSP: wrong native amount"
-        );
+        if (tokenToBuyWith == ETHEREUM_ADDRESS) {
+            amount = msg.value;
+        }
 
         uint256 saleTokenAmount = getSaleTokenAmount(
             tier,
@@ -59,7 +58,7 @@ library TokenSaleProposalBuy {
         address govAddress = TokenSaleProposal(address(this)).govAddress();
 
         if (tokenToBuyWith == ETHEREUM_ADDRESS) {
-            (bool success, ) = govAddress.call{value: msg.value}("");
+            (bool success, ) = govAddress.call{value: amount}("");
             require(success, "TSP: failed to transfer ether");
         } else {
             IERC20(tokenToBuyWith).safeTransferFrom(

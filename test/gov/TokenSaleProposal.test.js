@@ -10,6 +10,9 @@ const {
   getBytesOffTiersTSP,
   getBytesRecoverTSP,
   getBytesAddToWhitelistTSP,
+  getBytesBuyTSP,
+  getBytesLockParticipationTokensTSP,
+  getBytesLockParticipationNftTSP,
 } = require("../utils/gov-pool-utils");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
 
@@ -80,6 +83,7 @@ describe("TokenSaleProposal", () => {
   let token;
   let participationToken;
   let participationNft;
+  let expertNft;
 
   let settings;
   let validators;
@@ -139,7 +143,7 @@ describe("TokenSaleProposal", () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
-    const babt = await BABTMock.new();
+    babt = await BABTMock.new();
     const _dexeExpertNft = await ERC721Expert.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
     participationToken = await ERC20Mock.new("PTMock", "PTMock", 18);
@@ -1229,10 +1233,6 @@ describe("TokenSaleProposal", () => {
           await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100)), "TSP: tier is off");
         });
 
-        it("should not buy if wrong native amount", async () => {
-          await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, 0, { value: wei(1) }), "TSP: wrong native amount");
-        });
-
         it("should not buy if zero amount", async () => {
           await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, 0), "TSP: zero amount");
         });
@@ -1383,7 +1383,7 @@ describe("TokenSaleProposal", () => {
             await setTime(+tiers[0].saleStartTime);
 
             await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(1)), "TSP: wrong allocation");
-            await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, wei(7), { value: wei(7) }), "TSP: wrong allocation");
+            await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, 0, { value: wei(7) }), "TSP: wrong allocation");
           });
 
           it("should not byy if insufficient sale token amount", async () => {
@@ -1404,10 +1404,7 @@ describe("TokenSaleProposal", () => {
 
             await setTime(+tiers[0].saleStartTime);
 
-            await truffleAssert.reverts(
-              tsp.buy(1, ETHER_ADDR, wei(1), { value: wei(1) }),
-              "TSP: failed to transfer ether"
-            );
+            await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, 0, { value: wei(1) }), "TSP: failed to transfer ether");
           });
 
           it("should buy if all conditions are met", async () => {
@@ -1440,7 +1437,7 @@ describe("TokenSaleProposal", () => {
             const etherBalanceBefore = await web3.eth.getBalance(OWNER);
 
             assert.equal((await tsp.getSaleTokenAmount(OWNER, 1, ETHER_ADDR, wei(1))).toFixed(), wei(100));
-            const tx = await tsp.buy(1, ETHER_ADDR, wei(1), { value: wei(1) });
+            const tx = await tsp.buy(1, ETHER_ADDR, 0, { value: wei(1) });
 
             assert.equal(
               toBN(etherBalanceBefore)

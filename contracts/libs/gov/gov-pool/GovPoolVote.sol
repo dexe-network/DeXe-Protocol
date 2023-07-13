@@ -8,7 +8,7 @@ import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
 import "../../../gov/GovPool.sol";
 
-import "../../libs/math/MathHelper.sol";
+import "../../math/MathHelper.sol";
 
 library GovPoolVote {
     using EnumerableSet for EnumerableSet.UintSet;
