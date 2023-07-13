@@ -288,6 +288,22 @@ contract GovPool is
         emit Delegated(msg.sender, delegatee, amount, nftIds, true);
     }
 
+    function request(
+        address delegatee,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external override onlyBABTHolder {
+        require(amount > 0 || nftIds.length > 0, "Gov: empty request");
+
+        MicropoolInfo storage micropool = _micropoolInfos[delegatee];
+
+        micropool.stake(delegatee);
+
+        _govUserKeeper.requestTokens.exec(delegatee, amount);
+
+        micropool.updateStakingCache(delegatee);
+    }
+
     function undelegate(
         address delegatee,
         uint256 amount,

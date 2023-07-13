@@ -137,6 +137,24 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         _micropoolsInfo[delegatee].tokenBalance += amount;
     }
 
+    function requestTokens(
+        address delegator,
+        address delegatee,
+        uint256 amount
+    ) external override onlyOwner withSupportedToken {
+        UserInfo storage delegatorInfo = _usersInfo[delegator];
+        BalanceInfo storage micropoolInfo = _micropoolsInfo[delegatee];
+
+        require(
+            delegatorInfo.delegatedTokens[delegatee] >=
+                amount + delegatorInfo.requestedTokens[delegatee],
+            "Not enough"
+        );
+
+        micropoolInfo.requestedTokens += amount;
+        delegatorInfo.requestedTokens[delegatee] += amount;
+    }
+
     function undelegateTokens(
         address delegator,
         address delegatee,
@@ -154,9 +172,13 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         );
 
         micropoolInfo.tokenBalance -= amount;
+        micropoolInfo.requestedTokens -= amount.min(delegatorInfo.requestedTokens);
 
         delegatorInfo.balanceInfo.tokenBalance += amount;
         delegatorInfo.delegatedTokens[delegatee] -= amount;
+        delegatorInfo.requestedTokens[delegatee] -= amount.min(
+            delegatorInfo.requestedTokens[delegatee]
+        );
 
         if (
             delegatorInfo.delegatedTokens[delegatee] == 0 &&
@@ -427,6 +449,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
                 ERC20(tokenAddress).decimals()
             );
             totalBalance += ownedBalance;
+        } else {
+            ownedBalance += _micropoolsInfo[voter].requestedBalance;
         }
     }
 
@@ -655,7 +679,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             .values()
             .nftVotingPower(false);
 
-        return _usersInfo[delegator].delegatedTokens[delegatee] + delegatedNftsPower;
+        return
+            _usersInfo[delegator].delegatedTokens[delegatee] +
+            delegatedNftsPower -
+            _usersInfo[delegator].requestedTokens[delegatee];
     }
 
     function _setERC20Address(address _tokenAddress) internal {
