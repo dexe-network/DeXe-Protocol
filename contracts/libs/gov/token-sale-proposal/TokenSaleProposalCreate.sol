@@ -94,8 +94,9 @@ library TokenSaleProposalCreate {
             tier.rates[tierInitParams.purchaseTokenAddresses[i]] = tierInitParams.exchangeRates[i];
         }
 
-        uint64 vestingStartTime = tierInitParams.saleEndTime +
-            tierInitParams.vestingSettings.cliffPeriod;
+        uint64 vestingStartTime = tierInitParams.vestingSettings.vestingDuration == 0
+            ? 0
+            : tierInitParams.saleEndTime + tierInitParams.vestingSettings.cliffPeriod;
         tier.tierInitParams = tierInitParams;
         tier.tierInfo.vestingTierInfo = ITokenSaleProposal.VestingTierInfo({
             vestingStartTime: vestingStartTime,

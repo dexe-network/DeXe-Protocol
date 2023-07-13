@@ -58,7 +58,7 @@ GovSettings.numberFormat = "BigNumber";
 GovValidators.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 
-describe.only("TokenSaleProposal", () => {
+describe("TokenSaleProposal", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -537,8 +537,8 @@ describe.only("TokenSaleProposal", () => {
             description: "the third tier",
           },
           totalTokenProvided: wei(1000),
-          saleStartTime: (timeNow + 1000).toString(),
-          saleEndTime: (timeNow + 2000).toString(),
+          saleStartTime: (timeNow + 3000).toString(),
+          saleEndTime: (timeNow + 4000).toString(),
           claimLockDuration: "0",
           saleTokenAddress: saleToken.address,
           purchaseTokenAddresses: [purchaseToken1.address, purchaseToken2.address],
@@ -562,8 +562,8 @@ describe.only("TokenSaleProposal", () => {
             description: "the fourth tier",
           },
           totalTokenProvided: wei(1000),
-          saleStartTime: (timeNow + 1000).toString(),
-          saleEndTime: (timeNow + 2000).toString(),
+          saleStartTime: (timeNow + 5000).toString(),
+          saleEndTime: (timeNow + 6000).toString(),
           claimLockDuration: "0",
           saleTokenAddress: saleToken.address,
           purchaseTokenAddresses: [purchaseToken1.address, purchaseToken2.address],
@@ -590,8 +590,8 @@ describe.only("TokenSaleProposal", () => {
             description: "the fifth tier",
           },
           totalTokenProvided: wei(1000),
-          saleStartTime: (timeNow + 1000).toString(),
-          saleEndTime: (timeNow + 2000).toString(),
+          saleStartTime: (timeNow + 8000).toString(),
+          saleEndTime: (timeNow + 9000).toString(),
           claimLockDuration: "0",
           saleTokenAddress: saleToken.address,
           purchaseTokenAddresses: [purchaseToken1.address, purchaseToken2.address],
@@ -615,8 +615,8 @@ describe.only("TokenSaleProposal", () => {
             description: "the fourth tier",
           },
           totalTokenProvided: wei(1000),
-          saleStartTime: (timeNow + 1000).toString(),
-          saleEndTime: (timeNow + 2000).toString(),
+          saleStartTime: (timeNow + 10000).toString(),
+          saleEndTime: (timeNow + 11000).toString(),
           claimLockDuration: "0",
           saleTokenAddress: saleToken.address,
           purchaseTokenAddresses: [purchaseToken1.address, purchaseToken2.address],
@@ -711,6 +711,17 @@ describe.only("TokenSaleProposal", () => {
         );
       });
 
+      it("should not create tiers if participation details validation failed", async () => {
+        for (let i = 0; i < 5; i++) {
+          tiers[i].participationDetails.data = "0xff";
+
+          await truffleAssert.reverts(
+            acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(i, i + 1))]]),
+            "TSP: participation details validation failed"
+          );
+        }
+      });
+
       it("should not create tiers if vestingPercentage is not zero and unlockStep is zero", async () => {
         tiers[0].vestingSettings.unlockStep = 0;
 
@@ -791,6 +802,31 @@ describe.only("TokenSaleProposal", () => {
           tierInitParamsToObjects((await tsp.getTierViews(0, 6)).map((tier) => tier.tierInitParams)),
           tiers
         );
+
+        const actualVestingTierInfos = (await tsp.getTierViews(0, 6)).map((e) => ({
+          vestingStartTime: e.tierInfo.vestingTierInfo.vestingStartTime,
+          vestingEndTime: e.tierInfo.vestingTierInfo.vestingEndTime,
+        }));
+
+        const expectedVestingTiersInfos = tiers.map((e) => {
+          if (e.vestingSettings.vestingDuration === "0") {
+            return {
+              vestingStartTime: "0",
+              vestingEndTime: "0",
+            };
+          }
+
+          return {
+            vestingStartTime: (+e.saleEndTime + +e.vestingSettings.cliffPeriod).toString(),
+            vestingEndTime: (
+              +e.saleEndTime +
+              +e.vestingSettings.cliffPeriod +
+              +e.vestingSettings.vestingDuration
+            ).toString(),
+          };
+        });
+
+        assert.deepEqual(actualVestingTierInfos, expectedVestingTiersInfos);
       });
     });
 
@@ -809,6 +845,18 @@ describe.only("TokenSaleProposal", () => {
       });
 
       describe("addToWhitelist", () => {
+        it("should not whitelist if caller is not govPool", async () => {
+          const whitelistingRequest = [
+            {
+              tierId: 1,
+              users: [SECOND],
+              uri: "",
+            },
+          ];
+
+          await truffleAssert.reverts(tsp.addToWhitelist(whitelistingRequest), "TSP: not a Gov contract");
+        });
+
         it("should not add to whitelist if tier does not exist", async () => {
           const whitelistingRequest = [
             {
@@ -838,6 +886,45 @@ describe.only("TokenSaleProposal", () => {
           await truffleAssert.reverts(
             acceptProposal([[tsp.address, 0, getBytesAddToWhitelistTSP(whitelistingRequest)]]),
             "TSP: tier is off"
+          );
+        });
+
+        it("should not transfer whitelist token", async () => {
+          const whitelistingRequest = [
+            {
+              tierId: 1,
+              users: [SECOND],
+              uri: "",
+            },
+          ];
+
+          await acceptProposal([[tsp.address, 0, getBytesAddToWhitelistTSP(whitelistingRequest)]]);
+
+          await tsp.setApprovalForAll(THIRD, true, { from: SECOND });
+
+          await truffleAssert.reverts(
+            tsp.safeTransferFrom(SECOND, THIRD, 1, 1, [], { from: THIRD }),
+            "TSP: only for minting"
+          );
+        });
+
+        it("should not whitelist twice", async () => {
+          const doubleWhitelisting = [
+            {
+              tierId: 1,
+              users: [SECOND],
+              uri: "",
+            },
+            {
+              tierId: 1,
+              users: [SECOND],
+              uri: "",
+            },
+          ];
+
+          await truffleAssert.reverts(
+            acceptProposal([[tsp.address, 0, getBytesAddToWhitelistTSP(doubleWhitelisting)]]),
+            "TSP: balance can be only 0 or 1"
           );
         });
 
@@ -874,6 +961,7 @@ describe.only("TokenSaleProposal", () => {
 
           await acceptProposal([[tsp.address, 0, getBytesAddToWhitelistTSP(whitelistingRequest)]]);
 
+          assert.equal(await tsp.uri(1), "uri_success");
           assert.equal((await tsp.getTierViews(0, 1))[0].tierInfo.uri, "uri_success");
           assert.equal((await tsp.balanceOf(OWNER, 1)).toFixed(), "1");
         });
@@ -1214,7 +1302,7 @@ describe.only("TokenSaleProposal", () => {
           const purchaseView = {
             isClaimed: false,
             canClaim: false,
-            claimUnlockTime: (+tiers[2].saleEndTime + +tiers[2].claimLockDuration).toString(),
+            claimUnlockTime: (+tiers[3].saleEndTime + +tiers[3].claimLockDuration).toString(),
             claimTotalAmount: wei(400),
             boughtTotalAmount: wei(400),
             lockedAmount: wei(100),
@@ -1524,7 +1612,7 @@ describe.only("TokenSaleProposal", () => {
           await truffleAssert.reverts(tsp.vestingWithdraw([1]), "TSP: zero withdrawal");
         });
 
-        it.only("should vesting withdraw if all conditions are met", async () => {
+        it("should vesting withdraw if all conditions are met", async () => {
           const whitelistingRequest = [
             {
               tierId: 1,
