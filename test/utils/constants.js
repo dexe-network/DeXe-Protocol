@@ -25,17 +25,27 @@ const ProposalState = {
   Defeated: 3,
   SucceededFor: 4,
   SucceededAgainst: 5,
-  ExecutedFor: 6,
-  ExecutedAgainst: 7,
-  Undefined: 8,
+  Locked: 6,
+  ExecutedFor: 7,
+  ExecutedAgainst: 8,
+  Undefined: 9,
 };
 
 const ValidatorsProposalState = {
   Voting: 0,
   Defeated: 1,
   Succeeded: 2,
-  Executed: 3,
-  Undefined: 4,
+  Locked: 3,
+  Executed: 4,
+  Undefined: 5,
+};
+
+const ProposalType = {
+  ChangeInternalDuration: 0,
+  ChangeInternalExecutionDelay: 1,
+  ChangeInternalQuorum: 2,
+  ChangeInternalDurationAndExecutionDelayAndQuorum: 3,
+  ChangeBalances: 4,
 };
 
 const ParticipationType = {
@@ -81,6 +91,7 @@ module.exports = {
   ExecutorType,
   ComissionPeriods,
   ProposalState,
+  ProposalType,
   ValidatorsProposalState,
   ParticipationType,
   DEFAULT_CORE_PROPERTIES,

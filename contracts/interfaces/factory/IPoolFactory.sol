@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "../gov/settings/IGovSettings.sol";
+import "../gov/validators/IGovValidators.sol";
 import "../gov/proposals/ITokenSaleProposal.sol";
 import "../gov/ERC20/IERC20Sale.sol";
 import "../core/ICoreProperties.sol";
@@ -22,15 +23,13 @@ interface IPoolFactory {
     /// @notice Parameters of validators
     /// @param name the name of a token used by validators
     /// @param symbol the symbol of a token used by validators
-    /// @param duration the duration of voting (without the participation of the DAO pool) of validators in seconds
-    /// @param quorum percentage of tokens from the token supply needed to reach a quorum
+    /// @param proposalSettings struct with settings for proposals
     /// @param validators list of the validator addresses
     /// @param balances list of initial token balances of the validators
     struct ValidatorsDeployParams {
         string name;
         string symbol;
-        uint64 duration;
-        uint128 quorum;
+        IGovValidators.ProposalSettings proposalSettings;
         address[] validators;
         uint256[] balances;
     }

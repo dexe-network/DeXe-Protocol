@@ -16,6 +16,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
     string public constant DEXE_NAME = "DEXE";
     string public constant USD_NAME = "USD";
     string public constant BABT_NAME = "BABT";
+    string public constant DEXE_EXPERT_NFT_NAME = "DEXE_EXPERT_NFT";
 
     string public constant PRICE_FEED_NAME = "PRICE_FEED";
     string public constant UNISWAP_V2_ROUTER_NAME = "UNISWAP_V2_ROUTER";
@@ -77,6 +78,10 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
 
     function getBABTContract() external view override returns (address) {
         return getContract(BABT_NAME);
+    }
+
+    function getDexeExpertNftContract() external view override returns (address) {
+        return getContract(DEXE_EXPERT_NFT_NAME);
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}

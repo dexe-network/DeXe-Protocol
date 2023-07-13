@@ -10,17 +10,19 @@ function createInternalProposal(
     address[] calldata userAddresses
 ) external;
 ```
+
 - ***proposalType*** -  type of the proposal
 - ***descriptionURL*** - **IPFS** URL to the proposal's description
 - ***newValues*** -  new values (tokens amounts array, quorum or duration or both)
 - ***userAddresses*** -  validators addresses
-    - set it if `proposalType` is `ChangeBalances`
+  - set it if `proposalType` is `ChangeBalances`
 
 ```solidity
 enum ProposalType {
     ChangeInternalDuration,
+    ChangeInternalExecutionDelay,
     ChangeInternalQuorum,
-    ChangeInternalDurationAndQuorum,
+    ChangeInternalDurationAndExecutionDelayAndQuorum,
     ChangeBalances
 }
 ```

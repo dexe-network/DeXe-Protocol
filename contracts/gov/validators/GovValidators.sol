@@ -17,7 +17,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
     GovValidatorsToken public govValidatorsToken;
 
-    InternalProposalSettings public internalProposalSettings;
+    ProposalSettings public internalProposalSettings;
 
     uint256 public override latestInternalProposalId;
     uint256 public validatorsCount;
@@ -48,21 +48,18 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     function __GovValidators_init(
         string calldata name,
         string calldata symbol,
-        uint64 duration,
-        uint128 quorum,
+        ProposalSettings calldata proposalSettings,
         address[] calldata validators,
         uint256[] calldata balances
     ) external initializer {
         __Ownable_init();
 
-        require(validators.length == balances.length, "Validators: invalid array length");
-        require(duration > 0, "Validators: duration is zero");
-        require(quorum <= PERCENTAGE_100, "Validators: invalid quorum value");
+        _validateChangeBalances(balances, validators);
+        _validateProposalSettings(proposalSettings);
 
         govValidatorsToken = new GovValidatorsToken(name, symbol);
 
-        internalProposalSettings.duration = duration;
-        internalProposalSettings.quorum = quorum;
+        internalProposalSettings = proposalSettings;
 
         _changeBalances(balances, validators);
     }
@@ -73,29 +70,17 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         uint256[] calldata newValues,
         address[] calldata users
     ) external override onlyValidator {
-        if (proposalType == ProposalType.ChangeInternalDuration) {
-            require(newValues[0] > 0, "Validators: invalid duration value");
-        } else if (proposalType == ProposalType.ChangeInternalQuorum) {
-            require(newValues[0] <= PERCENTAGE_100, "Validators: invalid quorum value");
-        } else if (proposalType == ProposalType.ChangeInternalDurationAndQuorum) {
-            require(
-                newValues[0] > 0 && newValues[1] <= PERCENTAGE_100,
-                "Validators: invalid duration or quorum values"
-            );
-        } else {
-            require(newValues.length == users.length, "Validators: invalid length");
+        _validateInternalProposal(proposalType, newValues, users);
 
-            for (uint256 i = 0; i < users.length; i++) {
-                require(users[i] != address(0), "Validators: invalid address");
-            }
-        }
+        ProposalSettings storage _internalProposalSettings = internalProposalSettings;
 
         _internalProposals[++latestInternalProposalId] = InternalProposal({
             proposalType: proposalType,
             core: ProposalCore({
-                voteEnd: uint64(block.timestamp + internalProposalSettings.duration),
+                voteEnd: uint64(block.timestamp + _internalProposalSettings.duration),
+                executeAfter: _internalProposalSettings.executionDelay,
                 executed: false,
-                quorum: internalProposalSettings.quorum,
+                quorum: _internalProposalSettings.quorum,
                 votesFor: 0,
                 votesAgainst: 0,
                 snapshotId: uint56(govValidatorsToken.snapshot())
@@ -108,32 +93,31 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         emit InternalProposalCreated(
             latestInternalProposalId,
             descriptionURL,
-            internalProposalSettings.quorum,
+            _internalProposalSettings.quorum,
             msg.sender
         );
     }
 
     function createExternalProposal(
         uint256 proposalId,
-        uint64 duration,
-        uint128 quorum
+        ProposalSettings calldata proposalSettings
     ) external override onlyOwner {
         require(!_proposalExists(proposalId, false), "Validators: proposal already exists");
-        require(duration > 0, "Validators: duration is zero");
-        require(quorum <= PERCENTAGE_100, "Validators: invalid quorum value");
+        _validateProposalSettings(proposalSettings);
 
         _externalProposals[proposalId] = ExternalProposal({
             core: ProposalCore({
-                voteEnd: uint64(block.timestamp + duration),
+                voteEnd: uint64(block.timestamp + proposalSettings.duration),
                 executed: false,
-                quorum: quorum,
+                quorum: proposalSettings.quorum,
+                executeAfter: proposalSettings.executionDelay,
                 votesFor: 0,
                 votesAgainst: 0,
                 snapshotId: uint56(govValidatorsToken.snapshot())
             })
         });
 
-        emit ExternalProposalCreated(proposalId, quorum);
+        emit ExternalProposalCreated(proposalId, proposalSettings.quorum);
     }
 
     function changeBalances(
@@ -169,6 +153,10 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             core.votesAgainst += amount;
         }
 
+        if (_quorumReached(core)) {
+            core.executeAfter += uint64(block.timestamp);
+        }
+
         emit Voted(proposalId, msg.sender, amount, isInternal, isVoteFor);
     }
 
@@ -186,13 +174,18 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         ProposalType proposalType = proposal.proposalType;
 
+        ProposalSettings storage proposalSettings = internalProposalSettings;
+
         if (proposalType == ProposalType.ChangeInternalDuration) {
-            internalProposalSettings.duration = uint64(proposal.newValues[0]);
+            proposalSettings.duration = uint64(proposal.newValues[0]);
+        } else if (proposalType == ProposalType.ChangeInternalExecutionDelay) {
+            proposalSettings.executionDelay = uint64(proposal.newValues[0]);
         } else if (proposalType == ProposalType.ChangeInternalQuorum) {
-            internalProposalSettings.quorum = uint128(proposal.newValues[0]);
-        } else if (proposalType == ProposalType.ChangeInternalDurationAndQuorum) {
-            internalProposalSettings.duration = uint64(proposal.newValues[0]);
-            internalProposalSettings.quorum = uint128(proposal.newValues[1]);
+            proposalSettings.quorum = uint128(proposal.newValues[0]);
+        } else if (proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum) {
+            proposalSettings.duration = uint64(proposal.newValues[0]);
+            proposalSettings.executionDelay = uint64(proposal.newValues[1]);
+            proposalSettings.quorum = uint128(proposal.newValues[2]);
         } else {
             _changeBalances(proposal.newValues, proposal.userAddresses);
         }
@@ -264,9 +257,16 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             return ProposalState.Executed;
         }
 
-        if (_isQuorumReached(core)) {
-            return
-                _votesForMoreThanAgainst(core) ? ProposalState.Succeeded : ProposalState.Defeated;
+        if (_quorumReached(core)) {
+            if (_votesForMoreThanAgainst(core)) {
+                if (block.timestamp <= core.executeAfter) {
+                    return ProposalState.Locked;
+                }
+
+                return ProposalState.Succeeded;
+            }
+
+            return ProposalState.Defeated;
         }
 
         if (core.voteEnd < block.timestamp) {
@@ -276,7 +276,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         return ProposalState.Voting;
     }
 
-    function _isQuorumReached(ProposalCore storage core) internal view returns (bool) {
+    function _quorumReached(ProposalCore storage core) internal view returns (bool) {
         uint256 totalSupply = govValidatorsToken.totalSupplyAt(core.snapshotId);
         uint256 currentQuorum = PERCENTAGE_100.ratio(
             core.votesFor + core.votesAgainst,
@@ -331,11 +331,58 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         emit ChangedValidatorsBalances(userAddresses, newValues);
     }
 
+    function _validateProposalSettings(ProposalSettings memory proposalSettings) internal pure {
+        require(proposalSettings.duration > 0, "Validators: duration is zero");
+        require(proposalSettings.quorum <= PERCENTAGE_100, "Validators: invalid quorum value");
+        require(proposalSettings.quorum > 0, "Validators: invalid quorum value");
+    }
+
+    function _validateChangeBalances(
+        uint256[] memory newValues,
+        address[] memory userAddresses
+    ) internal pure {
+        require(newValues.length == userAddresses.length, "Validators: invalid array length");
+
+        for (uint256 i = 0; i < userAddresses.length; i++) {
+            require(userAddresses[i] != address(0), "Validators: invalid address");
+        }
+    }
+
     function _votesForMoreThanAgainst(ProposalCore storage core) internal view returns (bool) {
         return core.votesFor > core.votesAgainst;
     }
 
     function _onlyValidator() internal view {
         require(isValidator(msg.sender), "Validators: caller is not the validator");
+    }
+
+    function _validateInternalProposal(
+        ProposalType proposalType,
+        uint256[] calldata newValues,
+        address[] calldata users
+    ) internal pure {
+        if (proposalType == ProposalType.ChangeBalances) {
+            _validateChangeBalances(newValues, users);
+        } else {
+            ProposalSettings memory proposalSettings = ProposalSettings({
+                duration: 1,
+                executionDelay: 0,
+                quorum: 1
+            });
+
+            if (proposalType == ProposalType.ChangeInternalDuration) {
+                proposalSettings.duration = uint64(newValues[0]);
+            } else if (proposalType == ProposalType.ChangeInternalQuorum) {
+                proposalSettings.quorum = uint128(newValues[0]);
+            } else if (
+                proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum
+            ) {
+                proposalSettings.duration = uint64(newValues[0]);
+                proposalSettings.executionDelay = uint64(newValues[1]);
+                proposalSettings.quorum = uint128(newValues[2]);
+            }
+
+            _validateProposalSettings(proposalSettings);
+        }
     }
 }

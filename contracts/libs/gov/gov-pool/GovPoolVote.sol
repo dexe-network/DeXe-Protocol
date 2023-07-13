@@ -8,8 +8,11 @@ import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
 import "../../../gov/GovPool.sol";
 
+import "../../libs/math/MathHelper.sol";
+
 library GovPoolVote {
     using EnumerableSet for EnumerableSet.UintSet;
+    using MathHelper for uint256;
 
     event Voted(
         uint256 proposalId,
@@ -84,6 +87,41 @@ library GovPoolVote {
             );
     }
 
+    function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {
+        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+
+        return
+            PERCENTAGE_100.ratio(
+                core.votesFor + core.votesAgainst,
+                IGovUserKeeper(userKeeperAddress).getTotalVoteWeight()
+            ) >= core.settings.quorum;
+    }
+
+    function _votesForMoreThanAgainst(
+        IGovPool.ProposalCore storage core
+    ) internal view returns (bool) {
+        return core.votesFor > core.votesAgainst;
+    }
+
+    function _proposalStateBasedOnVoteResultsAndLock(
+        IGovPool.ProposalCore storage core
+    ) internal view returns (IGovPool.ProposalState) {
+        if (block.timestamp <= core.executeAfter) {
+            return IGovPool.ProposalState.Locked;
+        }
+
+        return _proposalStateBasedOnVoteResults(core);
+    }
+
+    function _proposalStateBasedOnVoteResults(
+        IGovPool.ProposalCore storage core
+    ) internal view returns (IGovPool.ProposalState) {
+        return
+            _votesForMoreThanAgainst(core)
+                ? IGovPool.ProposalState.SucceededFor
+                : IGovPool.ProposalState.SucceededAgainst;
+    }
+
     function _vote(
         IGovPool.ProposalCore storage core,
         EnumerableSet.UintSet storage votes,
@@ -106,14 +144,18 @@ library GovPoolVote {
             "Gov: vote limit reached"
         );
 
-        govPool.setLatestVoteBlock(proposalId);
-
         _voteTokens(core, voteInfo, proposalId, voteAmount, isMicropool, useDelegated, isVoteFor);
         reward =
             _voteNfts(core, voteInfo, voteNftIds, isMicropool, useDelegated, isVoteFor) +
             voteAmount;
 
         require(reward >= core.settings.minVotesForVoting, "Gov: low current vote power");
+
+        if (core.executeAfter == 0 && _quorumReached(core)) {
+            core.executeAfter =
+                core.settings.executionDelay +
+                (core.settings.earlyCompletion ? uint64(block.timestamp) : core.voteEnd);
+        }
 
         emit Voted(
             proposalId,

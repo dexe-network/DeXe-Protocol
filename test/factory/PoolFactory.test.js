@@ -11,6 +11,7 @@ const ContractsRegistry = artifacts.require("ContractsRegistry");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC721Mock = artifacts.require("ERC721Mock");
 const BABTMock = artifacts.require("BABTMock");
+const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
@@ -38,7 +39,7 @@ const TokenSaleProposal = artifacts.require("TokenSaleProposal");
 const UniswapV2PathFinderLib = artifacts.require("UniswapV2PathFinder");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const PoolFactory = artifacts.require("PoolFactory");
-const GovTokenSaleDeployerLib = artifacts.require("GovTokenSaleDeployer");
+const GovTokenDeployerLib = artifacts.require("GovTokenDeployer");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
@@ -96,9 +97,9 @@ describe("PoolFactory", () => {
     SECOND = await accounts(1);
     NOTHING = await accounts(3);
 
-    const govTokenSaleDeployerLib = await GovTokenSaleDeployerLib.new();
+    const govTokenDeployerLib = await GovTokenDeployerLib.new();
 
-    await PoolFactory.link(govTokenSaleDeployerLib);
+    await PoolFactory.link(govTokenDeployerLib);
 
     const govUserKeeperViewLib = await GovUserKeeperViewLib.new();
 
@@ -191,6 +192,7 @@ describe("PoolFactory", () => {
     const DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     const USD = await ERC20Mock.new("USD", "USD", 6);
     babt = await BABTMock.new();
+    const _dexeExpertNft = await ERC721Expert.new();
     const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeed.new();
     const _poolRegistry = await PoolRegistry.new();
@@ -207,6 +209,7 @@ describe("PoolFactory", () => {
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
+    await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), _dexeExpertNft.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), uniswapV2Router.address);
 
@@ -508,6 +511,7 @@ describe("PoolFactory", () => {
               quorumValidators: PRECISION.times("100").toFixed(),
               minVotesForVoting: wei("20"),
               minVotesForCreating: wei("5"),
+              executionDelay: 0,
               rewardsInfo: {
                 rewardToken: ZERO_ADDR,
                 creationReward: 0,
@@ -527,6 +531,7 @@ describe("PoolFactory", () => {
               quorumValidators: PRECISION.times("61").toFixed(),
               minVotesForVoting: wei("10"),
               minVotesForCreating: wei("5"),
+              executionDelay: 0,
               rewardsInfo: {
                 rewardToken: ZERO_ADDR,
                 creationReward: 0,
@@ -546,6 +551,7 @@ describe("PoolFactory", () => {
               quorumValidators: PRECISION.times("61").toFixed(),
               minVotesForVoting: wei("10"),
               minVotesForCreating: wei("5"),
+              executionDelay: 0,
               rewardsInfo: {
                 rewardToken: ZERO_ADDR,
                 creationReward: 0,
@@ -565,6 +571,7 @@ describe("PoolFactory", () => {
               quorumValidators: PRECISION.times("61").toFixed(),
               minVotesForVoting: wei("10"),
               minVotesForCreating: wei("5"),
+              executionDelay: 0,
               rewardsInfo: {
                 rewardToken: ZERO_ADDR,
                 creationReward: 0,
@@ -580,8 +587,11 @@ describe("PoolFactory", () => {
         validatorsParams: {
           name: "Validator Token",
           symbol: "VT",
-          duration: 500,
-          quorum: PRECISION.times("51").toFixed(),
+          proposalSettings: {
+            duration: 500,
+            executionDelay: 0,
+            quorum: PRECISION.times("51").toFixed(),
+          },
           validators: [OWNER],
           balances: [wei("100")],
         },
@@ -654,6 +664,7 @@ describe("PoolFactory", () => {
         quorumValidators: PRECISION.times("61").toFixed(),
         minVotesForVoting: wei("10"),
         minVotesForCreating: wei("5"),
+        executionDelay: 0,
         rewardsInfo: {
           rewardToken: ZERO_ADDR,
           creationReward: 0,
@@ -698,6 +709,27 @@ describe("PoolFactory", () => {
         assert.equal(settings[0], POOL_PARAMETERS.settingsParams.proposalSettings[2].earlyCompletion);
 
         assert.equal(await govPool.nftMultiplier(), testERC721Multiplier.address);
+      });
+
+      it("should deploy pool with Expert Nft", async () => {
+        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
+        const predictedGovAddress = (await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name))[0];
+
+        await poolFactory.deployGovPool(POOL_PARAMETERS);
+
+        let govPool = await GovPool.at(predictedGovAddress);
+
+        let dexeNftAddress = await govPool.dexeExpertNft();
+        let nftAddress = await govPool.expertNft();
+
+        assert.isTrue(nftAddress != ZERO_ADDR);
+        assert.isTrue(dexeNftAddress != ZERO_ADDR);
+
+        let expertNft = await ERC721Expert.at(nftAddress);
+
+        assert.equal(await expertNft.owner(), predictedGovAddress);
+        assert.equal(await expertNft.name(), POOL_PARAMETERS.name + " Expert Nft");
+        assert.equal(await expertNft.symbol(), POOL_PARAMETERS.name + " EXPNFT");
       });
 
       it("should deploy pool from address with BABT", async () => {

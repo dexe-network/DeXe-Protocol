@@ -10,9 +10,6 @@ const {
   getBytesOffTiersTSP,
   getBytesRecoverTSP,
   getBytesAddToWhitelistTSP,
-  getBytesLockParticipationTokensTSP,
-  getBytesLockParticipationNftTSP,
-  getBytesBuyTSP,
 } = require("../utils/gov-pool-utils");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
 
@@ -29,6 +26,7 @@ const GovValidators = artifacts.require("GovValidators");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC721Mock = artifacts.require("ERC721Mock");
+const ERC721Expert = artifacts.require("ERC721Expert");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
@@ -52,6 +50,7 @@ GovPool.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 ERC721Mock.numberFormat = "BigNumber";
 ERC20Sale.numberFormat = "BigNumber";
+ERC721Expert.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 TokenSaleProposal.numberFormat = "BigNumber";
 GovSettings.numberFormat = "BigNumber";
@@ -140,7 +139,8 @@ describe("TokenSaleProposal", () => {
     const contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
-    babt = await BABTMock.new();
+    const babt = await BABTMock.new();
+    const _dexeExpertNft = await ERC721Expert.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
     participationToken = await ERC20Mock.new("PTMock", "PTMock", 18);
     participationNft = await ERC721Mock.new("PNFTMock", "PNFTMock");
@@ -156,6 +156,7 @@ describe("TokenSaleProposal", () => {
     await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.INSURANCE_NAME(), NOTHING);
 
+    await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), _dexeExpertNft.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
 
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
@@ -179,6 +180,7 @@ describe("TokenSaleProposal", () => {
     validators = await GovValidators.new();
     userKeeper = await GovUserKeeper.new();
     dp = await DistributionProposal.new();
+    expertNft = await ERC721Expert.new();
     govPool = await GovPool.new();
     tsp = await TokenSaleProposal.new();
 
@@ -194,8 +196,11 @@ describe("TokenSaleProposal", () => {
     await validators.__GovValidators_init(
       poolParams.validatorsParams.name,
       poolParams.validatorsParams.symbol,
-      poolParams.validatorsParams.duration,
-      poolParams.validatorsParams.quorum,
+      [
+        poolParams.validatorsParams.proposalSettings.duration,
+        poolParams.validatorsParams.proposalSettings.executionDelay,
+        poolParams.validatorsParams.proposalSettings.quorum,
+      ],
       poolParams.validatorsParams.validators,
       poolParams.validatorsParams.balances
     );
@@ -207,11 +212,9 @@ describe("TokenSaleProposal", () => {
     );
 
     await dp.__DistributionProposal_init(govPool.address);
+    await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
     await govPool.__GovPool_init(
-      settings.address,
-      userKeeper.address,
-      dp.address,
-      validators.address,
+      [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address],
       poolParams.nftMultiplierAddress,
       OWNER,
       poolParams.onlyBABTHolders,
@@ -223,6 +226,7 @@ describe("TokenSaleProposal", () => {
     await settings.transferOwnership(govPool.address);
     await validators.transferOwnership(govPool.address);
     await userKeeper.transferOwnership(govPool.address);
+    await expertNft.transferOwnership(govPool.address);
 
     await poolRegistry.addProxyPool(NAME, govPool.address, {
       from: FACTORY,
@@ -361,6 +365,7 @@ describe("TokenSaleProposal", () => {
               quorumValidators: PRECISION.times("100").toFixed(),
               minVotesForVoting: wei("20"),
               minVotesForCreating: wei("3"),
+              executionDelay: 0,
               rewardsInfo: {
                 rewardToken: ZERO_ADDR,
                 creationReward: 0,
@@ -380,6 +385,7 @@ describe("TokenSaleProposal", () => {
               quorumValidators: PRECISION.times("61").toFixed(),
               minVotesForVoting: wei("10"),
               minVotesForCreating: wei("2"),
+              executionDelay: 0,
               rewardsInfo: {
                 rewardToken: ZERO_ADDR,
                 creationReward: 0,
@@ -399,6 +405,7 @@ describe("TokenSaleProposal", () => {
               quorumValidators: PRECISION.times("100").toFixed(),
               minVotesForVoting: wei("20"),
               minVotesForCreating: wei("3"),
+              executionDelay: 0,
               rewardsInfo: {
                 rewardToken: ZERO_ADDR,
                 creationReward: 0,
@@ -418,6 +425,7 @@ describe("TokenSaleProposal", () => {
               quorumValidators: PRECISION.times("61").toFixed(),
               minVotesForVoting: wei("10"),
               minVotesForCreating: wei("2"),
+              executionDelay: 0,
               rewardsInfo: {
                 rewardToken: ZERO_ADDR,
                 creationReward: 0,
@@ -433,8 +441,11 @@ describe("TokenSaleProposal", () => {
         validatorsParams: {
           name: "Validator Token",
           symbol: "VT",
-          duration: 600,
-          quorum: PRECISION.times("51").toFixed(),
+          proposalSettings: {
+            duration: 600,
+            executionDelay: 0,
+            quorum: PRECISION.times("51").toFixed(),
+          },
           validators: [OWNER, SECOND],
           balances: [wei("100"), wei("1000000000000")],
         },

@@ -228,6 +228,10 @@ const getBytesAddSettings = (settings) => {
               name: "minVotesForCreating",
             },
             {
+              type: "uint64",
+              name: "executionDelay",
+            },
+            {
               components: [
                 {
                   name: "rewardToken",
@@ -314,6 +318,10 @@ const getBytesEditSettings = (ids, settings) => {
             {
               type: "uint256",
               name: "minVotesForCreating",
+            },
+            {
+              type: "uint64",
+              name: "executionDelay",
             },
             {
               components: [

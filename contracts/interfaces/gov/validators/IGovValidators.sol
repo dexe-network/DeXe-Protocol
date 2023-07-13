@@ -9,22 +9,26 @@ interface IGovValidators {
         Voting,
         Defeated,
         Succeeded,
+        Locked,
         Executed,
         Undefined
     }
 
     enum ProposalType {
         ChangeInternalDuration,
+        ChangeInternalExecutionDelay,
         ChangeInternalQuorum,
-        ChangeInternalDurationAndQuorum,
+        ChangeInternalDurationAndExecutionDelayAndQuorum,
         ChangeBalances
     }
 
-    /// @notice The struct holds information about settings for internal validators proposal
+    /// @notice The struct holds information about settings for validators proposal
     /// @param duration the duration of voting
+    /// @param executionDelay the delay in seconds after voting end
     /// @param quorum the percentage of validators token supply to confirm the proposal
-    struct InternalProposalSettings {
+    struct ProposalSettings {
         uint64 duration;
+        uint64 executionDelay;
         uint128 quorum;
     }
 
@@ -32,6 +36,7 @@ interface IGovValidators {
     /// @param executed the boolean flag that indicated whether the proposal is executed or not
     /// @param snapshotId the id of snapshot
     /// @param voteEnd the timestamp of voting end of the proposal
+    /// @param executeAfter the timestamp of execution in seconds after voting end
     /// @param quorum the percentage of validators token supply to confirm the proposal
     /// @param votesFor the total number of votes in proposal from all voters
     /// @param votesAgainst the total number of votes against proposal from all voters
@@ -39,6 +44,7 @@ interface IGovValidators {
         bool executed;
         uint56 snapshotId;
         uint64 voteEnd;
+        uint64 executeAfter;
         uint128 quorum;
         uint256 votesFor;
         uint256 votesAgainst;
@@ -99,9 +105,11 @@ interface IGovValidators {
 
     /// @notice Create external proposal. This function can call only `Gov` contract
     /// @param proposalId Proposal ID from `Gov` contract
-    /// @param duration Duration from `Gov` contract
-    /// @param quorum Quorum from `Gov` contract
-    function createExternalProposal(uint256 proposalId, uint64 duration, uint128 quorum) external;
+    /// @param proposalSettings `ProposalSettings` struct
+    function createExternalProposal(
+        uint256 proposalId,
+        ProposalSettings calldata proposalSettings
+    ) external;
 
     /// @notice The function for changing validators balances
     /// @param newValues the array of new balances

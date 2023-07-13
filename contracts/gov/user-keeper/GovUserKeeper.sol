@@ -17,6 +17,7 @@ import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/IGovPool.sol";
 
 import "../../libs/math/MathHelper.sol";
+import "../../libs/utils/ArrayCropper.sol";
 import "../../libs/gov/gov-user-keeper/GovUserKeeperView.sol";
 
 import "../ERC721/ERC721Power.sol";
@@ -28,6 +29,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
     using ArrayHelper for uint256[];
+    using ArrayCropper for uint256[];
     using Paginator for EnumerableSet.UintSet;
     using DecimalsConverter for uint256;
     using GovUserKeeperView for *;
@@ -553,9 +555,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         (uint256[] memory nftIds, uint256 owned) = nftExactBalance(voter, false, useDelegated);
         (uint256[] memory nftIdsMicropool, ) = nftExactBalance(voter, true, false);
 
-        assembly {
-            mstore(nftIds, sub(mload(nftIds), owned))
-        }
+        nftIds.crop(nftIds.length - owned);
 
         uint256 nftPower = getNftsPowerInTokensBySnapshot(nftIds, snapshotId) +
             getNftsPowerInTokensBySnapshot(nftIdsMicropool, snapshotId);

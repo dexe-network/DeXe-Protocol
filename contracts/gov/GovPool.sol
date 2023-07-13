@@ -13,9 +13,11 @@ import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
 import "../interfaces/gov/IGovPool.sol";
+import "../interfaces/gov/ERC721/IERC721Expert.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/ISBT721.sol";
+import "../interfaces/factory/IPoolFactory.sol";
 
 import "../libs/gov/gov-user-keeper/GovUserKeeperLocal.sol";
 import "../libs/gov/gov-pool/GovPoolView.sol";
@@ -61,6 +63,8 @@ contract GovPool is
     ICoreProperties public coreProperties;
 
     address public nftMultiplier;
+    address public expertNft;
+    IERC721Expert public dexeExpertNft;
     ISBT721 public babt;
 
     bool public onlyBABTHolders;
@@ -74,7 +78,6 @@ contract GovPool is
     OffChain internal _offChain;
 
     mapping(uint256 => Proposal) internal _proposals; // proposalId => info
-    mapping(uint256 => uint256) public latestVoteBlocks; // proposalId => block
 
     mapping(uint256 => mapping(address => mapping(bool => VoteInfo))) internal _voteInfos; // proposalId => voter => isMicropool => info
     mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
@@ -98,10 +101,7 @@ contract GovPool is
     }
 
     function __GovPool_init(
-        address govSettingAddress,
-        address govUserKeeperAddress,
-        address distributionProposalAddress,
-        address validatorsAddress,
+        Dependencies calldata govPoolDeps,
         address nftMultiplierAddress,
         address _verifier,
         bool _onlyBABTHolders,
@@ -109,10 +109,11 @@ contract GovPool is
         string calldata _descriptionURL,
         string calldata _name
     ) external initializer {
-        _govSettings = IGovSettings(govSettingAddress);
-        _govUserKeeper = IGovUserKeeper(govUserKeeperAddress);
-        _govValidators = IGovValidators(validatorsAddress);
-        _distributionProposal = distributionProposalAddress;
+        _govSettings = IGovSettings(govPoolDeps.settingsAddress);
+        _govUserKeeper = IGovUserKeeper(govPoolDeps.userKeeperAddress);
+        _govValidators = IGovValidators(govPoolDeps.validatorsAddress);
+        _distributionProposal = govPoolDeps.distributionAddress;
+        expertNft = govPoolDeps.expertNftAddress;
 
         if (nftMultiplierAddress != address(0)) {
             _setNftMultiplierAddress(nftMultiplierAddress);
@@ -167,6 +168,7 @@ contract GovPool is
 
         coreProperties = ICoreProperties(registry.getCorePropertiesContract());
         babt = ISBT721(registry.getBABTContract());
+        dexeExpertNft = IERC721Expert(registry.getDexeExpertNftContract());
     }
 
     function createProposal(
@@ -332,10 +334,6 @@ contract GovPool is
         _setNftMultiplierAddress(nftMultiplierAddress);
     }
 
-    function setLatestVoteBlock(uint256 proposalId) external override onlyThis {
-        latestVoteBlocks[proposalId] = block.number;
-    }
-
     function saveOffchainResults(
         string calldata resultsHash,
         bytes calldata signature
@@ -362,15 +360,15 @@ contract GovPool is
 
         if (core.executed) {
             return
-                _votesForMoreThanAgainst(core)
+                core._votesForMoreThanAgainst()
                     ? ProposalState.ExecutedFor
                     : ProposalState.ExecutedAgainst;
         }
 
         if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
-            if (_quorumReached(core)) {
+            if (core._quorumReached()) {
                 if (
-                    !_votesForMoreThanAgainst(core) &&
+                    !core._votesForMoreThanAgainst() &&
                     _proposals[proposalId].actionsOnAgainst.length == 0
                 ) {
                     return ProposalState.Defeated;
@@ -387,11 +385,15 @@ contract GovPool is
                             return ProposalState.WaitingForVotingTransfer;
                         }
 
-                        return _proposalStateBasedOnVoteResults(core);
+                        return core._proposalStateBasedOnVoteResultsAndLock();
+                    }
+
+                    if (status == IGovValidators.ProposalState.Locked) {
+                        return ProposalState.Locked;
                     }
 
                     if (status == IGovValidators.ProposalState.Succeeded) {
-                        return _proposalStateBasedOnVoteResults(core);
+                        return core._proposalStateBasedOnVoteResults();
                     }
 
                     if (status == IGovValidators.ProposalState.Defeated) {
@@ -401,7 +403,7 @@ contract GovPool is
                     return ProposalState.ValidatorVoting;
                 }
 
-                return _proposalStateBasedOnVoteResults(core);
+                return core._proposalStateBasedOnVoteResultsAndLock();
             }
 
             if (voteEnd < block.timestamp) {
@@ -537,27 +539,6 @@ contract GovPool is
         bool isMicropool
     ) internal {
         _votedInProposals.unlockInProposals(_voteInfos, proposalIds, user, isMicropool);
-    }
-
-    function _quorumReached(ProposalCore storage core) internal view returns (bool) {
-        return
-            PERCENTAGE_100.ratio(
-                core.votesFor + core.votesAgainst,
-                _govUserKeeper.getTotalVoteWeight()
-            ) >= core.settings.quorum;
-    }
-
-    function _votesForMoreThanAgainst(ProposalCore storage core) internal view returns (bool) {
-        return core.votesFor > core.votesAgainst;
-    }
-
-    function _proposalStateBasedOnVoteResults(
-        ProposalCore storage core
-    ) internal view returns (ProposalState) {
-        return
-            _votesForMoreThanAgainst(core)
-                ? ProposalState.SucceededFor
-                : ProposalState.SucceededAgainst;
     }
 
     function _onlyThis() internal view {

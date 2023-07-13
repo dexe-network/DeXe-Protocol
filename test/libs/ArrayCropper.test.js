@@ -37,8 +37,8 @@ describe("ArrayCropper", () => {
     });
 
     it("should not crop", async () => {
-      await truffleAssert.reverts(cropper.cropUint([], 1), "ArrayCropper: expanding is not possible");
-      await truffleAssert.reverts(cropper.cropAddress([], 1), "ArrayCropper: expanding is not possible");
+      await truffleAssert.reverts(cropper.cropUint([], 1), "ArrayCropper: not crop");
+      await truffleAssert.reverts(cropper.cropAddress([], 1), "ArrayCropper: not crop");
     });
   });
 });

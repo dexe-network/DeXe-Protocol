@@ -26,7 +26,15 @@ library TraderPoolInvest {
     using EnumerableSet for EnumerableSet.AddressSet;
     using PriceFeedLocal for IPriceFeed;
 
+    /// @notice Emitted when position is opened
+    /// @param position Address of the position
     event PositionOpened(address position);
+
+    /// @notice Emitted when active portfolio is exchanged
+    /// @param fromToken Address of the token to exchange from
+    /// @param toToken Address of the token to exchange to
+    /// @param fromVolume Amount of the token to exchange from
+    /// @param toVolume Amount of the token to exchange to
     event ActivePortfolioExchanged(
         address fromToken,
         address toToken,

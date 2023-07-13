@@ -20,6 +20,7 @@ const DEFAULT_SETTINGS = {
   quorumValidators: PRECISION.times("100").toFixed(),
   minVotesForVoting: wei("20"),
   minVotesForCreating: wei("3"),
+  executionDelay: 0,
   rewardsInfo: {
     rewardToken: ZERO_ADDR,
     creationReward: 0,
@@ -40,6 +41,7 @@ const INTERNAL_SETTINGS = {
   quorumValidators: PRECISION.times("61").toFixed(),
   minVotesForVoting: wei("10"),
   minVotesForCreating: wei("2"),
+  executionDelay: 0,
   rewardsInfo: {
     rewardToken: ZERO_ADDR,
     creationReward: 0,
@@ -60,6 +62,7 @@ const DP_SETTINGS = {
   quorumValidators: PRECISION.times("100").toFixed(),
   minVotesForVoting: wei("20"),
   minVotesForCreating: wei("3"),
+  executionDelay: 0,
   rewardsInfo: {
     rewardToken: ZERO_ADDR,
     creationReward: 0,
@@ -80,6 +83,7 @@ const VALIDATORS_BALANCES_SETTINGS = {
   quorumValidators: PRECISION.times("100").toFixed(),
   minVotesForVoting: wei("20"),
   minVotesForCreating: wei("3"),
+  executionDelay: 0,
   rewardsInfo: {
     rewardToken: ZERO_ADDR,
     creationReward: 0,
@@ -178,6 +182,7 @@ describe("GovSettings", () => {
       quorumValidators: toPercent("2"),
       minVotesForVoting: wei("3"),
       minVotesForCreating: wei("4"),
+      executionDelay: 0,
       rewardsInfo: {
         rewardToken: ZERO_ADDR,
         creationReward: 0,
@@ -198,6 +203,7 @@ describe("GovSettings", () => {
       quorumValidators: toPercent("3"),
       minVotesForVoting: wei("4"),
       minVotesForCreating: wei("4"),
+      executionDelay: 0,
       rewardsInfo: {
         rewardToken: ZERO_ADDR,
         creationReward: 0,
@@ -253,6 +259,7 @@ describe("GovSettings", () => {
         assert.equal(defaultSettings.quorumValidators.toFixed(), PRECISION.times("100").toFixed());
         assert.equal(defaultSettings.minVotesForVoting.toFixed(), wei("20"));
         assert.equal(defaultSettings.minVotesForCreating.toFixed(), wei("3"));
+        assert.equal(defaultSettings.executionDelay, 0);
         assert.equal(defaultSettings.executorDescription, "default");
 
         const internalSettings = await settings.settings(ExecutorType.INTERNAL);
@@ -266,6 +273,7 @@ describe("GovSettings", () => {
         assert.equal(internalSettings.quorumValidators.toFixed(), PRECISION.times("61").toFixed());
         assert.equal(internalSettings.minVotesForVoting.toFixed(), wei("10"));
         assert.equal(internalSettings.minVotesForCreating.toFixed(), wei("2"));
+        assert.equal(internalSettings.executionDelay, 0);
         assert.equal(internalSettings.executorDescription, "internal");
 
         const dpSettings = await settings.settings(ExecutorType.DISTRIBUTION);
@@ -279,6 +287,7 @@ describe("GovSettings", () => {
         assert.equal(dpSettings.quorumValidators.toFixed(), PRECISION.times("100").toFixed());
         assert.equal(dpSettings.minVotesForVoting.toFixed(), wei("20"));
         assert.equal(dpSettings.minVotesForCreating.toFixed(), wei("3"));
+        assert.equal(dpSettings.executionDelay, 0);
         assert.equal(dpSettings.executorDescription, "DP");
 
         const validatorsSettings = await settings.settings(ExecutorType.VALIDATORS);
@@ -292,6 +301,7 @@ describe("GovSettings", () => {
         assert.equal(validatorsSettings.quorumValidators.toFixed(), PRECISION.times("100").toFixed());
         assert.equal(validatorsSettings.minVotesForVoting.toFixed(), wei("20"));
         assert.equal(validatorsSettings.minVotesForCreating.toFixed(), wei("3"));
+        assert.equal(validatorsSettings.executionDelay, 0);
         assert.equal(validatorsSettings.executorDescription, "validators");
 
         assert.equal(await settings.executorToSettings(settings.address), ExecutorType.INTERNAL);
@@ -343,6 +353,7 @@ describe("GovSettings", () => {
           quorumValidators: toPercent("2"),
           minVotesForVoting: wei("3"),
           minVotesForCreating: wei("4"),
+          executionDelay: 0,
           rewardsInfo: {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
@@ -363,6 +374,7 @@ describe("GovSettings", () => {
           quorumValidators: toPercent("3"),
           minVotesForVoting: wei("4"),
           minVotesForCreating: wei("4"),
+          executionDelay: 0,
           rewardsInfo: {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
@@ -386,6 +398,7 @@ describe("GovSettings", () => {
         assert.equal(settings1.quorumValidators.toFixed(), toBN(newSettings1.quorumValidators).toFixed());
         assert.equal(settings1.minVotesForVoting, newSettings1.minVotesForVoting);
         assert.equal(settings1.minVotesForCreating, newSettings1.minVotesForCreating);
+        assert.equal(settings1.executionDelay, newSettings1.executionDelay);
         assert.equal(settings1.executorDescription, newSettings1.executorDescription);
 
         assert.equal(settings2.earlyCompletion, newSettings2.earlyCompletion);
@@ -396,6 +409,7 @@ describe("GovSettings", () => {
         assert.equal(settings2.quorumValidators.toFixed(), toBN(newSettings2.quorumValidators).toFixed());
         assert.equal(settings2.minVotesForVoting, newSettings2.minVotesForVoting);
         assert.equal(settings2.minVotesForCreating, newSettings2.minVotesForCreating);
+        assert.equal(settings2.executionDelay, newSettings2.executionDelay);
         assert.equal(settings2.executorDescription, newSettings2.executorDescription);
       });
     });
@@ -412,6 +426,7 @@ describe("GovSettings", () => {
           quorumValidators: toPercent("2"),
           minVotesForVoting: wei("3"),
           minVotesForCreating: wei("4"),
+          executionDelay: 0,
           rewardsInfo: {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
@@ -436,6 +451,7 @@ describe("GovSettings", () => {
           quorumValidators: toPercent("2"),
           minVotesForVoting: wei("3"),
           minVotesForCreating: wei("4"),
+          executionDelay: 0,
           rewardsInfo: {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
@@ -455,11 +471,37 @@ describe("GovSettings", () => {
           delegatedVotingAllowed: false,
           validatorsVote: true,
           duration: 50,
+          durationValidators: 100,
+          quorum: toPercent("0"),
+          quorumValidators: toPercent("100.0001"),
+          minVotesForVoting: wei("3"),
+          minVotesForCreating: wei("4"),
+          executionDelay: 0,
+          rewardsInfo: {
+            rewardToken: ZERO_ADDR,
+            creationReward: 0,
+            executionReward: 0,
+            voteForRewardsCoefficient: 0,
+            voteAgainstRewardsCoefficient: 0,
+          },
+          executorDescription: "new_settings",
+        };
+
+        await truffleAssert.reverts(settings.addSettings([newSettings]), "GovSettings: invalid quorum value");
+      });
+
+      it("should revert if invalid duration value", async () => {
+        const newSettings = {
+          earlyCompletion: false,
+          delegatedVotingAllowed: false,
+          validatorsVote: true,
+          duration: 50,
           durationValidators: 0,
           quorum: toPercent("1"),
           quorumValidators: toPercent("2"),
           minVotesForVoting: wei("3"),
           minVotesForCreating: wei("4"),
+          executionDelay: 0,
           rewardsInfo: {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
@@ -487,6 +529,7 @@ describe("GovSettings", () => {
           quorumValidators: toPercent("100.0001"),
           minVotesForVoting: wei("3"),
           minVotesForCreating: wei("4"),
+          executionDelay: 0,
           rewardsInfo: {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
@@ -513,6 +556,7 @@ describe("GovSettings", () => {
           quorumValidators: toPercent("2"),
           minVotesForVoting: wei("3"),
           minVotesForCreating: wei("4"),
+          executionDelay: 0,
           rewardsInfo: {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
@@ -535,6 +579,7 @@ describe("GovSettings", () => {
         assert.equal(defaultSettings.quorumValidators.toFixed(), newSettings1.quorumValidators);
         assert.equal(defaultSettings.minVotesForVoting.toFixed(), newSettings1.minVotesForVoting);
         assert.equal(defaultSettings.minVotesForCreating, newSettings1.minVotesForCreating);
+        assert.equal(defaultSettings.executionDelay, newSettings1.executionDelay);
         assert.equal(defaultSettings.executorDescription, newSettings1.executorDescription);
 
         const internalSettings = await settings.settings(1);
@@ -547,6 +592,7 @@ describe("GovSettings", () => {
         assert.equal(internalSettings.quorumValidators.toFixed(), newSettings1.quorumValidators);
         assert.equal(internalSettings.minVotesForVoting.toFixed(), newSettings1.minVotesForVoting);
         assert.equal(internalSettings.minVotesForCreating, newSettings1.minVotesForCreating);
+        assert.equal(internalSettings.executionDelay, newSettings1.executionDelay);
         assert.equal(internalSettings.executorDescription, newSettings1.executorDescription);
       });
 
@@ -561,6 +607,7 @@ describe("GovSettings", () => {
           quorumValidators: toPercent("2"),
           minVotesForVoting: wei("3"),
           minVotesForCreating: wei("4"),
+          executionDelay: 0,
           rewardsInfo: {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
@@ -617,6 +664,7 @@ describe("GovSettings", () => {
           quorumValidators: toPercent("2"),
           minVotesForVoting: wei("3"),
           minVotesForCreating: wei("4"),
+          executionDelay: 0,
           rewardsInfo: {
             rewardToken: ZERO_ADDR,
             creationReward: 0,

@@ -164,7 +164,7 @@ library GovUserKeeperView {
             }
         }
 
-        undelegateableNfts = undelegateableNfts.crop(nftsLength);
+        undelegateableNfts.crop(nftsLength);
     }
 
     function getWithdrawableAssets(
@@ -212,6 +212,6 @@ library GovUserKeeperView {
             }
         }
 
-        withdrawableNfts = withdrawableNfts.crop(nftsLength);
+        withdrawableNfts.crop(nftsLength);
     }
 }

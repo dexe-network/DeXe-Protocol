@@ -57,11 +57,8 @@ struct ProposalSettings {
     uint128 quorumValidators;
     uint256 minVotesForVoting;
     uint256 minVotesForCreating;
-    address rewardToken;
-    uint256 creationReward;
-    uint256 executionRewardFor;
-    uint256 executionRewardAgainst;
-    uint256 voteRewardsCoefficient;
+    uint64 executionDelay;
+    RewardsInfo rewardsInfo;
     string executorDescription;
 }
 ```
@@ -78,12 +75,27 @@ struct ProposalSettings {
 - ***quorumValidators*** - the percentage of total validator token supply to confirm the proposal
 - ***minVotesForVoting*** - the minimal needed voting power to vote for the proposal
 - ***minVotesForCreating*** - the minimal needed voting power to create the proposal
-- ***rewardToken*** - the reward token address
-- ***creationReward*** - the amount of reward for proposal creation
-- ***executionReward*** - the amount of reward for proposal execution if the proposal is accepted
-- ***executionRewardAgainst*** - the amount of reward for proposal execution if the proposal is rejected
-- ***voteRewardsCoefficient*** - the reward multiplier for voting
+- ***executionDelay*** - the delay before the proposal execution in seconds
+- ***rewardsInfo*** - the rewards information
 - ***executorDescription*** - the settings description string
+
+`RewardsInfo` struct holds information about rewards for proposal type
+
+```solidity
+struct RewardsInfo {
+    address rewardToken;
+    uint256 creationReward;
+    uint256 executionReward;
+    uint256 voteForRewardsCoefficient;
+    uint256 voteAgainstRewardsCoefficient;
+}
+```
+
+- ***rewardToken*** - the address of the token used for rewards
+- ***creationReward*** - the reward for creating the proposal
+- ***executionReward*** - the reward for executing the proposal
+- ***voteForRewardsCoefficient*** - the coefficient for calculating the reward for voting for the proposal
+- ***voteAgainstRewardsCoefficient*** - the coefficient for calculating the reward for voting against the proposal
 
 #
 
@@ -91,8 +103,7 @@ struct ProposalSettings {
 struct ValidatorsDeployParams {
     string name;
     string symbol;
-    uint64 duration;
-    uint128 quorum;
+    IGovValidators.ProposalSettings proposalSettings;
     address[] validators;
     uint256[] balances;
 }
@@ -100,10 +111,21 @@ struct ValidatorsDeployParams {
 
 - ***name*** - the name of a token used by validators
 - ***symbol*** - the symbol of a token used by validators
-- ***duration*** - the duration of voting (without the participation of the **DAO** pool) of validators in seconds
-- ***quorum*** - percentage of tokens from the token supply needed to reach a quorum
+- ***proposalSettings*** - the settings for validators proposals
 - ***validators*** - list of the validator addresses
 - ***balances*** - list of initial token balances of the validators
+
+```solidity
+struct ProposalSettings {
+    uint64 duration;
+    uint64 executionDelay;
+    uint128 quorum;
+}
+```
+
+- ***duration*** - the duration of voting in seconds
+- ***executionDelay*** - the delay before the proposal execution in seconds
+- ***quorum*** - the percentage of total votes supply (**ERC20** + **NFT**) to confirm the proposal
 
 #
 
