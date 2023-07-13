@@ -71,7 +71,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     function deployGovPool(GovPoolDeployParams calldata parameters) external override {
         string memory poolType = _poolRegistry.GOV_POOL_NAME();
 
-        GovPoolDependencies memory govPoolDeps;
+        GovPool.Dependencies memory govPoolDeps;
 
         govPoolDeps.validatorsAddress = _deploy(_poolRegistry.VALIDATORS_NAME());
         govPoolDeps.userKeeperAddress = _deploy(_poolRegistry.USER_KEEPER_NAME());
@@ -109,7 +109,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     ) external override {
         string memory poolType = _poolRegistry.GOV_POOL_NAME();
 
-        GovPoolDependencies memory govPoolDeps;
+        GovPool.Dependencies memory govPoolDeps;
 
         govPoolDeps.validatorsAddress = _deploy(_poolRegistry.VALIDATORS_NAME());
         govPoolDeps.userKeeperAddress = _deploy(_poolRegistry.USER_KEEPER_NAME());
@@ -264,7 +264,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
     function _initGovPool(
         address poolProxy,
-        GovPoolDependencies memory govPoolDeps,
+        GovPool.Dependencies memory govPoolDeps,
         GovPoolDeployParams calldata parameters
     ) internal {
         uint256 babtId;

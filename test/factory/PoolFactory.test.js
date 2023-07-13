@@ -689,11 +689,17 @@ describe("PoolFactory", () => {
       it("should deploy pool with Expert Nft", async () => {
         let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
         const predictedGovAddress = (await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name))[0];
+
         await poolFactory.deployGovPool(POOL_PARAMETERS);
+
         let govPool = await GovPool.at(predictedGovAddress);
 
+        let dexeNftAddress = await govPool.dexeExpertNft();
         let nftAddress = await govPool.expertNft();
+
         assert.isTrue(nftAddress != ZERO_ADDR);
+        assert.isTrue(dexeNftAddress != ZERO_ADDR);
+
         let expertNft = await ERC721Expert.at(nftAddress);
 
         assert.equal(await expertNft.owner(), predictedGovAddress);

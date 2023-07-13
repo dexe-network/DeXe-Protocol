@@ -101,7 +101,7 @@ contract GovPool is
     }
 
     function __GovPool_init(
-        IPoolFactory.GovPoolDependencies memory govPoolDeps,
+        Dependencies calldata govPoolDeps,
         address nftMultiplierAddress,
         address _verifier,
         bool _onlyBABTHolders,
