@@ -7,9 +7,12 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URISto
 import "../../interfaces/gov/ERC721/IERC721Expert.sol";
 
 contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgradeable {
+    uint256 internal constant MAX_TAG_LENGTH = 3;
+
     uint256 private _maxIssued;
 
     mapping(address => uint256) private _attachments;
+    mapping(uint256 => string[]) private _tags;
 
     function __ERC721Expert_init(
         string calldata name,
@@ -36,6 +39,7 @@ contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgr
 
         address _expert = ownerOf(tokenId);
 
+        setTags(tokenId, new string[](0));
         _burn(tokenId);
         delete _attachments[_expert];
     }
@@ -52,6 +56,29 @@ contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgr
         require(isExpert(expert), "ERC721Expert: User is not an expert");
 
         return _attachments[expert];
+    }
+
+    function getTags(uint256 tokenId) external view returns (string[] memory) {
+        return _tags[tokenId];
+    }
+
+    function setTags(uint256 tokenId, string[] memory tags) public onlyOwner {
+        require(_exists(tokenId), "ERC721Expert: Cannot set tags to non-existent badge");
+
+        uint256 tagsLength = tags.length;
+        uint256 currentTagsLength = _tags[tokenId].length;
+        require(tagsLength <= MAX_TAG_LENGTH, "ERC721Expert: Too much tags");
+
+        for (uint i = 0; i < tagsLength; i++) {
+            if (i >= currentTagsLength) {
+                _tags[tokenId].push(tags[i]);
+            } else {
+                _tags[tokenId][i] = tags[i];
+            }
+        }
+        for (uint i = tagsLength; i < currentTagsLength; i++) {
+            _tags[tokenId].pop();
+        }
     }
 
     function burnAuth(uint256 tokenId) external view override returns (BurnAuth) {
