@@ -512,6 +512,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
             ownedBalance = ERC721Upgradeable(nftAddress).balanceOf(voter);
             totalBalance += ownedBalance;
+        } else {
+            ownedBalance += _micropoolsInfo[voter].requestedNfts.length();
         }
     }
 
@@ -556,6 +558,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
                     nfts[currentLength++] = nftContract.tokenOfOwnerByIndex(voter, i);
                 }
             }
+        } else {
+            currentLength = nfts.insert(
+                currentLength,
+                _micropoolsInfo[voter].requestedNfts.values()
+            );
         }
     }
 
