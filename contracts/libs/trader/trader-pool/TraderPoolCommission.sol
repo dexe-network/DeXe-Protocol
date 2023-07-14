@@ -6,12 +6,12 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "../../interfaces/trader/ITraderPool.sol";
+import "../../../interfaces/trader/ITraderPool.sol";
 
-import "../../trader/TraderPool.sol";
+import "../../../trader/TraderPool.sol";
 
-import "../../libs/math/MathHelper.sol";
-import "../../libs/utils/TokenBalance.sol";
+import "../../../libs/math/MathHelper.sol";
+import "../../../libs/utils/TokenBalance.sol";
 
 library TraderPoolCommission {
     using MathHelper for uint256;

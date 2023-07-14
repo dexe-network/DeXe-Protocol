@@ -48,6 +48,14 @@ const ProposalType = {
   ChangeBalances: 4,
 };
 
+const ParticipationType = {
+  DAOVotes: "0",
+  Whitelist: "1",
+  BABT: "2",
+  TokenLock: "3",
+  NftLock: "4",
+};
+
 const DEFAULT_CORE_PROPERTIES = {
   traderParams: {
     maxPoolInvestors: 1000,
@@ -85,5 +93,6 @@ module.exports = {
   ProposalState,
   ProposalType,
   ValidatorsProposalState,
+  ParticipationType,
   DEFAULT_CORE_PROPERTIES,
 };

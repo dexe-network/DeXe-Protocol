@@ -6,14 +6,14 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
-import "../../interfaces/trader/ITraderPool.sol";
+import "../../../interfaces/trader/ITraderPool.sol";
 
-import "../../trader/TraderPool.sol";
+import "../../../trader/TraderPool.sol";
 
 import "./TraderPoolCommission.sol";
-import "../math/MathHelper.sol";
+import "../../math/MathHelper.sol";
 import "./TraderPoolPrice.sol";
-import "../utils/TokenBalance.sol";
+import "../../utils/TokenBalance.sol";
 
 library TraderPoolDivest {
     using SafeERC20 for IERC20;

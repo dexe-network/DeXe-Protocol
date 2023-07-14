@@ -4,12 +4,12 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "../../interfaces/trader/ITraderPool.sol";
-import "../../interfaces/core/IPriceFeed.sol";
+import "../../../interfaces/trader/ITraderPool.sol";
+import "../../../interfaces/core/IPriceFeed.sol";
 
-import "../../trader/TraderPool.sol";
+import "../../../trader/TraderPool.sol";
 
-import "../../libs/utils/TokenBalance.sol";
+import "../../../libs/utils/TokenBalance.sol";
 
 library TraderPoolPrice {
     using EnumerableSet for EnumerableSet.AddressSet;
