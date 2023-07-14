@@ -300,6 +300,7 @@ contract GovPool is
         micropool.stake(delegatee);
 
         _govUserKeeper.requestTokens.exec(delegatee, amount);
+        _govUserKeeper.requestNfts.exec(delegatee, nftIds);
 
         micropool.updateStakingCache(delegatee);
     }

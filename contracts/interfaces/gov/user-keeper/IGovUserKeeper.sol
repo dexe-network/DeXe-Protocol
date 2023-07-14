@@ -79,6 +79,8 @@ interface IGovUserKeeper {
         uint256[] delegatedNfts;
         uint256 nftPower;
         uint256[] perNftPower;
+        uint256 requestedTokens;
+        uint256[] requestedNfts;
     }
 
     /// @notice The function for depositing tokens

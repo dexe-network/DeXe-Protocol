@@ -149,7 +149,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             amount <=
                 delegatorInfo.delegatedTokens[delegatee] -
                     delegatorInfo.requestedTokens[delegatee],
-            "Not enough"
+            "GovUK: overrequest"
         );
 
         micropoolInfo.requestedTokens += amount;
@@ -390,14 +390,15 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256[] calldata nftIds
     ) external override onlyOwner {
         BalanceInfo storage balanceInfo = _getBalanceInfoStorage(voter, isMicropool);
+        UserInfo storage userInfo = _usersInfo[voter];
 
         for (uint256 i; i < nftIds.length; i++) {
-            bool userContains = balanceInfo.nftBalance.contains(nftIds[i]);
+            bool userContains = balanceInfo.nftBalance.contains(nftIds[i]) &&
+                (!isMicropool || !_micropoolsInfo[voter].requestedNfts.contains(nftIds[i]));
+
             bool delegatedContains;
 
             if (!userContains && !isMicropool && useDelegated) {
-                UserInfo storage userInfo = _usersInfo[voter];
-
                 uint256 delegateeLength = userInfo.delegatees.length();
 
                 for (uint256 j; j < delegateeLength; j++) {
@@ -408,7 +409,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
                 }
             }
 
-            require(userContains || delegatedContains, "GovUK: NFT is not owned");
+            require(userContains || delegatedContains, "GovUK: NFT is not owned or requested");
 
             _nftLockedNums[nftIds[i]]++;
         }
@@ -558,11 +559,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
                     nfts[currentLength++] = nftContract.tokenOfOwnerByIndex(voter, i);
                 }
             }
-        } else {
-            currentLength = nfts.insert(
-                currentLength,
-                _micropoolsInfo[voter].requestedNfts.values()
-            );
         }
     }
 
@@ -722,10 +718,16 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             .values()
             .nftVotingPower(false);
 
+        (uint256 requestedNftsPower, ) = delegatorInfo
+            .requestedNfts[delegatee]
+            .values()
+            .nftVotingPower(false);
+
         return
-            delegatorInfo.delegatedTokens[delegatee] +
+            delegatorInfo.delegatedTokens[delegatee] -
+            delegatorInfo.requestedTokens[delegatee] +
             delegatedNftsPower -
-            delegatorInfo.requestedTokens[delegatee];
+            requestedNftsPower;
     }
 
     function _setERC20Address(address _tokenAddress) internal {

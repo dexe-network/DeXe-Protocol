@@ -489,6 +489,22 @@ describe("GovPool", () => {
       });
     });
 
+    describe("request(),", () => {
+      it("should deposit tokens", async () => {
+        await govPool.deposit(OWNER, wei("100"), [1, 2, 3]);
+
+        await govPool.delegate(OWNER, wei("100"), [1, 2, 3]);
+
+        await govPool.request(OWNER, wei("50"), [1, 2]);
+
+        assert.equal((await userKeeper.tokenBalance(OWNER, true, false)).totalBalance.toFixed(), wei("100"));
+        assert.equal((await userKeeper.tokenBalance(OWNER, true, false)).ownedBalance.toFixed(), wei("50"));
+
+        assert.equal((await userKeeper.nftBalance(OWNER, true, false)).totalBalance.toFixed(), "3");
+        assert.equal((await userKeeper.nftBalance(OWNER, true, false)).ownedBalance.toFixed(), "2");
+      });
+    });
+
     describe("unlockInProposals(), unlock()", () => {
       let startTime;
 
@@ -3089,6 +3105,160 @@ describe("GovPool", () => {
         });
       });
 
+      describe("request()", () => {
+        it("should block tokens for future usage", async () => {
+          await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
+
+          await govPool.delegate(micropool, wei("1000"), [], { from: delegator1 });
+          await govPool.delegate(micropool, wei("1000"), [], { from: delegator2 });
+          await govPool.delegate(micropool, wei("500"), [], { from: delegator3 });
+
+          await govPool.request(micropool, wei("500"), [], { from: delegator1 });
+
+          await truffleAssert.reverts(
+            govPool.voteDelegated(1, wei("2001"), [], true, { from: micropool }),
+            "Gov: wrong vote amount"
+          );
+
+          assert.ok(await govPool.voteDelegated(1, wei("2000"), [], true, { from: micropool }));
+        });
+
+        it("should block nfts for future usage", async () => {
+          await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
+
+          await govPool.delegate(micropool, "0", [10, 11, 12, 13], { from: delegator1 });
+          await govPool.delegate(micropool, "0", [20, 21, 22, 23], { from: delegator2 });
+          await govPool.delegate(micropool, "0", [30, 31], { from: delegator3 });
+
+          await govPool.request(micropool, "0", [10, 11, 12, 13], { from: delegator1 });
+
+          await truffleAssert.reverts(
+            govPool.voteDelegated(1, "0", [10, 20], true, { from: micropool }),
+            "GovUK: NFT is not owned or requested"
+          );
+
+          assert.ok(await govPool.voteDelegated(1, "0", [20, 21, 22, 23, 30, 31], true, { from: micropool }));
+        });
+
+        it("should not give rewards for blocked tokens", async () => {
+          await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
+
+          await govPool.delegate(micropool, wei("100000000000000000000"), [], { from: delegator1 });
+          await govPool.delegate(micropool, wei("100000000000000000000"), [], { from: delegator2 });
+
+          await govPool.voteDelegated(1, wei("200000000000000000000"), [], true, { from: micropool });
+
+          await govPool.request(micropool, wei("100000000000000000000"), [], { from: delegator1 });
+
+          await setTime((await getCurrentBlockTime()) + 10000);
+
+          await govPool.moveProposalToValidators(1);
+
+          await validators.vote(1, wei("100"), false, true);
+          await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
+
+          await govPool.execute(1);
+          await govPool.claimRewards([1], { from: micropool });
+
+          await govPool.undelegate(micropool, wei("100000000000000000000"), [], { from: delegator1 });
+          await govPool.undelegate(micropool, wei("100000000000000000000"), [], { from: delegator2 });
+
+          const balance1 = await rewardToken.balanceOf(delegator1);
+          const balance2 = await rewardToken.balanceOf(delegator2);
+
+          assertNoZerosBalanceDistribution([balance1, balance2], [32, 32]);
+          // TODO: rewrite this test
+        });
+
+        // TODO: add the same test for nfts
+
+        it("should not undelegate requested but unavailable tokens", async () => {
+          await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
+
+          await govPool.delegate(micropool, wei("1000"), [], { from: delegator1 });
+          await govPool.delegate(micropool, wei("1000"), [], { from: delegator2 });
+          await govPool.delegate(micropool, wei("500"), [], { from: delegator3 });
+
+          await govPool.voteDelegated(1, wei("2500"), [], true, { from: micropool });
+
+          await govPool.request(micropool, wei("500"), [], { from: delegator1 });
+
+          await truffleAssert.reverts(
+            govPool.undelegate(micropool, wei("1"), [], { from: delegator1 }),
+            "GovUK: amount exceeds delegation"
+          );
+        });
+
+        it("should not undelegate requested but unavailable nfts", async () => {
+          await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
+
+          await govPool.delegate(micropool, "0", [10, 11, 12, 13], { from: delegator1 });
+          await govPool.delegate(micropool, "0", [20, 21, 22, 23], { from: delegator2 });
+          await govPool.delegate(micropool, "0", [30, 31], { from: delegator3 });
+
+          await govPool.voteDelegated(1, "0", [10, 11, 12, 13, 20, 21, 22, 23, 30, 31], true, { from: micropool });
+
+          await govPool.request(micropool, "0", [10, 11, 12, 13], { from: delegator1 });
+
+          await truffleAssert.reverts(
+            govPool.undelegate(micropool, "0", [10, 11, 12, 13], { from: delegator1 }),
+            "GovUK: NFT is not owned or locked"
+          );
+        });
+
+        it("should revert if requested amount is greater than the delegated", async () => {
+          await govPool.delegate(micropool, wei("1000"), [], { from: delegator1 });
+          await govPool.delegate(micropool, wei("1000"), [], { from: delegator2 });
+          await govPool.delegate(micropool, wei("500"), [], { from: delegator3 });
+
+          await truffleAssert.reverts(
+            govPool.request(micropool, wei("1001"), [], { from: delegator1 }),
+            "GovUK: overrequest"
+          );
+
+          await truffleAssert.reverts(
+            govPool.request(micropool, wei("501"), [], { from: delegator3 }),
+            "GovUK: overrequest"
+          );
+
+          await govPool.request(micropool, wei("1000"), [], { from: delegator1 });
+
+          await truffleAssert.reverts(
+            govPool.request(micropool, wei("1"), [], { from: delegator1 }),
+            "GovUK: overrequest"
+          );
+        });
+
+        it("should not revert if requested nftIds have already be requested", async () => {
+          await govPool.delegate(micropool, "0", [10, 11, 12, 13], { from: delegator1 });
+
+          await truffleAssert.reverts(
+            govPool.request(micropool, "0", [10, 11, 12, 13, 20, 21, 22, 23], { from: delegator1 }),
+            "GovUK: NFT is not owned"
+          );
+
+          assert.ok(await govPool.request(micropool, "0", [10], { from: delegator1 }));
+
+          assert.ok(await govPool.request(micropool, "0", [10, 11, 12, 13], { from: delegator1 }));
+        });
+
+        it("should revert if delegatee is zero", async () => {
+          await truffleAssert.reverts(
+            govPool.request(ZERO_ADDR, wei("100000000000000000000"), [], { from: delegator1 }),
+            "GovUK: overrequest"
+          );
+
+          await truffleAssert.reverts(
+            govPool.request(ZERO_ADDR, "0", [10, 11, 12, 13], { from: delegator1 }),
+            "GovUK: NFT is not owned"
+          );
+        });
+
+        it("should revert if amount and nftIds length are zero", async () => {
+          await truffleAssert.reverts(govPool.request(micropool, 0, [], { from: delegator1 }), "Gov: empty request");
+        });
+      });
+
       describe("getDelegatorStakingRewards()", () => {
         const userStakeRewardsViewToObject = (rewards) => {
           return {
@@ -3426,6 +3596,10 @@ describe("GovPool", () => {
 
       it("undelegate()", async () => {
         await truffleAssert.reverts(govPool.undelegate(OWNER, wei("500"), []), REVERT_STRING);
+      });
+
+      it("request()", async () => {
+        await truffleAssert.reverts(govPool.request(OWNER, wei("500"), []), REVERT_STRING);
       });
 
       it("unlock()", async () => {

@@ -132,7 +132,10 @@ library GovUserKeeperView {
                 delegation.delegatedNfts,
                 true
             );
+            delegation.requestedTokens = userInfo.requestedTokens[delegatee];
+            delegation.requestedNfts = userInfo.requestedNfts[delegatee].values();
 
+            // TODO: should we remove requested power?
             power += delegation.delegatedTokens + delegation.nftPower;
         }
     }
