@@ -422,6 +422,11 @@ const getBytesCreateTiersTSP = (tiers) => {
               type: "uint64",
             },
             {
+              internalType: "uint64",
+              name: "claimLockDuration",
+              type: "uint64",
+            },
+            {
               internalType: "address",
               name: "saleTokenAddress",
               type: "address",
@@ -473,9 +478,26 @@ const getBytesCreateTiersTSP = (tiers) => {
               name: "vestingSettings",
               type: "tuple",
             },
+            {
+              components: [
+                {
+                  internalType: "enum ITokenSaleProposal.ParticipationType",
+                  name: "participationType",
+                  type: "uint8",
+                },
+                {
+                  internalType: "bytes",
+                  name: "data",
+                  type: "bytes",
+                },
+              ],
+              internalType: "struct ITokenSaleProposal.ParticipationDetails",
+              name: "participationDetails",
+              type: "tuple",
+            },
           ],
-          internalType: "struct ITokenSaleProposal.TierView[]",
-          name: "tiers",
+          internalType: "struct ITokenSaleProposal.TierInitParams[]",
+          name: "tierInitParams",
           type: "tuple[]",
         },
       ],
@@ -559,6 +581,78 @@ const getBytesRecoverTSP = (tierIds) => {
       type: "function",
     },
     [tierIds]
+  );
+};
+
+const getBytesBuyTSP = (tierId, tokenToBuyWith, amount) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "uint256",
+          name: "tierId",
+          type: "uint256",
+        },
+        {
+          internalType: "address",
+          name: "tokenToBuyWith",
+          type: "address",
+        },
+        {
+          internalType: "uint256",
+          name: "amount",
+          type: "uint256",
+        },
+      ],
+      name: "buy",
+      outputs: [],
+      stateMutability: "payable",
+      type: "function",
+    },
+    [tierId, tokenToBuyWith, amount]
+  );
+};
+
+const getBytesLockParticipationTokensTSP = (tierId) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "uint256",
+          name: "tierId",
+          type: "uint256",
+        },
+      ],
+      name: "lockParticipationTokens",
+      outputs: [],
+      stateMutability: "payable",
+      type: "function",
+    },
+    [tierId]
+  );
+};
+
+const getBytesLockParticipationNftTSP = (tierId, tokenId) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "uint256",
+          name: "tierId",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256",
+          name: "tokenId",
+          type: "uint256",
+        },
+      ],
+      name: "lockParticipationNft",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [tierId, tokenId]
   );
 };
 
@@ -782,6 +876,9 @@ module.exports = {
   getBytesAddToWhitelistTSP,
   getBytesOffTiersTSP,
   getBytesRecoverTSP,
+  getBytesBuyTSP,
+  getBytesLockParticipationTokensTSP,
+  getBytesLockParticipationNftTSP,
   getBytesChangeVerifier,
   getBytesChangeBABTRestriction,
   getBytesGovExecute,

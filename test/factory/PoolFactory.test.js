@@ -3,7 +3,7 @@ const { toBN, accounts, wei } = require("../../scripts/utils/utils");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
-const { ComissionPeriods, DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
+const { ComissionPeriods, DEFAULT_CORE_PROPERTIES, ParticipationType } = require("../utils/constants");
 const { toPercent } = require("../utils/utils");
 const { getCurrentBlockTime } = require("../helpers/block-helper");
 
@@ -11,6 +11,7 @@ const ContractsRegistry = artifacts.require("ContractsRegistry");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC721Mock = artifacts.require("ERC721Mock");
 const BABTMock = artifacts.require("BABTMock");
+const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
@@ -38,7 +39,7 @@ const TokenSaleProposal = artifacts.require("TokenSaleProposal");
 const UniswapV2PathFinderLib = artifacts.require("UniswapV2PathFinder");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const PoolFactory = artifacts.require("PoolFactory");
-const GovTokenSaleDeployerLib = artifacts.require("GovTokenSaleDeployer");
+const GovTokenDeployerLib = artifacts.require("GovTokenDeployer");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
@@ -48,6 +49,12 @@ const GovPoolVoteLib = artifacts.require("GovPoolVote");
 const GovPoolViewLib = artifacts.require("GovPoolView");
 const GovPoolStakingLib = artifacts.require("GovPoolStaking");
 const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
+const TokenSaleProposalCreateLib = artifacts.require("TokenSaleProposalCreate");
+const TokenSaleProposalBuyLib = artifacts.require("TokenSaleProposalBuy");
+const TokenSaleProposalVestingLib = artifacts.require("TokenSaleProposalVesting");
+const TokenSaleProposalWhitelistLib = artifacts.require("TokenSaleProposalWhitelist");
+const TokenSaleProposalClaimLib = artifacts.require("TokenSaleProposalClaim");
+const TokenSaleProposalRecoverLib = artifacts.require("TokenSaleProposalRecover");
 
 ContractsRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
@@ -90,9 +97,9 @@ describe("PoolFactory", () => {
     SECOND = await accounts(1);
     NOTHING = await accounts(3);
 
-    const govTokenSaleDeployerLib = await GovTokenSaleDeployerLib.new();
+    const govTokenDeployerLib = await GovTokenDeployerLib.new();
 
-    await PoolFactory.link(govTokenSaleDeployerLib);
+    await PoolFactory.link(govTokenDeployerLib);
 
     const govUserKeeperViewLib = await GovUserKeeperViewLib.new();
 
@@ -115,6 +122,20 @@ describe("PoolFactory", () => {
     await GovPool.link(govPoolViewLib);
     await GovPool.link(govPoolStakingLib);
     await GovPool.link(govPoolOffchainLib);
+
+    const tspCreateLib = await TokenSaleProposalCreateLib.new();
+    const tspBuyLib = await TokenSaleProposalBuyLib.new();
+    const tspVestingLib = await TokenSaleProposalVestingLib.new();
+    const tspWhitelistLib = await TokenSaleProposalWhitelistLib.new();
+    const tspClaimLib = await TokenSaleProposalClaimLib.new();
+    const tspRecoverLib = await TokenSaleProposalRecoverLib.new();
+
+    await TokenSaleProposal.link(tspCreateLib);
+    await TokenSaleProposal.link(tspBuyLib);
+    await TokenSaleProposal.link(tspVestingLib);
+    await TokenSaleProposal.link(tspWhitelistLib);
+    await TokenSaleProposal.link(tspClaimLib);
+    await TokenSaleProposal.link(tspRecoverLib);
 
     const traderPoolPriceLib = await TraderPoolPriceLib.new();
 
@@ -171,6 +192,7 @@ describe("PoolFactory", () => {
     const DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     const USD = await ERC20Mock.new("USD", "USD", 6);
     babt = await BABTMock.new();
+    const _dexeExpertNft = await ERC721Expert.new();
     const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeed.new();
     const _poolRegistry = await PoolRegistry.new();
@@ -187,6 +209,7 @@ describe("PoolFactory", () => {
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
+    await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), _dexeExpertNft.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), uniswapV2Router.address);
 
@@ -597,6 +620,7 @@ describe("PoolFactory", () => {
             totalTokenProvided: wei("100"),
             saleStartTime: 0,
             saleEndTime: 1000000,
+            claimLockDuration: 0,
             saleTokenAddress: ZERO_ADDR,
             purchaseTokenAddresses: [testERC20.address],
             exchangeRates: [PRECISION.toFixed()],
@@ -607,6 +631,10 @@ describe("PoolFactory", () => {
               vestingDuration: 86400,
               cliffPeriod: 0,
               unlockStep: 1,
+            },
+            participationDetails: {
+              participationType: ParticipationType.Whitelist,
+              data: "0x",
             },
           },
         ],
@@ -683,6 +711,27 @@ describe("PoolFactory", () => {
         assert.equal(await govPool.nftMultiplier(), testERC721Multiplier.address);
       });
 
+      it("should deploy pool with Expert Nft", async () => {
+        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
+        const predictedGovAddress = (await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name))[0];
+
+        await poolFactory.deployGovPool(POOL_PARAMETERS);
+
+        let govPool = await GovPool.at(predictedGovAddress);
+
+        let dexeNftAddress = await govPool.dexeExpertNft();
+        let nftAddress = await govPool.expertNft();
+
+        assert.isTrue(nftAddress != ZERO_ADDR);
+        assert.isTrue(dexeNftAddress != ZERO_ADDR);
+
+        let expertNft = await ERC721Expert.at(nftAddress);
+
+        assert.equal(await expertNft.owner(), predictedGovAddress);
+        assert.equal(await expertNft.name(), POOL_PARAMETERS.name + " Expert Nft");
+        assert.equal(await expertNft.symbol(), POOL_PARAMETERS.name + " EXPNFT");
+      });
+
       it("should deploy pool from address with BABT", async () => {
         await babt.attest(OWNER);
 
@@ -709,6 +758,7 @@ describe("PoolFactory", () => {
           totalTokenProvided: wei("100"),
           saleStartTime: await getCurrentBlockTime(),
           saleEndTime: (await getCurrentBlockTime()) + 10000,
+          claimLockDuration: 0,
           saleTokenAddress: testERC20.address,
           purchaseTokenAddresses: [testERC20.address],
           exchangeRates: [PRECISION.toFixed()],
@@ -719,6 +769,10 @@ describe("PoolFactory", () => {
             vestingDuration: 86400,
             cliffPeriod: 0,
             unlockStep: 1,
+          },
+          participationDetails: {
+            participationType: ParticipationType.BABT,
+            data: "0x",
           },
         });
 

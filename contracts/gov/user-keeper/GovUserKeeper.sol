@@ -18,7 +18,7 @@ import "../../interfaces/gov/IGovPool.sol";
 
 import "../../libs/math/MathHelper.sol";
 import "../../libs/utils/ArrayCropper.sol";
-import "../../libs/gov-user-keeper/GovUserKeeperView.sol";
+import "../../libs/gov/gov-user-keeper/GovUserKeeperView.sol";
 
 import "../ERC721/ERC721Power.sol";
 

@@ -3,11 +3,11 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-import "../../interfaces/gov/IGovPool.sol";
+import "../../../interfaces/gov/IGovPool.sol";
 
 import "./GovPoolCommission.sol";
 
-import "../../gov/GovPool.sol";
+import "../../../gov/GovPool.sol";
 
 library GovPoolOffchain {
     using ECDSA for bytes32;

@@ -34,6 +34,15 @@ interface IGovPool {
         SaveOffchainResults
     }
 
+    // TODO: ADD DOCS
+    struct Dependencies {
+        address settingsAddress;
+        address userKeeperAddress;
+        address distributionAddress;
+        address validatorsAddress;
+        address expertNftAddress;
+    }
+
     /// @notice The struct holds core properties of proposal
     /// @param settings the struct that holds information about settings of the proposal
     /// @param executed the boolean flag that sets to true when the proposal gets executed

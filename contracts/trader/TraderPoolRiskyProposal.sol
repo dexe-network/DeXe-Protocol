@@ -8,7 +8,7 @@ import "../interfaces/trader/ITraderPoolRiskyProposal.sol";
 import "../interfaces/trader/IBasicTraderPool.sol";
 
 import "../libs/price-feed/PriceFeedLocal.sol";
-import "../libs/trader-pool-proposal/TraderPoolRiskyProposalView.sol";
+import "../libs/trader/trader-pool-proposal/TraderPoolRiskyProposalView.sol";
 
 import "../core/Globals.sol";
 import "./TraderPoolProposal.sol";

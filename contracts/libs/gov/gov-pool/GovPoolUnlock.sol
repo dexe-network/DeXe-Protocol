@@ -4,8 +4,8 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "../../interfaces/gov/IGovPool.sol";
-import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
+import "../../../interfaces/gov/IGovPool.sol";
+import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
 library GovPoolUnlock {
     using Math for uint256;

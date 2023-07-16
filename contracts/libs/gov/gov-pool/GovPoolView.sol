@@ -6,15 +6,15 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@dlsl/dev-modules/libs/arrays/ArrayHelper.sol";
 
-import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
-import "../../interfaces/gov/IGovPool.sol";
-import "../../interfaces/gov/validators/IGovValidators.sol";
+import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
+import "../../../interfaces/gov/IGovPool.sol";
+import "../../../interfaces/gov/validators/IGovValidators.sol";
 
-import "../utils/ArrayCropper.sol";
+import "../../utils/ArrayCropper.sol";
 
-import "../../gov/GovPool.sol";
+import "../../../gov/GovPool.sol";
 
-import "../../core/Globals.sol";
+import "../../../core/Globals.sol";
 
 library GovPoolView {
     using EnumerableSet for EnumerableSet.UintSet;

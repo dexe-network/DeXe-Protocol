@@ -8,6 +8,8 @@ const UserRegistry = artifacts.require("UserRegistry");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
 
+const DexeExpertNft = artifacts.require("ERC721Expert");
+
 const Insurance = artifacts.require("Insurance");
 
 const PoolFactory = artifacts.require("PoolFactory");
@@ -51,6 +53,8 @@ module.exports = async (deployer, logger) => {
   const coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
   const priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
 
+  const expertNft = await DexeExpertNft.at(await contractsRegistry.getDexeExpertNftContract());
+
   const insurance = await Insurance.at(await contractsRegistry.getInsuranceContract());
 
   const poolFactory = await PoolFactory.at(await contractsRegistry.getPoolFactoryContract());
@@ -67,6 +71,8 @@ module.exports = async (deployer, logger) => {
 
   logger.logTransaction(await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES), "Init CoreProperties");
   logger.logTransaction(await priceFeed.__PriceFeed_init(), "Init PriceFeed");
+
+  logger.logTransaction(await expertNft.__ERC721Expert_init("Dexe Expert Nft", "DEXEXPNFT"), "Init ERC721Expert");
 
   logger.logTransaction(await insurance.__Insurance_init(), "Init Insurance");
 
@@ -103,6 +109,7 @@ module.exports = async (deployer, logger) => {
     ["UserRegistry", userRegistry.address],
     ["CoreProperties", coreProperties.address],
     ["PriceFeed", priceFeed.address],
+    ["ERC721Expert", expertNft.address],
     ["Insurance", insurance.address],
     ["PoolFactory", poolFactory.address],
     ["PoolRegistry", poolRegistry.address]

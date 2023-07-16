@@ -12,6 +12,12 @@ const GovPoolVoteLib = artifacts.require("GovPoolVote");
 const GovPoolViewLib = artifacts.require("GovPoolView");
 const GovPoolStakingLib = artifacts.require("GovPoolStaking");
 const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
+const TokenSaleProposalCreateLib = artifacts.require("TokenSaleProposalCreate");
+const TokenSaleProposalBuyLib = artifacts.require("TokenSaleProposalBuy");
+const TokenSaleProposalVestingLib = artifacts.require("TokenSaleProposalVesting");
+const TokenSaleProposalWhitelistLib = artifacts.require("TokenSaleProposalWhitelist");
+const TokenSaleProposalClaimLib = artifacts.require("TokenSaleProposalClaim");
+const TokenSaleProposalRecoverLib = artifacts.require("TokenSaleProposalRecover");
 
 const GovPool = artifacts.require("GovPool");
 const GovSettings = artifacts.require("GovSettings");
@@ -46,9 +52,26 @@ async function linkGovUserKeeper(deployer) {
   await deployer.link(GovUserKeeperViewLib, GovUserKeeper);
 }
 
+async function linkTokenSaleProposal(deployer) {
+  await deployer.deploy(TokenSaleProposalCreateLib);
+  await deployer.deploy(TokenSaleProposalBuyLib);
+  await deployer.deploy(TokenSaleProposalVestingLib);
+  await deployer.deploy(TokenSaleProposalWhitelistLib);
+  await deployer.deploy(TokenSaleProposalClaimLib);
+  await deployer.deploy(TokenSaleProposalRecoverLib);
+
+  await deployer.link(TokenSaleProposalCreateLib, TokenSaleProposal);
+  await deployer.link(TokenSaleProposalBuyLib, TokenSaleProposal);
+  await deployer.link(TokenSaleProposalVestingLib, TokenSaleProposal);
+  await deployer.link(TokenSaleProposalWhitelistLib, TokenSaleProposal);
+  await deployer.link(TokenSaleProposalClaimLib, TokenSaleProposal);
+  await deployer.link(TokenSaleProposalRecoverLib, TokenSaleProposal);
+}
+
 async function link(deployer) {
   await linkGovUserKeeper(deployer);
   await linkGovPool(deployer);
+  await linkTokenSaleProposal(deployer);
 }
 
 module.exports = async (deployer, logger) => {

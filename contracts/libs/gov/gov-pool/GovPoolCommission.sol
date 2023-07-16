@@ -3,10 +3,10 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "../utils/TokenBalance.sol";
-import "../math/MathHelper.sol";
+import "../../utils/TokenBalance.sol";
+import "../../math/MathHelper.sol";
 
-import "../../gov/GovPool.sol";
+import "../../../gov/GovPool.sol";
 
 library GovPoolCommission {
     using MathHelper for uint256;

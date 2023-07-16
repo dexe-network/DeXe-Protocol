@@ -7,23 +7,25 @@
 Function ***`createTiers()`*** is used for tiers creation.
 
 ```solidity
-function createTiers(TierView[] calldata tiers) external onlyGov;
+function createTiers(TierInitParams[] calldata tiers) external onlyGov;
 ```
 
-- ***tiers*** - parameters of tiers
+- ***tiers*** - initial tier parameters
 
 ```solidity
-struct TierView {
+struct TierInitParams {
     TierMetadata metadata;
     uint256 totalTokenProvided;
     uint64 saleStartTime;
     uint64 saleEndTime;
+    uint64 claimLockDuration;
     address saleTokenAddress;
     address[] purchaseTokenAddresses;
     uint256[] exchangeRates;
     uint256 minAllocationPerUser;
     uint256 maxAllocationPerUser;
     VestingSettings vestingSettings;
+    ParticipationDetails participationDetails;
 }
 ```
 
@@ -31,12 +33,14 @@ struct TierView {
 - ***totalTokenProvided*** - total supply of tokens provided for the tier
 - ***saleStartTime*** - start time of token sales
 - ***saleEndTime*** - end time of token sales
+- ***claimLockDuration*** - the period of time between the end of the token sale and the non-vesting tokens claiming
 - ***saleTokenAddress*** - address of the token being sold
 - ***purchaseTokenAddresses*** - tokens, that can be used for purchasing token of the proposal
 - ***exchangeRates*** - exchange rates of other tokens to the token of `TokenSaleProposal`
 - ***minAllocationPerUser*** - minimal allocation of tokens per one user
 - ***maxAllocationPerUser*** - maximal allocation of tokens per one user
 - ***vestingSettings*** - settings for managing tokens vesting (unlocking). While tokens are locked investors won`t be able to withdraw them.
+- ***participationDetails*** - participation requirement parameters
 
 ```solidity
 struct TierMetadata {
@@ -62,9 +66,35 @@ struct VestingSettings {
 - ***cliffPeriod*** - how long the user cannot make a vesting withdrawal from the time of the token purchase
 - ***unlockStep*** - the tick step with which funds from the vesting are given to the buyer
 
+```solidity
+struct ParticipationDetails {
+    ParticipationType participationType;
+    bytes data;
+}
+```
+
+- ***participationType*** - the type of requirements to participate in the tier
+- ***data*** - the additional data associated with the participation requirements
+
+```solidity
+enum ParticipationType {
+    DAOVotes,
+    Whitelist,
+    BABT,
+    TokenLock,
+    NftLock
+}
+```
+
+- ***DAOVotes*** - indicates that the user must have the required voting power
+- ***Whitelist*** - indicates that the user must be included in the whitelist of the tier
+- ***BABT*** - indicates that the user must own the BABT token
+- ***TokenLock*** - indicates that the user must lock a specific amount of tokens in the tier
+- ***NftLock*** - indicates that the user must lock an nft in the tier
+
 #
 
-Function ***buy()*** is used to purchase tokens in the given tier.
+Function ***`buy()`*** is used to purchase tokens in the given tier.
 
 ```solidity
 function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable;
@@ -78,7 +108,7 @@ function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external pa
 
 Function ***`addToWhitelist()`*** is used to add users to the whitelist of tier.
 
-❗ If no user added to whitelist, anyone can buy tokens. Otherwise, only users from whitelist can buy tokens.
+❗ The following function is used only for tiers with the `Whitelist` participation requirement type.
 
 ```solidity
 function addToWhitelist(WhitelistingRequest[] calldata requests) external onlyGov;
@@ -100,6 +130,65 @@ struct WhitelistingRequest {
 
 #
 
+Function ***`lockParticipationTokens()`*** is used to lock the specified amount of tokens to participate in the given tier.
+
+❗ The following function is used only for tiers with the `TokenLock` participation requirement type.
+
+```solidity
+function lockParticipationTokens(uint256 tierId) external payable;
+```
+
+- ***tierId*** - the id of the tier to lock the tokens for
+
+#
+
+Function ***`lockParticipationNft()`*** is used to lock the specified nft to participate in the given tier.
+
+❗ The following function is used only for tiers with the `NftLock` participation requirement type.
+
+```solidity
+function lockParticipationNft(uint256 tierId, uint256 tokenId) external;
+```
+
+- ***tierId*** - the id of the tier to lock the nft for
+- ***tokenId*** - the id of the nft to lock
+
+#
+
+Function ***`unlockParticipationTokens()`*** is used to unlock participation tokens.
+
+❗ The following function is used only for tiers with the `TokenLock` participation requirement type.
+
+```solidity
+function unlockParticipationTokens(uint256 tierId) external;
+```
+
+- ***tierId*** - the id of the tier to unlock the tokens for
+
+#
+
+Function ***`unlockParticipationNft()`*** is used to unlock the participation nft.
+
+❗ The following function is used only for tiers with the `TokenLock` participation requirement type.
+
+```solidity
+function unlockParticipationNft(uint256 tierId) external;
+```
+
+- ***tierId*** - the id of the tier to unlock the nft for
+
+#
+
+Function ***`claim()`*** is used to withdraw non-vesting tokens from given tiers.
+
+```solidity
+function claim(uint256[] calldata tierIds) external;
+```
+
+- ***tierIds*** - tier ids to make withdrawals from
+
+#
+
 Function ***`latestTierId()`*** is used to get id (index) of the latest tier of the token sale.
 
 ```solidity
@@ -117,6 +206,16 @@ function offTiers(uint256[] calldata tierIds) external onlyGov;
 ```
 
 - ***tierIds*** - tier ids to set inactive
+
+#
+
+Function ***`claim()`*** is used to withdraw non-vesting tokens from given tiers.
+
+```solidity
+function claim(uint256[] calldata tierIds) external;
+```
+
+- ***tierIds*** - tier ids to make withdrawals from
 
 #
 
@@ -148,7 +247,7 @@ function getSaleTokenAmount(
     uint256 tierId,
     address tokenToBuyWith,
     uint256 amount
-) public view ifTierExists(tierId) ifTierIsNotOff(tierId) returns (uint256);
+) public view returns (uint256);
 ```
 
 - ***user*** - address of the user that purchases tokens
@@ -190,13 +289,13 @@ function getRecoverAmounts(
 Function ***`getTiers()`*** is used to get a list of tiers.
 
 ```solidity
-function getTiers(
+function getTierViews(
     uint256 offset,
     uint256 limit
-) external view returns (TierView[] memory tierViews, TierInfoView[] memory tierInfoViews);
+) external view returns (TierView[] memory tierViews);
+
 ```
 
 - ***offset*** - offset of the list
 - ***limit*** - limit for amount of elements in the list
-- **returns** **->** list of initial tier parameters
-- **returns** **->** list of dynamic tier parameters
+- **returns** **->** list of tier parameters

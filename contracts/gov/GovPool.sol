@@ -13,19 +13,21 @@ import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
 import "../interfaces/gov/IGovPool.sol";
+import "../interfaces/gov/ERC721/IERC721Expert.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/ISBT721.sol";
+import "../interfaces/factory/IPoolFactory.sol";
 
-import "../libs/gov-user-keeper/GovUserKeeperLocal.sol";
-import "../libs/gov-pool/GovPoolView.sol";
-import "../libs/gov-pool/GovPoolCreate.sol";
-import "../libs/gov-pool/GovPoolRewards.sol";
-import "../libs/gov-pool/GovPoolVote.sol";
-import "../libs/gov-pool/GovPoolUnlock.sol";
-import "../libs/gov-pool/GovPoolExecute.sol";
-import "../libs/gov-pool/GovPoolStaking.sol";
-import "../libs/gov-pool/GovPoolOffchain.sol";
+import "../libs/gov/gov-user-keeper/GovUserKeeperLocal.sol";
+import "../libs/gov/gov-pool/GovPoolView.sol";
+import "../libs/gov/gov-pool/GovPoolCreate.sol";
+import "../libs/gov/gov-pool/GovPoolRewards.sol";
+import "../libs/gov/gov-pool/GovPoolVote.sol";
+import "../libs/gov/gov-pool/GovPoolUnlock.sol";
+import "../libs/gov/gov-pool/GovPoolExecute.sol";
+import "../libs/gov/gov-pool/GovPoolStaking.sol";
+import "../libs/gov/gov-pool/GovPoolOffchain.sol";
 import "../libs/math/MathHelper.sol";
 
 import "../core/Globals.sol";
@@ -61,6 +63,8 @@ contract GovPool is
     ICoreProperties public coreProperties;
 
     address public nftMultiplier;
+    address public expertNft;
+    IERC721Expert public dexeExpertNft;
     ISBT721 public babt;
 
     bool public onlyBABTHolders;
@@ -97,10 +101,7 @@ contract GovPool is
     }
 
     function __GovPool_init(
-        address govSettingAddress,
-        address govUserKeeperAddress,
-        address distributionProposalAddress,
-        address validatorsAddress,
+        Dependencies calldata govPoolDeps,
         address nftMultiplierAddress,
         address _verifier,
         bool _onlyBABTHolders,
@@ -108,10 +109,11 @@ contract GovPool is
         string calldata _descriptionURL,
         string calldata _name
     ) external initializer {
-        _govSettings = IGovSettings(govSettingAddress);
-        _govUserKeeper = IGovUserKeeper(govUserKeeperAddress);
-        _govValidators = IGovValidators(validatorsAddress);
-        _distributionProposal = distributionProposalAddress;
+        _govSettings = IGovSettings(govPoolDeps.settingsAddress);
+        _govUserKeeper = IGovUserKeeper(govPoolDeps.userKeeperAddress);
+        _govValidators = IGovValidators(govPoolDeps.validatorsAddress);
+        _distributionProposal = govPoolDeps.distributionAddress;
+        expertNft = govPoolDeps.expertNftAddress;
 
         if (nftMultiplierAddress != address(0)) {
             _setNftMultiplierAddress(nftMultiplierAddress);
@@ -166,6 +168,7 @@ contract GovPool is
 
         coreProperties = ICoreProperties(registry.getCorePropertiesContract());
         babt = ISBT721(registry.getBABTContract());
+        dexeExpertNft = IERC721Expert(registry.getDexeExpertNftContract());
     }
 
     function createProposal(
