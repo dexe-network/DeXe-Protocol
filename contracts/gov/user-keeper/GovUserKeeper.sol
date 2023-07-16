@@ -123,18 +123,26 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     ) external override onlyOwner withSupportedToken {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
 
-        uint256 balance = delegatorInfo.balanceInfo.tokenBalance;
+        uint256 requestedAmount = delegatorInfo.requestedTokens[delegatee];
+
+        uint256 balance = delegatorInfo.balanceInfo.tokenBalance + requestedAmount;
         uint256 availableBalance = balance.max(delegatorInfo.balanceInfo.maxTokensLocked) -
             delegatorInfo.balanceInfo.maxTokensLocked;
 
         require(amount <= availableBalance, "GovUK: overdelegation");
 
-        delegatorInfo.balanceInfo.tokenBalance = balance - amount;
+        uint256 amountToUnrequest = amount.min(requestedAmount);
+
+        uint256 availableAmount = amount - amountToUnrequest;
+
+        delegatorInfo.balanceInfo.tokenBalance -= availableAmount;
+        delegatorInfo.requestedTokens[delegatee] -= amountToUnrequest;
 
         delegatorInfo.delegatees.add(delegatee);
-        delegatorInfo.delegatedTokens[delegatee] += amount;
+        delegatorInfo.delegatedTokens[delegatee] += availableAmount;
 
-        _micropoolsInfo[delegatee].balanceInfo.tokenBalance += amount;
+        _micropoolsInfo[delegatee].balanceInfo.tokenBalance += availableAmount;
+        _micropoolsInfo[delegatee].requestedTokens -= amountToUnrequest;
     }
 
     function requestTokens(
@@ -249,12 +257,16 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         for (uint256 i; i < nftIds.length; i++) {
             uint256 nftId = nftIds[i];
 
-            require(
-                delegatorNftBalance.contains(nftId) && _nftLockedNums[nftId] == 0,
-                "GovUK: NFT is not owned or locked"
-            );
+            if (_micropoolsInfo[delegatee].requestedNfts.remove(nftId)) {
+                delegatorInfo.requestedNfts[delegatee].remove(nftId);
+            } else {
+                require(
+                    delegatorNftBalance.contains(nftId) && _nftLockedNums[nftId] == 0,
+                    "GovUK: NFT is not owned or locked"
+                );
 
-            delegatorNftBalance.remove(nftId);
+                delegatorNftBalance.remove(nftId);
+            }
 
             delegatorInfo.delegatees.add(delegatee);
             delegatorInfo.delegatedNfts[delegatee].add(nftId);
@@ -557,6 +569,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
                 for (uint256 i; i < ownedLength; i++) {
                     nfts[currentLength++] = nftContract.tokenOfOwnerByIndex(voter, i);
+                }
+            }
+        } else {
+            for (uint256 i; i < currentLength; i++) {
+                if (_micropoolsInfo[voter].requestedNfts.contains(nfts[i])) {
+                    nfts[i] = 0;
                 }
             }
         }

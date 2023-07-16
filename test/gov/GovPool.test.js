@@ -1106,6 +1106,15 @@ describe("GovPool", () => {
               "Gov: low current vote power"
             );
           });
+
+          it("should revert if nft was requested", async () => {
+            await govPool.request(SECOND, 0, [1]);
+
+            await truffleAssert.reverts(
+              govPool.voteDelegated(1, 0, [1], true, { from: SECOND }),
+              "GovUK: NFT is not owned or requested"
+            );
+          });
         });
       });
 
@@ -3145,10 +3154,13 @@ describe("GovPool", () => {
 
           await govPool.delegate(micropool, wei("100000000000000000000"), [], { from: delegator1 });
           await govPool.delegate(micropool, wei("100000000000000000000"), [], { from: delegator2 });
+          await govPool.delegate(micropool, wei("50000000000000000000"), [], { from: delegator3 });
 
-          await govPool.voteDelegated(1, wei("200000000000000000000"), [], true, { from: micropool });
+          await govPool.voteDelegated(1, wei("100000000000000000000"), [], true, { from: micropool });
 
-          await govPool.request(micropool, wei("100000000000000000000"), [], { from: delegator1 });
+          await govPool.request(micropool, wei("10000000000000000000"), [], { from: delegator1 });
+
+          await govPool.voteDelegated(1, wei("140000000000000000000"), [], true, { from: micropool });
 
           await setTime((await getCurrentBlockTime()) + 10000);
 
@@ -3166,11 +3178,8 @@ describe("GovPool", () => {
           const balance1 = await rewardToken.balanceOf(delegator1);
           const balance2 = await rewardToken.balanceOf(delegator2);
 
-          assertNoZerosBalanceDistribution([balance1, balance2], [32, 32]);
-          // TODO: rewrite this test
+          assert.notEqual(balance1.toFixed(), balance2.toFixed());
         });
-
-        // TODO: add the same test for nfts
 
         it("should not undelegate requested but unavailable tokens", async () => {
           await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
