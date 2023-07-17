@@ -125,24 +125,27 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         uint256 requestedAmount = delegatorInfo.requestedTokens[delegatee];
 
-        uint256 balance = delegatorInfo.balanceInfo.tokenBalance + requestedAmount;
+        uint256 balance = delegatorInfo.balanceInfo.tokenBalance;
         uint256 availableBalance = balance.max(delegatorInfo.balanceInfo.maxTokensLocked) -
             delegatorInfo.balanceInfo.maxTokensLocked;
 
-        require(amount <= availableBalance, "GovUK: overdelegation");
+        require(amount <= availableBalance + requestedAmount, "GovUK: overdelegation");
 
         uint256 amountToUnrequest = amount.min(requestedAmount);
 
+        delegatorInfo.requestedTokens[delegatee] -= amountToUnrequest;
+        delegatorInfo.delegatees.add(delegatee);
+
+        _micropoolsInfo[delegatee].requestedTokens -= amountToUnrequest;
+
         uint256 availableAmount = amount - amountToUnrequest;
 
-        delegatorInfo.balanceInfo.tokenBalance -= availableAmount;
-        delegatorInfo.requestedTokens[delegatee] -= amountToUnrequest;
+        if (availableAmount != 0) {
+            delegatorInfo.balanceInfo.tokenBalance -= availableAmount;
+            delegatorInfo.delegatedTokens[delegatee] += availableAmount;
 
-        delegatorInfo.delegatees.add(delegatee);
-        delegatorInfo.delegatedTokens[delegatee] += availableAmount;
-
-        _micropoolsInfo[delegatee].balanceInfo.tokenBalance += availableAmount;
-        _micropoolsInfo[delegatee].requestedTokens -= amountToUnrequest;
+            _micropoolsInfo[delegatee].balanceInfo.tokenBalance += availableAmount;
+        }
     }
 
     function requestTokens(
@@ -563,9 +566,15 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
                 }
             }
         } else {
-            for (uint256 i; i < currentLength; i++) {
+            uint256 last = currentLength - 1;
+
+            for (uint256 i; i < last; ) {
                 if (_micropoolsInfo[voter].requestedNfts.contains(nfts[i])) {
-                    nfts[i] = 0;
+                    (nfts[i], nfts[last]) = (nfts[last], nfts[i]);
+
+                    last--;
+                } else {
+                    i++;
                 }
             }
         }
@@ -623,9 +632,14 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
 
         (uint256[] memory nftIds, uint256 owned) = nftExactBalance(voter, false, useDelegated);
-        (uint256[] memory nftIdsMicropool, ) = nftExactBalance(voter, true, false);
+        (uint256[] memory nftIdsMicropool, uint256 requested) = nftExactBalance(
+            voter,
+            true,
+            false
+        );
 
         nftIds.crop(nftIds.length - owned);
+        nftIdsMicropool.crop(nftIdsMicropool.length - requested);
 
         uint256 nftPower = getNftsPowerInTokensBySnapshot(nftIds, snapshotId) +
             getNftsPowerInTokensBySnapshot(nftIdsMicropool, snapshotId);
@@ -640,13 +654,21 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 requiredVotes,
         uint256 snapshotId
     ) external view override returns (bool) {
-        (uint256 tokens, ) = tokenBalance(voter, isMicropool, useDelegated);
+        (uint256 tokens, uint256 extra) = tokenBalance(voter, isMicropool, useDelegated);
 
-        if (tokens >= requiredVotes) {
+        if (tokens - (isMicropool ? extra : 0) >= requiredVotes) {
             return true;
         }
 
-        (uint256[] memory nftIds, ) = nftExactBalance(voter, isMicropool, useDelegated);
+        (uint256[] memory nftIds, uint256 required) = nftExactBalance(
+            voter,
+            isMicropool,
+            useDelegated
+        );
+
+        if (isMicropool) {
+            nftIds.crop(nftIds.length - required);
+        }
 
         return tokens + getNftsPowerInTokensBySnapshot(nftIds, snapshotId) >= requiredVotes;
     }
@@ -733,9 +755,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             .nftVotingPower(false);
 
         return
-            delegatorInfo.delegatedTokens[delegatee] -
-            delegatorInfo.requestedTokens[delegatee] +
+            delegatorInfo.delegatedTokens[delegatee] +
             delegatedNftsPower -
+            delegatorInfo.requestedTokens[delegatee] -
             requestedNftsPower;
     }
 

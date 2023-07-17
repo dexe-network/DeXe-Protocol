@@ -42,6 +42,7 @@ library GovUserKeeperView {
             }
 
             if (nftAddressExists) {
+                /// @dev FE should `crop` this array if it's micropool
                 (power.nftIds, power.ownedLength) = userKeeper.nftExactBalance(
                     users[i],
                     isMicropools[i],
