@@ -87,6 +87,7 @@ contract GovPool is
     mapping(address => MicropoolInfo) internal _micropoolInfos;
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
+    event Requested(address from, address to, uint256 amount, uint256[] nfts);
     event Deposited(uint256 amount, uint256[] nfts, address sender);
     event Withdrawn(uint256 amount, uint256[] nfts, address sender);
 
@@ -306,6 +307,8 @@ contract GovPool is
         _govUserKeeper.requestNfts.exec(delegatee, nftIds);
 
         micropool.updateStakingCache(delegatee);
+
+        emit Requested(msg.sender, delegatee, amount, nftIds);
     }
 
     function undelegate(

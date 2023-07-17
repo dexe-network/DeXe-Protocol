@@ -3183,7 +3183,7 @@ describe("GovPool", () => {
         });
 
         it("should not undelegate requested but unavailable tokens", async () => {
-          await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
+          await govPool.createProposal("examplenft.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
 
           await govPool.delegate(micropool, wei("1000"), [], { from: delegator1 });
           await govPool.delegate(micropool, wei("1000"), [], { from: delegator2 });
