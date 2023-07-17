@@ -42,6 +42,7 @@ library GovUserKeeperView {
             }
 
             if (nftAddressExists) {
+                /// @dev FE should `crop` this array if it's micropool
                 (power.nftIds, power.ownedLength) = userKeeper.nftExactBalance(
                     users[i],
                     isMicropools[i],
@@ -132,7 +133,10 @@ library GovUserKeeperView {
                 delegation.delegatedNfts,
                 true
             );
+            delegation.requestedTokens = userInfo.requestedTokens[delegatee];
+            delegation.requestedNfts = userInfo.requestedNfts[delegatee].values();
 
+            // TODO: should we remove requested power?
             power += delegation.delegatedTokens + delegation.nftPower;
         }
     }
