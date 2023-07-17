@@ -660,14 +660,14 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             return true;
         }
 
-        (uint256[] memory nftIds, uint256 required) = nftExactBalance(
+        (uint256[] memory nftIds, uint256 requested) = nftExactBalance(
             voter,
             isMicropool,
             useDelegated
         );
 
         if (isMicropool) {
-            nftIds.crop(nftIds.length - required);
+            nftIds.crop(nftIds.length - requested);
         }
 
         return tokens + getNftsPowerInTokensBySnapshot(nftIds, snapshotId) >= requiredVotes;
