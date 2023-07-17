@@ -194,15 +194,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         _cleanDelegatee(delegatorInfo, delegatee);
     }
 
-    function _cleanDelegatee(UserInfo storage delegatorInfo, address delegatee) internal {
-        if (
-            delegatorInfo.delegatedTokens[delegatee] == 0 &&
-            delegatorInfo.delegatedNfts[delegatee].length() == 0
-        ) {
-            delegatorInfo.delegatees.remove(delegatee);
-        }
-    }
-
     function depositNfts(
         address payer,
         address receiver,
@@ -746,6 +737,15 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             delegatorInfo.requestedTokens[delegatee] +
             delegatedNftsPower -
             requestedNftsPower;
+    }
+
+    function _cleanDelegatee(UserInfo storage delegatorInfo, address delegatee) internal {
+        if (
+            delegatorInfo.delegatedTokens[delegatee] == 0 &&
+            delegatorInfo.delegatedNfts[delegatee].length() == 0
+        ) {
+            delegatorInfo.delegatees.remove(delegatee);
+        }
     }
 
     function _setERC20Address(address _tokenAddress) internal {

@@ -20,6 +20,10 @@ interface IGovUserKeeper {
         EnumerableSet.UintSet nftBalance; // array of NFTs
     }
 
+    /// @notice The struct holds information about micropool
+    /// @param balanceInfo the BalanceInfo struct
+    /// @param requestedTokens the amount of requested tokens
+    /// @param requestedNfts the array of requested nfts
     struct Micropool {
         BalanceInfo balanceInfo;
         uint256 requestedTokens;
@@ -29,8 +33,9 @@ interface IGovUserKeeper {
     /// @notice The struct holds information about user balances
     /// @param balanceInfo the BalanceInfo struct
     /// @param delegatedTokens the mapping of delegated tokens (delegatee address => delegated amount)
+    /// @param requestedTokens the mapping of requested tokens (delegatee address => requested amount)
     /// @param delegatedNfts the mapping of delegated nfts (delegatee address => array of delegated nft ids)
-    /// @param delegatees the array of delegatees
+    /// @param requestedNfts the mapping of requested nfts (delegatee address => array of requested nft ids)
     /// @param delegatees the array of delegatees
     struct UserInfo {
         BalanceInfo balanceInfo;
@@ -73,6 +78,8 @@ interface IGovUserKeeper {
     /// @param delegatedNfts the array of delegated nfts, bounded by index with perNftPower
     /// @param nftPower the total power of delegated nfts
     /// @param perNftPower the array of nft power, bounded by index with delegatedNfts
+    /// @param requestedTokens the amount of requested tokens
+    /// @param requestedNfts the array of requested nfts
     struct DelegationInfoView {
         address delegatee;
         uint256 delegatedTokens;
