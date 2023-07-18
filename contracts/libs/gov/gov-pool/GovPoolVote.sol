@@ -9,10 +9,12 @@ import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../gov/GovPool.sol";
 
 import "../../math/MathHelper.sol";
+import "../../math/LogExpMath.sol";
 
 library GovPoolVote {
     using EnumerableSet for EnumerableSet.UintSet;
     using MathHelper for uint256;
+    using LogExpMath for uint256;
 
     event Voted(
         uint256 proposalId,
@@ -144,7 +146,20 @@ library GovPoolVote {
             "Gov: vote limit reached"
         );
 
-        _voteTokens(core, voteInfo, proposalId, voteAmount, isMicropool, useDelegated, isVoteFor);
+        uint256 rootPower = govPool.getExpertStatus(msg.sender)
+            ? 769230769000000000
+            : 769230769000000000;
+
+        _voteTokens(
+            core,
+            voteInfo,
+            proposalId,
+            voteAmount,
+            isMicropool,
+            useDelegated,
+            isVoteFor,
+            rootPower
+        );
         reward =
             _voteNfts(core, voteInfo, voteNftIds, isMicropool, useDelegated, isVoteFor) +
             voteAmount;
@@ -198,7 +213,8 @@ library GovPoolVote {
         uint256 amount,
         bool isMicropool,
         bool useDelegated,
-        bool isVoteFor
+        bool isVoteFor,
+        uint256 rootPower
     ) internal {
         (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
 
@@ -219,6 +235,8 @@ library GovPoolVote {
                     voteInfo.tokensVotedAgainst,
             "Gov: wrong vote amount"
         );
+
+        uint256 amountVotes = amount.pow(rootPower);
 
         if (isVoteFor) {
             core.votesFor += amount;

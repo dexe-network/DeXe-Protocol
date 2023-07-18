@@ -63,7 +63,7 @@ contract GovPool is
     ICoreProperties public coreProperties;
 
     address public nftMultiplier;
-    address public expertNft;
+    IERC721Expert public expertNft;
     IERC721Expert public dexeExpertNft;
     ISBT721 public babt;
 
@@ -114,7 +114,7 @@ contract GovPool is
         _govUserKeeper = IGovUserKeeper(govPoolDeps.userKeeperAddress);
         _govValidators = IGovValidators(govPoolDeps.validatorsAddress);
         _distributionProposal = govPoolDeps.distributionAddress;
-        expertNft = govPoolDeps.expertNftAddress;
+        expertNft = IERC721Expert(govPoolDeps.expertNftAddress);
 
         if (nftMultiplierAddress != address(0)) {
             _setNftMultiplierAddress(nftMultiplierAddress);
@@ -536,6 +536,10 @@ contract GovPool is
 
     function getVerifier() external view override returns (address) {
         return _offChain.verifier;
+    }
+
+    function getExpertStatus(address user) external view returns (bool) {
+        return expertNft.isExpert(user) || dexeExpertNft.isExpert(user);
     }
 
     function _setNftMultiplierAddress(address nftMultiplierAddress) internal {

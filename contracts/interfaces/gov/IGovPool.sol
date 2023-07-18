@@ -423,4 +423,8 @@ interface IGovPool {
     /// @notice The function to get off-chain verifier address
     /// @return address of verifier
     function getVerifier() external view returns (address);
+
+    /// @notice The function to get expert status of a voter
+    /// @return address of a person, who votes
+    function getExpertStatus(address user) external view returns (bool);
 }
