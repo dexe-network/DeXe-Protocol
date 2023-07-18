@@ -125,9 +125,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         uint256 requestedAmount = delegatorInfo.requestedTokens[delegatee];
 
-        uint256 balance = delegatorInfo.balanceInfo.tokenBalance;
-        uint256 availableBalance = balance.max(delegatorInfo.balanceInfo.maxTokensLocked) -
-            delegatorInfo.balanceInfo.maxTokensLocked;
+        uint256 availableBalance = delegatorInfo.balanceInfo.tokenBalance.max(
+            delegatorInfo.balanceInfo.maxTokensLocked
+        ) - delegatorInfo.balanceInfo.maxTokensLocked;
 
         require(amount <= availableBalance + requestedAmount, "GovUK: overdelegation");
 
@@ -245,7 +245,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     ) external override onlyOwner withSupportedNft {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
         EnumerableSet.UintSet storage delegatorNftBalance = delegatorInfo.balanceInfo.nftBalance;
-
         BalanceInfo storage micropoolInfo = _micropoolsInfo[delegatee].balanceInfo;
 
         for (uint256 i; i < nftIds.length; i++) {
