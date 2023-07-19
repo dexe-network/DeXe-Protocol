@@ -89,10 +89,7 @@ library LogExpMath {
      * Reverts if ln(x) * y is smaller than `MIN_NATURAL_EXPONENT`, or larger than `MAX_NATURAL_EXPONENT`.
      */
     function pow(uint256 x, uint256 y) internal pure returns (uint256) {
-        if (y == 0) {
-            // We solve the 0^0 indetermination by making it equal one.
-            return uint256(ONE_18);
-        }
+        require(y != 0, "LogExpMath: Zero exponent");
 
         if (x == 0) {
             return 0;

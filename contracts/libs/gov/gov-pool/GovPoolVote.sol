@@ -2,6 +2,9 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
+import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
 import "../../../interfaces/gov/IGovPool.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
@@ -15,6 +18,7 @@ library GovPoolVote {
     using EnumerableSet for EnumerableSet.UintSet;
     using MathHelper for uint256;
     using LogExpMath for uint256;
+    using DecimalsConverter for uint256;
 
     event Voted(
         uint256 proposalId,
@@ -150,19 +154,23 @@ library GovPoolVote {
             ? 769230769000000000
             : 769230769000000000;
 
-        _voteTokens(
-            core,
-            voteInfo,
-            proposalId,
-            voteAmount,
-            isMicropool,
-            useDelegated,
-            isVoteFor,
-            rootPower
-        );
-        reward =
-            _voteNfts(core, voteInfo, voteNftIds, isMicropool, useDelegated, isVoteFor) +
-            voteAmount;
+        if (voteAmount > 0) {
+            _voteTokens(
+                core,
+                voteInfo,
+                proposalId,
+                voteAmount,
+                isMicropool,
+                useDelegated,
+                isVoteFor,
+                rootPower
+            );
+        }
+
+        reward = voteAmount;
+        if (voteNftIds.length > 0) {
+            reward += _voteNfts(core, voteInfo, voteNftIds, isMicropool, useDelegated, isVoteFor);
+        }
 
         require(reward >= core.settings.minVotesForVoting, "Gov: low current vote power");
 
@@ -236,7 +244,9 @@ library GovPoolVote {
             "Gov: wrong vote amount"
         );
 
-        uint256 amountVotes = amount.pow(rootPower);
+        IERC20Metadata token = IERC20Metadata(userKeeper.tokenAddress());
+        uint256 amountVotes = amount.to18(token.decimals());
+        amountVotes = amount.pow(rootPower);
 
         if (isVoteFor) {
             core.votesFor += amount;
