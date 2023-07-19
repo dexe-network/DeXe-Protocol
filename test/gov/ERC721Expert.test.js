@@ -87,6 +87,10 @@ describe("ERC721Expert", () => {
       await nft.burn(token.id, { from: burner });
     }
 
+    async function setTags(token, tags, setter) {
+      await nft.setTags(token.id, tags, { from: setter });
+    }
+
     async function badgeExists(contract, token) {
       assert.equal(await contract.isExpert(token.owner), true);
       assert.equal(await contract.getIdByExpert(token.owner), token.id);
@@ -253,6 +257,57 @@ describe("ERC721Expert", () => {
           await burn(token, OWNER);
           await badgeNotExists(nft, token);
         }
+      });
+    });
+
+    describe("tags", () => {
+      beforeEach(async () => {
+        await mint(TOKENS[0], OWNER);
+        TAGS = ["TAG0", "TAG1", "TAG2", "TAG3"];
+      });
+
+      it("could not set tags if not owner", async () => {
+        await truffleAssert.reverts(setTags(TOKENS[0], TAGS.slice(1), SECOND), "Ownable: caller is not the owner");
+      });
+
+      it("could not set tags to non-existant badge", async () => {
+        await truffleAssert.reverts(
+          setTags(TOKENS[1], TAGS.slice(1), OWNER),
+          "ERC721Expert: Cannot set tags to non-existent badge"
+        );
+      });
+
+      it("could not set more than 3 tags", async () => {
+        await truffleAssert.reverts(setTags(TOKENS[0], TAGS, OWNER), "ERC721Expert: Too much tags");
+      });
+
+      it("sets tags correctly", async () => {
+        await setTags(TOKENS[0], TAGS.slice(1), OWNER);
+
+        let tagsAfter = await nft.getTags(TOKENS[0].id);
+        assert.deepEqual(tagsAfter, TAGS.slice(1));
+
+        for (let i = 0; i < 2; i++) {
+          for (let j = 1; j <= 3; j++) {
+            await setTags(TOKENS[0], TAGS.slice(i, i + j), OWNER);
+
+            tagsAfter = await nft.getTags(TOKENS[0].id);
+            assert.deepEqual(tagsAfter, TAGS.slice(i, i + j));
+          }
+        }
+
+        await setTags(TOKENS[0], [], OWNER);
+
+        tagsAfter = await nft.getTags(TOKENS[0].id);
+        assert.deepEqual(tagsAfter, []);
+      });
+
+      it("no tags after burn", async () => {
+        await setTags(TOKENS[0], TAGS.slice(1), OWNER);
+        await burn(TOKENS[0], OWNER);
+
+        let tagsAfter = await nft.getTags(TOKENS[0].id);
+        assert.deepEqual(tagsAfter, []);
       });
     });
   });
