@@ -63,7 +63,6 @@ interface ITraderPool {
     /// @param dexeBaseCommission the total platform's commission in base tokens (normalized)
     /// @param dexeLPCommission the equivalent platform's commission in LP tokens
     /// @param dexeUSDCommission the equivalent platform's commission in USD (normalized)
-    /// @param dexeDexeCommission the equivalent platform's commission in DEXE tokens (normalized)
     struct Commissions {
         uint256 traderBaseCommission;
         uint256 traderLPCommission;
@@ -71,7 +70,6 @@ interface ITraderPool {
         uint256 dexeBaseCommission;
         uint256 dexeLPCommission;
         uint256 dexeUSDCommission;
-        uint256 dexeDexeCommission;
     }
 
     /// @notice The struct that is returned from the TraderPoolView contract to see the received amounts
@@ -210,25 +208,16 @@ interface ITraderPool {
     ) external;
 
     /// @notice The function that takes the commission from the users' income. This function should be called once per the
-    /// commission period. Use "getReinvestCommissions()" function to get minDexeCommissionOut parameter
+    /// commission period.
     /// @param offsetLimits the array of starting indexes and the lengths of the investors array.
     /// Starting indexes are under even positions, lengths are under odd
-    /// @param minDexeCommissionOut the minimal amount of DEXE tokens the platform will receive
-    function reinvestCommission(
-        uint256[] calldata offsetLimits,
-        uint256 minDexeCommissionOut
-    ) external;
+    function reinvestCommission(uint256[] calldata offsetLimits) external;
 
     /// @notice The function to divest from the pool. The "getDivestAmountsAndCommissions()" function should be called
-    /// to receive minPositionsOut and minDexeCommissionOut parameters
+    /// to receive minBaseOut parameters
     /// @param amountLP the amount of LP tokens to divest
     /// @param minBaseOut the amount of base tokens to be received from the positions swaps
-    /// @param minDexeCommissionOut the DEXE commission in DEXE tokens
-    function divest(
-        uint256 amountLP,
-        uint256[] calldata minBaseOut,
-        uint256 minDexeCommissionOut
-    ) external;
+    function divest(uint256 amountLP, uint256[] calldata minBaseOut) external;
 
     /// @notice The function to exchange tokens for tokens
     /// @param from the tokens to exchange from
