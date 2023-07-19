@@ -44,6 +44,10 @@ library TokenBalance {
         sendFunds(token, receiver, amount, false);
     }
 
+    function sendFunds(IERC20 token, address receiver, uint256 amount) internal {
+        token.safeTransfer(receiver, amount.from18(ERC20(address(token)).decimals()));
+    }
+
     function thisBalance(address token) internal view returns (uint256) {
         return
             token == ETHEREUM_ADDRESS

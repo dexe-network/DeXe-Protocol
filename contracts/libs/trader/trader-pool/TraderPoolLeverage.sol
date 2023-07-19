@@ -3,11 +3,11 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "../../interfaces/trader/ITraderPool.sol";
-import "../../interfaces/trader/ITraderPoolProposal.sol";
+import "../../../interfaces/trader/ITraderPool.sol";
+import "../../../interfaces/trader/ITraderPoolProposal.sol";
 
 import "./TraderPoolPrice.sol";
-import "../../libs/math/MathHelper.sol";
+import "../../../libs/math/MathHelper.sol";
 
 library TraderPoolLeverage {
     using MathHelper for uint256;

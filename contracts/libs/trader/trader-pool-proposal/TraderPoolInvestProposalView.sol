@@ -4,13 +4,13 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "../../interfaces/trader/ITraderPoolInvestProposal.sol";
-import "../../interfaces/core/IPriceFeed.sol";
+import "../../../interfaces/trader/ITraderPoolInvestProposal.sol";
+import "../../../interfaces/core/IPriceFeed.sol";
 
-import "../price-feed/PriceFeedLocal.sol";
-import "../../libs/math/MathHelper.sol";
+import "../../price-feed/PriceFeedLocal.sol";
+import "../../../libs/math/MathHelper.sol";
 
-import "../../trader/TraderPoolInvestProposal.sol";
+import "../../../trader/TraderPoolInvestProposal.sol";
 
 library TraderPoolInvestProposalView {
     using EnumerableSet for EnumerableSet.UintSet;

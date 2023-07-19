@@ -7,15 +7,15 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
-import "../../interfaces/trader/ITraderPool.sol";
-import "../../interfaces/core/IPriceFeed.sol";
+import "../../../interfaces/trader/ITraderPool.sol";
+import "../../../interfaces/core/IPriceFeed.sol";
 
-import "../../trader/TraderPool.sol";
+import "../../../trader/TraderPool.sol";
 
-import "../price-feed/PriceFeedLocal.sol";
+import "../../price-feed/PriceFeedLocal.sol";
 import "./TraderPoolPrice.sol";
 import "./TraderPoolLeverage.sol";
-import "../math/MathHelper.sol";
+import "../../math/MathHelper.sol";
 
 library TraderPoolInvest {
     using SafeERC20 for IERC20Metadata;

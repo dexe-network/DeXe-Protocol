@@ -3,9 +3,9 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "../../interfaces/trader/ITraderPool.sol";
+import "../../../interfaces/trader/ITraderPool.sol";
 
-import "../../trader/TraderPool.sol";
+import "../../../trader/TraderPool.sol";
 
 library TraderPoolModify {
     using EnumerableSet for EnumerableSet.AddressSet;

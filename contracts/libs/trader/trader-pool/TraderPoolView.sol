@@ -8,17 +8,17 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
-import "../../interfaces/trader/ITraderPool.sol";
-import "../../interfaces/core/IPriceFeed.sol";
+import "../../../interfaces/trader/ITraderPool.sol";
+import "../../../interfaces/core/IPriceFeed.sol";
 
-import "../../trader/TraderPool.sol";
+import "../../../trader/TraderPool.sol";
 
 import "./TraderPoolPrice.sol";
 import "./TraderPoolCommission.sol";
 import "./TraderPoolLeverage.sol";
-import "../math/MathHelper.sol";
-import "../utils/TokenBalance.sol";
-import "../price-feed/PriceFeedLocal.sol";
+import "../../math/MathHelper.sol";
+import "../../utils/TokenBalance.sol";
+import "../../price-feed/PriceFeedLocal.sol";
 
 library TraderPoolView {
     using EnumerableSet for EnumerableSet.AddressSet;

@@ -143,7 +143,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         TokenSaleProposal(tokenSaleProxy).addToWhitelist(tokenSaleParameters.whitelistParams);
 
         _initGovPool(poolProxy, govPoolDeps, parameters);
-        TokenSaleProposal(tokenSaleProxy).__TokenSaleProposal_init(poolProxy);
+        TokenSaleProposal(tokenSaleProxy).__TokenSaleProposal_init(poolProxy, _babt);
 
         GovSettings(govPoolDeps.settingsAddress).transferOwnership(poolProxy);
         GovUserKeeper(govPoolDeps.userKeeperAddress).transferOwnership(poolProxy);

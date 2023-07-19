@@ -110,7 +110,7 @@ describe("ERC721Expert", () => {
 
       assert.equal(await contract.balanceOf(token.owner), 0);
 
-      await truffleAssert.reverts(contract.tokenURI(token.id), "ERC721URIStorage: URI query for nonexistent token");
+      await truffleAssert.reverts(contract.tokenURI(token.id), "ERC721: invalid token ID");
     }
 
     describe("interfaceId()", () => {
@@ -201,7 +201,7 @@ describe("ERC721Expert", () => {
       });
 
       it("shouldn't transfer any badge", async () => {
-        await truffleAssert.reverts(nft.transferFrom(OWNER, SECOND, 1), "ERC721: operator query for nonexistent token");
+        await truffleAssert.reverts(nft.transferFrom(OWNER, SECOND, 1), "ERC721: invalid token ID");
       });
     });
 

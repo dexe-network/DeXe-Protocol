@@ -19,15 +19,15 @@ import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/ISBT721.sol";
 import "../interfaces/factory/IPoolFactory.sol";
 
-import "../libs/gov-user-keeper/GovUserKeeperLocal.sol";
-import "../libs/gov-pool/GovPoolView.sol";
-import "../libs/gov-pool/GovPoolCreate.sol";
-import "../libs/gov-pool/GovPoolRewards.sol";
-import "../libs/gov-pool/GovPoolVote.sol";
-import "../libs/gov-pool/GovPoolUnlock.sol";
-import "../libs/gov-pool/GovPoolExecute.sol";
-import "../libs/gov-pool/GovPoolStaking.sol";
-import "../libs/gov-pool/GovPoolOffchain.sol";
+import "../libs/gov/gov-user-keeper/GovUserKeeperLocal.sol";
+import "../libs/gov/gov-pool/GovPoolView.sol";
+import "../libs/gov/gov-pool/GovPoolCreate.sol";
+import "../libs/gov/gov-pool/GovPoolRewards.sol";
+import "../libs/gov/gov-pool/GovPoolVote.sol";
+import "../libs/gov/gov-pool/GovPoolUnlock.sol";
+import "../libs/gov/gov-pool/GovPoolExecute.sol";
+import "../libs/gov/gov-pool/GovPoolStaking.sol";
+import "../libs/gov/gov-pool/GovPoolOffchain.sol";
 import "../libs/math/MathHelper.sol";
 
 import "../core/Globals.sol";
@@ -87,6 +87,7 @@ contract GovPool is
     mapping(address => MicropoolInfo) internal _micropoolInfos;
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
+    event Requested(address from, address to, uint256 amount, uint256[] nfts);
     event Deposited(uint256 amount, uint256[] nfts, address sender);
     event Withdrawn(uint256 amount, uint256[] nfts, address sender);
 
@@ -289,6 +290,25 @@ contract GovPool is
         micropool.updateStakingCache(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, true);
+    }
+
+    function request(
+        address delegatee,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external override onlyBABTHolder {
+        require(amount > 0 || nftIds.length > 0, "Gov: empty request");
+
+        MicropoolInfo storage micropool = _micropoolInfos[delegatee];
+
+        micropool.stake(delegatee);
+
+        _govUserKeeper.requestTokens.exec(delegatee, amount);
+        _govUserKeeper.requestNfts.exec(delegatee, nftIds);
+
+        micropool.updateStakingCache(delegatee);
+
+        emit Requested(msg.sender, delegatee, amount, nftIds);
     }
 
     function undelegate(

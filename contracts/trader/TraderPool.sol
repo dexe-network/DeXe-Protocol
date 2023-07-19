@@ -12,12 +12,12 @@ import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ISBT721.sol";
 
-import "../libs/trader-pool/TraderPoolCommission.sol";
-import "../libs/trader-pool/TraderPoolExchange.sol";
-import "../libs/trader-pool/TraderPoolView.sol";
-import "../libs/trader-pool/TraderPoolModify.sol";
-import "../libs/trader-pool/TraderPoolInvest.sol";
-import "../libs/trader-pool/TraderPoolDivest.sol";
+import "../libs/trader/trader-pool/TraderPoolCommission.sol";
+import "../libs/trader/trader-pool/TraderPoolExchange.sol";
+import "../libs/trader/trader-pool/TraderPoolView.sol";
+import "../libs/trader/trader-pool/TraderPoolModify.sol";
+import "../libs/trader/trader-pool/TraderPoolInvest.sol";
+import "../libs/trader/trader-pool/TraderPoolDivest.sol";
 import "../libs/math/MathHelper.sol";
 
 abstract contract TraderPool is
