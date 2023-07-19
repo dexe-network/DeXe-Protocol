@@ -37,22 +37,25 @@ contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgr
     function burn(uint256 tokenId) external onlyOwner {
         require(_exists(tokenId), "ERC721Expert: Cannot burn non-existent badge");
 
-        address _expert = ownerOf(tokenId);
+        delete _attachments[ownerOf(tokenId)];
+        delete _tags[tokenId];
 
-        setTags(tokenId, new string[](0));
         _burn(tokenId);
-        delete _attachments[_expert];
+    }
+
+    // tags is memory for storage compatibility
+    function setTags(uint256 tokenId, string[] memory tags) external onlyOwner {
+        require(_exists(tokenId), "ERC721Expert: Cannot set tags to non-existent badge");
+        require(tags.length <= MAX_TAG_LENGTH, "ERC721Expert: Too much tags");
+
+        _tags[tokenId] = tags;
     }
 
     function setTokenURI(uint256 tokenId, string calldata uri_) external onlyOwner {
         _setTokenURI(tokenId, uri_);
     }
 
-    function isExpert(address expert) public view returns (bool) {
-        return balanceOf(expert) == 1;
-    }
-
-    function getIdByExpert(address expert) public view returns (uint256) {
+    function getIdByExpert(address expert) external view returns (uint256) {
         require(isExpert(expert), "ERC721Expert: User is not an expert");
 
         return _attachments[expert];
@@ -62,29 +65,14 @@ contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgr
         return _tags[tokenId];
     }
 
-    function setTags(uint256 tokenId, string[] memory tags) public onlyOwner {
-        require(_exists(tokenId), "ERC721Expert: Cannot set tags to non-existent badge");
-
-        uint256 tagsLength = tags.length;
-        uint256 currentTagsLength = _tags[tokenId].length;
-        require(tagsLength <= MAX_TAG_LENGTH, "ERC721Expert: Too much tags");
-
-        for (uint i = 0; i < tagsLength; i++) {
-            if (i >= currentTagsLength) {
-                _tags[tokenId].push(tags[i]);
-            } else {
-                _tags[tokenId][i] = tags[i];
-            }
-        }
-        for (uint i = tagsLength; i < currentTagsLength; i++) {
-            _tags[tokenId].pop();
-        }
-    }
-
     function burnAuth(uint256 tokenId) external view override returns (BurnAuth) {
         require(_exists(tokenId), "ERC721Expert: Cannot find Burn Auth for non existant badge");
 
         return BurnAuth.OwnerOnly;
+    }
+
+    function isExpert(address expert) public view returns (bool) {
+        return balanceOf(expert) == 1;
     }
 
     function supportsInterface(

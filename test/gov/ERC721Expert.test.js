@@ -283,18 +283,21 @@ describe("ERC721Expert", () => {
 
       it("sets tags correctly", async () => {
         await setTags(TOKENS[0], TAGS.slice(1), OWNER);
+
         let tagsAfter = await nft.getTags(TOKENS[0].id);
         assert.deepEqual(tagsAfter, TAGS.slice(1));
 
         for (let i = 0; i < 2; i++) {
           for (let j = 1; j <= 3; j++) {
             await setTags(TOKENS[0], TAGS.slice(i, i + j), OWNER);
+
             tagsAfter = await nft.getTags(TOKENS[0].id);
             assert.deepEqual(tagsAfter, TAGS.slice(i, i + j));
           }
         }
 
         await setTags(TOKENS[0], [], OWNER);
+
         tagsAfter = await nft.getTags(TOKENS[0].id);
         assert.deepEqual(tagsAfter, []);
       });
@@ -302,6 +305,7 @@ describe("ERC721Expert", () => {
       it("no tags after burn", async () => {
         await setTags(TOKENS[0], TAGS.slice(1), OWNER);
         await burn(TOKENS[0], OWNER);
+
         let tagsAfter = await nft.getTags(TOKENS[0].id);
         assert.deepEqual(tagsAfter, []);
       });
