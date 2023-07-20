@@ -220,6 +220,8 @@ describe("TokenSaleProposal", () => {
     await govPool.__GovPool_init(
       [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address],
       poolParams.nftMultiplierAddress,
+      poolParams.regularVoteModifier,
+      poolParams.expertVoteModifier,
       OWNER,
       poolParams.onlyBABTHolders,
       poolParams.deployerBABTid,
@@ -460,6 +462,8 @@ describe("TokenSaleProposal", () => {
           nftsTotalSupply: 33,
         },
         nftMultiplierAddress: ZERO_ADDR,
+        regularVoteModifier: "769230769000000000",
+        expertVoteModifier: "883392226000000000",
         onlyBABTHolders: false,
         deployerBABTid: 1,
         descriptionURL: "example.com",

@@ -252,6 +252,8 @@ describe("GovPool", () => {
     await govPool.__GovPool_init(
       [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address],
       poolParams.nftMultiplierAddress,
+      "769230769000000000",
+      "883392226000000000",
       OWNER,
       poolParams.onlyBABTHolders,
       poolParams.deployerBABTid,
@@ -457,6 +459,8 @@ describe("GovPool", () => {
           govPool.__GovPool_init(
             [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address],
             POOL_PARAMETERS.nftMultiplierAddress,
+            "769230769000000000",
+            "883392226000000000",
             OWNER,
             POOL_PARAMETERS.onlyBABTHolders,
             POOL_PARAMETERS.deployerBABTid,
