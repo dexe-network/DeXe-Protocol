@@ -252,7 +252,7 @@ library GovPoolVote {
 
         IERC20Metadata token = IERC20Metadata(userKeeper.tokenAddress());
         uint256 amountVotes = amount.to18(token.decimals());
-        amountVotes = amount.pow(rootPower);
+        amountVotes = _calculateVotes(amount, rootPower);
 
         if (isVoteFor) {
             core.votesFor += amount;
@@ -290,7 +290,7 @@ library GovPoolVote {
 
         voteAmount = userKeeper.getNftsPowerInTokensBySnapshot(nftIds, core.nftPowerSnapshotId);
 
-        uint256 amountVotes = voteAmount.pow(rootPower);
+        uint256 amountVotes = _calculateVotes(voteAmount, rootPower);
 
         if (isVoteFor) {
             core.votesFor += voteAmount;
@@ -306,5 +306,9 @@ library GovPoolVote {
         bool isVoteFor
     ) internal view returns (EnumerableSet.UintSet storage) {
         return isVoteFor ? voteInfo.nftsVotedFor : voteInfo.nftsVotedAgainst;
+    }
+
+    function _calculateVotes(uint tokenAmount, uint rootPower) private pure returns (uint) {
+        return tokenAmount.pow(rootPower);
     }
 }
