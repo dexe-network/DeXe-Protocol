@@ -367,11 +367,6 @@ interface IGovUserKeeper {
         uint256[] calldata unlockedNfts
     ) external view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts);
 
-    /// @notice The function for getting the list of delegatees by the delegator address
-    /// @param delegator the address of the delegator
-    /// @return the list of delegatees
-    function getDelegatees(address delegator) external view returns (address[] memory);
-
     /// @notice The function for getting the total delegated stake amount by the delegator and the delegatee
     /// @param delegator the address of the delegator
     /// @param delegatee the address of the delegatee

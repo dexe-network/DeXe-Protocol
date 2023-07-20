@@ -43,7 +43,7 @@ interface IGovSettings {
     /// @notice The struct holds information about rewards for proposals
     /// @param rewardToken the reward token address
     /// @param creationReward the amount of reward for proposal creation
-    /// @param executionRewar the amount of reward for proposal execution
+    /// @param executionReward the amount of reward for proposal execution
     /// @param voteForRewardsCoefficient the reward multiplier for voting for the proposal
     /// @param voteAgainstRewardsCoefficient the reward multiplier for voting against the proposal
     struct RewardsInfo {

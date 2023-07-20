@@ -84,7 +84,7 @@ contract GovPool is
 
     mapping(address => PendingRewards) internal _pendingRewards; // user => pending rewards
 
-    mapping(address => MicropoolInfo) internal _micropoolInfos;
+    mapping(address => mapping(bool => MicropoolStakingInfo)) internal _micropoolInfos; // delegatee => isVoteFor => info
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
     event Requested(address from, address to, uint256 amount, uint256[] nfts);
@@ -248,10 +248,10 @@ contract GovPool is
             micropoolReward
         );
 
-        _micropoolInfos[msg.sender].updateRewards(
+        _micropoolInfos[msg.sender][isVoteFor].updateRewards(
             _proposals,
             proposalId,
-            isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
+            isVoteFor,
             reward - micropoolReward
         );
     }
@@ -279,15 +279,16 @@ contract GovPool is
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
 
         _unlock(msg.sender, false);
+        _unlock(delegatee, true);
 
-        MicropoolInfo storage micropool = _micropoolInfos[delegatee];
+        mapping(bool => MicropoolStakingInfo) storage micropools = _micropoolInfos[delegatee];
 
-        micropool.stake(delegatee);
+        micropools.doBeforeRestake(_votedInProposals[delegatee][true].values(), delegatee);
 
         _govUserKeeper.delegateTokens.exec(delegatee, amount);
         _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
 
-        micropool.updateStakingCache(delegatee);
+        micropools.doAfterRestake(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, true);
     }
@@ -299,14 +300,16 @@ contract GovPool is
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty request");
 
-        MicropoolInfo storage micropool = _micropoolInfos[delegatee];
+        _unlock(delegatee, true);
 
-        micropool.stake(delegatee);
+        mapping(bool => MicropoolStakingInfo) storage micropools = _micropoolInfos[delegatee];
+
+        micropools.doBeforeRestake(_votedInProposals[delegatee][true].values(), delegatee);
 
         _govUserKeeper.requestTokens.exec(delegatee, amount);
         _govUserKeeper.requestNfts.exec(delegatee, nftIds);
 
-        micropool.updateStakingCache(delegatee);
+        micropools.doAfterRestake(delegatee);
 
         emit Requested(msg.sender, delegatee, amount, nftIds);
     }
@@ -320,14 +323,14 @@ contract GovPool is
 
         _unlock(delegatee, true);
 
-        MicropoolInfo storage micropool = _micropoolInfos[delegatee];
+        mapping(bool => MicropoolStakingInfo) storage micropools = _micropoolInfos[delegatee];
 
-        micropool.unstake(delegatee);
+        micropools.doBeforeRestake(_votedInProposals[delegatee][true].values(), delegatee);
 
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
         _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
 
-        micropool.updateStakingCache(delegatee);
+        micropools.doAfterRestake(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, false);
     }
@@ -336,6 +339,13 @@ contract GovPool is
         for (uint256 i; i < proposalIds.length; i++) {
             _pendingRewards.claimReward(_proposals, proposalIds[i]);
         }
+    }
+
+    function claimStaking(
+        uint256[] calldata proposalIds,
+        address delegatee
+    ) external override onlyBABTHolder {
+        _micropoolInfos[delegatee].claim(_proposals, proposalIds, delegatee);
     }
 
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
@@ -519,9 +529,17 @@ contract GovPool is
     }
 
     function getDelegatorStakingRewards(
-        address delegator
-    ) external view override returns (UserStakeRewardsView[] memory) {
-        return _micropoolInfos.getDelegatorStakingRewards(delegator);
+        uint256[] calldata proposalIds,
+        address delegator,
+        address delegatee
+    ) external view override returns (DelegatorStakingRewards memory) {
+        return
+            _micropoolInfos[delegatee].getDelegatorStakingRewards(
+                _proposals,
+                proposalIds,
+                delegator,
+                delegatee
+            );
     }
 
     function getOffchainResultsHash() external view override returns (string memory resultsHash) {

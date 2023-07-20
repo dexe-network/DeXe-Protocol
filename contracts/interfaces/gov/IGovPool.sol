@@ -126,12 +126,10 @@ interface IGovPool {
     }
 
     /// @notice The struct that is used in view functions of contract as a return argument
-    /// @param micropool the address of the delegatee
     /// @param rewardTokens the list of reward tokens addresses
     /// @param expectedRewards the list of expected rewards
     /// @param realRewards the list of real rewards (minimum of expected rewards and governance pool token balances)
-    struct UserStakeRewardsView {
-        address micropool;
+    struct DelegatorStakingRewards {
         address[] rewardTokens;
         uint256[] expectedRewards;
         uint256[] realRewards;
@@ -148,20 +146,20 @@ interface IGovPool {
     /// @notice The struct that holds reward token properties (only for internal needs)
     /// @param delegators matching delegators addresses with their parameters
     /// @param cumulativeSum global cumulative sum
-    struct RewardTokenInfo {
+    struct ProposalInfo {
         mapping(address => DelegatorInfo) delegators;
         uint256 cumulativeSum;
     }
 
+    /// FIXME: docs
     /// @notice The struct that holds micropool properties (only for internal needs)
-    /// @param totalStake the current total sum of all delegators stakes
+    /// @param totalStake the current total sum of all delegator stakes
     /// @param rewardTokens the list of reward tokens
     /// @param rewardTokenInfos matching reward tokens to their parameters
     /// @param latestDelegatorStake matching delegators to their latest stakes
-    struct MicropoolInfo {
+    struct MicropoolStakingInfo {
         uint256 totalStake;
-        EnumerableSet.AddressSet rewardTokens;
-        mapping(address => RewardTokenInfo) rewardTokenInfos;
+        mapping(uint256 => ProposalInfo) proposalInfos;
         mapping(address => uint256) latestDelegatorStake;
     }
 
@@ -316,6 +314,9 @@ interface IGovPool {
     /// @param proposalIds the array of proposal ids
     function claimRewards(uint256[] calldata proposalIds) external;
 
+    /// FIXME: docs
+    function claimStaking(uint256[] calldata proposalIds, address delegatee) external;
+
     /// @notice The function for changing description url
     /// @param newDescriptionURL the string with new url
     function editDescriptionURL(string calldata newDescriptionURL) external;
@@ -404,12 +405,15 @@ interface IGovPool {
         uint256[] calldata proposalIds
     ) external view returns (PendingRewardsView memory);
 
+    /// FIXME: docs
     /// @notice The function to get delegator staking rewards from all micropools
     /// @param delegator the address of the delegator
-    /// @return the list of rewards
+    /// @return delegator staking rewards
     function getDelegatorStakingRewards(
-        address delegator
-    ) external view returns (UserStakeRewardsView[] memory);
+        uint256[] calldata proposalIds,
+        address delegator,
+        address delegatee
+    ) external view returns (DelegatorStakingRewards memory);
 
     /// @notice The function to get off-chain voting results
     /// @return resultsHash the ipfs hash

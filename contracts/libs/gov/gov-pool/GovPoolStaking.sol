@@ -14,51 +14,133 @@ library GovPoolStaking {
     using TokenBalance for address;
     using MathHelper for uint256;
     using Math for uint256;
-    using EnumerableSet for EnumerableSet.AddressSet;
+    using EnumerableSet for EnumerableSet.UintSet;
 
     event StakingRewardClaimed(address user, address token, uint256 amount);
 
     function updateRewards(
-        IGovPool.MicropoolInfo storage micropool,
+        IGovPool.MicropoolStakingInfo storage micropool,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId,
-        IGovPool.RewardType rewardType,
+        bool isVoteFor,
         uint256 amount
     ) external {
         uint256 totalStake = micropool.totalStake;
+
         if (totalStake == 0) {
             return;
         }
 
-        IGovSettings.RewardsInfo storage rewardsInfo = proposals[proposalId]
+        IGovSettings.RewardsInfo memory rewardsInfo = proposals[proposalId]
             .core
             .settings
             .rewardsInfo;
 
-        uint256 amountToAdd = amount.ratio(
-            _coefficientBasedOnVote(rewardsInfo, rewardType),
-            PRECISION
-        );
+        uint256 rewardsCoefficient = isVoteFor
+            ? rewardsInfo.voteForRewardsCoefficient
+            : rewardsInfo.voteAgainstRewardsCoefficient;
+        uint256 amountToAdd = amount.ratio(rewardsCoefficient, PRECISION);
 
-        micropool.rewardTokens.add(rewardsInfo.rewardToken);
-        micropool.rewardTokenInfos[rewardsInfo.rewardToken].cumulativeSum += amountToAdd.ratio(
+        micropool.proposalInfos[proposalId].cumulativeSum += amountToAdd.ratio(
             PRECISION,
             totalStake
         );
     }
 
-    function stake(IGovPool.MicropoolInfo storage micropool, address delegatee) external {
-        _recalculateStakingState(micropool, delegatee, false);
-    }
-
-    function unstake(IGovPool.MicropoolInfo storage micropool, address delegatee) external {
-        _recalculateStakingState(micropool, delegatee, true);
-    }
-
-    function updateStakingCache(
-        IGovPool.MicropoolInfo storage micropool,
+    function claim(
+        mapping(bool => IGovPool.MicropoolStakingInfo) storage micropools,
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        uint256[] calldata proposalIds,
         address delegatee
     ) external {
+        for (uint256 i; i < proposalIds.length; i++) {
+            require(proposals[proposalIds[i]].core.executed, "Gov: not executed");
+        }
+
+        doBeforeRestake(micropools, proposalIds, delegatee);
+
+        _claim(micropools[true], proposals, proposalIds);
+        _claim(micropools[false], proposals, proposalIds);
+    }
+
+    function doBeforeRestake(
+        mapping(bool => IGovPool.MicropoolStakingInfo) storage micropools,
+        uint256[] calldata proposalIds,
+        address delegatee
+    ) public {
+        _doBeforeRestake(micropools[true], proposalIds, delegatee);
+        _doBeforeRestake(micropools[false], proposalIds, delegatee);
+    }
+
+    function doAfterRestake(
+        mapping(bool => IGovPool.MicropoolStakingInfo) storage micropools,
+        address delegatee
+    ) external {
+        _doAfterRestake(micropools[true], delegatee);
+        _doAfterRestake(micropools[false], delegatee);
+    }
+
+    function getDelegatorStakingRewards(
+        mapping(bool => IGovPool.MicropoolStakingInfo) storage micropoolInfos,
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        uint256[] calldata proposalIds,
+        address delegator,
+        address delegatee
+    ) external view returns (IGovPool.DelegatorStakingRewards memory rewards) {
+        uint256[] memory expectedRewardsFor = _getMicropoolPendingRewards(
+            micropoolInfos[true],
+            proposalIds,
+            delegator,
+            delegatee
+        );
+        uint256[] memory expectedRewardsAgainst = _getMicropoolPendingRewards(
+            micropoolInfos[false],
+            proposalIds,
+            delegator,
+            delegatee
+        );
+
+        rewards.rewardTokens = new address[](proposalIds.length);
+        rewards.expectedRewards = new uint256[](proposalIds.length);
+        rewards.realRewards = new uint256[](proposalIds.length);
+
+        for (uint256 i = 0; i < proposalIds.length; i++) {
+            address rewardToken = proposals[proposalIds[i]].core.settings.rewardsInfo.rewardToken;
+
+            rewards.rewardTokens[i] = rewardToken;
+            rewards.expectedRewards[i] = expectedRewardsFor[i] + expectedRewardsAgainst[i];
+            rewards.realRewards[i] = rewards.expectedRewards[i].min(
+                rewards.rewardTokens[i].normThisBalance()
+            );
+        }
+    }
+
+    function _doBeforeRestake(
+        IGovPool.MicropoolStakingInfo storage micropool,
+        uint256[] calldata proposalIds,
+        address delegatee
+    ) private {
+        uint256[] memory pendingRewards = _getMicropoolPendingRewards(
+            micropool,
+            proposalIds,
+            msg.sender,
+            delegatee
+        );
+
+        for (uint256 i; i < proposalIds.length; i++) {
+            IGovPool.ProposalInfo storage proposalInfo = micropool.proposalInfos[proposalIds[i]];
+
+            proposalInfo.delegators[msg.sender] = IGovPool.DelegatorInfo({
+                pendingRewards: pendingRewards[i],
+                latestCumulativeSum: proposalInfo.cumulativeSum
+            });
+        }
+    }
+
+    function _doAfterRestake(
+        IGovPool.MicropoolStakingInfo storage micropool,
+        address delegatee
+    ) private {
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
         uint256 currentDelegatorStake = IGovUserKeeper(userKeeper).getDelegatedStakeAmount(
@@ -71,126 +153,62 @@ library GovPoolStaking {
         micropool.latestDelegatorStake[msg.sender] = currentDelegatorStake;
     }
 
-    function getDelegatorStakingRewards(
-        mapping(address => IGovPool.MicropoolInfo) storage micropoolInfos,
-        address delegator
-    ) external view returns (IGovPool.UserStakeRewardsView[] memory rewards) {
-        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
-
-        address[] memory delegatees = IGovUserKeeper(userKeeper).getDelegatees(delegator);
-
-        rewards = new IGovPool.UserStakeRewardsView[](delegatees.length);
-
-        for (uint256 i = 0; i < delegatees.length; i++) {
-            (
-                address[] memory rewardTokens,
-                uint256[] memory expectedRewards
-            ) = _getMicropoolPendingRewards(
-                    micropoolInfos[delegatees[i]],
-                    delegator,
-                    delegatees[i]
-                );
-
-            uint256[] memory realRewards = new uint256[](expectedRewards.length);
-
-            for (uint256 j = 0; j < realRewards.length; j++) {
-                realRewards[j] = expectedRewards[j].min(rewardTokens[j].normThisBalance());
-            }
-
-            rewards[i] = IGovPool.UserStakeRewardsView({
-                micropool: delegatees[i],
-                rewardTokens: rewardTokens,
-                expectedRewards: expectedRewards,
-                realRewards: realRewards
-            });
-        }
-    }
-
-    function _coefficientBasedOnVote(
-        IGovSettings.RewardsInfo storage rewardsInfo,
-        IGovPool.RewardType rewardType
-    ) internal view returns (uint256) {
-        return
-            rewardType == IGovPool.RewardType.VoteForDelegated
-                ? rewardsInfo.voteForRewardsCoefficient
-                : rewardsInfo.voteAgainstRewardsCoefficient;
-    }
-
-    function _recalculateStakingState(
-        IGovPool.MicropoolInfo storage micropool,
-        address delegatee,
-        bool withdrawPendingRewards
+    function _claim(
+        IGovPool.MicropoolStakingInfo storage micropool,
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        uint256[] calldata proposalIds
     ) private {
-        (
-            address[] memory rewardTokens,
-            uint256[] memory pendingRewards
-        ) = _getMicropoolPendingRewards(micropool, msg.sender, delegatee);
+        for (uint256 i; i < proposalIds.length; i++) {
+            IGovPool.ProposalInfo storage proposalInfo = micropool.proposalInfos[proposalIds[i]];
+            IGovPool.DelegatorInfo storage delegatorInfo = proposalInfo.delegators[msg.sender];
 
-        for (uint256 i; i < rewardTokens.length; i++) {
-            address rewardToken = rewardTokens[i];
+            address rewardToken = proposals[proposalIds[i]].core.settings.rewardsInfo.rewardToken;
+            uint256 pendingRewards = delegatorInfo.pendingRewards;
 
-            micropool
-                .rewardTokenInfos[rewardToken]
-                .delegators[msg.sender]
-                .pendingRewards = pendingRewards[i];
+            // TODO: check
+            delegatorInfo.pendingRewards = 0;
+            delegatorInfo.latestCumulativeSum = proposalInfo.cumulativeSum;
 
-            micropool
-                .rewardTokenInfos[rewardToken]
-                .delegators[msg.sender]
-                .latestCumulativeSum = micropool.rewardTokenInfos[rewardToken].cumulativeSum;
-        }
-
-        if (!withdrawPendingRewards) {
-            return;
-        }
-
-        for (uint256 i; i < rewardTokens.length; i++) {
-            if (pendingRewards[i] == 0) {
-                continue;
+            if (pendingRewards == 0) {
+                return;
             }
 
-            micropool.rewardTokenInfos[rewardTokens[i]].delegators[msg.sender].pendingRewards = 0;
+            uint256 amountToTransfer = pendingRewards.min(rewardToken.normThisBalance());
 
-            uint256 amountToTransfer = pendingRewards[i].min(rewardTokens[i].normThisBalance());
+            rewardToken.sendFunds(msg.sender, amountToTransfer, true);
 
-            rewardTokens[i].sendFunds(msg.sender, amountToTransfer, true);
-
-            emit StakingRewardClaimed(msg.sender, rewardTokens[i], amountToTransfer);
+            emit StakingRewardClaimed(msg.sender, rewardToken, amountToTransfer);
         }
     }
 
     function _getMicropoolPendingRewards(
-        IGovPool.MicropoolInfo storage micropool,
+        IGovPool.MicropoolStakingInfo storage micropool,
+        uint256[] calldata proposalIds,
         address delegator,
         address delegatee
-    ) private view returns (address[] memory rewardTokens, uint256[] memory pendingRewards) {
+    ) private view returns (uint256[] memory pendingRewards) {
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
         uint256 currentDelegatorStake = IGovUserKeeper(userKeeper).getDelegatedStakeAmount(
             delegator,
             delegatee
         );
-
         uint256 previousDelegatorStake = micropool.latestDelegatorStake[delegator];
-
         uint256 rewardsDeviation = previousDelegatorStake > currentDelegatorStake &&
             currentDelegatorStake != 0
             ? PRECISION.ratio(previousDelegatorStake, currentDelegatorStake)
             : PRECISION;
 
-        rewardTokens = micropool.rewardTokens.values();
-        pendingRewards = new uint256[](rewardTokens.length);
+        pendingRewards = new uint256[](proposalIds.length);
 
-        for (uint256 i; i < rewardTokens.length; i++) {
-            IGovPool.RewardTokenInfo storage rewardTokenInfo = micropool.rewardTokenInfos[
-                rewardTokens[i]
-            ];
+        for (uint256 i; i < proposalIds.length; i++) {
+            IGovPool.ProposalInfo storage proposalInfo = micropool.proposalInfos[proposalIds[i]];
 
-            IGovPool.DelegatorInfo storage delegatorInfo = rewardTokenInfo.delegators[delegator];
+            IGovPool.DelegatorInfo memory delegatorInfo = proposalInfo.delegators[delegator];
 
             pendingRewards[i] =
                 delegatorInfo.pendingRewards +
-                (rewardTokenInfo.cumulativeSum - delegatorInfo.latestCumulativeSum).ratio(
+                (proposalInfo.cumulativeSum - delegatorInfo.latestCumulativeSum).ratio(
                     previousDelegatorStake,
                     rewardsDeviation
                 );
