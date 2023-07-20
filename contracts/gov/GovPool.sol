@@ -65,6 +65,10 @@ contract GovPool is
     address public nftMultiplier;
     IERC721Expert public expertNft;
     IERC721Expert public dexeExpertNft;
+
+    uint256 internal regularVoteModifier;
+    uint256 internal expertVoteModifier;
+
     ISBT721 public babt;
 
     bool public onlyBABTHolders;
@@ -104,6 +108,8 @@ contract GovPool is
     function __GovPool_init(
         Dependencies calldata govPoolDeps,
         address nftMultiplierAddress,
+        uint256 _regularVoteModifier,
+        uint256 _expertVoteModifier,
         address _verifier,
         bool _onlyBABTHolders,
         uint256 _deployerBABTid,
@@ -119,6 +125,9 @@ contract GovPool is
         if (nftMultiplierAddress != address(0)) {
             _setNftMultiplierAddress(nftMultiplierAddress);
         }
+
+        regularVoteModifier = _regularVoteModifier;
+        expertVoteModifier = _expertVoteModifier;
 
         onlyBABTHolders = _onlyBABTHolders;
         deployerBABTid = _deployerBABTid;
@@ -354,6 +363,14 @@ contract GovPool is
         _setNftMultiplierAddress(nftMultiplierAddress);
     }
 
+    function changeVoteModifiers(
+        uint256 _regularModifier,
+        uint256 _expertModifier
+    ) external override onlyThis {
+        regularVoteModifier = _regularModifier;
+        expertVoteModifier = _expertModifier;
+    }
+
     function saveOffchainResults(
         string calldata resultsHash,
         bytes calldata signature
@@ -538,8 +555,16 @@ contract GovPool is
         return _offChain.verifier;
     }
 
-    function getExpertStatus(address user) external view returns (bool) {
+    function getExpertStatus(address user) public view override returns (bool) {
         return expertNft.isExpert(user) || dexeExpertNft.isExpert(user);
+    }
+
+    function getVoteModifiers() external view override returns (uint256, uint256) {
+        return (regularVoteModifier, expertVoteModifier);
+    }
+
+    function getVoteModifierForUser(address user) external view returns (uint256) {
+        return getExpertStatus(user) ? expertVoteModifier : regularVoteModifier;
     }
 
     function _setNftMultiplierAddress(address nftMultiplierAddress) internal {

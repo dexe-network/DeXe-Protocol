@@ -300,6 +300,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         GovPool(payable(poolProxy)).__GovPool_init(
             govPoolDeps,
             parameters.nftMultiplierAddress,
+            parameters.regularVoteModifier,
+            parameters.expertVoteModifier,
             parameters.verifier,
             parameters.onlyBABHolders,
             babtId,

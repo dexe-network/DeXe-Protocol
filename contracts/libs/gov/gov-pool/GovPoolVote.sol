@@ -150,9 +150,7 @@ library GovPoolVote {
             "Gov: vote limit reached"
         );
 
-        uint256 rootPower = govPool.getExpertStatus(msg.sender)
-            ? 769230769000000000
-            : 769230769000000000;
+        uint256 rootPower = govPool.getVoteModifierForUser(msg.sender);
 
         if (voteAmount > 0) {
             _voteTokens(
@@ -169,7 +167,15 @@ library GovPoolVote {
 
         reward = voteAmount;
         if (voteNftIds.length > 0) {
-            reward += _voteNfts(core, voteInfo, voteNftIds, isMicropool, useDelegated, isVoteFor);
+            reward += _voteNfts(
+                core,
+                voteInfo,
+                voteNftIds,
+                isMicropool,
+                useDelegated,
+                isVoteFor,
+                rootPower
+            );
         }
 
         require(reward >= core.settings.minVotesForVoting, "Gov: low current vote power");
@@ -265,7 +271,8 @@ library GovPoolVote {
         uint256[] calldata nftIds,
         bool isMicropool,
         bool useDelegated,
-        bool isVoteFor
+        bool isVoteFor,
+        uint256 rootPower
     ) internal returns (uint256 voteAmount) {
         EnumerableSet.UintSet storage votedNfts = _votedNfts(voteInfo, isVoteFor);
 
@@ -282,6 +289,8 @@ library GovPoolVote {
         userKeeper.updateNftPowers(nftIds);
 
         voteAmount = userKeeper.getNftsPowerInTokensBySnapshot(nftIds, core.nftPowerSnapshotId);
+
+        uint256 amountVotes = voteAmount.pow(rootPower);
 
         if (isVoteFor) {
             core.votesFor += voteAmount;
