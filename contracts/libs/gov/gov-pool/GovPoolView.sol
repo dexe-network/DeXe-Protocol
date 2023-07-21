@@ -79,7 +79,9 @@ library GovPoolView {
         for (uint256 i; i < unlockedIds.length; i++) {
             IGovPool.VoteInfo storage voteInfo = _voteInfos[unlockedIds[i]][user][isMicropool];
 
-            totalLength += voteInfo.nftsVotedFor.length() + voteInfo.nftsVotedAgainst.length();
+            totalLength +=
+                voteInfo.voteFor.nftsVoted.length() +
+                voteInfo.voteAgainst.nftsVoted.length();
         }
 
         unlockedNfts = new uint256[](totalLength);
@@ -88,8 +90,11 @@ library GovPoolView {
         for (uint256 i; i < unlockedIds.length; i++) {
             IGovPool.VoteInfo storage voteInfo = _voteInfos[unlockedIds[i]][user][isMicropool];
 
-            totalLength = unlockedNfts.insert(totalLength, voteInfo.nftsVotedFor.values());
-            totalLength = unlockedNfts.insert(totalLength, voteInfo.nftsVotedAgainst.values());
+            totalLength = unlockedNfts.insert(totalLength, voteInfo.voteFor.nftsVoted.values());
+            totalLength = unlockedNfts.insert(
+                totalLength,
+                voteInfo.voteAgainst.nftsVoted.values()
+            );
         }
     }
 

@@ -256,6 +256,65 @@ contract GovPool is
         );
     }
 
+    function cancelVotes(
+        uint256 proposalId,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds,
+        bool isVoteFor
+    ) external onlyBABTHolder {
+        uint256 reward = _proposals.cancelVotes(
+            _voteInfos,
+            proposalId,
+            false,
+            voteAmount,
+            voteNftIds,
+            isVoteFor
+        );
+
+        if (proposalId != 0) {
+            _pendingRewards.cancelRewards(
+                _proposals,
+                proposalId,
+                isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst,
+                reward
+            );
+        }
+    }
+
+    function cancelVotesDelegated(
+        uint256 proposalId,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds,
+        bool isVoteFor
+    ) external onlyBABTHolder {
+        uint256 reward = _proposals.cancelVotes(
+            _voteInfos,
+            proposalId,
+            true,
+            voteAmount,
+            voteNftIds,
+            isVoteFor
+        );
+
+        if (proposalId != 0) {
+            uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
+
+            _pendingRewards.cancelRewards(
+                _proposals,
+                proposalId,
+                isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
+                micropoolReward
+            );
+
+            _micropoolInfos[msg.sender].cancelRewards(
+                _proposals,
+                proposalId,
+                isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
+                reward - micropoolReward
+            );
+        }
+    }
+
     function withdraw(
         address receiver,
         uint256 amount,
@@ -490,7 +549,12 @@ contract GovPool is
         IGovPool.ProposalCore storage core = _proposals[proposalId].core;
         IGovPool.VoteInfo storage info = _voteInfos[proposalId][voter][isMicropool];
 
-        return (core.votesFor, core.votesAgainst, info.totalVotedFor, info.totalVotedAgainst);
+        return (
+            core.votesFor,
+            core.votesAgainst,
+            info.voteFor.totalVoted,
+            info.voteAgainst.totalVoted
+        );
     }
 
     function getUserVotes(
@@ -502,12 +566,12 @@ contract GovPool is
 
         return
             VoteInfoView({
-                totalVotedFor: info.totalVotedFor,
-                totalVotedAgainst: info.totalVotedAgainst,
-                tokensVotedFor: info.tokensVotedFor,
-                tokensVotedAgainst: info.tokensVotedAgainst,
-                nftsVotedFor: info.nftsVotedFor.values(),
-                nftsVotedAgainst: info.nftsVotedAgainst.values()
+                totalVotedFor: info.voteFor.totalVoted,
+                totalVotedAgainst: info.voteAgainst.totalVoted,
+                tokensVotedFor: info.voteFor.tokensVoted,
+                tokensVotedAgainst: info.voteAgainst.tokensVoted,
+                nftsVotedFor: info.voteFor.nftsVoted.values(),
+                nftsVotedAgainst: info.voteAgainst.nftsVoted.values()
             });
     }
 

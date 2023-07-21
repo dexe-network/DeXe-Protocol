@@ -22,6 +22,14 @@ library GovPoolVote {
         bool isVoteFor
     );
 
+    event VotesCancelled(
+        uint256 proposalId,
+        address sender,
+        uint256 personalCanceledReward,
+        uint256 delegatedCanceledReward,
+        bool isVoteFor
+    );
+
     function vote(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         mapping(address => mapping(bool => EnumerableSet.UintSet)) storage votedInProposals,
@@ -85,6 +93,56 @@ library GovPoolVote {
                 false,
                 isVoteFor
             );
+    }
+
+    function cancelVotes(
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        mapping(uint256 => mapping(address => mapping(bool => IGovPool.VoteInfo)))
+            storage voteInfos,
+        uint256 proposalId,
+        bool isMicropool,
+        uint256 voteAmount,
+        uint256[] calldata nftIds,
+        bool isVoteFor
+    ) external returns (uint256 reallocatedReward) {
+        IGovPool govPool = IGovPool(address(this));
+
+        require(
+            govPool.getProposalState(proposalId) == IGovPool.ProposalState.Voting,
+            "Gov: vote unavailable"
+        );
+
+        IGovPool.ProposalCore storage core = proposals[proposalId].core;
+        IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][msg.sender][isMicropool];
+
+        (IGovPool.VoteOption storage voteOption, ) = _voteOptions(voteInfo, isVoteFor);
+
+        require(voteOption.tokensVoted >= voteAmount, "Gov: not enough tokens");
+
+        _saveTokenResult(core, voteInfo, voteAmount, isVoteFor, false);
+
+        for (uint256 i; i < nftIds.length; i++) {
+            require(voteOption.nftsVoted.remove(nftIds[i]), "Gov: NFT was not voted");
+        }
+
+        (, address userKeeper, , ) = govPool.getHelperContracts();
+
+        uint256 nftVoteAmount = IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(
+            nftIds,
+            core.nftPowerSnapshotId
+        );
+
+        _saveNftResult(core, voteInfo, nftVoteAmount, isVoteFor, false);
+
+        reallocatedReward = voteAmount + nftVoteAmount;
+
+        emit VotesCancelled(
+            proposalId,
+            msg.sender,
+            isMicropool ? 0 : reallocatedReward,
+            isMicropool ? reallocatedReward : 0,
+            isVoteFor
+        );
     }
 
     function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {
@@ -215,20 +273,12 @@ library GovPoolVote {
             amount <=
                 tokenBalance -
                     ownedBalance -
-                    voteInfo.tokensVotedFor -
-                    voteInfo.tokensVotedAgainst,
+                    voteInfo.voteFor.tokensVoted -
+                    voteInfo.voteAgainst.tokensVoted,
             "Gov: wrong vote amount"
         );
 
-        if (isVoteFor) {
-            core.votesFor += amount;
-            voteInfo.totalVotedFor += amount;
-            voteInfo.tokensVotedFor += amount;
-        } else {
-            core.votesAgainst += amount;
-            voteInfo.totalVotedAgainst += amount;
-            voteInfo.tokensVotedAgainst += amount;
-        }
+        _saveTokenResult(core, voteInfo, amount, isVoteFor, true);
     }
 
     function _voteNfts(
@@ -239,10 +289,17 @@ library GovPoolVote {
         bool useDelegated,
         bool isVoteFor
     ) internal returns (uint256 voteAmount) {
-        EnumerableSet.UintSet storage votedNfts = _votedNfts(voteInfo, isVoteFor);
+        (
+            IGovPool.VoteOption storage voteOption,
+            IGovPool.VoteOption storage voteOptionAggainst
+        ) = _voteOptions(voteInfo, isVoteFor);
 
         for (uint256 i; i < nftIds.length; i++) {
-            require(votedNfts.add(nftIds[i]), "Gov: NFT already voted");
+            require(
+                voteOption.nftsVoted.add(nftIds[i]) &&
+                    !voteOptionAggainst.nftsVoted.contains(nftIds[i]),
+                "Gov: NFT already voted"
+            );
         }
 
         (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
@@ -255,19 +312,64 @@ library GovPoolVote {
 
         voteAmount = userKeeper.getNftsPowerInTokensBySnapshot(nftIds, core.nftPowerSnapshotId);
 
+        _saveNftResult(core, voteInfo, voteAmount, isVoteFor, true);
+    }
+
+    function _saveTokenResult(
+        IGovPool.ProposalCore storage core,
+        IGovPool.VoteInfo storage voteInfo,
+        uint256 amount,
+        bool isVoteFor,
+        bool isPlus
+    ) internal {
+        (IGovPool.VoteOption storage voteOption, ) = _voteOptions(voteInfo, isVoteFor);
+
+        _addVoteAmountToCore(core, amount, isVoteFor, isPlus);
+
+        voteOption.totalVoted = isPlus
+            ? voteOption.totalVoted + amount
+            : voteOption.totalVoted - amount;
+        voteOption.tokensVoted = isPlus
+            ? voteOption.tokensVoted + amount
+            : voteOption.tokensVoted - amount;
+    }
+
+    function _saveNftResult(
+        IGovPool.ProposalCore storage core,
+        IGovPool.VoteInfo storage voteInfo,
+        uint256 amount,
+        bool isVoteFor,
+        bool isPlus
+    ) internal {
+        (IGovPool.VoteOption storage voteOption, ) = _voteOptions(voteInfo, isVoteFor);
+
+        _addVoteAmountToCore(core, amount, isVoteFor, isPlus);
+
+        voteOption.totalVoted = isPlus
+            ? voteOption.totalVoted + amount
+            : voteOption.totalVoted - amount;
+    }
+
+    function _addVoteAmountToCore(
+        IGovPool.ProposalCore storage core,
+        uint256 amount,
+        bool isVoteFor,
+        bool isPlus
+    ) internal {
         if (isVoteFor) {
-            core.votesFor += voteAmount;
-            voteInfo.totalVotedFor += voteAmount;
+            core.votesFor = isPlus ? core.votesFor + amount : core.votesFor - amount;
         } else {
-            core.votesAgainst += voteAmount;
-            voteInfo.totalVotedAgainst += voteAmount;
+            core.votesAgainst = isPlus ? core.votesAgainst + amount : core.votesAgainst - amount;
         }
     }
 
-    function _votedNfts(
+    function _voteOptions(
         IGovPool.VoteInfo storage voteInfo,
         bool isVoteFor
-    ) internal view returns (EnumerableSet.UintSet storage) {
-        return isVoteFor ? voteInfo.nftsVotedFor : voteInfo.nftsVotedAgainst;
+    ) internal view returns (IGovPool.VoteOption storage, IGovPool.VoteOption storage) {
+        return
+            isVoteFor
+                ? (voteInfo.voteFor, voteInfo.voteAgainst)
+                : (voteInfo.voteAgainst, voteInfo.voteFor);
     }
 }

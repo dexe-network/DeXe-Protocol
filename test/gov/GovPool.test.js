@@ -955,6 +955,228 @@ describe("GovPool", () => {
         });
       });
 
+      describe("cancelVotes() tokens", () => {
+        it("should cancel all votes", async () => {
+          await govPool.vote(1, wei("100"), [], true);
+          await govPool.cancelVotes(1, wei("100"), [], true);
+
+          let proposal = await getProposalByIndex(1);
+
+          assert.equal(proposal.descriptionURL, "example.com");
+          assert.equal(proposal.core.votesFor, "0");
+          assert.equal(proposal.core.votesAgainst, "0");
+          const voteInfo = await govPool.getUserVotes(1, OWNER, false);
+
+          assert.equal(voteInfo.totalVotedFor, "0");
+          assert.equal(voteInfo.totalVotedAgainst, "0");
+          assert.equal(voteInfo.tokensVotedFor, "0");
+          assert.equal(voteInfo.tokensVotedAgainst, "0");
+          assert.deepEqual(voteInfo.nftsVotedFor, []);
+          assert.deepEqual(voteInfo.nftsVotedAgainst, []);
+        });
+
+        it("should cancel part of votes", async () => {
+          await govPool.vote(1, wei("100"), [], true);
+          await govPool.cancelVotes(1, wei("50"), [], true);
+
+          let proposal = await getProposalByIndex(1);
+
+          assert.equal(proposal.descriptionURL, "example.com");
+          assert.equal(proposal.core.votesFor, wei("50"));
+          assert.equal(proposal.core.votesAgainst, "0");
+
+          const voteInfo = await govPool.getUserVotes(1, OWNER, false);
+
+          assert.equal(voteInfo.totalVotedFor, wei("50"));
+          assert.equal(voteInfo.totalVotedAgainst, "0");
+          assert.equal(voteInfo.tokensVotedFor, wei("50"));
+          assert.equal(voteInfo.tokensVotedAgainst, "0");
+          assert.deepEqual(voteInfo.nftsVotedFor, []);
+          assert.deepEqual(voteInfo.nftsVotedAgainst, []);
+        });
+
+        it("should not cancel if vote to cancel is zero", async () => {
+          await govPool.vote(1, wei("100"), [], true);
+
+          await govPool.cancelVotes(1, 0, [], true);
+          let proposal = await getProposalByIndex(1);
+
+          assert.equal(proposal.descriptionURL, "example.com");
+          assert.equal(proposal.core.votesFor, wei("100"));
+          assert.equal(proposal.core.votesAgainst, "0");
+
+          let voteInfo = await govPool.getUserVotes(1, OWNER, false);
+
+          assert.equal(voteInfo.totalVotedFor, wei("100"));
+          assert.equal(voteInfo.totalVotedAgainst, "0");
+          assert.equal(voteInfo.tokensVotedFor, wei("100"));
+          assert.equal(voteInfo.tokensVotedAgainst, "0");
+          assert.deepEqual(voteInfo.nftsVotedFor, []);
+          assert.deepEqual(voteInfo.nftsVotedAgainst, []);
+
+          await govPool.cancelVotes(1, 0, [], false);
+
+          proposal = await getProposalByIndex(1);
+
+          assert.equal(proposal.descriptionURL, "example.com");
+          assert.equal(proposal.core.votesFor, wei("100"));
+          assert.equal(proposal.core.votesAgainst, "0");
+
+          voteInfo = await govPool.getUserVotes(1, OWNER, false);
+
+          assert.equal(voteInfo.totalVotedFor, wei("100"));
+          assert.equal(voteInfo.totalVotedAgainst, "0");
+          assert.equal(voteInfo.tokensVotedFor, wei("100"));
+          assert.equal(voteInfo.tokensVotedAgainst, "0");
+          assert.deepEqual(voteInfo.nftsVotedFor, []);
+          assert.deepEqual(voteInfo.nftsVotedAgainst, []);
+        });
+
+        it("should not cancel if vote to cancel is greater than voted", async () => {
+          await govPool.vote(1, wei("100"), [], true);
+
+          await truffleAssert.reverts(govPool.cancelVotes(1, wei("101"), [], true), "Gov: not enough tokens");
+
+          await truffleAssert.reverts(govPool.cancelVotes(1, wei("1"), [], false), "Gov: not enough tokens");
+        });
+
+        it("should not cancel if vote to cancel is proposal has status != Voting", async () => {
+          await truffleAssert.reverts(govPool.cancelVotes(3, wei("100"), [], true), "Gov: vote unavailable");
+        });
+      });
+
+      describe("voteDelegated() tokens", () => {
+        beforeEach("setup", async () => {
+          await govPool.delegate(SECOND, wei("500"), []);
+          await govPool.delegate(THIRD, wei("500"), []);
+        });
+
+        it("should vote delegated tokens for two proposals", async () => {
+          await govPool.voteDelegated(1, wei("70"), [], true, { from: SECOND });
+          await govPool.voteDelegated(1, wei("30"), [], false, { from: SECOND });
+          await govPool.voteDelegated(2, wei("50"), [], true, { from: THIRD });
+
+          let proposal = await getProposalByIndex(1);
+
+          assert.equal(proposal.core.votesFor, wei("70"));
+          assert.equal(proposal.core.votesAgainst, wei("30"));
+
+          proposal = await getProposalByIndex(2);
+
+          assert.equal(proposal.core.votesFor, wei("50"));
+          assert.equal(proposal.core.votesAgainst, "0");
+
+          const voteInfo = await govPool.getUserVotes(1, SECOND, true);
+
+          assert.equal(voteInfo.totalVotedFor, wei("70"));
+          assert.equal(voteInfo.totalVotedAgainst, wei("30"));
+          assert.equal(voteInfo.tokensVotedFor, wei("70"));
+          assert.equal(voteInfo.tokensVotedAgainst, wei("30"));
+          assert.deepEqual(voteInfo.nftsVotedFor, []);
+          assert.deepEqual(voteInfo.nftsVotedAgainst, []);
+        });
+
+        it("should vote delegated tokens twice", async () => {
+          await govPool.voteDelegated(1, wei("100"), [], true, { from: SECOND });
+          assert.equal((await getProposalByIndex(1)).core.votesFor, wei("100"));
+
+          await govPool.voteDelegated(1, wei("100"), [], true, { from: SECOND });
+          assert.equal((await getProposalByIndex(1)).core.votesFor, wei("200"));
+
+          const total = await govPool.getTotalVotes(1, SECOND, true);
+
+          assert.equal(toBN(total[0]).toFixed(), wei("200"));
+          assert.equal(toBN(total[1]).toFixed(), "0");
+          assert.equal(toBN(total[2]).toFixed(), wei("200"));
+          assert.equal(toBN(total[3]).toFixed(), "0");
+        });
+
+        it("should vote for all tokens", async () => {
+          await govPool.voteDelegated(1, wei("500"), [], true, { from: SECOND });
+          assert.equal((await getProposalByIndex(1)).core.votesFor, wei("500"));
+        });
+
+        it("should revert when vote is zero amount", async () => {
+          await truffleAssert.reverts(
+            govPool.voteDelegated(1, 0, [], true, { from: SECOND }),
+            "Gov: empty delegated vote"
+          );
+        });
+
+        it("should revert when spending undelegated tokens", async () => {
+          await truffleAssert.reverts(govPool.voteDelegated(1, 1, [], true, { from: FOURTH }), "Gov: low voting power");
+        });
+
+        it("should revert if voting with amount exceeding delegation", async () => {
+          await truffleAssert.reverts(
+            govPool.voteDelegated(1, wei("1000"), [], true, { from: SECOND }),
+            "Gov: wrong vote amount"
+          );
+        });
+
+        it("should not vote if low current vote power", async () => {
+          await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
+
+          await truffleAssert.reverts(
+            govPool.voteDelegated(1, wei("1"), [], true, { from: SECOND }),
+            "Gov: low current vote power"
+          );
+        });
+      });
+
+      describe("cancelVotes() nfts", () => {
+        const SINGLE_NFT_COST = toBN("3666666666666666666666");
+
+        it("should cancel all votes", async () => {
+          await govPool.vote(1, "0", [1, 2], true);
+          await govPool.cancelVotes(1, "0", [1, 2], true);
+
+          let proposal = await getProposalByIndex(1);
+
+          assert.equal(proposal.descriptionURL, "example.com");
+          assert.equal(proposal.core.votesFor, "0");
+          assert.equal(proposal.core.votesAgainst, "0");
+          const voteInfo = await govPool.getUserVotes(1, OWNER, false);
+
+          assert.equal(voteInfo.totalVotedFor, "0");
+          assert.equal(voteInfo.totalVotedAgainst, "0");
+          assert.equal(voteInfo.tokensVotedFor, "0");
+          assert.equal(voteInfo.tokensVotedAgainst, "0");
+          assert.deepEqual(voteInfo.nftsVotedFor, []);
+          assert.deepEqual(voteInfo.nftsVotedAgainst, []);
+        });
+
+        it("should cancel part of votes", async () => {
+          await govPool.vote(1, "0", [1, 2], true);
+          await govPool.cancelVotes(1, "0", [1], true);
+
+          let proposal = await getProposalByIndex(1);
+
+          assert.equal(proposal.descriptionURL, "example.com");
+          assert.equal(proposal.core.votesFor, SINGLE_NFT_COST.plus(1).toFixed());
+          assert.equal(proposal.core.votesAgainst, "0");
+
+          const voteInfo = await govPool.getUserVotes(1, OWNER, false);
+
+          assert.equal(voteInfo.totalVotedFor, SINGLE_NFT_COST.plus(1).toFixed());
+          assert.equal(voteInfo.totalVotedAgainst, "0");
+          assert.equal(voteInfo.tokensVotedFor, "0");
+          assert.equal(voteInfo.tokensVotedAgainst, "0");
+          assert.deepEqual(voteInfo.nftsVotedFor, ["2"]);
+          assert.deepEqual(voteInfo.nftsVotedAgainst, []);
+        });
+
+        it("should not cancel if vote to cancel is greater than voted", async () => {
+          await govPool.vote(1, "0", [1], true);
+
+          await truffleAssert.reverts(govPool.cancelVotes(1, "0", [2], true), "Gov: NFT was not voted");
+
+          await truffleAssert.reverts(govPool.cancelVotes(1, "0", [1, 2], true), "Gov: NFT was not voted");
+
+          await truffleAssert.reverts(govPool.cancelVotes(1, "0", [1], false), "Gov: NFT was not voted");
+        });
+      });
+
       describe("if high minVotingPower", () => {
         beforeEach(async () => {
           const NEW_INTERNAL_SETTINGS = {
@@ -1047,6 +1269,12 @@ describe("GovPool", () => {
 
           it("should revert when voting with same NFTs", async () => {
             await truffleAssert.reverts(govPool.vote(1, 0, [2, 2], true), "Gov: NFT already voted");
+
+            await govPool.vote(1, 0, [2], true);
+
+            await truffleAssert.reverts(govPool.vote(1, 0, [2], true), "Gov: NFT already voted");
+
+            await truffleAssert.reverts(govPool.vote(1, 0, [2], false), "Gov: NFT already voted");
           });
 
           it("should not vote if low current vote power", async () => {
@@ -2521,6 +2749,74 @@ describe("GovPool", () => {
         assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("1025"));
       });
 
+      it("should cancel all vote reward", async () => {
+        const bytes = getBytesAddSettings([NEW_SETTINGS]);
+
+        await govPool.createProposal("example.com", "misc", [[settings.address, 0, bytes]], [], { from: SECOND });
+        await govPool.vote(1, wei("1000"), [], true);
+
+        await govPool.cancelVotes(1, wei("1000"), [], true);
+
+        await govPool.vote(1, wei("100000000000000000000"), [], true, { from: SECOND });
+
+        await govPool.moveProposalToValidators(1, { from: SECOND });
+        await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
+
+        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), "0");
+
+        let rewards = await govPool.getPendingRewards(OWNER, [1]);
+
+        assert.deepEqual(rewards.onchainRewards, ["0"]);
+        assert.deepEqual(rewards.offchainTokens, []);
+        assert.deepEqual(rewards.offchainRewards, []);
+
+        await govPool.execute(1, { from: SECOND });
+
+        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("20000000000000000005"));
+
+        rewards = await govPool.getPendingRewards(OWNER, [1]);
+
+        assert.deepEqual(rewards.onchainRewards, [wei("0")]);
+
+        await govPool.claimRewards([1]);
+
+        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("0"));
+      });
+
+      it("should cancel all vote reward", async () => {
+        const bytes = getBytesAddSettings([NEW_SETTINGS]);
+
+        await govPool.createProposal("example.com", "misc", [[settings.address, 0, bytes]], [], { from: SECOND });
+        await govPool.vote(1, wei("1000"), [], true);
+
+        await govPool.cancelVotes(1, wei("500"), [], true);
+
+        await govPool.vote(1, wei("100000000000000000000"), [], true, { from: SECOND });
+
+        await govPool.moveProposalToValidators(1, { from: SECOND });
+        await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
+
+        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), "0");
+
+        let rewards = await govPool.getPendingRewards(OWNER, [1]);
+
+        assert.deepEqual(rewards.onchainRewards, ["0"]);
+        assert.deepEqual(rewards.offchainTokens, []);
+        assert.deepEqual(rewards.offchainRewards, []);
+
+        await govPool.execute(1, { from: SECOND });
+
+        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("20000000000000000105"));
+
+        rewards = await govPool.getPendingRewards(OWNER, [1]);
+
+        assert.deepEqual(rewards.onchainRewards, [wei("500")]);
+
+        await govPool.claimRewards([1]);
+
+        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), wei("500"));
+      });
+
       it("should claim reward properly if nft multiplier has been set", async () => {
         await setNftMultiplierAddress(nftMultiplier.address);
 
@@ -3590,6 +3886,14 @@ describe("GovPool", () => {
           from: SECOND,
         });
         await truffleAssert.reverts(govPool.voteDelegated(1, wei("100"), [], true), REVERT_STRING);
+      });
+
+      it("cancelVotes()", async () => {
+        await truffleAssert.reverts(govPool.cancelVotes(1, wei("100"), [], true), REVERT_STRING);
+      });
+
+      it("cancelVotesDelegated()", async () => {
+        await truffleAssert.reverts(govPool.cancelVotesDelegated(1, wei("100"), [], true), REVERT_STRING);
       });
 
       it("deposit()", async () => {
