@@ -151,11 +151,9 @@ interface IGovPool {
         uint256 cumulativeSum;
     }
 
-    /// FIXME: docs
     /// @notice The struct that holds micropool properties (only for internal needs)
     /// @param totalStake the current total sum of all delegator stakes
-    /// @param rewardTokens the list of reward tokens
-    /// @param rewardTokenInfos matching reward tokens to their parameters
+    /// @param proposalInfos matching proposals to their parameters
     /// @param latestDelegatorStake matching delegators to their latest stakes
     struct MicropoolStakingInfo {
         uint256 totalStake;
@@ -314,7 +312,9 @@ interface IGovPool {
     /// @param proposalIds the array of proposal ids
     function claimRewards(uint256[] calldata proposalIds) external;
 
-    /// FIXME: docs
+    /// @notice The function for claiming rewards from staking
+    /// @param proposalIds the array of proposal ids
+    /// @param delegatee the address of the delegatee
     function claimStaking(uint256[] calldata proposalIds, address delegatee) external;
 
     /// @notice The function for changing description url
@@ -407,7 +407,9 @@ interface IGovPool {
 
     /// FIXME: docs
     /// @notice The function to get delegator staking rewards from all micropools
+    /// @param proposalIds the list of proposal ids
     /// @param delegator the address of the delegator
+    /// @param delegatee the address of the delegatee
     /// @return delegator staking rewards
     function getDelegatorStakingRewards(
         uint256[] calldata proposalIds,

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../../../interfaces/gov/IGovPool.sol";
@@ -14,7 +13,6 @@ library GovPoolStaking {
     using TokenBalance for address;
     using MathHelper for uint256;
     using Math for uint256;
-    using EnumerableSet for EnumerableSet.UintSet;
 
     event StakingRewardClaimed(address user, address token, uint256 amount);
 
@@ -165,7 +163,6 @@ library GovPoolStaking {
             address rewardToken = proposals[proposalIds[i]].core.settings.rewardsInfo.rewardToken;
             uint256 pendingRewards = delegatorInfo.pendingRewards;
 
-            // TODO: check
             delegatorInfo.pendingRewards = 0;
             delegatorInfo.latestCumulativeSum = proposalInfo.cumulativeSum;
 
@@ -173,11 +170,9 @@ library GovPoolStaking {
                 return;
             }
 
-            uint256 amountToTransfer = pendingRewards.min(rewardToken.normThisBalance());
+            rewardToken.sendFunds(msg.sender, pendingRewards, TokenBalance.TransferType.TryMint);
 
-            rewardToken.sendFunds(msg.sender, amountToTransfer, true);
-
-            emit StakingRewardClaimed(msg.sender, rewardToken, amountToTransfer);
+            emit StakingRewardClaimed(msg.sender, rewardToken, pendingRewards);
         }
     }
 
