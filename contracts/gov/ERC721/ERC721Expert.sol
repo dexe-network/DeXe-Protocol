@@ -49,6 +49,8 @@ contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgr
         require(tags.length <= MAX_TAG_LENGTH, "ERC721Expert: Too much tags");
 
         _tags[tokenId] = tags;
+
+        emit TagsAdded(tokenId, tags);
     }
 
     function setTokenURI(uint256 tokenId, string calldata uri_) external onlyOwner {

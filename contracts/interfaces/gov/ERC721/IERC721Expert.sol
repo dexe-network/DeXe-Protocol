@@ -17,6 +17,7 @@ interface IERC721Expert is IERC721Upgradeable {
         uint256 indexed tokenId,
         BurnAuth burnAuth
     );
+    event TagsAdded(uint256 indexed tokenId, string[] tags);
 
     function mint(address to, string calldata uri_) external returns (uint256 tokenId);
 
