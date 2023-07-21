@@ -281,14 +281,14 @@ contract GovPool is
         _unlock(msg.sender, false);
         _unlock(delegatee, true);
 
-        mapping(bool => MicropoolStakingInfo) storage micropools = _micropoolInfos[delegatee];
+        mapping(bool => MicropoolStakingInfo) storage micropoolPair = _micropoolInfos[delegatee];
 
-        micropools.doBeforeRestake(_votedInProposals[delegatee][true].values(), delegatee);
+        micropoolPair.doBeforeRestake(_votedInProposals[delegatee][true].values(), delegatee);
 
         _govUserKeeper.delegateTokens.exec(delegatee, amount);
         _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
 
-        micropools.doAfterRestake(delegatee);
+        micropoolPair.doAfterRestake(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, true);
     }
@@ -302,14 +302,14 @@ contract GovPool is
 
         _unlock(delegatee, true);
 
-        mapping(bool => MicropoolStakingInfo) storage micropools = _micropoolInfos[delegatee];
+        mapping(bool => MicropoolStakingInfo) storage micropoolPair = _micropoolInfos[delegatee];
 
-        micropools.doBeforeRestake(_votedInProposals[delegatee][true].values(), delegatee);
+        micropoolPair.doBeforeRestake(_votedInProposals[delegatee][true].values(), delegatee);
 
         _govUserKeeper.requestTokens.exec(delegatee, amount);
         _govUserKeeper.requestNfts.exec(delegatee, nftIds);
 
-        micropools.doAfterRestake(delegatee);
+        micropoolPair.doAfterRestake(delegatee);
 
         emit Requested(msg.sender, delegatee, amount, nftIds);
     }
@@ -323,14 +323,14 @@ contract GovPool is
 
         _unlock(delegatee, true);
 
-        mapping(bool => MicropoolStakingInfo) storage micropools = _micropoolInfos[delegatee];
+        mapping(bool => MicropoolStakingInfo) storage micropoolPair = _micropoolInfos[delegatee];
 
-        micropools.doBeforeRestake(_votedInProposals[delegatee][true].values(), delegatee);
+        micropoolPair.doBeforeRestake(_votedInProposals[delegatee][true].values(), delegatee);
 
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
         _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
 
-        micropools.doAfterRestake(delegatee);
+        micropoolPair.doAfterRestake(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, false);
     }

@@ -46,7 +46,7 @@ library GovPoolStaking {
     }
 
     function claim(
-        mapping(bool => IGovPool.MicropoolStakingInfo) storage micropools,
+        mapping(bool => IGovPool.MicropoolStakingInfo) storage micropoolPair,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256[] calldata proposalIds,
         address delegatee
@@ -55,44 +55,44 @@ library GovPoolStaking {
             require(proposals[proposalIds[i]].core.executed, "Gov: not executed");
         }
 
-        doBeforeRestake(micropools, proposalIds, delegatee);
+        doBeforeRestake(micropoolPair, proposalIds, delegatee);
 
-        _claim(micropools[true], proposals, proposalIds);
-        _claim(micropools[false], proposals, proposalIds);
+        _claim(micropoolPair[true], proposals, proposalIds);
+        _claim(micropoolPair[false], proposals, proposalIds);
     }
 
     function doBeforeRestake(
-        mapping(bool => IGovPool.MicropoolStakingInfo) storage micropools,
+        mapping(bool => IGovPool.MicropoolStakingInfo) storage micropoolPair,
         uint256[] calldata proposalIds,
         address delegatee
     ) public {
-        _doBeforeRestake(micropools[true], proposalIds, delegatee);
-        _doBeforeRestake(micropools[false], proposalIds, delegatee);
+        _doBeforeRestake(micropoolPair[true], proposalIds, delegatee);
+        _doBeforeRestake(micropoolPair[false], proposalIds, delegatee);
     }
 
     function doAfterRestake(
-        mapping(bool => IGovPool.MicropoolStakingInfo) storage micropools,
+        mapping(bool => IGovPool.MicropoolStakingInfo) storage micropoolPair,
         address delegatee
     ) external {
-        _doAfterRestake(micropools[true], delegatee);
-        _doAfterRestake(micropools[false], delegatee);
+        _doAfterRestake(micropoolPair[true], delegatee);
+        _doAfterRestake(micropoolPair[false], delegatee);
     }
 
     function getDelegatorStakingRewards(
-        mapping(bool => IGovPool.MicropoolStakingInfo) storage micropoolInfos,
+        mapping(bool => IGovPool.MicropoolStakingInfo) storage micropoolPair,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256[] calldata proposalIds,
         address delegator,
         address delegatee
     ) external view returns (IGovPool.DelegatorStakingRewards memory rewards) {
         uint256[] memory expectedRewardsFor = _getMicropoolPendingRewards(
-            micropoolInfos[true],
+            micropoolPair[true],
             proposalIds,
             delegator,
             delegatee
         );
         uint256[] memory expectedRewardsAgainst = _getMicropoolPendingRewards(
-            micropoolInfos[false],
+            micropoolPair[false],
             proposalIds,
             delegator,
             delegatee
