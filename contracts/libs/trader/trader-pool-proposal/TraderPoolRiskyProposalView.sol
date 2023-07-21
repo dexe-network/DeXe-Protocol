@@ -5,13 +5,13 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
-import "../../interfaces/trader/ITraderPoolRiskyProposal.sol";
-import "../../interfaces/core/IPriceFeed.sol";
+import "../../../interfaces/trader/ITraderPoolRiskyProposal.sol";
+import "../../../interfaces/core/IPriceFeed.sol";
 
-import "../math/MathHelper.sol";
-import "../price-feed/PriceFeedLocal.sol";
+import "../../math/MathHelper.sol";
+import "../../price-feed/PriceFeedLocal.sol";
 
-import "../../trader/TraderPoolRiskyProposal.sol";
+import "../../../trader/TraderPoolRiskyProposal.sol";
 
 library TraderPoolRiskyProposalView {
     using EnumerableSet for EnumerableSet.UintSet;

@@ -3,11 +3,11 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "../../interfaces/gov/IGovPool.sol";
-import "../../interfaces/gov/ERC721/IERC721Multiplier.sol";
+import "../../../interfaces/gov/IGovPool.sol";
+import "../../../interfaces/gov/ERC721/IERC721Multiplier.sol";
 
-import "../utils/TokenBalance.sol";
-import "../math/MathHelper.sol";
+import "../../utils/TokenBalance.sol";
+import "../../math/MathHelper.sol";
 
 library GovPoolRewards {
     using EnumerableSet for EnumerableSet.AddressSet;

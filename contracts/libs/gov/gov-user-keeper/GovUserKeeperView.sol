@@ -4,13 +4,13 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
+import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
-import "../utils/ArrayCropper.sol";
-import "../math/MathHelper.sol";
+import "../../utils/ArrayCropper.sol";
+import "../../math/MathHelper.sol";
 
-import "../../gov/ERC721/ERC721Power.sol";
-import "../../gov/user-keeper/GovUserKeeper.sol";
+import "../../../gov/ERC721/ERC721Power.sol";
+import "../../../gov/user-keeper/GovUserKeeper.sol";
 
 library GovUserKeeperView {
     using EnumerableSet for EnumerableSet.UintSet;
@@ -42,6 +42,7 @@ library GovUserKeeperView {
             }
 
             if (nftAddressExists) {
+                /// @dev FE should `crop` this array if it's micropool
                 (power.nftIds, power.ownedLength) = userKeeper.nftExactBalance(
                     users[i],
                     isMicropools[i],
@@ -132,7 +133,10 @@ library GovUserKeeperView {
                 delegation.delegatedNfts,
                 true
             );
+            delegation.requestedTokens = userInfo.requestedTokens[delegatee];
+            delegation.requestedNfts = userInfo.requestedNfts[delegatee].values();
 
+            // TODO: should we remove requested power?
             power += delegation.delegatedTokens + delegation.nftPower;
         }
     }

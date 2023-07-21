@@ -4,14 +4,14 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-import "../../interfaces/gov/IGovPool.sol";
-import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
-import "../../interfaces/gov/settings/IGovSettings.sol";
-import "../../interfaces/gov/validators/IGovValidators.sol";
+import "../../../interfaces/gov/IGovPool.sol";
+import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
+import "../../../interfaces/gov/settings/IGovSettings.sol";
+import "../../../interfaces/gov/validators/IGovValidators.sol";
 
-import "../utils/DataHelper.sol";
+import "../../utils/DataHelper.sol";
 
-import "../../gov/GovPool.sol";
+import "../../../gov/GovPool.sol";
 
 library GovPoolCreate {
     using DataHelper for bytes;

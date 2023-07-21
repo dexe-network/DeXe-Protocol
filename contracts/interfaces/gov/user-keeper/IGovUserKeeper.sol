@@ -20,16 +20,29 @@ interface IGovUserKeeper {
         EnumerableSet.UintSet nftBalance; // array of NFTs
     }
 
+    /// @notice The struct holds information about micropool
+    /// @param balanceInfo the BalanceInfo struct
+    /// @param requestedTokens the amount of requested tokens
+    /// @param requestedNfts the array of requested nfts
+    struct Micropool {
+        BalanceInfo balanceInfo;
+        uint256 requestedTokens;
+        EnumerableSet.UintSet requestedNfts;
+    }
+
     /// @notice The struct holds information about user balances
     /// @param balanceInfo the BalanceInfo struct
     /// @param delegatedTokens the mapping of delegated tokens (delegatee address => delegated amount)
+    /// @param requestedTokens the mapping of requested tokens (delegatee address => requested amount)
     /// @param delegatedNfts the mapping of delegated nfts (delegatee address => array of delegated nft ids)
-    /// @param delegatees the array of delegatees
+    /// @param requestedNfts the mapping of requested nfts (delegatee address => array of requested nft ids)
     /// @param delegatees the array of delegatees
     struct UserInfo {
         BalanceInfo balanceInfo;
         mapping(address => uint256) delegatedTokens; // delegatee => amount
+        mapping(address => uint256) requestedTokens;
         mapping(address => EnumerableSet.UintSet) delegatedNfts; // delegatee => tokenIds
+        mapping(address => EnumerableSet.UintSet) requestedNfts;
         EnumerableSet.AddressSet delegatees;
     }
 
@@ -65,12 +78,16 @@ interface IGovUserKeeper {
     /// @param delegatedNfts the array of delegated nfts, bounded by index with perNftPower
     /// @param nftPower the total power of delegated nfts
     /// @param perNftPower the array of nft power, bounded by index with delegatedNfts
+    /// @param requestedTokens the amount of requested tokens
+    /// @param requestedNfts the array of requested nfts
     struct DelegationInfoView {
         address delegatee;
         uint256 delegatedTokens;
         uint256[] delegatedNfts;
         uint256 nftPower;
         uint256[] perNftPower;
+        uint256 requestedTokens;
+        uint256[] requestedNfts;
     }
 
     /// @notice The function for depositing tokens
@@ -90,6 +107,18 @@ interface IGovUserKeeper {
     /// @param delegatee the address of delegatee
     /// @param amount the erc20 delegation amount
     function delegateTokens(address delegator, address delegatee, uint256 amount) external;
+
+    /// @notice The function for requesting tokens
+    /// @param delegator the address of delegator
+    /// @param delegatee the address of delegatee
+    /// @param amount the erc20 requested amount
+    function requestTokens(address delegator, address delegatee, uint256 amount) external;
+
+    /// @notice The function for requesting nfts
+    /// @param delegator the address of delegator
+    /// @param delegatee the address of delegatee
+    /// @param nftIds the array of requested nft ids
+    function requestNfts(address delegator, address delegatee, uint256[] calldata nftIds) external;
 
     /// @notice The function for undelegating tokens
     /// @param delegator the address of delegator
