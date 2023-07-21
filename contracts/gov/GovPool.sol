@@ -283,12 +283,12 @@ contract GovPool is
 
         mapping(bool => MicropoolStakingInfo) storage micropoolPair = _micropoolInfos[delegatee];
 
-        micropoolPair.doBeforeRestake(_votedInProposals[delegatee][true].values(), delegatee);
+        micropoolPair.beforeRestake(_votedInProposals[delegatee][true].values(), delegatee);
 
         _govUserKeeper.delegateTokens.exec(delegatee, amount);
         _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
 
-        micropoolPair.doAfterRestake(delegatee);
+        micropoolPair.afterRestake(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, true);
     }
@@ -304,12 +304,12 @@ contract GovPool is
 
         mapping(bool => MicropoolStakingInfo) storage micropoolPair = _micropoolInfos[delegatee];
 
-        micropoolPair.doBeforeRestake(_votedInProposals[delegatee][true].values(), delegatee);
+        micropoolPair.beforeRestake(_votedInProposals[delegatee][true].values(), delegatee);
 
         _govUserKeeper.requestTokens.exec(delegatee, amount);
         _govUserKeeper.requestNfts.exec(delegatee, nftIds);
 
-        micropoolPair.doAfterRestake(delegatee);
+        micropoolPair.afterRestake(delegatee);
 
         emit Requested(msg.sender, delegatee, amount, nftIds);
     }
@@ -325,12 +325,12 @@ contract GovPool is
 
         mapping(bool => MicropoolStakingInfo) storage micropoolPair = _micropoolInfos[delegatee];
 
-        micropoolPair.doBeforeRestake(_votedInProposals[delegatee][true].values(), delegatee);
+        micropoolPair.beforeRestake(_votedInProposals[delegatee][true].values(), delegatee);
 
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
         _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
 
-        micropoolPair.doAfterRestake(delegatee);
+        micropoolPair.afterRestake(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, false);
     }

@@ -55,27 +55,27 @@ library GovPoolStaking {
             require(proposals[proposalIds[i]].core.executed, "Gov: not executed");
         }
 
-        doBeforeRestake(micropoolPair, proposalIds, delegatee);
+        beforeRestake(micropoolPair, proposalIds, delegatee);
 
         _claim(micropoolPair[true], proposals, proposalIds);
         _claim(micropoolPair[false], proposals, proposalIds);
     }
 
-    function doBeforeRestake(
+    function beforeRestake(
         mapping(bool => IGovPool.MicropoolStakingInfo) storage micropoolPair,
         uint256[] calldata proposalIds,
         address delegatee
     ) public {
-        _doBeforeRestake(micropoolPair[true], proposalIds, delegatee);
-        _doBeforeRestake(micropoolPair[false], proposalIds, delegatee);
+        _beforeRestake(micropoolPair[true], proposalIds, delegatee);
+        _beforeRestake(micropoolPair[false], proposalIds, delegatee);
     }
 
-    function doAfterRestake(
+    function afterRestake(
         mapping(bool => IGovPool.MicropoolStakingInfo) storage micropoolPair,
         address delegatee
     ) external {
-        _doAfterRestake(micropoolPair[true], delegatee);
-        _doAfterRestake(micropoolPair[false], delegatee);
+        _afterRestake(micropoolPair[true], delegatee);
+        _afterRestake(micropoolPair[false], delegatee);
     }
 
     function getDelegatorStakingRewards(
@@ -113,7 +113,7 @@ library GovPoolStaking {
         }
     }
 
-    function _doBeforeRestake(
+    function _beforeRestake(
         IGovPool.MicropoolStakingInfo storage micropool,
         uint256[] calldata proposalIds,
         address delegatee
@@ -135,7 +135,7 @@ library GovPoolStaking {
         }
     }
 
-    function _doAfterRestake(
+    function _afterRestake(
         IGovPool.MicropoolStakingInfo storage micropool,
         address delegatee
     ) private {
