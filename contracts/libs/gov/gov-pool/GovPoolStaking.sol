@@ -40,7 +40,7 @@ library GovPoolStaking {
 
         IGovPool.ProposalInfo storage proposalInfo = micropool.proposalInfos[proposalId];
 
-        proposalInfo.cumulativeSum += amountToAdd.ratio(rewardsCoefficient, PRECISION).ratio(
+        proposalInfo.cumulativeSum += amount.ratio(rewardsCoefficient, PRECISION).ratio(
             PRECISION,
             totalStake
         );
