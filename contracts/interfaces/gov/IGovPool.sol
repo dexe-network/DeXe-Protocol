@@ -141,19 +141,29 @@ interface IGovPool {
     }
 
     /// @notice The struct that holds delegator properties (only for internal needs)
+    /// @param joined the boolean flag indicating whether the delegator's participating in staking
     /// @param latestCumulativeSum delegator's latest cumulative sum
     /// @param pendingRewards delegator's pending rewards
+    /// @param startRewardSum the total amount of rewards at the time of the delegator's first stake
+    /// @param startCancelSum the total amount of cancelled rewards at the time of the delegator's first stake
     struct DelegatorInfo {
+        bool joined;
         uint256 latestCumulativeSum;
         uint256 pendingRewards;
+        uint256 startRewardSum;
+        uint256 startCancelSum;
     }
 
     /// @notice The struct that holds reward token properties (only for internal needs)
     /// @param delegators matching delegators addresses with their parameters
     /// @param cumulativeSum global cumulative sum
+    /// @param rewardSum the total amount of rewards
+    /// @param cancelSum the total amount of cancelled rewards
     struct ProposalInfo {
         mapping(address => DelegatorInfo) delegators;
         uint256 cumulativeSum;
+        uint256 rewardSum;
+        uint256 cancelSum;
     }
 
     /// @notice The struct that holds micropool properties (only for internal needs)

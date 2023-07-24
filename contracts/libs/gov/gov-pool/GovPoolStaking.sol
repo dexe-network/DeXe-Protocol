@@ -39,10 +39,18 @@ library GovPoolStaking {
             : rewardsInfo.voteAgainstRewardsCoefficient;
         uint256 amountToAdd = amount.ratio(rewardsCoefficient, PRECISION);
 
-        micropool.proposalInfos[proposalId].cumulativeSum += amountToAdd.ratio(
-            PRECISION,
-            totalStake
-        );
+        IGovPool.ProposalInfo storage proposalInfo = micropool.proposalInfos[proposalId];
+
+        proposalInfo.cumulativeSum += amountToAdd.ratio(PRECISION, totalStake);
+        proposalInfo.rewardSum += amount;
+    }
+
+    function cancelRewards(
+        IGovPool.MicropoolStakingInfo storage micropool,
+        uint256 proposalId,
+        uint256 amount
+    ) external {
+        micropool.proposalInfos[proposalId].cancelSum += amount;
     }
 
     function claim(
@@ -102,7 +110,7 @@ library GovPoolStaking {
         rewards.expectedRewards = new uint256[](proposalIds.length);
         rewards.realRewards = new uint256[](proposalIds.length);
 
-        for (uint256 i = 0; i < proposalIds.length; i++) {
+        for (uint256 i; i < proposalIds.length; i++) {
             address rewardToken = proposals[proposalIds[i]].core.settings.rewardsInfo.rewardToken;
 
             rewards.rewardTokens[i] = rewardToken;
@@ -127,11 +135,17 @@ library GovPoolStaking {
 
         for (uint256 i; i < proposalIds.length; i++) {
             IGovPool.ProposalInfo storage proposalInfo = micropool.proposalInfos[proposalIds[i]];
+            IGovPool.DelegatorInfo storage delegatorInfo = proposalInfo.delegators[msg.sender];
 
-            proposalInfo.delegators[msg.sender] = IGovPool.DelegatorInfo({
-                pendingRewards: pendingRewards[i],
-                latestCumulativeSum: proposalInfo.cumulativeSum
-            });
+            delegatorInfo.pendingRewards = pendingRewards[i];
+            delegatorInfo.latestCumulativeSum = proposalInfo.cumulativeSum;
+
+            /// TODO: can it be implemented without joined field?
+            if (!delegatorInfo.joined) {
+                delegatorInfo.joined = true;
+                delegatorInfo.startRewardSum = proposalInfo.rewardSum;
+                delegatorInfo.startCancelSum = proposalInfo.cancelSum;
+            }
         }
     }
 
@@ -156,12 +170,21 @@ library GovPoolStaking {
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256[] calldata proposalIds
     ) private {
+        uint256[] memory rewardCoefficients = _getRewardCoefficients(
+            micropool,
+            proposalIds,
+            msg.sender
+        );
+
         for (uint256 i; i < proposalIds.length; i++) {
             IGovPool.ProposalInfo storage proposalInfo = micropool.proposalInfos[proposalIds[i]];
             IGovPool.DelegatorInfo storage delegatorInfo = proposalInfo.delegators[msg.sender];
 
             address rewardToken = proposals[proposalIds[i]].core.settings.rewardsInfo.rewardToken;
-            uint256 pendingRewards = delegatorInfo.pendingRewards;
+            uint256 pendingRewards = delegatorInfo.pendingRewards.ratio(
+                rewardCoefficients[i],
+                PRECISION
+            );
 
             delegatorInfo.pendingRewards = 0;
             delegatorInfo.latestCumulativeSum = proposalInfo.cumulativeSum;
@@ -207,6 +230,32 @@ library GovPoolStaking {
                     previousDelegatorStake,
                     rewardsDeviation
                 );
+        }
+    }
+
+    function _getRewardCoefficients(
+        IGovPool.MicropoolStakingInfo storage micropool,
+        uint256[] calldata proposalIds,
+        address delegator
+    ) private view returns (uint256[] memory coefficients) {
+        coefficients = new uint256[](proposalIds.length);
+
+        for (uint256 i; i < proposalIds.length; i++) {
+            IGovPool.ProposalInfo storage proposalInfo = micropool.proposalInfos[proposalIds[i]];
+
+            IGovPool.DelegatorInfo memory delegatorInfo = proposalInfo.delegators[delegator];
+
+            uint256 suffixRewardSum = proposalInfo.rewardSum - delegatorInfo.startRewardSum;
+            uint256 suffixCancelSum = proposalInfo.cancelSum - delegatorInfo.startCancelSum;
+
+            if (suffixCancelSum > suffixRewardSum) {
+                return 0;
+            }
+
+            coefficients[i] = (suffixRewardSum - suffixCancelSum).ratio(
+                PRECISION,
+                suffixRewardSum
+            );
         }
     }
 }

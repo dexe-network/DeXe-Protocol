@@ -306,7 +306,10 @@ contract GovPool is
                 micropoolReward
             );
 
-            /// TODO: implement
+            _micropoolInfos[msg.sender][isVoteFor].cancelRewards(
+                proposalId,
+                reward - micropoolReward
+            );
         }
     }
 
