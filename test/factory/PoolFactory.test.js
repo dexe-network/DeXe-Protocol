@@ -602,7 +602,7 @@ describe("PoolFactory", () => {
           nftsTotalSupply: 33,
         },
         nftMultiplierAddress: testERC721Multiplier.address,
-        regularVoteModifier: "769230769000000000",
+        regularVoteModifier: "997000000000000000",
         expertVoteModifier: "883392226000000000",
         verifier: OWNER,
         onlyBABTHolders: false,

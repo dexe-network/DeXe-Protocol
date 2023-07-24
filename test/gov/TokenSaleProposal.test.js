@@ -462,7 +462,7 @@ describe("TokenSaleProposal", () => {
           nftsTotalSupply: 33,
         },
         nftMultiplierAddress: ZERO_ADDR,
-        regularVoteModifier: "769230769000000000",
+        regularVoteModifier: "997000000000000000",
         expertVoteModifier: "883392226000000000",
         onlyBABTHolders: false,
         deployerBABTid: 1,

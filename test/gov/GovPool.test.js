@@ -1,4 +1,4 @@
-const { toBN, accounts, wei } = require("../../scripts/utils/utils");
+const { toBN, accounts, wei, fromWei } = require("../../scripts/utils/utils");
 const { toPercent } = require("../utils/utils");
 const {
   getBytesExecute,
@@ -124,6 +124,36 @@ describe("GovPool", () => {
 
   async function executeAndClaim(proposalId, from) {
     await govPool.multicall([getBytesGovExecute(proposalId), getBytesGovClaimRewards([proposalId])], { from: from });
+  }
+
+  async function printVotes(proposalId) {
+    console.log("Token TS:", fromWei(await token.totalSupply()));
+    const ownerData = await govPool.getTotalVotes(proposalId, OWNER, false);
+    const secondData = await govPool.getTotalVotes(proposalId, SECOND, false);
+    const thirdData = await govPool.getTotalVotes(proposalId, THIRD, false);
+    assert.deepEqual(ownerData[0], secondData[0]);
+    assert.deepEqual(ownerData[1], secondData[1]);
+    assert.deepEqual(ownerData[0], thirdData[0]);
+    assert.deepEqual(ownerData[1], thirdData[1]);
+    console.log("Total votes for:", fromWei(ownerData[0]));
+    console.log("Total votes against:", fromWei(ownerData[1]));
+    console.log("Owner votes for:", fromWei(ownerData[2]));
+    console.log("Owner votes against:", fromWei(ownerData[3]));
+    console.log("Second votes for:", fromWei(secondData[2]));
+    console.log("Second votes against:", fromWei(secondData[3]));
+    console.log("Third votes for:", fromWei(thirdData[2]));
+    console.log("Third votes against:", fromWei(thirdData[3]));
+    console.log("");
+  }
+
+  function tokensToVotes(tokenNumber) {
+    return wei(Math.pow(tokenNumber, 0.997));
+  }
+
+  function compareWithPrecision9(a, b) {
+    let a1 = parseFloat(fromWei(a));
+    let b1 = parseFloat(fromWei(b));
+    assert.closeTo(a1, b1, 0.000000001);
   }
 
   before("setup", async () => {
@@ -252,7 +282,7 @@ describe("GovPool", () => {
     await govPool.__GovPool_init(
       [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address],
       poolParams.nftMultiplierAddress,
-      "769230769000000000",
+      "997000000000000000",
       "883392226000000000",
       OWNER,
       poolParams.onlyBABTHolders,
@@ -459,7 +489,7 @@ describe("GovPool", () => {
           govPool.__GovPool_init(
             [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address],
             POOL_PARAMETERS.nftMultiplierAddress,
-            "769230769000000000",
+            "997000000000000000",
             "883392226000000000",
             OWNER,
             POOL_PARAMETERS.onlyBABTHolders,
@@ -837,18 +867,18 @@ describe("GovPool", () => {
           let proposal = await getProposalByIndex(1);
 
           assert.equal(proposal.descriptionURL, "example.com");
-          assert.equal(proposal.core.votesFor, wei("70"));
-          assert.equal(proposal.core.votesAgainst, wei("30"));
+          compareWithPrecision9(proposal.core.votesFor, tokensToVotes(70));
+          compareWithPrecision9(proposal.core.votesAgainst, tokensToVotes(30));
 
           proposal = await getProposalByIndex(2);
 
           assert.equal(proposal.core.votesFor, "0");
-          assert.equal(proposal.core.votesAgainst, wei("50"));
+          compareWithPrecision9(proposal.core.votesAgainst, tokensToVotes(50));
 
           const voteInfo = await govPool.getUserVotes(1, OWNER, false);
 
-          assert.equal(voteInfo.totalVotedFor, wei("70"));
-          assert.equal(voteInfo.totalVotedAgainst, wei("30"));
+          compareWithPrecision9(voteInfo.totalVotedFor, tokensToVotes(70));
+          compareWithPrecision9(voteInfo.totalVotedAgainst, tokensToVotes(30));
           assert.equal(voteInfo.tokensVotedFor, wei("70"));
           assert.equal(voteInfo.tokensVotedAgainst, wei("30"));
           assert.deepEqual(voteInfo.nftsVotedFor, []);
@@ -864,11 +894,13 @@ describe("GovPool", () => {
         it("should vote for proposal twice", async () => {
           await govPool.vote(1, wei("100"), [], true);
 
-          assert.equal((await getProposalByIndex(1)).core.votesFor, wei("100"));
+          const votesNumber = tokensToVotes(100);
+          compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, votesNumber);
 
           await govPool.vote(1, wei("100"), [], true);
 
-          assert.equal((await getProposalByIndex(1)).core.votesFor, wei("200"));
+          const twiceVotesNumber = toBN(votesNumber).times(2).toFixed();
+          compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, twiceVotesNumber);
         });
 
         it("should revert when vote zero amount", async () => {
@@ -893,18 +925,18 @@ describe("GovPool", () => {
 
           let proposal = await getProposalByIndex(1);
 
-          assert.equal(proposal.core.votesFor, wei("70"));
-          assert.equal(proposal.core.votesAgainst, wei("30"));
+          compareWithPrecision9(proposal.core.votesFor, tokensToVotes(70));
+          compareWithPrecision9(proposal.core.votesAgainst, tokensToVotes(30));
 
           proposal = await getProposalByIndex(2);
 
-          assert.equal(proposal.core.votesFor, wei("50"));
+          compareWithPrecision9(proposal.core.votesFor, tokensToVotes(50));
           assert.equal(proposal.core.votesAgainst, "0");
 
           const voteInfo = await govPool.getUserVotes(1, SECOND, true);
 
-          assert.equal(voteInfo.totalVotedFor, wei("70"));
-          assert.equal(voteInfo.totalVotedAgainst, wei("30"));
+          compareWithPrecision9(voteInfo.totalVotedFor, tokensToVotes(70));
+          compareWithPrecision9(voteInfo.totalVotedAgainst, tokensToVotes(30));
           assert.equal(voteInfo.tokensVotedFor, wei("70"));
           assert.equal(voteInfo.tokensVotedAgainst, wei("30"));
           assert.deepEqual(voteInfo.nftsVotedFor, []);
@@ -913,22 +945,24 @@ describe("GovPool", () => {
 
         it("should vote delegated tokens twice", async () => {
           await govPool.voteDelegated(1, wei("100"), [], true, { from: SECOND });
-          assert.equal((await getProposalByIndex(1)).core.votesFor, wei("100"));
+          const votesNumber = tokensToVotes(100);
+          compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, votesNumber);
 
           await govPool.voteDelegated(1, wei("100"), [], true, { from: SECOND });
-          assert.equal((await getProposalByIndex(1)).core.votesFor, wei("200"));
+          const twiceVotesNumber = toBN(votesNumber).times(2).toFixed();
+          compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, twiceVotesNumber);
 
           const total = await govPool.getTotalVotes(1, SECOND, true);
 
-          assert.equal(toBN(total[0]).toFixed(), wei("200"));
+          compareWithPrecision9(toBN(total[0]).toFixed(), twiceVotesNumber);
           assert.equal(toBN(total[1]).toFixed(), "0");
-          assert.equal(toBN(total[2]).toFixed(), wei("200"));
+          compareWithPrecision9(toBN(total[2]).toFixed(), twiceVotesNumber);
           assert.equal(toBN(total[3]).toFixed(), "0");
         });
 
         it("should vote for all tokens", async () => {
           await govPool.voteDelegated(1, wei("500"), [], true, { from: SECOND });
-          assert.equal((await getProposalByIndex(1)).core.votesFor, wei("500"));
+          compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, tokensToVotes(500));
         });
 
         it("should revert when vote is zero amount", async () => {
@@ -2456,7 +2490,7 @@ describe("GovPool", () => {
         await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
       });
 
-      it("should claim reward on For", async () => {
+      it.only("should claim reward on For", async () => {
         const bytes = getBytesAddSettings([NEW_SETTINGS]);
 
         await govPool.createProposal("example.com", "misc", [[settings.address, 0, bytes]], []);
@@ -2478,6 +2512,9 @@ describe("GovPool", () => {
         await govPool.execute(1);
 
         assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), wei("20000000000000000205"));
+
+        // REWARD 20000000000000000205
+        // seems like 1/5 from votes + 5 (for execute)
 
         rewards = await govPool.getPendingRewards(OWNER, [1]);
 

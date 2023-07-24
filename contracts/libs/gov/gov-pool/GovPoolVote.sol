@@ -251,16 +251,19 @@ library GovPoolVote {
         );
 
         IERC20Metadata token = IERC20Metadata(userKeeper.tokenAddress());
+        // REMOVE THIS
         uint256 amountVotes = amount.to18(token.decimals());
         amountVotes = _calculateVotes(amount, rootPower);
+        // TODO: from18
+        // TODO: check situation when decimals of token and nft are not equal
 
         if (isVoteFor) {
-            core.votesFor += amount;
-            voteInfo.totalVotedFor += amount;
+            core.votesFor += amountVotes;
+            voteInfo.totalVotedFor += amountVotes;
             voteInfo.tokensVotedFor += amount;
         } else {
-            core.votesAgainst += amount;
-            voteInfo.totalVotedAgainst += amount;
+            core.votesAgainst += amountVotes;
+            voteInfo.totalVotedAgainst += amountVotes;
             voteInfo.tokensVotedAgainst += amount;
         }
     }

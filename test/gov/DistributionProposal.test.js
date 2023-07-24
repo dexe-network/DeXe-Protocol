@@ -171,7 +171,7 @@ describe("DistributionProposal", () => {
     await govPool.__GovPool_init(
       [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address],
       poolParams.nftMultiplierAddress,
-      "769230769000000000",
+      "997000000000000000",
       "883392226000000000",
       OWNER,
       poolParams.onlyBABTHolders,
