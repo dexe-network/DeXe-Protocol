@@ -93,28 +93,24 @@ library GovPoolStaking {
         address delegator,
         address delegatee
     ) external view returns (IGovPool.DelegatorStakingRewards memory rewards) {
-        uint256[] memory expectedRewardsFor = _getMicropoolPendingRewards(
-            micropoolPair[true],
-            proposalIds,
-            delegator,
-            delegatee
-        );
-        uint256[] memory expectedRewardsAgainst = _getMicropoolPendingRewards(
-            micropoolPair[false],
-            proposalIds,
-            delegator,
-            delegatee
+        rewards.expectedRewards = _addArrays(
+            _multiplyArrays(
+                _getPendingRewards(micropoolPair[true], proposalIds, delegator, delegatee),
+                _getRewardCoefficients(micropoolPair[true], proposalIds, delegator)
+            ),
+            _multiplyArrays(
+                _getPendingRewards(micropoolPair[false], proposalIds, delegator, delegatee),
+                _getRewardCoefficients(micropoolPair[false], proposalIds, delegator)
+            )
         );
 
         rewards.rewardTokens = new address[](proposalIds.length);
-        rewards.expectedRewards = new uint256[](proposalIds.length);
         rewards.realRewards = new uint256[](proposalIds.length);
 
         for (uint256 i; i < proposalIds.length; i++) {
             address rewardToken = proposals[proposalIds[i]].core.settings.rewardsInfo.rewardToken;
 
             rewards.rewardTokens[i] = rewardToken;
-            rewards.expectedRewards[i] = expectedRewardsFor[i] + expectedRewardsAgainst[i];
             rewards.realRewards[i] = rewards.expectedRewards[i].min(
                 rewards.rewardTokens[i].normThisBalance()
             );
@@ -126,7 +122,7 @@ library GovPoolStaking {
         uint256[] calldata proposalIds,
         address delegatee
     ) private {
-        uint256[] memory pendingRewards = _getMicropoolPendingRewards(
+        uint256[] memory pendingRewards = _getPendingRewards(
             micropool,
             proposalIds,
             msg.sender,
@@ -140,7 +136,6 @@ library GovPoolStaking {
             delegatorInfo.pendingRewards = pendingRewards[i];
             delegatorInfo.latestCumulativeSum = proposalInfo.cumulativeSum;
 
-            /// TODO: can it be implemented without joined field?
             if (!delegatorInfo.joined) {
                 delegatorInfo.joined = true;
                 delegatorInfo.startRewardSum = proposalInfo.rewardSum;
@@ -199,7 +194,7 @@ library GovPoolStaking {
         }
     }
 
-    function _getMicropoolPendingRewards(
+    function _getPendingRewards(
         IGovPool.MicropoolStakingInfo storage micropool,
         uint256[] calldata proposalIds,
         address delegator,
@@ -249,13 +244,35 @@ library GovPoolStaking {
             uint256 suffixCancelSum = proposalInfo.cancelSum - delegatorInfo.startCancelSum;
 
             if (suffixCancelSum > suffixRewardSum) {
-                return 0;
+                continue;
             }
 
             coefficients[i] = (suffixRewardSum - suffixCancelSum).ratio(
                 PRECISION,
                 suffixRewardSum
             );
+        }
+    }
+
+    function _addArrays(
+        uint256[] memory lhs,
+        uint256[] memory rhs
+    ) private pure returns (uint256[] memory arr) {
+        arr = new uint256[](lhs.length);
+
+        for (uint256 i; i < lhs.length; ++i) {
+            arr[i] = lhs[i] + rhs[i];
+        }
+    }
+
+    function _multiplyArrays(
+        uint256[] memory lhs,
+        uint256[] memory rhs
+    ) private pure returns (uint256[] memory arr) {
+        arr = new uint256[](lhs.length);
+
+        for (uint256 i; i < lhs.length; ++i) {
+            arr[i] = lhs[i].ratio(rhs[i], PRECISION);
         }
     }
 }
