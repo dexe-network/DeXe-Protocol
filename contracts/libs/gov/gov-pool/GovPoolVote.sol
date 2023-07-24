@@ -150,8 +150,6 @@ library GovPoolVote {
             "Gov: vote limit reached"
         );
 
-        uint256 rootPower = govPool.getVoteModifierForUser(msg.sender);
-
         if (voteAmount > 0) {
             _voteTokens(
                 core,
@@ -160,23 +158,33 @@ library GovPoolVote {
                 voteAmount,
                 isMicropool,
                 useDelegated,
-                isVoteFor,
-                rootPower
+                isVoteFor
             );
         }
 
-        reward = voteAmount;
         if (voteNftIds.length > 0) {
-            reward += _voteNfts(
+            voteAmount += _voteNfts(
                 core,
                 voteInfo,
                 voteNftIds,
                 isMicropool,
                 useDelegated,
-                isVoteFor,
-                rootPower
+                isVoteFor
             );
         }
+
+        uint256 rootPower = govPool.getVoteModifierForUser(msg.sender);
+        voteAmount = _calculateVotes(voteAmount, rootPower);
+
+        if (isVoteFor) {
+            core.votesFor += voteAmount;
+            voteInfo.totalVotedFor += voteAmount;
+        } else {
+            core.votesAgainst += voteAmount;
+            voteInfo.totalVotedAgainst += voteAmount;
+        }
+
+        reward = voteAmount;
 
         require(reward >= core.settings.minVotesForVoting, "Gov: low current vote power");
 
@@ -227,8 +235,7 @@ library GovPoolVote {
         uint256 amount,
         bool isMicropool,
         bool useDelegated,
-        bool isVoteFor,
-        uint256 rootPower
+        bool isVoteFor
     ) internal {
         (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
 
@@ -250,20 +257,9 @@ library GovPoolVote {
             "Gov: wrong vote amount"
         );
 
-        IERC20Metadata token = IERC20Metadata(userKeeper.tokenAddress());
-        // REMOVE THIS
-        uint256 amountVotes = amount.to18(token.decimals());
-        amountVotes = _calculateVotes(amount, rootPower);
-        // TODO: from18
-        // TODO: check situation when decimals of token and nft are not equal
-
         if (isVoteFor) {
-            core.votesFor += amountVotes;
-            voteInfo.totalVotedFor += amountVotes;
             voteInfo.tokensVotedFor += amount;
         } else {
-            core.votesAgainst += amountVotes;
-            voteInfo.totalVotedAgainst += amountVotes;
             voteInfo.tokensVotedAgainst += amount;
         }
     }
@@ -274,8 +270,7 @@ library GovPoolVote {
         uint256[] calldata nftIds,
         bool isMicropool,
         bool useDelegated,
-        bool isVoteFor,
-        uint256 rootPower
+        bool isVoteFor
     ) internal returns (uint256 voteAmount) {
         EnumerableSet.UintSet storage votedNfts = _votedNfts(voteInfo, isVoteFor);
 
@@ -292,16 +287,6 @@ library GovPoolVote {
         userKeeper.updateNftPowers(nftIds);
 
         voteAmount = userKeeper.getNftsPowerInTokensBySnapshot(nftIds, core.nftPowerSnapshotId);
-
-        uint256 amountVotes = _calculateVotes(voteAmount, rootPower);
-
-        if (isVoteFor) {
-            core.votesFor += voteAmount;
-            voteInfo.totalVotedFor += voteAmount;
-        } else {
-            core.votesAgainst += voteAmount;
-            voteInfo.totalVotedAgainst += voteAmount;
-        }
     }
 
     function _votedNfts(

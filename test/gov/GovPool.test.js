@@ -2490,7 +2490,7 @@ describe("GovPool", () => {
         await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
       });
 
-      it.only("should claim reward on For", async () => {
+      it("should claim reward on For", async () => {
         const bytes = getBytesAddSettings([NEW_SETTINGS]);
 
         await govPool.createProposal("example.com", "misc", [[settings.address, 0, bytes]], []);
