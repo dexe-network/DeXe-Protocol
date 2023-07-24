@@ -37,11 +37,13 @@ library GovPoolStaking {
         uint256 rewardsCoefficient = isVoteFor
             ? rewardsInfo.voteForRewardsCoefficient
             : rewardsInfo.voteAgainstRewardsCoefficient;
-        uint256 amountToAdd = amount.ratio(rewardsCoefficient, PRECISION);
 
         IGovPool.ProposalInfo storage proposalInfo = micropool.proposalInfos[proposalId];
 
-        proposalInfo.cumulativeSum += amountToAdd.ratio(PRECISION, totalStake);
+        proposalInfo.cumulativeSum += amountToAdd.ratio(rewardsCoefficient, PRECISION).ratio(
+            PRECISION,
+            totalStake
+        );
         proposalInfo.rewardSum += amount;
     }
 
