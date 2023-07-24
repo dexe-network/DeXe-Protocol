@@ -7,9 +7,12 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URISto
 import "../../interfaces/gov/ERC721/IERC721Expert.sol";
 
 contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgradeable {
+    uint256 internal constant MAX_TAG_LENGTH = 3;
+
     uint256 private _maxIssued;
 
     mapping(address => uint256) private _attachments;
+    mapping(uint256 => string[]) private _tags;
 
     function __ERC721Expert_init(
         string calldata name,
@@ -34,30 +37,44 @@ contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgr
     function burn(uint256 tokenId) external onlyOwner {
         require(_exists(tokenId), "ERC721Expert: Cannot burn non-existent badge");
 
-        address _expert = ownerOf(tokenId);
+        delete _attachments[ownerOf(tokenId)];
+        delete _tags[tokenId];
 
         _burn(tokenId);
-        delete _attachments[_expert];
+    }
+
+    // tags is memory for storage compatibility
+    function setTags(uint256 tokenId, string[] memory tags) external onlyOwner {
+        require(_exists(tokenId), "ERC721Expert: Cannot set tags to non-existent badge");
+        require(tags.length <= MAX_TAG_LENGTH, "ERC721Expert: Too much tags");
+
+        _tags[tokenId] = tags;
+
+        emit TagsAdded(tokenId, tags);
     }
 
     function setTokenURI(uint256 tokenId, string calldata uri_) external onlyOwner {
         _setTokenURI(tokenId, uri_);
     }
 
-    function isExpert(address expert) public view returns (bool) {
-        return balanceOf(expert) == 1;
-    }
-
-    function getIdByExpert(address expert) public view returns (uint256) {
+    function getIdByExpert(address expert) external view returns (uint256) {
         require(isExpert(expert), "ERC721Expert: User is not an expert");
 
         return _attachments[expert];
+    }
+
+    function getTags(uint256 tokenId) external view returns (string[] memory) {
+        return _tags[tokenId];
     }
 
     function burnAuth(uint256 tokenId) external view override returns (BurnAuth) {
         require(_exists(tokenId), "ERC721Expert: Cannot find Burn Auth for non existant badge");
 
         return BurnAuth.OwnerOnly;
+    }
+
+    function isExpert(address expert) public view returns (bool) {
+        return balanceOf(expert) == 1;
     }
 
     function supportsInterface(

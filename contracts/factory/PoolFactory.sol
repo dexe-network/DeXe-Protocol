@@ -54,6 +54,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address validators,
         address settings,
         address govUserKeeper,
+        address localExpertNft,
         address sender
     );
     event DaoTokenSaleDeployed(address govPool, address tokenSale, address token);
@@ -78,6 +79,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         govPoolDeps.distributionAddress = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
         govPoolDeps.settingsAddress = _deploy(_poolRegistry.SETTINGS_NAME());
         address poolProxy = _deploy2(poolType, parameters.name);
+        govPoolDeps.expertNftAddress = _deployExpertNft(poolProxy, parameters.name);
 
         emit DaoPoolDeployed(
             parameters.name,
@@ -86,10 +88,9 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             govPoolDeps.validatorsAddress,
             govPoolDeps.settingsAddress,
             govPoolDeps.userKeeperAddress,
+            govPoolDeps.expertNftAddress,
             msg.sender
         );
-
-        govPoolDeps.expertNftAddress = _deployExpertNft(poolProxy, parameters.name);
 
         _updateSalt(parameters.name);
 
@@ -116,6 +117,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         govPoolDeps.distributionAddress = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
         govPoolDeps.settingsAddress = _deploy(_poolRegistry.SETTINGS_NAME());
         address poolProxy = _deploy2(poolType, parameters.name);
+        govPoolDeps.expertNftAddress = _deployExpertNft(poolProxy, parameters.name);
 
         emit DaoPoolDeployed(
             parameters.name,
@@ -124,6 +126,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             govPoolDeps.validatorsAddress,
             govPoolDeps.settingsAddress,
             govPoolDeps.userKeeperAddress,
+            govPoolDeps.expertNftAddress,
             msg.sender
         );
 
@@ -134,8 +137,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             tokenSaleProxy,
             parameters.userKeeperParams.tokenAddress
         );
-
-        govPoolDeps.expertNftAddress = _deployExpertNft(poolProxy, parameters.name);
 
         _updateSalt(parameters.name);
 
