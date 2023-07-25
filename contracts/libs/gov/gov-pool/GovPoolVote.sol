@@ -104,7 +104,7 @@ library GovPoolVote {
         uint256 voteAmount,
         uint256[] calldata nftIds,
         bool isVoteFor
-    ) external returns (uint256 reallocatedReward) {
+    ) external returns (uint256 canceledReward) {
         IGovPool govPool = IGovPool(address(this));
 
         require(
@@ -134,13 +134,13 @@ library GovPoolVote {
 
         _saveNftResult(core, voteInfo, nftVoteAmount, isVoteFor, false);
 
-        reallocatedReward = voteAmount + nftVoteAmount;
+        canceledReward = voteAmount + nftVoteAmount;
 
         emit VotesCanceled(
             proposalId,
             msg.sender,
-            isMicropool ? 0 : reallocatedReward,
-            isMicropool ? reallocatedReward : 0,
+            isMicropool ? 0 : canceledReward,
+            isMicropool ? canceledReward : 0,
             isVoteFor
         );
     }
