@@ -122,7 +122,7 @@ library GovPoolVote {
         _saveTokenResult(core, voteInfo, voteAmount, isVoteFor, false);
 
         for (uint256 i; i < nftIds.length; i++) {
-            require(voteOption.nftsVoted.remove(nftIds[i]), "Gov: NFT was not voted");
+            require(voteOption.nftsVoted.remove(nftIds[i]), "Gov: NFT didn't vote");
         }
 
         (, address userKeeper, , ) = govPool.getHelperContracts();
