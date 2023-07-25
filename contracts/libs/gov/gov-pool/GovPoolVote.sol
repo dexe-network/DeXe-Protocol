@@ -291,13 +291,13 @@ library GovPoolVote {
     ) internal returns (uint256 voteAmount) {
         (
             IGovPool.VoteOption storage voteOption,
-            IGovPool.VoteOption storage voteOptionAggainst
+            IGovPool.VoteOption storage voteOptionAgainst
         ) = _voteOptions(voteInfo, isVoteFor);
 
         for (uint256 i; i < nftIds.length; i++) {
             require(
                 voteOption.nftsVoted.add(nftIds[i]) &&
-                    !voteOptionAggainst.nftsVoted.contains(nftIds[i]),
+                    !voteOptionAgainst.nftsVoted.contains(nftIds[i]),
                 "Gov: NFT already voted"
             );
         }
