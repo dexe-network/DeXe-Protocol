@@ -22,7 +22,7 @@ library GovPoolVote {
         bool isVoteFor
     );
 
-    event VotesCancelled(
+    event VotesCanceled(
         uint256 proposalId,
         address sender,
         uint256 personalCanceledReward,
@@ -136,7 +136,7 @@ library GovPoolVote {
 
         reallocatedReward = voteAmount + nftVoteAmount;
 
-        emit VotesCancelled(
+        emit VotesCanceled(
             proposalId,
             msg.sender,
             isMicropool ? 0 : reallocatedReward,
