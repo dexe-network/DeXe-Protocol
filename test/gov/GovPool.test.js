@@ -147,12 +147,12 @@ describe("GovPool", () => {
   }
 
   function tokensToVotes(tokenNumber) {
-    return wei(Math.pow(tokenNumber, 0.997));
+    return toBN(Math.pow(tokenNumber, 0.997));
   }
 
   function compareWithPrecision9(a, b) {
     let a1 = parseFloat(fromWei(a));
-    let b1 = parseFloat(fromWei(b));
+    let b1 = parseFloat(b.toFixed());
     assert.closeTo(a1, b1, 0.000000001);
   }
 
@@ -893,14 +893,10 @@ describe("GovPool", () => {
 
         it("should vote for proposal twice", async () => {
           await govPool.vote(1, wei("100"), [], true);
-
-          const votesNumber = tokensToVotes(100);
-          compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, votesNumber);
+          compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, tokensToVotes(100));
 
           await govPool.vote(1, wei("100"), [], true);
-
-          const twiceVotesNumber = toBN(votesNumber).times(2).toFixed();
-          compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, twiceVotesNumber);
+          compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, tokensToVotes(100).times(2));
         });
 
         it("should revert when vote zero amount", async () => {
@@ -945,18 +941,16 @@ describe("GovPool", () => {
 
         it("should vote delegated tokens twice", async () => {
           await govPool.voteDelegated(1, wei("100"), [], true, { from: SECOND });
-          const votesNumber = tokensToVotes(100);
-          compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, votesNumber);
+          compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, tokensToVotes(100));
 
           await govPool.voteDelegated(1, wei("100"), [], true, { from: SECOND });
-          const twiceVotesNumber = toBN(votesNumber).times(2).toFixed();
-          compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, twiceVotesNumber);
+          compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, tokensToVotes(100).times(2));
 
           const total = await govPool.getTotalVotes(1, SECOND, true);
 
-          compareWithPrecision9(toBN(total[0]).toFixed(), twiceVotesNumber);
+          compareWithPrecision9(toBN(total[0]).toFixed(), tokensToVotes(100).times(2));
           assert.equal(toBN(total[1]).toFixed(), "0");
-          compareWithPrecision9(toBN(total[2]).toFixed(), twiceVotesNumber);
+          compareWithPrecision9(toBN(total[2]).toFixed(), tokensToVotes(100).times(2));
           assert.equal(toBN(total[3]).toFixed(), "0");
         });
 
@@ -1038,6 +1032,8 @@ describe("GovPool", () => {
 
         describe("vote() nfts", () => {
           const SINGLE_NFT_COST = toBN("3666666666666666666666");
+          const SINGLE_NFT_POWER = tokensToVotes(fromWei(SINGLE_NFT_COST));
+          const DOUBLE_NFT_POWER = tokensToVotes(fromWei(SINGLE_NFT_COST.times(2)));
 
           it("should vote for two proposals", async () => {
             await govPool.vote(1, 0, [1], true);
@@ -1046,17 +1042,17 @@ describe("GovPool", () => {
 
             let proposal = await getProposalByIndex(1);
 
-            assert.equal(proposal.core.votesFor, SINGLE_NFT_COST.toFixed());
+            compareWithPrecision9(proposal.core.votesFor, SINGLE_NFT_POWER);
             assert.equal(proposal.core.votesAgainst, "0");
 
             proposal = await getProposalByIndex(2);
 
-            assert.equal(proposal.core.votesFor, SINGLE_NFT_COST.toFixed());
-            assert.equal(proposal.core.votesAgainst, SINGLE_NFT_COST.toFixed());
+            compareWithPrecision9(proposal.core.votesFor, SINGLE_NFT_POWER);
+            compareWithPrecision9(proposal.core.votesAgainst, SINGLE_NFT_POWER);
 
             let voteInfo = await govPool.getUserVotes(1, OWNER, false);
 
-            assert.equal(voteInfo.totalVotedFor, SINGLE_NFT_COST.toFixed());
+            compareWithPrecision9(voteInfo.totalVotedFor, SINGLE_NFT_POWER);
             assert.equal(voteInfo.totalVotedAgainst, "0");
             assert.equal(voteInfo.tokensVotedFor, "0");
             assert.equal(voteInfo.tokensVotedAgainst, "0");
@@ -1065,8 +1061,8 @@ describe("GovPool", () => {
 
             voteInfo = await govPool.getUserVotes(2, OWNER, false);
 
-            assert.equal(voteInfo.totalVotedFor, SINGLE_NFT_COST.toFixed());
-            assert.equal(voteInfo.totalVotedAgainst, SINGLE_NFT_COST.toFixed());
+            compareWithPrecision9(voteInfo.totalVotedFor, SINGLE_NFT_POWER);
+            compareWithPrecision9(voteInfo.totalVotedAgainst, SINGLE_NFT_POWER);
             assert.equal(voteInfo.tokensVotedFor, "0");
             assert.equal(voteInfo.tokensVotedAgainst, "0");
             assert.deepEqual(voteInfo.nftsVotedFor, ["2"]);
@@ -1076,11 +1072,11 @@ describe("GovPool", () => {
           it("should vote for proposal twice", async () => {
             await govPool.vote(1, 0, [1], true);
 
-            assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.toFixed());
+            compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_POWER);
 
             await govPool.vote(1, 0, [2, 3], true);
 
-            assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.times(3).plus(1).toFixed());
+            compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_POWER.plus(DOUBLE_NFT_POWER));
           });
 
           it("should revert when voting with same NFTs", async () => {
@@ -1094,6 +1090,8 @@ describe("GovPool", () => {
 
         describe("voteDelegated() nfts", () => {
           const SINGLE_NFT_COST = toBN("3666666666666666666666");
+          const SINGLE_NFT_POWER = tokensToVotes(fromWei(SINGLE_NFT_COST));
+          const DOUBLE_NFT_POWER = tokensToVotes(fromWei(SINGLE_NFT_COST.times(2)));
 
           beforeEach("setup", async () => {
             await govPool.delegate(SECOND, wei("500"), [1]);
@@ -1104,12 +1102,12 @@ describe("GovPool", () => {
             await govPool.voteDelegated(1, 0, [1], true, { from: SECOND });
             await govPool.voteDelegated(2, 0, [2, 3], true, { from: THIRD });
 
-            assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.toFixed());
-            assert.equal((await getProposalByIndex(2)).core.votesFor, SINGLE_NFT_COST.times(2).plus(1).toFixed());
+            compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_POWER);
+            compareWithPrecision9((await getProposalByIndex(2)).core.votesFor, DOUBLE_NFT_POWER);
 
             const voteInfo = await govPool.getUserVotes(1, SECOND, true);
 
-            assert.equal(voteInfo.totalVotedFor, SINGLE_NFT_COST.toFixed());
+            compareWithPrecision9(voteInfo.totalVotedFor, SINGLE_NFT_POWER);
             assert.equal(voteInfo.totalVotedAgainst, "0");
             assert.equal(voteInfo.tokensVotedFor, "0");
             assert.equal(voteInfo.tokensVotedAgainst, "0");
@@ -1119,10 +1117,10 @@ describe("GovPool", () => {
 
           it("should vote delegated nfts twice", async () => {
             await govPool.voteDelegated(1, 0, [2], true, { from: THIRD });
-            assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.toFixed());
+            compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_POWER);
 
             await govPool.voteDelegated(1, 0, [3], true, { from: THIRD });
-            assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_COST.times(2).toFixed());
+            compareWithPrecision9((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_POWER.times(2));
           });
 
           it("should revert when spending undelegated nfts", async () => {
