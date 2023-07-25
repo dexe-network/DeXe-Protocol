@@ -25,8 +25,8 @@ library GovPoolVote {
     event VotesCanceled(
         uint256 proposalId,
         address sender,
-        uint256 personalCanceledReward,
-        uint256 delegatedCanceledReward,
+        uint256 personalVote,
+        uint256 delegatedVote,
         bool isVoteFor
     );
 
