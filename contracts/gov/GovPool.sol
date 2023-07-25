@@ -271,14 +271,12 @@ contract GovPool is
             isVoteFor
         );
 
-        if (proposalId != 0) {
-            _pendingRewards.cancelRewards(
-                _proposals,
-                proposalId,
-                isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst,
-                reward
-            );
-        }
+        _pendingRewards.cancelRewards(
+            _proposals,
+            proposalId,
+            isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst,
+            reward
+        );
     }
 
     function cancelVotesDelegated(
@@ -296,21 +294,16 @@ contract GovPool is
             isVoteFor
         );
 
-        if (proposalId != 0) {
-            uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
+        uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
 
-            _pendingRewards.cancelRewards(
-                _proposals,
-                proposalId,
-                isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
-                micropoolReward
-            );
+        _pendingRewards.cancelRewards(
+            _proposals,
+            proposalId,
+            isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
+            micropoolReward
+        );
 
-            _micropoolInfos[msg.sender][isVoteFor].cancelRewards(
-                proposalId,
-                reward - micropoolReward
-            );
-        }
+        _micropoolInfos[msg.sender][isVoteFor].cancelRewards(proposalId, reward - micropoolReward);
     }
 
     function withdraw(
