@@ -552,8 +552,8 @@ describe("DistributionProposal", () => {
         await setTime(startTime + 10000);
         await govPool.execute(1);
 
-        await truffleAssert.reverts(dp.claim(SECOND, [1]), "ERC20: transfer amount exceeds balance");
-        await truffleAssert.reverts(dp.claim(THIRD, [1]), "ERC20: transfer amount exceeds balance");
+        await truffleAssert.reverts(dp.claim(SECOND, [1]), "Gov: insufficient funds");
+        await truffleAssert.reverts(dp.claim(THIRD, [1]), "Gov: insufficient funds");
       });
 
       it("should revert if already claimed", async () => {

@@ -1169,11 +1169,11 @@ describe("GovPool", () => {
         it("should not cancel if vote to cancel is greater than voted", async () => {
           await govPool.vote(1, "0", [1], true);
 
-          await truffleAssert.reverts(govPool.cancelVotes(1, "0", [2], true), "Gov: NFT was not voted");
+          await truffleAssert.reverts(govPool.cancelVotes(1, "0", [2], true), "Gov: NFT didn't vote");
 
-          await truffleAssert.reverts(govPool.cancelVotes(1, "0", [1, 2], true), "Gov: NFT was not voted");
+          await truffleAssert.reverts(govPool.cancelVotes(1, "0", [1, 2], true), "Gov: NFT didn't vote");
 
-          await truffleAssert.reverts(govPool.cancelVotes(1, "0", [1], false), "Gov: NFT was not voted");
+          await truffleAssert.reverts(govPool.cancelVotes(1, "0", [1], false), "Gov: NFT didn't vote");
         });
       });
 
@@ -1532,7 +1532,7 @@ describe("GovPool", () => {
 
           await govPool.vote(3, wei("100000000000000000000"), [], true, { from: SECOND });
 
-          assert.isTrue((await validators.validatorsCount()).toFixed() != 0);
+          assert.notEqual((await validators.validatorsCount()).toFixed(), "0");
           assert.equal(await govPool.getProposalState(3), ProposalState.WaitingForVotingTransfer);
         });
 
@@ -1546,7 +1546,7 @@ describe("GovPool", () => {
 
           await govPool.vote(3, wei("100000000000000000000"), [], false, { from: SECOND });
 
-          assert.isTrue((await validators.validatorsCount()).toFixed() != 0);
+          assert.notEqual((await validators.validatorsCount()).toFixed(), "0");
           assert.equal(await govPool.getProposalState(3), ProposalState.WaitingForVotingTransfer);
         });
 
@@ -3089,7 +3089,7 @@ describe("GovPool", () => {
 
         await govPool.execute(2);
 
-        await truffleAssert.reverts(govPool.claimRewards([2]), "ERC20: transfer amount exceeds balance");
+        await truffleAssert.reverts(govPool.claimRewards([2]), "Gov: cannot mint");
 
         assert.equal((await newToken.balanceOf(treasury)).toFixed(), "0");
         assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("0"));
