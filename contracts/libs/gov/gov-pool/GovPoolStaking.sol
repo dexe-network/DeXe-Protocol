@@ -15,7 +15,7 @@ library GovPoolStaking {
     using Math for uint256;
 
     event StakingRewardClaimed(address user, address token, uint256 amount);
-    event Joined(address user, uint256 proposalId);
+    event Joined(address user, uint256 proposalId, address delegatee);
 
     function updateRewards(
         IGovPool.MicropoolStakingInfo storage micropool,
@@ -146,7 +146,7 @@ library GovPoolStaking {
                 delegatorInfo.startRewardSum = proposalInfo.rewardSum;
                 delegatorInfo.startCancelSum = proposalInfo.cancelSum;
 
-                emit Joined(msg.sender, proposalId);
+                emit Joined(msg.sender, proposalId, delegatee);
             }
         }
     }
