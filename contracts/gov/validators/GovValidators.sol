@@ -147,7 +147,6 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         addressVoted[proposalId][isInternal][msg.sender] += amount;
 
-        // TODO: use library for this?
         if (isVoteFor) {
             core.votesFor += amount;
         } else {
