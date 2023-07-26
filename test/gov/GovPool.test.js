@@ -3707,6 +3707,13 @@ describe("GovPool", () => {
 
         await govPool.deposit(OWNER, wei("3"), []);
         await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
+
+        await token.mint(SECOND, wei("100000000000000000000"));
+
+        await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
+
+        await govPool.deposit(OWNER, wei("1000"), []);
+        await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
       });
 
       it("should not give rewards for zero power nfts staking", async () => {
