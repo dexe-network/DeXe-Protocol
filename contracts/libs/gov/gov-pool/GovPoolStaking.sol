@@ -15,7 +15,6 @@ library GovPoolStaking {
     using Math for uint256;
 
     event StakingRewardClaimed(address user, address token, uint256 amount);
-    event Joined(address user, uint256 proposalId, address delegatee);
 
     function updateRewards(
         IGovPool.MicropoolStakingInfo storage micropool,
@@ -66,10 +65,8 @@ library GovPoolStaking {
             require(proposals[proposalIds[i]].core.executed, "Gov: not executed");
         }
 
-        beforeRestake(micropoolPair, proposalIds, delegatee);
-
-        _claim(micropoolPair[true], proposals, proposalIds);
-        _claim(micropoolPair[false], proposals, proposalIds);
+        _claim(micropoolPair[true], proposals, proposalIds, delegatee);
+        _claim(micropoolPair[false], proposals, proposalIds, delegatee);
     }
 
     function beforeRestake(
@@ -77,8 +74,8 @@ library GovPoolStaking {
         uint256[] calldata proposalIds,
         address delegatee
     ) public {
-        _beforeRestake(micropoolPair[true], proposalIds, delegatee);
-        _beforeRestake(micropoolPair[false], proposalIds, delegatee);
+        _beforeRestake(micropoolPair[true], proposalIds, delegatee, true);
+        _beforeRestake(micropoolPair[false], proposalIds, delegatee, true);
     }
 
     function afterRestake(
@@ -123,7 +120,8 @@ library GovPoolStaking {
     function _beforeRestake(
         IGovPool.MicropoolStakingInfo storage micropool,
         uint256[] calldata proposalIds,
-        address delegatee
+        address delegatee,
+        bool isRestake
     ) private {
         uint256[] memory pendingRewards = _getPendingRewards(
             micropool,
@@ -141,12 +139,10 @@ library GovPoolStaking {
             delegatorInfo.pendingRewards = pendingRewards[i];
             delegatorInfo.latestCumulativeSum = proposalInfo.cumulativeSum;
 
-            if (!delegatorInfo.joined) {
+            if (isRestake && !delegatorInfo.joined) {
                 delegatorInfo.joined = true;
                 delegatorInfo.startRewardSum = proposalInfo.rewardSum;
                 delegatorInfo.startCancelSum = proposalInfo.cancelSum;
-
-                emit Joined(msg.sender, proposalId, delegatee);
             }
         }
     }
@@ -170,8 +166,11 @@ library GovPoolStaking {
     function _claim(
         IGovPool.MicropoolStakingInfo storage micropool,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        uint256[] calldata proposalIds
+        uint256[] calldata proposalIds,
+        address delegatee
     ) private {
+        _beforeRestake(micropool, proposalIds, delegatee, false);
+
         uint256[] memory rewardCoefficients = _getRewardCoefficients(
             micropool,
             proposalIds,
