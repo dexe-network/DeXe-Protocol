@@ -249,7 +249,7 @@ library GovPoolStaking {
             uint256 suffixRewardSum = proposalInfo.rewardSum - delegatorInfo.startRewardSum;
             uint256 suffixCancelSum = proposalInfo.cancelSum - delegatorInfo.startCancelSum;
 
-            if (suffixCancelSum > suffixRewardSum) {
+            if (suffixCancelSum >= suffixRewardSum) {
                 continue;
             }
 

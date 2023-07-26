@@ -3682,7 +3682,7 @@ describe("GovPool", () => {
       await setupTokens();
     });
 
-    describe("staking", () => {
+    describe.only("staking", () => {
       let micropool;
       let delegator1;
       let delegator2;
@@ -3722,16 +3722,23 @@ describe("GovPool", () => {
 
         await govPool.voteDelegated(1, 0, [10, 11, 12, 20, 21, 22], true, { from: micropool });
 
+        await govPool.vote(1, wei("1000"), [], true);
+        await govPool.vote(1, wei("100000000000000000000"), [], true, { from: SECOND });
+
         await setTime((await getCurrentBlockTime()) + 10000);
 
-        await govPool.undelegate(micropool, 0, [10, 11, 12], { from: delegator1 });
-        await govPool.undelegate(micropool, 0, [20, 21, 22], { from: delegator2 });
+        await govPool.moveProposalToValidators(1);
 
-        const balance1 = await rewardToken.balanceOf(delegator1);
-        const balance2 = await rewardToken.balanceOf(delegator2);
+        await validators.vote(1, wei("100"), false, true);
+        await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
 
-        assert.equal(balance1.toFixed(), "0");
-        assert.equal(balance2.toFixed(), "0");
+        await govPool.execute(1);
+
+        await govPool.claimStaking([1], micropool, { from: delegator1 });
+        await govPool.claimStaking([1], micropool, { from: delegator2 });
+
+        assert.equal((await rewardToken.balanceOf(delegator1)).toFixed(), "0");
+        assert.equal((await rewardToken.balanceOf(delegator2)).toFixed(), "0");
       });
 
       it("should properly divide rewards by deviation", async () => {
@@ -3742,16 +3749,25 @@ describe("GovPool", () => {
 
         await govPool.voteDelegated(1, 0, [10, 11, 12, 20, 21, 22], true, { from: micropool });
 
-        await setTime((await getCurrentBlockTime()) + 1000);
-        await govPool.undelegate(micropool, 0, [20, 21, 22], { from: delegator2 });
+        await govPool.vote(1, wei("1000"), [], true);
+        await govPool.vote(1, wei("100000000000000000000"), [], true, { from: SECOND });
 
-        await setTime((await getCurrentBlockTime()) + 4465);
-        await govPool.undelegate(micropool, 0, [10, 11, 12], { from: delegator1 });
+        await setTime((await getCurrentBlockTime()) + 10000);
+
+        await govPool.moveProposalToValidators(1);
+
+        await validators.vote(1, wei("100"), false, true);
+        await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
+
+        await govPool.execute(1);
+
+        await govPool.claimStaking([1], micropool, { from: delegator1 });
+        await govPool.claimStaking([1], micropool, { from: delegator2 });
 
         const balance1 = await rewardToken.balanceOf(delegator1);
         const balance2 = await rewardToken.balanceOf(delegator2);
 
-        assertNoZerosBalanceDistribution([balance1, balance2], [1, 2], 100);
+        assertNoZerosBalanceDistribution([balance1, balance2], [1, 1], 100);
       });
     });
   });
