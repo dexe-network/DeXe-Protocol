@@ -470,6 +470,18 @@ describe("DistributionProposal", () => {
       });
 
       it("should correctly claim ether", async () => {
+        const FOUR_NFT_VOTES = tokensToVotes(SINGLE_NFT_POWER.times(4));
+        const FIVE_NFT_VOTES = tokensToVotes(SINGLE_NFT_POWER.times(5));
+        const ALL_NFT_VOTES = FIVE_NFT_VOTES.plus(FOUR_NFT_VOTES);
+
+        async function dpClaim(user, nftList) {
+          let balanceBefore = toBN(await web3.eth.getBalance(user));
+          await dp.claim(user, nftList);
+          let balanceAfter = toBN(await web3.eth.getBalance(user));
+          let diff = balanceAfter.minus(balanceBefore);
+          return diff.toFixed();
+        }
+
         await govPool.createProposal(
           "example.com",
           "misc",
@@ -484,19 +496,11 @@ describe("DistributionProposal", () => {
         await setTime(startTime + 10000);
         await govPool.execute(1);
 
-        await dp.claim(SECOND, [1]);
-        await dp.claim(THIRD, [1]);
+        let reward = await dpClaim(SECOND, [1]);
+        compareWithPrecision9(reward, toBN(1).times(FIVE_NFT_VOTES).dividedBy(ALL_NFT_VOTES));
 
-        assert.closeTo(
-          toBN(await web3.eth.getBalance(SECOND)).toNumber(),
-          toBN(wei("10000.55")).toNumber(),
-          toBN(wei("10")).toNumber()
-        );
-        assert.closeTo(
-          toBN(await web3.eth.getBalance(THIRD)).toNumber(),
-          toBN(wei("10000.44")).toNumber(),
-          toBN(wei("10")).toNumber()
-        );
+        reward = await dpClaim(THIRD, [1]);
+        compareWithPrecision9(reward, toBN(1).times(FOUR_NFT_VOTES).dividedBy(ALL_NFT_VOTES));
       });
 
       it("should not claim if not enough votes", async () => {
