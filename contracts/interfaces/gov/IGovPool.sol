@@ -132,22 +132,24 @@ interface IGovPool {
 
     /// @notice The struct that is used in view functions of contract as a return argument
     /// @param rewardTokens the list of reward tokens addresses
-    /// @param expectedRewards the list of expected rewards
-    /// @param realRewards the list of real rewards (minimum of expected rewards and governance pool token balances)
+    /// @param expectedRewardsFor the list of expected for rewards
+    /// @param realRewardsFor the list of real for rewards (minimum of expected for rewards and governance pool token balances)
+    /// @param expectedRewardsAgainst the list of expected against rewards
+    /// @param realRewardsAgainst the list of real against rewards (minimum of expected against rewards and governance pool token balances)
     struct DelegatorStakingRewards {
         address[] rewardTokens;
-        uint256[] expectedRewards;
-        uint256[] realRewards;
+        uint256[] expectedRewardsFor;
+        uint256[] realRewardsFor;
+        uint256[] expectedRewardsAgainst;
+        uint256[] realRewardsAgainst;
     }
 
     /// @notice The struct that holds delegator properties (only for internal needs)
-    /// @param joined the boolean flag indicating whether the delegator's participating in staking
     /// @param latestCumulativeSum delegator's latest cumulative sum
     /// @param pendingRewards delegator's pending rewards
     /// @param startRewardSum the total amount of rewards at the time of the delegator's first stake
     /// @param startCancelSum the total amount of cancelled rewards at the time of the delegator's first stake
     struct DelegatorInfo {
-        bool joined;
         uint256 latestCumulativeSum;
         uint256 pendingRewards;
         uint256 startRewardSum;

@@ -74,8 +74,8 @@ library GovPoolStaking {
         uint256[] calldata proposalIds,
         address delegatee
     ) public {
-        _beforeRestake(micropoolPair[true], proposalIds, delegatee, true);
-        _beforeRestake(micropoolPair[false], proposalIds, delegatee, true);
+        _beforeRestake(micropoolPair[true], proposalIds, delegatee);
+        _beforeRestake(micropoolPair[false], proposalIds, delegatee);
     }
 
     function afterRestake(
@@ -93,35 +93,46 @@ library GovPoolStaking {
         address delegator,
         address delegatee
     ) external view returns (IGovPool.DelegatorStakingRewards memory rewards) {
-        rewards.expectedRewards = _addArrays(
-            _multiplyArrays(
-                _getPendingRewards(micropoolPair[true], proposalIds, delegator, delegatee),
-                _getRewardCoefficients(micropoolPair[true], proposalIds, delegator)
-            ),
-            _multiplyArrays(
-                _getPendingRewards(micropoolPair[false], proposalIds, delegator, delegatee),
-                _getRewardCoefficients(micropoolPair[false], proposalIds, delegator)
-            )
+        rewards.expectedRewardsFor = _multiplyArrays(
+            _getPendingRewards(micropoolPair[true], proposalIds, delegator, delegatee),
+            _getRewardCoefficients(micropoolPair[true], proposalIds, delegator)
+        );
+        rewards.expectedRewardsAgainst = _multiplyArrays(
+            _getPendingRewards(micropoolPair[false], proposalIds, delegator, delegatee),
+            _getRewardCoefficients(micropoolPair[false], proposalIds, delegator)
         );
 
         rewards.rewardTokens = new address[](proposalIds.length);
-        rewards.realRewards = new uint256[](proposalIds.length);
+        rewards.realRewardsFor = new uint256[](proposalIds.length);
+        rewards.realRewardsAgainst = new uint256[](proposalIds.length);
 
         for (uint256 i; i < proposalIds.length; i++) {
-            address rewardToken = proposals[proposalIds[i]].core.settings.rewardsInfo.rewardToken;
+            IGovPool.Proposal memory proposal = proposals[proposalIds[i]];
+
+            address rewardToken = proposal.core.settings.rewardsInfo.rewardToken;
+
+            if (rewardToken == address(0)) {
+                continue;
+            }
+
+            uint256 thisBalance = rewardToken.normThisBalance();
 
             rewards.rewardTokens[i] = rewardToken;
-            rewards.realRewards[i] = rewards.expectedRewards[i].min(
-                rewards.rewardTokens[i].normThisBalance()
-            );
+            rewards.realRewardsFor[i] = rewards.expectedRewardsFor[i].min(thisBalance);
+
+            if (proposal.actionsOnAgainst.length == 0) {
+                rewards.expectedRewardsAgainst[i] = 0;
+                continue;
+            }
+
+            rewards.realRewardsAgainst[i] = rewards.expectedRewardsAgainst[i].min(thisBalance);
         }
     }
 
     function _beforeRestake(
         IGovPool.MicropoolStakingInfo storage micropool,
         uint256[] calldata proposalIds,
-        address delegatee,
-        bool isRestake
+        address delegatee
     ) private {
         uint256[] memory pendingRewards = _getPendingRewards(
             micropool,
@@ -139,8 +150,7 @@ library GovPoolStaking {
             delegatorInfo.pendingRewards = pendingRewards[i];
             delegatorInfo.latestCumulativeSum = proposalInfo.cumulativeSum;
 
-            if (isRestake && !delegatorInfo.joined) {
-                delegatorInfo.joined = true;
+            if (pendingRewards[i] == 0) {
                 delegatorInfo.startRewardSum = proposalInfo.rewardSum;
                 delegatorInfo.startCancelSum = proposalInfo.cancelSum;
             }
@@ -169,7 +179,7 @@ library GovPoolStaking {
         uint256[] calldata proposalIds,
         address delegatee
     ) private {
-        _beforeRestake(micropool, proposalIds, delegatee, false);
+        _beforeRestake(micropool, proposalIds, delegatee);
 
         uint256[] memory rewardCoefficients = _getRewardCoefficients(
             micropool,
