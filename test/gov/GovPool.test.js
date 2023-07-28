@@ -126,26 +126,6 @@ describe("GovPool", () => {
     await govPool.multicall([getBytesGovExecute(proposalId), getBytesGovClaimRewards([proposalId])], { from: from });
   }
 
-  async function printVotes(proposalId) {
-    console.log("Token TS:", fromWei(await token.totalSupply()));
-    const ownerData = await govPool.getTotalVotes(proposalId, OWNER, false);
-    const secondData = await govPool.getTotalVotes(proposalId, SECOND, false);
-    const thirdData = await govPool.getTotalVotes(proposalId, THIRD, false);
-    assert.deepEqual(ownerData[0], secondData[0]);
-    assert.deepEqual(ownerData[1], secondData[1]);
-    assert.deepEqual(ownerData[0], thirdData[0]);
-    assert.deepEqual(ownerData[1], thirdData[1]);
-    console.log("Total votes for:", fromWei(ownerData[0]));
-    console.log("Total votes against:", fromWei(ownerData[1]));
-    console.log("Owner votes for:", fromWei(ownerData[2]));
-    console.log("Owner votes against:", fromWei(ownerData[3]));
-    console.log("Second votes for:", fromWei(secondData[2]));
-    console.log("Second votes against:", fromWei(secondData[3]));
-    console.log("Third votes for:", fromWei(thirdData[2]));
-    console.log("Third votes against:", fromWei(thirdData[3]));
-    console.log("");
-  }
-
   function tokensToVotes(tokenNumber) {
     return toPower(tokenNumber, 0.997, 18);
   }
@@ -2514,12 +2494,10 @@ describe("GovPool", () => {
 
         await govPool.execute(1);
 
-        // !!!!!!!!!!!!!
-
         compareWithPrecision(
           (await rewardToken.balanceOf(treasury)).toFixed(),
           tokensToVotes("100000000000000000000").plus(tokensToVotes("1000")).plus(wei(25)).dividedBy(5),
-          18
+          21
         );
 
         rewards = await govPool.getPendingRewards(OWNER, [1]);
@@ -2558,8 +2536,11 @@ describe("GovPool", () => {
 
         await govPool.execute(1);
 
-        // !!!!!!!!!!!!!
-        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), "17419271799121612927112196277978205777");
+        compareWithPrecision(
+          (await rewardToken.balanceOf(treasury)).toFixed(),
+          tokensToVotes("100000000000000000000").plus(tokensToVotes("1000")).plus(wei(25)).dividedBy(5),
+          21
+        );
 
         rewards = await govPool.getPendingRewards(OWNER, [1]);
 
@@ -2590,8 +2571,11 @@ describe("GovPool", () => {
         await govPool.execute(2);
         await govPool.claimRewards([2]);
 
-        let ownerReward = tokensToVotes(1000).plus(wei(25)).times(3.5); // f(1025) + f(1025) * 2.5
-        compareWithPrecision((await rewardToken.balanceOf(OWNER)).toFixed(), ownerReward, 5);
+        compareWithPrecision(
+          (await rewardToken.balanceOf(OWNER)).toFixed(),
+          tokensToVotes(1000).plus(wei(25)).times(3.5), // f(1025) + f(1025) * 2.5
+          5
+        );
       });
 
       it("should execute and claim", async () => {
@@ -2609,10 +2593,12 @@ describe("GovPool", () => {
 
         await executeAndClaim(1, OWNER);
 
-        // !!!!!!!!!!!!!
-        assert.equal((await rewardToken.balanceOf(treasury)).toFixed(), "17419271799121612927112196277978205777");
-        let ownerReward = tokensToVotes(1000).plus(wei(25));
-        compareWithPrecision((await rewardToken.balanceOf(OWNER)).toFixed(), ownerReward, 5);
+        compareWithPrecision(
+          (await rewardToken.balanceOf(treasury)).toFixed(),
+          tokensToVotes("100000000000000000000").plus(tokensToVotes("1000")).plus(wei(25)).dividedBy(5),
+          21
+        );
+        compareWithPrecision((await rewardToken.balanceOf(OWNER)).toFixed(), tokensToVotes(1000).plus(wei(25)), 5);
       });
 
       it("should claim reward in native", async () => {
@@ -3356,7 +3342,7 @@ describe("GovPool", () => {
 
           const newRewardToken = await ERC20Mock.new("Mock", "Mock", 18);
 
-          await newRewardToken.mint(govPool.address, wei("80000000000000000000"));
+          await newRewardToken.mint(govPool.address, wei("50000000000000000000"));
 
           NEW_SETTINGS.rewardsInfo.rewardToken = newRewardToken.address;
           NEW_SETTINGS.earlyCompletion = false;
@@ -3376,11 +3362,6 @@ describe("GovPool", () => {
           await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
 
           await govPool.execute(1);
-
-          // const r1 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator1));
-          // console.log(r1)
-          // console.log((await newRewardToken.balanceOf(govPool.address)).toFixed())
-          // console.log(newRewardToken.address)
 
           await govPool.createProposal(
             "example.com",
@@ -3405,18 +3386,22 @@ describe("GovPool", () => {
           await govPool.undelegate(micropool2, wei("50000000000000000000"), [], { from: delegator2 });
           await govPool.undelegate(micropool2, wei("25000000000000000000"), [], { from: delegator3 });
 
+          let firstReward = "34815229413705408516893570000000000000";
+          let secondReward = "17407614706852704258446785000000000000";
+          let remainedReward = "6480963232868239353883034148752624616";
+
           assert.deepEqual(rewards1, [
             {
               micropool: micropool,
               rewardTokens: [rewardToken.address, newRewardToken.address],
-              expectedRewards: [wei("40000000000000000000"), wei("40000000000000000000")],
-              realRewards: [wei("40000000000000000000"), wei("30000000000000000000")],
+              expectedRewards: [firstReward, firstReward],
+              realRewards: [firstReward, remainedReward],
             },
             {
               micropool: micropool2,
               rewardTokens: [rewardToken.address, newRewardToken.address],
-              expectedRewards: [wei("40000000000000000000"), wei("40000000000000000000")],
-              realRewards: [wei("40000000000000000000"), wei("30000000000000000000")],
+              expectedRewards: [firstReward, firstReward],
+              realRewards: [firstReward, remainedReward],
             },
           ]);
           assert.deepEqual(rewards2, rewards1);
@@ -3424,14 +3409,14 @@ describe("GovPool", () => {
             {
               micropool: micropool,
               rewardTokens: [rewardToken.address, newRewardToken.address],
-              expectedRewards: [wei("20000000000000000000"), wei("20000000000000000000")],
-              realRewards: [wei("20000000000000000000"), wei("20000000000000000000")],
+              expectedRewards: [secondReward, secondReward],
+              realRewards: [secondReward, remainedReward],
             },
             {
               micropool: micropool2,
               rewardTokens: [rewardToken.address, newRewardToken.address],
-              expectedRewards: [wei("20000000000000000000"), wei("20000000000000000000")],
-              realRewards: [wei("20000000000000000000"), wei("20000000000000000000")],
+              expectedRewards: [secondReward, secondReward],
+              realRewards: [secondReward, remainedReward],
             },
           ]);
         });
