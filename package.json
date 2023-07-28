@@ -49,6 +49,7 @@
     "@typechain/web3-v1": "^6.0.1",
     "bignumber.js": "^9.0.1",
     "chai": "^4.3.4",
+    "decimal.js": "^10.4.3",
     "hardhat-contract-sizer": "^2.6.1",
     "hardhat-gas-reporter": "^1.0.9",
     "husky": "^7.0.2",
