@@ -3390,6 +3390,16 @@ describe("GovPool", () => {
           let secondReward = "17407614706852704258446785000000000000";
           let remainedReward = "6480963232868239353883034148752624616";
 
+          compareWithPrecision(firstReward, tokensToVotes("125000000000000000000").times(8).dividedBy(25), 21);
+
+          compareWithPrecision(secondReward, tokensToVotes("125000000000000000000").times(4).dividedBy(25), 21);
+
+          compareWithPrecision(
+            remainedReward,
+            toBN(wei("50000000000000000000")).minus(tokensToVotes("125000000000000000000").times(2).dividedBy(5)),
+            21
+          );
+
           assert.deepEqual(rewards1, [
             {
               micropool: micropool,
