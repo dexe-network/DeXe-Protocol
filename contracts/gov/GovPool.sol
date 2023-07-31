@@ -63,7 +63,7 @@ contract GovPool is
     ICoreProperties public coreProperties;
 
     address public nftMultiplier;
-    address public expertNft;
+    IERC721Expert public expertNft;
     IERC721Expert public dexeExpertNft;
     ISBT721 public babt;
 
@@ -74,6 +74,9 @@ contract GovPool is
 
     uint256 public latestProposalId;
     uint256 public deployerBABTid;
+
+    uint256 internal _regularVoteModifier;
+    uint256 internal _expertVoteModifier;
 
     OffChain internal _offChain;
 
@@ -104,6 +107,8 @@ contract GovPool is
     function __GovPool_init(
         Dependencies calldata govPoolDeps,
         address nftMultiplierAddress,
+        uint256 regularVoteModifier,
+        uint256 expertVoteModifier,
         address _verifier,
         bool _onlyBABTHolders,
         uint256 _deployerBABTid,
@@ -114,11 +119,14 @@ contract GovPool is
         _govUserKeeper = IGovUserKeeper(govPoolDeps.userKeeperAddress);
         _govValidators = IGovValidators(govPoolDeps.validatorsAddress);
         _distributionProposal = govPoolDeps.distributionAddress;
-        expertNft = govPoolDeps.expertNftAddress;
+        expertNft = IERC721Expert(govPoolDeps.expertNftAddress);
 
         if (nftMultiplierAddress != address(0)) {
             _setNftMultiplierAddress(nftMultiplierAddress);
         }
+
+        _regularVoteModifier = regularVoteModifier;
+        _expertVoteModifier = expertVoteModifier;
 
         onlyBABTHolders = _onlyBABTHolders;
         deployerBABTid = _deployerBABTid;
@@ -354,6 +362,14 @@ contract GovPool is
         _setNftMultiplierAddress(nftMultiplierAddress);
     }
 
+    function changeVoteModifiers(
+        uint256 regularModifier,
+        uint256 expertModifier
+    ) external override onlyThis {
+        _regularVoteModifier = regularModifier;
+        _expertVoteModifier = expertModifier;
+    }
+
     function saveOffchainResults(
         string calldata resultsHash,
         bytes calldata signature
@@ -536,6 +552,18 @@ contract GovPool is
 
     function getVerifier() external view override returns (address) {
         return _offChain.verifier;
+    }
+
+    function getExpertStatus(address user) public view override returns (bool) {
+        return expertNft.isExpert(user) || dexeExpertNft.isExpert(user);
+    }
+
+    function getVoteModifiers() external view override returns (uint256, uint256) {
+        return (_regularVoteModifier, _expertVoteModifier);
+    }
+
+    function getVoteModifierForUser(address user) external view returns (uint256) {
+        return getExpertStatus(user) ? _expertVoteModifier : _regularVoteModifier;
     }
 
     function _setNftMultiplierAddress(address nftMultiplierAddress) internal {

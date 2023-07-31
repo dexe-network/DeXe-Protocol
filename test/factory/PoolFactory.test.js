@@ -602,6 +602,8 @@ describe("PoolFactory", () => {
           nftsTotalSupply: 33,
         },
         nftMultiplierAddress: testERC721Multiplier.address,
+        regularVoteModifier: "997000000000000000",
+        expertVoteModifier: "883392226000000000",
         verifier: OWNER,
         onlyBABTHolders: false,
         descriptionURL: "example.com",
@@ -730,6 +732,19 @@ describe("PoolFactory", () => {
         assert.equal(await expertNft.owner(), predictedGovAddress);
         assert.equal(await expertNft.name(), POOL_PARAMETERS.name + " Expert Nft");
         assert.equal(await expertNft.symbol(), POOL_PARAMETERS.name + " EXPNFT");
+      });
+
+      it("should deploy pool with voting parameters", async () => {
+        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
+        const predictedGovAddress = (await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name))[0];
+
+        await poolFactory.deployGovPool(POOL_PARAMETERS);
+
+        let govPool = await GovPool.at(predictedGovAddress);
+
+        let votingParameters = await govPool.getVoteModifiers();
+        assert.equal(votingParameters[0].toFixed(), POOL_PARAMETERS.regularVoteModifier);
+        assert.equal(votingParameters[1].toFixed(), POOL_PARAMETERS.expertVoteModifier);
       });
 
       it("should deploy pool from address with BABT", async () => {

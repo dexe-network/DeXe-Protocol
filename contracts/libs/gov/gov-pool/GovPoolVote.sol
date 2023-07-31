@@ -2,6 +2,9 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
+import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 
 import "../../../interfaces/gov/IGovPool.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
@@ -9,10 +12,13 @@ import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../gov/GovPool.sol";
 
 import "../../math/MathHelper.sol";
+import "../../math/LogExpMath.sol";
 
 library GovPoolVote {
     using EnumerableSet for EnumerableSet.UintSet;
     using MathHelper for uint256;
+    using LogExpMath for uint256;
+    using DecimalsConverter for uint256;
 
     event Voted(
         uint256 proposalId,
@@ -132,7 +138,7 @@ library GovPoolVote {
         bool isMicropool,
         bool useDelegated,
         bool isVoteFor
-    ) internal returns (uint256 reward) {
+    ) internal returns (uint256) {
         _canVote(core, proposalId, isMicropool, useDelegated);
 
         votes.add(proposalId);
@@ -144,12 +150,33 @@ library GovPoolVote {
             "Gov: vote limit reached"
         );
 
-        _voteTokens(core, voteInfo, proposalId, voteAmount, isMicropool, useDelegated, isVoteFor);
-        reward =
-            _voteNfts(core, voteInfo, voteNftIds, isMicropool, useDelegated, isVoteFor) +
-            voteAmount;
+        if (voteAmount > 0) {
+            _voteTokens(voteInfo, proposalId, voteAmount, isMicropool, useDelegated, isVoteFor);
+        }
 
-        require(reward >= core.settings.minVotesForVoting, "Gov: low current vote power");
+        if (voteNftIds.length > 0) {
+            voteAmount += _voteNfts(
+                core,
+                voteInfo,
+                voteNftIds,
+                isMicropool,
+                useDelegated,
+                isVoteFor
+            );
+        }
+
+        uint256 rootPower = govPool.getVoteModifierForUser(msg.sender);
+        voteAmount = _calculateVotes(voteAmount, rootPower);
+
+        require(voteAmount >= core.settings.minVotesForVoting, "Gov: low current vote power");
+
+        if (isVoteFor) {
+            core.votesFor += voteAmount;
+            voteInfo.totalVotedFor += voteAmount;
+        } else {
+            core.votesAgainst += voteAmount;
+            voteInfo.totalVotedAgainst += voteAmount;
+        }
 
         if (core.executeAfter == 0 && _quorumReached(core)) {
             core.executeAfter =
@@ -160,10 +187,12 @@ library GovPoolVote {
         emit Voted(
             proposalId,
             msg.sender,
-            isMicropool ? 0 : reward,
-            isMicropool ? reward : 0,
+            isMicropool ? 0 : voteAmount,
+            isMicropool ? voteAmount : 0,
             isVoteFor
         );
+
+        return voteAmount;
     }
 
     function _canVote(
@@ -192,7 +221,6 @@ library GovPoolVote {
     }
 
     function _voteTokens(
-        IGovPool.ProposalCore storage core,
         IGovPool.VoteInfo storage voteInfo,
         uint256 proposalId,
         uint256 amount,
@@ -221,12 +249,8 @@ library GovPoolVote {
         );
 
         if (isVoteFor) {
-            core.votesFor += amount;
-            voteInfo.totalVotedFor += amount;
             voteInfo.tokensVotedFor += amount;
         } else {
-            core.votesAgainst += amount;
-            voteInfo.totalVotedAgainst += amount;
             voteInfo.tokensVotedAgainst += amount;
         }
     }
@@ -254,14 +278,6 @@ library GovPoolVote {
         userKeeper.updateNftPowers(nftIds);
 
         voteAmount = userKeeper.getNftsPowerInTokensBySnapshot(nftIds, core.nftPowerSnapshotId);
-
-        if (isVoteFor) {
-            core.votesFor += voteAmount;
-            voteInfo.totalVotedFor += voteAmount;
-        } else {
-            core.votesAgainst += voteAmount;
-            voteInfo.totalVotedAgainst += voteAmount;
-        }
     }
 
     function _votedNfts(
@@ -269,5 +285,12 @@ library GovPoolVote {
         bool isVoteFor
     ) internal view returns (EnumerableSet.UintSet storage) {
         return isVoteFor ? voteInfo.nftsVotedFor : voteInfo.nftsVotedAgainst;
+    }
+
+    function _calculateVotes(
+        uint256 tokenAmount,
+        uint256 rootPower
+    ) private pure returns (uint256) {
+        return tokenAmount.pow(rootPower);
     }
 }

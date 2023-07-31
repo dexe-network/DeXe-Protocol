@@ -51,6 +51,8 @@ interface IPoolFactory {
     /// @param validatorsParams parameters of validators
     /// @param userKeeperParams parameters of the user keeper
     /// @param nftMultiplierAddress the address of NFT multiplier
+    /// @param regularVoteModifier voting parameter for regular users
+    /// @param expertVoteModifier voting parameter for experts
     /// @param verifier the address of the verifier
     /// @param onlyBABHolders if true, only KYCed users will be allowed to interact with the pool
     /// @param descriptionURL the description of the pool
@@ -60,6 +62,8 @@ interface IPoolFactory {
         ValidatorsDeployParams validatorsParams;
         UserKeeperDeployParams userKeeperParams;
         address nftMultiplierAddress;
+        uint256 regularVoteModifier;
+        uint256 expertVoteModifier;
         address verifier;
         bool onlyBABHolders;
         string descriptionURL;
