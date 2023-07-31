@@ -22,6 +22,8 @@ const {
   getBytesGovDeposit,
   getBytesKeeperWithdrawTokens,
   getBytesGovVoteDelegated,
+  getBytesChangeVoteModifiers,
+  getBytesMintExpertNft,
 } = require("../utils/gov-pool-utils");
 const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { ProposalState, DEFAULT_CORE_PROPERTIES, ValidatorsProposalState, ProposalType } = require("../utils/constants");
@@ -96,6 +98,7 @@ describe("GovPool", () => {
   let babt;
 
   let settings;
+  let expertNft;
   let validators;
   let userKeeper;
   let dp;
@@ -2130,6 +2133,50 @@ describe("GovPool", () => {
               govPool.setNftMultiplierAddress(nftMultiplier.address),
               "Gov: not this contract"
             );
+          });
+        });
+
+        describe("expert", () => {
+          it("should mint an expert NFT and change coefficients", async () => {
+            const bytesMint = getBytesMintExpertNft(SECOND, "URI");
+            const bytesVoteModifiers = getBytesChangeVoteModifiers(wei("1"), wei("2"));
+
+            assert.isFalse(await expertNft.isExpert(SECOND));
+            assert.equal((await govPool.getVoteModifierForUser(SECOND)).toFixed(), wei("0.997"));
+
+            await govPool.createProposal("example.com", "misc", [[govPool.address, 0, bytesVoteModifiers]], []);
+            await govPool.createProposal("example.com", "misc", [[expertNft.address, 0, bytesMint]], []);
+
+            await govPool.vote(1, wei("1000"), [], true);
+            await govPool.vote(1, wei("100000000000000000000"), [], true, { from: SECOND });
+
+            await govPool.vote(2, wei("1000"), [], true);
+            await govPool.vote(2, wei("100000000000000000000"), [], true, { from: SECOND });
+
+            await govPool.moveProposalToValidators(1);
+            await validators.vote(1, wei("100"), false, true);
+            await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
+
+            await setTime((await getCurrentBlockTime()) + 999);
+
+            await govPool.moveProposalToValidators(2);
+            await validators.vote(2, wei("100"), false, true);
+            await validators.vote(2, wei("1000000000000"), false, true, { from: SECOND });
+
+            await govPool.execute(1);
+            await govPool.execute(2);
+
+            assert.isTrue(await expertNft.isExpert(SECOND));
+
+            const modifiers = await govPool.getVoteModifiers();
+
+            assert.equal((await govPool.getVoteModifierForUser(SECOND)).toFixed(), wei("2"));
+            assert.equal(modifiers["0"].toFixed(), wei("1"));
+            assert.equal(modifiers["1"].toFixed(), wei("2"));
+          });
+
+          it("should revert if call is not from gov pool", async () => {
+            await truffleAssert.reverts(govPool.changeVoteModifiers(1, 1), "Gov: not this contract");
           });
         });
 

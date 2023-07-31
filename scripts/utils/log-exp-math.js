@@ -14,8 +14,6 @@ const MIN_NATURAL_EXPONENT = ONE_18.times(-41);
 const LN_36_LOWER_BOUND = ONE_18.minus(ONE_17);
 const LN_36_UPPER_BOUND = ONE_18.plus(ONE_17);
 
-const MILD_EXPONENT_BOUND = toBN(2).exponentiatedBy(254).idiv(ONE_20);
-
 const x0 = toBN("128000000000000000000"); // 2ˆ7
 const a0 = toBN("38877084059945950922200000000000000000000000000000000000"); // eˆ(x0) (no decimals)
 const x1 = toBN("64000000000000000000"); // 2ˆ6
@@ -45,36 +43,38 @@ const a11 = toBN("106449445891785942956"); // eˆ(x11)
 function solidityPow(x, y) {
   x = toBN(x);
   y = toBN(y);
+
   assert.isTrue(!y.eq(0));
+
   if (x.eq(0)) {
     return ZERO;
   }
 
   let logx_times_y;
+
   if (LN_36_LOWER_BOUND.lt(x) && x.lt(LN_36_UPPER_BOUND)) {
     let ln_36_x = _ln_36(x);
     logx_times_y = ln_36_x.idiv(ONE_18).times(y).plus(ln_36_x.mod(ONE_18).times(y).idiv(ONE_18));
   } else {
     logx_times_y = _ln(x).times(y);
   }
-  logx_times_y = logx_times_y.idiv(ONE_18);
 
-  // require(
-  //     MIN_NATURAL_EXPONENT <= logx_times_y && logx_times_y <= MAX_NATURAL_EXPONENT,
-  //     "LogExpMath: Product out of bounds"
-  // );
+  logx_times_y = logx_times_y.idiv(ONE_18);
 
   return solidityExp(logx_times_y);
 }
 
 function solidityExp(x) {
   x = toBN(x);
+
   assert.isTrue(x.gte(MIN_NATURAL_EXPONENT) && x.lte(MAX_NATURAL_EXPONENT));
+
   if (x.lt(0)) {
     return ONE_18.times(ONE_18).idiv(solidityExp(ZERO.minus(x)));
   }
 
   let firstAN;
+
   if (x.gte(x0)) {
     x = x.minus(x0);
     firstAN = new BigNumber(a0);
@@ -164,9 +164,34 @@ function solidityExp(x) {
   return product.times(seriesSum).idiv(ONE_20).times(firstAN).idiv(100);
 }
 
+function solidityLog(arg, base) {
+  arg = toBN(arg);
+  base = toBN(base);
+
+  let logBase;
+
+  if (LN_36_LOWER_BOUND.lt(base) && base.lt(LN_36_UPPER_BOUND)) {
+    logBase = _ln_36(base);
+  } else {
+    logBase = _ln(base).times(ONE_18);
+  }
+
+  let logArg;
+
+  if (LN_36_LOWER_BOUND.lt(arg) && arg.lt(LN_36_UPPER_BOUND)) {
+    logArg = _ln_36(base);
+  } else {
+    logArg = _ln(base).times(ONE_18);
+  }
+
+  return logArg.times(ONE_18).idiv(logBase);
+}
+
 function solidityLn(a) {
   a = toBN(a);
+
   assert.isTrue(a.gt(0));
+
   if (LN_36_LOWER_BOUND.lt(a) && a.lt(LN_36_UPPER_BOUND)) {
     return _ln_36(a).idiv(ONE_18);
   } else {
@@ -180,6 +205,7 @@ function _ln(a) {
   }
 
   let sum = ZERO;
+
   if (a.gte(a0.times(ONE_18))) {
     a = a.idiv(a0); // Integer, not fixed point division
     sum = sum.plus(x0);
@@ -305,7 +331,8 @@ function _ln_36(x) {
 }
 
 module.exports = {
-  solidityExp,
-  solidityLn,
   solidityPow,
+  solidityExp,
+  solidityLog,
+  solidityLn,
 };

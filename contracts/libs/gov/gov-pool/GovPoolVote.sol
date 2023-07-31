@@ -138,7 +138,7 @@ library GovPoolVote {
         bool isMicropool,
         bool useDelegated,
         bool isVoteFor
-    ) internal returns (uint256 reward) {
+    ) internal returns (uint256) {
         _canVote(core, proposalId, isMicropool, useDelegated);
 
         votes.add(proposalId);
@@ -151,15 +151,7 @@ library GovPoolVote {
         );
 
         if (voteAmount > 0) {
-            _voteTokens(
-                core,
-                voteInfo,
-                proposalId,
-                voteAmount,
-                isMicropool,
-                useDelegated,
-                isVoteFor
-            );
+            _voteTokens(voteInfo, proposalId, voteAmount, isMicropool, useDelegated, isVoteFor);
         }
 
         if (voteNftIds.length > 0) {
@@ -176,6 +168,8 @@ library GovPoolVote {
         uint256 rootPower = govPool.getVoteModifierForUser(msg.sender);
         voteAmount = _calculateVotes(voteAmount, rootPower);
 
+        require(voteAmount >= core.settings.minVotesForVoting, "Gov: low current vote power");
+
         if (isVoteFor) {
             core.votesFor += voteAmount;
             voteInfo.totalVotedFor += voteAmount;
@@ -183,10 +177,6 @@ library GovPoolVote {
             core.votesAgainst += voteAmount;
             voteInfo.totalVotedAgainst += voteAmount;
         }
-
-        reward = voteAmount;
-
-        require(reward >= core.settings.minVotesForVoting, "Gov: low current vote power");
 
         if (core.executeAfter == 0 && _quorumReached(core)) {
             core.executeAfter =
@@ -197,10 +187,12 @@ library GovPoolVote {
         emit Voted(
             proposalId,
             msg.sender,
-            isMicropool ? 0 : reward,
-            isMicropool ? reward : 0,
+            isMicropool ? 0 : voteAmount,
+            isMicropool ? voteAmount : 0,
             isVoteFor
         );
+
+        return voteAmount;
     }
 
     function _canVote(
@@ -229,7 +221,6 @@ library GovPoolVote {
     }
 
     function _voteTokens(
-        IGovPool.ProposalCore storage core,
         IGovPool.VoteInfo storage voteInfo,
         uint256 proposalId,
         uint256 amount,
@@ -296,7 +287,10 @@ library GovPoolVote {
         return isVoteFor ? voteInfo.nftsVotedFor : voteInfo.nftsVotedAgainst;
     }
 
-    function _calculateVotes(uint tokenAmount, uint rootPower) private pure returns (uint) {
+    function _calculateVotes(
+        uint256 tokenAmount,
+        uint256 rootPower
+    ) private pure returns (uint256) {
         return tokenAmount.pow(rootPower);
     }
 }

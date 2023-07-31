@@ -14,6 +14,10 @@ contract LogExpMathMock {
         return LogExpMath.exp(x);
     }
 
+    function log(int256 a, int256 b) external pure returns (int256) {
+        return LogExpMath.log(a, b);
+    }
+
     function ln(int256 x) external pure returns (int256) {
         return LogExpMath.ln(x);
     }

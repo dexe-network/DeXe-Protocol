@@ -471,9 +471,12 @@ describe("DistributionProposal", () => {
 
         async function dpClaim(user, nftList) {
           let balanceBefore = toBN(await web3.eth.getBalance(user));
+
           await dp.claim(user, nftList);
+
           let balanceAfter = toBN(await web3.eth.getBalance(user));
           let diff = balanceAfter.minus(balanceBefore);
+
           return diff.toFixed();
         }
 
@@ -492,8 +495,11 @@ describe("DistributionProposal", () => {
         await govPool.execute(1);
 
         let reward = await dpClaim(SECOND, [1]);
+
         assert.equal(reward, toBN(wei(1)).times(FIVE_NFT_VOTES).idiv(ALL_NFT_VOTES).toFixed());
+
         reward = await dpClaim(THIRD, [1]);
+
         assert.equal(reward, toBN(wei(1)).times(FOUR_NFT_VOTES).idiv(ALL_NFT_VOTES).toFixed());
       });
 
