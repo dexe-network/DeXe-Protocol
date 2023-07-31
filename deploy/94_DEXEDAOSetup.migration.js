@@ -112,6 +112,8 @@ let POOL_PARAMETERS = {
     nftsTotalSupply: 0,
   },
   nftMultiplierAddress: ZERO_ADDR,
+  regularVoteModifier: "997000000000000000",
+  expertVoteModifier: "883392226000000000",
   verifier: ZERO_ADDR,
   onlyBABTHolders: false,
   descriptionURL: "",

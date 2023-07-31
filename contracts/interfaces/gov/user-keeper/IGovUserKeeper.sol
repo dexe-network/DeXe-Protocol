@@ -398,4 +398,8 @@ interface IGovUserKeeper {
         address delegator,
         address delegatee
     ) external view returns (uint256);
+
+    /// @notice The function for getting address of the pool token
+    /// @return the address of the pool token
+    function tokenAddress() external view returns (address);
 }
