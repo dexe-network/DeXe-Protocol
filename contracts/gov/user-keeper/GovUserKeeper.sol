@@ -43,6 +43,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     mapping(address => UserInfo) internal _usersInfo; // user => info
     mapping(address => Micropool) internal _micropoolsInfo; // user = micropool address => micropool
+    mapping(address => BalanceInfo) internal _treasuryPoolsInfo; // user => balance info
 
     mapping(uint256 => uint256) internal _nftLockedNums; // tokenId => locked num
 
@@ -148,6 +149,21 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
     }
 
+    function delegateTokensFromTreasury(
+        address delegatee,
+        uint256 amount
+    ) external override onlyOwner withSupportedToken {
+        // BalanceInfo storage delegateeInfo = _treasuryPoolsInfo[msg.sender];
+        // delegatorInfo.requestedTokens[delegatee] -= amountToUnrequest;
+        // delegatorInfo.delegatees.add(delegatee);
+        // uint256 availableAmount = amount - amountToUnrequest;
+        // if (availableAmount != 0) {
+        //     delegatorInfo.balanceInfo.tokenBalance -= availableAmount;
+        //     delegatorInfo.delegatedTokens[delegatee] += availableAmount;
+        //     _micropoolsInfoFromDao[delegatee].balanceInfo.tokenBalance += availableAmount;
+        // }
+    }
+
     function requestTokens(
         address delegator,
         address delegatee,
@@ -173,6 +189,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 amount
     ) external override onlyOwner withSupportedToken {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
+        // TODO: check if micropool is dao?
         Micropool storage micropoolInfo = _micropoolsInfo[delegatee];
         BalanceInfo storage micropoolBalanceInfo = micropoolInfo.balanceInfo;
 
@@ -200,7 +217,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function depositNfts(
         address payer,
         address receiver,
-        uint256[] calldata nftIds
+        uint256[] memory nftIds
     ) external override onlyOwner withSupportedNft {
         BalanceInfo storage receiverInfo = _usersInfo[receiver].balanceInfo;
 
@@ -267,6 +284,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             micropoolInfo.nftBalance.add(nftId);
         }
     }
+
+    function delegateNftsFromTreasury(
+        address delegatee,
+        uint256[] calldata nftIds
+    ) external override onlyOwner withSupportedNft {}
 
     function requestNfts(
         address delegator,
@@ -490,6 +512,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             );
             totalBalance += ownedBalance;
         } else {
+            // TODO: check if micropool is dao?
             ownedBalance += _micropoolsInfo[voter].requestedTokens;
         }
     }
@@ -812,6 +835,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address voter,
         bool isMicropool
     ) internal view returns (BalanceInfo storage) {
+        // TODO: check if micropool is dao?
         return isMicropool ? _micropoolsInfo[voter].balanceInfo : _usersInfo[voter].balanceInfo;
     }
 

@@ -52,8 +52,10 @@ contract GovPool is
     using GovPoolUnlock for *;
     using GovPoolExecute for *;
     using GovPoolStaking for *;
+    using TokenBalance for address;
 
     uint256 public constant PERCENTAGE_MICROPOOL_REWARDS = PERCENTAGE_100 / 5; // 20%
+    uint256 public constant PERCENTAGE_MICROPOOL_BY_DAO_REWARDS = (PERCENTAGE_100 * 809) / 50000; // 1.618%
 
     IGovSettings internal _govSettings;
     IGovUserKeeper internal _govUserKeeper;
@@ -85,6 +87,8 @@ contract GovPool is
     mapping(address => PendingRewards) internal _pendingRewards; // user => pending rewards
 
     mapping(address => MicropoolInfo) internal _micropoolInfos;
+
+    mapping(address => MicropoolInfo) internal _daoOwnedMicropoolInfos;
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
     event Requested(address from, address to, uint256 amount, uint256[] nfts);
@@ -256,6 +260,29 @@ contract GovPool is
         );
     }
 
+    function voteTreasury(
+        uint256 proposalId,
+        uint256 voteAmount, //nfts
+        bool isVoteFor
+    ) external onlyBABTHolder {
+        _unlock(msg.sender, true);
+
+        uint256 reward = _proposals.voteDelegated(
+            _votedInProposals,
+            _voteInfos,
+            proposalId,
+            voteAmount,
+            new uint256[](0),
+            isVoteFor
+        );
+
+        _updateRewards(
+            proposalId,
+            isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated, // new enum types
+            reward.percentage(PERCENTAGE_MICROPOOL_BY_DAO_REWARDS)
+        );
+    }
+
     function withdraw(
         address receiver,
         uint256 amount,
@@ -352,6 +379,43 @@ contract GovPool is
 
     function setNftMultiplierAddress(address nftMultiplierAddress) external override onlyThis {
         _setNftMultiplierAddress(nftMultiplierAddress);
+    }
+
+    function _depositTreasury(address receiver, uint256 amount, uint256[] memory nftIds) internal {
+        IERC20(_govUserKeeper.tokenAddress()).transfer(receiver, amount);
+
+        IERC721 nft = IERC721(_govUserKeeper.nftAddress());
+
+        for (uint256 i; i < nftIds.length; i++) {
+            nft.safeTransferFrom(address(this), address(_govUserKeeper), nftIds[i]);
+        }
+
+        emit Deposited(amount, nftIds, receiver);
+    }
+
+    function delegateFromTreasury(
+        address delegatee,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external onlyThis {
+        require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
+
+        require(dexeExpertNft.isExpert(delegatee), "Gov: delegatee is not an expert");
+
+        _depositTreasury(delegatee, amount, nftIds);
+
+        _unlock(address(this), false);
+
+        MicropoolInfo storage micropool = _daoOwnedMicropoolInfos[delegatee];
+
+        if (amount != 0) {
+            _govUserKeeper.delegateTokensFromTreasury(delegatee, amount);
+        }
+        if (nftIds.length == 0) {
+            _govUserKeeper.delegateNftsFromTreasury(delegatee, nftIds);
+        }
+
+        emit Delegated(msg.sender, delegatee, amount, new uint256[](0), true);
     }
 
     function saveOffchainResults(

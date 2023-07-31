@@ -144,6 +144,7 @@ library GovPoolVote {
             "Gov: vote limit reached"
         );
 
+        // TODO: add coeficient based on `Также данный вид делегирования уменьшает коэффициент подсчета `
         _voteTokens(core, voteInfo, proposalId, voteAmount, isMicropool, useDelegated, isVoteFor);
         reward =
             _voteNfts(core, voteInfo, voteNftIds, isMicropool, useDelegated, isVoteFor) +

@@ -108,6 +108,11 @@ interface IGovUserKeeper {
     /// @param amount the erc20 delegation amount
     function delegateTokens(address delegator, address delegatee, uint256 amount) external;
 
+    /// @notice The function for delegating tokens from Treasury
+    /// @param delegatee the address of delegatee
+    /// @param amount the erc20 delegation amount
+    function delegateTokensFromTreasury(address delegatee, uint256 amount) external;
+
     /// @notice The function for requesting tokens
     /// @param delegator the address of delegator
     /// @param delegatee the address of delegatee
@@ -147,6 +152,11 @@ interface IGovUserKeeper {
         address delegatee,
         uint256[] calldata nftIds
     ) external;
+
+    /// @notice The function for delegating nfts from Treasury
+    /// @param delegatee the address of delegatee
+    /// @param nftIds the array of delegated nft ids
+    function delegateNftsFromTreasury(address delegatee, uint256[] calldata nftIds) external;
 
     /// @notice The function for undelegating nfts
     /// @param delegator the address of delegator
@@ -227,6 +237,14 @@ interface IGovUserKeeper {
         uint256 totalPowerInTokens,
         uint256 nftsTotalSupply
     ) external;
+
+    /// @notice The function for getting erc20 address
+    /// @return `tokenAddress` the erc20 address
+    function tokenAddress() external view returns (address);
+
+    /// @notice The function for getting erc721 address
+    /// @return `nftAddress` the erc721 address
+    function nftAddress() external view returns (address);
 
     /// @notice The function for getting information about nft contract
     /// @return `NFTInfo` struct
