@@ -1,4 +1,5 @@
 const { toBN, accounts, wei, fromWei, toPower } = require("../../scripts/utils/utils");
+const { solidityPow } = require("../../scripts/utils/log-exp-math");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
@@ -64,15 +65,8 @@ describe("DistributionProposal", () => {
 
   const reverter = new Reverter();
 
-  function tokensToVotes(tokenNumber) {
-    return toPower(tokenNumber, 0.997, 18);
-  }
-
-  function compareWithPrecision(a, b, p) {
-    p = toBN(10).exponentiatedBy(p);
-    let a1 = toBN(a).dividedBy(p).integerValue().toFixed();
-    let b1 = toBN(b).dividedBy(p).integerValue().toFixed();
-    assert.equal(a1, b1);
+  function weiToVotes(tokenNumber) {
+    return toBN(solidityPow(tokenNumber, "997000000000000000"));
   }
 
   before("setup", async () => {
@@ -417,7 +411,7 @@ describe("DistributionProposal", () => {
     describe("claim()", () => {
       let startTime;
 
-      const SINGLE_NFT_POWER = toBN(33000).dividedBy(9);
+      const SINGLE_NFT_POWER = toBN(wei(33000));
 
       beforeEach("setup", async () => {
         startTime = await getCurrentBlockTime();
@@ -436,8 +430,8 @@ describe("DistributionProposal", () => {
       });
 
       it("should correctly claim", async () => {
-        const FOUR_NFT_VOTES = tokensToVotes(SINGLE_NFT_POWER.times(4).toFixed());
-        const FIVE_NFT_VOTES = tokensToVotes(SINGLE_NFT_POWER.times(5).toFixed());
+        const FOUR_NFT_VOTES = weiToVotes(SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue().toFixed());
+        const FIVE_NFT_VOTES = weiToVotes(SINGLE_NFT_POWER.times(5).dividedBy(9).integerValue().toFixed());
         const ALL_NFT_VOTES = FIVE_NFT_VOTES.plus(FOUR_NFT_VOTES);
 
         await govPool.createProposal(
@@ -460,21 +454,19 @@ describe("DistributionProposal", () => {
         await dp.claim(SECOND, [1]);
         await dp.claim(THIRD, [1]);
 
-        compareWithPrecision(
+        assert.equal(
           (await token.balanceOf(SECOND)).toFixed(),
-          toBN(wei(100000)).times(FIVE_NFT_VOTES).dividedBy(ALL_NFT_VOTES),
-          5
+          toBN(wei(100000)).times(FIVE_NFT_VOTES).idiv(ALL_NFT_VOTES).toFixed()
         );
-        compareWithPrecision(
+        assert.equal(
           (await token.balanceOf(THIRD)).toFixed(),
-          toBN(wei(100000)).times(FOUR_NFT_VOTES).dividedBy(ALL_NFT_VOTES),
-          5
+          toBN(wei(100000)).times(FOUR_NFT_VOTES).idiv(ALL_NFT_VOTES).toFixed()
         );
       });
 
       it("should correctly claim ether", async () => {
-        const FOUR_NFT_VOTES = tokensToVotes(SINGLE_NFT_POWER.times(4).toFixed());
-        const FIVE_NFT_VOTES = tokensToVotes(SINGLE_NFT_POWER.times(5).toFixed());
+        const FOUR_NFT_VOTES = weiToVotes(SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue().toFixed());
+        const FIVE_NFT_VOTES = weiToVotes(SINGLE_NFT_POWER.times(5).dividedBy(9).integerValue().toFixed());
         const ALL_NFT_VOTES = FIVE_NFT_VOTES.plus(FOUR_NFT_VOTES);
 
         async function dpClaim(user, nftList) {
@@ -500,9 +492,9 @@ describe("DistributionProposal", () => {
         await govPool.execute(1);
 
         let reward = await dpClaim(SECOND, [1]);
-        compareWithPrecision(reward, toBN(wei(1)).times(FIVE_NFT_VOTES).dividedBy(ALL_NFT_VOTES), 5);
+        assert.equal(reward, toBN(wei(1)).times(FIVE_NFT_VOTES).idiv(ALL_NFT_VOTES).toFixed());
         reward = await dpClaim(THIRD, [1]);
-        compareWithPrecision(reward, toBN(wei(1)).times(FOUR_NFT_VOTES).dividedBy(ALL_NFT_VOTES), 5);
+        assert.equal(reward, toBN(wei(1)).times(FOUR_NFT_VOTES).idiv(ALL_NFT_VOTES).toFixed());
       });
 
       it("should not claim if not enough votes", async () => {
@@ -524,9 +516,9 @@ describe("DistributionProposal", () => {
       });
 
       it("should correctly calculate reward", async () => {
-        const ONE_NFT_VOTE = tokensToVotes(SINGLE_NFT_POWER.toFixed());
-        const THREE_NFT_VOTES = tokensToVotes(SINGLE_NFT_POWER.times(3).toFixed());
-        const FOUR_NFT_VOTES = tokensToVotes(SINGLE_NFT_POWER.times(4).toFixed());
+        const ONE_NFT_VOTE = weiToVotes(SINGLE_NFT_POWER.dividedBy(9).integerValue().toFixed());
+        const THREE_NFT_VOTES = weiToVotes(SINGLE_NFT_POWER.times(3).dividedBy(9).integerValue().toFixed());
+        const FOUR_NFT_VOTES = weiToVotes(SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue().toFixed());
         const ALL_NFT_VOTES = THREE_NFT_VOTES.plus(FOUR_NFT_VOTES).plus(ONE_NFT_VOTE.times(2));
 
         await govPool.createProposal(
@@ -545,15 +537,13 @@ describe("DistributionProposal", () => {
         await setTime(startTime + 10000);
         await govPool.execute(1);
 
-        compareWithPrecision(
+        assert.equal(
           await dp.getPotentialReward(1, SECOND),
-          toBN(wei(1)).times(FOUR_NFT_VOTES.minus(ONE_NFT_VOTE)).dividedBy(ALL_NFT_VOTES),
-          5
+          toBN(wei(1)).times(FOUR_NFT_VOTES.minus(ONE_NFT_VOTE)).idiv(ALL_NFT_VOTES).toFixed()
         );
-        compareWithPrecision(
+        assert.equal(
           await dp.getPotentialReward(1, THIRD),
-          toBN(wei(1)).times(THREE_NFT_VOTES.minus(ONE_NFT_VOTE)).dividedBy(ALL_NFT_VOTES),
-          5
+          toBN(wei(1)).times(THREE_NFT_VOTES.minus(ONE_NFT_VOTE)).idiv(ALL_NFT_VOTES).toFixed()
         );
       });
 

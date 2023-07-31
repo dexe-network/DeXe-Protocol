@@ -15,7 +15,7 @@ describe("LogExpMath", () => {
 
   const reverter = new Reverter();
 
-  async function testPow(a, b) {
+  async function testPow1(a, b) {
     let contractPow = await math.pow(wei(a), wei(b));
     contractPow = fromWei(contractPow);
     contractPow = parseFloat(contractPow);
@@ -33,14 +33,14 @@ describe("LogExpMath", () => {
 
   describe("functionality", () => {
     it("should calculate pow correctly", async () => {
-      await testPow(2, 0.5);
+      await testPow1(2, 0.5);
 
       for (let i = 1000; i <= 10000; i += 1000) {
-        await testPow(i, 0.5);
+        await testPow1(i, 0.5);
       }
 
       for (let i = 0.1; i < 1; i += 0.1) {
-        await testPow(10000, i);
+        await testPow1(10000, i);
       }
     });
 
@@ -55,26 +55,24 @@ describe("LogExpMath", () => {
     });
   });
 
-  describe.only("lib compatibility", () => {
+  describe("lib compatibility", () => {
     async function testExp(a) {
       let r1 = await math.exp(a);
       let r2 = solidityExp(a);
-      console.log(r1.toFixed());
-      console.log(r2.toFixed());
       assert.equal(r1.toFixed(), r2.toFixed());
     }
 
     async function testLn(a) {
       let r1 = await math.ln(a);
       let r2 = solidityLn(a);
-      console.log(r1.toFixed());
-      console.log(r2.toFixed());
       assert.equal(r1.toFixed(), r2.toFixed());
     }
 
     async function testPow(a, b) {
       let r1 = await math.pow(a, b);
       let r2 = solidityPow(a, b);
+      console.log(r1.toFixed());
+      console.log(r2.toFixed());
       assert.equal(r1.toFixed(), r2.toFixed());
     }
 

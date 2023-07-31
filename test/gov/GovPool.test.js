@@ -1,4 +1,5 @@
 const { toBN, accounts, wei, fromWei, toPower } = require("../../scripts/utils/utils");
+const { solidityPow } = require("../../scripts/utils/log-exp-math");
 const { toPercent } = require("../utils/utils");
 const {
   getBytesExecute,
@@ -127,14 +128,7 @@ describe("GovPool", () => {
   }
 
   function tokensToVotes(tokenNumber) {
-    return toPower(tokenNumber, 0.997, 18);
-  }
-
-  function compareWithPrecision(a, b, p) {
-    p = toBN(10).exponentiatedBy(p);
-    let a1 = toBN(a).dividedBy(p).integerValue().toFixed();
-    let b1 = toBN(b).dividedBy(p).integerValue().toFixed();
-    assert.equal(a1, b1);
+    return toBN(solidityPow(wei(tokenNumber), "997000000000000000"));
   }
 
   before("setup", async () => {
@@ -848,18 +842,18 @@ describe("GovPool", () => {
           let proposal = await getProposalByIndex(1);
 
           assert.equal(proposal.descriptionURL, "example.com");
-          compareWithPrecision(proposal.core.votesFor, tokensToVotes(70), 5);
-          compareWithPrecision(proposal.core.votesAgainst, tokensToVotes(30), 5);
+          assert.equal(proposal.core.votesFor, tokensToVotes(70).toFixed());
+          assert.equal(proposal.core.votesAgainst, tokensToVotes(30).toFixed());
 
           proposal = await getProposalByIndex(2);
 
           assert.equal(proposal.core.votesFor, "0");
-          compareWithPrecision(proposal.core.votesAgainst, tokensToVotes(50), 5);
+          assert.equal(proposal.core.votesAgainst, tokensToVotes(50).toFixed());
 
           const voteInfo = await govPool.getUserVotes(1, OWNER, false);
 
-          compareWithPrecision(voteInfo.totalVotedFor, tokensToVotes(70), 5);
-          compareWithPrecision(voteInfo.totalVotedAgainst, tokensToVotes(30), 5);
+          assert.equal(voteInfo.totalVotedFor, tokensToVotes(70).toFixed());
+          assert.equal(voteInfo.totalVotedAgainst, tokensToVotes(30).toFixed());
           assert.equal(voteInfo.tokensVotedFor, wei("70"));
           assert.equal(voteInfo.tokensVotedAgainst, wei("30"));
           assert.deepEqual(voteInfo.nftsVotedFor, []);
@@ -874,10 +868,10 @@ describe("GovPool", () => {
 
         it("should vote for proposal twice", async () => {
           await govPool.vote(1, wei("100"), [], true);
-          compareWithPrecision((await getProposalByIndex(1)).core.votesFor, tokensToVotes(100), 5);
+          assert.equal((await getProposalByIndex(1)).core.votesFor, tokensToVotes(100).toFixed());
 
           await govPool.vote(1, wei("100"), [], true);
-          compareWithPrecision((await getProposalByIndex(1)).core.votesFor, tokensToVotes(100).times(2), 5);
+          assert.equal((await getProposalByIndex(1)).core.votesFor, tokensToVotes(100).times(2).toFixed());
         });
 
         it("should revert when vote zero amount", async () => {
@@ -902,18 +896,18 @@ describe("GovPool", () => {
 
           let proposal = await getProposalByIndex(1);
 
-          compareWithPrecision(proposal.core.votesFor, tokensToVotes(70), 5);
-          compareWithPrecision(proposal.core.votesAgainst, tokensToVotes(30), 5);
+          assert.equal(proposal.core.votesFor, tokensToVotes(70).toFixed());
+          assert.equal(proposal.core.votesAgainst, tokensToVotes(30).toFixed());
 
           proposal = await getProposalByIndex(2);
 
-          compareWithPrecision(proposal.core.votesFor, tokensToVotes(50), 5);
+          assert.equal(proposal.core.votesFor, tokensToVotes(50).toFixed());
           assert.equal(proposal.core.votesAgainst, "0");
 
           const voteInfo = await govPool.getUserVotes(1, SECOND, true);
 
-          compareWithPrecision(voteInfo.totalVotedFor, tokensToVotes(70), 5);
-          compareWithPrecision(voteInfo.totalVotedAgainst, tokensToVotes(30), 5);
+          assert.equal(voteInfo.totalVotedFor, tokensToVotes(70).toFixed());
+          assert.equal(voteInfo.totalVotedAgainst, tokensToVotes(30).toFixed());
           assert.equal(voteInfo.tokensVotedFor, wei("70"));
           assert.equal(voteInfo.tokensVotedAgainst, wei("30"));
           assert.deepEqual(voteInfo.nftsVotedFor, []);
@@ -922,22 +916,22 @@ describe("GovPool", () => {
 
         it("should vote delegated tokens twice", async () => {
           await govPool.voteDelegated(1, wei("100"), [], true, { from: SECOND });
-          compareWithPrecision((await getProposalByIndex(1)).core.votesFor, tokensToVotes(100), 5);
+          assert.equal((await getProposalByIndex(1)).core.votesFor, tokensToVotes(100).toFixed());
 
           await govPool.voteDelegated(1, wei("100"), [], true, { from: SECOND });
-          compareWithPrecision((await getProposalByIndex(1)).core.votesFor, tokensToVotes(100).times(2), 5);
+          assert.equal((await getProposalByIndex(1)).core.votesFor, tokensToVotes(100).times(2).toFixed());
 
           const total = await govPool.getTotalVotes(1, SECOND, true);
 
-          compareWithPrecision(toBN(total[0]).toFixed(), tokensToVotes(100).times(2), 5);
+          assert.equal(toBN(total[0]).toFixed(), tokensToVotes(100).times(2).toFixed());
           assert.equal(toBN(total[1]).toFixed(), "0");
-          compareWithPrecision(toBN(total[2]).toFixed(), tokensToVotes(100).times(2), 5);
+          assert.equal(toBN(total[2]).toFixed(), tokensToVotes(100).times(2).toFixed());
           assert.equal(toBN(total[3]).toFixed(), "0");
         });
 
         it("should vote for all tokens", async () => {
           await govPool.voteDelegated(1, wei("500"), [], true, { from: SECOND });
-          compareWithPrecision((await getProposalByIndex(1)).core.votesFor, tokensToVotes(500), 5);
+          assert.equal((await getProposalByIndex(1)).core.votesFor, tokensToVotes(500).toFixed());
         });
 
         it("should revert when vote is zero amount", async () => {
@@ -1023,17 +1017,17 @@ describe("GovPool", () => {
 
             let proposal = await getProposalByIndex(1);
 
-            compareWithPrecision(proposal.core.votesFor, SINGLE_NFT_POWER, 5);
+            assert.equal(proposal.core.votesFor, SINGLE_NFT_POWER.toFixed());
             assert.equal(proposal.core.votesAgainst, "0");
 
             proposal = await getProposalByIndex(2);
 
-            compareWithPrecision(proposal.core.votesFor, SINGLE_NFT_POWER, 5);
-            compareWithPrecision(proposal.core.votesAgainst, SINGLE_NFT_POWER, 5);
+            assert.equal(proposal.core.votesFor, SINGLE_NFT_POWER.toFixed());
+            assert.equal(proposal.core.votesAgainst, SINGLE_NFT_POWER.toFixed());
 
             let voteInfo = await govPool.getUserVotes(1, OWNER, false);
 
-            compareWithPrecision(voteInfo.totalVotedFor, SINGLE_NFT_POWER);
+            assert.equal(voteInfo.totalVotedFor, SINGLE_NFT_POWER.toFixed());
             assert.equal(voteInfo.totalVotedAgainst, "0");
             assert.equal(voteInfo.tokensVotedFor, "0");
             assert.equal(voteInfo.tokensVotedAgainst, "0");
@@ -1042,8 +1036,8 @@ describe("GovPool", () => {
 
             voteInfo = await govPool.getUserVotes(2, OWNER, false);
 
-            compareWithPrecision(voteInfo.totalVotedFor, SINGLE_NFT_POWER, 5);
-            compareWithPrecision(voteInfo.totalVotedAgainst, SINGLE_NFT_POWER, 5);
+            assert.equal(voteInfo.totalVotedFor, SINGLE_NFT_POWER.toFixed());
+            assert.equal(voteInfo.totalVotedAgainst, SINGLE_NFT_POWER.toFixed());
             assert.equal(voteInfo.tokensVotedFor, "0");
             assert.equal(voteInfo.tokensVotedAgainst, "0");
             assert.deepEqual(voteInfo.nftsVotedFor, ["2"]);
@@ -1053,14 +1047,13 @@ describe("GovPool", () => {
           it("should vote for proposal twice", async () => {
             await govPool.vote(1, 0, [1], true);
 
-            compareWithPrecision((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_POWER, 5);
+            assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_POWER.toFixed());
 
             await govPool.vote(1, 0, [2, 3], true);
 
-            compareWithPrecision(
+            assert.equal(
               (await getProposalByIndex(1)).core.votesFor,
-              SINGLE_NFT_POWER.plus(DOUBLE_NFT_POWER),
-              5
+              SINGLE_NFT_POWER.plus(DOUBLE_NFT_POWER).toFixed()
             );
           });
 
@@ -1087,12 +1080,12 @@ describe("GovPool", () => {
             await govPool.voteDelegated(1, 0, [1], true, { from: SECOND });
             await govPool.voteDelegated(2, 0, [2, 3], true, { from: THIRD });
 
-            compareWithPrecision((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_POWER, 5);
-            compareWithPrecision((await getProposalByIndex(2)).core.votesFor, DOUBLE_NFT_POWER, 5);
+            assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_POWER.toFixed());
+            assert.equal((await getProposalByIndex(2)).core.votesFor, DOUBLE_NFT_POWER.toFixed());
 
             const voteInfo = await govPool.getUserVotes(1, SECOND, true);
 
-            compareWithPrecision(voteInfo.totalVotedFor, SINGLE_NFT_POWER, 5);
+            assert.equal(voteInfo.totalVotedFor, SINGLE_NFT_POWER.toFixed());
             assert.equal(voteInfo.totalVotedAgainst, "0");
             assert.equal(voteInfo.tokensVotedFor, "0");
             assert.equal(voteInfo.tokensVotedAgainst, "0");
@@ -1102,10 +1095,10 @@ describe("GovPool", () => {
 
           it("should vote delegated nfts twice", async () => {
             await govPool.voteDelegated(1, 0, [2], true, { from: THIRD });
-            compareWithPrecision((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_POWER, 5);
+            assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_POWER.toFixed());
 
             await govPool.voteDelegated(1, 0, [3], true, { from: THIRD });
-            compareWithPrecision((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_POWER.times(2), 5);
+            assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_POWER.times(2).toFixed());
           });
 
           it("should revert when spending undelegated nfts", async () => {
@@ -2494,20 +2487,19 @@ describe("GovPool", () => {
 
         await govPool.execute(1);
 
-        compareWithPrecision(
+        assert.equal(
           (await rewardToken.balanceOf(treasury)).toFixed(),
-          tokensToVotes("100000000000000000000").plus(tokensToVotes("1000")).plus(wei(25)).dividedBy(5),
-          21
+          tokensToVotes("100000000000000000000").plus(tokensToVotes("1000")).plus(wei(25)).idiv(5).toFixed()
         );
 
         rewards = await govPool.getPendingRewards(OWNER, [1]);
 
         let ownerReward = tokensToVotes(1000).plus(wei(25));
-        compareWithPrecision(rewards.onchainRewards[0], ownerReward, 5);
+        assert.equal(rewards.onchainRewards[0], ownerReward.toFixed());
 
         await govPool.claimRewards([1]);
 
-        compareWithPrecision((await rewardToken.balanceOf(OWNER)).toFixed(), ownerReward, 5);
+        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), ownerReward.toFixed());
       });
 
       it("should claim reward on Against", async () => {
@@ -2536,20 +2528,19 @@ describe("GovPool", () => {
 
         await govPool.execute(1);
 
-        compareWithPrecision(
+        assert.equal(
           (await rewardToken.balanceOf(treasury)).toFixed(),
-          tokensToVotes("100000000000000000000").plus(tokensToVotes("1000")).plus(wei(25)).dividedBy(5),
-          21
+          tokensToVotes("100000000000000000000").plus(tokensToVotes("1000")).plus(wei(25)).idiv(5).toFixed()
         );
 
         rewards = await govPool.getPendingRewards(OWNER, [1]);
 
         let ownerReward = tokensToVotes(1000).plus(wei(25));
-        compareWithPrecision(rewards.onchainRewards[0], ownerReward, 5);
+        assert.equal(rewards.onchainRewards[0], ownerReward.toFixed());
 
         await govPool.claimRewards([1]);
 
-        compareWithPrecision((await rewardToken.balanceOf(OWNER)).toFixed(), ownerReward, 5);
+        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), ownerReward.toFixed());
       });
 
       it("should claim reward properly if nft multiplier has been set", async () => {
@@ -2571,11 +2562,10 @@ describe("GovPool", () => {
         await govPool.execute(2);
         await govPool.claimRewards([2]);
 
-        compareWithPrecision(
+        assert.equal(
           (await rewardToken.balanceOf(OWNER)).toFixed(),
-          tokensToVotes(1000).plus(wei(25)).times(3.5), // f(1025) + f(1025) * 2.5
-          5
-        );
+          tokensToVotes(1000).plus(wei(25)).times(3.5).toFixed()
+        ); // f(1025) + f(1025) * 2.5
       });
 
       it("should execute and claim", async () => {
@@ -2593,12 +2583,11 @@ describe("GovPool", () => {
 
         await executeAndClaim(1, OWNER);
 
-        compareWithPrecision(
+        assert.equal(
           (await rewardToken.balanceOf(treasury)).toFixed(),
-          tokensToVotes("100000000000000000000").plus(tokensToVotes("1000")).plus(wei(25)).dividedBy(5),
-          21
+          tokensToVotes("100000000000000000000").plus(tokensToVotes("1000")).plus(wei(25)).idiv(5).toFixed()
         );
-        compareWithPrecision((await rewardToken.balanceOf(OWNER)).toFixed(), tokensToVotes(1000).plus(wei(25)), 5);
+        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), tokensToVotes(1000).plus(wei(25)).toFixed());
       });
 
       it("should claim reward in native", async () => {
@@ -3389,16 +3378,6 @@ describe("GovPool", () => {
           let firstReward = "34815229413705408516893570000000000000";
           let secondReward = "17407614706852704258446785000000000000";
           let remainedReward = "6480963232868239353883034148752624616";
-
-          compareWithPrecision(firstReward, tokensToVotes("125000000000000000000").times(8).dividedBy(25), 21);
-
-          compareWithPrecision(secondReward, tokensToVotes("125000000000000000000").times(4).dividedBy(25), 21);
-
-          compareWithPrecision(
-            remainedReward,
-            toBN(wei("50000000000000000000")).minus(tokensToVotes("125000000000000000000").times(2).dividedBy(5)),
-            21
-          );
 
           assert.deepEqual(rewards1, [
             {
