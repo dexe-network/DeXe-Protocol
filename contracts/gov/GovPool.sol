@@ -87,7 +87,6 @@ contract GovPool is
     mapping(address => mapping(bool => MicropoolStakingInfo)) internal _micropoolInfos; // delegatee => isVoteFor => info
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
-    event Requested(address from, address to, uint256 amount, uint256[] nfts);
     event Deposited(uint256 amount, uint256[] nfts, address sender);
     event Withdrawn(uint256 amount, uint256[] nfts, address sender);
 
@@ -341,27 +340,6 @@ contract GovPool is
         micropoolPair.afterRestake(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, true);
-    }
-
-    function request(
-        address delegatee,
-        uint256 amount,
-        uint256[] calldata nftIds
-    ) external override onlyBABTHolder {
-        require(amount > 0 || nftIds.length > 0, "Gov: empty request");
-
-        _unlock(delegatee, true);
-
-        mapping(bool => MicropoolStakingInfo) storage micropoolPair = _micropoolInfos[delegatee];
-
-        micropoolPair.beforeRestake(_votedInProposals[delegatee][true].values(), delegatee);
-
-        _govUserKeeper.requestTokens.exec(delegatee, amount);
-        _govUserKeeper.requestNfts.exec(delegatee, nftIds);
-
-        micropoolPair.afterRestake(delegatee);
-
-        emit Requested(msg.sender, delegatee, amount, nftIds);
     }
 
     function undelegate(
