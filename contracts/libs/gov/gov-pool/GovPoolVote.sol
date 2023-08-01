@@ -11,6 +11,8 @@ import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
 import "../../../gov/GovPool.sol";
 
+import "../../utils/DataHelper.sol";
+
 import "../../math/MathHelper.sol";
 import "../../math/LogExpMath.sol";
 
@@ -19,6 +21,7 @@ library GovPoolVote {
     using MathHelper for uint256;
     using LogExpMath for uint256;
     using DecimalsConverter for uint256;
+    using DataHelper for bytes;
 
     event Voted(
         uint256 proposalId,
@@ -39,6 +42,8 @@ library GovPoolVote {
         bool isVoteFor
     ) external returns (uint256) {
         require(voteAmount > 0 || voteNftIds.length > 0, "Gov: empty vote");
+
+        _checkVoterRestrictions(proposals[proposalId]);
 
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
         EnumerableSet.UintSet storage votes = votedInProposals[msg.sender][false];
@@ -72,6 +77,8 @@ library GovPoolVote {
     ) external returns (uint256) {
         require(voteAmount > 0 || voteNftIds.length > 0, "Gov: empty delegated vote");
 
+        _checkVoterRestrictions(proposals[proposalId]);
+
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
 
         require(core.settings.delegatedVotingAllowed, "Gov: delegated voting is off");
@@ -104,6 +111,8 @@ library GovPoolVote {
         bool isVoteFor
     ) external returns (uint256) {
         require(voteAmount > 0 || voteNftIds.length > 0, "Gov: empty delegated vote");
+
+        _checkVoterRestrictions(proposals[proposalId]);
 
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
 
@@ -378,6 +387,30 @@ library GovPoolVote {
         userKeeper.updateNftPowers(nftIds);
 
         voteAmount = userKeeper.getNftsPowerInTokensBySnapshot(nftIds, core.nftPowerSnapshotId);
+    }
+
+    function _checkVoterRestrictions(IGovPool.Proposal storage proposal) internal view {
+        for (uint256 i; i < proposal.actionsOnFor.length; i++) {
+            (bytes4 selector, address user) = proposal
+                .actionsOnFor[i]
+                .data
+                .decodeTreasuryFunction();
+
+            if (selector == IGovPool.undelegateTreasury.selector) {
+                require(user != msg.sender, "Gov: voter is not allowed");
+            }
+        }
+
+        for (uint256 i; i < proposal.actionsOnAgainst.length; i++) {
+            (bytes4 selector, address user) = proposal
+                .actionsOnAgainst[i]
+                .data
+                .decodeTreasuryFunction();
+
+            if (selector == IGovPool.undelegateTreasury.selector) {
+                require(user != msg.sender, "Gov: voter is not allowed");
+            }
+        }
     }
 
     function _votedNfts(

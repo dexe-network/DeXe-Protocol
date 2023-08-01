@@ -370,7 +370,7 @@ contract GovPool is
         address delegatee,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external onlyBABTHolder {
+    ) external override onlyThis {
         require(amount > 0 || nftIds.length > 0, "Gov: empty withdrawal");
 
         _unlock(delegatee, true);
@@ -422,7 +422,7 @@ contract GovPool is
         address delegatee,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external onlyThis {
+    ) external override onlyThis {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
 
         require(dexeExpertNft.isExpert(delegatee), "Gov: delegatee is not an expert");

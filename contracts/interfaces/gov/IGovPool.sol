@@ -289,6 +289,16 @@ interface IGovPool {
     /// @param nftIds the array of nft ids to delegate
     function delegate(address delegatee, uint256 amount, uint256[] calldata nftIds) external;
 
+    /// @notice The function for delegating tokens from treasury
+    /// @param delegatee the target address for delegation (person who will receive the delegation)
+    /// @param amount the erc20 delegation amount
+    /// @param nftIds the array of nft ids to delegate
+    function delegateFromTreasury(
+        address delegatee,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external;
+
     /// @notice The function for requesting delegated tokens
     /// @param delegatee the delegation target address (person who will be delegated)
     /// @param amount the erc20 delegation amount
@@ -300,6 +310,16 @@ interface IGovPool {
     /// @param amount the erc20 undelegation amount
     /// @param nftIds the array of nft ids to undelegate
     function undelegate(address delegatee, uint256 amount, uint256[] calldata nftIds) external;
+
+    /// @notice The function for undelegating delegated tokens from treasury
+    /// @param delegatee the undelegation target address (person who will be undelegated)
+    /// @param amount the erc20 undelegation amount
+    /// @param nftIds the array of nft ids to undelegate
+    function undelegateTreasury(
+        address delegatee,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external;
 
     /// @notice The function that unlocks user funds in completed proposals
     /// @param user the user whose funds to unlock
