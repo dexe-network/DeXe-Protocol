@@ -30,8 +30,16 @@ interface IGovPool {
         VoteAgainst,
         VoteForDelegated,
         VoteAgainstDelegated,
+        VoteForDelegatedByDAO,
+        VoteAgainstDelegatedByDAO,
         Execute,
         SaveOffchainResults
+    }
+
+    enum VoteType {
+        Vote,
+        VoteDelegated,
+        VoteDelegatedByDAO
     }
 
     // TODO: ADD DOCS

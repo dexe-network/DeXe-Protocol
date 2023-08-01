@@ -102,6 +102,11 @@ interface IGovUserKeeper {
     /// @param amount the erc20 withdrawal amount
     function withdrawTokens(address payer, address receiver, uint256 amount) external;
 
+    /// @notice The function for withdrawing tokens from Treasury
+    /// @param payer the address from whom to withdraw the tokens
+    /// @param amount the erc20 withdrawal amount
+    function withdrawTokensFromTreasury(address payer, uint256 amount) external;
+
     /// @notice The function for delegating tokens
     /// @param delegator the address of delegator
     /// @param delegatee the address of delegatee
@@ -131,6 +136,11 @@ interface IGovUserKeeper {
     /// @param amount the erc20 undelegation amount
     function undelegateTokens(address delegator, address delegatee, uint256 amount) external;
 
+    /// @notice The function for undelegating tokens from Treasury
+    /// @param delegatee the address of delegatee
+    /// @param amount the erc20 undelegation amount
+    function undelegateTokensFromTreasury(address delegatee, uint256 amount) external;
+
     /// @notice The function for depositing nfts
     /// @param payer the address of depositor
     /// @param receiver the deposit receiver address
@@ -142,6 +152,11 @@ interface IGovUserKeeper {
     /// @param receiver the withdrawal receiver address
     /// @param nftIds the withdrawal nft ids
     function withdrawNfts(address payer, address receiver, uint256[] calldata nftIds) external;
+
+    /// @notice The function for withdrawing nfts from Treasury
+    /// @param payer the address from whom to withdraw the nfts
+    /// @param nftIds the withdrawal nft ids
+    function withdrawNftsFromTreasury(address payer, uint256[] calldata nftIds) external;
 
     /// @notice The function for delegating nfts
     /// @param delegator the address of delegator
@@ -167,6 +182,11 @@ interface IGovUserKeeper {
         address delegatee,
         uint256[] calldata nftIds
     ) external;
+
+    /// @notice The function for undelegating nfts from Treasury
+    /// @param delegatee the address of delegatee
+    /// @param nftIds the array of undelegated nft ids
+    function undelegateNftsFromTreasury(address delegatee, uint256[] calldata nftIds) external;
 
     /// @notice The function for creation nft power snapshot
     /// @return `id` of power snapshot
@@ -194,6 +214,12 @@ interface IGovUserKeeper {
         uint256 amount
     ) external;
 
+    /// @notice The function for locking tokens in a proposal from Treasury
+    /// @param proposalId the id of proposal
+    /// @param voter the address of voter
+    /// @param amount the amount of tokens to lock
+    function lockTokensTreasury(uint256 proposalId, address voter, uint256 amount) external;
+
     /// @notice The function for unlocking tokens in proposal
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
@@ -215,6 +241,11 @@ interface IGovUserKeeper {
         bool useDelegated,
         uint256[] calldata nftIds
     ) external;
+
+    /// @notice The function for locking nfts from Treasury
+    /// @param voter the address of voter
+    /// @param nftIds the array of nft ids to lock
+    function lockNftsTreasury(address voter, uint256[] calldata nftIds) external;
 
     /// @notice The function for unlocking nfts
     /// @param nftIds the array of nft ids to unlock
@@ -267,6 +298,11 @@ interface IGovUserKeeper {
         bool isMicropool,
         bool useDelegated
     ) external view returns (uint256 balance, uint256 ownedBalance);
+
+    /// @notice The function for getting token balance user delegated by treasury
+    /// @param voter the address of voter
+    /// @return balance the total balance
+    function tokenBalanceTreasury(address voter) external view returns (uint256);
 
     /// @notice The function for getting nft balance of a user
     /// @param voter the address of voter
@@ -329,6 +365,17 @@ interface IGovUserKeeper {
         address voter,
         bool isMicropool,
         bool useDelegated,
+        uint256 requiredVotes,
+        uint256 snapshotId
+    ) external view returns (bool);
+
+    /// @notice The function to define if voter is able to vote in treasury
+    /// @param voter the address of voter
+    /// @param requiredVotes the required voting power
+    /// @param snapshotId the id of snapshot
+    /// @return `true` - can participate, `false` - can't participate
+    function canVoteTreasury(
+        address voter,
         uint256 requiredVotes,
         uint256 snapshotId
     ) external view returns (bool);
@@ -398,8 +445,4 @@ interface IGovUserKeeper {
         address delegator,
         address delegatee
     ) external view returns (uint256);
-
-    /// @notice The function for getting address of the pool token
-    /// @return the address of the pool token
-    function tokenAddress() external view returns (address);
 }

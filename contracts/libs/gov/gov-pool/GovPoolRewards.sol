@@ -41,7 +41,9 @@ library GovPoolRewards {
 
         if (
             rewardType != IGovPool.RewardType.VoteForDelegated &&
+            rewardType != IGovPool.RewardType.VoteForDelegatedByDAO &&
             rewardType != IGovPool.RewardType.VoteAgainstDelegated &&
+            rewardType != IGovPool.RewardType.VoteAgainstDelegatedByDAO &&
             nftMultiplier != address(0)
         ) {
             amountToAdd += IERC721Multiplier(nftMultiplier).getExtraRewards(
@@ -60,12 +62,14 @@ library GovPoolRewards {
 
             if (
                 rewardType == IGovPool.RewardType.VoteFor ||
-                rewardType == IGovPool.RewardType.VoteForDelegated
+                rewardType == IGovPool.RewardType.VoteForDelegated ||
+                rewardType == IGovPool.RewardType.VoteForDelegatedByDAO
             ) {
                 userProposalRewards.rewardFor += amountToAdd;
             } else if (
                 rewardType == IGovPool.RewardType.VoteAgainst ||
-                rewardType == IGovPool.RewardType.VoteAgainstDelegated
+                rewardType == IGovPool.RewardType.VoteAgainstDelegated ||
+                rewardType == IGovPool.RewardType.VoteAgainstDelegatedByDAO
             ) {
                 userProposalRewards.rewardAgainst += amountToAdd;
             } else {
@@ -176,15 +180,25 @@ library GovPoolRewards {
         uint256 amount
     ) internal view returns (uint256) {
         if (
+            rewardType == IGovPool.RewardType.VoteForDelegatedByDAO ||
+            rewardType == IGovPool.RewardType.VoteAgainstDelegatedByDAO
+        ) {
+            // TODO: calculate coefficient
+            // amount = amount.ratio(coefficient, PRECISION);
+        }
+
+        if (
             rewardType == IGovPool.RewardType.VoteFor ||
-            rewardType == IGovPool.RewardType.VoteForDelegated
+            rewardType == IGovPool.RewardType.VoteForDelegated ||
+            rewardType == IGovPool.RewardType.VoteForDelegatedByDAO
         ) {
             return amount.ratio(rewardsInfo.voteForRewardsCoefficient, PRECISION);
         }
 
         if (
             rewardType == IGovPool.RewardType.VoteAgainst ||
-            rewardType == IGovPool.RewardType.VoteAgainstDelegated
+            rewardType == IGovPool.RewardType.VoteAgainstDelegated ||
+            rewardType == IGovPool.RewardType.VoteAgainstDelegatedByDAO
         ) {
             return amount.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
         }

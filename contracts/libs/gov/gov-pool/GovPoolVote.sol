@@ -93,6 +93,106 @@ library GovPoolVote {
             );
     }
 
+    function voteTreasury(
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        mapping(address => mapping(bool => EnumerableSet.UintSet)) storage votedInProposals,
+        mapping(uint256 => mapping(address => mapping(bool => IGovPool.VoteInfo)))
+            storage voteInfos,
+        uint256 proposalId,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds,
+        bool isVoteFor
+    ) external returns (uint256) {
+        require(voteAmount > 0 || voteNftIds.length > 0, "Gov: empty delegated vote");
+
+        IGovPool.ProposalCore storage core = proposals[proposalId].core;
+
+        require(core.settings.delegatedVotingAllowed, "Gov: delegated voting is off");
+
+        EnumerableSet.UintSet storage votes = votedInProposals[msg.sender][true];
+        IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][msg.sender][true];
+
+        GovPool govPool = GovPool(payable(address(this)));
+        (, address userKeeperAddress, , ) = govPool.getHelperContracts();
+        IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
+
+        require(
+            govPool.getProposalState(proposalId) == IGovPool.ProposalState.Voting,
+            "Gov: vote unavailable"
+        );
+        require(
+            userKeeper.canVoteTreasury(
+                msg.sender,
+                core.settings.minVotesForVoting,
+                core.nftPowerSnapshotId
+            ),
+            "Gov: low voting power"
+        );
+
+        votes.add(proposalId);
+
+        require(
+            votes.length() <= govPool.coreProperties().getGovVotesLimit(),
+            "Gov: vote limit reached"
+        );
+
+        if (voteAmount > 0) {
+            userKeeper.lockTokensTreasury(proposalId, msg.sender, voteAmount);
+            uint256 tokenBalance = userKeeper.tokenBalanceTreasury(msg.sender);
+
+            require(
+                voteAmount <= tokenBalance - voteInfo.tokensVotedFor - voteInfo.tokensVotedAgainst,
+                "Gov: wrong vote amount"
+            );
+
+            if (isVoteFor) {
+                voteInfo.tokensVotedFor += voteAmount;
+            } else {
+                voteInfo.tokensVotedAgainst += voteAmount;
+            }
+        }
+
+        if (voteNftIds.length > 0) {
+            EnumerableSet.UintSet storage votedNfts = _votedNfts(voteInfo, isVoteFor);
+
+            for (uint256 i; i < voteNftIds.length; i++) {
+                require(votedNfts.add(voteNftIds[i]), "Gov: NFT already voted");
+            }
+
+            userKeeper.lockNftsTreasury(msg.sender, voteNftIds);
+
+            userKeeper.updateNftPowers(voteNftIds);
+
+            voteAmount += userKeeper.getNftsPowerInTokensBySnapshot(
+                voteNftIds,
+                core.nftPowerSnapshotId
+            );
+        }
+
+        uint256 rootPower = govPool.getVoteModifierForUser(msg.sender);
+        voteAmount = _calculateVotes(voteAmount, rootPower);
+
+        require(voteAmount >= core.settings.minVotesForVoting, "Gov: low current vote power");
+
+        if (isVoteFor) {
+            core.votesFor += voteAmount;
+            voteInfo.totalVotedFor += voteAmount;
+        } else {
+            core.votesAgainst += voteAmount;
+            voteInfo.totalVotedAgainst += voteAmount;
+        }
+
+        if (core.executeAfter == 0 && _quorumReached(core)) {
+            core.executeAfter =
+                core.settings.executionDelay +
+                (core.settings.earlyCompletion ? uint64(block.timestamp) : core.voteEnd);
+        }
+
+        emit Voted(proposalId, msg.sender, 0, voteAmount, isVoteFor);
+
+        return voteAmount;
+    }
+
     function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {
         (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
 
