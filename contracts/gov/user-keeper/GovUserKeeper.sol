@@ -614,7 +614,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             );
             totalBalance += ownedBalance;
         } else {
-            // TODO: check if micropool is dao?
             ownedBalance += _micropoolsInfo[voter].requestedTokens;
         }
     }
@@ -961,7 +960,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address voter,
         bool isMicropool
     ) internal view returns (BalanceInfo storage) {
-        // TODO: check if micropool is dao?
         return isMicropool ? _micropoolsInfo[voter].balanceInfo : _usersInfo[voter].balanceInfo;
     }
 
