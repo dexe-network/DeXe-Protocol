@@ -90,7 +90,7 @@ library GovPoolVote {
         );
 
         IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][msg.sender][
-            IGovPool.VoteType.DelegatedVote
+            IGovPool.VoteType.MicropoolVote
         ];
 
         return

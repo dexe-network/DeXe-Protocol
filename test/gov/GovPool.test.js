@@ -26,7 +26,13 @@ const {
   getBytesMintExpertNft,
 } = require("../utils/gov-pool-utils");
 const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
-const { ProposalState, DEFAULT_CORE_PROPERTIES, ValidatorsProposalState, ProposalType } = require("../utils/constants");
+const {
+  ProposalState,
+  DEFAULT_CORE_PROPERTIES,
+  ValidatorsProposalState,
+  ProposalType,
+  VoteType,
+} = require("../utils/constants");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
@@ -486,19 +492,31 @@ describe("GovPool", () => {
 
     describe("deposit()", () => {
       it("should deposit tokens", async () => {
-        assert.equal((await userKeeper.tokenBalance(OWNER, false, false)).totalBalance.toFixed(), wei("100000000000"));
-        assert.equal((await userKeeper.tokenBalance(OWNER, false, false)).ownedBalance.toFixed(), wei("100000000000"));
+        assert.equal(
+          (await userKeeper.tokenBalance(OWNER, VoteType.PersonalVote)).totalBalance.toFixed(),
+          wei("100000000000")
+        );
+        assert.equal(
+          (await userKeeper.tokenBalance(OWNER, VoteType.PersonalVote)).ownedBalance.toFixed(),
+          wei("100000000000")
+        );
 
-        assert.equal((await userKeeper.nftBalance(OWNER, false, false)).totalBalance.toFixed(), "9");
-        assert.equal((await userKeeper.nftBalance(OWNER, false, false)).ownedBalance.toFixed(), "9");
+        assert.equal((await userKeeper.nftBalance(OWNER, VoteType.PersonalVote)).totalBalance.toFixed(), "9");
+        assert.equal((await userKeeper.nftBalance(OWNER, VoteType.PersonalVote)).ownedBalance.toFixed(), "9");
 
         await govPool.deposit(OWNER, wei("100"), [1, 2, 3]);
 
-        assert.equal((await userKeeper.tokenBalance(OWNER, false, false)).totalBalance.toFixed(), wei("100000000000"));
-        assert.equal((await userKeeper.tokenBalance(OWNER, false, false)).ownedBalance.toFixed(), wei("99999999900"));
+        assert.equal(
+          (await userKeeper.tokenBalance(OWNER, VoteType.PersonalVote)).totalBalance.toFixed(),
+          wei("100000000000")
+        );
+        assert.equal(
+          (await userKeeper.tokenBalance(OWNER, VoteType.PersonalVote)).ownedBalance.toFixed(),
+          wei("99999999900")
+        );
 
-        assert.equal((await userKeeper.nftBalance(OWNER, false, false)).totalBalance.toFixed(), "9");
-        assert.equal((await userKeeper.nftBalance(OWNER, false, false)).ownedBalance.toFixed(), "6");
+        assert.equal((await userKeeper.nftBalance(OWNER, VoteType.PersonalVote)).totalBalance.toFixed(), "9");
+        assert.equal((await userKeeper.nftBalance(OWNER, VoteType.PersonalVote)).ownedBalance.toFixed(), "6");
       });
     });
 
@@ -510,11 +528,11 @@ describe("GovPool", () => {
 
         await govPool.request(OWNER, wei("50"), [1, 2]);
 
-        assert.equal((await userKeeper.tokenBalance(OWNER, true, false)).totalBalance.toFixed(), wei("100"));
-        assert.equal((await userKeeper.tokenBalance(OWNER, true, false)).ownedBalance.toFixed(), wei("50"));
+        assert.equal((await userKeeper.tokenBalance(OWNER, VoteType.MicropoolVote)).totalBalance.toFixed(), wei("100"));
+        assert.equal((await userKeeper.tokenBalance(OWNER, VoteType.MicropoolVote)).ownedBalance.toFixed(), wei("50"));
 
-        assert.equal((await userKeeper.nftBalance(OWNER, true, false)).totalBalance.toFixed(), "3");
-        assert.equal((await userKeeper.nftBalance(OWNER, true, false)).ownedBalance.toFixed(), "2");
+        assert.equal((await userKeeper.nftBalance(OWNER, VoteType.MicropoolVote)).totalBalance.toFixed(), "3");
+        assert.equal((await userKeeper.nftBalance(OWNER, VoteType.MicropoolVote)).ownedBalance.toFixed(), "2");
       });
     });
 
@@ -853,7 +871,7 @@ describe("GovPool", () => {
           assert.equal(proposal.core.votesFor, "0");
           assert.equal(proposal.core.votesAgainst, tokensToVotes(50).toFixed());
 
-          const voteInfo = await govPool.getUserVotes(1, OWNER, false);
+          const voteInfo = await govPool.getUserVotes(1, OWNER, VoteType.PersonalVote);
 
           assert.equal(voteInfo.totalVotedFor, tokensToVotes(70).toFixed());
           assert.equal(voteInfo.totalVotedAgainst, tokensToVotes(30).toFixed());
@@ -907,7 +925,7 @@ describe("GovPool", () => {
           assert.equal(proposal.core.votesFor, tokensToVotes(50).toFixed());
           assert.equal(proposal.core.votesAgainst, "0");
 
-          const voteInfo = await govPool.getUserVotes(1, SECOND, true);
+          const voteInfo = await govPool.getUserVotes(1, SECOND, VoteType.MicropoolVote);
 
           assert.equal(voteInfo.totalVotedFor, tokensToVotes(70).toFixed());
           assert.equal(voteInfo.totalVotedAgainst, tokensToVotes(30).toFixed());
@@ -924,7 +942,7 @@ describe("GovPool", () => {
           await govPool.voteDelegated(1, wei("100"), [], true, { from: SECOND });
           assert.equal((await getProposalByIndex(1)).core.votesFor, tokensToVotes(100).times(2).toFixed());
 
-          const total = await govPool.getTotalVotes(1, SECOND, true);
+          const total = await govPool.getTotalVotes(1, SECOND, VoteType.MicropoolVote);
 
           assert.equal(toBN(total[0]).toFixed(), tokensToVotes(100).times(2).toFixed());
           assert.equal(toBN(total[1]).toFixed(), "0");
@@ -1028,7 +1046,7 @@ describe("GovPool", () => {
             assert.equal(proposal.core.votesFor, SINGLE_NFT_POWER.toFixed());
             assert.equal(proposal.core.votesAgainst, SINGLE_NFT_POWER.toFixed());
 
-            let voteInfo = await govPool.getUserVotes(1, OWNER, false);
+            let voteInfo = await govPool.getUserVotes(1, OWNER, VoteType.PersonalVote);
 
             assert.equal(voteInfo.totalVotedFor, SINGLE_NFT_POWER.toFixed());
             assert.equal(voteInfo.totalVotedAgainst, "0");
@@ -1037,7 +1055,7 @@ describe("GovPool", () => {
             assert.deepEqual(voteInfo.nftsVotedFor, ["1"]);
             assert.deepEqual(voteInfo.nftsVotedAgainst, []);
 
-            voteInfo = await govPool.getUserVotes(2, OWNER, false);
+            voteInfo = await govPool.getUserVotes(2, OWNER, VoteType.PersonalVote);
 
             assert.equal(voteInfo.totalVotedFor, SINGLE_NFT_POWER.toFixed());
             assert.equal(voteInfo.totalVotedAgainst, SINGLE_NFT_POWER.toFixed());
@@ -1086,7 +1104,7 @@ describe("GovPool", () => {
             assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_POWER.toFixed());
             assert.equal((await getProposalByIndex(2)).core.votesFor, DOUBLE_NFT_POWER.toFixed());
 
-            const voteInfo = await govPool.getUserVotes(1, SECOND, true);
+            const voteInfo = await govPool.getUserVotes(1, SECOND, VoteType.MicropoolVote);
 
             assert.equal(voteInfo.totalVotedFor, SINGLE_NFT_POWER.toFixed());
             assert.equal(voteInfo.totalVotedAgainst, "0");
