@@ -137,10 +137,6 @@ library GovPoolVote {
             );
     }
 
-    function _treasuryVoteCoefficient() internal pure returns (uint256) {
-        return 1;
-    }
-
     function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {
         (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
 
@@ -208,8 +204,7 @@ library GovPoolVote {
             voteAmount += _voteNfts(core, voteInfo, voteNftIds, isVoteFor);
         }
 
-        uint256 rootPower = govPool.getVoteModifierForUser(msg.sender);
-        voteAmount = _calculateVotes(voteAmount, rootPower, 1);
+        voteAmount = _calculateVotes(voteAmount, voteType);
 
         if (isVoteFor) {
             core.votesFor += voteAmount;
@@ -318,11 +313,22 @@ library GovPoolVote {
         return isVoteFor ? voteInfo.nftsVotedFor : voteInfo.nftsVotedAgainst;
     }
 
+    function _treasuryVoteCoefficient() internal view returns (uint256) {
+        return 1;
+    }
+
     function _calculateVotes(
-        uint256 tokenAmount,
-        uint256 rootPower,
-        uint256 coefficient
-    ) private pure returns (uint256) {
-        return tokenAmount.pow(rootPower) / coefficient;
+        uint256 voteAmount,
+        IGovPool.VoteType voteType
+    ) internal view returns (uint256 result) {
+        IGovPool govPool = IGovPool(address(this));
+
+        uint256 rootPower = govPool.getVoteModifierForUser(msg.sender);
+
+        result = voteAmount.pow(rootPower);
+
+        if (voteType == IGovPool.VoteType.TreasuryVote) {
+            result /= _treasuryVoteCoefficient();
+        }
     }
 }
