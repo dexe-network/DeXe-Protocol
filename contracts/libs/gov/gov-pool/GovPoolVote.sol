@@ -179,7 +179,9 @@ library GovPoolVote {
         }
 
         uint256 rootPower = govPool.getVoteModifierForUser(msg.sender);
-        voteAmount = _calculateVotes(voteAmount, rootPower);
+        uint256 coefficient = _treasuryVoteCoefficient();
+
+        voteAmount = _calculateVotes(voteAmount, rootPower, coefficient);
 
         require(voteAmount >= core.settings.minVotesForVoting, "Gov: low current vote power");
 
@@ -200,6 +202,10 @@ library GovPoolVote {
         emit Voted(proposalId, msg.sender, 0, voteAmount, isVoteFor);
 
         return voteAmount;
+    }
+
+    function _treasuryVoteCoefficient() internal pure returns (uint256) {
+        return 1;
     }
 
     function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {
@@ -422,8 +428,9 @@ library GovPoolVote {
 
     function _calculateVotes(
         uint256 tokenAmount,
-        uint256 rootPower
+        uint256 rootPower,
+        uint256 coefficient
     ) private pure returns (uint256) {
-        return tokenAmount.pow(rootPower);
+        return tokenAmount.pow(rootPower) / coefficient;
     }
 }

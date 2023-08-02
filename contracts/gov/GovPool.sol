@@ -326,6 +326,29 @@ contract GovPool is
         emit Delegated(msg.sender, delegatee, amount, nftIds, true);
     }
 
+    function delegateFromTreasury(
+        address delegatee,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external override onlyThis {
+        require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
+
+        require(dexeExpertNft.isExpert(delegatee), "Gov: delegatee is not an expert");
+
+        _depositFromTreasury(delegatee, amount, nftIds);
+
+        _unlock(address(this), false);
+
+        if (amount != 0) {
+            _govUserKeeper.delegateTokensFromTreasury(delegatee, amount);
+        }
+        if (nftIds.length == 0) {
+            _govUserKeeper.delegateNftsFromTreasury(delegatee, nftIds);
+        }
+
+        emit Delegated(msg.sender, delegatee, amount, nftIds, true);
+    }
+
     function request(
         address delegatee,
         uint256 amount,
@@ -416,29 +439,6 @@ contract GovPool is
     ) external override onlyThis {
         _regularVoteModifier = regularModifier;
         _expertVoteModifier = expertModifier;
-    }
-
-    function delegateFromTreasury(
-        address delegatee,
-        uint256 amount,
-        uint256[] calldata nftIds
-    ) external override onlyThis {
-        require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
-
-        require(dexeExpertNft.isExpert(delegatee), "Gov: delegatee is not an expert");
-
-        _depositFromTreasury(delegatee, amount, nftIds);
-
-        _unlock(address(this), false);
-
-        if (amount != 0) {
-            _govUserKeeper.delegateTokensFromTreasury(delegatee, amount);
-        }
-        if (nftIds.length == 0) {
-            _govUserKeeper.delegateNftsFromTreasury(delegatee, nftIds);
-        }
-
-        emit Delegated(msg.sender, delegatee, amount, nftIds, true);
     }
 
     function saveOffchainResults(
