@@ -25,7 +25,7 @@ library GovPoolView {
     function getWithdrawableAssets(
         address user,
         mapping(address => mapping(bool => EnumerableSet.UintSet)) storage _votedInProposals,
-        mapping(uint256 => mapping(address => mapping(bool => IGovPool.VoteInfo)))
+        mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage _voteInfos
     ) external view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts) {
         (uint256[] memory unlockedIds, uint256[] memory lockedIds) = getUserProposals(
@@ -34,7 +34,12 @@ library GovPoolView {
             _votedInProposals
         );
 
-        uint256[] memory unlockedNfts = getUnlockedNfts(unlockedIds, user, false, _voteInfos);
+        uint256[] memory unlockedNfts = getUnlockedNfts(
+            unlockedIds,
+            user,
+            IGovPool.VoteType.PersonalVote,
+            _voteInfos
+        );
 
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
@@ -45,7 +50,7 @@ library GovPoolView {
         address delegator,
         address delegatee,
         mapping(address => mapping(bool => EnumerableSet.UintSet)) storage _votedInProposals,
-        mapping(uint256 => mapping(address => mapping(bool => IGovPool.VoteInfo)))
+        mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage _voteInfos
     ) external view returns (uint256 undelegateableTokens, uint256[] memory undelegateableNfts) {
         (uint256[] memory unlockedIds, uint256[] memory lockedIds) = getUserProposals(
@@ -54,7 +59,12 @@ library GovPoolView {
             _votedInProposals
         );
 
-        uint256[] memory unlockedNfts = getUnlockedNfts(unlockedIds, delegatee, true, _voteInfos);
+        uint256[] memory unlockedNfts = getUnlockedNfts(
+            unlockedIds,
+            delegatee,
+            IGovPool.VoteType.MicropoolVote,
+            _voteInfos
+        );
 
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
@@ -70,14 +80,14 @@ library GovPoolView {
     function getUnlockedNfts(
         uint256[] memory unlockedIds,
         address user,
-        bool isMicropool,
-        mapping(uint256 => mapping(address => mapping(bool => IGovPool.VoteInfo)))
+        IGovPool.VoteType voteType,
+        mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage _voteInfos
     ) internal view returns (uint256[] memory unlockedNfts) {
         uint256 totalLength;
 
         for (uint256 i; i < unlockedIds.length; i++) {
-            IGovPool.VoteInfo storage voteInfo = _voteInfos[unlockedIds[i]][user][isMicropool];
+            IGovPool.VoteInfo storage voteInfo = _voteInfos[unlockedIds[i]][user][voteType];
 
             totalLength += voteInfo.nftsVotedFor.length() + voteInfo.nftsVotedAgainst.length();
         }
@@ -86,7 +96,7 @@ library GovPoolView {
         totalLength = 0;
 
         for (uint256 i; i < unlockedIds.length; i++) {
-            IGovPool.VoteInfo storage voteInfo = _voteInfos[unlockedIds[i]][user][isMicropool];
+            IGovPool.VoteInfo storage voteInfo = _voteInfos[unlockedIds[i]][user][voteType];
 
             totalLength = unlockedNfts.insert(totalLength, voteInfo.nftsVotedFor.values());
             totalLength = unlockedNfts.insert(totalLength, voteInfo.nftsVotedAgainst.values());

@@ -30,16 +30,17 @@ interface IGovPool {
         VoteAgainst,
         VoteForDelegated,
         VoteAgainstDelegated,
-        VoteForDelegatedByDAO,
-        VoteAgainstDelegatedByDAO,
+        VoteForTreasury,
+        VoteAgainstTreasury,
         Execute,
         SaveOffchainResults
     }
 
     enum VoteType {
-        Vote,
-        VoteDelegated,
-        VoteDelegatedByDAO
+        PersonalVote,
+        MicropoolVote,
+        DelegatedVote,
+        TreasuryVote
     }
 
     // TODO: ADD DOCS
@@ -293,7 +294,7 @@ interface IGovPool {
     /// @param delegatee the target address for delegation (person who will receive the delegation)
     /// @param amount the erc20 delegation amount
     /// @param nftIds the array of nft ids to delegate
-    function delegateFromTreasury(
+    function delegateTreasury(
         address delegatee,
         uint256 amount,
         uint256[] calldata nftIds
@@ -396,11 +397,11 @@ interface IGovPool {
     /// @notice The function for getting total votes in the proposal by one voter
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
-    /// @param isMicropool the bool flag for micropool (personal or delegated votes)
+    /// @param voteType the type of vote
     function getTotalVotes(
         uint256 proposalId,
         address voter,
-        bool isMicropool
+        VoteType voteType
     ) external view returns (uint256, uint256, uint256, uint256);
 
     /// @notice The function to get required quorum of proposal
@@ -411,12 +412,12 @@ interface IGovPool {
     /// @notice The function to get information about user's votes
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
-    /// @param isMicropool the bool flag for micropool (personal or delegated votes)
+    /// @param voteType the type of vote
     /// @return `VoteInfoView` array
     function getUserVotes(
         uint256 proposalId,
         address voter,
-        bool isMicropool
+        VoteType voteType
     ) external view returns (VoteInfoView memory);
 
     /// @notice The function to get withdrawable assets

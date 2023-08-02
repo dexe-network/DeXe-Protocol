@@ -8,12 +8,6 @@ library DataHelper {
         }
     }
 
-    function decodeTreasuryFunction(
-        bytes storage data
-    ) internal pure returns (bytes4 selector, address user) {
-        (selector, user, , ) = abi.decode(data, (bytes4, address, uint256, uint256[]));
-    }
-
     function getRevertMsg(bytes memory data) internal pure returns (string memory) {
         if (data.length < 68) {
             return "Transaction reverted silently";

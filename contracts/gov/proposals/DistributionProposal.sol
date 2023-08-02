@@ -87,7 +87,7 @@ contract DistributionProposal is IDistributionProposal, Initializable {
             uint256 totalVotesAgainst,
             uint256 voterVotesFor,
             uint256 voterVotesAgainst
-        ) = IGovPool(govAddress).getTotalVotes(proposalId, voter, false);
+        ) = IGovPool(govAddress).getTotalVotes(proposalId, voter, IGovPool.VoteType.PersonalVote);
 
         if (totalVotesFor == 0 || voterVotesFor <= voterVotesAgainst) {
             return 0;

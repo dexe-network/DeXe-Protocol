@@ -178,7 +178,9 @@ library GovPoolCreate {
         require(
             IGovUserKeeper(userKeeper).canCreate(
                 msg.sender,
-                !settings.delegatedVotingAllowed,
+                settings.delegatedVotingAllowed
+                    ? IGovPool.VoteType.PersonalVote
+                    : IGovPool.VoteType.DelegatedVote,
                 settings.minVotesForCreating,
                 snapshotId
             ),
@@ -205,7 +207,7 @@ library GovPoolCreate {
                         selector == IGovPool.editDescriptionURL.selector ||
                         selector == IGovPool.setNftMultiplierAddress.selector ||
                         selector == IGovPool.changeVerifier.selector ||
-                        selector == IGovPool.delegateFromTreasury.selector ||
+                        selector == IGovPool.delegateTreasury.selector ||
                         selector == IGovPool.undelegateTreasury.selector ||
                         selector == IGovPool.changeBABTRestriction.selector ||
                         selector == IGovPool.changeVoteModifiers.selector),

@@ -122,8 +122,7 @@ library TokenSaleProposalBuy {
                 IGovUserKeeper(govUserKeeper)
                 .votingPower(
                     _asSingletonArray(user),
-                    _asSingletonArray(false),
-                    _asSingletonArray(true)
+                    _asSingletonArray(IGovPool.VoteType.DelegatedVote)
                 )[0].power >
                 tier.decodeDAOVotes();
         } else if (participationType == ITokenSaleProposal.ParticipationType.Whitelist) {
@@ -174,8 +173,10 @@ library TokenSaleProposalBuy {
         }
     }
 
-    function _asSingletonArray(bool element) private pure returns (bool[] memory arr) {
-        arr = new bool[](1);
+    function _asSingletonArray(
+        IGovPool.VoteType element
+    ) private pure returns (IGovPool.VoteType[] memory arr) {
+        arr = new IGovPool.VoteType[](1);
         arr[0] = element;
     }
 

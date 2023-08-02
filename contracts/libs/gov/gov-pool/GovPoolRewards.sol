@@ -41,9 +41,9 @@ library GovPoolRewards {
 
         if (
             rewardType != IGovPool.RewardType.VoteForDelegated &&
-            rewardType != IGovPool.RewardType.VoteForDelegatedByDAO &&
+            rewardType != IGovPool.RewardType.VoteForTreasury &&
             rewardType != IGovPool.RewardType.VoteAgainstDelegated &&
-            rewardType != IGovPool.RewardType.VoteAgainstDelegatedByDAO &&
+            rewardType != IGovPool.RewardType.VoteAgainstTreasury &&
             nftMultiplier != address(0)
         ) {
             amountToAdd += IERC721Multiplier(nftMultiplier).getExtraRewards(
@@ -63,13 +63,13 @@ library GovPoolRewards {
             if (
                 rewardType == IGovPool.RewardType.VoteFor ||
                 rewardType == IGovPool.RewardType.VoteForDelegated ||
-                rewardType == IGovPool.RewardType.VoteForDelegatedByDAO
+                rewardType == IGovPool.RewardType.VoteForTreasury
             ) {
                 userProposalRewards.rewardFor += amountToAdd;
             } else if (
                 rewardType == IGovPool.RewardType.VoteAgainst ||
                 rewardType == IGovPool.RewardType.VoteAgainstDelegated ||
-                rewardType == IGovPool.RewardType.VoteAgainstDelegatedByDAO
+                rewardType == IGovPool.RewardType.VoteAgainstTreasury
             ) {
                 userProposalRewards.rewardAgainst += amountToAdd;
             } else {
@@ -179,18 +179,22 @@ library GovPoolRewards {
         IGovPool.RewardType rewardType,
         uint256 amount
     ) internal view returns (uint256) {
-        if (
-            rewardType == IGovPool.RewardType.VoteForDelegatedByDAO ||
-            rewardType == IGovPool.RewardType.VoteAgainstDelegatedByDAO
-        ) {
-            // TODO: calculate coefficient
-            // amount = amount.ratio(coefficient, PRECISION);
+        if (rewardType == IGovPool.RewardType.Execute) {
+            return rewardsInfo.executionReward;
+        }
+        if (rewardType == IGovPool.RewardType.Create) {
+            return rewardsInfo.creationReward;
+        }
+        if (rewardType == IGovPool.RewardType.SaveOffchainResults) {
+            (address govSettings, , , ) = IGovPool(address(this)).getHelperContracts();
+
+            return IGovSettings(govSettings).getInternalSettings().rewardsInfo.executionReward;
         }
 
         if (
             rewardType == IGovPool.RewardType.VoteFor ||
             rewardType == IGovPool.RewardType.VoteForDelegated ||
-            rewardType == IGovPool.RewardType.VoteForDelegatedByDAO
+            rewardType == IGovPool.RewardType.VoteForTreasury
         ) {
             return amount.ratio(rewardsInfo.voteForRewardsCoefficient, PRECISION);
         }
@@ -198,7 +202,7 @@ library GovPoolRewards {
         if (
             rewardType == IGovPool.RewardType.VoteAgainst ||
             rewardType == IGovPool.RewardType.VoteAgainstDelegated ||
-            rewardType == IGovPool.RewardType.VoteAgainstDelegatedByDAO
+            rewardType == IGovPool.RewardType.VoteAgainstTreasury
         ) {
             return amount.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
         }

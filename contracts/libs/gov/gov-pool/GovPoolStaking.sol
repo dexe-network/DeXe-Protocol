@@ -111,8 +111,7 @@ library GovPoolStaking {
         IGovPool.RewardType rewardType
     ) internal view returns (uint256) {
         return
-            rewardType == IGovPool.RewardType.VoteForDelegated ||
-                rewardType == IGovPool.RewardType.VoteForDelegatedByDAO
+            rewardType == IGovPool.RewardType.VoteForDelegated
                 ? rewardsInfo.voteForRewardsCoefficient
                 : rewardsInfo.voteAgainstRewardsCoefficient;
     }

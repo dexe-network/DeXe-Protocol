@@ -21,8 +21,7 @@ library GovUserKeeperView {
 
     function votingPower(
         address[] calldata users,
-        bool[] calldata isMicropools,
-        bool[] calldata useDelegated
+        IGovPool.VoteType[] calldata voteTypes
     ) external view returns (IGovUserKeeper.VotingPowerView[] memory votingPowers) {
         GovUserKeeper userKeeper = GovUserKeeper(address(this));
         votingPowers = new IGovUserKeeper.VotingPowerView[](users.length);
@@ -36,8 +35,7 @@ library GovUserKeeperView {
             if (tokenAddressExists) {
                 (power.power, power.ownedBalance) = userKeeper.tokenBalance(
                     users[i],
-                    isMicropools[i],
-                    useDelegated[i]
+                    voteTypes[i]
                 );
             }
 
@@ -45,8 +43,7 @@ library GovUserKeeperView {
                 /// @dev FE should `crop` this array if it's micropool
                 (power.nftIds, power.ownedLength) = userKeeper.nftExactBalance(
                     users[i],
-                    isMicropools[i],
-                    useDelegated[i]
+                    voteTypes[i]
                 );
                 (power.nftPower, power.perNftPower) = nftVotingPower(power.nftIds, true);
 

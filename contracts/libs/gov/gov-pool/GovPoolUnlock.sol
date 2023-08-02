@@ -13,7 +13,7 @@ library GovPoolUnlock {
 
     function unlockInProposals(
         mapping(address => mapping(bool => EnumerableSet.UintSet)) storage votedInProposals,
-        mapping(uint256 => mapping(address => mapping(bool => IGovPool.VoteInfo)))
+        mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage voteInfos,
         uint256[] calldata proposalIds,
         address user,
@@ -48,10 +48,14 @@ library GovPoolUnlock {
                 .unlockTokens(proposalId, user, isMicropool)
                 .max(maxUnlocked);
             IGovUserKeeper(userKeeper).unlockNfts(
-                voteInfos[proposalId][user][isMicropool].nftsVotedFor.values()
+                voteInfos[proposalId][user][
+                    isMicropool ? IGovPool.VoteType.MicropoolVote : IGovPool.VoteType.PersonalVote
+                ].nftsVotedFor.values()
             );
             IGovUserKeeper(userKeeper).unlockNfts(
-                voteInfos[proposalId][user][isMicropool].nftsVotedAgainst.values()
+                voteInfos[proposalId][user][
+                    isMicropool ? IGovPool.VoteType.MicropoolVote : IGovPool.VoteType.PersonalVote
+                ].nftsVotedAgainst.values()
             );
 
             userProposals.remove(proposalId);

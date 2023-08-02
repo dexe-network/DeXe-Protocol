@@ -84,7 +84,7 @@ contract GovPool is
 
     mapping(uint256 => Proposal) internal _proposals; // proposalId => info
 
-    mapping(uint256 => mapping(address => mapping(bool => VoteInfo))) internal _voteInfos; // proposalId => voter => isMicropool => info
+    mapping(uint256 => mapping(address => mapping(VoteType => VoteInfo))) internal _voteInfos; // proposalId => voter => VoteType => info
     mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
 
     mapping(address => PendingRewards) internal _pendingRewards; // user => pending rewards
@@ -92,6 +92,7 @@ contract GovPool is
     mapping(address => MicropoolInfo) internal _micropoolInfos;
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
+    event DelegatedTreasury(address to, uint256 amount, uint256[] nfts, bool isDelegate);
     event Requested(address from, address to, uint256 amount, uint256[] nfts);
     event Deposited(uint256 amount, uint256[] nfts, address sender);
     event Withdrawn(uint256 amount, uint256[] nfts, address sender);
@@ -154,11 +155,7 @@ contract GovPool is
     function execute(uint256 proposalId) public override onlyBABTHolder {
         _proposals.execute(proposalId);
 
-        _updateRewards(
-            proposalId,
-            RewardType.Execute,
-            _proposals[proposalId].core.settings.rewardsInfo.executionReward
-        );
+        _updateRewards(proposalId, RewardType.Execute);
     }
 
     function deposit(
@@ -192,21 +189,13 @@ contract GovPool is
 
         _proposals.createProposal(_descriptionURL, misc, actionsOnFor, actionsOnAgainst);
 
-        _updateRewards(
-            proposalId,
-            RewardType.Create,
-            _proposals[proposalId].core.settings.rewardsInfo.creationReward
-        );
+        _updateRewards(proposalId, RewardType.Create);
     }
 
     function moveProposalToValidators(uint256 proposalId) external override {
         _proposals.moveProposalToValidators(proposalId);
 
-        _updateRewards(
-            proposalId,
-            RewardType.Create,
-            _proposals[proposalId].core.settings.rewardsInfo.creationReward
-        );
+        _updateRewards(proposalId, RewardType.Create);
     }
 
     function vote(
@@ -275,7 +264,6 @@ contract GovPool is
         _unlock(msg.sender, true);
 
         uint256 reward = _proposals.voteTreasury(
-            _votedInProposals,
             _voteInfos,
             proposalId,
             voteAmount,
@@ -285,7 +273,7 @@ contract GovPool is
 
         _updateRewards(
             proposalId,
-            isVoteFor ? RewardType.VoteForDelegatedByDAO : RewardType.VoteAgainstDelegatedByDAO,
+            isVoteFor ? RewardType.VoteForTreasury : RewardType.VoteAgainstTreasury,
             reward.percentage(PERCENTAGE_DELEGATED_BY_DAO_REWARDS)
         );
     }
@@ -326,7 +314,7 @@ contract GovPool is
         emit Delegated(msg.sender, delegatee, amount, nftIds, true);
     }
 
-    function delegateFromTreasury(
+    function delegateTreasury(
         address delegatee,
         uint256 amount,
         uint256[] calldata nftIds
@@ -335,18 +323,22 @@ contract GovPool is
 
         require(dexeExpertNft.isExpert(delegatee), "Gov: delegatee is not an expert");
 
-        _depositFromTreasury(delegatee, amount, nftIds);
-
-        _unlock(address(this), false);
-
         if (amount != 0) {
-            _govUserKeeper.delegateTokensFromTreasury(delegatee, amount);
+            IERC20(_govUserKeeper.tokenAddress()).transfer(delegatee, amount);
+
+            _govUserKeeper.delegateTokensTreasury(delegatee, amount);
         }
-        if (nftIds.length == 0) {
-            _govUserKeeper.delegateNftsFromTreasury(delegatee, nftIds);
+        if (nftIds.length != 0) {
+            IERC721 nft = IERC721(_govUserKeeper.nftAddress());
+
+            for (uint256 i; i < nftIds.length; i++) {
+                nft.safeTransferFrom(address(this), address(_govUserKeeper), nftIds[i]);
+            }
+
+            _govUserKeeper.delegateNftsTreasury(delegatee, nftIds);
         }
 
-        emit Delegated(msg.sender, delegatee, amount, nftIds, true);
+        emit DelegatedTreasury(delegatee, amount, nftIds, true);
     }
 
     function request(
@@ -396,19 +388,16 @@ contract GovPool is
     ) external override onlyThis {
         require(amount > 0 || nftIds.length > 0, "Gov: empty withdrawal");
 
-        _unlock(delegatee, true);
-
         if (amount != 0) {
-            _govUserKeeper.withdrawTokensFromTreasury(delegatee, amount);
+            _govUserKeeper.undelegateTokensTreasury(delegatee, amount);
         }
-        if (nftIds.length == 0) {
-            _govUserKeeper.withdrawNftsFromTreasury(delegatee, nftIds);
+        if (nftIds.length != 0) {
+            _govUserKeeper.undelegateNftsTreasury(delegatee, nftIds);
         }
 
         // TODO: we need to cancel delegatee's rewards and votes in proposals
 
-        emit Delegated(address(this), delegatee, amount, nftIds, false);
-        emit Withdrawn(amount, nftIds, address(this));
+        emit DelegatedTreasury(delegatee, amount, nftIds, false);
     }
 
     function claimRewards(uint256[] calldata proposalIds) external override onlyBABTHolder {
@@ -447,11 +436,7 @@ contract GovPool is
     ) external override onlyBABTHolder {
         resultsHash.saveOffchainResults(signature, _offChain);
 
-        _updateRewards(
-            0,
-            RewardType.SaveOffchainResults,
-            _govSettings.getInternalSettings().rewardsInfo.executionReward
-        );
+        _updateRewards(0, RewardType.SaveOffchainResults);
     }
 
     receive() external payable {}
@@ -562,10 +547,10 @@ contract GovPool is
     function getTotalVotes(
         uint256 proposalId,
         address voter,
-        bool isMicropool
+        VoteType voteType
     ) external view override returns (uint256, uint256, uint256, uint256) {
         IGovPool.ProposalCore storage core = _proposals[proposalId].core;
-        IGovPool.VoteInfo storage info = _voteInfos[proposalId][voter][isMicropool];
+        IGovPool.VoteInfo storage info = _voteInfos[proposalId][voter][voteType];
 
         return (core.votesFor, core.votesAgainst, info.totalVotedFor, info.totalVotedAgainst);
     }
@@ -573,9 +558,9 @@ contract GovPool is
     function getUserVotes(
         uint256 proposalId,
         address voter,
-        bool isMicropool
+        VoteType voteType
     ) external view override returns (VoteInfoView memory voteInfo) {
-        VoteInfo storage info = _voteInfos[proposalId][voter][isMicropool];
+        VoteInfo storage info = _voteInfos[proposalId][voter][voteType];
 
         return
             VoteInfoView({
@@ -644,20 +629,8 @@ contract GovPool is
         nftMultiplier = nftMultiplierAddress;
     }
 
-    function _depositFromTreasury(
-        address receiver,
-        uint256 amount,
-        uint256[] memory nftIds
-    ) internal {
-        IERC20(_govUserKeeper.tokenAddress()).transfer(receiver, amount);
-
-        IERC721 nft = IERC721(_govUserKeeper.nftAddress());
-
-        for (uint256 i; i < nftIds.length; i++) {
-            nft.safeTransferFrom(address(this), address(_govUserKeeper), nftIds[i]);
-        }
-
-        emit Deposited(amount, nftIds, receiver);
+    function _updateRewards(uint256 proposalId, RewardType rewardType) internal {
+        _updateRewards(proposalId, rewardType, 0);
     }
 
     function _updateRewards(uint256 proposalId, RewardType rewardType, uint256 amount) internal {
