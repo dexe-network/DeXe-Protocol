@@ -898,10 +898,6 @@ describe("GovPool", () => {
         it("should revert when vote zero amount", async () => {
           await truffleAssert.reverts(govPool.vote(1, 0, [], true), "Gov: empty vote");
         });
-
-        it("should not vote if low current vote power", async () => {
-          await truffleAssert.reverts(govPool.vote(1, wei("1"), [], true), "Gov: low current vote power");
-        });
       });
 
       describe("voteDelegated() tokens", () => {
@@ -970,15 +966,6 @@ describe("GovPool", () => {
           await truffleAssert.reverts(
             govPool.voteDelegated(1, wei("1000"), [], true, { from: SECOND }),
             "Gov: wrong vote amount"
-          );
-        });
-
-        it("should not vote if low current vote power", async () => {
-          await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
-
-          await truffleAssert.reverts(
-            govPool.voteDelegated(1, wei("1"), [], true, { from: SECOND }),
-            "Gov: low current vote power"
           );
         });
       });
@@ -1081,10 +1068,6 @@ describe("GovPool", () => {
           it("should revert when voting with same NFTs", async () => {
             await truffleAssert.reverts(govPool.vote(1, 0, [2, 2], true), "Gov: NFT already voted");
           });
-
-          it("should not vote if low current vote power", async () => {
-            await truffleAssert.reverts(govPool.vote(4, 0, [1], true), "Gov: low current vote power");
-          });
         });
 
         describe("voteDelegated() nfts", () => {
@@ -1133,13 +1116,6 @@ describe("GovPool", () => {
             await truffleAssert.reverts(
               govPool.voteDelegated(1, 0, [2], true, { from: SECOND }),
               "GovUK: NFT is not owned"
-            );
-          });
-
-          it("should not vote if low current vote power", async () => {
-            await truffleAssert.reverts(
-              govPool.voteDelegated(4, 0, [1], true, { from: SECOND }),
-              "Gov: low current vote power"
             );
           });
 

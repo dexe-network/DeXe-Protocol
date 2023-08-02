@@ -211,8 +211,6 @@ library GovPoolVote {
         uint256 rootPower = govPool.getVoteModifierForUser(msg.sender);
         voteAmount = _calculateVotes(voteAmount, rootPower, 1);
 
-        require(voteAmount >= core.settings.minVotesForVoting, "Gov: low current vote power");
-
         if (isVoteFor) {
             core.votesFor += voteAmount;
             voteInfo.totalVotedFor += voteAmount;
