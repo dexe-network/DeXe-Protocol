@@ -179,9 +179,8 @@ library GovPoolVote {
         }
 
         uint256 rootPower = govPool.getVoteModifierForUser(msg.sender);
-        uint256 coefficient = _treasuryVoteCoefficient();
 
-        voteAmount = _calculateVotes(voteAmount, rootPower, coefficient);
+        voteAmount = _calculateVotes(voteAmount, rootPower, _treasuryVoteCoefficient());
 
         require(voteAmount >= core.settings.minVotesForVoting, "Gov: low current vote power");
 
@@ -281,7 +280,7 @@ library GovPoolVote {
         }
 
         uint256 rootPower = govPool.getVoteModifierForUser(msg.sender);
-        voteAmount = _calculateVotes(voteAmount, rootPower);
+        voteAmount = _calculateVotes(voteAmount, rootPower, 1);
 
         require(voteAmount >= core.settings.minVotesForVoting, "Gov: low current vote power");
 
