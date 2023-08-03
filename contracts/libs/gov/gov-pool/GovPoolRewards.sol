@@ -182,9 +182,11 @@ library GovPoolRewards {
         if (rewardType == IGovPool.RewardType.Execute) {
             return rewardsInfo.executionReward;
         }
+
         if (rewardType == IGovPool.RewardType.Create) {
             return rewardsInfo.creationReward;
         }
+
         if (rewardType == IGovPool.RewardType.SaveOffchainResults) {
             (address govSettings, , , ) = IGovPool(address(this)).getHelperContracts();
 

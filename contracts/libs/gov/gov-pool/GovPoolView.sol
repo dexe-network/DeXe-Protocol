@@ -24,13 +24,14 @@ library GovPoolView {
 
     function getWithdrawableAssets(
         address user,
-        mapping(address => mapping(bool => EnumerableSet.UintSet)) storage _votedInProposals,
+        mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
+            storage _votedInProposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage _voteInfos
     ) external view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts) {
         (uint256[] memory unlockedIds, uint256[] memory lockedIds) = getUserProposals(
             user,
-            false,
+            IGovPool.VoteType.PersonalVote,
             _votedInProposals
         );
 
@@ -49,13 +50,14 @@ library GovPoolView {
     function getUndelegateableAssets(
         address delegator,
         address delegatee,
-        mapping(address => mapping(bool => EnumerableSet.UintSet)) storage _votedInProposals,
+        mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
+            storage _votedInProposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage _voteInfos
     ) external view returns (uint256 undelegateableTokens, uint256[] memory undelegateableNfts) {
         (uint256[] memory unlockedIds, uint256[] memory lockedIds) = getUserProposals(
             delegatee,
-            true,
+            IGovPool.VoteType.MicropoolVote,
             _votedInProposals
         );
 
@@ -105,10 +107,11 @@ library GovPoolView {
 
     function getUserProposals(
         address user,
-        bool isMicropool,
-        mapping(address => mapping(bool => EnumerableSet.UintSet)) storage _votedInProposals
+        IGovPool.VoteType voteType,
+        mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
+            storage _votedInProposals
     ) internal view returns (uint256[] memory unlockedIds, uint256[] memory lockedIds) {
-        EnumerableSet.UintSet storage votes = _votedInProposals[user][isMicropool];
+        EnumerableSet.UintSet storage votes = _votedInProposals[user][voteType];
         uint256 proposalsLength = votes.length();
 
         unlockedIds = new uint256[](proposalsLength);

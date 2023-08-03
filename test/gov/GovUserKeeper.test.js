@@ -172,7 +172,7 @@ describe("GovUserKeeper", () => {
         );
 
         await truffleAssert.reverts(
-          userKeeper.updateMaxTokenLockedAmount([1], OWNER, false, { from: SECOND }),
+          userKeeper.updateMaxTokenLockedAmount([1], OWNER, VoteType.PersonalVote, { from: SECOND }),
           "Ownable: caller is not the owner"
         );
 
@@ -182,7 +182,7 @@ describe("GovUserKeeper", () => {
         );
 
         await truffleAssert.reverts(
-          userKeeper.unlockTokens(1, OWNER, false, { from: SECOND }),
+          userKeeper.unlockTokens(1, OWNER, VoteType.PersonalVote, { from: SECOND }),
           "Ownable: caller is not the owner"
         );
 
@@ -911,7 +911,7 @@ describe("GovUserKeeper", () => {
         let withdrawable = await userKeeper.getWithdrawableAssets(SECOND, [1], []);
         assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("490"));
 
-        await userKeeper.unlockTokens(1, SECOND, false);
+        await userKeeper.unlockTokens(1, SECOND, VoteType.PersonalVote);
 
         withdrawable = await userKeeper.getWithdrawableAssets(SECOND, [1], []);
         assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("500"));
@@ -961,8 +961,8 @@ describe("GovUserKeeper", () => {
 
         await truffleAssert.reverts(userKeeper.withdrawTokens(THIRD, THIRD, wei("600")), "GovUK: can't withdraw this");
 
-        await userKeeper.unlockTokens(1, THIRD, false);
-        await userKeeper.updateMaxTokenLockedAmount([], THIRD, false);
+        await userKeeper.unlockTokens(1, THIRD, VoteType.PersonalVote);
+        await userKeeper.updateMaxTokenLockedAmount([], THIRD, VoteType.PersonalVote);
         await userKeeper.withdrawTokens(THIRD, THIRD, wei("600"));
 
         assert.equal(await token.balanceOf(THIRD), wei("900"));
@@ -985,10 +985,10 @@ describe("GovUserKeeper", () => {
         const withdrawable = await userKeeper.getWithdrawableAssets(THIRD, [], []);
         assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("900"));
 
-        await userKeeper.unlockTokens(1, THIRD, false);
-        await userKeeper.unlockTokens(2, THIRD, false);
-        await userKeeper.unlockTokens(3, THIRD, false);
-        await userKeeper.updateMaxTokenLockedAmount([], THIRD, false);
+        await userKeeper.unlockTokens(1, THIRD, VoteType.PersonalVote);
+        await userKeeper.unlockTokens(2, THIRD, VoteType.PersonalVote);
+        await userKeeper.unlockTokens(3, THIRD, VoteType.PersonalVote);
+        await userKeeper.updateMaxTokenLockedAmount([], THIRD, VoteType.PersonalVote);
 
         await userKeeper.withdrawTokens(THIRD, THIRD, wei("900"));
 
@@ -1003,11 +1003,11 @@ describe("GovUserKeeper", () => {
         let withdrawable = await userKeeper.getWithdrawableAssets(THIRD, [2], []);
         assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("600"));
 
-        await userKeeper.unlockTokens(1, THIRD, false);
-        await userKeeper.unlockTokens(3, THIRD, false);
-        await userKeeper.updateMaxTokenLockedAmount([2], THIRD, false);
+        await userKeeper.unlockTokens(1, THIRD, VoteType.PersonalVote);
+        await userKeeper.unlockTokens(3, THIRD, VoteType.PersonalVote);
+        await userKeeper.updateMaxTokenLockedAmount([2], THIRD, VoteType.PersonalVote);
 
-        await truffleAssert.passes(userKeeper.updateMaxTokenLockedAmount([2], THIRD, false), "pass");
+        await truffleAssert.passes(userKeeper.updateMaxTokenLockedAmount([2], THIRD, VoteType.PersonalVote), "pass");
 
         await userKeeper.withdrawTokens(THIRD, THIRD, wei("600"));
 
@@ -1016,8 +1016,8 @@ describe("GovUserKeeper", () => {
         withdrawable = await userKeeper.getWithdrawableAssets(THIRD, [], []);
         assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("300"));
 
-        await userKeeper.unlockTokens(2, THIRD, false);
-        await userKeeper.updateMaxTokenLockedAmount([], THIRD, false);
+        await userKeeper.unlockTokens(2, THIRD, VoteType.PersonalVote);
+        await userKeeper.updateMaxTokenLockedAmount([], THIRD, VoteType.PersonalVote);
 
         await userKeeper.withdrawTokens(THIRD, THIRD, wei("300"));
 

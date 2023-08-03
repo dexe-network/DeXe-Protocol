@@ -187,11 +187,11 @@ interface IGovUserKeeper {
     /// @notice The function for recalculating max token locked amount of a user
     /// @param lockedProposals the array of proposal ids for recalculation
     /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then recalculation is made for micropool
+    /// @param voteType the type of vote
     function updateMaxTokenLockedAmount(
         uint256[] calldata lockedProposals,
         address voter,
-        bool isMicropool
+        IGovPool.VoteType voteType
     ) external;
 
     /// @notice The function for locking tokens in a proposal
@@ -209,11 +209,11 @@ interface IGovUserKeeper {
     /// @notice The function for unlocking tokens in proposal
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then micropool funds are unlocked
+    /// @param voteType the type of vote
     function unlockTokens(
         uint256 proposalId,
         address voter,
-        bool isMicropool
+        IGovPool.VoteType voteType
     ) external returns (uint256 unlockedAmount);
 
     /// @notice The function for locking nfts
@@ -262,9 +262,12 @@ interface IGovUserKeeper {
 
     /// @notice The function for getting max locked amount of a user
     /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then uses micropool locked amounts
+    /// @param voteType the type of vote
     /// @return `max locked amount`
-    function maxLockedAmount(address voter, bool isMicropool) external view returns (uint256);
+    function maxLockedAmount(
+        address voter,
+        IGovPool.VoteType voteType
+    ) external view returns (uint256);
 
     /// @notice The function for getting token balance of a user
     /// @param voter the address of voter

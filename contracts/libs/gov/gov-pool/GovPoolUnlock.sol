@@ -12,19 +12,20 @@ library GovPoolUnlock {
     using EnumerableSet for EnumerableSet.UintSet;
 
     function unlockInProposals(
-        mapping(address => mapping(bool => EnumerableSet.UintSet)) storage votedInProposals,
+        mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
+            storage votedInProposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage voteInfos,
         uint256[] calldata proposalIds,
         address user,
-        bool isMicropool
+        IGovPool.VoteType voteTytpe
     ) external {
         IGovPool govPool = IGovPool(address(this));
         (, address userKeeper, , ) = govPool.getHelperContracts();
 
-        EnumerableSet.UintSet storage userProposals = votedInProposals[user][isMicropool];
+        EnumerableSet.UintSet storage userProposals = votedInProposals[user][voteTytpe];
 
-        uint256 maxLockedAmount = IGovUserKeeper(userKeeper).maxLockedAmount(user, isMicropool);
+        uint256 maxLockedAmount = IGovUserKeeper(userKeeper).maxLockedAmount(user, voteTytpe);
         uint256 maxUnlocked;
 
         for (uint256 i; i < proposalIds.length; i++) {
@@ -44,18 +45,14 @@ library GovPoolUnlock {
                 continue;
             }
 
-            maxUnlocked = IGovUserKeeper(userKeeper)
-                .unlockTokens(proposalId, user, isMicropool)
-                .max(maxUnlocked);
-            IGovUserKeeper(userKeeper).unlockNfts(
-                voteInfos[proposalId][user][
-                    isMicropool ? IGovPool.VoteType.MicropoolVote : IGovPool.VoteType.PersonalVote
-                ].nftsVotedFor.values()
+            maxUnlocked = IGovUserKeeper(userKeeper).unlockTokens(proposalId, user, voteTytpe).max(
+                maxUnlocked
             );
             IGovUserKeeper(userKeeper).unlockNfts(
-                voteInfos[proposalId][user][
-                    isMicropool ? IGovPool.VoteType.MicropoolVote : IGovPool.VoteType.PersonalVote
-                ].nftsVotedAgainst.values()
+                voteInfos[proposalId][user][voteTytpe].nftsVotedFor.values()
+            );
+            IGovUserKeeper(userKeeper).unlockNfts(
+                voteInfos[proposalId][user][voteTytpe].nftsVotedAgainst.values()
             );
 
             userProposals.remove(proposalId);
@@ -65,7 +62,7 @@ library GovPoolUnlock {
             IGovUserKeeper(userKeeper).updateMaxTokenLockedAmount(
                 userProposals.values(),
                 user,
-                isMicropool
+                voteTytpe
             );
         }
     }

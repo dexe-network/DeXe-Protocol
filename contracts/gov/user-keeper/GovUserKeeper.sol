@@ -225,7 +225,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function depositNfts(
         address payer,
         address receiver,
-        uint256[] memory nftIds
+        uint256[] calldata nftIds
     ) external override onlyOwner withSupportedNft {
         BalanceInfo storage receiverInfo = _usersInfo[receiver].balanceInfo;
 
@@ -396,12 +396,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function updateMaxTokenLockedAmount(
         uint256[] calldata lockedProposals,
         address voter,
-        bool isMicropool
+        IGovPool.VoteType voteType
     ) external override onlyOwner {
-        BalanceInfo storage balanceInfo = _getBalanceInfoStorage(
-            voter,
-            isMicropool ? IGovPool.VoteType.MicropoolVote : IGovPool.VoteType.PersonalVote
-        );
+        BalanceInfo storage balanceInfo = _getBalanceInfoStorage(voter, voteType);
 
         uint256 lockedAmount = balanceInfo.maxTokensLocked;
         uint256 newLockedAmount;
@@ -437,17 +434,13 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function unlockTokens(
         uint256 proposalId,
         address voter,
-        bool isMicropool
+        IGovPool.VoteType voteType
     ) external override onlyOwner returns (uint256 unlockedAmount) {
-        unlockedAmount = _getBalanceInfoStorage(
-            voter,
-            isMicropool ? IGovPool.VoteType.MicropoolVote : IGovPool.VoteType.PersonalVote
-        ).lockedInProposals[proposalId];
+        BalanceInfo storage balanceInfo = _getBalanceInfoStorage(voter, voteType);
 
-        delete _getBalanceInfoStorage(
-            voter,
-            isMicropool ? IGovPool.VoteType.MicropoolVote : IGovPool.VoteType.PersonalVote
-        ).lockedInProposals[proposalId];
+        unlockedAmount = balanceInfo.lockedInProposals[proposalId];
+
+        delete balanceInfo.lockedInProposals[proposalId];
     }
 
     function lockNfts(
@@ -520,13 +513,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     function maxLockedAmount(
         address voter,
-        bool isMicropool
+        IGovPool.VoteType voteType
     ) external view override returns (uint256) {
-        return
-            _getBalanceInfoStorage(
-                voter,
-                isMicropool ? IGovPool.VoteType.MicropoolVote : IGovPool.VoteType.PersonalVote
-            ).maxTokensLocked;
+        return _getBalanceInfoStorage(voter, voteType).maxTokensLocked;
     }
 
     function tokenBalance(
@@ -882,6 +871,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         if (voteType == IGovPool.VoteType.MicropoolVote) {
             return _micropoolsInfo[voter].balanceInfo;
         }
+
         if (voteType == IGovPool.VoteType.TreasuryVote) {
             return _treasuryPoolsInfo[voter];
         }

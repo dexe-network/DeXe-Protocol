@@ -33,7 +33,8 @@ library GovPoolVote {
 
     function vote(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        mapping(address => mapping(bool => EnumerableSet.UintSet)) storage votedInProposals,
+        mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
+            storage votedInProposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage voteInfos,
         uint256 proposalId,
@@ -44,29 +45,25 @@ library GovPoolVote {
         require(voteAmount > 0 || voteNftIds.length > 0, "Gov: empty vote");
 
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
-        EnumerableSet.UintSet storage votes = votedInProposals[msg.sender][false];
-
-        votes.add(proposalId);
-
-        require(
-            votes.length() <= GovPool(payable(address(this))).coreProperties().getGovVotesLimit(),
-            "Gov: vote limit reached"
-        );
-
+        EnumerableSet.UintSet storage votes = votedInProposals[msg.sender][
+            IGovPool.VoteType.PersonalVote
+        ];
         IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][msg.sender][
             IGovPool.VoteType.PersonalVote
         ];
 
         IGovPool.VoteType voteType = core.settings.delegatedVotingAllowed
-            ? IGovPool.VoteType.PersonalVote
-            : IGovPool.VoteType.DelegatedVote;
+            ? IGovPool.VoteType.DelegatedVote
+            : IGovPool.VoteType.PersonalVote;
 
-        return _vote(core, voteInfo, proposalId, voteAmount, voteNftIds, voteType, isVoteFor);
+        return
+            _vote(core, votes, voteInfo, proposalId, voteAmount, voteNftIds, voteType, isVoteFor);
     }
 
     function voteDelegated(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        mapping(address => mapping(bool => EnumerableSet.UintSet)) storage votedInProposals,
+        mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
+            storage votedInProposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage voteInfos,
         uint256 proposalId,
@@ -78,17 +75,11 @@ library GovPoolVote {
 
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
 
-        require(core.settings.delegatedVotingAllowed, "Gov: delegated voting is off");
+        require(!core.settings.delegatedVotingAllowed, "Gov: micropool voting is off");
 
-        EnumerableSet.UintSet storage votes = votedInProposals[msg.sender][true];
-
-        votes.add(proposalId);
-
-        require(
-            votes.length() <= GovPool(payable(address(this))).coreProperties().getGovVotesLimit(),
-            "Gov: vote limit reached"
-        );
-
+        EnumerableSet.UintSet storage votes = votedInProposals[msg.sender][
+            IGovPool.VoteType.MicropoolVote
+        ];
         IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][msg.sender][
             IGovPool.VoteType.MicropoolVote
         ];
@@ -96,6 +87,7 @@ library GovPoolVote {
         return
             _vote(
                 core,
+                votes,
                 voteInfo,
                 proposalId,
                 voteAmount,
@@ -107,6 +99,8 @@ library GovPoolVote {
 
     function voteTreasury(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
+        mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
+            storage votedInProposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage voteInfos,
         uint256 proposalId,
@@ -121,6 +115,9 @@ library GovPoolVote {
         // TODO: do we need this?
         // require(core.settings.delegatedVotingAllowed, "Gov: delegated voting is off");
 
+        EnumerableSet.UintSet storage votes = votedInProposals[msg.sender][
+            IGovPool.VoteType.TreasuryVote
+        ];
         IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][msg.sender][
             IGovPool.VoteType.TreasuryVote
         ];
@@ -128,6 +125,7 @@ library GovPoolVote {
         return
             _vote(
                 core,
+                votes,
                 voteInfo,
                 proposalId,
                 voteAmount,
@@ -137,43 +135,9 @@ library GovPoolVote {
             );
     }
 
-    function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {
-        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
-
-        return
-            PERCENTAGE_100.ratio(
-                core.votesFor + core.votesAgainst,
-                IGovUserKeeper(userKeeperAddress).getTotalVoteWeight()
-            ) >= core.settings.quorum;
-    }
-
-    function _votesForMoreThanAgainst(
-        IGovPool.ProposalCore storage core
-    ) internal view returns (bool) {
-        return core.votesFor > core.votesAgainst;
-    }
-
-    function _proposalStateBasedOnVoteResultsAndLock(
-        IGovPool.ProposalCore storage core
-    ) internal view returns (IGovPool.ProposalState) {
-        if (block.timestamp <= core.executeAfter) {
-            return IGovPool.ProposalState.Locked;
-        }
-
-        return _proposalStateBasedOnVoteResults(core);
-    }
-
-    function _proposalStateBasedOnVoteResults(
-        IGovPool.ProposalCore storage core
-    ) internal view returns (IGovPool.ProposalState) {
-        return
-            _votesForMoreThanAgainst(core)
-                ? IGovPool.ProposalState.SucceededFor
-                : IGovPool.ProposalState.SucceededAgainst;
-    }
-
     function _vote(
         IGovPool.ProposalCore storage core,
+        EnumerableSet.UintSet storage votes,
         IGovPool.VoteInfo storage voteInfo,
         uint256 proposalId,
         uint256 voteAmount,
@@ -182,6 +146,13 @@ library GovPoolVote {
         bool isVoteFor
     ) internal returns (uint256) {
         _canVote(core, proposalId, voteType);
+
+        votes.add(proposalId);
+
+        require(
+            votes.length() <= GovPool(payable(address(this))).coreProperties().getGovVotesLimit(),
+            "Gov: vote limit reached"
+        );
 
         IGovPool govPool = IGovPool(address(this));
 
@@ -232,31 +203,6 @@ library GovPoolVote {
         return voteAmount;
     }
 
-    function _canVote(
-        IGovPool.ProposalCore storage core,
-        uint256 proposalId,
-        IGovPool.VoteType voteType
-    ) internal view {
-        IGovPool govPool = IGovPool(address(this));
-
-        require(
-            govPool.getProposalState(proposalId) == IGovPool.ProposalState.Voting,
-            "Gov: vote unavailable"
-        );
-
-        (, address userKeeper, , ) = govPool.getHelperContracts();
-
-        require(
-            IGovUserKeeper(userKeeper).canVote(
-                msg.sender,
-                voteType,
-                core.settings.minVotesForVoting,
-                core.nftPowerSnapshotId
-            ),
-            "Gov: low voting power"
-        );
-    }
-
     function _voteTokens(
         IGovPool.VoteInfo storage voteInfo,
         uint256 amount,
@@ -304,6 +250,66 @@ library GovPoolVote {
         userKeeper.updateNftPowers(nftIds);
 
         voteAmount = userKeeper.getNftsPowerInTokensBySnapshot(nftIds, core.nftPowerSnapshotId);
+    }
+
+    function _canVote(
+        IGovPool.ProposalCore storage core,
+        uint256 proposalId,
+        IGovPool.VoteType voteType
+    ) internal view {
+        IGovPool govPool = IGovPool(address(this));
+
+        require(
+            govPool.getProposalState(proposalId) == IGovPool.ProposalState.Voting,
+            "Gov: vote unavailable"
+        );
+
+        (, address userKeeper, , ) = govPool.getHelperContracts();
+
+        require(
+            IGovUserKeeper(userKeeper).canVote(
+                msg.sender,
+                voteType,
+                core.settings.minVotesForVoting,
+                core.nftPowerSnapshotId
+            ),
+            "Gov: low voting power"
+        );
+    }
+
+    function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {
+        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+
+        return
+            PERCENTAGE_100.ratio(
+                core.votesFor + core.votesAgainst,
+                IGovUserKeeper(userKeeperAddress).getTotalVoteWeight()
+            ) >= core.settings.quorum;
+    }
+
+    function _votesForMoreThanAgainst(
+        IGovPool.ProposalCore storage core
+    ) internal view returns (bool) {
+        return core.votesFor > core.votesAgainst;
+    }
+
+    function _proposalStateBasedOnVoteResultsAndLock(
+        IGovPool.ProposalCore storage core
+    ) internal view returns (IGovPool.ProposalState) {
+        if (block.timestamp <= core.executeAfter) {
+            return IGovPool.ProposalState.Locked;
+        }
+
+        return _proposalStateBasedOnVoteResults(core);
+    }
+
+    function _proposalStateBasedOnVoteResults(
+        IGovPool.ProposalCore storage core
+    ) internal view returns (IGovPool.ProposalState) {
+        return
+            _votesForMoreThanAgainst(core)
+                ? IGovPool.ProposalState.SucceededFor
+                : IGovPool.ProposalState.SucceededAgainst;
     }
 
     function _votedNfts(

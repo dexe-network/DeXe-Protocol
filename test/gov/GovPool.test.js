@@ -619,7 +619,7 @@ describe("GovPool", () => {
         );
 
         await setTime(startTime + 1000);
-        await govPool.unlockInProposals([1], OWNER, false);
+        await govPool.unlockInProposals([1], OWNER, VoteType.PersonalVote);
 
         const afterUnlock = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
@@ -640,7 +640,7 @@ describe("GovPool", () => {
         );
 
         await setTime(startTime + 1000);
-        await govPool.unlock(OWNER, false);
+        await govPool.unlock(OWNER, VoteType.PersonalVote);
 
         const afterUnlock = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
@@ -1652,6 +1652,62 @@ describe("GovPool", () => {
           assert.equal((await govPool.getProposalState(3)).toFixed(), ProposalState.SucceededFor);
 
           await truffleAssert.reverts(govPool.moveProposalToValidators(3), "Gov: can't be moved");
+        });
+      });
+
+      describe.only("canVote()", () => {
+        it("should correctly determine use vote ability when delegatedVotingAllowed is true", async () => {
+          await govPool.delegate(SECOND, wei("1000"), [1, 2, 3, 4]);
+
+          assert.isTrue((await getProposalByIndex(1))[0][0].delegatedVotingAllowed);
+          assert.isOk(await govPool.vote(1, wei("1000"), [], true));
+        });
+        it("should correctly determine use vote ability when delegatedVotingAllowed is false", async () => {
+          const NEW_SETTINGS = {
+            earlyCompletion: true,
+            delegatedVotingAllowed: false,
+            validatorsVote: false,
+            duration: 70,
+            durationValidators: 800,
+            quorum: PRECISION.times("1").toFixed(),
+            quorumValidators: PRECISION.times("1").toFixed(),
+            minVotesForVoting: 0,
+            minVotesForCreating: 0,
+            executionDelay: 0,
+            rewardsInfo: {
+              rewardToken: ZERO_ADDR,
+              creationReward: 0,
+              executionReward: 0,
+              voteForRewardsCoefficient: 0,
+              voteAgainstRewardsCoefficient: 0,
+            },
+            executorDescription: "new_settings",
+          };
+          await govPool.createProposal(
+            "example.com",
+            "misc",
+            [[settings.address, 0, getBytesEditSettings([1], [NEW_SETTINGS])]],
+            []
+          );
+          await token.mint(SECOND, wei("200000000000000000000"));
+          await token.approve(userKeeper.address, wei("200000000000000000000"), { from: SECOND });
+          await depositAndVote(3, wei("200000000000000000000"), [], wei("200000000000000000000"), [], SECOND);
+          await setTime((await getCurrentBlockTime()) + 10000);
+          await govPool.moveProposalToValidators(3);
+          await validators.vote(3, wei("1000000000000"), false, true, { from: SECOND });
+          await setTime((await getCurrentBlockTime()) + 10000);
+          await govPool.execute(3);
+
+          await govPool.createProposal(
+            "example.com",
+            "misc",
+            [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]],
+            []
+          );
+
+          assert.isFalse((await getProposalByIndex(4))[0][0].delegatedVotingAllowed);
+          await govPool.delegate(SECOND, wei("1000"), [1, 2, 3, 4]);
+          await truffleAssert.reverts(govPool.vote(4, wei("1000"), [], true), "Gov: wrong vote amount");
         });
       });
     });
@@ -3905,11 +3961,11 @@ describe("GovPool", () => {
       });
 
       it("unlock()", async () => {
-        await truffleAssert.reverts(govPool.unlock(OWNER, false), REVERT_STRING);
+        await truffleAssert.reverts(govPool.unlock(OWNER, VoteType.PersonalVote), REVERT_STRING);
       });
 
       it("unlockInProposals()", async () => {
-        await truffleAssert.reverts(govPool.unlockInProposals([1], OWNER, false), REVERT_STRING);
+        await truffleAssert.reverts(govPool.unlockInProposals([1], OWNER, VoteType.PersonalVote), REVERT_STRING);
       });
 
       it("execute()", async () => {
