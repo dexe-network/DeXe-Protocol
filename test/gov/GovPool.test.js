@@ -295,7 +295,7 @@ describe("GovPool", () => {
         proposalSettings: [
           {
             earlyCompletion: false,
-            delegatedVotingAllowed: true,
+            delegatedVotingAllowed: false,
             validatorsVote: true,
             duration: 700,
             durationValidators: 800,
@@ -315,7 +315,7 @@ describe("GovPool", () => {
           },
           {
             earlyCompletion: true,
-            delegatedVotingAllowed: true,
+            delegatedVotingAllowed: false,
             validatorsVote: true,
             duration: 500,
             durationValidators: 600,
@@ -355,7 +355,7 @@ describe("GovPool", () => {
           },
           {
             earlyCompletion: true,
-            delegatedVotingAllowed: true,
+            delegatedVotingAllowed: false,
             validatorsVote: true,
             duration: 500,
             durationValidators: 600,
@@ -1655,13 +1655,61 @@ describe("GovPool", () => {
         });
       });
 
-      describe.only("canVote()", () => {
+      describe("canVote()", () => {
         it("should correctly determine use vote ability when delegatedVotingAllowed is true", async () => {
+          const NEW_SETTINGS = {
+            earlyCompletion: true,
+            delegatedVotingAllowed: true,
+            validatorsVote: false,
+            duration: 70,
+            durationValidators: 800,
+            quorum: PRECISION.times("1").toFixed(),
+            quorumValidators: PRECISION.times("1").toFixed(),
+            minVotesForVoting: 0,
+            minVotesForCreating: 0,
+            executionDelay: 0,
+            rewardsInfo: {
+              rewardToken: ZERO_ADDR,
+              creationReward: 0,
+              executionReward: 0,
+              voteForRewardsCoefficient: 0,
+              voteAgainstRewardsCoefficient: 0,
+            },
+            executorDescription: "new_settings",
+          };
+          await govPool.createProposal(
+            "example.com",
+            "misc",
+            [[settings.address, 0, getBytesEditSettings([1], [NEW_SETTINGS])]],
+            []
+          );
+          await token.mint(SECOND, wei("200000000000000000000"));
+          await token.approve(userKeeper.address, wei("200000000000000000000"), { from: SECOND });
+          await depositAndVote(3, wei("200000000000000000000"), [], wei("200000000000000000000"), [], SECOND);
+          await setTime((await getCurrentBlockTime()) + 10000);
+          await govPool.moveProposalToValidators(3);
+          await validators.vote(3, wei("1000000000000"), false, true, { from: SECOND });
+          await setTime((await getCurrentBlockTime()) + 10000);
+          await govPool.execute(3);
+
+          await govPool.createProposal(
+            "example.com",
+            "misc",
+            [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]],
+            []
+          );
+
           await govPool.delegate(SECOND, wei("1000"), [1, 2, 3, 4]);
 
-          assert.isTrue((await getProposalByIndex(1))[0][0].delegatedVotingAllowed);
-          assert.isOk(await govPool.vote(1, wei("1000"), [], true));
+          assert.isTrue((await getProposalByIndex(4))[0][0].delegatedVotingAllowed);
+
+          assert.isOk(await govPool.vote(4, wei("1000"), [], true));
+          await truffleAssert.reverts(
+            govPool.voteDelegated(4, wei("1000"), [], true, { from: SECOND }),
+            "Gov: micropool voting is off"
+          );
         });
+
         it("should correctly determine use vote ability when delegatedVotingAllowed is false", async () => {
           const NEW_SETTINGS = {
             earlyCompletion: true,
@@ -1708,6 +1756,7 @@ describe("GovPool", () => {
           assert.isFalse((await getProposalByIndex(4))[0][0].delegatedVotingAllowed);
           await govPool.delegate(SECOND, wei("1000"), [1, 2, 3, 4]);
           await truffleAssert.reverts(govPool.vote(4, wei("1000"), [], true), "Gov: wrong vote amount");
+          await govPool.voteDelegated(4, wei("1000"), [], true, { from: SECOND });
         });
       });
     });
@@ -1762,7 +1811,7 @@ describe("GovPool", () => {
         assert.equal(toBN(withdrawable.tokens).toFixed(), "0");
         assert.equal(withdrawable.nfts.length, "0");
 
-        await govPool.unlockInProposals([1], OWNER, false);
+        await govPool.unlockInProposals([1], OWNER, VoteType.PersonalVote);
 
         withdrawable = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
@@ -1771,7 +1820,7 @@ describe("GovPool", () => {
 
         await setTime((await getCurrentBlockTime()) + 10000);
 
-        await govPool.unlockInProposals([2], OWNER, false);
+        await govPool.unlockInProposals([2], OWNER, VoteType.PersonalVote);
 
         await govPool.withdraw(OWNER, wei("510"), [1]);
 
@@ -1795,7 +1844,7 @@ describe("GovPool", () => {
         assert.equal(toBN(withdrawable.tokens).toFixed(), "0");
         assert.equal(withdrawable.nfts.length, "0");
 
-        await govPool.unlockInProposals([1], OWNER, false);
+        await govPool.unlockInProposals([1], OWNER, VoteType.PersonalVote);
 
         withdrawable = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
 
@@ -1804,7 +1853,10 @@ describe("GovPool", () => {
       });
 
       it("should not unlock nonexisting proposals", async () => {
-        await truffleAssert.reverts(govPool.unlockInProposals([1], OWNER, false), "Gov: no vote for this proposal");
+        await truffleAssert.reverts(
+          govPool.unlockInProposals([1], OWNER, VoteType.PersonalVote),
+          "Gov: no vote for this proposal"
+        );
       });
 
       it("should not deposit zero tokens", async () => {
@@ -1888,7 +1940,7 @@ describe("GovPool", () => {
 
       const NEW_INTERNAL_SETTINGS = {
         earlyCompletion: true,
-        delegatedVotingAllowed: false,
+        delegatedVotingAllowed: true,
         validatorsVote: true,
         duration: 500,
         durationValidators: 60,
@@ -2021,7 +2073,7 @@ describe("GovPool", () => {
         await govPool.vote(2, wei("1000"), [1, 2, 3, 4], true);
         await truffleAssert.reverts(
           govPool.voteDelegated(2, wei("1000"), [1, 2, 3, 4], true, { from: SECOND }),
-          "Gov: delegated voting is off"
+          "Gov: micropool voting is off"
         );
       });
 
@@ -2488,7 +2540,7 @@ describe("GovPool", () => {
           describe("vote-execute flashloan protection", () => {
             const USER_KEERER_SETTINGS = {
               earlyCompletion: true,
-              delegatedVotingAllowed: true,
+              delegatedVotingAllowed: false,
               validatorsVote: false,
               duration: 500,
               durationValidators: 500,
@@ -3133,7 +3185,7 @@ describe("GovPool", () => {
     describe("staking", () => {
       let NEW_SETTINGS = {
         earlyCompletion: true,
-        delegatedVotingAllowed: true,
+        delegatedVotingAllowed: false,
         validatorsVote: false,
         duration: 1,
         durationValidators: 1,
@@ -3638,6 +3690,7 @@ describe("GovPool", () => {
           NEW_SETTINGS.rewardsInfo.rewardToken = newRewardToken.address;
           NEW_SETTINGS.earlyCompletion = false;
           NEW_SETTINGS.duration = 2;
+          NEW_SETTINGS.delegatedVotingAllowed = false;
           NEW_SETTINGS.rewardsInfo.creationReward = 0;
           NEW_SETTINGS.rewardsInfo.executionReward = 0;
 

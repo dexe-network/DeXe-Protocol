@@ -179,8 +179,8 @@ library GovPoolCreate {
             IGovUserKeeper(userKeeper).canCreate(
                 msg.sender,
                 settings.delegatedVotingAllowed
-                    ? IGovPool.VoteType.PersonalVote
-                    : IGovPool.VoteType.DelegatedVote,
+                    ? IGovPool.VoteType.DelegatedVote
+                    : IGovPool.VoteType.PersonalVote,
                 settings.minVotesForCreating,
                 snapshotId
             ),

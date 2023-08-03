@@ -684,8 +684,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     ) external view override returns (bool) {
         (uint256 tokens, uint256 ownedBalance) = tokenBalance(voter, voteType);
         (uint256 tokensMicropool, ) = tokenBalance(voter, IGovPool.VoteType.MicropoolVote);
+        (uint256 tokensTreasury, ) = tokenBalance(voter, IGovPool.VoteType.TreasuryVote);
 
-        tokens = tokens + tokensMicropool - ownedBalance;
+        tokens = tokens + tokensMicropool + tokensTreasury - ownedBalance;
 
         if (tokens >= requiredVotes) {
             return true;
@@ -696,12 +697,17 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             voter,
             IGovPool.VoteType.MicropoolVote
         );
+        (uint256[] memory nftIdsTreasury, ) = nftExactBalance(
+            voter,
+            IGovPool.VoteType.TreasuryVote
+        );
 
         nftIds.crop(nftIds.length - owned);
         nftIdsMicropool.crop(nftIdsMicropool.length - requested);
 
         uint256 nftPower = getNftsPowerInTokensBySnapshot(nftIds, snapshotId) +
-            getNftsPowerInTokensBySnapshot(nftIdsMicropool, snapshotId);
+            getNftsPowerInTokensBySnapshot(nftIdsMicropool, snapshotId) +
+            getNftsPowerInTokensBySnapshot(nftIdsTreasury, snapshotId);
 
         return tokens + nftPower >= requiredVotes;
     }
