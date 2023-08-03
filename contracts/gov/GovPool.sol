@@ -262,6 +262,8 @@ contract GovPool is
         uint256[] calldata voteNftIds,
         bool isVoteFor
     ) external onlyBABTHolder {
+        _unlock(msg.sender, VoteType.TreasuryVote);
+
         uint256 reward = _proposals.voteTreasury(
             _votedInProposals,
             _voteInfos,
@@ -321,6 +323,8 @@ contract GovPool is
     ) external override onlyThis {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
         require(getExpertStatus(delegatee), "Gov: delegatee is not an expert");
+
+        _unlock(msg.sender, VoteType.TreasuryVote);
 
         if (amount != 0) {
             address token = _govUserKeeper.tokenAddress();
@@ -392,6 +396,8 @@ contract GovPool is
         uint256[] calldata nftIds
     ) external override onlyThis {
         require(amount > 0 || nftIds.length > 0, "Gov: empty undelegation");
+
+        _unlock(msg.sender, VoteType.TreasuryVote);
 
         if (amount != 0) {
             _govUserKeeper.undelegateTokensTreasury(delegatee, amount);

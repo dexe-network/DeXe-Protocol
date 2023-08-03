@@ -18,52 +18,78 @@ library GovPoolUnlock {
             storage voteInfos,
         uint256[] calldata proposalIds,
         address user,
-        IGovPool.VoteType voteTytpe
+        IGovPool.VoteType voteType
     ) external {
+        require(voteType != IGovPool.VoteType.DelegatedVote, "Gov: invalid vote type");
+
+        EnumerableSet.UintSet storage userProposals = votedInProposals[user][voteType];
         IGovPool govPool = IGovPool(address(this));
-        (, address userKeeper, , ) = govPool.getHelperContracts();
 
-        EnumerableSet.UintSet storage userProposals = votedInProposals[user][voteTytpe];
+        if (voteType == IGovPool.VoteType.TreasuryVote) {
+            for (uint256 i; i < proposalIds.length; i++) {
+                uint256 proposalId = proposalIds[i];
 
-        uint256 maxLockedAmount = IGovUserKeeper(userKeeper).maxLockedAmount(user, voteTytpe);
+                if (_proposalFinished(userProposals, govPool, proposalId)) {
+                    userProposals.remove(proposalId);
+                }
+            }
+        } else {
+            _unlockInProposals(userProposals, voteInfos, proposalIds, user, govPool, voteType);
+        }
+    }
+
+    function _unlockInProposals(
+        EnumerableSet.UintSet storage userProposals,
+        mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
+            storage voteInfos,
+        uint256[] calldata proposalIds,
+        address user,
+        IGovPool govPool,
+        IGovPool.VoteType voteType
+    ) internal {
+        (, address userKeeperAddress, , ) = govPool.getHelperContracts();
+
+        IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
+
+        uint256 maxLockedAmount = userKeeper.maxLockedAmount(user, voteType);
         uint256 maxUnlocked;
 
         for (uint256 i; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
 
-            require(userProposals.contains(proposalId), "Gov: no vote for this proposal");
-
-            IGovPool.ProposalState state = govPool.getProposalState(proposalId);
-
-            if (
-                state != IGovPool.ProposalState.ExecutedFor &&
-                state != IGovPool.ProposalState.ExecutedAgainst &&
-                state != IGovPool.ProposalState.SucceededFor &&
-                state != IGovPool.ProposalState.SucceededAgainst &&
-                state != IGovPool.ProposalState.Defeated
-            ) {
+            if (!_proposalFinished(userProposals, govPool, proposalId)) {
                 continue;
             }
 
-            maxUnlocked = IGovUserKeeper(userKeeper).unlockTokens(proposalId, user, voteTytpe).max(
-                maxUnlocked
-            );
-            IGovUserKeeper(userKeeper).unlockNfts(
-                voteInfos[proposalId][user][voteTytpe].nftsVotedFor.values()
-            );
-            IGovUserKeeper(userKeeper).unlockNfts(
-                voteInfos[proposalId][user][voteTytpe].nftsVotedAgainst.values()
-            );
+            maxUnlocked = userKeeper.unlockTokens(proposalId, user, voteType).max(maxUnlocked);
+
+            IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][user][voteType];
+
+            userKeeper.unlockNfts(voteInfo.nftsVotedFor.values());
+            userKeeper.unlockNfts(voteInfo.nftsVotedAgainst.values());
 
             userProposals.remove(proposalId);
         }
 
         if (maxLockedAmount <= maxUnlocked) {
-            IGovUserKeeper(userKeeper).updateMaxTokenLockedAmount(
-                userProposals.values(),
-                user,
-                voteTytpe
-            );
+            userKeeper.updateMaxTokenLockedAmount(userProposals.values(), user, voteType);
         }
+    }
+
+    function _proposalFinished(
+        EnumerableSet.UintSet storage userProposals,
+        IGovPool govPool,
+        uint256 proposalId
+    ) internal view returns (bool) {
+        require(userProposals.contains(proposalId), "Gov: no vote for this proposal");
+
+        IGovPool.ProposalState state = govPool.getProposalState(proposalId);
+
+        return
+            state == IGovPool.ProposalState.ExecutedFor ||
+            state == IGovPool.ProposalState.ExecutedAgainst ||
+            state == IGovPool.ProposalState.SucceededFor ||
+            state == IGovPool.ProposalState.SucceededAgainst ||
+            state == IGovPool.ProposalState.Defeated;
     }
 }

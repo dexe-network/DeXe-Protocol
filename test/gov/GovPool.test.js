@@ -650,6 +650,15 @@ describe("GovPool", () => {
           ["1", "2", "3", "4"]
         );
       });
+
+      it("should revert if pass wrong vote type", async () => {
+        await truffleAssert.reverts(
+          govPool.unlockInProposals([1], OWNER, VoteType.DelegatedVote),
+          "Gov: invalid vote type"
+        );
+
+        await truffleAssert.reverts(govPool.unlock(OWNER, VoteType.DelegatedVote), "Gov: invalid vote type");
+      });
     });
 
     describe("createProposal()", () => {
@@ -2493,6 +2502,104 @@ describe("GovPool", () => {
             await delegateTreasury(THIRD, 0, ["12"]);
 
             await govPool.voteTreasury(3, wei("100"), ["12"], true, { from: THIRD });
+          });
+
+          it("should clean userProposals correctly when ExecutedFor", async () => {
+            await delegateTreasury(THIRD, wei("100"), ["10"]);
+
+            await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
+
+            await govPool.voteTreasury(3, wei("100"), ["10"], true, { from: THIRD });
+
+            await govPool.vote(3, wei("1000"), [], true);
+            await govPool.vote(3, wei("100000000000000000000"), [], true, { from: SECOND });
+            await setTime((await getCurrentBlockTime()) + 10000);
+            await govPool.moveProposalToValidators(3);
+            await validators.vote(3, wei("100"), false, true);
+            await validators.vote(3, wei("1000000000000"), false, true, { from: SECOND });
+            await setTime((await getCurrentBlockTime()) + 10000);
+            await govPool.execute(3);
+            await setTime((await getCurrentBlockTime()) + 10000);
+
+            await govPool.unlockInProposals([3], THIRD, VoteType.TreasuryVote);
+          });
+
+          it("should clean userProposals correctly when ExecutedAgainst", async () => {
+            await delegateTreasury(THIRD, wei("100"), ["10"]);
+
+            await govPool.createProposal(
+              "example.com",
+              "misc",
+              [[SECOND, 0, getBytesApprove(SECOND, 1)]],
+              [[SECOND, 0, getBytesApprove(SECOND, 1)]]
+            );
+
+            await govPool.voteTreasury(3, wei("100"), ["10"], true, { from: THIRD });
+
+            await govPool.vote(3, wei("1000"), [], false);
+            await govPool.vote(3, wei("100000000000000000000"), [], false, { from: SECOND });
+            await setTime((await getCurrentBlockTime()) + 10000);
+            await govPool.moveProposalToValidators(3);
+            await validators.vote(3, wei("100"), false, true);
+            await validators.vote(3, wei("1000000000000"), false, true, { from: SECOND });
+            await setTime((await getCurrentBlockTime()) + 10000);
+            await govPool.execute(3);
+            await setTime((await getCurrentBlockTime()) + 10000);
+
+            await govPool.unlock(THIRD, VoteType.TreasuryVote);
+          });
+
+          it("should clean userProposals correctly when Defeated", async () => {
+            await delegateTreasury(THIRD, wei("100"), ["10"]);
+
+            await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
+
+            await govPool.voteTreasury(3, wei("100"), ["10"], true, { from: THIRD });
+
+            await govPool.vote(3, wei("1000"), [], false);
+            await govPool.vote(3, wei("100000000000000000000"), [], false, { from: SECOND });
+            await setTime((await getCurrentBlockTime()) + 10000);
+
+            await govPool.unlock(THIRD, VoteType.TreasuryVote);
+          });
+
+          it("should clean userProposals correctly when SucceededFor", async () => {
+            await delegateTreasury(THIRD, wei("100"), ["10"]);
+
+            await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
+
+            await govPool.voteTreasury(3, wei("100"), ["10"], true, { from: THIRD });
+
+            await govPool.vote(3, wei("1000"), [], true);
+            await govPool.vote(3, wei("100000000000000000000"), [], true, { from: SECOND });
+            await setTime((await getCurrentBlockTime()) + 10000);
+            await govPool.moveProposalToValidators(3);
+            await validators.vote(3, wei("1000000000000"), false, true, { from: SECOND });
+            await setTime((await getCurrentBlockTime()) + 10000);
+
+            await govPool.unlock(THIRD, VoteType.TreasuryVote);
+          });
+
+          it("should clean userProposals correctly when SucceededAgainst", async () => {
+            await delegateTreasury(THIRD, wei("100"), ["10"]);
+
+            await govPool.createProposal(
+              "example.com",
+              "misc",
+              [[SECOND, 0, getBytesApprove(SECOND, 1)]],
+              [[SECOND, 0, getBytesApprove(SECOND, 1)]]
+            );
+
+            await govPool.voteTreasury(3, wei("100"), ["10"], true, { from: THIRD });
+
+            await govPool.vote(3, wei("1000"), [], false);
+            await govPool.vote(3, wei("100000000000000000000"), [], false, { from: SECOND });
+            await setTime((await getCurrentBlockTime()) + 10000);
+            await govPool.moveProposalToValidators(3);
+            await validators.vote(3, wei("1000000000000"), false, true, { from: SECOND });
+            await setTime((await getCurrentBlockTime()) + 10000);
+
+            await govPool.unlockInProposals([3], THIRD, VoteType.TreasuryVote);
           });
 
           it("should revert when vote is zero amount", async () => {

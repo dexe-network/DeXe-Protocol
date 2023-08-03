@@ -515,6 +515,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address voter,
         IGovPool.VoteType voteType
     ) external view override returns (uint256) {
+        // TODO: revert or return 0 for voteType == TreasuryVote?
         return _getBalanceInfoStorage(voter, voteType).maxTokensLocked;
     }
 
