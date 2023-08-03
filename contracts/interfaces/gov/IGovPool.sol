@@ -190,6 +190,40 @@ interface IGovPool {
         address[] offchainTokens;
     }
 
+    /// @notice The struct is used to hold info about validators monthly withdrawal credit
+    /// @param tokenList the list of token allowed to withdraw
+    /// @param tokenInfo the mapping token => withdrawals history and limits
+    struct CreditInfo {
+        address[] tokenList;
+        mapping(address => TokenCreditInfo) tokenInfo;
+    }
+
+    /// @notice The struct is used to hold info about limits and withdrawals history
+    /// @param monthLimit the monthly withdraw limit for the token
+    /// @param withdraws the withdrawal history of this token
+    struct TokenCreditInfo {
+        uint256 monthLimit;
+        WithdrawalHistory[] withdraws;
+    }
+
+    /// @notice The struct is used to hold info about withdrawals history
+    /// @param amount the withdraw amount
+    /// @param timestamp the timestamp of withdraw
+    struct WithdrawalHistory {
+        uint256 amount;
+        uint256 timestamp;
+    }
+
+    /// @notice The struct is used to return info about current credit state
+    /// @param token the token address
+    /// @param monthLimit the amount that validator could withdraw monthly
+    /// @param currentWithdrawLimit the amount that validators could withdraw now
+    struct CreditInfoView {
+        address token;
+        uint256 monthLimit;
+        uint256 currentWithdrawLimit;
+    }
+
     /// @notice The struct that holds off-chain properties (only for internal needs)
     /// @param verifier the off-chain verifier address
     /// @param resultsHash the ipfs results hash

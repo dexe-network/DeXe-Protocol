@@ -78,6 +78,8 @@ contract GovPool is
     uint256 internal _regularVoteModifier;
     uint256 internal _expertVoteModifier;
 
+    CreditInfo internal creditInfo;
+
     OffChain internal _offChain;
 
     mapping(uint256 => Proposal) internal _proposals; // proposalId => info
