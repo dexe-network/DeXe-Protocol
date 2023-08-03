@@ -906,6 +906,64 @@ const getBytesMintExpertNft = (to, uri) => {
   );
 };
 
+const getBytesDelegateTreasury = (delegatee, amount, nftIds) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "delegatee",
+          type: "address",
+        },
+        {
+          internalType: "uint256",
+          name: "amount",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256[]",
+          name: "nftIds",
+          type: "uint256[]",
+        },
+      ],
+      name: "delegateTreasury",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [delegatee, amount, nftIds]
+  );
+};
+
+const getBytesUndelegateTreasury = (delegatee, amount, nftIds) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "delegatee",
+          type: "address",
+        },
+        {
+          internalType: "uint256",
+          name: "amount",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256[]",
+          name: "nftIds",
+          type: "uint256[]",
+        },
+      ],
+      name: "undelegateTreasury",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [delegatee, amount, nftIds]
+  );
+};
+
 module.exports = {
   getBytesExecute,
   getBytesApprove,
@@ -937,4 +995,6 @@ module.exports = {
   getBytesKeeperWithdrawTokens,
   getBytesChangeVoteModifiers,
   getBytesMintExpertNft,
+  getBytesDelegateTreasury,
+  getBytesUndelegateTreasury,
 };

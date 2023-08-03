@@ -725,7 +725,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     ) external view override returns (bool) {
         (uint256 tokens, uint256 extra) = tokenBalance(voter, voteType);
 
-        if (tokens - (voteType == IGovPool.VoteType.MicropoolVote ? extra : 0) >= requiredVotes) {
+        if (
+            (tokens -= (voteType == IGovPool.VoteType.MicropoolVote ? extra : 0)) >= requiredVotes
+        ) {
             return true;
         }
 

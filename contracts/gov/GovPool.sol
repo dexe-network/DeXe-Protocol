@@ -261,8 +261,6 @@ contract GovPool is
         uint256[] calldata voteNftIds,
         bool isVoteFor
     ) external onlyBABTHolder {
-        _unlock(msg.sender, true);
-
         uint256 reward = _proposals.voteTreasury(
             _voteInfos,
             proposalId,
@@ -320,14 +318,14 @@ contract GovPool is
         uint256[] calldata nftIds
     ) external override onlyThis {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
-
-        require(dexeExpertNft.isExpert(delegatee), "Gov: delegatee is not an expert");
+        require(getExpertStatus(delegatee), "Gov: delegatee is not an expert");
 
         if (amount != 0) {
-            IERC20(_govUserKeeper.tokenAddress()).transfer(delegatee, amount);
+            IERC20(_govUserKeeper.tokenAddress()).transfer(address(_govUserKeeper), amount);
 
             _govUserKeeper.delegateTokensTreasury(delegatee, amount);
         }
+
         if (nftIds.length != 0) {
             IERC721 nft = IERC721(_govUserKeeper.nftAddress());
 
@@ -391,6 +389,7 @@ contract GovPool is
         if (amount != 0) {
             _govUserKeeper.undelegateTokensTreasury(delegatee, amount);
         }
+
         if (nftIds.length != 0) {
             _govUserKeeper.undelegateNftsTreasury(delegatee, nftIds);
         }
