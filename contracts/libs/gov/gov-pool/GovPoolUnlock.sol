@@ -29,7 +29,7 @@ library GovPoolUnlock {
             for (uint256 i; i < proposalIds.length; i++) {
                 uint256 proposalId = proposalIds[i];
 
-                if (_proposalFinished(userProposals, govPool, proposalId)) {
+                if (!_proposalNotFinished(userProposals, govPool, proposalId)) {
                     userProposals.remove(proposalId);
                 }
             }
@@ -57,7 +57,7 @@ library GovPoolUnlock {
         for (uint256 i; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
 
-            if (!_proposalFinished(userProposals, govPool, proposalId)) {
+            if (_proposalNotFinished(userProposals, govPool, proposalId)) {
                 continue;
             }
 
@@ -76,7 +76,7 @@ library GovPoolUnlock {
         }
     }
 
-    function _proposalFinished(
+    function _proposalNotFinished(
         EnumerableSet.UintSet storage userProposals,
         IGovPool govPool,
         uint256 proposalId
@@ -86,10 +86,10 @@ library GovPoolUnlock {
         IGovPool.ProposalState state = govPool.getProposalState(proposalId);
 
         return
-            state == IGovPool.ProposalState.ExecutedFor ||
-            state == IGovPool.ProposalState.ExecutedAgainst ||
-            state == IGovPool.ProposalState.SucceededFor ||
-            state == IGovPool.ProposalState.SucceededAgainst ||
-            state == IGovPool.ProposalState.Defeated;
+            state != IGovPool.ProposalState.ExecutedFor &&
+            state != IGovPool.ProposalState.ExecutedAgainst &&
+            state != IGovPool.ProposalState.SucceededFor &&
+            state != IGovPool.ProposalState.SucceededAgainst &&
+            state != IGovPool.ProposalState.Defeated;
     }
 }
