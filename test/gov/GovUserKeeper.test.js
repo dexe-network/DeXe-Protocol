@@ -132,7 +132,17 @@ describe("GovUserKeeper", () => {
         );
 
         await truffleAssert.reverts(
+          userKeeper.delegateTokensTreasury(OWNER, wei("100"), { from: SECOND }),
+          "Ownable: caller is not the owner"
+        );
+
+        await truffleAssert.reverts(
           userKeeper.undelegateTokens(OWNER, SECOND, wei("100"), { from: SECOND }),
+          "Ownable: caller is not the owner"
+        );
+
+        await truffleAssert.reverts(
+          userKeeper.undelegateTokensTreasury(OWNER, wei("100"), { from: SECOND }),
           "Ownable: caller is not the owner"
         );
 
@@ -162,7 +172,17 @@ describe("GovUserKeeper", () => {
         );
 
         await truffleAssert.reverts(
+          userKeeper.delegateNftsTreasury(OWNER, [1], { from: SECOND }),
+          "Ownable: caller is not the owner"
+        );
+
+        await truffleAssert.reverts(
           userKeeper.undelegateNfts(OWNER, SECOND, [1], { from: SECOND }),
+          "Ownable: caller is not the owner"
+        );
+
+        await truffleAssert.reverts(
+          userKeeper.undelegateNftsTreasury(OWNER, [1], { from: SECOND }),
           "Ownable: caller is not the owner"
         );
 
@@ -565,6 +585,12 @@ describe("GovUserKeeper", () => {
         await userKeeper.lockNfts(SECOND, VoteType.MicropoolVote, [1]);
 
         await truffleAssert.reverts(userKeeper.undelegateNfts(OWNER, SECOND, [1]), "GovUK: NFT is not owned or locked");
+      });
+    });
+
+    describe("undelegateNftsTreasury()", () => {
+      it("should not undelegate unavailable NFTs", async () => {
+        await truffleAssert.reverts(userKeeper.undelegateNftsTreasury(SECOND, [99]), "GovUK: NFT is not owned");
       });
     });
 
@@ -1243,7 +1269,17 @@ describe("GovUserKeeper", () => {
       await truffleAssert.reverts(userKeeper.delegateTokens(OWNER, OWNER, wei("100")), "GovUK: token is not supported");
 
       await truffleAssert.reverts(
+        userKeeper.delegateTokensTreasury(OWNER, wei("100")),
+        "GovUK: token is not supported"
+      );
+
+      await truffleAssert.reverts(
         userKeeper.undelegateTokens(OWNER, OWNER, wei("100")),
+        "GovUK: token is not supported"
+      );
+
+      await truffleAssert.reverts(
+        userKeeper.undelegateTokensTreasury(OWNER, wei("100")),
         "GovUK: token is not supported"
       );
 
@@ -1302,7 +1338,11 @@ describe("GovUserKeeper", () => {
 
       await truffleAssert.reverts(userKeeper.delegateNfts(OWNER, OWNER, [1]), "GovUK: nft is not supported");
 
+      await truffleAssert.reverts(userKeeper.delegateNftsTreasury(OWNER, [1]), "GovUK: nft is not supported");
+
       await truffleAssert.reverts(userKeeper.undelegateNfts(OWNER, OWNER, [1]), "GovUK: nft is not supported");
+
+      await truffleAssert.reverts(userKeeper.undelegateNftsTreasury(OWNER, [1]), "GovUK: nft is not supported");
 
       await truffleAssert.reverts(userKeeper.requestNfts(OWNER, OWNER, [1]), "GovUK: nft is not supported");
     });

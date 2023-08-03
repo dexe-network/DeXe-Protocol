@@ -201,14 +201,6 @@ library GovPoolRewards {
             return amount.ratio(rewardsInfo.voteForRewardsCoefficient, PRECISION);
         }
 
-        if (
-            rewardType == IGovPool.RewardType.VoteAgainst ||
-            rewardType == IGovPool.RewardType.VoteAgainstDelegated ||
-            rewardType == IGovPool.RewardType.VoteAgainstTreasury
-        ) {
-            return amount.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
-        }
-
-        return amount;
+        return amount.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
     }
 }

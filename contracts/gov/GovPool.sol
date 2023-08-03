@@ -391,7 +391,7 @@ contract GovPool is
         uint256 amount,
         uint256[] calldata nftIds
     ) external override onlyThis {
-        require(amount > 0 || nftIds.length > 0, "Gov: empty withdrawal");
+        require(amount > 0 || nftIds.length > 0, "Gov: empty undelegation");
 
         if (amount != 0) {
             _govUserKeeper.undelegateTokensTreasury(delegatee, amount);

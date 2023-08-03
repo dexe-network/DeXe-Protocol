@@ -2366,7 +2366,20 @@ describe("GovPool", () => {
               "0"
             );
 
-            await undelegateTreasury(THIRD, wei("100"), ["10", "11"]);
+            const govPoolBalance = await token.balanceOf(govPool.address);
+
+            await undelegateTreasury(THIRD, wei("50"), ["10"]);
+
+            assert.equal((await token.balanceOf(govPool.address)).toFixed(), govPoolBalance.plus(wei("50")).toFixed());
+            assert.equal(await nft.ownerOf("10"), govPool.address);
+            assert.equal(await nft.ownerOf("11"), userKeeper.address);
+
+            await undelegateTreasury(THIRD, wei("50"), []);
+
+            assert.equal((await token.balanceOf(govPool.address)).toFixed(), govPoolBalance.plus(wei("100")).toFixed());
+
+            await undelegateTreasury(THIRD, 0, ["11"]);
+            assert.equal(await nft.ownerOf("11"), govPool.address);
 
             assert.equal((await token.balanceOf(THIRD)).toFixed(), "0");
             assert.equal((await nft.balanceOf(THIRD)).toFixed(), "0");
@@ -2386,7 +2399,8 @@ describe("GovPool", () => {
 
             await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
 
-            await govPool.voteTreasury(3, wei("100"), ["10", "11"], true, { from: THIRD });
+            await govPool.voteTreasury(3, wei("50"), ["10", "11"], true, { from: THIRD });
+            await govPool.voteTreasury(3, wei("50"), [], false, { from: THIRD });
             await govPool.vote(3, wei("100000000000000000000"), [], true, { from: SECOND });
 
             await setTime((await getCurrentBlockTime()) + 10000);
@@ -2399,7 +2413,7 @@ describe("GovPool", () => {
             await govPool.execute(3);
 
             const expectedReward = solidityPow(
-              (await userKeeper.getNftsPowerInTokensBySnapshot(["10", "11"], 3)).plus(wei("100")),
+              (await userKeeper.getNftsPowerInTokensBySnapshot(["10", "11"], 3)).plus(wei("50")),
               await govPool.getVoteModifierForUser(THIRD)
             )
               .times(809 / 50000)
@@ -2476,8 +2490,37 @@ describe("GovPool", () => {
             );
 
             await delegateTreasury(THIRD, wei("100"), []);
+            await delegateTreasury(THIRD, 0, ["12"]);
 
-            await govPool.voteTreasury(3, wei("100"), [], true, { from: THIRD });
+            await govPool.voteTreasury(3, wei("100"), ["12"], true, { from: THIRD });
+          });
+
+          it("should revert when vote is zero amount", async () => {
+            await truffleAssert.reverts(govPool.voteTreasury(1, 0, [], true), "Gov: empty delegated vote");
+          });
+
+          it("should not delegate zero tokens", async () => {
+            await truffleAssert.reverts(delegateTreasury(THIRD, 0, []), "Gov: empty delegation");
+          });
+
+          it("should revert if call is not from expert", async () => {
+            await token.mint(govPool.address, wei("1"));
+
+            const bytesDelegateTreasury = getBytesDelegateTreasury(THIRD, wei("1"), []);
+
+            await govPool.createProposal("example.com", "misc", [[govPool.address, 0, bytesDelegateTreasury]], []);
+
+            const proposalId = await govPool.latestProposalId();
+
+            await govPool.vote(proposalId, wei("1000"), [], true);
+            await govPool.vote(proposalId, wei("100000000000000000000"), [], true, { from: SECOND });
+            await govPool.moveProposalToValidators(proposalId);
+            await validators.vote(proposalId, wei("1000000000000"), false, true, { from: SECOND });
+            await truffleAssert.reverts(govPool.execute(proposalId), "Gov: delegatee is not an expert");
+          });
+
+          it("should not undelegate zero tokens", async () => {
+            await truffleAssert.reverts(undelegateTreasury(THIRD, 0, []), "Gov: empty undelegation");
           });
 
           it("should revert if call is not from gov pool", async () => {
