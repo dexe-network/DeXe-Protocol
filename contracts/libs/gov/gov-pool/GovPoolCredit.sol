@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import "../../../interfaces/gov/IGovPool.sol";
 
 library GovPoolCredit {
-    function updateCreditInfo(
+    function setCreditInfo(
         IGovPool.CreditInfo storage creditInfo,
         address[] calldata tokens,
         uint256[] calldata amounts

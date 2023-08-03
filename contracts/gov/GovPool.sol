@@ -27,6 +27,7 @@ import "../libs/gov/gov-pool/GovPoolVote.sol";
 import "../libs/gov/gov-pool/GovPoolUnlock.sol";
 import "../libs/gov/gov-pool/GovPoolExecute.sol";
 import "../libs/gov/gov-pool/GovPoolStaking.sol";
+import "../libs/gov/gov-pool/GovPoolCredit.sol";
 import "../libs/gov/gov-pool/GovPoolOffchain.sol";
 import "../libs/math/MathHelper.sol";
 
@@ -51,6 +52,7 @@ contract GovPool is
     using GovPoolVote for *;
     using GovPoolUnlock for *;
     using GovPoolExecute for *;
+    using GovPoolCredit for *;
     using GovPoolStaking for *;
 
     uint256 public constant PERCENTAGE_MICROPOOL_REWARDS = PERCENTAGE_100 / 5; // 20%
@@ -362,6 +364,13 @@ contract GovPool is
 
     function setNftMultiplierAddress(address nftMultiplierAddress) external override onlyThis {
         _setNftMultiplierAddress(nftMultiplierAddress);
+    }
+
+    function setCreditInfo(
+        address[] calldata tokens,
+        uint256[] calldata amounts
+    ) external onlyThis {
+        creditInfo.setCreditInfo(tokens, amounts);
     }
 
     function changeVoteModifiers(
