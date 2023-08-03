@@ -78,15 +78,15 @@ library GovUserKeeperView {
                 : nftInfo.totalSupply;
 
             if (totalSupply > 0) {
-                uint256 totalPower = nftInfo.totalPowerInTokens;
+                uint256 eachNftPower = nftInfo.totalPowerInTokens / totalSupply;
 
                 if (calculatePowerArray) {
                     for (uint256 i; i < nftIds.length; i++) {
-                        perNftPower[i] = totalPower / totalSupply;
+                        perNftPower[i] = eachNftPower;
                     }
                 }
 
-                nftPower = nftIds.length.ratio(totalPower, totalSupply);
+                nftPower = nftIds.length * eachNftPower;
             }
         } else {
             uint256 totalNftsPower = nftContract.totalPower();
@@ -111,15 +111,12 @@ library GovUserKeeperView {
     }
 
     function delegations(
-        address user,
-        mapping(address => IGovUserKeeper.UserInfo) storage usersInfo
+        IGovUserKeeper.UserInfo storage userInfo
     )
         external
         view
         returns (uint256 power, IGovUserKeeper.DelegationInfoView[] memory delegationsInfo)
     {
-        IGovUserKeeper.UserInfo storage userInfo = usersInfo[user];
-
         delegationsInfo = new IGovUserKeeper.DelegationInfoView[](userInfo.delegatees.length());
 
         for (uint256 i; i < delegationsInfo.length; i++) {
@@ -133,10 +130,7 @@ library GovUserKeeperView {
                 delegation.delegatedNfts,
                 true
             );
-            delegation.requestedTokens = userInfo.requestedTokens[delegatee];
-            delegation.requestedNfts = userInfo.requestedNfts[delegatee].values();
 
-            // TODO: should we remove requested power?
             power += delegation.delegatedTokens + delegation.nftPower;
         }
     }
