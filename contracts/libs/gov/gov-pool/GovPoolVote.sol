@@ -112,8 +112,7 @@ library GovPoolVote {
 
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
 
-        // TODO: do we need this?
-        // require(core.settings.delegatedVotingAllowed, "Gov: delegated voting is off");
+        require(!core.settings.delegatedVotingAllowed, "Gov: treasury voting is off");
 
         EnumerableSet.UintSet storage votes = votedInProposals[msg.sender][
             IGovPool.VoteType.TreasuryVote

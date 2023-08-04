@@ -2610,6 +2610,57 @@ describe("GovPool", () => {
             await truffleAssert.reverts(delegateTreasury(THIRD, 0, []), "Gov: empty delegation");
           });
 
+          it("should revert voting when delegatedVotingAllowed", async () => {
+            await delegateTreasury(THIRD, wei("100"), ["10"]);
+
+            const NEW_SETTINGS = {
+              earlyCompletion: true,
+              delegatedVotingAllowed: true,
+              validatorsVote: false,
+              duration: 70,
+              durationValidators: 800,
+              quorum: PRECISION.times("1").toFixed(),
+              quorumValidators: PRECISION.times("1").toFixed(),
+              minVotesForVoting: 0,
+              minVotesForCreating: 0,
+              executionDelay: 0,
+              rewardsInfo: {
+                rewardToken: ZERO_ADDR,
+                creationReward: 0,
+                executionReward: 0,
+                voteForRewardsCoefficient: 0,
+                voteAgainstRewardsCoefficient: 0,
+              },
+              executorDescription: "new_settings",
+            };
+            await govPool.createProposal(
+              "example.com",
+              "misc",
+              [[settings.address, 0, getBytesEditSettings([1], [NEW_SETTINGS])]],
+              []
+            );
+            await token.mint(SECOND, wei("200000000000000000000"));
+            await token.approve(userKeeper.address, wei("200000000000000000000"), { from: SECOND });
+            await depositAndVote(3, wei("200000000000000000000"), [], wei("200000000000000000000"), [], SECOND);
+            await setTime((await getCurrentBlockTime()) + 10000);
+            await govPool.moveProposalToValidators(3);
+            await validators.vote(3, wei("1000000000000"), false, true, { from: SECOND });
+            await setTime((await getCurrentBlockTime()) + 10000);
+            await govPool.execute(3);
+
+            await govPool.createProposal(
+              "example.com",
+              "misc",
+              [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]],
+              []
+            );
+
+            await truffleAssert.reverts(
+              govPool.voteTreasury(4, wei("100"), ["10"], true, { from: THIRD }),
+              "Gov: treasury voting is off"
+            );
+          });
+
           it("should revert if call is not from expert", async () => {
             await token.mint(govPool.address, wei("1"));
 
