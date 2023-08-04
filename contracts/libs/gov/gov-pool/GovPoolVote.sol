@@ -230,10 +230,16 @@ library GovPoolVote {
         uint256[] calldata nftIds,
         bool isVoteFor
     ) internal returns (uint256 voteAmount) {
-        EnumerableSet.UintSet storage votedNfts = _votedNfts(voteInfo, isVoteFor);
+        (
+            EnumerableSet.UintSet storage votedNfts,
+            EnumerableSet.UintSet storage votedOpposedNfts
+        ) = _votedNfts(voteInfo, isVoteFor);
 
         for (uint256 i; i < nftIds.length; i++) {
-            require(votedNfts.add(nftIds[i]), "Gov: NFT already voted");
+            require(
+                votedNfts.add(nftIds[i]) && !votedOpposedNfts.contains(nftIds[i]),
+                "Gov: NFT already voted"
+            );
         }
 
         (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
@@ -307,8 +313,11 @@ library GovPoolVote {
     function _votedNfts(
         IGovPool.VoteInfo storage voteInfo,
         bool isVoteFor
-    ) internal view returns (EnumerableSet.UintSet storage) {
-        return isVoteFor ? voteInfo.nftsVotedFor : voteInfo.nftsVotedAgainst;
+    ) internal view returns (EnumerableSet.UintSet storage, EnumerableSet.UintSet storage) {
+        return
+            isVoteFor
+                ? (voteInfo.nftsVotedFor, voteInfo.nftsVotedAgainst)
+                : (voteInfo.nftsVotedAgainst, voteInfo.nftsVotedFor);
     }
 
     function _treasuryVoteCoefficient() internal view returns (uint256) {

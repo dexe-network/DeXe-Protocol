@@ -1134,6 +1134,12 @@ describe("GovPool", () => {
 
           it("should revert when voting with same NFTs", async () => {
             await truffleAssert.reverts(govPool.vote(1, 0, [2, 2], true), "Gov: NFT already voted");
+
+            await govPool.vote(1, 0, [2], true);
+
+            await truffleAssert.reverts(govPool.vote(1, 0, [2], true), "Gov: NFT already voted");
+
+            await truffleAssert.reverts(govPool.vote(1, 0, [2], false), "Gov: NFT already voted");
           });
         });
 
