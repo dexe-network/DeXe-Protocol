@@ -551,6 +551,10 @@ contract GovPool is
         return _micropoolInfos.getDelegatorStakingRewards(delegator);
     }
 
+    function getCreditInfo() external view returns (CreditInfoView[] memory) {
+        return creditInfo.getCreditInfo();
+    }
+
     function getOffchainResultsHash() external view override returns (string memory resultsHash) {
         return _offChain.resultsHash;
     }

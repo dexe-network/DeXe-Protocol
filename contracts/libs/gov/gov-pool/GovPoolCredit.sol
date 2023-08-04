@@ -34,10 +34,12 @@ library GovPoolCredit {
         mapping(address => IGovPool.TokenCreditInfo) storage tokenInfo = creditInfo.tokenInfo;
         for (uint i = 0; i < infoLength; i++) {
             address currentToken = creditInfo.tokenList[i];
+            uint256 monthLimit = tokenInfo[currentToken].monthLimit;
+            uint spent = _getCreditBalanceForToken(tokenInfo, currentToken);
             info[i] = IGovPool.CreditInfoView({
                 token: currentToken,
-                monthLimit: tokenInfo[currentToken].monthLimit,
-                currentWithdrawLimit: _getCreditBalanceForToken(tokenInfo, currentToken)
+                monthLimit: monthLimit,
+                currentWithdrawLimit: spent > monthLimit ? 0 : monthLimit - spent
             });
         }
     }
@@ -46,12 +48,11 @@ library GovPoolCredit {
         mapping(address => IGovPool.TokenCreditInfo) storage tokenInfo,
         address token
     ) internal view returns (uint256 amountWithdrawn) {
-        uint timestampMonthAgo = block.timestamp - 30 days;
         IGovPool.WithdrawalHistory[] storage history = tokenInfo[token].withdraws;
         uint historyLength = history.length;
         uint counter;
         for (counter = 0; counter < historyLength; counter++) {
-            if (history[counter].timestamp > timestampMonthAgo) {
+            if (history[counter].timestamp + 30 days > block.timestamp) {
                 break;
             }
         }

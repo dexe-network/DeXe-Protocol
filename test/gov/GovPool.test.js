@@ -77,7 +77,7 @@ ERC20.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
-describe("GovPool", () => {
+describe.only("GovPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -3458,6 +3458,71 @@ describe("GovPool", () => {
               realRewards: [secondReward, remainedReward],
             },
           ]);
+        });
+      });
+    });
+
+    describe.only("credit", () => {
+      describe("setCreditInfo()", () => {
+        let GOVPOOL;
+
+        beforeEach(() => {
+          GOVPOOL = govPool.address;
+          impersonate(govPool.address);
+        });
+
+        it("empty credit after deploy", async () => {
+          assert.deepEqual(await govPool.getCreditInfo(), []);
+        });
+
+        it("reverts if sender not a govpool", async () => {
+          await truffleAssert.reverts(govPool.setCreditInfo([SECOND], ["50000"]), "Gov: not this contract");
+        });
+
+        it("reverts with different lenth of arrays", async () => {
+          await truffleAssert.reverts(
+            govPool.setCreditInfo([SECOND, THIRD], ["50000"], { from: GOVPOOL }),
+            "GPC: Number of tokens and amounts are not equal"
+          );
+        });
+
+        it("reverts with zero address", async () => {
+          await truffleAssert.reverts(
+            govPool.setCreditInfo([ZERO_ADDR], ["50000"], { from: GOVPOOL }),
+            "GPC: Token address could not be zero"
+          );
+        });
+
+        it("sets new token correct", async () => {
+          await govPool.setCreditInfo([SECOND], ["50000"], { from: GOVPOOL });
+          assert.deepEqual(await govPool.getCreditInfo(), [[SECOND, "50000", "50000"]]);
+        });
+
+        it("batch set", async () => {
+          const TOKENS = [
+            [SECOND, "2000", "2000"],
+            [THIRD, "3000", "3000"],
+            [FOURTH, "4000", "4000"],
+            [FIFTH, "5000", "5000"],
+            [SIXTH, "6000", "6000"],
+          ];
+
+          let creditInfo;
+
+          for (let i = 0; i < 2; i++) {
+            let tokensArray = [];
+            let amountArray = [];
+            for (let j = 1; j <= 4; j++) {
+              tokensArray.push(TOKENS[i + j - 1][0]);
+              amountArray.push(TOKENS[i + j - 1][1]);
+              await govPool.setCreditInfo(tokensArray, amountArray, { from: GOVPOOL });
+
+              assert.deepEqual(await govPool.getCreditInfo(), TOKENS.slice(i, i + j));
+
+              await govPool.setCreditInfo([], [], { from: GOVPOOL });
+              assert.deepEqual(await govPool.getCreditInfo(), []);
+            }
+          }
         });
       });
     });
