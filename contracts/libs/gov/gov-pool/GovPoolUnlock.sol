@@ -29,7 +29,7 @@ library GovPoolUnlock {
             for (uint256 i; i < proposalIds.length; i++) {
                 uint256 proposalId = proposalIds[i];
 
-                if (!_proposalNotFinished(userProposals, govPool, proposalId)) {
+                if (!_proposalIsActive(userProposals, govPool, proposalId)) {
                     userProposals.remove(proposalId);
                 }
             }
@@ -57,7 +57,7 @@ library GovPoolUnlock {
         for (uint256 i; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
 
-            if (_proposalNotFinished(userProposals, govPool, proposalId)) {
+            if (_proposalIsActive(userProposals, govPool, proposalId)) {
                 continue;
             }
 
@@ -76,7 +76,7 @@ library GovPoolUnlock {
         }
     }
 
-    function _proposalNotFinished(
+    function _proposalIsActive(
         EnumerableSet.UintSet storage userProposals,
         IGovPool govPool,
         uint256 proposalId
