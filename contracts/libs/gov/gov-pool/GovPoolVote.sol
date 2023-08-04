@@ -321,21 +321,37 @@ library GovPoolVote {
     }
 
     function _treasuryVoteCoefficient() internal view returns (uint256) {
-        return 1;
+        (, address userKeeperAddress, , ) = GovPool(payable(address(this))).getHelperContracts();
+        IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
+
+        uint256 userPower = userKeeper.getDelegatedStakeAmount(address(this), msg.sender);
+
+        (uint256 totalTokenPower, ) = userKeeper.tokenBalance(
+            address(this),
+            IGovPool.VoteType.DelegatedVote
+        );
+
+        (uint256[] memory nftIds, ) = userKeeper.nftExactBalance(
+            address(this),
+            IGovPool.VoteType.DelegatedVote
+        );
+        (uint256 totalNftPower, ) = userKeeper.nftVotingPower(nftIds);
+
+        return (userPower / (totalTokenPower + totalNftPower)) / 10;
     }
 
     function _calculateVotes(
         uint256 voteAmount,
         IGovPool.VoteType voteType
-    ) internal view returns (uint256 result) {
+    ) internal view returns (uint256) {
         IGovPool govPool = IGovPool(address(this));
 
-        uint256 rootPower = govPool.getVoteModifierForUser(msg.sender);
-
-        result = voteAmount.pow(rootPower);
+        uint256 coefficient = govPool.getVoteModifierForUser(msg.sender);
 
         if (voteType == IGovPool.VoteType.TreasuryVote) {
-            result /= _treasuryVoteCoefficient();
+            coefficient -= _treasuryVoteCoefficient();
         }
+
+        return voteAmount.pow(coefficient);
     }
 }
