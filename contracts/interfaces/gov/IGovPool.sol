@@ -11,6 +11,17 @@ import "./validators/IGovValidators.sol";
  * the factory. The users can participate in proposal's creation, voting and execution processes
  */
 interface IGovPool {
+    /// @notice The enum that holds information about proposal state
+    /// @param Voting the proposal is in voting state
+    /// @param WaitingForVotingTransfer the proposal is approved and waiting for transfer to validators contract
+    /// @param ValidatorVoting the proposal is in validators voting state
+    /// @param Defeated the proposal is defeated
+    /// @param SucceededFor the proposal is succeeded on for step
+    /// @param SucceededAgainst the proposal is succeeded on against step
+    /// @param Locked the proposal is locked
+    /// @param ExecutedFor the proposal is executed on for step
+    /// @param ExecutedAgainst the proposal is executed on against step
+    /// @param Undefined the proposal is undefined
     enum ProposalState {
         Voting,
         WaitingForVotingTransfer,
@@ -24,6 +35,16 @@ interface IGovPool {
         Undefined
     }
 
+    /// @notice The enum that holds information about reward type
+    /// @param Create the reward type for proposal creation
+    /// @param VoteFor the reward type for voting for proposal
+    /// @param VoteAgainst the reward type for voting against proposal
+    /// @param VoteForDelegated the reward type for delegated voting for proposal
+    /// @param VoteAgainstDelegated the reward type for delegated voting against proposal
+    /// @param VoteForTreasury the reward type for treasury voting for proposal
+    /// @param VoteAgainstTreasury the reward type for treasury voting against proposal
+    /// @param Execute the reward type for proposal execution
+    /// @param SaveOffchainResults the reward type for saving off-chain results
     enum RewardType {
         Create,
         VoteFor,
@@ -36,6 +57,11 @@ interface IGovPool {
         SaveOffchainResults
     }
 
+    /// @notice The enum that holds information about vote type
+    /// @param PersonalVote the vote type for personal voting
+    /// @param MicropoolVote the vote type for micropool voting
+    /// @param DelegatedVote the vote type for delegated voting
+    /// @param TreasuryVote the vote type for treasury voting
     enum VoteType {
         PersonalVote,
         MicropoolVote,
@@ -43,7 +69,12 @@ interface IGovPool {
         TreasuryVote
     }
 
-    // TODO: ADD DOCS
+    /// @notice The struct that holds information about dependencies
+    /// @param settingsAddress the address of settings contract
+    /// @param userKeeperAddress the address of user keeper contract
+    /// @param distributionAddress the address of distribution contract
+    /// @param validatorsAddress the address of validators contract
+    /// @param expertNftAddress the address of expert nft contract
     struct Dependencies {
         address settingsAddress;
         address userKeeperAddress;
