@@ -23,18 +23,17 @@ library GovPoolUnlock {
         require(voteType != IGovPool.VoteType.DelegatedVote, "Gov: invalid vote type");
 
         EnumerableSet.UintSet storage userProposals = votedInProposals[user][voteType];
-        IGovPool govPool = IGovPool(address(this));
 
         if (voteType == IGovPool.VoteType.TreasuryVote) {
             for (uint256 i; i < proposalIds.length; i++) {
                 uint256 proposalId = proposalIds[i];
 
-                if (!_proposalIsActive(userProposals, govPool, proposalId)) {
+                if (!_proposalIsActive(userProposals, proposalId)) {
                     userProposals.remove(proposalId);
                 }
             }
         } else {
-            _unlockInProposals(userProposals, voteInfos, proposalIds, user, govPool, voteType);
+            _unlockInProposals(userProposals, voteInfos, proposalIds, user, voteType);
         }
     }
 
@@ -44,10 +43,9 @@ library GovPoolUnlock {
             storage voteInfos,
         uint256[] calldata proposalIds,
         address user,
-        IGovPool govPool,
         IGovPool.VoteType voteType
     ) internal {
-        (, address userKeeperAddress, , ) = govPool.getHelperContracts();
+        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
 
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
@@ -57,7 +55,7 @@ library GovPoolUnlock {
         for (uint256 i; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
 
-            if (_proposalIsActive(userProposals, govPool, proposalId)) {
+            if (_proposalIsActive(userProposals, proposalId)) {
                 continue;
             }
 
@@ -78,12 +76,11 @@ library GovPoolUnlock {
 
     function _proposalIsActive(
         EnumerableSet.UintSet storage userProposals,
-        IGovPool govPool,
         uint256 proposalId
     ) internal view returns (bool) {
         require(userProposals.contains(proposalId), "Gov: no vote for this proposal");
 
-        IGovPool.ProposalState state = govPool.getProposalState(proposalId);
+        IGovPool.ProposalState state = IGovPool(address(this)).getProposalState(proposalId);
 
         return
             state != IGovPool.ProposalState.ExecutedFor &&
