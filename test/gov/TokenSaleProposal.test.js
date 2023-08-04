@@ -403,7 +403,7 @@ describe("TokenSaleProposal", () => {
             },
             {
               earlyCompletion: false,
-              delegatedVotingAllowed: false,
+              delegatedVotingAllowed: true,
               validatorsVote: false,
               duration: 700,
               durationValidators: 800,

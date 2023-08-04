@@ -543,7 +543,7 @@ describe("PoolFactory", () => {
             },
             {
               earlyCompletion: false,
-              delegatedVotingAllowed: false,
+              delegatedVotingAllowed: true,
               validatorsVote: false,
               duration: 500,
               durationValidators: 600,

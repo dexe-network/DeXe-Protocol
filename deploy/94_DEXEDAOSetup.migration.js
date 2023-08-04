@@ -8,6 +8,7 @@ const ContractsRegistry = artifacts.require("ContractsRegistry");
 
 const PoolFactory = artifacts.require("PoolFactory");
 
+// TODO: check delegatedVotingAllowed
 let POOL_PARAMETERS = {
   settingsParams: {
     proposalSettings: [

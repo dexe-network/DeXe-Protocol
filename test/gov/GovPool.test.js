@@ -335,7 +335,7 @@ describe("GovPool", () => {
           },
           {
             earlyCompletion: false,
-            delegatedVotingAllowed: false,
+            delegatedVotingAllowed: true,
             validatorsVote: true,
             duration: 600,
             durationValidators: 800,
