@@ -26,8 +26,8 @@ library GovPoolVote {
     event Voted(
         uint256 proposalId,
         address sender,
-        uint256 personalVote,
-        uint256 delegatedVote,
+        IGovPool.VoteType voteType,
+        uint256 amount,
         bool isVoteFor
     );
 
@@ -191,14 +191,7 @@ library GovPoolVote {
                 (core.settings.earlyCompletion ? uint64(block.timestamp) : core.voteEnd);
         }
 
-        // TODO: fix event due to treasury vote
-        emit Voted(
-            proposalId,
-            msg.sender,
-            voteType == IGovPool.VoteType.MicropoolVote ? 0 : voteAmount,
-            voteType == IGovPool.VoteType.MicropoolVote ? voteAmount : 0,
-            isVoteFor
-        );
+        emit Voted(proposalId, msg.sender, voteType, voteAmount, isVoteFor);
 
         return voteAmount;
     }
