@@ -320,36 +320,41 @@ library GovPoolVote {
                 : (voteInfo.nftsVotedAgainst, voteInfo.nftsVotedFor);
     }
 
+    /// @dev returns coefficient for treasury vote with 18 decimals
     function _treasuryVoteCoefficient() internal view returns (uint256) {
         (, address userKeeperAddress, , ) = GovPool(payable(address(this))).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
-        uint256 userPower = userKeeper.getDelegatedStakeAmount(address(this), msg.sender);
-
-        (uint256 totalTokenPower, ) = userKeeper.tokenBalance(
-            address(this),
-            IGovPool.VoteType.DelegatedVote
+        (uint256 power, ) = userKeeper.tokenBalance(msg.sender, IGovPool.VoteType.TreasuryVote);
+        (uint256[] memory nfts, ) = userKeeper.nftExactBalance(
+            msg.sender,
+            IGovPool.VoteType.TreasuryVote
         );
+        (uint256 nftPower, ) = userKeeper.nftVotingPower(nfts);
 
-        (uint256[] memory nftIds, ) = userKeeper.nftExactBalance(
-            address(this),
-            IGovPool.VoteType.DelegatedVote
-        );
-        (uint256 totalNftPower, ) = userKeeper.nftVotingPower(nftIds);
+        power += nftPower;
 
-        return (userPower / (totalTokenPower + totalNftPower)) / 10;
+        return (power * DECIMALS) / userKeeper.getTotalVoteWeight() / 10;
     }
 
     function _calculateVotes(
         uint256 voteAmount,
         IGovPool.VoteType voteType
     ) internal view returns (uint256) {
-        IGovPool govPool = IGovPool(address(this));
-
-        uint256 coefficient = govPool.getVoteModifierForUser(msg.sender);
+        uint256 coefficient = IGovPool(address(this)).getVoteModifierForUser(msg.sender);
 
         if (voteType == IGovPool.VoteType.TreasuryVote) {
-            coefficient -= _treasuryVoteCoefficient();
+            uint256 treasuryVoteCoefficient = _treasuryVoteCoefficient();
+
+            if (treasuryVoteCoefficient > coefficient) {
+                return voteAmount;
+            }
+
+            coefficient -= treasuryVoteCoefficient;
+        }
+
+        if (coefficient <= DECIMALS) {
+            return voteAmount;
         }
 
         return voteAmount.pow(coefficient);

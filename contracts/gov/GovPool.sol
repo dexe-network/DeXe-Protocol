@@ -56,7 +56,7 @@ contract GovPool is
     using DecimalsConverter for uint256;
 
     uint256 public constant PERCENTAGE_MICROPOOL_REWARDS = PERCENTAGE_100 / 5; // 20%
-    uint256 public constant PERCENTAGE_DELEGATED_BY_DAO_REWARDS = (PERCENTAGE_100 * 809) / 50000; // 1.618%
+    uint256 public constant PERCENTAGE_TREASURY_REWARDS = (PERCENTAGE_100 * 809) / 50000; // 1.618%
 
     IGovSettings internal _govSettings;
     IGovUserKeeper internal _govUserKeeper;
@@ -276,7 +276,7 @@ contract GovPool is
         _updateRewards(
             proposalId,
             isVoteFor ? RewardType.VoteForTreasury : RewardType.VoteAgainstTreasury,
-            reward.percentage(PERCENTAGE_DELEGATED_BY_DAO_REWARDS)
+            reward.percentage(PERCENTAGE_TREASURY_REWARDS)
         );
     }
 
