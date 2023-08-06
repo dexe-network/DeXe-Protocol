@@ -41,32 +41,6 @@ library GovPoolView {
         return IGovUserKeeper(userKeeper).getWithdrawableAssets(user, lockedIds, unlockedNfts);
     }
 
-    function getUndelegateableAssets(
-        address delegator,
-        address delegatee,
-        mapping(address => mapping(bool => EnumerableSet.UintSet)) storage _votedInProposals,
-        mapping(uint256 => mapping(address => mapping(bool => IGovPool.VoteInfo)))
-            storage _voteInfos
-    ) external view returns (uint256 undelegateableTokens, uint256[] memory undelegateableNfts) {
-        (uint256[] memory unlockedIds, uint256[] memory lockedIds) = getUserProposals(
-            delegatee,
-            true,
-            _votedInProposals
-        );
-
-        uint256[] memory unlockedNfts = getUnlockedNfts(unlockedIds, delegatee, true, _voteInfos);
-
-        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
-
-        return
-            IGovUserKeeper(userKeeper).getUndelegateableAssets(
-                delegator,
-                delegatee,
-                lockedIds,
-                unlockedNfts
-            );
-    }
-
     function getUnlockedNfts(
         uint256[] memory unlockedIds,
         address user,

@@ -262,7 +262,10 @@ library GovPoolVote {
 
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
-        userKeeper.lockTokens(proposalId, msg.sender, isMicropool, amount);
+        if (isMicropool) {
+            userKeeper.lockTokens(proposalId, msg.sender, amount);
+        }
+
         (uint256 tokenBalance, uint256 ownedBalance) = userKeeper.tokenBalance(
             msg.sender,
             isMicropool,
@@ -306,7 +309,9 @@ library GovPoolVote {
 
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
-        userKeeper.lockNfts(msg.sender, isMicropool, useDelegated, nftIds);
+        if (isMicropool) {
+            userKeeper.lockNfts(msg.sender, useDelegated, nftIds);
+        }
 
         userKeeper.updateNftPowers(nftIds);
 

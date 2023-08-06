@@ -309,18 +309,12 @@ interface IGovPool {
 
     /// @notice The function that unlocks user funds in completed proposals
     /// @param user the user whose funds to unlock
-    /// @param isMicropool the bool flag for micropool (unlock personal or delegated funds)
-    function unlock(address user, bool isMicropool) external;
+    function unlock(address user) external;
 
     /// @notice The function to unlock user funds from completed proposals
     /// @param proposalIds the array of proposals to unlock the funds in
     /// @param user the user to unlock the funds of
-    /// @param isMicropool the bool flag for micropool (unlock personal or delegated funds)
-    function unlockInProposals(
-        uint256[] memory proposalIds,
-        address user,
-        bool isMicropool
-    ) external;
+    function unlockInProposals(uint256[] memory proposalIds, address user) external;
 
     /// @notice Execute proposal
     /// @param proposalId Proposal ID
@@ -407,11 +401,9 @@ interface IGovPool {
 
     /// @notice The function to get withdrawable assets
     /// @param delegator the delegator address
-    /// @param delegatee the delegatee address
     /// @return `Arguments`: erc20 amount, array nft ids
     function getWithdrawableAssets(
-        address delegator,
-        address delegatee
+        address delegator
     ) external view returns (uint256, uint256[] memory);
 
     /// @notice The function to get on-chain and off-chain rewards

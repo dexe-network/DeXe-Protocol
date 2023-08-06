@@ -135,57 +135,18 @@ library GovUserKeeperView {
         }
     }
 
-    function getUndelegateableAssets(
-        address delegatee,
-        uint256[] calldata lockedProposals,
-        uint256[] calldata unlockedNfts,
-        IGovUserKeeper.BalanceInfo storage balanceInfo,
-        IGovUserKeeper.UserInfo storage delegatorInfo,
-        mapping(uint256 => uint256) storage nftLockedNums
-    ) external view returns (uint256 undelegateableTokens, uint256[] memory undelegateableNfts) {
-        (uint256 withdrawableTokens, uint256[] memory withdrawableNfts) = _getFreeAssets(
-            lockedProposals,
-            unlockedNfts,
-            balanceInfo,
-            nftLockedNums
-        );
-
-        undelegateableTokens = delegatorInfo.delegatedTokens[delegatee].min(withdrawableTokens);
-        EnumerableSet.UintSet storage delegatedNfts = delegatorInfo.delegatedNfts[delegatee];
-
-        undelegateableNfts = new uint256[](withdrawableNfts.length);
-        uint256 nftsLength;
-
-        for (uint256 i; i < undelegateableNfts.length; i++) {
-            if (delegatedNfts.contains(withdrawableNfts[i])) {
-                undelegateableNfts[nftsLength++] = withdrawableNfts[i];
-            }
-        }
-
-        undelegateableNfts.crop(nftsLength);
-    }
-
     function getWithdrawableAssets(
         uint256[] calldata lockedProposals,
         uint256[] calldata unlockedNfts,
-        IGovUserKeeper.BalanceInfo storage balanceInfo,
+        IGovUserKeeper.UserInfo storage userInfo,
         mapping(uint256 => uint256) storage nftLockedNums
     ) external view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts) {
-        return _getFreeAssets(lockedProposals, unlockedNfts, balanceInfo, nftLockedNums);
-    }
+        IGovUserKeeper.BalanceInfo storage balanceInfo = userInfo.balanceInfo;
 
-    function _getFreeAssets(
-        uint256[] calldata lockedProposals,
-        uint256[] calldata unlockedNfts,
-        IGovUserKeeper.BalanceInfo storage balanceInfo,
-        mapping(uint256 => uint256) storage nftLockedNums
-    ) private view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts) {
         uint256 newLockedAmount;
 
         for (uint256 i; i < lockedProposals.length; i++) {
-            newLockedAmount = newLockedAmount.max(
-                balanceInfo.lockedInProposals[lockedProposals[i]]
-            );
+            newLockedAmount = newLockedAmount.max(userInfo.lockedInProposals[lockedProposals[i]]);
         }
 
         withdrawableTokens = balanceInfo.tokenBalance - newLockedAmount;

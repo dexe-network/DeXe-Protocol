@@ -15,8 +15,6 @@ interface IGovUserKeeper {
     /// @param nftBalance the array of deposited nfts
     struct BalanceInfo {
         uint256 tokenBalance;
-        uint256 maxTokensLocked;
-        mapping(uint256 => uint256) lockedInProposals; // proposal id => locked amount
         EnumerableSet.UintSet nftBalance; // array of NFTs
     }
 
@@ -30,6 +28,8 @@ interface IGovUserKeeper {
         mapping(address => uint256) delegatedTokens; // delegatee => amount
         mapping(address => EnumerableSet.UintSet) delegatedNfts; // delegatee => tokenIds
         EnumerableSet.AddressSet delegatees;
+        uint256 maxTokensLocked;
+        mapping(uint256 => uint256) lockedInProposals; // proposal id => locked amount
     }
 
     /// @notice The struct holds information about nft contract
@@ -135,46 +135,30 @@ interface IGovUserKeeper {
     /// @notice The function for recalculating max token locked amount of a user
     /// @param lockedProposals the array of proposal ids for recalculation
     /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then recalculation is made for micropool
     function updateMaxTokenLockedAmount(
         uint256[] calldata lockedProposals,
-        address voter,
-        bool isMicropool
+        address voter
     ) external;
 
     /// @notice The function for locking tokens in a proposal
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then micropool funds are locked
     /// @param amount the amount of tokens to lock
-    function lockTokens(
-        uint256 proposalId,
-        address voter,
-        bool isMicropool,
-        uint256 amount
-    ) external;
+    function lockTokens(uint256 proposalId, address voter, uint256 amount) external;
 
     /// @notice The function for unlocking tokens in proposal
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then micropool funds are unlocked
     function unlockTokens(
         uint256 proposalId,
-        address voter,
-        bool isMicropool
+        address voter
     ) external returns (uint256 unlockedAmount);
 
     /// @notice The function for locking nfts
     /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then micropool nfts are locked
     /// @param useDelegated the bool flag, if true then delegated nfts are locked
     /// @param nftIds the array of nft ids to lock
-    function lockNfts(
-        address voter,
-        bool isMicropool,
-        bool useDelegated,
-        uint256[] calldata nftIds
-    ) external;
+    function lockNfts(address voter, bool useDelegated, uint256[] calldata nftIds) external;
 
     /// @notice The function for unlocking nfts
     /// @param nftIds the array of nft ids to unlock
@@ -204,9 +188,8 @@ interface IGovUserKeeper {
 
     /// @notice The function for getting max locked amount of a user
     /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then uses micropool locked amounts
     /// @return `max locked amount`
-    function maxLockedAmount(address voter, bool isMicropool) external view returns (uint256);
+    function maxLockedAmount(address voter) external view returns (uint256);
 
     /// @notice The function for getting token balance of a user
     /// @param voter the address of voter
@@ -311,19 +294,6 @@ interface IGovUserKeeper {
     function delegations(
         address user
     ) external view returns (uint256 power, DelegationInfoView[] memory delegationsInfo);
-
-    /// @notice The function for getting information about funds that can be undelegated
-    /// @param delegator the delegator address
-    /// @param lockedProposals the array of ids of locked proposals
-    /// @param unlockedNfts the array of unlocked nfts
-    /// @return undelegateableTokens the tokens that can be undelegated
-    /// @return undelegateableNfts the array of nfts that can be undelegated
-    function getUndelegateableAssets(
-        address delegator,
-        address delegatee,
-        uint256[] calldata lockedProposals,
-        uint256[] calldata unlockedNfts
-    ) external view returns (uint256 undelegateableTokens, uint256[] memory undelegateableNfts);
 
     /// @notice The function for getting information about funds that can be withdrawn
     /// @param voter the address of voter

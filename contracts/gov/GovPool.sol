@@ -128,16 +128,15 @@ contract GovPool is
         _offChain.verifier = _verifier;
     }
 
-    function unlock(address user, bool isMicropool) public override onlyBABTHolder {
-        _unlock(user, isMicropool);
+    function unlock(address user) public override onlyBABTHolder {
+        _unlock(user);
     }
 
     function unlockInProposals(
         uint256[] memory proposalIds,
-        address user,
-        bool isMicropool
+        address user
     ) public override onlyBABTHolder {
-        _unlockInProposals(proposalIds, user, isMicropool);
+        _unlockInProposals(proposalIds, user);
     }
 
     function execute(uint256 proposalId) public override onlyBABTHolder {
@@ -204,7 +203,7 @@ contract GovPool is
         uint256[] calldata voteNftIds,
         bool isVoteFor
     ) external override onlyBABTHolder {
-        _unlock(msg.sender, false);
+        _unlock(msg.sender);
 
         uint256 reward = _proposals.vote(
             _votedInProposals,
@@ -228,8 +227,6 @@ contract GovPool is
         uint256[] calldata voteNftIds,
         bool isVoteFor
     ) external override onlyBABTHolder {
-        _unlock(msg.sender, true);
-
         uint256 reward = _proposals.voteDelegated(
             _votedInProposals,
             _voteInfos,
@@ -312,7 +309,7 @@ contract GovPool is
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty withdrawal");
 
-        _unlock(msg.sender, false);
+        _unlock(msg.sender);
 
         _govUserKeeper.withdrawTokens.exec(receiver, amount);
         _govUserKeeper.withdrawNfts.exec(receiver, nftIds);
@@ -327,8 +324,7 @@ contract GovPool is
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
 
-        _unlock(msg.sender, false);
-        _unlock(delegatee, true);
+        _unlock(msg.sender);
 
         mapping(bool => MicropoolStakingInfo) storage micropoolPair = _micropoolInfos[delegatee];
 
@@ -348,8 +344,6 @@ contract GovPool is
         uint256[] calldata nftIds
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty undelegation");
-
-        _unlock(delegatee, true);
 
         mapping(bool => MicropoolStakingInfo) storage micropoolPair = _micropoolInfos[delegatee];
 
@@ -545,13 +539,9 @@ contract GovPool is
     }
 
     function getWithdrawableAssets(
-        address delegator,
-        address delegatee
+        address delegator
     ) external view override returns (uint256 tokens, uint256[] memory nfts) {
-        return
-            delegatee == address(0)
-                ? delegator.getWithdrawableAssets(_votedInProposals, _voteInfos)
-                : delegator.getUndelegateableAssets(delegatee, _votedInProposals, _voteInfos);
+        return delegator.getWithdrawableAssets(_votedInProposals, _voteInfos);
     }
 
     function getPendingRewards(
@@ -600,16 +590,12 @@ contract GovPool is
         _pendingRewards.updateRewards(_proposals, proposalId, rewardType, amount);
     }
 
-    function _unlock(address user, bool isMicropool) internal {
-        _unlockInProposals(_votedInProposals[user][isMicropool].values(), user, isMicropool);
+    function _unlock(address user) internal {
+        _unlockInProposals(_votedInProposals[user][false].values(), user);
     }
 
-    function _unlockInProposals(
-        uint256[] memory proposalIds,
-        address user,
-        bool isMicropool
-    ) internal {
-        _votedInProposals.unlockInProposals(_voteInfos, proposalIds, user, isMicropool);
+    function _unlockInProposals(uint256[] memory proposalIds, address user) internal {
+        _votedInProposals.unlockInProposals(_voteInfos, proposalIds, user);
     }
 
     function _onlyThis() internal view {
