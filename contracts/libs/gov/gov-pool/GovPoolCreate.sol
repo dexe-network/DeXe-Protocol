@@ -206,7 +206,8 @@ library GovPoolCreate {
                         selector == IGovPool.setNftMultiplierAddress.selector ||
                         selector == IGovPool.changeVerifier.selector ||
                         selector == IGovPool.changeBABTRestriction.selector ||
-                        selector == IGovPool.changeVoteModifiers.selector),
+                        selector == IGovPool.changeVoteModifiers.selector ||
+                        selector == IGovPool.setCreditInfo.selector),
                 "Gov: invalid internal data"
             );
         }

@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 import "../../../interfaces/gov/IGovPool.sol";
 
 library GovPoolCredit {
+    using SafeERC20 for IERC20;
+
     function setCreditInfo(
         IGovPool.CreditInfo storage creditInfo,
         address[] calldata tokens,
@@ -42,6 +47,56 @@ library GovPoolCredit {
                 currentWithdrawLimit: spent > monthLimit ? 0 : monthLimit - spent
             });
         }
+    }
+
+    function transferCreditAmount(
+        IGovPool.CreditInfo storage creditInfo,
+        address[] calldata tokens,
+        uint256[] calldata amounts,
+        address destination
+    ) external {
+        uint tokensLength = tokens.length;
+        require(amounts.length == tokensLength, "GPC: Number of tokens and amounts are not equal");
+        for (uint i = 0; i < tokensLength; i++) {
+            address currentToken = tokens[i];
+            uint currentAmount = amounts[i];
+            _cleanWithdrawalHistory(creditInfo, currentToken);
+            uint tokenCredit = _getCreditBalanceForToken(creditInfo.tokenInfo, currentToken);
+            require(
+                currentAmount <= tokenCredit,
+                "GPC: Current credit permission < amount to withdraw"
+            );
+            IERC20(currentToken).safeTransfer(destination, currentAmount);
+            creditInfo.tokenInfo[currentToken].withdraws.push(
+                IGovPool.WithdrawalHistory(currentAmount, block.timestamp)
+            );
+        }
+    }
+
+    function _cleanWithdrawalHistory(
+        IGovPool.CreditInfo storage creditInfo,
+        address token
+    ) internal {
+        IGovPool.WithdrawalHistory[] storage history = creditInfo.tokenInfo[token].withdraws;
+        uint256 historyLength = history.length;
+        uint256 counter;
+        for (counter = 0; counter < historyLength; counter++) {
+            if (history[counter].timestamp + 30 days > block.timestamp) {
+                break;
+            }
+        }
+        if (counter == 0) return;
+
+        IGovPool.WithdrawalHistory[] memory newHistory = new IGovPool.WithdrawalHistory[](
+            historyLength - counter
+        );
+        uint256 newCounter = 0;
+        while (counter < historyLength) {
+            newHistory[newCounter] = history[counter];
+            counter++;
+            newCounter++;
+        }
+        creditInfo.tokenInfo[token].withdraws = newHistory;
     }
 
     function _getCreditBalanceForToken(

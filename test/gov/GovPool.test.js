@@ -22,6 +22,7 @@ const {
   getBytesGovDeposit,
   getBytesKeeperWithdrawTokens,
   getBytesGovVoteDelegated,
+  getBytesSetCreditInfo,
   getBytesChangeVoteModifiers,
   getBytesMintExpertNft,
 } = require("../utils/gov-pool-utils");
@@ -77,7 +78,7 @@ ERC20.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
-describe.only("GovPool", () => {
+describe("GovPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -3507,8 +3508,6 @@ describe.only("GovPool", () => {
             [SIXTH, "6000", "6000"],
           ];
 
-          let creditInfo;
-
           for (let i = 0; i < 2; i++) {
             let tokensArray = [];
             let amountArray = [];
@@ -3523,6 +3522,44 @@ describe.only("GovPool", () => {
               assert.deepEqual(await govPool.getCreditInfo(), []);
             }
           }
+        });
+      });
+
+      describe.only("correct proposal workflow", () => {
+        let startTime;
+        let CREDIT_TOKEN;
+
+        beforeEach("setup", async () => {
+          CREDIT_TOKEN = await ERC20Mock.new("Mock", "Mock", 18);
+          await CREDIT_TOKEN.mint(govPool.address, wei("1000"));
+
+          await token.mint(SECOND, wei("100000000000000000000"));
+
+          await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
+
+          await govPool.deposit(OWNER, wei("1000"), []);
+          await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
+
+          await govPool.createProposal(
+            "example.com",
+            "misc",
+            [[govPool.address, 0, getBytesSetCreditInfo([CREDIT_TOKEN.address], [wei("1000")])]],
+            []
+          );
+
+          startTime = await getCurrentBlockTime();
+
+          await govPool.vote(1, wei("100000000000000000000"), [], true, { from: SECOND });
+
+          await govPool.moveProposalToValidators(1);
+          await validators.vote(1, wei("100"), false, true);
+          await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
+
+          await govPool.execute(1);
+        });
+
+        it("proposal sets credit info", async () => {
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN.address, wei("1000"), wei("1000")]]);
         });
       });
     });

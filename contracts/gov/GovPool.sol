@@ -369,7 +369,7 @@ contract GovPool is
     function setCreditInfo(
         address[] calldata tokens,
         uint256[] calldata amounts
-    ) external onlyThis {
+    ) external override onlyThis {
         creditInfo.setCreditInfo(tokens, amounts);
     }
 
@@ -551,7 +551,7 @@ contract GovPool is
         return _micropoolInfos.getDelegatorStakingRewards(delegator);
     }
 
-    function getCreditInfo() external view returns (CreditInfoView[] memory) {
+    function getCreditInfo() external view override returns (CreditInfoView[] memory) {
         return creditInfo.getCreditInfo();
     }
 

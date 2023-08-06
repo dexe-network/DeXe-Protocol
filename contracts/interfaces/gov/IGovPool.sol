@@ -363,6 +363,11 @@ interface IGovPool {
     /// @param expertModifier the new expert modifier value
     function changeVoteModifiers(uint256 regularModifier, uint256 expertModifier) external;
 
+    /// @notice The function for setting validators credit limit
+    /// @param tokens the list of tokens to credit
+    /// @param amounts the list of amounts to credit per month
+    function setCreditInfo(address[] calldata tokens, uint256[] calldata amounts) external;
+
     /// @notice The function for changing the KYC restriction
     /// @param onlyBABT true id restriction is needed
     function changeBABTRestriction(bool onlyBABT) external;
@@ -449,6 +454,10 @@ interface IGovPool {
     function getDelegatorStakingRewards(
         address delegator
     ) external view returns (UserStakeRewardsView[] memory);
+
+    /// @notice The function to get info about validators credit limit
+    /// @return the list of credit infos
+    function getCreditInfo() external view returns (CreditInfoView[] memory);
 
     /// @notice The function to get off-chain voting results
     /// @return resultsHash the ipfs hash
