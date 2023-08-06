@@ -16,14 +16,17 @@ library GovPoolUnlock {
         mapping(uint256 => mapping(address => mapping(bool => IGovPool.VoteInfo)))
             storage voteInfos,
         uint256[] calldata proposalIds,
-        address user
+        address user,
+        bool isMicropool
     ) external {
         IGovPool govPool = IGovPool(address(this));
         (, address userKeeper, , ) = govPool.getHelperContracts();
 
         EnumerableSet.UintSet storage userProposals = votedInProposals[user][false];
 
-        uint256 maxLockedAmount = IGovUserKeeper(userKeeper).maxLockedAmount(user);
+        uint256 maxLockedAmount = isMicropool
+            ? 0
+            : IGovUserKeeper(userKeeper).maxLockedAmount(user);
         uint256 maxUnlocked;
 
         for (uint256 i; i < proposalIds.length; i++) {
@@ -43,20 +46,22 @@ library GovPoolUnlock {
                 continue;
             }
 
-            maxUnlocked = IGovUserKeeper(userKeeper).unlockTokens(proposalId, user).max(
-                maxUnlocked
-            );
-            IGovUserKeeper(userKeeper).unlockNfts(
-                voteInfos[proposalId][user][false].voteFor.nftsVoted.values()
-            );
-            IGovUserKeeper(userKeeper).unlockNfts(
-                voteInfos[proposalId][user][false].voteAgainst.nftsVoted.values()
-            );
+            if (isMicropool) {
+                maxUnlocked = IGovUserKeeper(userKeeper).unlockTokens(proposalId, user).max(
+                    maxUnlocked
+                );
+                IGovUserKeeper(userKeeper).unlockNfts(
+                    voteInfos[proposalId][user][false].voteFor.nftsVoted.values()
+                );
+                IGovUserKeeper(userKeeper).unlockNfts(
+                    voteInfos[proposalId][user][false].voteAgainst.nftsVoted.values()
+                );
+            }
 
             userProposals.remove(proposalId);
         }
 
-        if (maxLockedAmount <= maxUnlocked) {
+        if (!isMicropool && maxLockedAmount <= maxUnlocked) {
             IGovUserKeeper(userKeeper).updateMaxTokenLockedAmount(userProposals.values(), user);
         }
     }

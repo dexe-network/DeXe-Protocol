@@ -309,12 +309,18 @@ interface IGovPool {
 
     /// @notice The function that unlocks user funds in completed proposals
     /// @param user the user whose funds to unlock
-    function unlock(address user) external;
+    /// @param isMicropool the bool flag for micropool (unlock personal or delegated funds)
+    function unlock(address user, bool isMicropool) external;
 
     /// @notice The function to unlock user funds from completed proposals
     /// @param proposalIds the array of proposals to unlock the funds in
     /// @param user the user to unlock the funds of
-    function unlockInProposals(uint256[] memory proposalIds, address user) external;
+    /// @param isMicropool the bool flag for micropool (unlock personal or delegated funds)
+    function unlockInProposals(
+        uint256[] memory proposalIds,
+        address user,
+        bool isMicropool
+    ) external;
 
     /// @notice Execute proposal
     /// @param proposalId Proposal ID
