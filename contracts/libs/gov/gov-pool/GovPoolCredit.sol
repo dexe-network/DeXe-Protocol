@@ -67,9 +67,8 @@ library GovPoolCredit {
                 "GPC: Current credit permission < amount to withdraw"
             );
             IERC20(currentToken).safeTransfer(destination, currentAmount);
-            creditInfo.tokenInfo[currentToken].withdraws.push(
-                IGovPool.WithdrawalHistory(currentAmount, block.timestamp)
-            );
+            creditInfo.tokenInfo[currentToken].amounts.push(currentAmount);
+            creditInfo.tokenInfo[currentToken].timestamps.push(block.timestamp);
         }
     }
 
@@ -77,42 +76,45 @@ library GovPoolCredit {
         IGovPool.CreditInfo storage creditInfo,
         address token
     ) internal {
-        IGovPool.WithdrawalHistory[] storage history = creditInfo.tokenInfo[token].withdraws;
-        uint256 historyLength = history.length;
+        uint[] storage amounts = creditInfo.tokenInfo[token].amounts;
+        uint[] storage timestamps = creditInfo.tokenInfo[token].timestamps;
+        uint256 historyLength = amounts.length;
         uint256 counter;
         for (counter = 0; counter < historyLength; counter++) {
-            if (history[counter].timestamp + 30 days > block.timestamp) {
+            if (timestamps[counter] + 30 days > block.timestamp) {
                 break;
             }
         }
         if (counter == 0) return;
 
-        IGovPool.WithdrawalHistory[] memory newHistory = new IGovPool.WithdrawalHistory[](
-            historyLength - counter
-        );
+        uint[] memory newAmounts = new uint[](historyLength - counter);
+        uint[] memory newTimestamps = new uint[](historyLength - counter);
         uint256 newCounter = 0;
         while (counter < historyLength) {
-            newHistory[newCounter] = history[counter];
+            newAmounts[newCounter] = amounts[counter];
+            newTimestamps[newCounter] = timestamps[counter];
             counter++;
             newCounter++;
         }
-        creditInfo.tokenInfo[token].withdraws = newHistory;
+        creditInfo.tokenInfo[token].amounts = newAmounts;
+        creditInfo.tokenInfo[token].timestamps = newTimestamps;
     }
 
     function _getCreditBalanceForToken(
         mapping(address => IGovPool.TokenCreditInfo) storage tokenInfo,
         address token
     ) internal view returns (uint256 amountWithdrawn) {
-        IGovPool.WithdrawalHistory[] storage history = tokenInfo[token].withdraws;
-        uint historyLength = history.length;
+        uint256[] storage amounts = tokenInfo[token].amounts;
+        uint256[] storage timestamps = tokenInfo[token].timestamps;
+        uint historyLength = amounts.length;
         uint counter;
         for (counter = 0; counter < historyLength; counter++) {
-            if (history[counter].timestamp + 30 days > block.timestamp) {
+            if (timestamps[counter] + 30 days > block.timestamp) {
                 break;
             }
         }
         while (counter < historyLength) {
-            amountWithdrawn += history[counter].amount;
+            amountWithdrawn += amounts[counter];
             counter++;
         }
     }

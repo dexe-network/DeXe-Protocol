@@ -200,18 +200,12 @@ interface IGovPool {
 
     /// @notice The struct is used to hold info about limits and withdrawals history
     /// @param monthLimit the monthly withdraw limit for the token
-    /// @param withdraws the withdrawal history of this token
+    /// @param amounts the list of amounts withdrawn
+    /// @param amounts the list of timestamps of withdraws
     struct TokenCreditInfo {
         uint256 monthLimit;
-        WithdrawalHistory[] withdraws;
-    }
-
-    /// @notice The struct is used to hold info about withdrawals history
-    /// @param amount the withdraw amount
-    /// @param timestamp the timestamp of withdraw
-    struct WithdrawalHistory {
-        uint256 amount;
-        uint256 timestamp;
+        uint256[] amounts;
+        uint256[] timestamps;
     }
 
     /// @notice The struct is used to return info about current credit state

@@ -3525,7 +3525,7 @@ describe("GovPool", () => {
         });
       });
 
-      describe.only("correct proposal workflow", () => {
+      describe("correct proposal workflow", () => {
         let startTime;
         let CREDIT_TOKEN;
 
