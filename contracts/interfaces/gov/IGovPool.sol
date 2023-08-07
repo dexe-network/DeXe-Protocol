@@ -204,7 +204,7 @@ interface IGovPool {
     /// @param amounts the list of timestamps of withdraws
     struct TokenCreditInfo {
         uint256 monthLimit;
-        uint256[] amounts;
+        uint256[] cumulativeAmounts;
         uint256[] timestamps;
     }
 

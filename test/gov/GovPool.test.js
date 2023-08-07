@@ -3595,6 +3595,7 @@ describe("GovPool", () => {
           await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1000"], SECOND, { from: VALIDATORS });
           startTime = await getCurrentBlockTime();
           await setTime(startTime + 30 * 24 * 60 * 60);
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN_1.address, "1000", "1000"]]);
           await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1000"], SECOND, { from: VALIDATORS });
           assert.equal((await CREDIT_TOKEN_1.balanceOf(SECOND)).toFixed(), "2000");
         });
@@ -3614,11 +3615,16 @@ describe("GovPool", () => {
           const WEEK = (30 * 24 * 60 * 60) / 4;
           const TWO_WEEKS = WEEK * 2;
           await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["1000"], { from: GOVPOOL });
+
           await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["500"], SECOND, { from: VALIDATORS });
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN_1.address, "1000", "500"]]);
+
           startTime = await getCurrentBlockTime();
 
           await setTime(startTime + TWO_WEEKS);
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN_1.address, "1000", "500"]]);
           await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["500"], SECOND, { from: VALIDATORS });
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN_1.address, "1000", "0"]]);
 
           await setTime(startTime + TWO_WEEKS + WEEK);
           await truffleAssert.reverts(
@@ -3627,13 +3633,15 @@ describe("GovPool", () => {
           );
 
           await setTime(startTime + TWO_WEEKS + TWO_WEEKS);
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN_1.address, "1000", "500"]]);
           await truffleAssert.reverts(
             govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["501"], SECOND, { from: VALIDATORS }),
             "GPC: Current credit permission < amount to withdraw"
           );
           await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["500"], SECOND, { from: VALIDATORS });
 
-          await setTime(startTime + TWO_WEEKS + TWO_WEEKS + TWO_WEEKS);
+          await setTime(startTime + TWO_WEEKS + TWO_WEEKS + TWO_WEEKS + 1);
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN_1.address, "1000", "500"]]);
           await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["500"], SECOND, { from: VALIDATORS });
         });
 

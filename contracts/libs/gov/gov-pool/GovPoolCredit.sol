@@ -59,67 +59,66 @@ library GovPoolCredit {
         for (uint i = 0; i < tokensLength; i++) {
             address currentToken = tokens[i];
             uint currentAmount = amounts[i];
-            _cleanWithdrawalHistory(creditInfo, currentToken);
             uint256 tokenCredit = _getCreditBalanceForToken(creditInfo, currentToken);
             require(
                 currentAmount <= tokenCredit,
                 "GPC: Current credit permission < amount to withdraw"
             );
             IERC20(currentToken).safeTransfer(destination, currentAmount);
-            creditInfo.tokenInfo[currentToken].amounts.push(currentAmount);
             creditInfo.tokenInfo[currentToken].timestamps.push(block.timestamp);
-        }
-    }
-
-    function _cleanWithdrawalHistory(
-        IGovPool.CreditInfo storage creditInfo,
-        address token
-    ) internal {
-        uint[] storage amounts = creditInfo.tokenInfo[token].amounts;
-        uint[] storage timestamps = creditInfo.tokenInfo[token].timestamps;
-        uint256 historyLength = amounts.length;
-        uint256 counter;
-        for (counter = 0; counter < historyLength; counter++) {
-            if (timestamps[counter] + 30 days > block.timestamp) {
-                break;
+            uint256 historyLength = creditInfo.tokenInfo[currentToken].cumulativeAmounts.length;
+            if (historyLength == 0) {
+                creditInfo.tokenInfo[currentToken].cumulativeAmounts.push(currentAmount);
+            } else {
+                creditInfo.tokenInfo[currentToken].cumulativeAmounts.push(
+                    currentAmount +
+                        creditInfo.tokenInfo[currentToken].cumulativeAmounts[historyLength - 1]
+                );
             }
         }
-        if (counter == 0) return;
-
-        uint[] memory newAmounts = new uint[](historyLength - counter);
-        uint[] memory newTimestamps = new uint[](historyLength - counter);
-        uint256 newCounter = 0;
-        while (counter < historyLength) {
-            newAmounts[newCounter] = amounts[counter];
-            newTimestamps[newCounter] = timestamps[counter];
-            counter++;
-            newCounter++;
-        }
-        creditInfo.tokenInfo[token].amounts = newAmounts;
-        creditInfo.tokenInfo[token].timestamps = newTimestamps;
     }
 
     function _getCreditBalanceForToken(
         IGovPool.CreditInfo storage creditInfo,
         address token
-    ) internal view returns (uint256 available) {
+    ) internal view returns (uint256) {
         IGovPool.TokenCreditInfo storage tokenInfo = creditInfo.tokenInfo[token];
-        uint256[] storage amounts = tokenInfo.amounts;
+        uint256[] storage amounts = tokenInfo.cumulativeAmounts;
         uint256[] storage timestamps = tokenInfo.timestamps;
-        uint historyLength = amounts.length;
-        uint counter;
-        for (counter = 0; counter < historyLength; counter++) {
-            if (timestamps[counter] + 30 days > block.timestamp) {
-                break;
+        uint256 historyLength = amounts.length;
+
+        int256 timestampMonthAgo = int256(block.timestamp) - 30 days;
+        uint256 index = _upperBound(timestamps, timestampMonthAgo);
+        uint amountWithdrawn;
+        if (index == historyLength) {
+            return tokenInfo.monthLimit;
+        } else {
+            amountWithdrawn = index == 0
+                ? amounts[historyLength - 1]
+                : amounts[historyLength - 1] - amounts[index - 1];
+            return
+                amountWithdrawn >= tokenInfo.monthLimit
+                    ? 0
+                    : tokenInfo.monthLimit - amountWithdrawn;
+        }
+    }
+
+    function _upperBound(
+        uint256[] storage array_,
+        int256 element_
+    ) internal view returns (uint256 index_) {
+        (uint256 low_, uint256 high_) = (0, array_.length);
+
+        while (low_ < high_) {
+            uint256 mid_ = (low_ + high_) / 2;
+
+            if (int(array_[mid_]) > element_) {
+                high_ = mid_;
+            } else {
+                low_ = mid_ + 1;
             }
         }
-        uint256 amountWithdrawn;
-        while (counter < historyLength) {
-            amountWithdrawn += amounts[counter];
-            counter++;
-        }
-        available = amountWithdrawn >= tokenInfo.monthLimit
-            ? 0
-            : tokenInfo.monthLimit - amountWithdrawn;
+
+        return high_;
     }
 }
