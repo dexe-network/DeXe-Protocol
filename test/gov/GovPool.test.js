@@ -3463,7 +3463,11 @@ describe("GovPool", () => {
       });
     });
 
-    describe.only("credit", () => {
+    describe("credit", () => {
+      beforeEach(async () => {
+        await setTime(10000000);
+      });
+
       describe("setCreditInfo()", () => {
         let GOVPOOL;
 
@@ -3557,6 +3561,13 @@ describe("GovPool", () => {
           );
         });
 
+        it("reverts if number of tokens different from amounts number ", async () => {
+          await truffleAssert.reverts(
+            govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1000", "2000"], SECOND, { from: VALIDATORS }),
+            "GPC: Number of tokens and amounts are not equal"
+          );
+        });
+
         it("could transfer", async () => {
           await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["1000"], { from: GOVPOOL });
           assert.equal((await CREDIT_TOKEN_1.balanceOf(SECOND)).toFixed(), "0");
@@ -3609,6 +3620,18 @@ describe("GovPool", () => {
             govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1000"], SECOND, { from: VALIDATORS }),
             "GPC: Current credit permission < amount to withdraw"
           );
+        });
+
+        it("correctly shows limit after great amount of time", async () => {
+          await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["1000"], { from: GOVPOOL });
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN_1.address, "1000", "1000"]]);
+          await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1000"], SECOND, { from: VALIDATORS });
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN_1.address, "1000", "0"]]);
+
+          startTime = await getCurrentBlockTime();
+          await setTime(startTime + 200 * 24 * 60 * 60);
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN_1.address, "1000", "1000"]]);
+          await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1000"], SECOND, { from: VALIDATORS });
         });
 
         it("correctly counts amount to withdraw according to time", async () => {

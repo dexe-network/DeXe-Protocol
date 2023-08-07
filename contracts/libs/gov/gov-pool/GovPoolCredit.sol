@@ -87,7 +87,7 @@ library GovPoolCredit {
         uint256[] storage timestamps = tokenInfo.timestamps;
         uint256 historyLength = amounts.length;
 
-        int256 timestampMonthAgo = int256(block.timestamp) - 30 days;
+        uint256 timestampMonthAgo = block.timestamp - 30 days;
         uint256 index = _upperBound(timestamps, timestampMonthAgo);
         uint amountWithdrawn;
         if (index == historyLength) {
@@ -105,14 +105,14 @@ library GovPoolCredit {
 
     function _upperBound(
         uint256[] storage array_,
-        int256 element_
+        uint256 element_
     ) internal view returns (uint256 index_) {
         (uint256 low_, uint256 high_) = (0, array_.length);
 
         while (low_ < high_) {
             uint256 mid_ = (low_ + high_) / 2;
 
-            if (int(array_[mid_]) > element_) {
+            if (array_[mid_] > element_) {
                 high_ = mid_;
             } else {
                 low_ = mid_ + 1;
