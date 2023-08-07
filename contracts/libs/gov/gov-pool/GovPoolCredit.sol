@@ -40,19 +40,18 @@ library GovPoolCredit {
         for (uint i = 0; i < infoLength; i++) {
             address currentToken = creditInfo.tokenList[i];
             uint256 monthLimit = tokenInfo[currentToken].monthLimit;
-            uint spent = _getCreditBalanceForToken(tokenInfo, currentToken);
             info[i] = IGovPool.CreditInfoView({
                 token: currentToken,
                 monthLimit: monthLimit,
-                currentWithdrawLimit: spent > monthLimit ? 0 : monthLimit - spent
+                currentWithdrawLimit: _getCreditBalanceForToken(creditInfo, currentToken)
             });
         }
     }
 
     function transferCreditAmount(
         IGovPool.CreditInfo storage creditInfo,
-        address[] calldata tokens,
-        uint256[] calldata amounts,
+        address[] memory tokens,
+        uint256[] memory amounts,
         address destination
     ) external {
         uint tokensLength = tokens.length;
@@ -61,7 +60,7 @@ library GovPoolCredit {
             address currentToken = tokens[i];
             uint currentAmount = amounts[i];
             _cleanWithdrawalHistory(creditInfo, currentToken);
-            uint tokenCredit = _getCreditBalanceForToken(creditInfo.tokenInfo, currentToken);
+            uint256 tokenCredit = _getCreditBalanceForToken(creditInfo, currentToken);
             require(
                 currentAmount <= tokenCredit,
                 "GPC: Current credit permission < amount to withdraw"
@@ -101,11 +100,12 @@ library GovPoolCredit {
     }
 
     function _getCreditBalanceForToken(
-        mapping(address => IGovPool.TokenCreditInfo) storage tokenInfo,
+        IGovPool.CreditInfo storage creditInfo,
         address token
-    ) internal view returns (uint256 amountWithdrawn) {
-        uint256[] storage amounts = tokenInfo[token].amounts;
-        uint256[] storage timestamps = tokenInfo[token].timestamps;
+    ) internal view returns (uint256 available) {
+        IGovPool.TokenCreditInfo storage tokenInfo = creditInfo.tokenInfo[token];
+        uint256[] storage amounts = tokenInfo.amounts;
+        uint256[] storage timestamps = tokenInfo.timestamps;
         uint historyLength = amounts.length;
         uint counter;
         for (counter = 0; counter < historyLength; counter++) {
@@ -113,9 +113,13 @@ library GovPoolCredit {
                 break;
             }
         }
+        uint256 amountWithdrawn;
         while (counter < historyLength) {
             amountWithdrawn += amounts[counter];
             counter++;
         }
+        available = amountWithdrawn >= tokenInfo.monthLimit
+            ? 0
+            : tokenInfo.monthLimit - amountWithdrawn;
     }
 }

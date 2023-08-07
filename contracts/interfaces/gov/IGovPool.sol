@@ -362,6 +362,16 @@ interface IGovPool {
     /// @param amounts the list of amounts to credit per month
     function setCreditInfo(address[] calldata tokens, uint256[] calldata amounts) external;
 
+    /// @notice The function for fulfilling transfer request from validators
+    /// @param tokens the list of tokens to send
+    /// @param amounts the list of amounts to send
+    /// @param destination the address to send tokens
+    function transferCreditAmount(
+        address[] memory tokens,
+        uint256[] memory amounts,
+        address destination
+    ) external;
+
     /// @notice The function for changing the KYC restriction
     /// @param onlyBABT true id restriction is needed
     function changeBABTRestriction(bool onlyBABT) external;

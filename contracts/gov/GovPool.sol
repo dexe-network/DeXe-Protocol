@@ -108,6 +108,11 @@ contract GovPool is
         _;
     }
 
+    modifier onlyValidatorContract() {
+        _onlyValidatorContract();
+        _;
+    }
+
     function __GovPool_init(
         Dependencies calldata govPoolDeps,
         address nftMultiplierAddress,
@@ -373,6 +378,14 @@ contract GovPool is
         creditInfo.setCreditInfo(tokens, amounts);
     }
 
+    function transferCreditAmount(
+        address[] memory tokens,
+        uint256[] memory amounts,
+        address destination
+    ) external override onlyValidatorContract {
+        creditInfo.transferCreditAmount(tokens, amounts, destination);
+    }
+
     function changeVoteModifiers(
         uint256 regularModifier,
         uint256 expertModifier
@@ -606,6 +619,10 @@ contract GovPool is
 
     function _onlyThis() internal view {
         require(address(this) == msg.sender, "Gov: not this contract");
+    }
+
+    function _onlyValidatorContract() internal view {
+        require(address(_govValidators) == msg.sender, "Gov: not the validators contract");
     }
 
     function _onlyBABTHolder() internal view {

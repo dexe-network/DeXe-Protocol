@@ -3525,6 +3525,135 @@ describe("GovPool", () => {
         });
       });
 
+      describe("transferCreditAmount()", () => {
+        let GOVPOOL;
+        let VALIDATORS;
+        let CREDIT_TOKEN_1;
+        let CREDIT_TOKEN_2;
+        let startTime;
+
+        beforeEach(async () => {
+          GOVPOOL = govPool.address;
+          impersonate(govPool.address);
+          VALIDATORS = validators.address;
+          impersonate(validators.address);
+
+          CREDIT_TOKEN_1 = await ERC20Mock.new("Mock", "Mock", 18);
+          await CREDIT_TOKEN_1.mint(govPool.address, wei("10000"));
+
+          CREDIT_TOKEN_2 = await ERC20Mock.new("Mock", "Mock", 18);
+          await CREDIT_TOKEN_2.mint(govPool.address, wei("100000"));
+        });
+
+        it("cant call if not validator contract", async () => {
+          await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["1000"], { from: GOVPOOL });
+          await truffleAssert.reverts(
+            govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1000"], SECOND),
+            "Gov: not the validators contract"
+          );
+          await truffleAssert.reverts(
+            govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1000"], SECOND, { from: GOVPOOL }),
+            "Gov: not the validators contract"
+          );
+        });
+
+        it("could transfer", async () => {
+          await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["1000"], { from: GOVPOOL });
+          assert.equal((await CREDIT_TOKEN_1.balanceOf(SECOND)).toFixed(), "0");
+          await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1000"], SECOND, { from: VALIDATORS });
+          assert.equal((await CREDIT_TOKEN_1.balanceOf(SECOND)).toFixed(), "1000");
+        });
+
+        it("cant get more than month limit", async () => {
+          await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["1000"], { from: GOVPOOL });
+          await truffleAssert.reverts(
+            govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1001"], SECOND, { from: VALIDATORS }),
+            "GPC: Current credit permission < amount to withdraw"
+          );
+        });
+
+        it("shows correct limit after transfer", async () => {
+          await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["1000"], { from: GOVPOOL });
+          await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["300"], SECOND, { from: VALIDATORS });
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN_1.address, "1000", "700"]]);
+          await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["700"], SECOND, { from: VALIDATORS });
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN_1.address, "1000", "0"]]);
+        });
+
+        it("cant transfer on second withdraw more than reminder", async () => {
+          await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["1000"], { from: GOVPOOL });
+          await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["300"], SECOND, { from: VALIDATORS });
+          await truffleAssert.reverts(
+            govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["701"], SECOND, { from: VALIDATORS }),
+            "GPC: Current credit permission < amount to withdraw"
+          );
+        });
+
+        it("can wait for 1 month and withdraw again", async () => {
+          await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["1000"], { from: GOVPOOL });
+          assert.equal((await CREDIT_TOKEN_1.balanceOf(SECOND)).toFixed(), "0");
+          await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1000"], SECOND, { from: VALIDATORS });
+          startTime = await getCurrentBlockTime();
+          await setTime(startTime + 30 * 24 * 60 * 60);
+          await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1000"], SECOND, { from: VALIDATORS });
+          assert.equal((await CREDIT_TOKEN_1.balanceOf(SECOND)).toFixed(), "2000");
+        });
+
+        it("can withdraw once more before 1 month", async () => {
+          await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["1000"], { from: GOVPOOL });
+          await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1000"], SECOND, { from: VALIDATORS });
+          startTime = await getCurrentBlockTime();
+          await setTime(startTime + 30 * 24 * 60 * 60 - 100);
+          await truffleAssert.reverts(
+            govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1000"], SECOND, { from: VALIDATORS }),
+            "GPC: Current credit permission < amount to withdraw"
+          );
+        });
+
+        it("correctly counts amount to withdraw according to time", async () => {
+          const WEEK = (30 * 24 * 60 * 60) / 4;
+          const TWO_WEEKS = WEEK * 2;
+          await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["1000"], { from: GOVPOOL });
+          await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["500"], SECOND, { from: VALIDATORS });
+          startTime = await getCurrentBlockTime();
+
+          await setTime(startTime + TWO_WEEKS);
+          await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["500"], SECOND, { from: VALIDATORS });
+
+          await setTime(startTime + TWO_WEEKS + WEEK);
+          await truffleAssert.reverts(
+            govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1"], SECOND, { from: VALIDATORS }),
+            "GPC: Current credit permission < amount to withdraw"
+          );
+
+          await setTime(startTime + TWO_WEEKS + TWO_WEEKS);
+          await truffleAssert.reverts(
+            govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["501"], SECOND, { from: VALIDATORS }),
+            "GPC: Current credit permission < amount to withdraw"
+          );
+          await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["500"], SECOND, { from: VALIDATORS });
+
+          await setTime(startTime + TWO_WEEKS + TWO_WEEKS + TWO_WEEKS);
+          await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["500"], SECOND, { from: VALIDATORS });
+        });
+
+        it("shows correct balance if withdraw amount was reduced", async () => {
+          await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["1000"], { from: GOVPOOL });
+          await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["500"], SECOND, { from: VALIDATORS });
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN_1.address, "1000", "500"]]);
+          await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["600"], { from: GOVPOOL });
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN_1.address, "600", "100"]]);
+        });
+
+        it("shows correct balance if amount was overreduced", async () => {
+          await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["1000"], { from: GOVPOOL });
+          await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["500"], SECOND, { from: VALIDATORS });
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN_1.address, "1000", "500"]]);
+          await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["200"], { from: GOVPOOL });
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN_1.address, "200", "0"]]);
+        });
+      });
+
       describe("correct proposal workflow", () => {
         let startTime;
         let CREDIT_TOKEN;
