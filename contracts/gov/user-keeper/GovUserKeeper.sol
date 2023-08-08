@@ -547,14 +547,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
 
         (uint256[] memory nftIds, uint256 owned) = nftExactBalance(voter, false, useDelegated);
-        (uint256[] memory nftIdsMicropool, uint256 requested) = nftExactBalance(
-            voter,
-            true,
-            false
-        );
+        (uint256[] memory nftIdsMicropool, ) = nftExactBalance(voter, true, false);
 
         nftIds.crop(nftIds.length - owned);
-        nftIdsMicropool.crop(nftIdsMicropool.length - requested);
 
         uint256 nftPower = getNftsPowerInTokensBySnapshot(nftIds, snapshotId) +
             getNftsPowerInTokensBySnapshot(nftIdsMicropool, snapshotId);
@@ -614,7 +609,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             lockedProposals.getWithdrawableAssets(unlockedNfts, _userInfos[voter], _nftLockedNums);
     }
 
-    function getDelegatedStakeAmount(
+    function getDelegatedAmount(
         address delegator,
         address delegatee
     ) external view override returns (uint256) {

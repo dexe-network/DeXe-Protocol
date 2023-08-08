@@ -50,6 +50,7 @@ library GovPoolCreate {
             executed: false,
             voteEnd: uint64(block.timestamp + settings.duration),
             executeAfter: 0,
+            executionTime: 0,
             votesFor: 0,
             votesAgainst: 0,
             nftPowerSnapshotId: snapshotId

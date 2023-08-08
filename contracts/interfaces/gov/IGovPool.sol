@@ -48,6 +48,7 @@ interface IGovPool {
     /// @param executed the boolean flag that sets to true when the proposal gets executed
     /// @param voteEnd the timestamp of voting end for the proposal
     /// @param executeAfter the timestamp of execution in seconds after voting end
+    /// @param executionTime the timestamp of the proposal execution
     /// @param votesFor the total number votes for proposal from all voters
     /// @param votesAgainst the total number votes against proposal from all voters
     /// @param nftPowerSnapshotId the id of nft power snapshot
@@ -56,13 +57,14 @@ interface IGovPool {
         bool executed;
         uint64 voteEnd;
         uint64 executeAfter;
+        uint64 executionTime;
         uint256 votesFor;
         uint256 votesAgainst;
         uint256 nftPowerSnapshotId;
     }
 
     /// @notice The struct holds information about proposal action
-    /// @param executor the addresse of call's target, bounded by index with `value` and `data`
+    /// @param executor the address of call's target, bounded by index with `value` and `data`
     /// @param value the eth value for call, bounded by index with `executor` and `data`
     /// @param data the of call data, bounded by index with `executor` and `value`
     struct ProposalAction {
@@ -144,38 +146,16 @@ interface IGovPool {
         uint256[] realRewardsAgainst;
     }
 
-    /// @notice The struct that holds delegator properties (only for internal needs)
-    /// @param latestCumulativeSum delegator's latest cumulative sum
-    /// @param pendingRewards delegator's pending rewards
-    /// @param startRewardSum the total amount of rewards at the time of the delegator's first stake
-    /// @param startCancelSum the total amount of cancelled rewards at the time of the delegator's first stake
+    /// TODO: add docs
     struct DelegatorInfo {
-        uint256 latestCumulativeSum;
-        uint256 pendingRewards;
-        uint256 startRewardSum;
-        uint256 startCancelSum;
+        uint256[] delegationTimes;
+        uint256[] delegationAmounts;
     }
 
-    /// @notice The struct that holds reward token properties (only for internal needs)
-    /// @param delegators matching delegators addresses with their parameters
-    /// @param cumulativeSum global cumulative sum
-    /// @param rewardSum the total amount of rewards
-    /// @param cancelSum the total amount of cancelled rewards
-    struct ProposalInfo {
-        mapping(address => DelegatorInfo) delegators;
-        uint256 cumulativeSum;
-        uint256 rewardSum;
-        uint256 cancelSum;
-    }
-
-    /// @notice The struct that holds micropool properties (only for internal needs)
-    /// @param totalStake the current total sum of all delegator stakes
-    /// @param proposalInfos matching proposals to their parameters
-    /// @param latestDelegatorStake matching delegators to their latest stakes
-    struct MicropoolStakingInfo {
-        uint256 totalStake;
-        mapping(uint256 => ProposalInfo) proposalInfos;
-        mapping(address => uint256) latestDelegatorStake;
+    /// TODO: add docs
+    struct MicropoolInfo {
+        mapping(address => DelegatorInfo) delegatorInfos; // delegator => info
+        mapping(uint256 => uint256) pendingRewards; // proposalId => delegator pending rewards
     }
 
     /// @notice The struct that holds rewards for proposal (only for internal needs)
@@ -273,15 +253,8 @@ interface IGovPool {
 
     /// @notice The function for voting for proposals with delegated tokens
     /// @param proposalId the id of proposal
-    /// @param voteAmount the erc20 vote amount
-    /// @param voteNftIds the nft ids that will be used in delegated voting
     /// @param isVoteFor the bool flag for voting for or against the proposal
-    function voteDelegated(
-        uint256 proposalId,
-        uint256 voteAmount,
-        uint256[] calldata voteNftIds,
-        bool isVoteFor
-    ) external;
+    function voteDelegated(uint256 proposalId, bool isVoteFor) external;
 
     /// @notice The function for depositing tokens to the pool
     /// @param receiver the address of the deposit receiver

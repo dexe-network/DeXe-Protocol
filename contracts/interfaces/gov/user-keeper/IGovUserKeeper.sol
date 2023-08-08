@@ -232,7 +232,7 @@ interface IGovUserKeeper {
     /// @param snapshotId the id of snapshot
     /// @return the power of nfts
     function getNftsPowerInTokensBySnapshot(
-        uint256[] calldata nftIds,
+        uint256[] memory nftIds,
         uint256 snapshotId
     ) external view returns (uint256);
 
@@ -307,11 +307,11 @@ interface IGovUserKeeper {
         uint256[] calldata unlockedNfts
     ) external view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts);
 
-    /// @notice The function for getting the total delegated stake amount by the delegator and the delegatee
+    /// @notice The function for getting the total delegated amount by the delegator and the delegatee
     /// @param delegator the address of the delegator
     /// @param delegatee the address of the delegatee
-    /// @return the delegated stake amount
-    function getDelegatedStakeAmount(
+    /// @return the delegated amount
+    function getDelegatedAmount(
         address delegator,
         address delegatee
     ) external view returns (uint256);

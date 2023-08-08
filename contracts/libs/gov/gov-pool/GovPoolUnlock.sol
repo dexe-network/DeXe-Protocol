@@ -46,7 +46,7 @@ library GovPoolUnlock {
                 continue;
             }
 
-            if (isMicropool) {
+            if (!isMicropool) {
                 maxUnlocked = IGovUserKeeper(userKeeper).unlockTokens(proposalId, user).max(
                     maxUnlocked
                 );
