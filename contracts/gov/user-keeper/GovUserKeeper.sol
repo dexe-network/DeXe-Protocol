@@ -213,7 +213,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         address token = tokenAddress;
 
-        IERC20(token).safeTransfer(msg.sender, amount.from18(ERC20(token).decimals()));
+        IERC20(token).safeTransfer(msg.sender, amount.from18(token.decimals()));
     }
 
     function depositNfts(

@@ -54,8 +54,8 @@ contract GovPool is
     using GovPoolExecute for *;
     using GovPoolCredit for *;
     using GovPoolStaking for *;
+    using DecimalsConverter for *;
     using TokenBalance for address;
-    using DecimalsConverter for uint256;
 
     uint256 public constant PERCENTAGE_MICROPOOL_REWARDS = PERCENTAGE_100 / 5; // 20%
     uint256 public constant PERCENTAGE_TREASURY_REWARDS = (PERCENTAGE_100 * 809) / 50000; // 1.618%
@@ -337,10 +337,7 @@ contract GovPool is
         if (amount != 0) {
             address token = _govUserKeeper.tokenAddress();
 
-            IERC20(token).transfer(
-                address(_govUserKeeper),
-                amount.from18(ERC20(token).decimals())
-            );
+            IERC20(token).transfer(address(_govUserKeeper), amount.from18(token.decimals()));
 
             _govUserKeeper.delegateTokensTreasury(delegatee, amount);
         }
