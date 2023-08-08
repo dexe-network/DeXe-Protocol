@@ -62,7 +62,7 @@ describe("CoreProperties", () => {
     });
 
     it("should not set dependencies from non dependant", async () => {
-      await truffleAssert.reverts(coreProperties.setDependencies(OWNER), "Dependant: Not an injector");
+      await truffleAssert.reverts(coreProperties.setDependencies(OWNER, "0x"), "Dependant: not an injector");
     });
 
     it("only owner should call these methods", async () => {

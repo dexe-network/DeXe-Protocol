@@ -17,7 +17,6 @@ import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/IGovPool.sol";
 
 import "../../libs/math/MathHelper.sol";
-import "../../libs/utils/ArrayCropper.sol";
 import "../../libs/gov/gov-user-keeper/GovUserKeeperView.sol";
 
 import "../ERC721/ERC721Power.sol";
@@ -29,9 +28,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
     using ArrayHelper for uint256[];
-    using ArrayCropper for uint256[];
     using Paginator for EnumerableSet.UintSet;
-    using DecimalsConverter for uint256;
+    using DecimalsConverter for *;
     using GovUserKeeperView for *;
 
     address public tokenAddress;
@@ -89,11 +87,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     ) external override onlyOwner withSupportedToken {
         address token = tokenAddress;
 
-        IERC20(token).safeTransferFrom(
-            payer,
-            address(this),
-            amount.from18(ERC20(token).decimals())
-        );
+        IERC20(token).safeTransferFrom(payer, address(this), amount.from18(token.decimals()));
 
         _usersInfo[receiver].balanceInfo.tokenBalance += amount;
     }
@@ -114,7 +108,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         payerBalanceInfo.tokenBalance = balance - amount;
 
-        IERC20(token).safeTransfer(receiver, amount.from18(ERC20(token).decimals()));
+        IERC20(token).safeTransfer(receiver, amount.from18(token.decimals()));
     }
 
     function delegateTokens(
@@ -544,9 +538,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
                 }
             }
 
-            ownedBalance = ERC20(tokenAddress).balanceOf(voter).to18(
-                ERC20(tokenAddress).decimals()
-            );
+            ownedBalance = ERC20(tokenAddress).balanceOf(voter).to18(tokenAddress.decimals());
             totalBalance += ownedBalance;
         }
     }
@@ -672,7 +664,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address token = tokenAddress;
 
         return
-            (token != address(0) ? IERC20(token).totalSupply().to18(ERC20(token).decimals()) : 0) +
+            (token != address(0) ? IERC20(token).totalSupply().to18(token.decimals()) : 0) +
             _nftInfo.totalPowerInTokens;
     }
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@dlsl/dev-modules/pool-contracts-registry/pool-factory/AbstractPoolFactory.sol";
+import "@dlsl/dev-modules/contracts-registry/pools/pool-factory/AbstractPoolFactory.sol";
 
 import "../interfaces/factory/IPoolFactory.sol";
 import "../interfaces/trader/ITraderPool.sol";
@@ -21,7 +21,7 @@ import "../trader/TraderPoolRiskyProposal.sol";
 import "../trader/TraderPoolInvestProposal.sol";
 
 import "../core/CoreProperties.sol";
-import "./PoolRegistry.sol";
+import {PoolRegistry} from "./PoolRegistry.sol";
 
 import "../libs/factory/GovTokenDeployer.sol";
 
@@ -59,8 +59,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     );
     event DaoTokenSaleDeployed(address govPool, address tokenSale, address token);
 
-    function setDependencies(address contractsRegistry) public override {
-        super.setDependencies(contractsRegistry);
+    function setDependencies(address contractsRegistry, bytes memory data) public override {
+        super.setDependencies(contractsRegistry, data);
 
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 

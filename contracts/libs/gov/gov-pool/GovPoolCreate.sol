@@ -210,7 +210,8 @@ library GovPoolCreate {
                         selector == IGovPool.delegateTreasury.selector ||
                         selector == IGovPool.undelegateTreasury.selector ||
                         selector == IGovPool.changeBABTRestriction.selector ||
-                        selector == IGovPool.changeVoteModifiers.selector),
+                        selector == IGovPool.changeVoteModifiers.selector ||
+                        selector == IGovPool.setCreditInfo.selector),
                 "Gov: invalid internal data"
             );
         }

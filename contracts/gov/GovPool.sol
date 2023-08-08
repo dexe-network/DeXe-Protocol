@@ -27,6 +27,7 @@ import "../libs/gov/gov-pool/GovPoolVote.sol";
 import "../libs/gov/gov-pool/GovPoolUnlock.sol";
 import "../libs/gov/gov-pool/GovPoolExecute.sol";
 import "../libs/gov/gov-pool/GovPoolStaking.sol";
+import "../libs/gov/gov-pool/GovPoolCredit.sol";
 import "../libs/gov/gov-pool/GovPoolOffchain.sol";
 import "../libs/math/MathHelper.sol";
 
@@ -51,6 +52,7 @@ contract GovPool is
     using GovPoolVote for *;
     using GovPoolUnlock for *;
     using GovPoolExecute for *;
+    using GovPoolCredit for *;
     using GovPoolStaking for *;
     using TokenBalance for address;
     using DecimalsConverter for uint256;
@@ -81,6 +83,8 @@ contract GovPool is
     uint256 internal _regularVoteModifier;
     uint256 internal _expertVoteModifier;
 
+    CreditInfo internal creditInfo;
+
     OffChain internal _offChain;
 
     mapping(uint256 => Proposal) internal _proposals; // proposalId => info
@@ -105,6 +109,11 @@ contract GovPool is
 
     modifier onlyBABTHolder() {
         _onlyBABTHolder();
+        _;
+    }
+
+    modifier onlyValidatorContract() {
+        _onlyValidatorContract();
         _;
     }
 
@@ -140,6 +149,14 @@ contract GovPool is
         _offChain.verifier = _verifier;
     }
 
+    function setDependencies(address contractsRegistry, bytes memory) public override dependant {
+        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
+
+        coreProperties = ICoreProperties(registry.getCorePropertiesContract());
+        babt = ISBT721(registry.getBABTContract());
+        dexeExpertNft = IERC721Expert(registry.getDexeExpertNftContract());
+    }
+
     function unlock(address user, VoteType voteType) public override onlyBABTHolder {
         _unlock(user, voteType);
     }
@@ -169,14 +186,6 @@ contract GovPool is
         _govUserKeeper.depositNfts.exec(receiver, nftIds);
 
         emit Deposited(amount, nftIds, receiver);
-    }
-
-    function setDependencies(address contractsRegistry) external override dependant {
-        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
-
-        coreProperties = ICoreProperties(registry.getCorePropertiesContract());
-        babt = ISBT721(registry.getBABTContract());
-        dexeExpertNft = IERC721Expert(registry.getDexeExpertNftContract());
     }
 
     function createProposal(
@@ -429,6 +438,21 @@ contract GovPool is
         _setNftMultiplierAddress(nftMultiplierAddress);
     }
 
+    function setCreditInfo(
+        address[] calldata tokens,
+        uint256[] calldata amounts
+    ) external override onlyThis {
+        creditInfo.setCreditInfo(tokens, amounts);
+    }
+
+    function transferCreditAmount(
+        address[] calldata tokens,
+        uint256[] calldata amounts,
+        address destination
+    ) external override onlyValidatorContract {
+        creditInfo.transferCreditAmount(tokens, amounts, destination);
+    }
+
     function changeVoteModifiers(
         uint256 regularModifier,
         uint256 expertModifier
@@ -602,6 +626,10 @@ contract GovPool is
         return _micropoolInfos.getDelegatorStakingRewards(delegator);
     }
 
+    function getCreditInfo() external view override returns (CreditInfoView[] memory) {
+        return creditInfo.getCreditInfo();
+    }
+
     function getOffchainResultsHash() external view override returns (string memory resultsHash) {
         return _offChain.resultsHash;
     }
@@ -667,6 +695,10 @@ contract GovPool is
 
     function _onlyThis() internal view {
         require(address(this) == msg.sender, "Gov: not this contract");
+    }
+
+    function _onlyValidatorContract() internal view {
+        require(address(_govValidators) == msg.sender, "Gov: not the validators contract");
     }
 
     function _onlyBABTHolder() internal view {

@@ -36,7 +36,10 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         coreParameters = _coreParameters;
     }
 
-    function setDependencies(address contractsRegistry) public virtual override dependant {
+    function setDependencies(
+        address contractsRegistry,
+        bytes memory
+    ) public virtual override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         _insuranceAddress = registry.getInsuranceContract();

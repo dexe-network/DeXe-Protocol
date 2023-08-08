@@ -858,6 +858,30 @@ const getBytesKeeperWithdrawTokens = (payer, receiver, amount) => {
   );
 };
 
+const getBytesSetCreditInfo = (tokens, amounts) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address[]",
+          name: "tokens",
+          type: "address[]",
+        },
+        {
+          internalType: "uint256[]",
+          name: "amounts",
+          type: "uint256[]",
+        },
+      ],
+      name: "setCreditInfo",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [tokens, amounts]
+  );
+};
+
 const getBytesChangeVoteModifiers = (regularModifier, expertModifier) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -993,6 +1017,7 @@ module.exports = {
   getBytesGovVoteDelegated,
   getBytesGovDeposit,
   getBytesKeeperWithdrawTokens,
+  getBytesSetCreditInfo,
   getBytesChangeVoteModifiers,
   getBytesMintExpertNft,
   getBytesDelegateTreasury,
