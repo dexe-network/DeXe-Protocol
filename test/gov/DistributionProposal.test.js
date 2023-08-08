@@ -183,7 +183,7 @@ describe("DistributionProposal", () => {
       [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address],
       poolParams.nftMultiplierAddress,
       wei("1", 18),
-      wei("1.132", 18),
+      wei("1", 18),
       OWNER,
       poolParams.onlyBABTHolders,
       poolParams.deployerBABTid,
@@ -436,10 +436,6 @@ describe("DistributionProposal", () => {
       });
 
       it("should correctly claim", async () => {
-        const FOUR_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue().toFixed());
-        const FIVE_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(5).dividedBy(9).integerValue().toFixed());
-        const ALL_NFT_VOTES = FIVE_NFT_VOTES.plus(FOUR_NFT_VOTES);
-
         await govPool.createProposal(
           "example.com",
           "misc",
@@ -460,14 +456,8 @@ describe("DistributionProposal", () => {
         await dp.claim(SECOND, [1]);
         await dp.claim(THIRD, [1]);
 
-        assert.equal(
-          (await token.balanceOf(SECOND)).toFixed(),
-          toBN(wei(100000)).times(FIVE_NFT_VOTES).idiv(ALL_NFT_VOTES).toFixed()
-        );
-        assert.equal(
-          (await token.balanceOf(THIRD)).toFixed(),
-          toBN(wei(100000)).times(FOUR_NFT_VOTES).idiv(ALL_NFT_VOTES).toFixed()
-        );
+        assert.equal((await token.balanceOf(SECOND)).toFixed(), "55555555555555555555556");
+        assert.equal((await token.balanceOf(THIRD)).toFixed(), "44444444444444444444443");
       });
 
       it("should correctly claim ether", async () => {

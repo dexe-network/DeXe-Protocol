@@ -14,8 +14,6 @@ import "../../../gov/GovPool.sol";
 import "../../math/MathHelper.sol";
 import "../../math/LogExpMath.sol";
 
-import "hardhat/console.sol";
-
 library GovPoolVote {
     using EnumerableSet for EnumerableSet.UintSet;
     using MathHelper for uint256;
@@ -173,11 +171,7 @@ library GovPoolVote {
             voteAmount += _voteNfts(core, voteInfo, voteNftIds, isVoteFor);
         }
 
-        // console.log("voteAmount1", voteAmount);
         voteAmount = _calculateVotes(voteAmount, voteType);
-        if (voteType == IGovPool.VoteType.MicropoolVote) {
-            console.log("voteAmount2", voteAmount);
-        }
 
         if (isVoteFor) {
             core.votesFor += voteAmount;
@@ -357,9 +351,9 @@ library GovPoolVote {
             coefficient -= treasuryVoteCoefficient;
         }
 
-        // if (coefficient <= DECIMALS) {
-        //     return voteAmount;
-        // }
+        if (coefficient == DECIMALS) {
+            return voteAmount;
+        }
 
         return voteAmount.pow(coefficient);
     }

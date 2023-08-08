@@ -603,7 +603,7 @@ describe("PoolFactory", () => {
         },
         nftMultiplierAddress: testERC721Multiplier.address,
         regularVoteModifier: wei("1", 18),
-        expertVoteModifier: wei("1.132", 18),
+        expertVoteModifier: wei("1", 18),
         verifier: OWNER,
         onlyBABTHolders: false,
         descriptionURL: "example.com",
