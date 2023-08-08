@@ -146,6 +146,14 @@ contract GovPool is
         _offChain.verifier = _verifier;
     }
 
+    function setDependencies(address contractsRegistry, bytes memory) public override dependant {
+        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
+
+        coreProperties = ICoreProperties(registry.getCorePropertiesContract());
+        babt = ISBT721(registry.getBABTContract());
+        dexeExpertNft = IERC721Expert(registry.getDexeExpertNftContract());
+    }
+
     function unlock(address user, bool isMicropool) public override onlyBABTHolder {
         _unlock(user, isMicropool);
     }
@@ -179,14 +187,6 @@ contract GovPool is
         _govUserKeeper.depositNfts.exec(receiver, nftIds);
 
         emit Deposited(amount, nftIds, receiver);
-    }
-
-    function setDependencies(address contractsRegistry) external override dependant {
-        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
-
-        coreProperties = ICoreProperties(registry.getCorePropertiesContract());
-        babt = ISBT721(registry.getBABTContract());
-        dexeExpertNft = IERC721Expert(registry.getDexeExpertNftContract());
     }
 
     function createProposal(

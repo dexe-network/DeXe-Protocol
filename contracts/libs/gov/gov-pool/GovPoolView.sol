@@ -4,13 +4,11 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "@dlsl/dev-modules/libs/arrays/ArrayHelper.sol";
+import "@dlsl/dev-modules/libs/data-structures/memory/Vector.sol";
 
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../interfaces/gov/IGovPool.sol";
 import "../../../interfaces/gov/validators/IGovValidators.sol";
-
-import "../../utils/ArrayCropper.sol";
 
 import "../../../gov/GovPool.sol";
 
@@ -18,8 +16,7 @@ import "../../../core/Globals.sol";
 
 library GovPoolView {
     using EnumerableSet for EnumerableSet.UintSet;
-    using ArrayHelper for uint256[];
-    using ArrayCropper for uint256[];
+    using Vector for Vector.UintVector;
     using Math for uint256;
 
     function getWithdrawableAssets(
@@ -74,23 +71,16 @@ library GovPoolView {
         mapping(uint256 => mapping(address => mapping(bool => IGovPool.VoteInfo)))
             storage _voteInfos
     ) internal view returns (uint256[] memory unlockedNfts) {
-        uint256 totalLength;
+        Vector.UintVector memory nfts = Vector.newUint();
 
         for (uint256 i; i < unlockedIds.length; i++) {
             IGovPool.VoteInfo storage voteInfo = _voteInfos[unlockedIds[i]][user][isMicropool];
 
-            totalLength += voteInfo.nftsVotedFor.length() + voteInfo.nftsVotedAgainst.length();
+            nfts.push(voteInfo.nftsVotedFor.values());
+            nfts.push(voteInfo.nftsVotedAgainst.values());
         }
 
-        unlockedNfts = new uint256[](totalLength);
-        totalLength = 0;
-
-        for (uint256 i; i < unlockedIds.length; i++) {
-            IGovPool.VoteInfo storage voteInfo = _voteInfos[unlockedIds[i]][user][isMicropool];
-
-            totalLength = unlockedNfts.insert(totalLength, voteInfo.nftsVotedFor.values());
-            totalLength = unlockedNfts.insert(totalLength, voteInfo.nftsVotedAgainst.values());
-        }
+        unlockedNfts = nfts.toArray();
     }
 
     function getUserProposals(
@@ -101,10 +91,8 @@ library GovPoolView {
         EnumerableSet.UintSet storage votes = _votedInProposals[user][isMicropool];
         uint256 proposalsLength = votes.length();
 
-        unlockedIds = new uint256[](proposalsLength);
-        lockedIds = new uint256[](proposalsLength);
-        uint256 unlockedLength;
-        uint256 lockedLength;
+        Vector.UintVector memory unlocked = Vector.newUint();
+        Vector.UintVector memory locked = Vector.newUint();
 
         for (uint256 i; i < proposalsLength; i++) {
             uint256 proposalId = votes.at(i);
@@ -118,14 +106,14 @@ library GovPoolView {
                 state == IGovPool.ProposalState.SucceededAgainst ||
                 state == IGovPool.ProposalState.Defeated
             ) {
-                unlockedIds[unlockedLength++] = proposalId;
+                unlocked.push(proposalId);
             } else {
-                lockedIds[lockedLength++] = proposalId;
+                locked.push(proposalId);
             }
         }
 
-        unlockedIds.crop(unlockedLength);
-        lockedIds.crop(lockedLength);
+        unlockedIds = unlocked.toArray();
+        lockedIds = locked.toArray();
     }
 
     function getProposals(

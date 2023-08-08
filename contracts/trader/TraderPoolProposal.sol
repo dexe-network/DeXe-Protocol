@@ -93,7 +93,7 @@ abstract contract TraderPoolProposal is
         );
     }
 
-    function setDependencies(address contractsRegistry) external override dependant {
+    function setDependencies(address contractsRegistry, bytes memory) public override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         priceFeed = IPriceFeed(registry.getPriceFeedContract());

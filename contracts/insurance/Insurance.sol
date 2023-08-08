@@ -44,7 +44,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         __Ownable_init();
     }
 
-    function setDependencies(address contractsRegistry) external override dependant {
+    function setDependencies(address contractsRegistry, bytes memory) public override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         _dexe = ERC20(registry.getDEXEContract());

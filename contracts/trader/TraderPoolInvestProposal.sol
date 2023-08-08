@@ -19,7 +19,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
-    using DecimalsConverter for uint256;
+    using DecimalsConverter for *;
     using MathHelper for uint256;
     using Math for uint256;
     using TraderPoolInvestProposalView for ParentTraderPoolInfo;
@@ -198,7 +198,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
 
         for (uint256 i = 0; i < addresses.length; i++) {
             address token = addresses[i];
-            uint256 actualAmount = amounts[i].from18(ERC20(token).decimals());
+            uint256 actualAmount = amounts[i].from18(token.decimals());
 
             require(actualAmount > 0, "TPIP: amount is 0");
 
@@ -342,7 +342,7 @@ contract TraderPoolInvestProposal is ITraderPoolInvestProposal, TraderPoolPropos
                 continue;
             }
 
-            IERC20(token).safeTransfer(user, claimed[i].from18(ERC20(token).decimals()));
+            IERC20(token).safeTransfer(user, claimed[i].from18(token.decimals()));
         }
     }
 

@@ -12,7 +12,7 @@ import "../../core/Globals.sol";
 import "../../interfaces/gov/ERC20/IERC20Sale.sol";
 
 library TokenBalance {
-    using DecimalsConverter for uint256;
+    using DecimalsConverter for *;
     using SafeERC20 for IERC20;
 
     function sendFunds(
@@ -26,7 +26,7 @@ library TokenBalance {
 
             require(status, "Gov: failed to send eth");
         } else {
-            amount = amount.from18(ERC20(token).decimals());
+            amount = amount.from18(token.decimals());
 
             if (mintIfNotEnough) {
                 uint256 balance = IERC20(token).balanceOf(address(this));
@@ -45,7 +45,7 @@ library TokenBalance {
     }
 
     function sendFunds(IERC20 token, address receiver, uint256 amount) internal {
-        token.safeTransfer(receiver, amount.from18(ERC20(address(token)).decimals()));
+        token.safeTransfer(receiver, amount.from18(address(token).decimals()));
     }
 
     function thisBalance(address token) internal view returns (uint256) {
@@ -59,6 +59,6 @@ library TokenBalance {
         return
             token == ETHEREUM_ADDRESS
                 ? thisBalance(token)
-                : thisBalance(token).to18(ERC20(token).decimals());
+                : thisBalance(token).to18(token.decimals());
     }
 }

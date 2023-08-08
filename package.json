@@ -27,9 +27,9 @@
   "license": "MIT",
   "homepage": "https://github.com/dexe-network/investment-contracts",
   "dependencies": {
-    "@dlsl/dev-modules": "1.9.0",
-    "@openzeppelin/contracts": "4.8.0",
-    "@openzeppelin/contracts-upgradeable": "4.8.0",
+    "@dlsl/dev-modules": "2.5.4",
+    "@openzeppelin/contracts": "4.9.2",
+    "@openzeppelin/contracts-upgradeable": "4.9.2",
     "@uniswap/v2-periphery": "1.1.0-beta.0",
     "dotenv": "^10.0.0",
     "hardhat": "^2.12.0",

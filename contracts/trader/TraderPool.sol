@@ -104,7 +104,10 @@ abstract contract TraderPool is
         _traderAdmins.add(poolParameters.trader);
     }
 
-    function setDependencies(address contractsRegistry) public virtual override dependant {
+    function setDependencies(
+        address contractsRegistry,
+        bytes memory
+    ) public virtual override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         dexeToken = IERC20(registry.getDEXEContract());

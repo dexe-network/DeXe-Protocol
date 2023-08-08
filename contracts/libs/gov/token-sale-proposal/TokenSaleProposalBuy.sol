@@ -16,7 +16,7 @@ import "./TokenSaleProposalDecode.sol";
 
 library TokenSaleProposalBuy {
     using MathHelper for uint256;
-    using DecimalsConverter for uint256;
+    using DecimalsConverter for *;
     using SafeERC20 for IERC20;
     using TokenSaleProposalDecode for ITokenSaleProposal.Tier;
     using EnumerableMap for EnumerableMap.AddressToUintMap;
@@ -64,7 +64,7 @@ library TokenSaleProposalBuy {
             IERC20(tokenToBuyWith).safeTransferFrom(
                 msg.sender,
                 govAddress,
-                amount.from18(ERC20(tokenToBuyWith).decimals())
+                amount.from18(tokenToBuyWith.decimals())
             );
         }
     }

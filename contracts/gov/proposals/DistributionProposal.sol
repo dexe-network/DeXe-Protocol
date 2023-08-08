@@ -18,7 +18,7 @@ import "../../core/Globals.sol";
 contract DistributionProposal is IDistributionProposal, Initializable {
     using SafeERC20 for IERC20Metadata;
     using MathHelper for uint256;
-    using DecimalsConverter for uint256;
+    using DecimalsConverter for *;
     using TokenBalance for address;
 
     address public govAddress;
@@ -50,9 +50,7 @@ contract DistributionProposal is IDistributionProposal, Initializable {
         require(amount > 0, "DP: zero amount");
 
         proposal.rewardAddress = token;
-        proposal.rewardAmount = token == ETHEREUM_ADDRESS
-            ? amount
-            : amount.to18(ERC20(token).decimals());
+        proposal.rewardAmount = token == ETHEREUM_ADDRESS ? amount : amount.to18(token.decimals());
     }
 
     function claim(address voter, uint256[] calldata proposalIds) external override {

@@ -68,7 +68,7 @@ describe("ContractsRegistry", () => {
 
       await contractsRegistry.removeContract(await contractsRegistry.USD_NAME());
 
-      await truffleAssert.reverts(contractsRegistry.getUSDContract(), "ContractsRegistry: This mapping doesn't exist");
+      await truffleAssert.reverts(contractsRegistry.getUSDContract(), "ContractsRegistry: this mapping doesn't exist");
       assert.isFalse(await contractsRegistry.hasContract(await contractsRegistry.USD_NAME()));
     });
 
@@ -93,7 +93,7 @@ describe("ContractsRegistry", () => {
 
       await contractsRegistry.removeContract(await contractsRegistry.USD_NAME());
 
-      await contractsRegistry.justAddProxyContract(await contractsRegistry.USD_NAME(), _USD.address);
+      await contractsRegistry.justAddProxyContract(await contractsRegistry.USD_NAME(), USD);
 
       assert.isTrue(await contractsRegistry.hasContract(await contractsRegistry.USD_NAME()));
 

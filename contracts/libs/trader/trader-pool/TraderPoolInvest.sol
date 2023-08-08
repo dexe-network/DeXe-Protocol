@@ -19,7 +19,7 @@ import "../../math/MathHelper.sol";
 
 library TraderPoolInvest {
     using SafeERC20 for IERC20Metadata;
-    using DecimalsConverter for uint256;
+    using DecimalsConverter for *;
     using TraderPoolPrice for *;
     using TraderPoolLeverage for *;
     using MathHelper for uint256;
@@ -94,7 +94,7 @@ library TraderPoolInvest {
             IERC20Metadata(tokens[i]).safeTransferFrom(
                 msg.sender,
                 address(this),
-                amounts[i].from18(IERC20Metadata(tokens[i]).decimals())
+                amounts[i].from18(tokens[i].decimals())
             );
 
             priceFeed.checkAllowance(tokens[i]);
