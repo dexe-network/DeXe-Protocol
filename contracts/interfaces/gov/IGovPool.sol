@@ -190,6 +190,34 @@ interface IGovPool {
         address[] offchainTokens;
     }
 
+    /// @notice The struct is used to hold info about validators monthly withdrawal credit
+    /// @param tokenList the list of token allowed to withdraw
+    /// @param tokenInfo the mapping token => withdrawals history and limits
+    struct CreditInfo {
+        address[] tokenList;
+        mapping(address => TokenCreditInfo) tokenInfo;
+    }
+
+    /// @notice The struct is used to hold info about limits and withdrawals history
+    /// @param monthLimit the monthly withdraw limit for the token
+    /// @param amounts the list of amounts withdrawn
+    /// @param amounts the list of timestamps of withdraws
+    struct TokenCreditInfo {
+        uint256 monthLimit;
+        uint256[] cumulativeAmounts;
+        uint256[] timestamps;
+    }
+
+    /// @notice The struct is used to return info about current credit state
+    /// @param token the token address
+    /// @param monthLimit the amount that validator could withdraw monthly
+    /// @param currentWithdrawLimit the amount that validators could withdraw now
+    struct CreditInfoView {
+        address token;
+        uint256 monthLimit;
+        uint256 currentWithdrawLimit;
+    }
+
     /// @notice The struct that holds off-chain properties (only for internal needs)
     /// @param verifier the off-chain verifier address
     /// @param resultsHash the ipfs results hash
@@ -329,6 +357,21 @@ interface IGovPool {
     /// @param expertModifier the new expert modifier value
     function changeVoteModifiers(uint256 regularModifier, uint256 expertModifier) external;
 
+    /// @notice The function for setting validators credit limit
+    /// @param tokens the list of tokens to credit
+    /// @param amounts the list of amounts to credit per month
+    function setCreditInfo(address[] calldata tokens, uint256[] calldata amounts) external;
+
+    /// @notice The function for fulfilling transfer request from validators
+    /// @param tokens the list of tokens to send
+    /// @param amounts the list of amounts to send
+    /// @param destination the address to send tokens
+    function transferCreditAmount(
+        address[] memory tokens,
+        uint256[] memory amounts,
+        address destination
+    ) external;
+
     /// @notice The function for changing the KYC restriction
     /// @param onlyBABT true id restriction is needed
     function changeBABTRestriction(bool onlyBABT) external;
@@ -415,6 +458,10 @@ interface IGovPool {
     function getDelegatorStakingRewards(
         address delegator
     ) external view returns (UserStakeRewardsView[] memory);
+
+    /// @notice The function to get info about validators credit limit
+    /// @return the list of credit infos
+    function getCreditInfo() external view returns (CreditInfoView[] memory);
 
     /// @notice The function to get off-chain voting results
     /// @return resultsHash the ipfs hash
