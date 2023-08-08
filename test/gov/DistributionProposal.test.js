@@ -68,7 +68,7 @@ describe("DistributionProposal", () => {
   async function weiToVotes(tokenNumber) {
     const voteModifier = (await govPool.getVoteModifiers())[0];
 
-    if (voteModifier.eq(DECIMAL)) {
+    if (voteModifier.eq(PRECISION)) {
       return toBN(tokenNumber);
     }
 
@@ -182,8 +182,8 @@ describe("DistributionProposal", () => {
     await govPool.__GovPool_init(
       [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address],
       poolParams.nftMultiplierAddress,
-      wei("1", 18),
-      wei("1", 18),
+      wei("1", 25),
+      wei("1", 25),
       OWNER,
       poolParams.onlyBABTHolders,
       poolParams.deployerBABTid,

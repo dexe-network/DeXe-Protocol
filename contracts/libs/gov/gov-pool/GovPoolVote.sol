@@ -322,6 +322,7 @@ library GovPoolVote {
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         (uint256 power, ) = userKeeper.tokenBalance(msg.sender, IGovPool.VoteType.TreasuryVote);
+
         (uint256[] memory nfts, ) = userKeeper.nftExactBalance(
             msg.sender,
             IGovPool.VoteType.TreasuryVote
@@ -342,9 +343,7 @@ library GovPoolVote {
         if (voteType == IGovPool.VoteType.TreasuryVote) {
             uint256 treasuryVoteCoefficient = _treasuryVoteCoefficient();
 
-            if (treasuryVoteCoefficient >= coefficient) {
-                return voteAmount;
-            }
+            /// @dev Assuming that treasury vote coefficient is always less than 1, otherwise add check for coefficient underflow
 
             coefficient -= treasuryVoteCoefficient;
         }
