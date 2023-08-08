@@ -149,7 +149,7 @@ describe("GovValidators", () => {
           validators.__GovValidators_init(
             "Validator Token",
             "VT",
-            [500, 0, PRECISION.times("51").toFixed()],
+            [500, 0, toPercent(51)],
             [SECOND, THIRD],
             [wei("100"), wei("200")]
           ),
@@ -173,13 +173,22 @@ describe("GovValidators", () => {
         assert.isFalse(await validators.isValidator(OWNER));
 
         await truffleAssert.reverts(
-          validators.createInternalProposal(ProposalType.ChangeInternalQuorum, "example.com", [100], [SECOND]),
+          validators.createInternalProposal(
+            ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+            "example.com",
+            [100, 0, toPercent(51)],
+            [SECOND]
+          ),
           "Validators: caller is not the validator"
         );
 
-        await validators.createInternalProposal(ProposalType.ChangeInternalQuorum, "example.com", [100], [SECOND], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [100, 0, toPercent(51)],
+          [SECOND],
+          { from: SECOND }
+        );
 
         await truffleAssert.reverts(validators.vote(1, 1, true, true), "Validators: caller is not the validator");
       });
@@ -189,9 +198,13 @@ describe("GovValidators", () => {
       it("should create internal proposals", async () => {
         let currentTime = await getCurrentBlockTime();
 
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [13], [OWNER], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [13, 0, toPercent(51)],
+          [OWNER],
+          { from: SECOND }
+        );
 
         const internal = (await getInternalProposalByIndex(1)).proposal;
 
@@ -219,9 +232,13 @@ describe("GovValidators", () => {
 
       it("should revert if invalid duration value", async () => {
         await truffleAssert.reverts(
-          validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [0], [], {
-            from: SECOND,
-          }),
+          validators.createInternalProposal(
+            ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+            "example.com",
+            [0, 0, toPercent(51)],
+            [],
+            { from: SECOND }
+          ),
           "Validators: duration is zero"
         );
       });
@@ -229,9 +246,9 @@ describe("GovValidators", () => {
       it("should revert if invalid quorum value", async () => {
         await truffleAssert.reverts(
           validators.createInternalProposal(
-            ProposalType.ChangeInternalQuorum,
+            ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
             "example.com",
-            [toPercent(101)],
+            [100, 0, toPercent(101)],
             [OWNER],
             {
               from: SECOND,
@@ -315,9 +332,13 @@ describe("GovValidators", () => {
 
     describe("vote()", () => {
       it("should vote with existed balance, internal proposals", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [100, 0, toPercent(51)],
+          [],
+          { from: SECOND }
+        );
 
         await validators.vote(1, wei("40"), true, true, { from: SECOND });
 
@@ -350,9 +371,13 @@ describe("GovValidators", () => {
       });
 
       it("should vote when amount more than balance, internal proposals", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [100, 0, toPercent(51)],
+          [],
+          { from: SECOND }
+        );
 
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
 
@@ -376,9 +401,13 @@ describe("GovValidators", () => {
       });
 
       it("should correctly vote by snapshot balance, internal proposals", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [100, 0, toPercent(51)],
+          [],
+          { from: SECOND }
+        );
         await validators.createInternalProposal(
           ProposalType.ChangeBalances,
           "example.com",
@@ -407,9 +436,13 @@ describe("GovValidators", () => {
         assert.equal(core.votesFor, wei("100"));
         assert.equal(core.votesAgainst, wei("200"));
 
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [10], [], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [10, 0, toPercent(51)],
+          [],
+          { from: SECOND }
+        );
 
         await validators.vote(3, wei("40"), true, false, { from: SECOND });
         await validators.vote(3, wei("60"), true, true, { from: THIRD });
@@ -458,9 +491,13 @@ describe("GovValidators", () => {
       });
 
       it("should change executeAfter after quorum has reached for internal proposal", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [100, 0, toPercent(51)],
+          [],
+          { from: SECOND }
+        );
 
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("52"), true, true, { from: THIRD });
@@ -473,18 +510,26 @@ describe("GovValidators", () => {
       });
 
       it("should change executeAfter after quorum has reached for internal proposal with different executeDelay", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalExecutionDelay, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [500, 100, toPercent(51)],
+          [],
+          { from: SECOND }
+        );
 
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("53"), true, true, { from: THIRD });
 
         await validators.execute(1);
 
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [100, 100, toPercent(51)],
+          [],
+          { from: SECOND }
+        );
 
         await validators.vote(2, wei("100"), true, true, { from: SECOND });
         await validators.vote(2, wei("52"), true, true, { from: THIRD });
@@ -520,9 +565,13 @@ describe("GovValidators", () => {
       });
 
       it("should revert if not Voting state", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [100, 0, toPercent(51)],
+          [],
+          { from: SECOND }
+        );
         await validators.vote(1, wei("200"), true, true, { from: THIRD });
 
         await truffleAssert.reverts(
@@ -532,9 +581,13 @@ describe("GovValidators", () => {
       });
 
       it("should revert if vote amount can't be zero", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [100, 0, toPercent(51)],
+          [],
+          { from: SECOND }
+        );
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
 
         await truffleAssert.reverts(
@@ -582,21 +635,21 @@ describe("GovValidators", () => {
         beforeEach("setup", async () => {
           internalProposals = [
             {
-              proposalType: ProposalType.ChangeInternalDuration.toString(),
+              proposalType: ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum.toString(),
               descriptionURL: "example1.com",
-              newValues: ["100"],
+              newValues: ["100", "0", toPercent("51")],
               userAddresses: [],
             },
             {
-              proposalType: ProposalType.ChangeInternalExecutionDelay.toString(),
+              proposalType: ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum.toString(),
               descriptionURL: "example2.com",
-              newValues: ["100"],
+              newValues: ["500", "100", toPercent("51")],
               userAddresses: [],
             },
             {
-              proposalType: ProposalType.ChangeInternalQuorum.toString(),
+              proposalType: ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum.toString(),
               descriptionURL: "example3.com",
-              newValues: [toPercent("20")],
+              newValues: ["500", "0", toPercent("20")],
               userAddresses: [],
             },
             {
@@ -649,9 +702,13 @@ describe("GovValidators", () => {
 
     describe("getProposalState()", () => {
       it("should correctly return `Voting` state and `Succeeded` state when quorum reached", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [100, 0, toPercent(51)],
+          [],
+          { from: SECOND }
+        );
 
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("52"), true, true, { from: THIRD });
@@ -668,9 +725,13 @@ describe("GovValidators", () => {
       });
 
       it("should correctly return `Succeeded` state when quorum reached and an amount of votes for more than against", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [100, 0, toPercent(51)],
+          [],
+          { from: SECOND }
+        );
 
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("52"), true, false, { from: THIRD });
@@ -688,9 +749,13 @@ describe("GovValidators", () => {
 
       it("should correctly return `Defeated`", async () => {
         let currentTime = await getCurrentBlockTime();
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [100, 0, toPercent(51)],
+          [],
+          { from: SECOND }
+        );
 
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("52"), true, true, { from: THIRD });
@@ -703,9 +768,13 @@ describe("GovValidators", () => {
       });
 
       it("should correctly return `Defeated` when an amount of votes for less than against", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [100, 0, toPercent(51)],
+          [],
+          { from: SECOND }
+        );
 
         await validators.vote(1, wei("100"), true, false, { from: SECOND });
         await validators.vote(1, wei("53"), true, true, { from: THIRD });
@@ -714,9 +783,13 @@ describe("GovValidators", () => {
       });
 
       it("should correctly return `Executed` state", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [100, 0, toPercent(51)],
+          [],
+          { from: SECOND }
+        );
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("53"), true, true, { from: THIRD });
 
@@ -733,9 +806,13 @@ describe("GovValidators", () => {
 
     describe("execute()", () => {
       it("should correctly execute `ChangeInternalDuration` proposal", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [1500], [], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [1500, 0, toPercent(51)],
+          [],
+          { from: SECOND }
+        );
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("200"), true, true, { from: THIRD });
 
@@ -743,9 +820,13 @@ describe("GovValidators", () => {
 
         assert.equal((await validators.internalProposalSettings()).duration, 1500);
 
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [333], [], {
-          from: THIRD,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [333, 0, toPercent(51)],
+          [],
+          { from: THIRD }
+        );
         await validators.vote(2, wei("100"), true, true, { from: SECOND });
         await validators.vote(2, wei("200"), true, true, { from: THIRD });
 
@@ -755,9 +836,13 @@ describe("GovValidators", () => {
       });
 
       it("should correctly execute `ChangeInternalExecutionDelay` proposal", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalExecutionDelay, "example.com", [1500], [], {
-          from: SECOND,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [500, 1500, toPercent(51)],
+          [],
+          { from: SECOND }
+        );
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("200"), true, true, { from: THIRD });
 
@@ -765,9 +850,13 @@ describe("GovValidators", () => {
 
         assert.equal((await validators.internalProposalSettings()).executionDelay, 1500);
 
-        await validators.createInternalProposal(ProposalType.ChangeInternalExecutionDelay, "example.com", [333], [], {
-          from: THIRD,
-        });
+        await validators.createInternalProposal(
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+          "example.com",
+          [500, 333, toPercent(51)],
+          [],
+          { from: THIRD }
+        );
         await validators.vote(2, wei("100"), true, true, { from: SECOND });
         await validators.vote(2, wei("200"), true, true, { from: THIRD });
 
@@ -788,13 +877,11 @@ describe("GovValidators", () => {
 
       it("should correctly execute `ChangeInternalQuorum` proposal", async () => {
         await validators.createInternalProposal(
-          ProposalType.ChangeInternalQuorum,
+          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
           "example.com",
-          [toPercent("20")],
+          [500, 0, toPercent(20)],
           [],
-          {
-            from: SECOND,
-          }
+          { from: SECOND }
         );
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("200"), true, true, { from: THIRD });

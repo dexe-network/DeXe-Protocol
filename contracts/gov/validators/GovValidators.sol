@@ -176,13 +176,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         ProposalSettings storage proposalSettings = internalProposalSettings;
 
-        if (proposalType == ProposalType.ChangeInternalDuration) {
-            proposalSettings.duration = uint64(proposal.newValues[0]);
-        } else if (proposalType == ProposalType.ChangeInternalExecutionDelay) {
-            proposalSettings.executionDelay = uint64(proposal.newValues[0]);
-        } else if (proposalType == ProposalType.ChangeInternalQuorum) {
-            proposalSettings.quorum = uint128(proposal.newValues[0]);
-        } else if (proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum) {
+        if (proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum) {
             proposalSettings.duration = uint64(proposal.newValues[0]);
             proposalSettings.executionDelay = uint64(proposal.newValues[1]);
             proposalSettings.quorum = uint128(proposal.newValues[2]);
@@ -370,13 +364,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
                 quorum: 1
             });
 
-            if (proposalType == ProposalType.ChangeInternalDuration) {
-                proposalSettings.duration = uint64(newValues[0]);
-            } else if (proposalType == ProposalType.ChangeInternalQuorum) {
-                proposalSettings.quorum = uint128(newValues[0]);
-            } else if (
-                proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum
-            ) {
+            if (proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum) {
                 proposalSettings.duration = uint64(newValues[0]);
                 proposalSettings.executionDelay = uint64(newValues[1]);
                 proposalSettings.quorum = uint128(newValues[2]);
@@ -384,5 +372,27 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
             _validateProposalSettings(proposalSettings);
         }
+    }
+
+    function _getParameterInfoFromData(
+        bytes memory _data
+    ) internal pure returns (uint64 duration, uint64 executionDelay, uint128 quorum) {
+        (duration, executionDelay, quorum) = abi.decode(_data, (uint64, uint64, uint128));
+    }
+
+    function _getBalanceInfoFromData(
+        bytes memory _data
+    ) internal pure returns (address[] memory userAddresses, uint256[] memory newValues) {
+        (userAddresses, newValues) = abi.decode(_data, (address[], uint256[]));
+    }
+
+    function _getCreditInfoFromData(
+        bytes memory _data
+    )
+        internal
+        pure
+        returns (address[] memory tokens, uint256[] memory amounts, address destination)
+    {
+        (tokens, amounts, destination) = abi.decode(_data, (address[], uint256[], address));
     }
 }

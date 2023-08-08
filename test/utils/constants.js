@@ -41,11 +41,8 @@ const ValidatorsProposalState = {
 };
 
 const ProposalType = {
-  ChangeInternalDuration: 0,
-  ChangeInternalExecutionDelay: 1,
-  ChangeInternalQuorum: 2,
-  ChangeInternalDurationAndExecutionDelayAndQuorum: 3,
-  ChangeBalances: 4,
+  ChangeInternalDurationAndExecutionDelayAndQuorum: 0,
+  ChangeBalances: 1,
 };
 
 const ParticipationType = {
