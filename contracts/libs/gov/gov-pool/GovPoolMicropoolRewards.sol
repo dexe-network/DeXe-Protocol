@@ -13,26 +13,35 @@ library GovPoolMicropoolRewards {
         micropool.pendingRewards[proposalId] = amount;
     }
 
-    function saveDelegationInfo(
-        mapping(bool => IGovPool.MicropoolInfo) storage micropoolPair,
-        address delegatee
-    ) external {
-        _saveDelegationInfo(micropoolPair[true], delegatee);
-        _saveDelegationInfo(micropoolPair[false], delegatee);
+    function cancelRewards(IGovPool.MicropoolInfo storage micropool, uint256 proposalId) external {
+        delete micropool.pendingRewards[proposalId];
     }
 
-    function _saveDelegationInfo(
-        IGovPool.MicropoolInfo storage micropool,
+    function saveDelegationInfo(
+        mapping(bool => IGovPool.MicropoolInfo) storage micropoolPair,
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        uint256 proposalId,
         address delegatee
-    ) internal {
+    ) external {
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
-        /// TODO: take from snapshot
-        uint256 delegatedAmount = IGovUserKeeper(userKeeper).getDelegatedAmount(
+        uint256 delegatedAmount = IGovUserKeeper(userKeeper).getDelegatedAmountBySnapshot(
+            proposals[proposalId].core.nftPowerSnapshotId,
             msg.sender,
             delegatee
         );
 
+        _saveDelegationInfo(micropoolPair[true], delegatee, delegatedAmount);
+
+        /// TODO: only if there are actions against
+        _saveDelegationInfo(micropoolPair[false], delegatee, delegatedAmount);
+    }
+
+    function _saveDelegationInfo(
+        IGovPool.MicropoolInfo storage micropool,
+        address delegatee,
+        uint256 delegatedAmount
+    ) internal {
         IGovPool.DelegatorInfo storage delegatorInfo = micropool.delegatorInfos[msg.sender];
 
         uint256[] storage delegationTimes = delegatorInfo.delegationTimes;

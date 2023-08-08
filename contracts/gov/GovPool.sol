@@ -286,8 +286,6 @@ contract GovPool is
         _govUserKeeper.delegateTokens.exec(delegatee, amount);
         _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
 
-        _micropoolInfos[delegatee].saveDelegationInfo(delegatee);
-
         _revoteDelegated(delegatee);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, true);
@@ -302,8 +300,6 @@ contract GovPool is
 
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
         _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
-
-        _micropoolInfos[delegatee].saveDelegationInfo(delegatee);
 
         _revoteDelegated(delegatee);
 
@@ -591,7 +587,7 @@ contract GovPool is
             micropoolReward
         );
 
-        _micropoolInfos[delegatee][isVoteFor].updateRewards(proposalId, 0);
+        _micropoolInfos[delegatee][isVoteFor].cancelRewards(proposalId);
     }
 
     function _revoteDelegated(address delegatee) internal {
@@ -602,9 +598,12 @@ contract GovPool is
         for (uint256 i; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
 
+            _micropoolInfos[delegatee].saveDelegationInfo(_proposals, proposalId, delegatee);
+
             (bool isVoteFor, ) = _voteInfos._getIsVoteFor(delegatee, proposalId, true);
 
             _cancelVotesDelegated(proposalId, delegatee, isVoteFor);
+
             _voteDelegated(proposalId, delegatee, isVoteFor);
         }
     }

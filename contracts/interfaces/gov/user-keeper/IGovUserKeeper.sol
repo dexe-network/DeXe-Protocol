@@ -308,10 +308,12 @@ interface IGovUserKeeper {
     ) external view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts);
 
     /// @notice The function for getting the total delegated amount by the delegator and the delegatee
+    /// @param snapshotId the id of snapshot
     /// @param delegator the address of the delegator
     /// @param delegatee the address of the delegatee
     /// @return the delegated amount
-    function getDelegatedAmount(
+    function getDelegatedAmountBySnapshot(
+        uint256 snapshotId,
         address delegator,
         address delegatee
     ) external view returns (uint256);
