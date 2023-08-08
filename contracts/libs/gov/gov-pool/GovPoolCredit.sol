@@ -18,15 +18,19 @@ library GovPoolCredit {
             tokens.length == amounts.length,
             "GPC: Number of tokens and amounts are not equal"
         );
-        for (uint256 i = 0; i < creditInfo.tokenList.length; i++) {
-            address currentToken = creditInfo.tokenList[i];
-            creditInfo.tokenInfo[currentToken].monthLimit = 0;
+
+        uint256 length = creditInfo.tokenList.length;
+
+        for (uint256 i = 0; i < length; i++) {
+            delete creditInfo.tokenInfo[creditInfo.tokenList[i]].monthLimit;
         }
+
         creditInfo.tokenList = tokens;
+
         for (uint256 i = 0; i < tokens.length; i++) {
             address currentToken = tokens[i];
             require(currentToken != address(0), "GPC: Token address could not be zero");
-            // More constrains on token???????
+
             creditInfo.tokenInfo[currentToken].monthLimit = amounts[i];
         }
     }
@@ -36,10 +40,13 @@ library GovPoolCredit {
     ) external view returns (IGovPool.CreditInfoView[] memory info) {
         uint256 infoLength = creditInfo.tokenList.length;
         info = new IGovPool.CreditInfoView[](infoLength);
+
         mapping(address => IGovPool.TokenCreditInfo) storage tokenInfo = creditInfo.tokenInfo;
-        for (uint i = 0; i < infoLength; i++) {
+
+        for (uint256 i = 0; i < infoLength; i++) {
             address currentToken = creditInfo.tokenList[i];
             uint256 monthLimit = tokenInfo[currentToken].monthLimit;
+
             info[i] = IGovPool.CreditInfoView({
                 token: currentToken,
                 monthLimit: monthLimit,
@@ -50,31 +57,29 @@ library GovPoolCredit {
 
     function transferCreditAmount(
         IGovPool.CreditInfo storage creditInfo,
-        address[] memory tokens,
-        uint256[] memory amounts,
+        address[] calldata tokens,
+        uint256[] calldata amounts,
         address destination
     ) external {
-        uint tokensLength = tokens.length;
+        uint256 tokensLength = tokens.length;
         require(amounts.length == tokensLength, "GPC: Number of tokens and amounts are not equal");
-        for (uint i = 0; i < tokensLength; i++) {
+
+        for (uint256 i = 0; i < tokensLength; i++) {
             address currentToken = tokens[i];
-            uint currentAmount = amounts[i];
+            uint256 currentAmount = amounts[i];
             uint256 tokenCredit = _getCreditBalanceForToken(creditInfo, currentToken);
+
             require(
                 currentAmount <= tokenCredit,
                 "GPC: Current credit permission < amount to withdraw"
             );
+
             IERC20(currentToken).safeTransfer(destination, currentAmount);
+
             creditInfo.tokenInfo[currentToken].timestamps.push(block.timestamp);
-            uint256 historyLength = creditInfo.tokenInfo[currentToken].cumulativeAmounts.length;
-            if (historyLength == 0) {
-                creditInfo.tokenInfo[currentToken].cumulativeAmounts.push(currentAmount);
-            } else {
-                creditInfo.tokenInfo[currentToken].cumulativeAmounts.push(
-                    currentAmount +
-                        creditInfo.tokenInfo[currentToken].cumulativeAmounts[historyLength - 1]
-                );
-            }
+            uint256[] storage history = creditInfo.tokenInfo[currentToken].cumulativeAmounts;
+
+            history.push(currentAmount + (history.length == 0 ? 0 : history[history.length - 1]));
         }
     }
 
@@ -84,29 +89,29 @@ library GovPoolCredit {
     ) internal view returns (uint256) {
         IGovPool.TokenCreditInfo storage tokenInfo = creditInfo.tokenInfo[token];
         uint256[] storage amounts = tokenInfo.cumulativeAmounts;
-        uint256[] storage timestamps = tokenInfo.timestamps;
         uint256 historyLength = amounts.length;
 
-        uint256 timestampMonthAgo = block.timestamp - 30 days;
-        uint256 index = _upperBound(timestamps, timestampMonthAgo);
-        uint amountWithdrawn;
+        uint256 index = _upperBound(tokenInfo.timestamps, _monthAgo());
+        uint256 amountWithdrawn;
+
         if (index == historyLength) {
             return tokenInfo.monthLimit;
-        } else {
-            amountWithdrawn = index == 0
-                ? amounts[historyLength - 1]
-                : amounts[historyLength - 1] - amounts[index - 1];
-            return
-                amountWithdrawn >= tokenInfo.monthLimit
-                    ? 0
-                    : tokenInfo.monthLimit - amountWithdrawn;
         }
+
+        amountWithdrawn = amounts[historyLength - 1] - (index == 0 ? 0 : amounts[index - 1]);
+
+        return
+            amountWithdrawn >= tokenInfo.monthLimit ? 0 : tokenInfo.monthLimit - amountWithdrawn;
+    }
+
+    function _monthAgo() private view returns (uint256) {
+        return block.timestamp - 30 days;
     }
 
     function _upperBound(
         uint256[] storage array_,
         uint256 element_
-    ) internal view returns (uint256 index_) {
+    ) private view returns (uint256 index_) {
         (uint256 low_, uint256 high_) = (0, array_.length);
 
         while (low_ < high_) {

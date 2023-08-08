@@ -379,8 +379,8 @@ contract GovPool is
     }
 
     function transferCreditAmount(
-        address[] memory tokens,
-        uint256[] memory amounts,
+        address[] calldata tokens,
+        uint256[] calldata amounts,
         address destination
     ) external override onlyValidatorContract {
         creditInfo.transferCreditAmount(tokens, amounts, destination);
