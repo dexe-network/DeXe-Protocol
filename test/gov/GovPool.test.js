@@ -1152,13 +1152,9 @@ describe("GovPool", () => {
         describe("vote() nfts", () => {
           const SINGLE_NFT_COST = toBN("3666666666666666666666");
           let SINGLE_NFT_POWER;
-          let DOUBLE_NFT_POWER;
-          let TRIPLE_NFT_POWER;
 
           beforeEach("setup", async () => {
             SINGLE_NFT_POWER = await weiToVotes(SINGLE_NFT_COST);
-            DOUBLE_NFT_POWER = await weiToVotes(SINGLE_NFT_COST.times(2));
-            TRIPLE_NFT_POWER = await weiToVotes(SINGLE_NFT_COST.times(3));
           });
 
           it("should vote for two proposals", async () => {
@@ -1202,7 +1198,12 @@ describe("GovPool", () => {
 
             await govPool.vote(1, 0, [2, 3], true);
 
-            assert.equal((await getProposalByIndex(1)).core.votesFor, TRIPLE_NFT_POWER.toFixed());
+            assert.equal(
+              toBN((await getProposalByIndex(1)).core.votesFor)
+                .idiv(3)
+                .toFixed(),
+              SINGLE_NFT_POWER.toFixed()
+            );
           });
 
           it("should revert when voting with same NFTs", async () => {
@@ -1219,11 +1220,9 @@ describe("GovPool", () => {
         describe("voteDelegated() nfts", () => {
           const SINGLE_NFT_COST = toBN("3666666666666666666666");
           let SINGLE_NFT_POWER;
-          let DOUBLE_NFT_POWER;
 
           beforeEach("setup", async () => {
             SINGLE_NFT_POWER = await weiToVotes(SINGLE_NFT_COST);
-            DOUBLE_NFT_POWER = await weiToVotes(SINGLE_NFT_COST.times(2));
 
             await govPool.delegate(SECOND, wei("500"), [1]);
             await govPool.delegate(THIRD, wei("500"), [2, 3]);
@@ -1234,7 +1233,12 @@ describe("GovPool", () => {
             await govPool.voteDelegated(2, 0, [2, 3], true, { from: THIRD });
 
             assert.equal((await getProposalByIndex(1)).core.votesFor, SINGLE_NFT_POWER.toFixed());
-            assert.equal((await getProposalByIndex(2)).core.votesFor, DOUBLE_NFT_POWER.toFixed());
+            assert.equal(
+              toBN((await getProposalByIndex(2)).core.votesFor)
+                .idiv(2)
+                .toFixed(),
+              SINGLE_NFT_POWER.toFixed()
+            );
 
             const voteInfo = await govPool.getUserVotes(1, SECOND, VoteType.MicropoolVote);
 
@@ -4175,11 +4179,8 @@ describe("GovPool", () => {
             await token.mint(OWNER, wei("100000000000000000000000"));
             await token.approve(userKeeper.address, wei("100000000000000000000000"), { from: OWNER });
             await govPool.deposit(OWNER, wei("100000000000000000000000"), [], { from: OWNER });
-
             await govPool.vote(proposalId, wei("100000000000000000000000"), [], true, { from: OWNER });
-
             await govPool.moveProposalToValidators(proposalId);
-
             await validators.vote(proposalId, wei("1000000000000"), false, true, { from: SECOND });
           });
 
@@ -4231,9 +4232,78 @@ describe("GovPool", () => {
 
           await govPool.execute(3);
 
-          const rewards1 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator1));
-          const rewards2 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator2));
-          const rewards3 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator3));
+          let rewards1 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator1));
+          let rewards2 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator2));
+          let rewards3 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator3));
+
+          const expectedRewardPart = toBN("20947244682111850187763362500000000000");
+          const realRewardPart = toBN("27631888294720374530591588300581479024");
+
+          assert.deepEqual(rewards1, [
+            {
+              micropool: micropool,
+              rewardTokens: [rewardToken.address, newRewardToken.address],
+              expectedRewards: [expectedRewardPart.times(2).toFixed(), expectedRewardPart.times(2).toFixed()],
+              realRewards: ["0", realRewardPart.toFixed()],
+            },
+            {
+              micropool: micropool2,
+              rewardTokens: [rewardToken.address, newRewardToken.address],
+              expectedRewards: [expectedRewardPart.times(2).toFixed(), expectedRewardPart.times(2).toFixed()],
+              realRewards: ["0", realRewardPart.toFixed()],
+            },
+          ]);
+          assert.deepEqual(rewards2, rewards1);
+          assert.deepEqual(rewards3, [
+            {
+              micropool: micropool,
+              rewardTokens: [rewardToken.address, newRewardToken.address],
+              expectedRewards: [expectedRewardPart.toFixed(), expectedRewardPart.toFixed()],
+              realRewards: ["0", expectedRewardPart.toFixed()],
+            },
+            {
+              micropool: micropool2,
+              rewardTokens: [rewardToken.address, newRewardToken.address],
+              expectedRewards: [expectedRewardPart.toFixed(), expectedRewardPart.toFixed()],
+              realRewards: ["0", expectedRewardPart.toFixed()],
+            },
+          ]);
+
+          await rewardToken.mint(govPool.address, wei("100000000000000000000000"));
+
+          rewards1 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator1));
+          rewards2 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator2));
+          rewards3 = userStakeRewardsArrayToObject(await govPool.getDelegatorStakingRewards(delegator3));
+
+          assert.deepEqual(rewards1, [
+            {
+              micropool: micropool,
+              rewardTokens: [rewardToken.address, newRewardToken.address],
+              expectedRewards: [expectedRewardPart.times(2).toFixed(), expectedRewardPart.times(2).toFixed()],
+              realRewards: [expectedRewardPart.times(2).toFixed(), realRewardPart.toFixed()],
+            },
+            {
+              micropool: micropool2,
+              rewardTokens: [rewardToken.address, newRewardToken.address],
+              expectedRewards: [expectedRewardPart.times(2).toFixed(), expectedRewardPart.times(2).toFixed()],
+              realRewards: [expectedRewardPart.times(2).toFixed(), realRewardPart.toFixed()],
+            },
+          ]);
+          assert.deepEqual(rewards2, rewards1);
+          assert.deepEqual(rewards3, [
+            {
+              micropool: micropool,
+              rewardTokens: [rewardToken.address, newRewardToken.address],
+              expectedRewards: [expectedRewardPart.toFixed(), expectedRewardPart.toFixed()],
+              realRewards: [expectedRewardPart.toFixed(), expectedRewardPart.toFixed()],
+            },
+            {
+              micropool: micropool2,
+              rewardTokens: [rewardToken.address, newRewardToken.address],
+              expectedRewards: [expectedRewardPart.toFixed(), expectedRewardPart.toFixed()],
+              realRewards: [expectedRewardPart.toFixed(), expectedRewardPart.toFixed()],
+            },
+          ]);
 
           await govPool.undelegate(micropool, wei("50000000000000000000"), [], { from: delegator1 });
           await govPool.undelegate(micropool, wei("50000000000000000000"), [], { from: delegator2 });
@@ -4242,41 +4312,6 @@ describe("GovPool", () => {
           await govPool.undelegate(micropool2, wei("50000000000000000000"), [], { from: delegator1 });
           await govPool.undelegate(micropool2, wei("50000000000000000000"), [], { from: delegator2 });
           await govPool.undelegate(micropool2, wei("25000000000000000000"), [], { from: delegator3 });
-
-          let expectedReward = (await weiToVotes(wei("50000000000000000000"))).times(0.8).toFixed();
-          let realReward = (await weiToVotes(wei("50000000000000000000"))).times(0.8).toFixed();
-          let expectedReward2 = (await weiToVotes(wei("20000000000000000000"))).times(0.8).toFixed();
-          let realReward2 = (await weiToVotes(wei("20000000000000000000"))).times(0.8).toFixed();
-
-          assert.deepEqual(rewards1, [
-            {
-              micropool: micropool,
-              rewardTokens: [rewardToken.address, newRewardToken.address],
-              expectedRewards: [expectedReward, expectedReward],
-              realRewards: [expectedReward, realReward],
-            },
-            {
-              micropool: micropool2,
-              rewardTokens: [rewardToken.address, newRewardToken.address],
-              expectedRewards: [expectedReward, expectedReward],
-              realRewards: [expectedReward, realReward],
-            },
-          ]);
-          assert.deepEqual(rewards2, rewards1);
-          assert.deepEqual(rewards3, [
-            {
-              micropool: micropool,
-              rewardTokens: [rewardToken.address, newRewardToken.address],
-              expectedRewards: [expectedReward2, expectedReward2],
-              realRewards: [expectedReward2, realReward2],
-            },
-            {
-              micropool: micropool2,
-              rewardTokens: [rewardToken.address, newRewardToken.address],
-              expectedRewards: [expectedReward2, expectedReward2],
-              realRewards: [expectedReward2, realReward2],
-            },
-          ]);
         });
       });
     });
