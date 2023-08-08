@@ -9,6 +9,8 @@ import "../../../interfaces/gov/ERC721/IERC721Multiplier.sol";
 import "../../utils/TokenBalance.sol";
 import "../../math/MathHelper.sol";
 
+import "hardhat/console.sol";
+
 library GovPoolRewards {
     using EnumerableSet for EnumerableSet.AddressSet;
     using TokenBalance for address;
@@ -66,6 +68,10 @@ library GovPoolRewards {
                 rewardType == IGovPool.RewardType.VoteForTreasury
             ) {
                 userProposalRewards.rewardFor += amountToAdd;
+
+                if (rewardType == IGovPool.RewardType.VoteForDelegated) {
+                    console.log("userProposalRewards.rewardFor ", userProposalRewards.rewardFor);
+                }
             } else if (
                 rewardType == IGovPool.RewardType.VoteAgainst ||
                 rewardType == IGovPool.RewardType.VoteAgainstDelegated ||

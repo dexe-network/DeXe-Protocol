@@ -11,17 +11,16 @@ import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
 import "../../../gov/GovPool.sol";
 
-import "../../utils/DataHelper.sol";
-
 import "../../math/MathHelper.sol";
 import "../../math/LogExpMath.sol";
+
+import "hardhat/console.sol";
 
 library GovPoolVote {
     using EnumerableSet for EnumerableSet.UintSet;
     using MathHelper for uint256;
     using LogExpMath for uint256;
     using DecimalsConverter for uint256;
-    using DataHelper for bytes;
 
     event Voted(
         uint256 proposalId,
@@ -174,7 +173,11 @@ library GovPoolVote {
             voteAmount += _voteNfts(core, voteInfo, voteNftIds, isVoteFor);
         }
 
+        // console.log("voteAmount1", voteAmount);
         voteAmount = _calculateVotes(voteAmount, voteType);
+        if (voteType == IGovPool.VoteType.MicropoolVote) {
+            console.log("voteAmount2", voteAmount);
+        }
 
         if (isVoteFor) {
             core.votesFor += voteAmount;
@@ -341,7 +344,8 @@ library GovPoolVote {
         uint256 voteAmount,
         IGovPool.VoteType voteType
     ) internal view returns (uint256) {
-        uint256 coefficient = IGovPool(address(this)).getVoteModifierForUser(msg.sender);
+        uint256 coefficient = (DECIMALS * DECIMALS) /
+            IGovPool(address(this)).getVoteModifierForUser(msg.sender);
 
         if (voteType == IGovPool.VoteType.TreasuryVote) {
             uint256 treasuryVoteCoefficient = _treasuryVoteCoefficient();
@@ -353,9 +357,9 @@ library GovPoolVote {
             coefficient -= treasuryVoteCoefficient;
         }
 
-        if (coefficient <= DECIMALS) {
-            return voteAmount;
-        }
+        // if (coefficient <= DECIMALS) {
+        //     return voteAmount;
+        // }
 
         return voteAmount.pow(coefficient);
     }
