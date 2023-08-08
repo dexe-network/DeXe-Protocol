@@ -8,13 +8,12 @@ const ContractsRegistry = artifacts.require("ContractsRegistry");
 
 const PoolFactory = artifacts.require("PoolFactory");
 
-// TODO: check delegatedVotingAllowed
 let POOL_PARAMETERS = {
   settingsParams: {
     proposalSettings: [
       {
         earlyCompletion: true,
-        delegatedVotingAllowed: true,
+        delegatedVotingAllowed: false,
         validatorsVote: false,
         duration: 600,
         durationValidators: 600,
@@ -34,7 +33,7 @@ let POOL_PARAMETERS = {
       },
       {
         earlyCompletion: true,
-        delegatedVotingAllowed: true,
+        delegatedVotingAllowed: false,
         validatorsVote: false,
         duration: 600,
         durationValidators: 600,
@@ -54,7 +53,7 @@ let POOL_PARAMETERS = {
       },
       {
         earlyCompletion: false,
-        delegatedVotingAllowed: false,
+        delegatedVotingAllowed: true,
         validatorsVote: false,
         duration: 600,
         durationValidators: 600,
@@ -74,7 +73,7 @@ let POOL_PARAMETERS = {
       },
       {
         earlyCompletion: true,
-        delegatedVotingAllowed: true,
+        delegatedVotingAllowed: false,
         validatorsVote: false,
         duration: 600,
         durationValidators: 600,
@@ -124,7 +123,7 @@ let POOL_PARAMETERS = {
 async function setupInsuranceProposals(contractsRegistry) {
   POOL_PARAMETERS.settingsParams.proposalSettings.push({
     earlyCompletion: true,
-    delegatedVotingAllowed: true,
+    delegatedVotingAllowed: false,
     validatorsVote: true,
     duration: 600,
     durationValidators: 600,
