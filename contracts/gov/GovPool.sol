@@ -129,8 +129,7 @@ contract GovPool is
             _setNftMultiplierAddress(nftMultiplierAddress);
         }
 
-        _regularVoteModifier = regularVoteModifier;
-        _expertVoteModifier = expertVoteModifier;
+        _changeVoteModifiers(regularVoteModifier, expertVoteModifier);
 
         onlyBABTHolders = _onlyBABTHolders;
         deployerBABTid = _deployerBABTid;
@@ -399,13 +398,9 @@ contract GovPool is
 
         _unlock(msg.sender, VoteType.TreasuryVote);
 
-        if (amount != 0) {
-            _govUserKeeper.undelegateTokensTreasury(delegatee, amount);
-        }
+        _govUserKeeper.undelegateTokensTreasury.exec(delegatee, amount);
 
-        if (nftIds.length != 0) {
-            _govUserKeeper.undelegateNftsTreasury(delegatee, nftIds);
-        }
+        _govUserKeeper.undelegateNftsTreasury.exec(delegatee, nftIds);
 
         // TODO: we need to cancel delegatee's rewards and votes in proposals
 
@@ -438,8 +433,7 @@ contract GovPool is
         uint256 regularModifier,
         uint256 expertModifier
     ) external override onlyThis {
-        _regularVoteModifier = regularModifier;
-        _expertVoteModifier = expertModifier;
+        _changeVoteModifiers(regularModifier, expertModifier);
     }
 
     function saveOffchainResults(
@@ -639,6 +633,16 @@ contract GovPool is
         require(nftMultiplierAddress != address(0), "Gov: new nft address is zero");
 
         nftMultiplier = nftMultiplierAddress;
+    }
+
+    function _changeVoteModifiers(uint256 regularModifier, uint256 expertModifier) internal {
+        require(
+            regularModifier >= PRECISION && expertModifier >= PRECISION,
+            "Gov: vote modifiers are less than 1"
+        );
+
+        _regularVoteModifier = regularModifier;
+        _expertVoteModifier = expertModifier;
     }
 
     function _updateRewards(uint256 proposalId, RewardType rewardType) internal {

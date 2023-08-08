@@ -317,7 +317,6 @@ library GovPoolVote {
                 : (voteInfo.nftsVotedAgainst, voteInfo.nftsVotedFor);
     }
 
-    /// @dev returns coefficient for treasury vote with 18 decimals
     function _treasuryVoteCoefficient() internal view returns (uint256) {
         (, address userKeeperAddress, , ) = GovPool(payable(address(this))).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
@@ -331,30 +330,29 @@ library GovPoolVote {
 
         power += nftPower;
 
-        return (power * DECIMALS) / userKeeper.getTotalVoteWeight() / 10;
+        return power.ratio(PRECISION, userKeeper.getTotalVoteWeight()) / 10;
     }
 
     function _calculateVotes(
         uint256 voteAmount,
         IGovPool.VoteType voteType
     ) internal view returns (uint256) {
-        uint256 coefficient = (DECIMALS * DECIMALS) /
-            IGovPool(address(this)).getVoteModifierForUser(msg.sender);
+        uint256 coefficient = IGovPool(address(this)).getVoteModifierForUser(msg.sender);
 
         if (voteType == IGovPool.VoteType.TreasuryVote) {
             uint256 treasuryVoteCoefficient = _treasuryVoteCoefficient();
 
-            if (treasuryVoteCoefficient > coefficient) {
+            if (treasuryVoteCoefficient >= coefficient) {
                 return voteAmount;
             }
 
             coefficient -= treasuryVoteCoefficient;
         }
 
-        if (coefficient == DECIMALS) {
+        if (coefficient <= PRECISION) {
             return voteAmount;
         }
 
-        return voteAmount.pow(coefficient);
+        return voteAmount.pow(coefficient.ratio(DECIMALS, PRECISION));
     }
 }

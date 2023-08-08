@@ -494,11 +494,11 @@ interface IGovPool {
     function getExpertStatus(address user) external view returns (bool);
 
     /// @notice The function to get current vote modifier
-    /// @return `Arguments`: regular modifier, expert modifier (with 18 precision decimals)
+    /// @return `Arguments`: regular modifier, expert modifier (with 25 precision decimals)
     function getVoteModifiers() external view returns (uint256, uint256);
 
     /// @notice The function to get current vote modifier for particular user
     /// @param user the address of the user
-    /// @return uint256 the modifier with 18 precision decimals
+    /// @return uint256 the modifier with 25 precision decimals
     function getVoteModifierForUser(address user) external view returns (uint256);
 }
