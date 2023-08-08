@@ -484,7 +484,7 @@ describe("GovPool", () => {
       });
 
       it("should not set dependencies from non dependant", async () => {
-        await truffleAssert.reverts(govPool.setDependencies(OWNER, "0x"), "Dependant: Not an injector");
+        await truffleAssert.reverts(govPool.setDependencies(OWNER, "0x"), "Dependant: not an injector");
       });
     });
 
