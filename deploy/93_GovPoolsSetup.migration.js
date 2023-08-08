@@ -12,6 +12,7 @@ const GovPoolVoteLib = artifacts.require("GovPoolVote");
 const GovPoolViewLib = artifacts.require("GovPoolView");
 const GovPoolStakingLib = artifacts.require("GovPoolStaking");
 const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
+const GovPoolCreditLib = artifacts.require("GovPoolCredit");
 const TokenSaleProposalCreateLib = artifacts.require("TokenSaleProposalCreate");
 const TokenSaleProposalBuyLib = artifacts.require("TokenSaleProposalBuy");
 const TokenSaleProposalVestingLib = artifacts.require("TokenSaleProposalVesting");
@@ -35,6 +36,7 @@ async function linkGovPool(deployer) {
   await deployer.deploy(GovPoolViewLib);
   await deployer.deploy(GovPoolStakingLib);
   await deployer.deploy(GovPoolOffchainLib);
+  await deployer.deploy(GovPoolCreditLib);
 
   await deployer.link(GovPoolCreateLib, GovPool);
   await deployer.link(GovPoolExecuteLib, GovPool);
@@ -44,6 +46,7 @@ async function linkGovPool(deployer) {
   await deployer.link(GovPoolViewLib, GovPool);
   await deployer.link(GovPoolStakingLib, GovPool);
   await deployer.link(GovPoolOffchainLib, GovPool);
+  await deployer.link(GovPoolCreditLib, GovPool);
 }
 
 async function linkGovUserKeeper(deployer) {
