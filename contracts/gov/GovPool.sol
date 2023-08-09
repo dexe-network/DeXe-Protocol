@@ -57,8 +57,8 @@ contract GovPool is
     using DecimalsConverter for *;
     using TokenBalance for address;
 
-    uint256 public constant PERCENTAGE_MICROPOOL_REWARDS = PERCENTAGE_100 / 5; // 20%
-    uint256 public constant PERCENTAGE_TREASURY_REWARDS = (PERCENTAGE_100 * 809) / 50000; // 1.618%
+    uint256 internal constant PERCENTAGE_MICROPOOL_REWARDS = PERCENTAGE_100 / 5; // 20%
+    uint256 internal constant PERCENTAGE_TREASURY_REWARDS = (PERCENTAGE_100 * 809) / 50000; // 1.618%
 
     IGovSettings internal _govSettings;
     IGovUserKeeper internal _govUserKeeper;
@@ -67,10 +67,10 @@ contract GovPool is
 
     ICoreProperties public coreProperties;
 
-    address public nftMultiplier;
-    IERC721Expert public expertNft;
-    IERC721Expert public dexeExpertNft;
-    ISBT721 public babt;
+    address internal _nftMultiplier;
+    IERC721Expert internal _expertNft;
+    IERC721Expert internal _dexeExpertNft;
+    ISBT721 internal _babt;
 
     bool public onlyBABTHolders;
 
@@ -83,7 +83,7 @@ contract GovPool is
     uint256 internal _regularVoteModifier;
     uint256 internal _expertVoteModifier;
 
-    CreditInfo internal creditInfo;
+    CreditInfo internal _creditInfo;
 
     OffChain internal _offChain;
 
@@ -132,7 +132,7 @@ contract GovPool is
         _govUserKeeper = IGovUserKeeper(govPoolDeps.userKeeperAddress);
         _govValidators = IGovValidators(govPoolDeps.validatorsAddress);
         _distributionProposal = govPoolDeps.distributionAddress;
-        expertNft = IERC721Expert(govPoolDeps.expertNftAddress);
+        _expertNft = IERC721Expert(govPoolDeps.expertNftAddress);
 
         if (nftMultiplierAddress != address(0)) {
             _setNftMultiplierAddress(nftMultiplierAddress);
@@ -153,20 +153,12 @@ contract GovPool is
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         coreProperties = ICoreProperties(registry.getCorePropertiesContract());
-        babt = ISBT721(registry.getBABTContract());
-        dexeExpertNft = IERC721Expert(registry.getDexeExpertNftContract());
+        _babt = ISBT721(registry.getBABTContract());
+        _dexeExpertNft = IERC721Expert(registry.getDexeExpertNftContract());
     }
 
     function unlock(address user, VoteType voteType) public override onlyBABTHolder {
         _unlock(user, voteType);
-    }
-
-    function unlockInProposals(
-        uint256[] memory proposalIds,
-        address user,
-        VoteType voteType
-    ) public override onlyBABTHolder {
-        _unlockInProposals(proposalIds, user, voteType);
     }
 
     function execute(uint256 proposalId) public override onlyBABTHolder {
@@ -439,7 +431,7 @@ contract GovPool is
         address[] calldata tokens,
         uint256[] calldata amounts
     ) external override onlyThis {
-        creditInfo.setCreditInfo(tokens, amounts);
+        _creditInfo.setCreditInfo(tokens, amounts);
     }
 
     function transferCreditAmount(
@@ -447,7 +439,7 @@ contract GovPool is
         uint256[] calldata amounts,
         address destination
     ) external override onlyValidatorContract {
-        creditInfo.transferCreditAmount(tokens, amounts, destination);
+        _creditInfo.transferCreditAmount(tokens, amounts, destination);
     }
 
     function changeVoteModifiers(
@@ -469,68 +461,7 @@ contract GovPool is
     receive() external payable {}
 
     function getProposalState(uint256 proposalId) public view override returns (ProposalState) {
-        ProposalCore storage core = _proposals[proposalId].core;
-
-        uint64 voteEnd = core.voteEnd;
-
-        if (voteEnd == 0) {
-            return ProposalState.Undefined;
-        }
-
-        if (core.executed) {
-            return
-                core._votesForMoreThanAgainst()
-                    ? ProposalState.ExecutedFor
-                    : ProposalState.ExecutedAgainst;
-        }
-
-        if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
-            if (core._quorumReached()) {
-                if (
-                    !core._votesForMoreThanAgainst() &&
-                    _proposals[proposalId].actionsOnAgainst.length == 0
-                ) {
-                    return ProposalState.Defeated;
-                }
-
-                if (core.settings.validatorsVote) {
-                    IGovValidators.ProposalState status = _govValidators.getProposalState(
-                        proposalId,
-                        false
-                    );
-
-                    if (status == IGovValidators.ProposalState.Undefined) {
-                        if (_govValidators.validatorsCount() != 0) {
-                            return ProposalState.WaitingForVotingTransfer;
-                        }
-
-                        return core._proposalStateBasedOnVoteResultsAndLock();
-                    }
-
-                    if (status == IGovValidators.ProposalState.Locked) {
-                        return ProposalState.Locked;
-                    }
-
-                    if (status == IGovValidators.ProposalState.Succeeded) {
-                        return core._proposalStateBasedOnVoteResults();
-                    }
-
-                    if (status == IGovValidators.ProposalState.Defeated) {
-                        return ProposalState.Defeated;
-                    }
-
-                    return ProposalState.ValidatorVoting;
-                }
-
-                return core._proposalStateBasedOnVoteResultsAndLock();
-            }
-
-            if (voteEnd < block.timestamp) {
-                return ProposalState.Defeated;
-            }
-        }
-
-        return ProposalState.Voting;
+        return _proposals.getProposalState(proposalId);
     }
 
     function getHelperContracts()
@@ -550,6 +481,15 @@ contract GovPool is
             address(_govValidators),
             _distributionProposal
         );
+    }
+
+    function getNftContracts()
+        external
+        view
+        override
+        returns (address nftMultiplier, address expertNft, address dexeExpertNft, address babt)
+    {
+        return (_nftMultiplier, address(_expertNft), address(_dexeExpertNft), address(_babt));
     }
 
     function getProposals(
@@ -624,11 +564,16 @@ contract GovPool is
     }
 
     function getCreditInfo() external view override returns (CreditInfoView[] memory) {
-        return creditInfo.getCreditInfo();
+        return _creditInfo.getCreditInfo();
     }
 
-    function getOffchainResultsHash() external view override returns (string memory resultsHash) {
-        return _offChain.resultsHash;
+    function getOffchainInfo()
+        external
+        view
+        override
+        returns (address validator, string memory resultsHash)
+    {
+        return (_offChain.verifier, _offChain.resultsHash);
     }
 
     function getOffchainSignHash(
@@ -637,12 +582,8 @@ contract GovPool is
         return resultHash.getSignHash();
     }
 
-    function getVerifier() external view override returns (address) {
-        return _offChain.verifier;
-    }
-
     function getExpertStatus(address user) public view override returns (bool) {
-        return expertNft.isExpert(user) || dexeExpertNft.isExpert(user);
+        return _expertNft.isExpert(user) || _dexeExpertNft.isExpert(user);
     }
 
     function getVoteModifiers() external view override returns (uint256, uint256) {
@@ -654,10 +595,10 @@ contract GovPool is
     }
 
     function _setNftMultiplierAddress(address nftMultiplierAddress) internal {
-        require(nftMultiplier == address(0), "Gov: current nft address isn't zero");
+        require(_nftMultiplier == address(0), "Gov: current nft address isn't zero");
         require(nftMultiplierAddress != address(0), "Gov: new nft address is zero");
 
-        nftMultiplier = nftMultiplierAddress;
+        _nftMultiplier = nftMultiplierAddress;
     }
 
     function _changeVoteModifiers(uint256 regularModifier, uint256 expertModifier) internal {
@@ -679,15 +620,12 @@ contract GovPool is
     }
 
     function _unlock(address user, VoteType voteType) internal {
-        _unlockInProposals(_votedInProposals[user][voteType].values(), user, voteType);
-    }
-
-    function _unlockInProposals(
-        uint256[] memory proposalIds,
-        address user,
-        VoteType voteType
-    ) internal {
-        _votedInProposals.unlockInProposals(_voteInfos, proposalIds, user, voteType);
+        _votedInProposals.unlockInProposals(
+            _voteInfos,
+            _votedInProposals[user][voteType].values(),
+            user,
+            voteType
+        );
     }
 
     function _onlyThis() internal view {
@@ -699,6 +637,6 @@ contract GovPool is
     }
 
     function _onlyBABTHolder() internal view {
-        require(!onlyBABTHolders || babt.balanceOf(msg.sender) > 0, "Gov: not BABT holder");
+        require(!onlyBABTHolders || _babt.balanceOf(msg.sender) > 0, "Gov: not BABT holder");
     }
 }

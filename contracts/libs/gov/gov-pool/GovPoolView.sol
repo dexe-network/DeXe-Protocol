@@ -12,10 +12,13 @@ import "../../../interfaces/gov/validators/IGovValidators.sol";
 
 import "../../../gov/GovPool.sol";
 
+import "./GovPoolVote.sol";
+
 import "../../../core/Globals.sol";
 
 library GovPoolView {
     using EnumerableSet for EnumerableSet.UintSet;
+    using GovPoolVote for IGovPool.ProposalCore;
     using Vector for Vector.UintVector;
     using Math for uint256;
 
@@ -26,13 +29,13 @@ library GovPoolView {
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage _voteInfos
     ) external view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts) {
-        (uint256[] memory unlockedIds, uint256[] memory lockedIds) = getUserProposals(
+        (uint256[] memory unlockedIds, uint256[] memory lockedIds) = _getUserProposals(
             user,
             IGovPool.VoteType.PersonalVote,
             _votedInProposals
         );
 
-        uint256[] memory unlockedNfts = getUnlockedNfts(
+        uint256[] memory unlockedNfts = _getUnlockedNfts(
             unlockedIds,
             user,
             IGovPool.VoteType.PersonalVote,
@@ -52,13 +55,13 @@ library GovPoolView {
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage _voteInfos
     ) external view returns (uint256 undelegateableTokens, uint256[] memory undelegateableNfts) {
-        (uint256[] memory unlockedIds, uint256[] memory lockedIds) = getUserProposals(
+        (uint256[] memory unlockedIds, uint256[] memory lockedIds) = _getUserProposals(
             delegatee,
             IGovPool.VoteType.MicropoolVote,
             _votedInProposals
         );
 
-        uint256[] memory unlockedNfts = getUnlockedNfts(
+        uint256[] memory unlockedNfts = _getUnlockedNfts(
             unlockedIds,
             delegatee,
             IGovPool.VoteType.MicropoolVote,
@@ -76,7 +79,101 @@ library GovPoolView {
             );
     }
 
-    function getUnlockedNfts(
+    function getProposals(
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        uint256 offset,
+        uint256 limit
+    ) external view returns (IGovPool.ProposalView[] memory proposalViews) {
+        GovPool govPool = GovPool(payable(address(this)));
+        (, , address validatorsAddress, ) = govPool.getHelperContracts();
+
+        IGovValidators validators = IGovValidators(validatorsAddress);
+
+        uint256 to = (offset + limit).min(govPool.latestProposalId()).max(offset);
+
+        proposalViews = new IGovPool.ProposalView[](to - offset);
+
+        for (uint256 i = offset; i < to; i++) {
+            proposalViews[i - offset] = IGovPool.ProposalView({
+                proposal: proposals[i + 1],
+                validatorProposal: validators.getExternalProposal(i + 1),
+                proposalState: govPool.getProposalState(i + 1),
+                requiredQuorum: govPool.getProposalRequiredQuorum(i + 1),
+                requiredValidatorsQuorum: validators.getProposalRequiredQuorum(i + 1, false),
+                executeAfter: 0
+            });
+        }
+    }
+
+    function getProposalState(
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        uint256 proposalId
+    ) external view returns (IGovPool.ProposalState) {
+        (, , address validators, ) = IGovPool(address(this)).getHelperContracts();
+
+        IGovPool.ProposalCore storage core = proposals[proposalId].core;
+
+        uint64 voteEnd = core.voteEnd;
+
+        if (voteEnd == 0) {
+            return IGovPool.ProposalState.Undefined;
+        }
+
+        if (core.executed) {
+            return
+                _votesForMoreThanAgainst(core)
+                    ? IGovPool.ProposalState.ExecutedFor
+                    : IGovPool.ProposalState.ExecutedAgainst;
+        }
+
+        if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
+            if (core._quorumReached()) {
+                if (
+                    !_votesForMoreThanAgainst(core) &&
+                    proposals[proposalId].actionsOnAgainst.length == 0
+                ) {
+                    return IGovPool.ProposalState.Defeated;
+                }
+
+                if (core.settings.validatorsVote) {
+                    IGovValidators.ProposalState status = IGovValidators(validators)
+                        .getProposalState(proposalId, false);
+
+                    if (status == IGovValidators.ProposalState.Undefined) {
+                        if (IGovValidators(validators).validatorsCount() != 0) {
+                            return IGovPool.ProposalState.WaitingForVotingTransfer;
+                        }
+
+                        return _proposalStateBasedOnVoteResultsAndLock(core);
+                    }
+
+                    if (status == IGovValidators.ProposalState.Locked) {
+                        return IGovPool.ProposalState.Locked;
+                    }
+
+                    if (status == IGovValidators.ProposalState.Succeeded) {
+                        return _proposalStateBasedOnVoteResults(core);
+                    }
+
+                    if (status == IGovValidators.ProposalState.Defeated) {
+                        return IGovPool.ProposalState.Defeated;
+                    }
+
+                    return IGovPool.ProposalState.ValidatorVoting;
+                }
+
+                return _proposalStateBasedOnVoteResultsAndLock(core);
+            }
+
+            if (voteEnd < block.timestamp) {
+                return IGovPool.ProposalState.Defeated;
+            }
+        }
+
+        return IGovPool.ProposalState.Voting;
+    }
+
+    function _getUnlockedNfts(
         uint256[] memory unlockedIds,
         address user,
         IGovPool.VoteType voteType,
@@ -95,7 +192,7 @@ library GovPoolView {
         unlockedNfts = nfts.toArray();
     }
 
-    function getUserProposals(
+    function _getUserProposals(
         address user,
         IGovPool.VoteType voteType,
         mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
@@ -129,29 +226,28 @@ library GovPoolView {
         lockedIds = locked.toArray();
     }
 
-    function getProposals(
-        mapping(uint256 => IGovPool.Proposal) storage proposals,
-        uint256 offset,
-        uint256 limit
-    ) internal view returns (IGovPool.ProposalView[] memory proposalViews) {
-        GovPool govPool = GovPool(payable(address(this)));
-        (, , address validatorsAddress, ) = govPool.getHelperContracts();
+    function _votesForMoreThanAgainst(
+        IGovPool.ProposalCore storage core
+    ) internal view returns (bool) {
+        return core.votesFor > core.votesAgainst;
+    }
 
-        IGovValidators validators = IGovValidators(validatorsAddress);
-
-        uint256 to = (offset + limit).min(govPool.latestProposalId()).max(offset);
-
-        proposalViews = new IGovPool.ProposalView[](to - offset);
-
-        for (uint256 i = offset; i < to; i++) {
-            proposalViews[i - offset] = IGovPool.ProposalView({
-                proposal: proposals[i + 1],
-                validatorProposal: validators.getExternalProposal(i + 1),
-                proposalState: govPool.getProposalState(i + 1),
-                requiredQuorum: govPool.getProposalRequiredQuorum(i + 1),
-                requiredValidatorsQuorum: validators.getProposalRequiredQuorum(i + 1, false),
-                executeAfter: 0
-            });
+    function _proposalStateBasedOnVoteResultsAndLock(
+        IGovPool.ProposalCore storage core
+    ) internal view returns (IGovPool.ProposalState) {
+        if (block.timestamp <= core.executeAfter) {
+            return IGovPool.ProposalState.Locked;
         }
+
+        return _proposalStateBasedOnVoteResults(core);
+    }
+
+    function _proposalStateBasedOnVoteResults(
+        IGovPool.ProposalCore storage core
+    ) internal view returns (IGovPool.ProposalState) {
+        return
+            _votesForMoreThanAgainst(core)
+                ? IGovPool.ProposalState.SucceededFor
+                : IGovPool.ProposalState.SucceededAgainst;
     }
 }

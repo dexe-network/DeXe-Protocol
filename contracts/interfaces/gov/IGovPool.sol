@@ -268,10 +268,6 @@ interface IGovPool {
         mapping(bytes32 => bool) usedHashes;
     }
 
-    /// @notice The function to get nft multiplier
-    /// @return `address` of nft multiplier
-    function nftMultiplier() external view returns (address);
-
     /// @notice The function to get helper contract of this pool
     /// @return settings settings address
     /// @return userKeeper user keeper address
@@ -286,6 +282,16 @@ interface IGovPool {
             address validators,
             address distributionProposal
         );
+
+    /// @notice The function to get the nft contracts of this pool
+    /// @return nftMultiplier rewards multiplier nft contract
+    /// @return expertNft local expert nft contract
+    /// @return dexeExpertNft global expert nft contract
+    /// @return babt binance bound token
+    function getNftContracts()
+        external
+        view
+        returns (address nftMultiplier, address expertNft, address dexeExpertNft, address babt);
 
     /// @notice Create proposal
     /// @notice For internal proposal, last executor should be `GovSetting` contract
@@ -385,16 +391,6 @@ interface IGovPool {
     /// @param user the user whose funds to unlock
     /// @param voteType the type of vote
     function unlock(address user, VoteType voteType) external;
-
-    /// @notice The function to unlock user funds from completed proposals
-    /// @param proposalIds the array of proposals to unlock the funds in
-    /// @param user the user to unlock the funds of
-    /// @param voteType the type of vote
-    function unlockInProposals(
-        uint256[] memory proposalIds,
-        address user,
-        VoteType voteType
-    ) external;
 
     /// @notice Execute proposal
     /// @param proposalId Proposal ID
@@ -523,18 +519,18 @@ interface IGovPool {
     /// @return the list of credit infos
     function getCreditInfo() external view returns (CreditInfoView[] memory);
 
-    /// @notice The function to get off-chain voting results
+    /// @notice The function to get off-chain info
+    /// @return validator the verifier address
     /// @return resultsHash the ipfs hash
-    function getOffchainResultsHash() external view returns (string memory resultsHash);
+    function getOffchainInfo()
+        external
+        view
+        returns (address validator, string memory resultsHash);
 
     /// @notice The function to get the sign hash from string resultsHash, chainid, govPool address
     /// @param resultsHash the ipfs hash
     /// @return bytes32 hash
     function getOffchainSignHash(string calldata resultsHash) external view returns (bytes32);
-
-    /// @notice The function to get off-chain verifier address
-    /// @return address of verifier
-    function getVerifier() external view returns (address);
 
     /// @notice The function to get expert status of a voter
     /// @return address of a person, who votes

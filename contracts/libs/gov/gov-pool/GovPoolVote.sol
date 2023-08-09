@@ -282,31 +282,6 @@ library GovPoolVote {
             ) >= core.settings.quorum;
     }
 
-    function _votesForMoreThanAgainst(
-        IGovPool.ProposalCore storage core
-    ) internal view returns (bool) {
-        return core.votesFor > core.votesAgainst;
-    }
-
-    function _proposalStateBasedOnVoteResultsAndLock(
-        IGovPool.ProposalCore storage core
-    ) internal view returns (IGovPool.ProposalState) {
-        if (block.timestamp <= core.executeAfter) {
-            return IGovPool.ProposalState.Locked;
-        }
-
-        return _proposalStateBasedOnVoteResults(core);
-    }
-
-    function _proposalStateBasedOnVoteResults(
-        IGovPool.ProposalCore storage core
-    ) internal view returns (IGovPool.ProposalState) {
-        return
-            _votesForMoreThanAgainst(core)
-                ? IGovPool.ProposalState.SucceededFor
-                : IGovPool.ProposalState.SucceededAgainst;
-    }
-
     function _votedNfts(
         IGovPool.VoteInfo storage voteInfo,
         bool isVoteFor
@@ -343,8 +318,7 @@ library GovPoolVote {
         if (voteType == IGovPool.VoteType.TreasuryVote) {
             uint256 treasuryVoteCoefficient = _treasuryVoteCoefficient();
 
-            /// @dev Assuming that treasury vote coefficient is always less than 1, otherwise add check for coefficient underflow
-
+            // Assuming treasury vote coefficient is always <= 1
             coefficient -= treasuryVoteCoefficient;
         }
 

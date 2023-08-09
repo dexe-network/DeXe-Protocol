@@ -713,7 +713,7 @@ describe("PoolFactory", () => {
 
         assert.equal(settings[0], POOL_PARAMETERS.settingsParams.proposalSettings[2].earlyCompletion);
 
-        assert.equal(await govPool.nftMultiplier(), testERC721Multiplier.address);
+        assert.equal((await govPool.getNftContracts()).nftMultiplier, testERC721Multiplier.address);
       });
 
       it("should deploy pool with Expert Nft", async () => {
@@ -724,8 +724,8 @@ describe("PoolFactory", () => {
 
         let govPool = await GovPool.at(predictedGovAddress);
 
-        let dexeNftAddress = await govPool.dexeExpertNft();
-        let nftAddress = await govPool.expertNft();
+        let dexeNftAddress = (await govPool.getNftContracts()).dexeExpertNft;
+        let nftAddress = (await govPool.getNftContracts()).expertNft;
 
         assert.isTrue(nftAddress != ZERO_ADDR);
         assert.isTrue(dexeNftAddress != ZERO_ADDR);
