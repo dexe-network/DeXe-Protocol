@@ -28,7 +28,7 @@ library GovPoolUnlock {
             for (uint256 i; i < proposalIds.length; i++) {
                 uint256 proposalId = proposalIds[i];
 
-                if (!_proposalIsActive(userProposals, proposalId)) {
+                if (!_proposalIsActive(proposalId)) {
                     userProposals.remove(proposalId);
                 }
             }
@@ -55,7 +55,7 @@ library GovPoolUnlock {
         for (uint256 i; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
 
-            if (_proposalIsActive(userProposals, proposalId)) {
+            if (_proposalIsActive(proposalId)) {
                 continue;
             }
 
@@ -74,12 +74,7 @@ library GovPoolUnlock {
         }
     }
 
-    function _proposalIsActive(
-        EnumerableSet.UintSet storage userProposals,
-        uint256 proposalId
-    ) internal view returns (bool) {
-        require(userProposals.contains(proposalId), "Gov: no vote for this proposal");
-
+    function _proposalIsActive(uint256 proposalId) internal view returns (bool) {
         IGovPool.ProposalState state = IGovPool(address(this)).getProposalState(proposalId);
 
         return
