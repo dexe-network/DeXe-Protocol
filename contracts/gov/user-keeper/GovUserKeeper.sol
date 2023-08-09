@@ -609,19 +609,16 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             lockedProposals.getWithdrawableAssets(unlockedNfts, _userInfos[voter], _nftLockedNums);
     }
 
-    function getDelegatedAmountBySnapshot(
-        uint256 snapshotId,
+    function getDelegatedAssets(
         address delegator,
         address delegatee
-    ) external view override returns (uint256) {
+    ) external view override returns (uint256 tokenAmount, uint256[] memory nftIds) {
         UserInfo storage delegatorInfo = _userInfos[delegator];
 
-        uint256 nftPowerSnapshot = getNftsPowerInTokensBySnapshot(
-            delegatorInfo.delegatedNfts[delegatee].values(),
-            snapshotId
+        return (
+            delegatorInfo.delegatedTokens[delegatee],
+            delegatorInfo.delegatedNfts[delegatee].values()
         );
-
-        return delegatorInfo.delegatedTokens[delegatee] + nftPowerSnapshot;
     }
 
     function _cleanDelegatee(UserInfo storage delegatorInfo, address delegatee) internal {

@@ -132,30 +132,34 @@ interface IGovPool {
         uint256[] nftsVotedAgainst;
     }
 
+    /// TODO: fix docs
     /// @notice The struct that is used in view functions of contract as a return argument
     /// @param rewardTokens the list of reward tokens addresses
     /// @param expectedRewardsFor the list of expected for rewards
     /// @param realRewardsFor the list of real for rewards (minimum of expected for rewards and governance pool token balances)
     /// @param expectedRewardsAgainst the list of expected against rewards
     /// @param realRewardsAgainst the list of real against rewards (minimum of expected against rewards and governance pool token balances)
-    struct DelegatorStakingRewards {
+    struct DelegatorRewards {
         address[] rewardTokens;
-        uint256[] expectedRewardsFor;
-        uint256[] realRewardsFor;
-        uint256[] expectedRewardsAgainst;
-        uint256[] realRewardsAgainst;
+        bool[] isVoteFor;
+        bool[] executed;
+        bool[] isClaimed;
+        uint256[] expectedRewards;
+        uint256[] realRewards;
     }
 
     /// TODO: add docs
     struct DelegatorInfo {
         uint256[] delegationTimes;
-        uint256[] delegationAmounts;
+        uint256[][] nftIds;
+        uint256[] tokenAmounts;
+        mapping(uint256 => bool) isClaimed;
     }
 
     /// TODO: add docs
     struct MicropoolInfo {
-        mapping(address => DelegatorInfo) delegatorInfos; // delegator => info
-        mapping(uint256 => uint256) pendingRewards; // proposalId => delegator pending rewards
+        mapping(address => DelegatorInfo) delegatorInfos;
+        mapping(uint256 => uint256) pendingRewards;
     }
 
     /// @notice The struct that holds rewards for proposal (only for internal needs)
@@ -256,6 +260,17 @@ interface IGovPool {
     /// @param isVoteFor the bool flag for voting for or against the proposal
     function voteDelegated(uint256 proposalId, bool isVoteFor) external;
 
+    /// TODO: add docs
+    function cancelVote(
+        uint256 proposalId,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds,
+        bool isVoteFor
+    ) external;
+
+    /// TODO: add docs
+    function cancelVoteDelegated(uint256 proposalId, bool isVoteFor) external;
+
     /// @notice The function for depositing tokens to the pool
     /// @param receiver the address of the deposit receiver
     /// @param amount the erc20 deposit amount
@@ -303,10 +318,10 @@ interface IGovPool {
     /// @param proposalIds the array of proposal ids
     function claimRewards(uint256[] calldata proposalIds) external;
 
-    /// @notice The function for claiming rewards from staking
+    /// @notice The function for claiming micropool rewards from executed proposals
     /// @param proposalIds the array of proposal ids
     /// @param delegatee the address of the delegatee
-    function claimStaking(uint256[] calldata proposalIds, address delegatee) external;
+    function claimMicropoolRewards(uint256[] calldata proposalIds, address delegatee) external;
 
     /// @notice The function for changing description url
     /// @param newDescriptionURL the string with new url
@@ -398,12 +413,12 @@ interface IGovPool {
     /// @param proposalIds the list of proposal ids
     /// @param delegator the address of the delegator
     /// @param delegatee the address of the delegatee
-    /// @return delegator staking rewards
+    /// @return rewards delegator rewards
     function getDelegatorStakingRewards(
         uint256[] calldata proposalIds,
         address delegator,
         address delegatee
-    ) external view returns (DelegatorStakingRewards memory);
+    ) external view returns (DelegatorRewards memory rewards);
 
     /// @notice The function to get off-chain voting results
     /// @return resultsHash the ipfs hash
@@ -417,4 +432,11 @@ interface IGovPool {
     /// @notice The function to get off-chain verifier address
     /// @return address of verifier
     function getVerifier() external view returns (address);
+
+    /// TODO: add docs
+    function isVoteFor(
+        uint256 proposalId,
+        address voter,
+        bool isMicropool
+    ) external view returns (bool isVoteFor, bool noVotes);
 }

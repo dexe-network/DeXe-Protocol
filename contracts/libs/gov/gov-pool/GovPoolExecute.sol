@@ -41,6 +41,7 @@ library GovPoolExecute {
         );
 
         core.executed = true;
+        core.executionTime = uint64(block.timestamp);
 
         (, , address govValidatorsAddress, ) = GovPool(payable(address(this)))
             .getHelperContracts();

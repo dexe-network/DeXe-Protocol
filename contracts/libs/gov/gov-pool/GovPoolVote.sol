@@ -43,13 +43,13 @@ library GovPoolVote {
     ) external returns (uint256) {
         require(voteAmount > 0 || voteNftIds.length > 0, "Gov: empty vote");
 
-        IGovPool.ProposalCore storage core = proposals[proposalId].core;
+        IGovPool.Proposal storage proposal = proposals[proposalId];
 
-        bool useDelegated = !core.settings.delegatedVotingAllowed;
+        bool useDelegated = !proposal.core.settings.delegatedVotingAllowed;
 
         return
             _vote(
-                core,
+                proposal,
                 votedInProposals[voter][false],
                 voteInfos[proposalId][voter][false],
                 proposalId,
@@ -82,13 +82,13 @@ library GovPoolVote {
 
         require(voteAmount > 0 || voteNftIds.length > 0, "Gov: empty delegated vote");
 
-        IGovPool.ProposalCore storage core = proposals[proposalId].core;
+        IGovPool.Proposal storage proposal = proposals[proposalId];
 
-        require(core.settings.delegatedVotingAllowed, "Gov: delegated voting is off");
+        require(proposal.core.settings.delegatedVotingAllowed, "Gov: delegated voting is off");
 
         return
             _vote(
-                core,
+                proposal,
                 votedInProposals[voter][true],
                 voteInfos[proposalId][voter][true],
                 proposalId,
@@ -101,7 +101,7 @@ library GovPoolVote {
             );
     }
 
-    function cancel(
+    function cancelVote(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         mapping(uint256 => mapping(address => mapping(bool => IGovPool.VoteInfo)))
             storage voteInfos,
@@ -113,7 +113,7 @@ library GovPoolVote {
     ) external returns (uint256 canceledReward) {
         return
             _cancel(
-                proposals[proposalId].core,
+                proposals[proposalId],
                 voteInfos[proposalId][voter][false],
                 proposalId,
                 voter,
@@ -124,7 +124,7 @@ library GovPoolVote {
             );
     }
 
-    function cancelDelegated(
+    function cancelVoteDelegated(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         mapping(uint256 => mapping(address => mapping(bool => IGovPool.VoteInfo)))
             storage voteInfos,
@@ -138,7 +138,7 @@ library GovPoolVote {
 
         return
             _cancel(
-                proposals[proposalId].core,
+                proposals[proposalId],
                 voteInfo,
                 proposalId,
                 voter,
@@ -184,11 +184,11 @@ library GovPoolVote {
                 : IGovPool.ProposalState.SucceededAgainst;
     }
 
-    function _getIsVoteFor(
+    function _isVoteFor(
         mapping(uint256 => mapping(address => mapping(bool => IGovPool.VoteInfo)))
             storage voteInfos,
-        address voter,
         uint256 proposalId,
+        address voter,
         bool isMicropool
     ) internal view returns (bool isVoteFor, bool noVotes) {
         IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][voter][isMicropool];
@@ -205,7 +205,7 @@ library GovPoolVote {
     }
 
     function _vote(
-        IGovPool.ProposalCore storage core,
+        IGovPool.Proposal storage proposal,
         EnumerableSet.UintSet storage votes,
         IGovPool.VoteInfo storage voteInfo,
         uint256 proposalId,
@@ -216,7 +216,9 @@ library GovPoolVote {
         bool useDelegated,
         bool isVoteFor
     ) internal returns (uint256 reward) {
-        _canVote(core, proposalId, voter, isMicropool, useDelegated);
+        IGovPool.ProposalCore storage core = proposal.core;
+
+        _canVote(core, proposalId, voter, isMicropool, isVoteFor, useDelegated);
 
         votes.add(proposalId);
 
@@ -256,10 +258,12 @@ library GovPoolVote {
             isMicropool ? reward : 0,
             isVoteFor
         );
+
+        return _isRewardedVote(proposal, isVoteFor) ? reward : 0;
     }
 
     function _cancel(
-        IGovPool.ProposalCore storage core,
+        IGovPool.Proposal storage proposal,
         IGovPool.VoteInfo storage voteInfo,
         uint256 proposalId,
         address voter,
@@ -268,6 +272,8 @@ library GovPoolVote {
         bool isMicropool,
         bool isVoteFor
     ) internal returns (uint256 canceledReward) {
+        IGovPool.ProposalCore storage core = proposal.core;
+
         (IGovPool.VoteOption storage voteOption, ) = _voteOptions(voteInfo, isVoteFor);
 
         require(voteOption.tokensVoted >= voteAmount, "Gov: not enough tokens");
@@ -296,6 +302,8 @@ library GovPoolVote {
             isMicropool ? canceledReward : 0,
             isVoteFor
         );
+
+        return _isRewardedVote(proposal, isVoteFor) ? canceledReward : 0;
     }
 
     function _canVote(
@@ -303,11 +311,15 @@ library GovPoolVote {
         uint256 proposalId,
         address voter,
         bool isMicropool,
+        bool isVoteFor,
         bool useDelegated
     ) internal view {
         IGovPool govPool = IGovPool(address(this));
         (, address userKeeper, , ) = govPool.getHelperContracts();
 
+        (bool _isVoteFor, bool noVotes) = govPool.isVoteFor(proposalId, voter, isMicropool);
+
+        require(noVotes || isVoteFor == _isVoteFor, "Gov: dual vote");
         require(
             govPool.getProposalState(proposalId) == IGovPool.ProposalState.Voting,
             "Gov: vote unavailable"
@@ -453,5 +465,12 @@ library GovPoolVote {
             isVoteFor
                 ? (voteInfo.voteFor, voteInfo.voteAgainst)
                 : (voteInfo.voteAgainst, voteInfo.voteFor);
+    }
+
+    function _isRewardedVote(
+        IGovPool.Proposal storage proposal,
+        bool isVoteFor
+    ) internal view returns (bool) {
+        return isVoteFor || proposal.actionsOnAgainst.length != 0;
     }
 }

@@ -26,7 +26,7 @@ import "../libs/gov/gov-pool/GovPoolRewards.sol";
 import "../libs/gov/gov-pool/GovPoolVote.sol";
 import "../libs/gov/gov-pool/GovPoolUnlock.sol";
 import "../libs/gov/gov-pool/GovPoolExecute.sol";
-import "../libs/gov/gov-pool/GovPoolMicropoolRewards.sol";
+import "../libs/gov/gov-pool/GovPoolMicropool.sol";
 import "../libs/gov/gov-pool/GovPoolOffchain.sol";
 import "../libs/math/MathHelper.sol";
 
@@ -51,7 +51,7 @@ contract GovPool is
     using GovPoolVote for *;
     using GovPoolUnlock for *;
     using GovPoolExecute for *;
-    using GovPoolMicropoolRewards for *;
+    using GovPoolMicropool for *;
 
     uint256 public constant PERCENTAGE_MICROPOOL_REWARDS = PERCENTAGE_100 / 5; // 20%
 
@@ -83,7 +83,7 @@ contract GovPool is
     mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
 
     mapping(address => PendingRewards) internal _pendingRewards; // user => pending rewards
-    mapping(address => mapping(bool => MicropoolInfo)) internal _micropoolInfos; // delegatee => isVoteFor => info
+    mapping(address => MicropoolInfo) internal _micropoolInfos; // delegatee => info
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
     event Deposited(uint256 amount, uint256[] nfts, address sender);
@@ -228,15 +228,15 @@ contract GovPool is
         _voteDelegated(proposalId, msg.sender, isVoteFor);
     }
 
-    function cancelVotes(
+    function cancelVote(
         uint256 proposalId,
         uint256 voteAmount,
         uint256[] calldata voteNftIds,
         bool isVoteFor
-    ) external onlyBABTHolder {
+    ) external override onlyBABTHolder {
         _unlock(msg.sender, false);
 
-        uint256 reward = _proposals.cancel(
+        uint256 reward = _proposals.cancelVote(
             _voteInfos,
             proposalId,
             msg.sender,
@@ -253,10 +253,13 @@ contract GovPool is
         );
     }
 
-    function cancelVotesDelegated(uint256 proposalId, bool isVoteFor) external onlyBABTHolder {
+    function cancelVoteDelegated(
+        uint256 proposalId,
+        bool isVoteFor
+    ) external override onlyBABTHolder {
         _unlock(msg.sender, true);
 
-        _cancelVotesDelegated(proposalId, msg.sender, isVoteFor);
+        _cancelVoteDelegated(proposalId, msg.sender, isVoteFor);
     }
 
     function withdraw(
@@ -282,9 +285,12 @@ contract GovPool is
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
 
         _unlock(msg.sender, false);
+        _unlock(delegatee, true);
 
         _govUserKeeper.delegateTokens.exec(delegatee, amount);
         _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
+
+        _micropoolInfos[delegatee].saveDelegationInfo(delegatee);
 
         _revoteDelegated(delegatee);
 
@@ -298,8 +304,12 @@ contract GovPool is
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty undelegation");
 
+        _unlock(delegatee, true);
+
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
         _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
+
+        _micropoolInfos[delegatee].saveDelegationInfo(delegatee);
 
         _revoteDelegated(delegatee);
 
@@ -312,11 +322,11 @@ contract GovPool is
         }
     }
 
-    function claimStaking(
+    function claimMicropoolRewards(
         uint256[] calldata proposalIds,
         address delegatee
     ) external override onlyBABTHolder {
-        // _micropoolInfos[delegatee].claim(_proposals, proposalIds, delegatee);
+        _micropoolInfos[delegatee].claim(_proposals, _voteInfos, proposalIds, delegatee);
     }
 
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
@@ -504,14 +514,15 @@ contract GovPool is
         uint256[] calldata proposalIds,
         address delegator,
         address delegatee
-    ) external view override returns (DelegatorStakingRewards memory delegatorStakingRewards) {
-        //        return
-        //            _micropoolInfos[delegatee].getDelegatorStakingRewards(
-        //                _proposals,
-        //                proposalIds,
-        //                delegator,
-        //                delegatee
-        //            );
+    ) external view override returns (DelegatorRewards memory rewards) {
+        return
+            _micropoolInfos[delegatee].getDelegatorRewards(
+                _proposals,
+                _voteInfos,
+                proposalIds,
+                delegator,
+                delegatee
+            );
     }
 
     function getOffchainResultsHash() external view override returns (string memory resultsHash) {
@@ -526,6 +537,14 @@ contract GovPool is
 
     function getVerifier() external view override returns (address) {
         return _offChain.verifier;
+    }
+
+    function isVoteFor(
+        uint256 proposalId,
+        address voter,
+        bool isMicropool
+    ) public view returns (bool isVoteFor, bool noVotes) {
+        return _voteInfos._isVoteFor(proposalId, voter, isMicropool);
     }
 
     function _setNftMultiplierAddress(address nftMultiplierAddress) internal {
@@ -568,15 +587,16 @@ contract GovPool is
             micropoolReward
         );
 
-        _micropoolInfos[delegatee][isVoteFor].updateRewards(proposalId, reward - micropoolReward);
+        _micropoolInfos[delegatee].updateRewards(proposalId, reward - micropoolReward);
     }
 
-    function _cancelVotesDelegated(
-        uint256 proposalId,
-        address delegatee,
-        bool isVoteFor
-    ) internal {
-        uint256 reward = _proposals.cancelDelegated(_voteInfos, proposalId, delegatee, isVoteFor);
+    function _cancelVoteDelegated(uint256 proposalId, address delegatee, bool isVoteFor) internal {
+        uint256 reward = _proposals.cancelVoteDelegated(
+            _voteInfos,
+            proposalId,
+            delegatee,
+            isVoteFor
+        );
 
         uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
 
@@ -587,22 +607,18 @@ contract GovPool is
             micropoolReward
         );
 
-        _micropoolInfos[delegatee][isVoteFor].cancelRewards(proposalId);
+        _micropoolInfos[delegatee].updateRewards(proposalId, 0);
     }
 
     function _revoteDelegated(address delegatee) internal {
-        _unlock(delegatee, true);
-
         uint256[] memory proposalIds = _votedInProposals[delegatee][true].values();
 
         for (uint256 i; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
 
-            _micropoolInfos[delegatee].saveDelegationInfo(_proposals, proposalId, delegatee);
+            (bool isVoteFor, ) = isVoteFor(proposalId, delegatee, true);
 
-            (bool isVoteFor, ) = _voteInfos._getIsVoteFor(delegatee, proposalId, true);
-
-            _cancelVotesDelegated(proposalId, delegatee, isVoteFor);
+            _cancelVoteDelegated(proposalId, delegatee, isVoteFor);
 
             _voteDelegated(proposalId, delegatee, isVoteFor);
         }
