@@ -84,7 +84,7 @@ describe("ERC721Expert", () => {
     }
 
     async function burn(token, burner) {
-      await nft.burn(token.id, { from: burner });
+      await nft.burn(token.owner, { from: burner });
     }
 
     async function setTags(token, tags, setter) {
@@ -119,6 +119,7 @@ describe("ERC721Expert", () => {
         assert.isTrue(await nft.supportsInterface("0x80ac58cd"));
         assert.isTrue(await nft.supportsInterface("0x5b5e139f"));
         assert.isTrue(await nft.supportsInterface("0x0489b56f"));
+        // TODO: what is this interface?
         assert.isTrue(await nft.supportsInterface("0x966376c5"));
       });
     });
@@ -226,7 +227,7 @@ describe("ERC721Expert", () => {
       it("could not burn non existant badge", async () => {
         let token = TOKENS[0];
 
-        await truffleAssert.reverts(burn(token, OWNER), "ERC721Expert: Cannot burn non-existent badge");
+        await truffleAssert.reverts(burn(token, OWNER), "ERC721Expert: User is not an expert");
       });
 
       it("keeps correct order of creation", async () => {
