@@ -13,7 +13,7 @@ let POOL_PARAMETERS = {
     proposalSettings: [
       {
         earlyCompletion: true,
-        delegatedVotingAllowed: true,
+        delegatedVotingAllowed: false,
         validatorsVote: false,
         duration: 600,
         durationValidators: 600,
@@ -33,7 +33,7 @@ let POOL_PARAMETERS = {
       },
       {
         earlyCompletion: true,
-        delegatedVotingAllowed: true,
+        delegatedVotingAllowed: false,
         validatorsVote: false,
         duration: 600,
         durationValidators: 600,
@@ -53,7 +53,7 @@ let POOL_PARAMETERS = {
       },
       {
         earlyCompletion: false,
-        delegatedVotingAllowed: false,
+        delegatedVotingAllowed: true,
         validatorsVote: false,
         duration: 600,
         durationValidators: 600,
@@ -73,7 +73,7 @@ let POOL_PARAMETERS = {
       },
       {
         earlyCompletion: true,
-        delegatedVotingAllowed: true,
+        delegatedVotingAllowed: false,
         validatorsVote: false,
         duration: 600,
         durationValidators: 600,
@@ -112,8 +112,8 @@ let POOL_PARAMETERS = {
     nftsTotalSupply: 0,
   },
   nftMultiplierAddress: ZERO_ADDR,
-  regularVoteModifier: "997000000000000000",
-  expertVoteModifier: "883392226000000000",
+  regularVoteModifier: wei("1.3", 25),
+  expertVoteModifier: wei("1.132", 25),
   verifier: ZERO_ADDR,
   onlyBABTHolders: false,
   descriptionURL: "",
@@ -123,7 +123,7 @@ let POOL_PARAMETERS = {
 async function setupInsuranceProposals(contractsRegistry) {
   POOL_PARAMETERS.settingsParams.proposalSettings.push({
     earlyCompletion: true,
-    delegatedVotingAllowed: true,
+    delegatedVotingAllowed: false,
     validatorsVote: true,
     duration: 600,
     durationValidators: 600,

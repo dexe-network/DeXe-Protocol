@@ -37,11 +37,13 @@ library GovPoolRewards {
 
         uint256 amountToAdd = _calculateRewardForVoting(rewardsInfo, rewardType, amount);
 
-        address nftMultiplier = IGovPool(address(this)).nftMultiplier();
+        (address nftMultiplier, , , ) = IGovPool(address(this)).getNftContracts();
 
         if (
             rewardType != IGovPool.RewardType.VoteForDelegated &&
+            rewardType != IGovPool.RewardType.VoteForTreasury &&
             rewardType != IGovPool.RewardType.VoteAgainstDelegated &&
+            rewardType != IGovPool.RewardType.VoteAgainstTreasury &&
             nftMultiplier != address(0)
         ) {
             amountToAdd += IERC721Multiplier(nftMultiplier).getExtraRewards(
@@ -60,12 +62,14 @@ library GovPoolRewards {
 
             if (
                 rewardType == IGovPool.RewardType.VoteFor ||
-                rewardType == IGovPool.RewardType.VoteForDelegated
+                rewardType == IGovPool.RewardType.VoteForDelegated ||
+                rewardType == IGovPool.RewardType.VoteForTreasury
             ) {
                 userProposalRewards.rewardFor += amountToAdd;
             } else if (
                 rewardType == IGovPool.RewardType.VoteAgainst ||
-                rewardType == IGovPool.RewardType.VoteAgainstDelegated
+                rewardType == IGovPool.RewardType.VoteAgainstDelegated ||
+                rewardType == IGovPool.RewardType.VoteAgainstTreasury
             ) {
                 userProposalRewards.rewardAgainst += amountToAdd;
             } else {
@@ -175,20 +179,28 @@ library GovPoolRewards {
         IGovPool.RewardType rewardType,
         uint256 amount
     ) internal view returns (uint256) {
+        if (rewardType == IGovPool.RewardType.Execute) {
+            return rewardsInfo.executionReward;
+        }
+
+        if (rewardType == IGovPool.RewardType.Create) {
+            return rewardsInfo.creationReward;
+        }
+
+        if (rewardType == IGovPool.RewardType.SaveOffchainResults) {
+            (address govSettings, , , ) = IGovPool(address(this)).getHelperContracts();
+
+            return IGovSettings(govSettings).getInternalSettings().rewardsInfo.executionReward;
+        }
+
         if (
             rewardType == IGovPool.RewardType.VoteFor ||
-            rewardType == IGovPool.RewardType.VoteForDelegated
+            rewardType == IGovPool.RewardType.VoteForDelegated ||
+            rewardType == IGovPool.RewardType.VoteForTreasury
         ) {
             return amount.ratio(rewardsInfo.voteForRewardsCoefficient, PRECISION);
         }
 
-        if (
-            rewardType == IGovPool.RewardType.VoteAgainst ||
-            rewardType == IGovPool.RewardType.VoteAgainstDelegated
-        ) {
-            return amount.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
-        }
-
-        return amount;
+        return amount.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
     }
 }

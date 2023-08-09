@@ -12,7 +12,7 @@ GovSettings.numberFormat = "BigNumber";
 
 const DEFAULT_SETTINGS = {
   earlyCompletion: false,
-  delegatedVotingAllowed: true,
+  delegatedVotingAllowed: false,
   validatorsVote: true,
   duration: 700,
   durationValidators: 800,
@@ -54,7 +54,7 @@ const INTERNAL_SETTINGS = {
 
 const DP_SETTINGS = {
   earlyCompletion: false,
-  delegatedVotingAllowed: false,
+  delegatedVotingAllowed: true,
   validatorsVote: true,
   duration: 600,
   durationValidators: 800,
@@ -142,7 +142,7 @@ describe("GovSettings", () => {
       );
     });
 
-    it("should revert when delegatedVotingAllowed is on for DP", async () => {
+    it("should revert when delegatedVotingAllowed is off for DP", async () => {
       await truffleAssert.reverts(
         settings.__GovSettings_init(
           GOV_POOL_ADDRESS,
@@ -251,7 +251,7 @@ describe("GovSettings", () => {
         const defaultSettings = await settings.settings(ExecutorType.DEFAULT);
 
         assert.isFalse(defaultSettings.earlyCompletion);
-        assert.isTrue(defaultSettings.delegatedVotingAllowed);
+        assert.isFalse(defaultSettings.delegatedVotingAllowed);
         assert.isTrue(defaultSettings.validatorsVote);
         assert.equal(defaultSettings.duration, 700);
         assert.equal(defaultSettings.durationValidators, 800);
@@ -279,7 +279,7 @@ describe("GovSettings", () => {
         const dpSettings = await settings.settings(ExecutorType.DISTRIBUTION);
 
         assert.isFalse(dpSettings.earlyCompletion);
-        assert.isFalse(dpSettings.delegatedVotingAllowed);
+        assert.isTrue(dpSettings.delegatedVotingAllowed);
         assert.isTrue(dpSettings.validatorsVote);
         assert.equal(dpSettings.duration, 600);
         assert.equal(dpSettings.durationValidators, 800);
@@ -708,7 +708,7 @@ describe("GovSettings", () => {
         const nonexistent = await settings.getExecutorSettings(EXECUTOR1);
 
         assert.isFalse(nonexistent[0]);
-        assert.isTrue(nonexistent[1]);
+        assert.isFalse(nonexistent[1]);
         assert.equal(nonexistent[3], 700);
         assert.equal(nonexistent[4], 800);
       });

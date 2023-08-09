@@ -67,6 +67,7 @@ struct ProposalSettings {
   - if *true* **->** the voting completes as soon as the quorum is reached
 - ***delegatedVotingAllowed*** - the boolean flag
   - if *true* **->** delegators can vote with their own delegated tokens
+  - if *false* **->** delegators can vote only with their own tokens and allowed to vote delegated and treasury tokens
 - ***validatorsVote*** - the boolean flag
   - if *true* **->** voting will have an additional validators step
 - ***duration*** - the duration of voting in seconds

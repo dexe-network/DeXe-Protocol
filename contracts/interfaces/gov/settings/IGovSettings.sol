@@ -14,7 +14,7 @@ interface IGovSettings {
 
     /// @notice The struct holds information about settings for proposal type
     /// @param earlyCompletion the boolean flag, if true the voting completes as soon as the quorum is reached
-    /// @param delegatedVotingAllowed the boolean flag, if true then delegators can vote with their own delegated tokens
+    /// @param delegatedVotingAllowed the boolean flag, if true then delegators can vote with their own delegated tokens, else micropool vote allowed
     /// @param validatorsVote the boolean flag, if true then voting will have an additional validators step
     /// @param duration the duration of voting in seconds
     /// @param durationValidators the duration of validators voting in seconds

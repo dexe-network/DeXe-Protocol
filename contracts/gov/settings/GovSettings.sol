@@ -116,7 +116,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
 
     function _validateDistributionSettings(ProposalSettings calldata _settings) internal pure {
         require(
-            !_settings.delegatedVotingAllowed && !_settings.earlyCompletion,
+            _settings.delegatedVotingAllowed && !_settings.earlyCompletion,
             "GovSettings: invalid distribution settings"
         );
     }
