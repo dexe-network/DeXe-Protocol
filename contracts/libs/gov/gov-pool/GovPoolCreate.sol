@@ -8,7 +8,6 @@ import "../../../interfaces/gov/IGovPool.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../interfaces/gov/settings/IGovSettings.sol";
 import "../../../interfaces/gov/validators/IGovValidators.sol";
-import "../../../interfaces/gov/ERC721/IERC721Expert.sol";
 
 import "../../utils/DataHelper.sol";
 
@@ -197,18 +196,12 @@ library GovPoolCreate {
         IGovPool.ProposalAction[] calldata actions,
         uint256 proposalId
     ) internal {
-        (, address expertNft, address dexeExpertNft, ) = IGovPool(address(this)).getNftContracts();
-
         for (uint256 i; i < actions.length; i++) {
             IGovPool.ProposalAction calldata action = actions[i];
 
-            address executor = action.executor;
-            bytes4 selector = action.data.getSelector();
-
             if (
-                ((executor == expertNft || executor == dexeExpertNft) &&
-                    selector == IERC721Expert.burn.selector) ||
-                (executor == address(this) && selector == IGovPool.undelegateTreasury.selector)
+                action.executor == address(this) &&
+                action.data.getSelector() == IGovPool.undelegateTreasury.selector
             ) {
                 address user = abi.decode(action.data[4:36], (address));
 

@@ -34,10 +34,10 @@ contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgr
         emit Issued(owner(), to, tokenId, BurnAuth.OwnerOnly);
     }
 
-    function burn(address expert) external onlyOwner {
-        uint256 tokenId = getIdByExpert(expert);
+    function burn(uint256 tokenId) external onlyOwner {
+        require(_exists(tokenId), "ERC721Expert: Cannot burn non-existent badge");
 
-        delete _attachments[expert];
+        delete _attachments[ownerOf(tokenId)];
         delete _tags[tokenId];
 
         _burn(tokenId);
@@ -57,7 +57,7 @@ contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgr
         _setTokenURI(tokenId, uri_);
     }
 
-    function getIdByExpert(address expert) public view returns (uint256) {
+    function getIdByExpert(address expert) external view returns (uint256) {
         require(isExpert(expert), "ERC721Expert: User is not an expert");
 
         return _attachments[expert];

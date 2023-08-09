@@ -21,7 +21,7 @@ interface IERC721Expert is IERC721Upgradeable {
 
     function mint(address to, string calldata uri_) external returns (uint256 tokenId);
 
-    function burn(address expert) external;
+    function burn(uint256 tokenId) external;
 
     function setTokenURI(uint256 tokenId, string calldata uri_) external;
 

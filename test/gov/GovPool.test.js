@@ -1930,24 +1930,6 @@ describe("GovPool", () => {
 
             assert.isOk(await govPool.vote(await govPool.latestProposalId(), wei("100"), [], true, { from: SECOND }));
           });
-
-          it("should restrict user when proposal is burn ExpertNFT", async () => {
-            await setExpert(SECOND);
-
-            await truffleAssert.reverts(
-              burnExpert(SECOND, null, true),
-              "Gov: user restricted from voting in this proposal"
-            );
-
-            await truffleAssert.reverts(
-              burnExpert(SECOND, null, true, dexeExpertNft.address),
-              "Gov: user restricted from voting in this proposal"
-            );
-
-            await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
-
-            assert.isOk(await govPool.vote(await govPool.latestProposalId(), wei("100"), [], { from: SECOND }));
-          });
         });
         context("when action is Against", () => {
           it("should restrict user when proposal is undelegateTreasury", async () => {
@@ -1969,24 +1951,6 @@ describe("GovPool", () => {
             await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
 
             assert.isOk(await govPool.vote(await govPool.latestProposalId(), wei("100"), [], true, { from: SECOND }));
-          });
-
-          it("should restrict user when proposal is burn ExpertNFT", async () => {
-            await setExpert(SECOND);
-
-            await truffleAssert.reverts(
-              burnExpert(SECOND, null, false),
-              "Gov: user restricted from voting in this proposal"
-            );
-
-            await truffleAssert.reverts(
-              burnExpert(SECOND, null, false, dexeExpertNft.address),
-              "Gov: user restricted from voting in this proposal"
-            );
-
-            await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
-
-            assert.isOk(await govPool.vote(await govPool.latestProposalId(), wei("100"), [], { from: SECOND }));
           });
         });
       });
