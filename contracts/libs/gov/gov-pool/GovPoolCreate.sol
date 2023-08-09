@@ -203,14 +203,15 @@ library GovPoolCreate {
             IGovPool.ProposalAction calldata action = actions[i];
 
             address executor = action.executor;
-            bytes4 selector = action.data.getSelector();
+
+            (bytes4 selector, address user) = abi.decode(action.data[:36], (bytes4, address));
 
             if (
                 ((executor == expertNft || executor == dexeExpertNft) &&
                     selector == IERC721Expert.burn.selector) ||
                 (executor == address(this) && selector == IGovPool.undelegateTreasury.selector)
             ) {
-                restrictedProposals[action.data.getFirstArgument()].add(proposalId);
+                restrictedProposals[user].add(proposalId);
             }
         }
     }

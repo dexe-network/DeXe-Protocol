@@ -8,12 +8,6 @@ library DataHelper {
         }
     }
 
-    function getFirstArgument(bytes calldata data) internal pure returns (address arg) {
-        assembly {
-            arg := calldataload(add(data.offset, 0x04))
-        }
-    }
-
     function getRevertMsg(bytes memory data) internal pure returns (string memory) {
         if (data.length < 68) {
             return "Transaction reverted silently";
