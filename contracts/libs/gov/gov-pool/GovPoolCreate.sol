@@ -203,7 +203,7 @@ library GovPoolCreate {
             IGovPool.ProposalAction calldata action = actions[i];
 
             address executor = action.executor;
-            bytes4 selector = actions[i].data.getSelector();
+            bytes4 selector = action.data.getSelector();
 
             if (
                 ((executor == expertNft || executor == dexeExpertNft) &&

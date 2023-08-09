@@ -930,6 +930,25 @@ const getBytesMintExpertNft = (to, uri) => {
   );
 };
 
+const getBytesBurnExpertNft = (expert) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "expert",
+          type: "address",
+        },
+      ],
+      name: "burn",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [expert]
+  );
+};
+
 const getBytesDelegateTreasury = (delegatee, amount, nftIds) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -1020,6 +1039,7 @@ module.exports = {
   getBytesSetCreditInfo,
   getBytesChangeVoteModifiers,
   getBytesMintExpertNft,
+  getBytesBurnExpertNft,
   getBytesDelegateTreasury,
   getBytesUndelegateTreasury,
 };
