@@ -208,11 +208,8 @@ library GovPoolCreate {
 
                 if (
                     ((executor == expertNft || executor == dexeExpertNft) &&
-                        (selector == IERC721Expert.mint.selector ||
-                            selector == IERC721Expert.burn.selector)) ||
-                    (executor == address(this) &&
-                        (selector == IGovPool.delegateTreasury.selector ||
-                            selector == IGovPool.undelegateTreasury.selector))
+                        selector == IERC721Expert.burn.selector) ||
+                    (executor == address(this) && selector == IGovPool.undelegateTreasury.selector)
                 ) {
                     restrictedProposals[action.data.getFirstArgument()].add(proposalId);
                 }
