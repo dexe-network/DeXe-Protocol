@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "./settings/IGovSettings.sol";
 import "./validators/IGovValidators.sol";
-import "./ERC721/IERC721Expert.sol";
 
 /**
  * This is the Governance pool contract. This contract is the third contract the user can deploy through
