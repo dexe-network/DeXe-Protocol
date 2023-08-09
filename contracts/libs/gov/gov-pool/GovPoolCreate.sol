@@ -133,11 +133,11 @@ library GovPoolCreate {
         address mainExecutor = actionsFor[actionsFor.length - 1].executor;
         settingsId = govSettings.executorToSettings(mainExecutor);
 
-        bool forceDefaultSettings = _handleDataForProposal(settingsId, actionsFor);
+        bool forceDefaultSettings = _handleDataForProposal(settingsId, govSettings, actionsFor);
 
         if (actionsAgainst.length != 0) {
             forceDefaultSettings =
-                _handleDataForProposal(settingsId, actionsAgainst) ||
+                _handleDataForProposal(settingsId, govSettings, actionsAgainst) ||
                 forceDefaultSettings ||
                 settingsId !=
                 govSettings.executorToSettings(actionsAgainst[actionsAgainst.length - 1].executor);
@@ -239,12 +239,42 @@ library GovPoolCreate {
         );
     }
 
+    function _handleDataForInternalProposal(
+        IGovSettings govSettings,
+        IGovPool.ProposalAction[] calldata actions
+    ) internal view {
+        for (uint256 i; i < actions.length; i++) {
+            bytes4 selector = actions[i].data.getSelector();
+            uint256 executorSettings = govSettings.executorToSettings(actions[i].executor);
+
+            require(
+                actions[i].value == 0 &&
+                    executorSettings == uint256(IGovSettings.ExecutorType.INTERNAL) &&
+                    (selector == IGovSettings.addSettings.selector ||
+                        selector == IGovSettings.editSettings.selector ||
+                        selector == IGovSettings.changeExecutors.selector ||
+                        selector == IGovUserKeeper.setERC20Address.selector ||
+                        selector == IGovUserKeeper.setERC721Address.selector ||
+                        selector == IGovPool.editDescriptionURL.selector ||
+                        selector == IGovPool.setNftMultiplierAddress.selector ||
+                        selector == IGovPool.changeVerifier.selector ||
+                        selector == IGovPool.delegateTreasury.selector ||
+                        selector == IGovPool.undelegateTreasury.selector ||
+                        selector == IGovPool.changeBABTRestriction.selector ||
+                        selector == IGovPool.changeVoteModifiers.selector ||
+                        selector == IGovPool.setCreditInfo.selector),
+                "Gov: invalid internal data"
+            );
+        }
+    }
+
     function _handleDataForProposal(
         uint256 settingsId,
+        IGovSettings govSettings,
         IGovPool.ProposalAction[] calldata actions
     ) internal returns (bool) {
         if (settingsId == uint256(IGovSettings.ExecutorType.INTERNAL)) {
-            _handleDataForInternalProposal(actions);
+            _handleDataForInternalProposal(govSettings, actions);
             return false;
         }
         if (settingsId == uint256(IGovSettings.ExecutorType.VALIDATORS)) {
@@ -272,32 +302,6 @@ library GovPoolCreate {
 
             require(
                 actions[i].value == 0 && (selector == IGovValidators.changeBalances.selector),
-                "Gov: invalid internal data"
-            );
-        }
-    }
-
-    function _handleDataForInternalProposal(
-        IGovPool.ProposalAction[] calldata actions
-    ) internal pure {
-        for (uint256 i; i < actions.length; i++) {
-            bytes4 selector = actions[i].data.getSelector();
-
-            require(
-                actions[i].value == 0 &&
-                    (selector == IGovSettings.addSettings.selector ||
-                        selector == IGovSettings.editSettings.selector ||
-                        selector == IGovSettings.changeExecutors.selector ||
-                        selector == IGovUserKeeper.setERC20Address.selector ||
-                        selector == IGovUserKeeper.setERC721Address.selector ||
-                        selector == IGovPool.editDescriptionURL.selector ||
-                        selector == IGovPool.setNftMultiplierAddress.selector ||
-                        selector == IGovPool.changeVerifier.selector ||
-                        selector == IGovPool.delegateTreasury.selector ||
-                        selector == IGovPool.undelegateTreasury.selector ||
-                        selector == IGovPool.changeBABTRestriction.selector ||
-                        selector == IGovPool.changeVoteModifiers.selector ||
-                        selector == IGovPool.setCreditInfo.selector),
                 "Gov: invalid internal data"
             );
         }
