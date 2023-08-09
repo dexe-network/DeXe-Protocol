@@ -201,18 +201,16 @@ library GovPoolCreate {
 
         for (uint256 i; i < actions.length; i++) {
             IGovPool.ProposalAction calldata action = actions[i];
-            address executor = actions[i].executor;
 
-            if (executor == expertNft || executor == dexeExpertNft) {
-                bytes4 selector = action.data.getSelector();
+            address executor = action.executor;
+            bytes4 selector = action.data.getSelector();
 
-                if (
-                    ((executor == expertNft || executor == dexeExpertNft) &&
-                        selector == IERC721Expert.burn.selector) ||
-                    (executor == address(this) && selector == IGovPool.undelegateTreasury.selector)
-                ) {
-                    restrictedProposals[action.data.getFirstArgument()].add(proposalId);
-                }
+            if (
+                ((executor == expertNft || executor == dexeExpertNft) &&
+                    selector == IERC721Expert.burn.selector) ||
+                (executor == address(this) && selector == IGovPool.undelegateTreasury.selector)
+            ) {
+                restrictedProposals[action.data.getFirstArgument()].add(proposalId);
             }
         }
     }
