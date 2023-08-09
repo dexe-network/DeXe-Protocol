@@ -14,6 +14,7 @@ import "../../utils/DataHelper.sol";
 import "../../../gov/GovPool.sol";
 
 library GovPoolCreate {
+    using EnumerableSet for EnumerableSet.UintSet;
     using DataHelper for bytes;
 
     event ProposalCreated(
@@ -30,6 +31,7 @@ library GovPoolCreate {
 
     function createProposal(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
+        mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
         string calldata _descriptionURL,
         string calldata misc,
         IGovPool.ProposalAction[] calldata actionsOnFor,
@@ -42,6 +44,13 @@ library GovPoolCreate {
         ) = _validateProposal(actionsOnFor, actionsOnAgainst);
 
         uint256 proposalId = GovPool(payable(address(this))).latestProposalId();
+
+        _restrictInterestedUsersFromProposal(
+            restrictedProposals,
+            actionsOnFor,
+            actionsOnAgainst,
+            proposalId
+        );
 
         IGovPool.Proposal storage proposal = proposals[proposalId];
 
@@ -123,11 +132,11 @@ library GovPoolCreate {
         address mainExecutor = actionsFor[actionsFor.length - 1].executor;
         settingsId = govSettings.executorToSettings(mainExecutor);
 
-        bool forceDefaultSettings = _handleDataForProposal(settingsId, govSettings, actionsFor);
+        bool forceDefaultSettings = _handleDataForProposal(settingsId, actionsFor);
 
         if (actionsAgainst.length != 0) {
             forceDefaultSettings =
-                _handleDataForProposal(settingsId, govSettings, actionsAgainst) ||
+                _handleDataForProposal(settingsId, actionsAgainst) ||
                 forceDefaultSettings ||
                 settingsId !=
                 govSettings.executorToSettings(actionsAgainst[actionsAgainst.length - 1].executor);
@@ -169,6 +178,47 @@ library GovPoolCreate {
         emit DPCreated(decodedId, msg.sender, token, amount);
     }
 
+    function _restrictInterestedUsersFromProposal(
+        mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
+        IGovPool.ProposalAction[] calldata actionsFor,
+        IGovPool.ProposalAction[] calldata actionsAgainst,
+        uint256 proposalId
+    ) internal {
+        _restrictUsersFromActions(restrictedProposals, actionsFor, proposalId);
+
+        if (actionsAgainst.length != 0) {
+            _restrictUsersFromActions(restrictedProposals, actionsAgainst, proposalId);
+        }
+    }
+
+    function _restrictUsersFromActions(
+        mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
+        IGovPool.ProposalAction[] calldata actions,
+        uint256 proposalId
+    ) internal {
+        (, address expertNft, address dexeExpertNft, ) = IGovPool(address(this)).getNftContracts();
+
+        for (uint256 i; i < actions.length; i++) {
+            IGovPool.ProposalAction calldata action = actions[i];
+            address executor = actions[i].executor;
+
+            if (executor == expertNft || executor == dexeExpertNft) {
+                bytes4 selector = action.data.getSelector();
+
+                if (
+                    ((executor == expertNft || executor == dexeExpertNft) &&
+                        (selector == IERC721Expert.mint.selector ||
+                            selector == IERC721Expert.burn.selector)) ||
+                    (executor == address(this) &&
+                        (selector == IGovPool.delegateTreasury.selector ||
+                            selector == IGovPool.undelegateTreasury.selector))
+                ) {
+                    restrictedProposals[action.data.getFirstArgument()].add(proposalId);
+                }
+            }
+        }
+    }
+
     function _canCreate(
         IGovSettings.ProposalSettings memory settings,
         uint256 snapshotId
@@ -188,42 +238,12 @@ library GovPoolCreate {
         );
     }
 
-    function _handleDataForInternalProposal(
-        IGovSettings govSettings,
-        IGovPool.ProposalAction[] calldata actions
-    ) internal view {
-        for (uint256 i; i < actions.length; i++) {
-            bytes4 selector = actions[i].data.getSelector();
-            uint256 executorSettings = govSettings.executorToSettings(actions[i].executor);
-
-            require(
-                actions[i].value == 0 &&
-                    executorSettings == uint256(IGovSettings.ExecutorType.INTERNAL) &&
-                    (selector == IGovSettings.addSettings.selector ||
-                        selector == IGovSettings.editSettings.selector ||
-                        selector == IGovSettings.changeExecutors.selector ||
-                        selector == IGovUserKeeper.setERC20Address.selector ||
-                        selector == IGovUserKeeper.setERC721Address.selector ||
-                        selector == IGovPool.editDescriptionURL.selector ||
-                        selector == IGovPool.setNftMultiplierAddress.selector ||
-                        selector == IGovPool.changeVerifier.selector ||
-                        selector == IGovPool.delegateTreasury.selector ||
-                        selector == IGovPool.undelegateTreasury.selector ||
-                        selector == IGovPool.changeBABTRestriction.selector ||
-                        selector == IGovPool.changeVoteModifiers.selector ||
-                        selector == IGovPool.setCreditInfo.selector),
-                "Gov: invalid internal data"
-            );
-        }
-    }
-
     function _handleDataForProposal(
         uint256 settingsId,
-        IGovSettings govSettings,
         IGovPool.ProposalAction[] calldata actions
     ) internal returns (bool) {
         if (settingsId == uint256(IGovSettings.ExecutorType.INTERNAL)) {
-            _handleDataForInternalProposal(govSettings, actions);
+            _handleDataForInternalProposal(actions);
             return false;
         }
         if (settingsId == uint256(IGovSettings.ExecutorType.VALIDATORS)) {
@@ -251,6 +271,32 @@ library GovPoolCreate {
 
             require(
                 actions[i].value == 0 && (selector == IGovValidators.changeBalances.selector),
+                "Gov: invalid internal data"
+            );
+        }
+    }
+
+    function _handleDataForInternalProposal(
+        IGovPool.ProposalAction[] calldata actions
+    ) internal pure {
+        for (uint256 i; i < actions.length; i++) {
+            bytes4 selector = actions[i].data.getSelector();
+
+            require(
+                actions[i].value == 0 &&
+                    (selector == IGovSettings.addSettings.selector ||
+                        selector == IGovSettings.editSettings.selector ||
+                        selector == IGovSettings.changeExecutors.selector ||
+                        selector == IGovUserKeeper.setERC20Address.selector ||
+                        selector == IGovUserKeeper.setERC721Address.selector ||
+                        selector == IGovPool.editDescriptionURL.selector ||
+                        selector == IGovPool.setNftMultiplierAddress.selector ||
+                        selector == IGovPool.changeVerifier.selector ||
+                        selector == IGovPool.delegateTreasury.selector ||
+                        selector == IGovPool.undelegateTreasury.selector ||
+                        selector == IGovPool.changeBABTRestriction.selector ||
+                        selector == IGovPool.changeVoteModifiers.selector ||
+                        selector == IGovPool.setCreditInfo.selector),
                 "Gov: invalid internal data"
             );
         }

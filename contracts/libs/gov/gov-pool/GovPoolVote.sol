@@ -34,6 +34,7 @@ library GovPoolVote {
             storage votedInProposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage voteInfos,
+        mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
         uint256 proposalId,
         uint256 voteAmount,
         uint256[] calldata voteNftIds,
@@ -54,7 +55,17 @@ library GovPoolVote {
             : IGovPool.VoteType.PersonalVote;
 
         return
-            _vote(core, votes, voteInfo, proposalId, voteAmount, voteNftIds, voteType, isVoteFor);
+            _vote(
+                core,
+                votes,
+                voteInfo,
+                restrictedProposals[msg.sender],
+                proposalId,
+                voteAmount,
+                voteNftIds,
+                voteType,
+                isVoteFor
+            );
     }
 
     function voteDelegated(
@@ -63,6 +74,7 @@ library GovPoolVote {
             storage votedInProposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage voteInfos,
+        mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
         uint256 proposalId,
         uint256 voteAmount,
         uint256[] calldata voteNftIds,
@@ -86,6 +98,7 @@ library GovPoolVote {
                 core,
                 votes,
                 voteInfo,
+                restrictedProposals[msg.sender],
                 proposalId,
                 voteAmount,
                 voteNftIds,
@@ -100,6 +113,7 @@ library GovPoolVote {
             storage votedInProposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage voteInfos,
+        mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
         uint256 proposalId,
         uint256 voteAmount,
         uint256[] calldata voteNftIds,
@@ -123,6 +137,7 @@ library GovPoolVote {
                 core,
                 votes,
                 voteInfo,
+                restrictedProposals[msg.sender],
                 proposalId,
                 voteAmount,
                 voteNftIds,
@@ -135,13 +150,14 @@ library GovPoolVote {
         IGovPool.ProposalCore storage core,
         EnumerableSet.UintSet storage votes,
         IGovPool.VoteInfo storage voteInfo,
+        EnumerableSet.UintSet storage restrictedUserProposals,
         uint256 proposalId,
         uint256 voteAmount,
         uint256[] calldata voteNftIds,
         IGovPool.VoteType voteType,
         bool isVoteFor
     ) internal returns (uint256) {
-        _canVote(core, proposalId, voteType);
+        _canVote(core, restrictedUserProposals, proposalId, voteType);
 
         votes.add(proposalId);
 
@@ -249,6 +265,7 @@ library GovPoolVote {
 
     function _canVote(
         IGovPool.ProposalCore storage core,
+        EnumerableSet.UintSet storage restrictedUserProposals,
         uint256 proposalId,
         IGovPool.VoteType voteType
     ) internal view {
@@ -257,6 +274,11 @@ library GovPoolVote {
         require(
             govPool.getProposalState(proposalId) == IGovPool.ProposalState.Voting,
             "Gov: vote unavailable"
+        );
+
+        require(
+            !restrictedUserProposals.contains(proposalId),
+            "Gov: user restricted from voting in this proposal"
         );
 
         (, address userKeeper, , ) = govPool.getHelperContracts();

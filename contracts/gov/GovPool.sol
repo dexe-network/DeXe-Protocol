@@ -96,6 +96,8 @@ contract GovPool is
 
     mapping(address => MicropoolInfo) internal _micropoolInfos;
 
+    mapping(address => EnumerableSet.UintSet) internal _restrictedProposals; // voter => restricted proposal ids
+
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
     event DelegatedTreasury(address to, uint256 amount, uint256[] nfts, bool isDelegate);
     event Requested(address from, address to, uint256 amount, uint256[] nfts);
@@ -188,7 +190,13 @@ contract GovPool is
     ) external override onlyBABTHolder {
         uint256 proposalId = ++latestProposalId;
 
-        _proposals.createProposal(_descriptionURL, misc, actionsOnFor, actionsOnAgainst);
+        _proposals.createProposal(
+            _restrictedProposals,
+            _descriptionURL,
+            misc,
+            actionsOnFor,
+            actionsOnAgainst
+        );
 
         _updateRewards(proposalId, RewardType.Create);
     }
@@ -210,6 +218,7 @@ contract GovPool is
         uint256 reward = _proposals.vote(
             _votedInProposals,
             _voteInfos,
+            _restrictedProposals,
             proposalId,
             voteAmount,
             voteNftIds,
@@ -234,6 +243,7 @@ contract GovPool is
         uint256 reward = _proposals.voteDelegated(
             _votedInProposals,
             _voteInfos,
+            _restrictedProposals,
             proposalId,
             voteAmount,
             voteNftIds,
@@ -267,6 +277,7 @@ contract GovPool is
         uint256 reward = _proposals.voteTreasury(
             _votedInProposals,
             _voteInfos,
+            _restrictedProposals,
             proposalId,
             voteAmount,
             voteNftIds,
