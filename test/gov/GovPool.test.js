@@ -132,6 +132,10 @@ describe("GovPool", () => {
     await govPool.multicall([getBytesGovExecute(proposalId), getBytesGovClaimRewards([proposalId])], { from: from });
   }
 
+  async function createInternalProposal(proposalType, description, amounts, users, from) {
+    await validators.createInternalProposal(proposalType, description, amounts, users, { from: from });
+  }
+
   function tokensToVotes(tokenNumber) {
     return toBN(solidityPow(wei(tokenNumber), "997000000000000000"));
   }
@@ -1344,7 +1348,7 @@ describe("GovPool", () => {
         });
 
         it("should return SucceededFor state when quorum has reached and votes for and with validators but there count is 0", async () => {
-          await validators.createInternalProposal(ProposalType.ChangeBalances, "", [0, 0], [OWNER, SECOND]);
+          await createInternalProposal(ProposalType.ChangeBalances, "", [0, 0], [OWNER, SECOND]);
           await validators.vote(1, wei("1000000000000"), true, true, { from: SECOND });
 
           await validators.execute(1);
@@ -1366,7 +1370,7 @@ describe("GovPool", () => {
         });
 
         it("should return SucceededAgainst state when quorum has reached and votes for and with validators but there count is 0", async () => {
-          await validators.createInternalProposal(ProposalType.ChangeBalances, "", [0, 0], [OWNER, SECOND]);
+          await createInternalProposal(ProposalType.ChangeBalances, "", [0, 0], [OWNER, SECOND]);
           await validators.vote(1, wei("1000000000000"), true, true, { from: SECOND });
 
           await validators.execute(1);
@@ -1595,7 +1599,7 @@ describe("GovPool", () => {
 
           assert.equal((await govPool.getProposalState(3)).toFixed(), ProposalState.WaitingForVotingTransfer);
 
-          await validators.createInternalProposal(ProposalType.ChangeBalances, "", [0, 0], [OWNER, SECOND]);
+          await createInternalProposal(ProposalType.ChangeBalances, "", [0, 0], [OWNER, SECOND]);
           await validators.vote(1, wei("1000000000000"), true, true, { from: SECOND });
 
           await validators.execute(1);

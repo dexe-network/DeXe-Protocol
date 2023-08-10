@@ -177,7 +177,7 @@ describe.only("GovValidators", () => {
         assert.isFalse(await validators.isValidator(OWNER));
 
         await truffleAssert.reverts(
-          validators.createInternalProposal(
+          createInternalProposal(
             ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
             "example.com",
             [100, 0, toPercent(51)],
@@ -227,21 +227,19 @@ describe.only("GovValidators", () => {
 
       it("should revert when arrays lengths not equals", async () => {
         await truffleAssert.reverts(
-          validators.createInternalProposal(ProposalType.ChangeBalances, "example.com", [13, 15], [OWNER], {
-            from: SECOND,
-          }),
+          createInternalProposal(ProposalType.ChangeBalances, "example.com", [13, 15], [OWNER], SECOND),
           "Validators: invalid array length"
         );
       });
 
       it("should revert if invalid duration value", async () => {
         await truffleAssert.reverts(
-          validators.createInternalProposal(
+          createInternalProposal(
             ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
             "example.com",
             [0, 0, toPercent(51)],
             [],
-            { from: SECOND }
+            SECOND
           ),
           "Validators: duration is zero"
         );
@@ -249,14 +247,12 @@ describe.only("GovValidators", () => {
 
       it("should revert if invalid quorum value", async () => {
         await truffleAssert.reverts(
-          validators.createInternalProposal(
+          createInternalProposal(
             ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
             "example.com",
             [100, 0, toPercent(101)],
             [OWNER],
-            {
-              from: SECOND,
-            }
+            SECOND
           ),
           "Validators: invalid quorum value"
         );
@@ -264,12 +260,12 @@ describe.only("GovValidators", () => {
 
       it("should revert if invalid values", async () => {
         await truffleAssert.reverts(
-          validators.createInternalProposal(
+          createInternalProposal(
             ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
             "example.com",
             [1, 1, toPercent(101)],
             [],
-            { from: SECOND }
+            SECOND
           ),
           "Validators: invalid quorum value"
         );
@@ -277,9 +273,7 @@ describe.only("GovValidators", () => {
 
       it("should revert if invalid address", async () => {
         await truffleAssert.reverts(
-          validators.createInternalProposal(ProposalType.ChangeBalances, "example.com", [0], [ZERO_ADDR], {
-            from: SECOND,
-          }),
+          createInternalProposal(ProposalType.ChangeBalances, "example.com", [0], [ZERO_ADDR], SECOND),
           "Validators: invalid address"
         );
       });
