@@ -43,6 +43,7 @@ const ValidatorsProposalState = {
 const ProposalType = {
   ChangeInternalDurationAndExecutionDelayAndQuorum: 0,
   ChangeBalances: 1,
+  ChangeCreditLimit: 2,
 };
 
 const ParticipationType = {

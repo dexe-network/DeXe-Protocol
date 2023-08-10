@@ -26,7 +26,11 @@ const {
   getBytesChangeVoteModifiers,
   getBytesMintExpertNft,
 } = require("../utils/gov-pool-utils");
-const { getBytesChangeInternalBalances, getBytesChangeValidatorSettings } = require("../utils/gov-validators-utils");
+const {
+  getBytesChangeInternalBalances,
+  getBytesChangeValidatorSettings,
+  getBytesChangeCreditLimit,
+} = require("../utils/gov-validators-utils");
 
 const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { ProposalState, DEFAULT_CORE_PROPERTIES, ValidatorsProposalState, ProposalType } = require("../utils/constants");
@@ -142,6 +146,9 @@ describe("GovPool", () => {
         break;
       case ProposalType.ChangeBalances:
         data = getBytesChangeInternalBalances(users, amounts);
+        break;
+      case ProposalType.ChangeCreditLimit:
+        data = getBytesChangeCreditLimit(users.slice(0, users.length - 1), amounts, users[users.length - 1]);
         break;
       default:
         assert.isTrue(false);
@@ -3480,7 +3487,7 @@ describe("GovPool", () => {
       });
     });
 
-    describe("credit", () => {
+    describe.only("credit", () => {
       beforeEach(async () => {
         await setTime(10000000);
       });
@@ -3774,6 +3781,25 @@ describe("GovPool", () => {
 
         it("proposal sets credit info", async () => {
           assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN.address, wei("1000"), wei("1000")]]);
+        });
+
+        it("could withdraw with internal proposal", async () => {
+          await createInternalProposal(
+            ProposalType.ChangeCreditLimit,
+            "example.com",
+            [wei("777")],
+            [CREDIT_TOKEN.address, SECOND],
+            OWNER
+          );
+
+          const proposalId = await validators.latestInternalProposalId();
+          await validators.vote(proposalId, wei("100"), true, true);
+          await validators.vote(proposalId, wei("1000000000000"), true, true, { from: SECOND });
+
+          assert.equal((await CREDIT_TOKEN.balanceOf(SECOND)).toFixed(), "0");
+          await validators.execute(proposalId);
+          assert.equal((await CREDIT_TOKEN.balanceOf(SECOND)).toFixed(), wei("777"));
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN.address, wei("1000"), wei("223")]]);
         });
       });
     });

@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../../interfaces/gov/validators/IGovValidators.sol";
+import "../../interfaces/gov/IGovPool.sol";
 
 import "./GovValidatorsToken.sol";
 
@@ -195,6 +196,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
                 uint256[] memory amounts,
                 address destination
             ) = _getCreditInfoFromData(proposal.data);
+            IGovPool(owner()).transferCreditAmount(tokens, amounts, destination);
         }
 
         emit InternalProposalExecuted(proposalId, msg.sender);
