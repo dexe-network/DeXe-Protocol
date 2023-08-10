@@ -440,7 +440,7 @@ describe("BasicTraderPool", () => {
 
         const poolInfo = await traderPool.getPoolInfo();
 
-        assert.deepEqual(poolInfo[3], [tokens.DEXE.address, tokens.USD.address]);
+        assert.deepEqual(poolInfo[3], [tokens.USD.address, tokens.DEXE.address]);
       });
 
       it("should revert when tokens are not in whitelist", async () => {

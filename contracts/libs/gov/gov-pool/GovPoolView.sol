@@ -99,8 +99,7 @@ library GovPoolView {
                 validatorProposal: validators.getExternalProposal(i + 1),
                 proposalState: govPool.getProposalState(i + 1),
                 requiredQuorum: govPool.getProposalRequiredQuorum(i + 1),
-                requiredValidatorsQuorum: validators.getProposalRequiredQuorum(i + 1, false),
-                executeAfter: 0
+                requiredValidatorsQuorum: validators.getProposalRequiredQuorum(i + 1, false)
             });
         }
     }

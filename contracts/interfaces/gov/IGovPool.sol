@@ -129,14 +129,12 @@ interface IGovPool {
     /// @param proposalState the value from enum `ProposalState`, that shows proposal state at current time
     /// @param requiredQuorum the required votes amount to confirm the proposal
     /// @param requiredValidatorsQuorum the the required validator votes to confirm the proposal
-    /// @param executeAfter the timestamp of start available execution in seconds
     struct ProposalView {
         Proposal proposal;
         IGovValidators.ExternalProposal validatorProposal;
         ProposalState proposalState;
         uint256 requiredQuorum;
         uint256 requiredValidatorsQuorum;
-        uint64 executeAfter;
     }
 
     /// @notice The struct that holds information about the votes of the user in a single proposal

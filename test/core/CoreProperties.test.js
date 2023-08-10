@@ -302,7 +302,7 @@ describe("CoreProperties", () => {
         coreProperties.address,
       ]);
 
-      assert.deepEqual(positions, [OWNER, NOTHING, SECOND, coreProperties.address]);
+      assert.deepEqual(positions, [coreProperties.address, NOTHING, SECOND, OWNER]);
     });
   });
 

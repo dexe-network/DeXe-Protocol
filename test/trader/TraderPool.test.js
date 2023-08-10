@@ -524,7 +524,7 @@ describe("TraderPool", () => {
 
         const poolInfo = await traderPool.getPoolInfo();
 
-        assert.deepEqual(poolInfo[3], [tokens.DEXE.address, tokens.USD.address]);
+        assert.deepEqual(poolInfo[3], [tokens.USD.address, tokens.DEXE.address]);
       });
 
       it("should invest tokens twice", async () => {
@@ -566,7 +566,7 @@ describe("TraderPool", () => {
 
         const poolInfo = await traderPool.getPoolInfo();
 
-        assert.deepEqual(poolInfo[3], [tokens.DEXE.address, tokens.USD.address, tokens.MANA.address]);
+        assert.deepEqual(poolInfo[3], [tokens.MANA.address, tokens.USD.address, tokens.DEXE.address]);
       });
 
       it("should invest initial and then invest normally", async () => {
