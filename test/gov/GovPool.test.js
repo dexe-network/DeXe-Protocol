@@ -3487,7 +3487,7 @@ describe("GovPool", () => {
       });
     });
 
-    describe.only("credit", () => {
+    describe("credit", () => {
       beforeEach(async () => {
         await setTime(10000000);
       });
