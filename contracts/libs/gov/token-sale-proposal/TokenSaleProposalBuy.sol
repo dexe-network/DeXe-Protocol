@@ -9,6 +9,7 @@ import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
 import "../../../interfaces/gov/IGovPool.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
+import "../../../core/CoreProperties.sol";
 import "../../../gov/proposals/TokenSaleProposal.sol";
 
 import "../../../libs/math/MathHelper.sol";
@@ -29,7 +30,7 @@ library TokenSaleProposalBuy {
     ) external {
         ITokenSaleProposal.UserInfo storage userInfo = tier.users[msg.sender];
         ITokenSaleProposal.PurchaseInfo storage purchaseInfo = userInfo.purchaseInfo;
-        ITokenSaleProposal.TierInitParams memory tierInitParams = tier.tierInitParams;
+        ITokenSaleProposal.TierInitParams storage tierInitParams = tier.tierInitParams;
 
         if (tokenToBuyWith == ETHEREUM_ADDRESS) {
             amount = msg.value;
@@ -55,17 +56,35 @@ library TokenSaleProposalBuy {
 
         userInfo.vestingUserInfo.vestingTotalAmount += vestingCurrentAmount;
 
-        address govAddress = TokenSaleProposal(address(this)).govAddress();
+        _purchase(tokenToBuyWith, amount);
+    }
 
-        if (tokenToBuyWith == ETHEREUM_ADDRESS) {
-            (bool success, ) = govAddress.call{value: amount}("");
+    function _purchase(address token, uint256 amount) internal {
+        TokenSaleProposal tokenSaleProposal = TokenSaleProposal(address(this));
+        address govAddress = tokenSaleProposal.govAddress();
+        address dexeGovAddress = tokenSaleProposal.dexeGovAddress();
+
+        if (govAddress == dexeGovAddress) {
+            CoreProperties coreProperties = CoreProperties(tokenSaleProposal.coreProperties());
+
+            uint256 commission = amount.percentage(
+                coreProperties.getTokenSaleProposalCommissionPercentage()
+            );
+
+            _sendFunds(token, dexeGovAddress, commission);
+
+            amount -= commission;
+        }
+
+        _sendFunds(token, govAddress, amount);
+    }
+
+    function _sendFunds(address token, address to, uint256 amount) internal {
+        if (token == ETHEREUM_ADDRESS) {
+            (bool success, ) = to.call{value: amount}("");
             require(success, "TSP: failed to transfer ether");
         } else {
-            IERC20(tokenToBuyWith).safeTransferFrom(
-                msg.sender,
-                govAddress,
-                amount.from18(tokenToBuyWith.decimals())
-            );
+            IERC20(token).safeTransferFrom(msg.sender, to, amount.from18(token.decimals()));
         }
     }
 

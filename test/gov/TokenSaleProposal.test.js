@@ -78,6 +78,7 @@ describe("TokenSaleProposal", () => {
   let FACTORY;
   let NOTHING;
 
+  let contractsRegistry;
   let coreProperties;
   let poolRegistry;
 
@@ -143,7 +144,7 @@ describe("TokenSaleProposal", () => {
     await TokenSaleProposal.link(tspClaimLib);
     await TokenSaleProposal.link(tspRecoverLib);
 
-    const contractsRegistry = await ContractsRegistry.new();
+    contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
     babt = await BABTMock.new();
@@ -261,10 +262,10 @@ describe("TokenSaleProposal", () => {
     });
 
     it("should not init twice", async () => {
-      await tsp.__TokenSaleProposal_init(NOTHING, NOTHING);
+      await tsp.__TokenSaleProposal_init(NOTHING, NOTHING, NOTHING, NOTHING);
 
       await truffleAssert.reverts(
-        tsp.__TokenSaleProposal_init(NOTHING, NOTHING),
+        tsp.__TokenSaleProposal_init(NOTHING, NOTHING, NOTHING, NOTHING),
         "Initializable: contract is already initialized"
       );
     });
@@ -476,7 +477,12 @@ describe("TokenSaleProposal", () => {
       await deployPool(POOL_PARAMETERS);
       await setupTokens();
 
-      await tsp.__TokenSaleProposal_init(govPool.address, babt.address);
+      await tsp.__TokenSaleProposal_init(
+        govPool.address,
+        babt.address,
+        await contractsRegistry.getTreasuryContract(),
+        coreProperties.address
+      );
 
       erc20Params = {
         govAddress: govPool.address,

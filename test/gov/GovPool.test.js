@@ -807,7 +807,7 @@ describe("GovPool", () => {
         );
       });
 
-      it.only("should create proposal if user is Expert even due to low voting power", async () => {
+      it("should create proposal if user is Expert even due to low voting power", async () => {
         await dexeExpertNft.mint(SECOND, "");
 
         assert.isOk(
