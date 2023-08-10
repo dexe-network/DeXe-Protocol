@@ -25,7 +25,6 @@ const {
   getBytesSetCreditInfo,
   getBytesChangeVoteModifiers,
   getBytesMintExpertNft,
-  getBytesBurnExpertNft,
   getBytesDelegateTreasury,
   getBytesUndelegateTreasury,
 } = require("../utils/gov-pool-utils");
@@ -524,45 +523,6 @@ describe("GovPool", () => {
     await govPool.execute(proposalId);
   }
 
-  async function burnExpert(addr, voteFoo = null, isActionFor = true, expertNFTAddress = expertNft.address) {
-    const bytesBurn = getBytesBurnExpertNft(addr);
-    await govPool.createProposal(
-      "example.com",
-      "misc",
-      isActionFor ? [[expertNFTAddress, 0, bytesBurn]] : [],
-      isActionFor ? [[SECOND, 0, getBytesApprove(SECOND, 1)]] : [[expertNFTAddress, 0, bytesBurn]]
-    );
-
-    const proposalId = await govPool.latestProposalId();
-    if (voteFoo) {
-      await voteFoo(proposalId);
-    } else {
-      await govPool.vote(proposalId, wei("1000"), [], true);
-      await govPool.vote(proposalId, wei("100000000000000000000"), [], true, { from: SECOND });
-
-      if ((await govPool.getProposalState(proposalId)) == ProposalState.Voting) {
-        const balance = await userKeeper.tokenBalance(SECOND, VoteType.PersonalVote);
-        await govPool.vote(
-          proposalId,
-          toBN(balance[0]).minus(balance[1]).minus(wei("100000000000000000000")),
-          [],
-          true,
-          {
-            from: SECOND,
-          }
-        );
-      }
-
-      await setTime((await getCurrentBlockTime()) + 999);
-
-      await govPool.moveProposalToValidators(proposalId);
-      await validators.vote(proposalId, wei("100"), false, true);
-      await validators.vote(proposalId, wei("1000000000000"), false, true, { from: SECOND });
-    }
-
-    await govPool.execute(proposalId);
-  }
-
   async function delegateTreasury(addr, amount, nftIds) {
     if (!(await govPool.getExpertStatus(addr))) {
       await setExpert(addr);
@@ -582,12 +542,14 @@ describe("GovPool", () => {
 
     await govPool.vote(proposalId, wei("1000"), [], true);
     await govPool.vote(proposalId, wei("100000000000000000000"), [], true, { from: SECOND });
+
     if ((await govPool.getProposalState(proposalId)) == ProposalState.Voting) {
       const balance = await userKeeper.tokenBalance(SECOND, VoteType.PersonalVote);
       await govPool.vote(proposalId, toBN(balance[0]).minus(balance[1]).minus(wei("100000000000000000000")), [], true, {
         from: SECOND,
       });
     }
+
     await govPool.moveProposalToValidators(proposalId);
     await validators.vote(proposalId, wei("1000000000000"), false, true, { from: SECOND });
     await govPool.execute(proposalId);
@@ -613,12 +575,14 @@ describe("GovPool", () => {
 
     await govPool.vote(proposalId, wei("1000"), [], true);
     await govPool.vote(proposalId, wei("100000000000000000000"), [], true, { from: SECOND });
+
     if ((await govPool.getProposalState(proposalId)) == ProposalState.Voting) {
       const balance = await userKeeper.tokenBalance(SECOND, VoteType.PersonalVote);
       await govPool.vote(proposalId, toBN(balance[0]).minus(balance[1]).minus(wei("100000000000000000000")), [], true, {
         from: SECOND,
       });
     }
+
     await govPool.moveProposalToValidators(proposalId);
     await validators.vote(proposalId, wei("1000000000000"), false, true, { from: SECOND });
     await govPool.execute(proposalId);
@@ -1802,6 +1766,7 @@ describe("GovPool", () => {
           await token.approve(userKeeper.address, wei("1000"), { from: THIRD });
           await govPool.deposit(THIRD, wei("1000"), [], { from: THIRD });
         });
+
         it("should correctly determine use vote ability when delegatedVotingAllowed is true", async () => {
           const NEW_SETTINGS = {
             earlyCompletion: true,
@@ -1823,17 +1788,23 @@ describe("GovPool", () => {
             },
             executorDescription: "new_settings",
           };
+
           await govPool.createProposal(
             "example.com",
             "misc",
             [[settings.address, 0, getBytesEditSettings([1], [NEW_SETTINGS])]],
             []
           );
+
           await govPool.vote(3, wei("200000000000000000000"), [], true, { from: SECOND });
+
           await setTime((await getCurrentBlockTime()) + 10000);
+
           await govPool.moveProposalToValidators(3);
           await validators.vote(3, wei("1000000000000"), false, true, { from: SECOND });
+
           await setTime((await getCurrentBlockTime()) + 10000);
+
           await govPool.execute(3);
 
           await govPool.createProposal(
@@ -1875,17 +1846,24 @@ describe("GovPool", () => {
             },
             executorDescription: "new_settings",
           };
+
           await govPool.createProposal(
             "example.com",
             "misc",
             [[settings.address, 0, getBytesEditSettings([1], [NEW_SETTINGS])]],
             []
           );
+
           await govPool.vote(3, wei("200000000000000000000"), [], true, { from: SECOND });
+
           await setTime((await getCurrentBlockTime()) + 10000);
+
           await govPool.moveProposalToValidators(3);
+
           await validators.vote(3, wei("1000000000000"), false, true, { from: SECOND });
+
           await setTime((await getCurrentBlockTime()) + 10000);
+
           await govPool.execute(3);
 
           await govPool.createProposal(
@@ -1896,12 +1874,13 @@ describe("GovPool", () => {
           );
 
           assert.isFalse((await getProposalByIndex(4))[0][0].delegatedVotingAllowed);
+
           await govPool.delegate(SECOND, wei("1000"), [1, 2, 3, 4]);
           await truffleAssert.reverts(govPool.vote(4, wei("1000"), [], true), "Gov: wrong vote amount");
           await govPool.voteDelegated(4, wei("1000"), [], true, { from: SECOND });
         });
 
-        context("when action is For", () => {
+        describe("when action is For", () => {
           it("should restrict user when proposal is undelegateTreasury", async () => {
             await delegateTreasury(SECOND, wei("100"), ["10", "11"]);
 
@@ -1931,7 +1910,8 @@ describe("GovPool", () => {
             assert.isOk(await govPool.vote(await govPool.latestProposalId(), wei("100"), [], true, { from: SECOND }));
           });
         });
-        context("when action is Against", () => {
+
+        describe("when action is Against", () => {
           it("should restrict user when proposal is undelegateTreasury", async () => {
             await delegateTreasury(SECOND, wei("100"), ["10", "11"]);
 

@@ -204,7 +204,6 @@ library GovPoolCreate {
                 action.data.getSelector() == IGovPool.undelegateTreasury.selector
             ) {
                 address user = abi.decode(action.data[4:36], (address));
-
                 restrictedProposals[user].add(proposalId);
             }
         }
