@@ -184,11 +184,17 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             proposalSettings.duration = duration;
             proposalSettings.executionDelay = executionDelay;
             proposalSettings.quorum = quorum;
-        } else {
+        } else if (proposalType == ProposalType.ChangeBalances) {
             (address[] memory users, uint256[] memory newValues) = _getBalanceInfoFromData(
                 proposal.data
             );
             _changeBalances(newValues, users);
+        } else {
+            (
+                address[] memory tokens,
+                uint256[] memory amounts,
+                address destination
+            ) = _getCreditInfoFromData(proposal.data);
         }
 
         emit InternalProposalExecuted(proposalId, msg.sender);
@@ -349,6 +355,22 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         }
     }
 
+    function _validateChangeCreditLimit(
+        address[] memory tokens,
+        uint256[] memory amounts,
+        address destination
+    ) internal pure {
+        uint tokensLength = tokens.length;
+        require(
+            amounts.length == tokensLength,
+            "Validators: number of tokens and amounts are not equal"
+        );
+        for (uint i = 0; i < tokensLength; i++) {
+            require(tokens[i] != address(0), "Validators: address of token cannot be zero");
+        }
+        require(destination != address(0), "Validators: destination address cannot be zero");
+    }
+
     function _votesForMoreThanAgainst(ProposalCore storage core) internal view returns (bool) {
         return core.votesFor > core.votesAgainst;
     }
@@ -377,6 +399,13 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             });
 
             _validateProposalSettings(proposalSettings);
+        } else if (proposalType == ProposalType.ChangeCreditLimit) {
+            (
+                address[] memory tokens,
+                uint256[] memory amounts,
+                address destination
+            ) = _getCreditInfoFromData(data);
+            _validateChangeCreditLimit(tokens, amounts, destination);
         } else {
             revert("Invalid proposal type");
         }

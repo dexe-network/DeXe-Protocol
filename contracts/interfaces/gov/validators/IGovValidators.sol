@@ -16,7 +16,8 @@ interface IGovValidators {
 
     enum ProposalType {
         ChangeInternalDurationAndExecutionDelayAndQuorum,
-        ChangeBalances
+        ChangeBalances,
+        ChangeCreditLimit
     }
 
     /// @notice The struct holds information about settings for validators proposal
@@ -86,10 +87,9 @@ interface IGovValidators {
 
     /// @notice Create internal proposal for changing validators balances, base quorum, base duration
     /// @param proposalType `ProposalType`
-    /// 0 - `ChangeInternalDuration`, change base duration
-    /// 1 - `ChangeInternalQuorum`, change base quorum
-    /// 2 - `ChangeInternalDurationAndQuorum`, change base duration and quorum
-    /// 3 - `ChangeBalances`, change address balance
+    /// 0 - `ChangeInternalDurationAndQuorum`, change base duration and quorum
+    /// 1 - `ChangeBalances`, change address balance
+    /// 2 - `ChangeCreditLimit`, change validators withdraw limit
     /// @param data New packed data, depending on proposal type
     function createInternalProposal(
         ProposalType proposalType,
