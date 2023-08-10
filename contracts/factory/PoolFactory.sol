@@ -56,8 +56,9 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address settings,
         address govUserKeeper,
         address localExpertNft,
+        address nftMultiplier,
         address sender
-    );
+    ) anonymous;
     event DaoTokenSaleDeployed(address govPool, address tokenSale, address token);
 
     function setDependencies(address contractsRegistry, bytes memory data) public override {
@@ -82,6 +83,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         govPoolDeps.settingsAddress = _deploy(_poolRegistry.SETTINGS_NAME());
         address poolProxy = _deploy2(poolType, parameters.name);
         govPoolDeps.expertNftAddress = _deployExpertNft(poolProxy, parameters.name);
+        govPoolDeps.nftMultiplierAddress = _deployNftMultiplier(poolProxy, parameters.name);
 
         emit DaoPoolDeployed(
             parameters.name,
@@ -91,6 +93,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             govPoolDeps.settingsAddress,
             govPoolDeps.userKeeperAddress,
             govPoolDeps.expertNftAddress,
+            govPoolDeps.nftMultiplierAddress,
             msg.sender
         );
 
@@ -120,6 +123,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         govPoolDeps.settingsAddress = _deploy(_poolRegistry.SETTINGS_NAME());
         address poolProxy = _deploy2(poolType, parameters.name);
         govPoolDeps.expertNftAddress = _deployExpertNft(poolProxy, parameters.name);
+        govPoolDeps.nftMultiplierAddress = _deployNftMultiplier(poolProxy, parameters.name);
 
         emit DaoPoolDeployed(
             parameters.name,
@@ -129,6 +133,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             govPoolDeps.settingsAddress,
             govPoolDeps.userKeeperAddress,
             govPoolDeps.expertNftAddress,
+            govPoolDeps.nftMultiplierAddress,
             msg.sender
         );
 
@@ -270,6 +275,13 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         return poolProxy.deployExpertNft(name_);
     }
 
+    function _deployNftMultiplier(
+        address poolProxy,
+        string calldata name_
+    ) internal returns (address) {
+        return poolProxy.deployNftMultiplier(name_);
+    }
+
     function _initGovPool(
         address poolProxy,
         GovPool.Dependencies memory govPoolDeps,
@@ -307,7 +319,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         );
         GovPool(payable(poolProxy)).__GovPool_init(
             govPoolDeps,
-            parameters.nftMultiplierAddress,
             parameters.regularVoteModifier,
             parameters.expertVoteModifier,
             parameters.verifier,

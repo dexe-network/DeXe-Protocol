@@ -121,7 +121,6 @@ contract GovPool is
 
     function __GovPool_init(
         Dependencies calldata govPoolDeps,
-        address nftMultiplierAddress,
         uint256 regularVoteModifier,
         uint256 expertVoteModifier,
         address _verifier,
@@ -135,8 +134,7 @@ contract GovPool is
         _govValidators = IGovValidators(govPoolDeps.validatorsAddress);
         _distributionProposal = govPoolDeps.distributionAddress;
         _expertNft = IERC721Expert(govPoolDeps.expertNftAddress);
-
-        _nftMultiplier = nftMultiplierAddress;
+        _nftMultiplier = govPoolDeps.nftMultiplierAddress;
 
         _changeVoteModifiers(regularVoteModifier, expertVoteModifier);
 

@@ -30,6 +30,7 @@ const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC721Mock = artifacts.require("ERC721Mock");
 const ERC721Expert = artifacts.require("ERC721Expert");
+const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
@@ -189,6 +190,7 @@ describe("TokenSaleProposal", () => {
     userKeeper = await GovUserKeeper.new();
     dp = await DistributionProposal.new();
     expertNft = await ERC721Expert.new();
+    nftMultiplier = await ERC721Multiplier.new();
     govPool = await GovPool.new();
     tsp = await TokenSaleProposal.new();
 
@@ -222,8 +224,7 @@ describe("TokenSaleProposal", () => {
     await dp.__DistributionProposal_init(govPool.address);
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
     await govPool.__GovPool_init(
-      [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address],
-      poolParams.nftMultiplierAddress,
+      [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address, nftMultiplier.address],
       poolParams.regularVoteModifier,
       poolParams.expertVoteModifier,
       OWNER,
@@ -237,6 +238,7 @@ describe("TokenSaleProposal", () => {
     await validators.transferOwnership(govPool.address);
     await userKeeper.transferOwnership(govPool.address);
     await expertNft.transferOwnership(govPool.address);
+    await nftMultiplier.transferOwnership(govPool.address);
 
     await poolRegistry.addProxyPool(NAME, govPool.address, {
       from: FACTORY,
@@ -465,7 +467,6 @@ describe("TokenSaleProposal", () => {
           totalPowerInTokens: wei("33000"),
           nftsTotalSupply: 33,
         },
-        nftMultiplierAddress: ZERO_ADDR,
         regularVoteModifier: wei("1.3", 25),
         expertVoteModifier: wei("1.132", 25),
         onlyBABTHolders: false,
