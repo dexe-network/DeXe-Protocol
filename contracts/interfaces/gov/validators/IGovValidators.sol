@@ -57,8 +57,7 @@ interface IGovValidators {
         ProposalType proposalType;
         ProposalCore core;
         string descriptionURL;
-        uint256[] newValues;
-        address[] userAddresses;
+        bytes data;
     }
 
     /// @notice The struct holds information about the external proposal
@@ -91,13 +90,11 @@ interface IGovValidators {
     /// 1 - `ChangeInternalQuorum`, change base quorum
     /// 2 - `ChangeInternalDurationAndQuorum`, change base duration and quorum
     /// 3 - `ChangeBalances`, change address balance
-    /// @param newValues New values (tokens amounts array, quorum or duration or both)
-    /// @param userAddresses Validators addresses, set it if `proposalType` == `ChangeBalances`
+    /// @param data New packed data, depending on proposal type
     function createInternalProposal(
         ProposalType proposalType,
         string calldata descriptionURL,
-        uint256[] calldata newValues,
-        address[] calldata userAddresses
+        bytes calldata data
     ) external;
 
     /// @notice Create external proposal. This function can call only `Gov` contract

@@ -6,6 +6,7 @@ const truffleAssert = require("truffle-assertions");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { ValidatorsProposalState, ProposalType, ProposalState } = require("../utils/constants");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
+const { getBytesChangeInternalBalances } = require("../utils/gov-validators-utils");
 
 const GovValidators = artifacts.require("GovValidators");
 const GovValidatorsToken = artifacts.require("GovValidatorsToken");
@@ -13,7 +14,7 @@ const GovValidatorsToken = artifacts.require("GovValidatorsToken");
 GovValidators.numberFormat = "BigNumber";
 GovValidatorsToken.numberFormat = "BigNumber";
 
-describe.only("GovValidators", () => {
+describe("GovValidators", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -26,7 +27,8 @@ describe.only("GovValidators", () => {
   const getInternalProposalByIndex = async (index) => (await validators.getInternalProposals(index - 1, 1))[0];
 
   async function createInternalProposal(proposalType, description, amounts, users, from) {
-    await validators.createInternalProposal(proposalType, description, amounts, users, { from: from });
+    const data = getBytesChangeInternalBalances(users, amounts);
+    await validators.createInternalProposal(proposalType, description, data, { from: from });
   }
 
   before("setup", async () => {
@@ -611,8 +613,15 @@ describe.only("GovValidators", () => {
         return {
           proposalType: proposal.proposal[0],
           descriptionURL: proposal.proposal[2],
-          newValues: proposal.proposal[3],
-          userAddresses: proposal.proposal[4],
+          data: proposal.proposal[3],
+        };
+      };
+
+      const internalProposalAddData = (proposal) => {
+        return {
+          proposalType: proposal.proposalType,
+          descriptionURL: proposal.descriptionURL,
+          data: getBytesChangeInternalBalances(proposal.userAddresses, proposal.newValues),
         };
       };
 
@@ -674,17 +683,20 @@ describe.only("GovValidators", () => {
 
         it("should return whole range properly", async () => {
           const proposals = (await validators.getInternalProposals(0, 5)).map(internalProposalToObject);
-          assert.deepEqual(proposals, internalProposals);
+          const internalProposalsWithData = internalProposals.map(internalProposalAddData);
+          assert.deepEqual(proposals, internalProposalsWithData);
         });
 
         it("should return proposals properly from the middle of the range", async () => {
           const proposals = (await validators.getInternalProposals(1, 2)).map(internalProposalToObject);
-          assert.deepEqual(proposals, internalProposals.slice(1, 3));
+          const internalProposalsWithData = internalProposals.map(internalProposalAddData);
+          assert.deepEqual(proposals, internalProposalsWithData.slice(1, 3));
         });
 
         it("should return proposals properly if offset + limit > latestProposalId", async () => {
           const proposals = (await validators.getInternalProposals(2, 6)).map(internalProposalToObject);
-          assert.deepEqual(proposals, internalProposals.slice(2));
+          const internalProposalsWithData = internalProposals.map(internalProposalAddData);
+          assert.deepEqual(proposals, internalProposalsWithData.slice(2));
         });
 
         it("should not return proposals if offset > latestProposalId", async () => {

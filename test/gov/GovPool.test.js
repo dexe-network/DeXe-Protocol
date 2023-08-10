@@ -26,6 +26,7 @@ const {
   getBytesChangeVoteModifiers,
   getBytesMintExpertNft,
 } = require("../utils/gov-pool-utils");
+const { getBytesChangeInternalBalances } = require("../utils/gov-validators-utils");
 const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { ProposalState, DEFAULT_CORE_PROPERTIES, ValidatorsProposalState, ProposalType } = require("../utils/constants");
 const Reverter = require("../helpers/reverter");
@@ -133,7 +134,8 @@ describe("GovPool", () => {
   }
 
   async function createInternalProposal(proposalType, description, amounts, users, from) {
-    await validators.createInternalProposal(proposalType, description, amounts, users, { from: from });
+    const data = getBytesChangeInternalBalances(users, amounts);
+    await validators.createInternalProposal(proposalType, description, data, { from: from });
   }
 
   function tokensToVotes(tokenNumber) {
