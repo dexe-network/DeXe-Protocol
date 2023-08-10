@@ -6,7 +6,7 @@ const truffleAssert = require("truffle-assertions");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { ValidatorsProposalState, ProposalType, ProposalState } = require("../utils/constants");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
-const { getBytesChangeInternalBalances } = require("../utils/gov-validators-utils");
+const { getBytesChangeInternalBalances, getBytesChangeValidatorSettings } = require("../utils/gov-validators-utils");
 
 const GovValidators = artifacts.require("GovValidators");
 const GovValidatorsToken = artifacts.require("GovValidatorsToken");
@@ -14,7 +14,7 @@ const GovValidatorsToken = artifacts.require("GovValidatorsToken");
 GovValidators.numberFormat = "BigNumber";
 GovValidatorsToken.numberFormat = "BigNumber";
 
-describe.only("GovValidators", () => {
+describe("GovValidators", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -27,7 +27,17 @@ describe.only("GovValidators", () => {
   const getInternalProposalByIndex = async (index) => (await validators.getInternalProposals(index - 1, 1))[0];
 
   async function createInternalProposal(proposalType, description, amounts, users, from) {
-    const data = getBytesChangeInternalBalances(users, amounts);
+    let data;
+    switch (proposalType) {
+      case ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum:
+        data = getBytesChangeValidatorSettings(amounts);
+        break;
+      case ProposalType.ChangeBalances:
+        data = getBytesChangeInternalBalances(users, amounts);
+        break;
+      default:
+        assert.isTrue(false);
+    }
     await validators.createInternalProposal(proposalType, description, data, { from: from });
   }
 
@@ -618,10 +628,22 @@ describe.only("GovValidators", () => {
       };
 
       const internalProposalAddData = (proposal) => {
+        let data;
+        switch (parseInt(proposal.proposalType)) {
+          case ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum:
+            data = getBytesChangeValidatorSettings(proposal.newValues);
+            break;
+          case ProposalType.ChangeBalances:
+            data = getBytesChangeInternalBalances(proposal.userAddresses, proposal.newValues);
+            break;
+          default:
+            assert.isTrue(false);
+        }
+
         return {
           proposalType: proposal.proposalType,
           descriptionURL: proposal.descriptionURL,
-          data: getBytesChangeInternalBalances(proposal.userAddresses, proposal.newValues),
+          data: data,
         };
       };
 
@@ -673,7 +695,7 @@ describe.only("GovValidators", () => {
 
           for (const internalProposal of internalProposals) {
             const { proposalType, descriptionURL, newValues, userAddresses } = internalProposal;
-            await createInternalProposal(proposalType, descriptionURL, newValues, userAddresses, SECOND);
+            await createInternalProposal(parseInt(proposalType), descriptionURL, newValues, userAddresses, SECOND);
           }
         });
 
@@ -948,7 +970,7 @@ describe.only("GovValidators", () => {
         await createInternalProposal(
           ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
           "example.com",
-          [wei("50"), 100, toPercent("50")],
+          [50, 100, toPercent("50")],
           [],
           SECOND
         );

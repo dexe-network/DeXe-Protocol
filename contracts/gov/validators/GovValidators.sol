@@ -163,10 +163,6 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         InternalProposal storage proposal = _internalProposals[proposalId];
 
-        (address[] memory users, uint256[] memory newValues) = _getBalanceInfoFromData(
-            proposal.data
-        );
-
         require(
             _getProposalState(proposal.core) == ProposalState.Succeeded,
             "Validators: not Succeeded state"
@@ -179,10 +175,19 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         ProposalSettings storage proposalSettings = internalProposalSettings;
 
         if (proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum) {
-            proposalSettings.duration = uint64(newValues[0]);
-            proposalSettings.executionDelay = uint64(newValues[1]);
-            proposalSettings.quorum = uint128(newValues[2]);
+            (
+                uint64 duration,
+                uint64 executionDelay,
+                uint128 quorum
+            ) = _getValidatorSettingsFromData(proposal.data);
+
+            proposalSettings.duration = duration;
+            proposalSettings.executionDelay = executionDelay;
+            proposalSettings.quorum = quorum;
         } else {
+            (address[] memory users, uint256[] memory newValues) = _getBalanceInfoFromData(
+                proposal.data
+            );
             _changeBalances(newValues, users);
         }
 
@@ -356,14 +361,19 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         ProposalType proposalType,
         bytes calldata data
     ) internal pure {
-        (address[] memory users, uint256[] memory newValues) = _getBalanceInfoFromData(data);
         if (proposalType == ProposalType.ChangeBalances) {
+            (address[] memory users, uint256[] memory newValues) = _getBalanceInfoFromData(data);
             _validateChangeBalances(newValues, users);
         } else if (proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum) {
+            (
+                uint64 duration,
+                uint64 executionDelay,
+                uint128 quorum
+            ) = _getValidatorSettingsFromData(data);
             ProposalSettings memory proposalSettings = ProposalSettings({
-                duration: uint64(newValues[0]),
-                executionDelay: uint64(newValues[1]),
-                quorum: uint128(newValues[2])
+                duration: duration,
+                executionDelay: executionDelay,
+                quorum: quorum
             });
 
             _validateProposalSettings(proposalSettings);
@@ -372,7 +382,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         }
     }
 
-    function _getParameterInfoFromData(
+    function _getValidatorSettingsFromData(
         bytes memory _data
     ) internal pure returns (uint64 duration, uint64 executionDelay, uint128 quorum) {
         (duration, executionDelay, quorum) = abi.decode(_data, (uint64, uint64, uint128));
