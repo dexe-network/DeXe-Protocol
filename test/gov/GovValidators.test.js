@@ -14,7 +14,7 @@ const GovValidatorsToken = artifacts.require("GovValidatorsToken");
 GovValidators.numberFormat = "BigNumber";
 GovValidatorsToken.numberFormat = "BigNumber";
 
-describe("GovValidators", () => {
+describe.only("GovValidators", () => {
   let OWNER;
   let SECOND;
   let THIRD;

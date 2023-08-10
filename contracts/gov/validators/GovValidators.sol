@@ -69,8 +69,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         string calldata descriptionURL,
         bytes calldata data
     ) external override onlyValidator {
-        (address[] memory users, uint256[] memory newValues) = _getBalanceInfoFromData(data);
-        _validateInternalProposal(proposalType, newValues, users);
+        _validateInternalProposal(proposalType, data);
 
         ProposalSettings storage _internalProposalSettings = internalProposalSettings;
 
@@ -355,25 +354,21 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
     function _validateInternalProposal(
         ProposalType proposalType,
-        uint256[] memory newValues,
-        address[] memory users
+        bytes calldata data
     ) internal pure {
+        (address[] memory users, uint256[] memory newValues) = _getBalanceInfoFromData(data);
         if (proposalType == ProposalType.ChangeBalances) {
             _validateChangeBalances(newValues, users);
-        } else {
+        } else if (proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum) {
             ProposalSettings memory proposalSettings = ProposalSettings({
-                duration: 1,
-                executionDelay: 0,
-                quorum: 1
+                duration: uint64(newValues[0]),
+                executionDelay: uint64(newValues[1]),
+                quorum: uint128(newValues[2])
             });
 
-            if (proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum) {
-                proposalSettings.duration = uint64(newValues[0]);
-                proposalSettings.executionDelay = uint64(newValues[1]);
-                proposalSettings.quorum = uint128(newValues[2]);
-            }
-
             _validateProposalSettings(proposalSettings);
+        } else {
+            revert("Invalid proposal type");
         }
     }
 
