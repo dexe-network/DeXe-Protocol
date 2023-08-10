@@ -807,6 +807,14 @@ describe("GovPool", () => {
         );
       });
 
+      it.only("should create proposal if user is Expert even due to low voting power", async () => {
+        await dexeExpertNft.mint(SECOND, "");
+
+        assert.isOk(
+          await govPool.createProposal("", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], [], { from: SECOND })
+        );
+      });
+
       describe("validators", () => {
         it("should not create validators proposal if executors > 1", async () => {
           await truffleAssert.reverts(
