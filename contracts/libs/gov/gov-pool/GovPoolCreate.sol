@@ -14,6 +14,7 @@ import "../../utils/DataHelper.sol";
 import "../../../gov/GovPool.sol";
 
 library GovPoolCreate {
+    using EnumerableSet for EnumerableSet.UintSet;
     using DataHelper for bytes;
 
     event ProposalCreated(
@@ -30,6 +31,7 @@ library GovPoolCreate {
 
     function createProposal(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
+        mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
         string calldata _descriptionURL,
         string calldata misc,
         IGovPool.ProposalAction[] calldata actionsOnFor,
@@ -42,6 +44,13 @@ library GovPoolCreate {
         ) = _validateProposal(actionsOnFor, actionsOnAgainst);
 
         uint256 proposalId = GovPool(payable(address(this))).latestProposalId();
+
+        _restrictInterestedUsersFromProposal(
+            restrictedProposals,
+            actionsOnFor,
+            actionsOnAgainst,
+            proposalId
+        );
 
         IGovPool.Proposal storage proposal = proposals[proposalId];
 
@@ -167,6 +176,37 @@ library GovPoolCreate {
         }
 
         emit DPCreated(decodedId, msg.sender, token, amount);
+    }
+
+    function _restrictInterestedUsersFromProposal(
+        mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
+        IGovPool.ProposalAction[] calldata actionsFor,
+        IGovPool.ProposalAction[] calldata actionsAgainst,
+        uint256 proposalId
+    ) internal {
+        _restrictUsersFromActions(restrictedProposals, actionsFor, proposalId);
+
+        if (actionsAgainst.length != 0) {
+            _restrictUsersFromActions(restrictedProposals, actionsAgainst, proposalId);
+        }
+    }
+
+    function _restrictUsersFromActions(
+        mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
+        IGovPool.ProposalAction[] calldata actions,
+        uint256 proposalId
+    ) internal {
+        for (uint256 i; i < actions.length; i++) {
+            IGovPool.ProposalAction calldata action = actions[i];
+
+            if (
+                action.executor == address(this) &&
+                action.data.getSelector() == IGovPool.undelegateTreasury.selector
+            ) {
+                address user = abi.decode(action.data[4:36], (address));
+                restrictedProposals[user].add(proposalId);
+            }
+        }
     }
 
     function _canCreate(
