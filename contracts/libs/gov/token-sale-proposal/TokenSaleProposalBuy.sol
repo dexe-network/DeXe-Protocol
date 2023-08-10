@@ -56,15 +56,15 @@ library TokenSaleProposalBuy {
 
         userInfo.vestingUserInfo.vestingTotalAmount += vestingCurrentAmount;
 
-        _purchase(tokenToBuyWith, amount);
+        _purchaseWithCommission(tokenToBuyWith, amount);
     }
 
-    function _purchase(address token, uint256 amount) internal {
+    function _purchaseWithCommission(address token, uint256 amount) internal {
         TokenSaleProposal tokenSaleProposal = TokenSaleProposal(address(this));
         address govAddress = tokenSaleProposal.govAddress();
         address dexeGovAddress = tokenSaleProposal.dexeGovAddress();
 
-        if (govAddress == dexeGovAddress) {
+        if (govAddress != dexeGovAddress) {
             CoreProperties coreProperties = CoreProperties(tokenSaleProposal.coreProperties());
 
             uint256 commission = amount.percentage(
