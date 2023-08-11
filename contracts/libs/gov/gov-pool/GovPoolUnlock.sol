@@ -24,7 +24,10 @@ library GovPoolUnlock {
 
         EnumerableSet.UintSet storage userProposals = votedInProposals[user][voteType];
 
-        if (voteType == IGovPool.VoteType.TreasuryVote) {
+        if (
+            voteType == IGovPool.VoteType.MicropoolVote ||
+            voteType == IGovPool.VoteType.TreasuryVote
+        ) {
             for (uint256 i; i < proposalIds.length; i++) {
                 uint256 proposalId = proposalIds[i];
 
@@ -49,7 +52,7 @@ library GovPoolUnlock {
 
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
-        uint256 maxLockedAmount = userKeeper.maxLockedAmount(user, voteType);
+        uint256 maxLockedAmount = userKeeper.maxLockedAmount(user);
         uint256 maxUnlocked;
 
         for (uint256 i; i < proposalIds.length; i++) {
@@ -59,18 +62,20 @@ library GovPoolUnlock {
                 continue;
             }
 
-            maxUnlocked = userKeeper.unlockTokens(proposalId, user, voteType).max(maxUnlocked);
-
             IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][user][voteType];
 
-            userKeeper.unlockNfts(voteInfo.nftsVotedFor.values());
-            userKeeper.unlockNfts(voteInfo.nftsVotedAgainst.values());
+            uint256 lockedInProposal = voteInfo.tokensVoted;
+
+            maxUnlocked = maxUnlocked.max(lockedInProposal);
+
+            userKeeper.unlockTokens(proposalId, user, lockedInProposal);
+            userKeeper.unlockNfts(voteInfo.nftsVoted.values());
 
             userProposals.remove(proposalId);
         }
 
         if (maxLockedAmount <= maxUnlocked) {
-            userKeeper.updateMaxTokenLockedAmount(userProposals.values(), user, voteType);
+            userKeeper.updateMaxTokenLockedAmount(userProposals.values(), user);
         }
     }
 

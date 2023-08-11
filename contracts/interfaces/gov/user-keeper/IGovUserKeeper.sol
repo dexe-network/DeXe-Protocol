@@ -178,8 +178,13 @@ interface IGovUserKeeper {
 
     /// @notice The function for locking nfts
     /// @param voter the address of voter
+    /// @param voteType the type of vote
     /// @param nftIds the array of nft ids to lock
-    function lockNfts(address voter, uint256[] calldata nftIds) external;
+    function lockNfts(
+        address voter,
+        IGovPool.VoteType voteType,
+        uint256[] calldata nftIds
+    ) external;
 
     /// @notice The function for unlocking nfts
     /// @param nftIds the array of nft ids to unlock

@@ -53,11 +53,12 @@ library GovPoolMicropool {
     function claim(
         IGovPool.MicropoolInfo storage micropool,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        mapping(uint256 => mapping(address => mapping(bool => IGovPool.VoteInfo)))
+        mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage voteInfos,
         uint256[] calldata proposalIds,
         address delegatee
     ) external {
+        /// TODO: fix double spending
         uint256[] memory rewards = _getExpectedRewards(
             micropool,
             proposals,
@@ -85,7 +86,7 @@ library GovPoolMicropool {
     function getDelegatorRewards(
         IGovPool.MicropoolInfo storage micropool,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        mapping(uint256 => mapping(address => mapping(bool => IGovPool.VoteInfo)))
+        mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage voteInfos,
         uint256[] calldata proposalIds,
         address delegator,
@@ -111,12 +112,12 @@ library GovPoolMicropool {
             IGovPool.Proposal storage proposal = proposals[proposalId];
 
             rewards.rewardTokens[i] = proposal.core.settings.rewardsInfo.rewardToken;
-            (rewards.isVoteFor[i], ) = IGovPool(address(this)).isVoteFor(
-                proposalId,
-                delegatee,
-                true
-            );
-            rewards.executed[i] = proposal.core.executed;
+            rewards.isVoteFor[i] = voteInfos[proposalId][delegatee][
+                IGovPool.VoteType.MicropoolVote
+            ].isVoteFor;
+
+            /// TODO: return rewards only for the executed proposals
+            rewards.executed[i] = proposal.core.executionTime != 0;
             rewards.isClaimed[i] = micropool.delegatorInfos[delegator].isClaimed[proposalId];
         }
     }
@@ -124,7 +125,7 @@ library GovPoolMicropool {
     function _getExpectedRewards(
         IGovPool.MicropoolInfo storage micropool,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        mapping(uint256 => mapping(address => mapping(bool => IGovPool.VoteInfo)))
+        mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage voteInfos,
         uint256[] calldata proposalIds,
         address delegator,
@@ -138,12 +139,18 @@ library GovPoolMicropool {
             uint256 proposalId = proposalIds[i];
 
             IGovPool.ProposalCore storage core = proposals[proposalId].core;
-            IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][delegatee][true];
+            IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][delegatee][
+                IGovPool.VoteType.MicropoolVote
+            ];
             IGovPool.DelegatorInfo storage delegatorInfo = micropool.delegatorInfos[delegator];
 
             uint256 pendingRewards = micropool.pendingRewards[proposalId];
 
-            if (!core.executed || delegatorInfo.isClaimed[proposalId] || pendingRewards == 0) {
+            if (
+                core.executionTime == 0 ||
+                delegatorInfo.isClaimed[proposalId] ||
+                pendingRewards == 0
+            ) {
                 continue;
             }
 
@@ -161,12 +168,13 @@ library GovPoolMicropool {
                     delegatorInfo.nftIds[index],
                     core.nftPowerSnapshotId
                 );
-            uint256 voteAmount = voteInfo.voteFor.totalVoted.max(voteInfo.voteAgainst.totalVoted);
 
-            rewards[i] = pendingRewards.ratio(delegationAmount, voteAmount);
+            // TODO: use here nftPower + token instead of totalVoted
+            rewards[i] = pendingRewards.ratio(delegationAmount, voteInfo.totalVoted);
         }
     }
 
+    // TODO: use dlsl binary search
     function _searchLastLess(
         uint256[] storage array,
         uint256 element

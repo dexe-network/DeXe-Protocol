@@ -69,12 +69,6 @@ interface IGovPool {
         TreasuryVote
     }
 
-    enum VoteChoice {
-        NoVotes,
-        VotedFor,
-        VotedAgainst
-    }
-
     /// @notice The struct that holds information about dependencies
     /// @param settingsAddress the address of settings contract
     /// @param userKeeperAddress the address of user keeper contract
@@ -155,17 +149,16 @@ interface IGovPool {
         EnumerableSet.UintSet nftsVoted;
     }
 
+    /// TODO: docs, add power?
     /// @notice The struct that is used in view functions of contract as a return argument
     /// @param totalVoted the total power of votes from one user for the proposal
     /// @param tokensVoted the total erc20 amount voted from one user for the proposal
     /// @param nftsVoted the array of ids of nfts voted from one user for the proposal
     struct VoteInfoView {
-        uint256 totalVotedFor;
-        uint256 totalVotedAgainst;
-        uint256 tokensVotedFor;
-        uint256 tokensVotedAgainst;
-        uint256[] nftsVotedFor;
-        uint256[] nftsVotedAgainst;
+        bool isVoteFor;
+        uint256 totalVoted;
+        uint256 tokensVoted;
+        uint256[] nftsVoted;
     }
 
     /// TODO: docs
@@ -175,7 +168,6 @@ interface IGovPool {
         bool[] executed;
         bool[] isClaimed;
         uint256[] expectedRewards;
-        uint256[] realRewards;
     }
 
     /// TODO: docs
@@ -192,12 +184,13 @@ interface IGovPool {
         mapping(uint256 => uint256) pendingRewards;
     }
 
+    /// TODO: docs
     struct Rewards {
         uint256 rewardFor;
         uint256 rewardAgainst;
-        /// TODO: check
     }
 
+    /// TODO: docs
     /// @notice The struct that holds reward properties (only for internal needs)
     /// @param onchainRewards matching proposal ids to their rewards
     /// @param offchainRewards matching off-chain token addresses to their rewards
@@ -469,7 +462,7 @@ interface IGovPool {
         uint256 proposalId,
         address voter,
         VoteType voteType
-    ) external view returns (uint256, uint256, uint256, uint256);
+    ) external view returns (uint256, uint256, uint256, bool);
 
     /// @notice The function to get required quorum of proposal
     /// @param proposalId the id of proposal
@@ -512,7 +505,7 @@ interface IGovPool {
         uint256[] calldata proposalIds,
         address delegator,
         address delegatee
-    ) external view returns (DelegatorRewards[] memory);
+    ) external view returns (DelegatorRewards memory);
 
     /// @notice The function to get info about validators credit limit
     /// @return the list of credit infos

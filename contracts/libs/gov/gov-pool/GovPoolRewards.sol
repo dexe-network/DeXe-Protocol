@@ -22,6 +22,13 @@ library GovPoolRewards {
         uint256 amount,
         address sender
     );
+    event RewardCanceled(
+        uint256 proposalId,
+        IGovPool.RewardType rewardType,
+        address rewardToken,
+        uint256 amount,
+        address sender
+    );
 
     function updateRewards(
         mapping(address => IGovPool.PendingRewards) storage pendingRewards,
@@ -91,6 +98,50 @@ library GovPoolRewards {
         emit RewardCredited(proposalId, rewardType, rewardToken, amountToAdd, msg.sender);
     }
 
+    function cancelRewards(
+        mapping(address => IGovPool.PendingRewards) storage pendingRewards,
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        uint256 proposalId,
+        IGovPool.RewardType rewardType,
+        uint256 amount
+    ) external {
+        IGovSettings.RewardsInfo storage rewardsInfo = proposals[proposalId]
+            .core
+            .settings
+            .rewardsInfo;
+
+        uint256 amountToCancel = _calculateRewardForVoting(rewardsInfo, rewardType, amount);
+
+        IGovPool.Rewards storage userProposalRewards = pendingRewards[msg.sender].onchainRewards[
+            proposalId
+        ];
+
+        if (
+            rewardType == IGovPool.RewardType.VoteFor ||
+            rewardType == IGovPool.RewardType.VoteForDelegated ||
+            rewardType == IGovPool.RewardType.VoteForTreasury
+        ) {
+            userProposalRewards.rewardFor -= amountToCancel;
+        } else if (
+            rewardType == IGovPool.RewardType.VoteAgainst ||
+            rewardType == IGovPool.RewardType.VoteAgainstDelegated ||
+            rewardType == IGovPool.RewardType.VoteAgainstTreasury
+        ) {
+            userProposalRewards.rewardAgainst -= amountToCancel;
+        } else {
+            userProposalRewards.rewardFor -= amountToCancel;
+            userProposalRewards.rewardAgainst -= amountToCancel;
+        }
+
+        emit RewardCanceled(
+            proposalId,
+            rewardType,
+            rewardsInfo.rewardToken,
+            amountToCancel,
+            msg.sender
+        );
+    }
+
     function claimReward(
         mapping(address => IGovPool.PendingRewards) storage pendingRewards,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
@@ -103,7 +154,7 @@ library GovPoolRewards {
         if (proposalId != 0) {
             IGovPool.ProposalCore storage core = proposals[proposalId].core;
 
-            require(core.executed, "Gov: proposal is not executed");
+            require(core.executionTime != 0, "Gov: proposal is not executed");
 
             IGovPool.Rewards storage userProposalRewards = userRewards.onchainRewards[proposalId];
 
@@ -146,7 +197,7 @@ library GovPoolRewards {
         for (uint256 i = 0; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
 
-            if (!proposals[proposalId].core.executed) {
+            if (proposals[proposalId].core.executionTime == 0) {
                 continue;
             }
 
@@ -169,7 +220,7 @@ library GovPoolRewards {
     function _sendRewards(uint256 proposalId, address rewardToken, uint256 rewards) internal {
         require(rewardToken != address(0), "Gov: rewards are off");
 
-        rewardToken.sendFunds(msg.sender, rewards, true);
+        rewardToken.sendFunds(msg.sender, rewards, TokenBalance.TransferType.Mint);
 
         emit RewardClaimed(proposalId, msg.sender, rewardToken, rewards);
     }

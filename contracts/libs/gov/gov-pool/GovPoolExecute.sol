@@ -40,7 +40,7 @@ library GovPoolExecute {
             "Gov: invalid status"
         );
 
-        core.executed = true;
+        core.executionTime = uint64(block.timestamp);
 
         (, , address govValidatorsAddress, ) = GovPool(payable(address(this)))
             .getHelperContracts();
