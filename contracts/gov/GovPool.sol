@@ -235,42 +235,24 @@ contract GovPool is
     function voteDelegated(uint256 proposalId, bool isVoteFor) external override onlyBABTHolder {
         _unlock(msg.sender, VoteType.MicropoolVote);
 
-        uint256 reward = _proposals.voteDelegated(
-            _votedInProposals,
-            _voteInfos,
-            _restrictedProposals,
+        _voteDelegated(
             proposalId,
             msg.sender,
             VoteType.MicropoolVote,
-            isVoteFor
-        );
-
-        uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
-
-        _updateRewards(
-            proposalId,
-            isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
-            micropoolReward
+            isVoteFor,
+            isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated
         );
     }
 
     function voteTreasury(uint256 proposalId, bool isVoteFor) external override onlyBABTHolder {
         _unlock(msg.sender, VoteType.TreasuryVote);
 
-        uint256 reward = _proposals.voteDelegated(
-            _votedInProposals,
-            _voteInfos,
-            _restrictedProposals,
+        _voteDelegated(
             proposalId,
             msg.sender,
             VoteType.TreasuryVote,
-            isVoteFor
-        );
-
-        _updateRewards(
-            proposalId,
-            isVoteFor ? RewardType.VoteForTreasury : RewardType.VoteAgainstTreasury,
-            reward.percentage(PERCENTAGE_TREASURY_REWARDS)
+            isVoteFor,
+            isVoteFor ? RewardType.VoteForTreasury : RewardType.VoteAgainstTreasury
         );
     }
 
@@ -279,17 +261,55 @@ contract GovPool is
         uint256 voteAmount,
         uint256[] calldata voteNftIds,
         bool isVoteFor
-    ) external override onlyBABTHolder {}
+    ) external override onlyBABTHolder {
+        _unlock(msg.sender, VoteType.PersonalVote);
+
+        uint256 reward = _proposals.cancelVote(
+            _votedInProposals,
+            _voteInfos,
+            proposalId,
+            msg.sender,
+            voteAmount,
+            voteNftIds,
+            isVoteFor
+        );
+
+        _cancelRewards(
+            proposalId,
+            isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst,
+            reward
+        );
+    }
 
     function cancelVoteDelegated(
         uint256 proposalId,
         bool isVoteFor
-    ) external override onlyBABTHolder {}
+    ) external override onlyBABTHolder {
+        _unlock(msg.sender, VoteType.MicropoolVote);
+
+        _cancelVoteDelegated(
+            proposalId,
+            msg.sender,
+            VoteType.MicropoolVote,
+            isVoteFor,
+            isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated
+        );
+    }
 
     function cancelVoteTreasury(
         uint256 proposalId,
         bool isVoteFor
-    ) external override onlyBABTHolder {}
+    ) external override onlyBABTHolder {
+        _unlock(msg.sender, VoteType.TreasuryVote);
+
+        _cancelVoteDelegated(
+            proposalId,
+            msg.sender,
+            VoteType.TreasuryVote,
+            isVoteFor,
+            isVoteFor ? RewardType.VoteForTreasury : RewardType.VoteAgainstTreasury
+        );
+    }
 
     function withdraw(
         address receiver,
@@ -314,9 +334,14 @@ contract GovPool is
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
 
         _unlock(msg.sender, VoteType.PersonalVote);
+        _unlock(delegatee, VoteType.MicropoolVote);
 
         _govUserKeeper.delegateTokens.exec(delegatee, amount);
         _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
+
+        _micropoolInfos[delegatee].saveDelegationInfo(delegatee);
+
+        _revoteDelegated(delegatee, VoteType.MicropoolVote);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, true);
     }
@@ -329,7 +354,8 @@ contract GovPool is
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
         require(getExpertStatus(delegatee), "Gov: delegatee is not an expert");
 
-        _unlock(msg.sender, VoteType.TreasuryVote);
+        /// TODO: check _unlock(msg.sender, VoteType.TreasuryVote);
+        _unlock(delegatee, VoteType.TreasuryVote);
 
         if (amount != 0) {
             address token = _govUserKeeper.tokenAddress();
@@ -348,6 +374,8 @@ contract GovPool is
 
             _govUserKeeper.delegateNftsTreasury(delegatee, nftIds);
         }
+
+        _revoteDelegated(delegatee, VoteType.TreasuryVote);
 
         emit DelegatedTreasury(delegatee, amount, nftIds, true);
     }
@@ -391,8 +419,8 @@ contract GovPool is
     function claimMicropoolRewards(
         uint256[] calldata proposalIds,
         address delegatee
-    ) external override {
-        /// TODO: impl
+    ) external override onlyBABTHolder {
+        _micropoolInfos[delegatee].claim(_proposals, _voteInfos, proposalIds, delegatee);
     }
 
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
@@ -606,6 +634,10 @@ contract GovPool is
         _pendingRewards.updateRewards(_proposals, proposalId, rewardType, amount);
     }
 
+    function _cancelRewards(uint256 proposalId, RewardType rewardType, uint256 amount) internal {
+        _pendingRewards.cancelRewards(_proposals, proposalId, rewardType, amount);
+    }
+
     function _unlock(address user, VoteType voteType) internal {
         _votedInProposals.unlockInProposals(
             _voteInfos,
@@ -613,6 +645,82 @@ contract GovPool is
             user,
             voteType
         );
+    }
+
+    function _voteDelegated(
+        uint256 proposalId,
+        address delegatee,
+        VoteType voteType,
+        bool isVoteFor,
+        RewardType rewardType
+    ) internal {
+        uint256 reward = _proposals.voteDelegated(
+            _votedInProposals,
+            _voteInfos,
+            _restrictedProposals,
+            proposalId,
+            delegatee,
+            voteType,
+            isVoteFor
+        );
+
+        uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
+
+        _updateRewards(proposalId, rewardType, micropoolReward);
+
+        if (voteType == VoteType.MicropoolVote) {
+            _micropoolInfos[delegatee].updateRewards(proposalId, reward - micropoolReward);
+        }
+    }
+
+    function _cancelVoteDelegated(
+        uint256 proposalId,
+        address delegatee,
+        VoteType voteType,
+        bool isVoteFor,
+        RewardType rewardType
+    ) internal {
+        uint256 reward = _proposals.cancelVoteDelegated(
+            _votedInProposals,
+            _voteInfos,
+            proposalId,
+            delegatee,
+            voteType,
+            isVoteFor
+        );
+
+        uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
+
+        _cancelRewards(proposalId, rewardType, micropoolReward);
+
+        if (voteType == VoteType.MicropoolVote) {
+            _micropoolInfos[delegatee].updateRewards(proposalId, 0);
+        }
+    }
+
+    function _revoteDelegated(address delegatee, VoteType voteType) internal {
+        uint256[] memory proposalIds = _votedInProposals[delegatee][voteType].values();
+
+        for (uint256 i; i < proposalIds.length; i++) {
+            uint256 proposalId = proposalIds[i];
+
+            bool isVoteFor = _voteInfos[proposalId][delegatee][voteType].isVoteFor;
+
+            RewardType rewardType;
+
+            if (voteType == VoteType.DelegatedVote) {
+                rewardType = isVoteFor
+                    ? RewardType.VoteForDelegated
+                    : RewardType.VoteAgainstDelegated;
+            } else {
+                rewardType = isVoteFor
+                    ? RewardType.VoteForTreasury
+                    : RewardType.VoteAgainstTreasury;
+            }
+
+            _cancelVoteDelegated(proposalId, delegatee, voteType, isVoteFor, rewardType);
+            _voteDelegated(proposalId, delegatee, voteType, isVoteFor, rewardType);
+        }
     }
 
     function _onlyThis() internal view {
