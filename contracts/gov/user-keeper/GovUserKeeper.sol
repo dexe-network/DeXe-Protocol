@@ -360,13 +360,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     function unlockTokens(
         uint256 proposalId,
-        address voter
-    ) external override onlyOwner returns (uint256 unlockedAmount) {
-        UserInfo storage voterInfo = _userInfos[voter];
-
-        unlockedAmount = voterInfo.lockedInProposals[proposalId];
-
-        delete voterInfo.lockedInProposals[proposalId];
+        address voter,
+        uint256 amount
+    ) external override onlyOwner {
+        _userInfos[voter].lockedInProposals[proposalId] -= amount;
     }
 
     function lockNfts(address voter, uint256[] calldata nftIds) external override onlyOwner {
@@ -574,7 +571,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
 
         /// @dev In the case of the custom ERC721Power, the power function can increase
-        return nftsPower;
+        return nftsPower.min(totalNftsPower);
     }
 
     function getTotalVoteWeight() external view override returns (uint256) {

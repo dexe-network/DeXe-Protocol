@@ -173,10 +173,8 @@ interface IGovUserKeeper {
     /// @notice The function for unlocking tokens in proposal
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
-    function unlockTokens(
-        uint256 proposalId,
-        address voter
-    ) external returns (uint256 unlockedAmount);
+    /// @param amount the amount of tokens to unlock
+    function unlockTokens(uint256 proposalId, address voter, uint256 amount) external;
 
     /// @notice The function for locking nfts
     /// @param voter the address of voter

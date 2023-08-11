@@ -94,13 +94,12 @@ contract GovPool is
 
     mapping(address => PendingRewards) internal _pendingRewards; // user => pending rewards
 
-    mapping(address => MicropoolInfo) internal _micropoolInfos;
+    mapping(address => MicropoolInfo) internal _micropoolInfos; // delegatee => info
 
     mapping(address => EnumerableSet.UintSet) internal _restrictedProposals; // voter => restricted proposal ids
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
     event DelegatedTreasury(address to, uint256 amount, uint256[] nfts, bool isDelegate);
-    event Requested(address from, address to, uint256 amount, uint256[] nfts);
     event Deposited(uint256 amount, uint256[] nfts, address sender);
     event Withdrawn(uint256 amount, uint256[] nfts, address sender);
 
@@ -232,12 +231,7 @@ contract GovPool is
         );
     }
 
-    function voteDelegated(
-        uint256 proposalId,
-        uint256 voteAmount,
-        uint256[] calldata voteNftIds,
-        bool isVoteFor
-    ) external override onlyBABTHolder {
+    function voteDelegated(uint256 proposalId, bool isVoteFor) external override onlyBABTHolder {
         _unlock(msg.sender, VoteType.MicropoolVote);
 
         uint256 reward = _proposals.voteDelegated(
@@ -266,12 +260,7 @@ contract GovPool is
         );
     }
 
-    function voteTreasury(
-        uint256 proposalId,
-        uint256 voteAmount,
-        uint256[] calldata voteNftIds,
-        bool isVoteFor
-    ) external onlyBABTHolder {
+    function voteTreasury(uint256 proposalId, bool isVoteFor) external override onlyBABTHolder {
         _unlock(msg.sender, VoteType.TreasuryVote);
 
         uint256 reward = _proposals.voteTreasury(
@@ -290,6 +279,23 @@ contract GovPool is
             reward.percentage(PERCENTAGE_TREASURY_REWARDS)
         );
     }
+
+    function cancelVote(
+        uint256 proposalId,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds,
+        bool isVoteFor
+    ) external override onlyBABTHolder {}
+
+    function cancelVoteDelegated(
+        uint256 proposalId,
+        bool isVoteFor
+    ) external override onlyBABTHolder {}
+
+    function cancelVoteTreasury(
+        uint256 proposalId,
+        bool isVoteFor
+    ) external override onlyBABTHolder {}
 
     function withdraw(
         address receiver,
@@ -408,10 +414,7 @@ contract GovPool is
         _unlock(msg.sender, VoteType.TreasuryVote);
 
         _govUserKeeper.undelegateTokensTreasury.exec(delegatee, amount);
-
         _govUserKeeper.undelegateNftsTreasury.exec(delegatee, nftIds);
-
-        // TODO: we need to cancel delegatee's rewards and votes in proposals
 
         emit DelegatedTreasury(delegatee, amount, nftIds, false);
     }

@@ -69,6 +69,12 @@ interface IGovPool {
         TreasuryVote
     }
 
+    enum VoteChoice {
+        NoVotes,
+        VotedFor,
+        VotedAgainst
+    }
+
     /// @notice The struct that holds information about dependencies
     /// @param settingsAddress the address of settings contract
     /// @param userKeeperAddress the address of user keeper contract
@@ -137,17 +143,16 @@ interface IGovPool {
         uint256 requiredValidatorsQuorum;
     }
 
+    /// TODO: docs
     /// @notice The struct that holds information about the votes of the user in a single proposal
     /// @param totalVoted the total power of votes from one user for the proposal
     /// @param tokensVoted the total erc20 amount voted from one user for the proposal
     /// @param nftsVoted the set of ids of nfts voted from one user for the  proposal
     struct VoteInfo {
-        uint256 totalVotedFor;
-        uint256 totalVotedAgainst;
-        uint256 tokensVotedFor;
-        uint256 tokensVotedAgainst;
-        EnumerableSet.UintSet nftsVotedFor;
-        EnumerableSet.UintSet nftsVotedAgainst;
+        bool isVoteFor;
+        uint256 totalVoted;
+        uint256 tokensVoted;
+        EnumerableSet.UintSet nftsVoted;
     }
 
     /// @notice The struct that is used in view functions of contract as a return argument
