@@ -807,6 +807,14 @@ describe("GovPool", () => {
         );
       });
 
+      it("should create proposal if user is Expert even due to low voting power", async () => {
+        await dexeExpertNft.mint(SECOND, "");
+
+        assert.isOk(
+          await govPool.createProposal("", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], [], { from: SECOND })
+        );
+      });
+
       describe("validators", () => {
         it("should not create validators proposal if executors > 1", async () => {
           await truffleAssert.reverts(
@@ -2445,15 +2453,22 @@ describe("GovPool", () => {
             assert.equal((await govPool.getNftContracts()).nftMultiplier, nftMultiplier.address);
           });
 
-          it("should not set zero address", async () => {
-            await truffleAssert.reverts(setNftMultiplierAddress(ZERO_ADDR), "Gov: new nft address is zero");
+          it("should set zero address", async () => {
+            await setNftMultiplierAddress(nftMultiplier.address);
+
+            await setNftMultiplierAddress(ZERO_ADDR);
+
+            assert.equal((await govPool.getNftContracts()).nftMultiplier, ZERO_ADDR);
           });
 
-          it("should revert setNftMultiplierAddress if it's been already set", async () => {
+          it("should change nftMultiplier to newer", async () => {
             await setNftMultiplierAddress(nftMultiplier.address);
-            await truffleAssert.reverts(setNftMultiplierAddress(ETHER_ADDR), "Gov: current nft address isn't zero");
 
-            assert.equal((await govPool.getNftContracts()).nftMultiplier, nftMultiplier.address);
+            const newNftMultiplier = await ERC721Multiplier.new();
+
+            await setNftMultiplierAddress(newNftMultiplier.address);
+
+            assert.equal((await govPool.getNftContracts()).nftMultiplier, newNftMultiplier.address);
           });
 
           it("should revert when call is from non govPool address", async () => {

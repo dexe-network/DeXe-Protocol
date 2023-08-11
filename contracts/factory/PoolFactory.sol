@@ -33,6 +33,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     PoolRegistry internal _poolRegistry;
     CoreProperties internal _coreProperties;
     ISBT721 internal _babt;
+    address internal _treasury;
 
     mapping(bytes32 => bool) private _usedSalts;
 
@@ -67,6 +68,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _poolRegistry = PoolRegistry(registry.getPoolRegistryContract());
         _coreProperties = CoreProperties(registry.getCorePropertiesContract());
         _babt = ISBT721(registry.getBABTContract());
+        _treasury = registry.getTreasuryContract();
     }
 
     function deployGovPool(GovPoolDeployParams calldata parameters) external override {
@@ -144,7 +146,12 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         TokenSaleProposal(tokenSaleProxy).addToWhitelist(tokenSaleParameters.whitelistParams);
 
         _initGovPool(poolProxy, govPoolDeps, parameters);
-        TokenSaleProposal(tokenSaleProxy).__TokenSaleProposal_init(poolProxy, _babt);
+        TokenSaleProposal(tokenSaleProxy).__TokenSaleProposal_init(
+            poolProxy,
+            _babt,
+            _treasury,
+            _coreProperties
+        );
 
         GovSettings(govPoolDeps.settingsAddress).transferOwnership(poolProxy);
         GovUserKeeper(govPoolDeps.userKeeperAddress).transferOwnership(poolProxy);

@@ -78,6 +78,7 @@ describe("TokenSaleProposal", () => {
   let FACTORY;
   let NOTHING;
 
+  let contractsRegistry;
   let coreProperties;
   let poolRegistry;
 
@@ -143,7 +144,7 @@ describe("TokenSaleProposal", () => {
     await TokenSaleProposal.link(tspClaimLib);
     await TokenSaleProposal.link(tspRecoverLib);
 
-    const contractsRegistry = await ContractsRegistry.new();
+    contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
     babt = await BABTMock.new();
@@ -261,10 +262,10 @@ describe("TokenSaleProposal", () => {
     });
 
     it("should not init twice", async () => {
-      await tsp.__TokenSaleProposal_init(NOTHING, NOTHING);
+      await tsp.__TokenSaleProposal_init(NOTHING, NOTHING, NOTHING, NOTHING);
 
       await truffleAssert.reverts(
-        tsp.__TokenSaleProposal_init(NOTHING, NOTHING),
+        tsp.__TokenSaleProposal_init(NOTHING, NOTHING, NOTHING, NOTHING),
         "Initializable: contract is already initialized"
       );
     });
@@ -476,7 +477,12 @@ describe("TokenSaleProposal", () => {
       await deployPool(POOL_PARAMETERS);
       await setupTokens();
 
-      await tsp.__TokenSaleProposal_init(govPool.address, babt.address);
+      await tsp.__TokenSaleProposal_init(
+        govPool.address,
+        babt.address,
+        await contractsRegistry.getTreasuryContract(),
+        coreProperties.address
+      );
 
       erc20Params = {
         govAddress: govPool.address,
@@ -1279,6 +1285,12 @@ describe("TokenSaleProposal", () => {
 
           assert.deepEqual(userViewsToObjects(await tsp.getUserViews(THIRD, [2]))[0].purchaseView, purchaseView);
           assert.equal((await purchaseToken2.balanceOf(THIRD)).toFixed(), "0");
+
+          assert.equal((await purchaseToken2.balanceOf(NOTHING)).toFixed(), toBN(wei(20)).times(0.01).toFixed());
+          assert.equal(
+            (await purchaseToken2.balanceOf(govPool.address)).toFixed(),
+            toBN(wei(20)).times(0.99).toFixed()
+          );
         });
 
         it("should buy if all conditions are met (babt)", async () => {
@@ -1305,6 +1317,12 @@ describe("TokenSaleProposal", () => {
 
           assert.deepEqual(userViewsToObjects(await tsp.getUserViews(OWNER, [3]))[0].purchaseView, purchaseView);
           assert.equal((await purchaseToken1.balanceOf(OWNER)).toFixed(), wei(900));
+
+          assert.equal((await purchaseToken1.balanceOf(NOTHING)).toFixed(), toBN(wei(100)).times(0.01).toFixed());
+          assert.equal(
+            (await purchaseToken1.balanceOf(govPool.address)).toFixed(),
+            toBN(wei(100)).times(0.99).toFixed()
+          );
         });
 
         it("should buy if all conditions are met (tokenLock)", async () => {
@@ -1331,6 +1349,12 @@ describe("TokenSaleProposal", () => {
 
           assert.deepEqual(userViewsToObjects(await tsp.getUserViews(OWNER, [4]))[0].purchaseView, purchaseView);
           assert.equal((await purchaseToken1.balanceOf(OWNER)).toFixed(), wei(900));
+
+          assert.equal((await purchaseToken1.balanceOf(NOTHING)).toFixed(), toBN(wei(100)).times(0.01).toFixed());
+          assert.equal(
+            (await purchaseToken1.balanceOf(govPool.address)).toFixed(),
+            toBN(wei(100)).times(0.99).toFixed()
+          );
         });
 
         it("should buy if all conditions are met (nftLock)", async () => {
@@ -1357,6 +1381,142 @@ describe("TokenSaleProposal", () => {
 
           assert.deepEqual(userViewsToObjects(await tsp.getUserViews(OWNER, [5]))[0].purchaseView, purchaseView);
           assert.equal((await purchaseToken1.balanceOf(OWNER)).toFixed(), wei(900));
+
+          assert.equal((await purchaseToken1.balanceOf(NOTHING)).toFixed(), toBN(wei(100)).times(0.01).toFixed());
+          assert.equal(
+            (await purchaseToken1.balanceOf(govPool.address)).toFixed(),
+            toBN(wei(100)).times(0.99).toFixed()
+          );
+        });
+
+        describe("if commission is not applied", () => {
+          beforeEach(async () => {
+            await saleToken.mint(govPool.address, wei(5000));
+
+            tsp = await TokenSaleProposal.new();
+
+            await tsp.__TokenSaleProposal_init(govPool.address, babt.address, govPool.address, coreProperties.address);
+
+            await acceptProposal([
+              [saleToken.address, 0, getBytesTransfer(tsp.address, wei(5000))],
+              [tsp.address, 0, getBytesCreateTiersTSP(JSON.parse(JSON.stringify(tiers)))],
+            ]);
+          });
+
+          it("should buy if all conditions are met (daoVotes)", async () => {
+            await setTime(+tiers[1].saleStartTime);
+
+            await token.mint(THIRD, defaultDaoVotes.plus(1));
+            await purchaseToken2.mint(THIRD, wei(20));
+            await purchaseToken2.approve(tsp.address, wei(20), { from: THIRD });
+
+            assert.equal((await tsp.getSaleTokenAmount(THIRD, 2, purchaseToken2.address, wei(20))).toFixed(), wei(5));
+
+            const balanceBefore = await saleToken.balanceOf(govPool.address);
+            await tsp.buy(2, purchaseToken2.address, wei(20), { from: THIRD });
+
+            const purchaseView = {
+              isClaimed: false,
+              canClaim: false,
+              claimUnlockTime: (+tiers[1].saleEndTime + +tiers[1].claimLockDuration).toString(),
+              claimTotalAmount: wei(5),
+              boughtTotalAmount: wei(5),
+              lockedAmount: "0",
+              lockedId: "0",
+              purchaseTokenAddresses: [purchaseToken2.address],
+              purchaseTokenAmounts: [wei(20)],
+            };
+
+            assert.deepEqual(userViewsToObjects(await tsp.getUserViews(THIRD, [2]))[0].purchaseView, purchaseView);
+            assert.equal((await purchaseToken2.balanceOf(THIRD)).toFixed(), "0");
+          });
+
+          it("should buy if all conditions are met (babt)", async () => {
+            await setTime(+tiers[2].saleStartTime);
+
+            await babt.attest(OWNER);
+
+            await purchaseToken1.approve(tsp.address, wei(100));
+
+            assert.equal(
+              (await tsp.getSaleTokenAmount(OWNER, 3, purchaseToken1.address, wei(100))).toFixed(),
+              wei(400)
+            );
+            await tsp.buy(3, purchaseToken1.address, wei(100));
+
+            const purchaseView = {
+              isClaimed: false,
+              canClaim: false,
+              claimUnlockTime: (+tiers[2].saleEndTime + +tiers[2].claimLockDuration).toString(),
+              claimTotalAmount: wei(400),
+              boughtTotalAmount: wei(400),
+              lockedAmount: "0",
+              lockedId: "0",
+              purchaseTokenAddresses: [purchaseToken1.address],
+              purchaseTokenAmounts: [wei(100)],
+            };
+
+            assert.deepEqual(userViewsToObjects(await tsp.getUserViews(OWNER, [3]))[0].purchaseView, purchaseView);
+            assert.equal((await purchaseToken1.balanceOf(OWNER)).toFixed(), wei(900));
+          });
+
+          it("should buy if all conditions are met (tokenLock)", async () => {
+            await setTime(+tiers[3].saleStartTime);
+
+            await participationToken.mint(OWNER, defaultTokenAmount);
+            await participationToken.approve(tsp.address, defaultTokenAmount);
+            await purchaseToken1.approve(tsp.address, wei(100));
+
+            await lockParticipationTokensAndBuy(4, purchaseToken1.address, wei(100), OWNER);
+            assert.equal(
+              (await tsp.getSaleTokenAmount(OWNER, 4, purchaseToken1.address, wei(100))).toFixed(),
+              wei(400)
+            );
+
+            const purchaseView = {
+              isClaimed: false,
+              canClaim: false,
+              claimUnlockTime: (+tiers[3].saleEndTime + +tiers[3].claimLockDuration).toString(),
+              claimTotalAmount: wei(400),
+              boughtTotalAmount: wei(400),
+              lockedAmount: wei(100),
+              lockedId: "0",
+              purchaseTokenAddresses: [purchaseToken1.address],
+              purchaseTokenAmounts: [wei(100)],
+            };
+
+            assert.deepEqual(userViewsToObjects(await tsp.getUserViews(OWNER, [4]))[0].purchaseView, purchaseView);
+            assert.equal((await purchaseToken1.balanceOf(OWNER)).toFixed(), wei(900));
+          });
+
+          it("should buy if all conditions are met (nftLock)", async () => {
+            await setTime(+tiers[4].saleStartTime);
+
+            await participationNft.safeMint(OWNER, 1);
+            await participationNft.approve(tsp.address, 1);
+            await purchaseToken1.approve(tsp.address, wei(100));
+
+            await lockParticipationNftAndBuy(5, 1, purchaseToken1.address, wei(100), OWNER);
+            assert.equal(
+              (await tsp.getSaleTokenAmount(OWNER, 5, purchaseToken1.address, wei(100))).toFixed(),
+              wei(400)
+            );
+
+            const purchaseView = {
+              isClaimed: false,
+              canClaim: false,
+              claimUnlockTime: (+tiers[4].saleEndTime + +tiers[4].claimLockDuration).toString(),
+              claimTotalAmount: wei(400),
+              boughtTotalAmount: wei(400),
+              lockedAmount: "0",
+              lockedId: "1",
+              purchaseTokenAddresses: [purchaseToken1.address],
+              purchaseTokenAmounts: [wei(100)],
+            };
+
+            assert.deepEqual(userViewsToObjects(await tsp.getUserViews(OWNER, [5]))[0].purchaseView, purchaseView);
+            assert.equal((await purchaseToken1.balanceOf(OWNER)).toFixed(), wei(900));
+          });
         });
 
         describe("if added to whitelist", () => {

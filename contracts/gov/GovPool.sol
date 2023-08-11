@@ -136,9 +136,7 @@ contract GovPool is
         _distributionProposal = govPoolDeps.distributionAddress;
         _expertNft = IERC721Expert(govPoolDeps.expertNftAddress);
 
-        if (nftMultiplierAddress != address(0)) {
-            _setNftMultiplierAddress(nftMultiplierAddress);
-        }
+        _nftMultiplier = nftMultiplierAddress;
 
         _changeVoteModifiers(regularVoteModifier, expertVoteModifier);
 
@@ -606,9 +604,6 @@ contract GovPool is
     }
 
     function _setNftMultiplierAddress(address nftMultiplierAddress) internal {
-        require(_nftMultiplier == address(0), "Gov: current nft address isn't zero");
-        require(nftMultiplierAddress != address(0), "Gov: new nft address is zero");
-
         _nftMultiplier = nftMultiplierAddress;
     }
 
