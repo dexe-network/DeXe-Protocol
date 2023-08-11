@@ -4,8 +4,6 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/Create2.sol";
 
 import "../../gov/ERC20/ERC20Sale.sol";
-import "../../gov/ERC721/ERC721Expert.sol";
-import "../../gov/ERC721/ERC721Multiplier.sol";
 
 library GovTokenDeployer {
     function deployToken(
