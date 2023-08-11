@@ -184,6 +184,7 @@ describe("TokenSaleProposal", () => {
 
   async function deployPool(poolParams) {
     const NAME = await poolRegistry.GOV_POOL_NAME();
+    const TSP_NAME = await poolRegistry.TOKEN_SALE_PROPOSAL_NAME();
 
     settings = await GovSettings.new();
     validators = await GovValidators.new();
@@ -246,6 +247,12 @@ describe("TokenSaleProposal", () => {
     });
 
     await poolRegistry.injectDependenciesToExistingPools(NAME, 0, 10);
+
+    await poolRegistry.addProxyPool(TSP_NAME, tsp.address, {
+      from: FACTORY,
+    });
+
+    await poolRegistry.injectDependenciesToExistingPools(TSP_NAME, 0, 10);
   }
 
   async function setupTokens() {
@@ -258,21 +265,6 @@ describe("TokenSaleProposal", () => {
     await govPool.deposit(OWNER, wei("1000"), []);
     await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
   }
-
-  describe("init", () => {
-    beforeEach(async () => {
-      tsp = await TokenSaleProposal.new();
-    });
-
-    it("should not init twice", async () => {
-      await tsp.__TokenSaleProposal_init(NOTHING, NOTHING, NOTHING, NOTHING);
-
-      await truffleAssert.reverts(
-        tsp.__TokenSaleProposal_init(NOTHING, NOTHING, NOTHING, NOTHING),
-        "Initializable: contract is already initialized"
-      );
-    });
-  });
 
   describe("proposals", () => {
     const acceptProposal = async (actionsFor, actionsAgainst = []) => {
@@ -479,12 +471,7 @@ describe("TokenSaleProposal", () => {
       await deployPool(POOL_PARAMETERS);
       await setupTokens();
 
-      await tsp.__TokenSaleProposal_init(
-        govPool.address,
-        babt.address,
-        await contractsRegistry.getTreasuryContract(),
-        coreProperties.address
-      );
+      await tsp.__TokenSaleProposal_init(govPool.address);
 
       erc20Params = {
         govAddress: govPool.address,
@@ -665,6 +652,19 @@ describe("TokenSaleProposal", () => {
           },
         },
       ];
+    });
+
+    describe("init", () => {
+      it("should not init twice", async () => {
+        await truffleAssert.reverts(
+          tsp.__TokenSaleProposal_init(NOTHING),
+          "Initializable: contract is already initialized"
+        );
+      });
+
+      it("should not set dependencies from non dependant", async () => {
+        await truffleAssert.reverts(tsp.setDependencies(OWNER, "0x"), "Dependant: not an injector");
+      });
     });
 
     describe("latestTierId", () => {
@@ -1393,16 +1393,9 @@ describe("TokenSaleProposal", () => {
 
         describe("if commission is not applied", () => {
           beforeEach(async () => {
-            await saleToken.mint(govPool.address, wei(5000));
+            await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), govPool.address);
 
-            tsp = await TokenSaleProposal.new();
-
-            await tsp.__TokenSaleProposal_init(govPool.address, babt.address, govPool.address, coreProperties.address);
-
-            await acceptProposal([
-              [saleToken.address, 0, getBytesTransfer(tsp.address, wei(5000))],
-              [tsp.address, 0, getBytesCreateTiersTSP(JSON.parse(JSON.stringify(tiers)))],
-            ]);
+            await poolRegistry.injectDependenciesToExistingPools(await poolRegistry.TOKEN_SALE_PROPOSAL_NAME(), 0, 10);
           });
 
           it("should buy if all conditions are met (daoVotes)", async () => {
