@@ -26,6 +26,8 @@ const GovValidators = artifacts.require("GovValidators");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const DistributionProposal = artifacts.require("DistributionProposal");
 const TokenSaleProposal = artifacts.require("TokenSaleProposal");
+const ERC721Expert = artifacts.require("ERC721Expert");
+const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 
 async function linkGovPool(deployer) {
   await deployer.deploy(GovPoolCreateLib);
@@ -90,6 +92,8 @@ module.exports = async (deployer, logger) => {
   const govUserKeeper = await deployer.deploy(GovUserKeeper);
   const distributionProposal = await deployer.deploy(DistributionProposal);
   const tokenSaleProposal = await deployer.deploy(TokenSaleProposal);
+  const expertNft = await deployer.deploy(ERC721Expert);
+  const nftMultiplier = await deployer.deploy(ERC721Multiplier);
 
   const govPoolName = await poolRegistry.GOV_POOL_NAME();
   const govSettingsName = await poolRegistry.SETTINGS_NAME();
@@ -97,6 +101,8 @@ module.exports = async (deployer, logger) => {
   const govUserKeeperName = await poolRegistry.USER_KEEPER_NAME();
   const distributionProposalName = await poolRegistry.DISTRIBUTION_PROPOSAL_NAME();
   const tokenSaleProposalName = await poolRegistry.TOKEN_SALE_PROPOSAL_NAME();
+  const expertNftName = await poolRegistry.EXPERT_NFT_NAME();
+  const nftMultiplierName = await poolRegistry.NFT_MULTIPLIER_NAME();
 
   logger.logTransaction(
     await poolRegistry.setNewImplementations(
@@ -107,6 +113,8 @@ module.exports = async (deployer, logger) => {
         govUserKeeperName,
         distributionProposalName,
         tokenSaleProposalName,
+        expertNftName,
+        nftMultiplierName,
       ],
       [
         govPool.address,
@@ -115,6 +123,8 @@ module.exports = async (deployer, logger) => {
         govUserKeeper.address,
         distributionProposal.address,
         tokenSaleProposal.address,
+        expertNft.address,
+        nftMultiplier.address,
       ]
     ),
     "Set GovPools implementations"

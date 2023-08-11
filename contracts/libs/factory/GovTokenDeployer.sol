@@ -8,12 +8,6 @@ import "../../gov/ERC721/ERC721Expert.sol";
 import "../../gov/ERC721/ERC721Multiplier.sol";
 
 library GovTokenDeployer {
-    string internal constant EXPERT_NAME_POSTFIX = (" Expert Nft");
-    string internal constant EXPERT_SYMBOL_POSTFIX = (" EXPNFT");
-
-    string internal constant NFT_MULTIPLIER_NAME_POSTFIX = (" NFT Multiplier");
-    string internal constant NFT_MULTIPLIER_SYMBOL_POSTFIX = (" MULTIPLIER");
-
     function deployToken(
         address poolProxy,
         address tokenSaleProxy,
@@ -31,33 +25,6 @@ library GovTokenDeployer {
         bytes32 bytecodeHash = keccak256(type(ERC20Sale).creationCode);
 
         return Create2.computeAddress(salt, bytecodeHash);
-    }
-
-    function deployExpertNft(address poolProxy, string calldata name_) external returns (address) {
-        ERC721Expert nft = new ERC721Expert();
-
-        nft.__ERC721Expert_init(
-            concatStrings(name_, EXPERT_NAME_POSTFIX),
-            concatStrings(name_, EXPERT_SYMBOL_POSTFIX)
-        );
-        nft.transferOwnership(poolProxy);
-
-        return address(nft);
-    }
-
-    function deployNftMultiplier(
-        address poolProxy,
-        string calldata name_
-    ) external returns (address) {
-        ERC721Multiplier nft = new ERC721Multiplier();
-
-        nft.__ERC721Multiplier_init(
-            concatStrings(name_, NFT_MULTIPLIER_NAME_POSTFIX),
-            concatStrings(name_, NFT_MULTIPLIER_SYMBOL_POSTFIX)
-        );
-        nft.transferOwnership(poolProxy);
-
-        return address(nft);
     }
 
     function concatStrings(

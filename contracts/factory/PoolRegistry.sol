@@ -27,6 +27,9 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     string public constant DISTRIBUTION_PROPOSAL_NAME = "DISTRIBUTION_PROPOSAL";
     string public constant TOKEN_SALE_PROPOSAL_NAME = "TOKEN_SALE_PROPOSAL";
 
+    string public constant EXPERT_NFT_NAME = "EXPERT_NFT";
+    string public constant NFT_MULTIPLIER_NAME = "NFT_MULTIPLIER";
+
     address internal _poolFactory;
 
     mapping(address => mapping(string => EnumerableSet.AddressSet)) internal _ownerPools; // pool owner => name => pool

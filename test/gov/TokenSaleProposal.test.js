@@ -223,6 +223,7 @@ describe("TokenSaleProposal", () => {
 
     await dp.__DistributionProposal_init(govPool.address);
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
+    await nftMultiplier.__ERC721Multiplier_init("Mock Multiplier Nft", "MCKMULNFT");
     await govPool.__GovPool_init(
       [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address, nftMultiplier.address],
       poolParams.regularVoteModifier,

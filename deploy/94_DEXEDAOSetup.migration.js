@@ -111,7 +111,6 @@ let POOL_PARAMETERS = {
     totalPowerInTokens: 0,
     nftsTotalSupply: 0,
   },
-  nftMultiplierAddress: ZERO_ADDR,
   regularVoteModifier: wei("1.3", 25),
   expertVoteModifier: wei("1.132", 25),
   verifier: ZERO_ADDR,

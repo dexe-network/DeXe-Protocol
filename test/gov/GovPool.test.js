@@ -267,7 +267,6 @@ describe("GovPool", () => {
     userKeeper = await GovUserKeeper.new();
     dp = await DistributionProposal.new();
     expertNft = await ERC721Expert.new();
-    nftMultiplier = await ERC721Multiplier.new();
     govPool = await GovPool.new();
 
     await settings.__GovSettings_init(
@@ -299,7 +298,6 @@ describe("GovPool", () => {
 
     await dp.__DistributionProposal_init(govPool.address);
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
-    await nftMultiplier.__ERC721Multiplier_init("Mock Nft Multiplier", "MCKNFTMLTPLR");
     await govPool.__GovPool_init(
       [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address, nftMultiplier.address],
       wei("1", 25),
@@ -315,7 +313,6 @@ describe("GovPool", () => {
     await validators.transferOwnership(govPool.address);
     await userKeeper.transferOwnership(govPool.address);
     await expertNft.transferOwnership(govPool.address);
-    await nftMultiplier.transferOwnership(govPool.address);
 
     await poolRegistry.addProxyPool(NAME, govPool.address, {
       from: FACTORY,
