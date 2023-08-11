@@ -141,7 +141,7 @@ describe("GovPool", () => {
   async function createInternalProposal(proposalType, description, amounts, users, from) {
     let data;
     switch (proposalType) {
-      case ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum:
+      case ProposalType.ChangeSettings:
         data = getBytesChangeValidatorSettings(amounts);
         break;
       case ProposalType.ChangeBalances:

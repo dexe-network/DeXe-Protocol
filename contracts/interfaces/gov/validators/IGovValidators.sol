@@ -15,7 +15,7 @@ interface IGovValidators {
     }
 
     enum ProposalType {
-        ChangeInternalDurationAndExecutionDelayAndQuorum,
+        ChangeSettings,
         ChangeBalances,
         ChangeCreditLimit
     }

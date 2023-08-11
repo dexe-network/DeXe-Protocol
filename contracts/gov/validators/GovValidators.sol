@@ -46,6 +46,16 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         _;
     }
 
+    modifier onlyThis() {
+        _onlyThis();
+        _;
+    }
+
+    modifier onlyThisOrGovPool() {
+        _onlyThisOrGovPool();
+        _;
+    }
+
     function __GovValidators_init(
         string calldata name,
         string calldata symbol,
@@ -122,7 +132,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     function changeBalances(
         uint256[] calldata newValues,
         address[] calldata userAddresses
-    ) external override onlyOwner {
+    ) external override onlyThisOrGovPool {
         _changeBalances(newValues, userAddresses);
     }
 
@@ -175,7 +185,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         ProposalSettings storage proposalSettings = internalProposalSettings;
 
-        if (proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum) {
+        if (proposalType == ProposalType.ChangeSettings) {
             (
                 uint64 duration,
                 uint64 executionDelay,
@@ -388,7 +398,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         if (proposalType == ProposalType.ChangeBalances) {
             (address[] memory users, uint256[] memory newValues) = _getBalanceInfoFromData(data);
             _validateChangeBalances(newValues, users);
-        } else if (proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum) {
+        } else if (proposalType == ProposalType.ChangeSettings) {
             (
                 uint64 duration,
                 uint64 executionDelay,
@@ -433,5 +443,16 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         returns (address[] memory tokens, uint256[] memory amounts, address destination)
     {
         (tokens, amounts, destination) = abi.decode(_data, (address[], uint256[], address));
+    }
+
+    function _onlyThis() internal view {
+        require(address(this) == msg.sender, "Validators: not this contract");
+    }
+
+    function _onlyThisOrGovPool() internal view {
+        require(
+            address(this) == msg.sender || owner() == msg.sender,
+            "Validators: not this nor GovPool contract"
+        );
     }
 }

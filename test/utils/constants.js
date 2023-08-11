@@ -41,7 +41,7 @@ const ValidatorsProposalState = {
 };
 
 const ProposalType = {
-  ChangeInternalDurationAndExecutionDelayAndQuorum: 0,
+  ChangeSettings: 0,
   ChangeBalances: 1,
   ChangeCreditLimit: 2,
 };
