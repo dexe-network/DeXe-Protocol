@@ -129,11 +129,31 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         emit ExternalProposalCreated(proposalId, proposalSettings.quorum);
     }
 
+    function changeSettings(
+        uint64 duration,
+        uint64 executionDelay,
+        uint128 quorum
+    ) external override onlyThis {
+        ProposalSettings storage proposalSettings = internalProposalSettings;
+
+        proposalSettings.duration = duration;
+        proposalSettings.executionDelay = executionDelay;
+        proposalSettings.quorum = quorum;
+    }
+
     function changeBalances(
         uint256[] calldata newValues,
         address[] calldata userAddresses
     ) external override onlyThisOrGovPool {
         _changeBalances(newValues, userAddresses);
+    }
+
+    function monthlyWithdraw(
+        address[] calldata tokens,
+        uint256[] calldata amounts,
+        address destination
+    ) external override onlyThis {
+        IGovPool(owner()).transferCreditAmount(tokens, amounts, destination);
     }
 
     function vote(
@@ -181,33 +201,8 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         proposal.core.executed = true;
 
-        ProposalType proposalType = proposal.proposalType;
-
-        ProposalSettings storage proposalSettings = internalProposalSettings;
-
-        if (proposalType == ProposalType.ChangeSettings) {
-            (
-                uint64 duration,
-                uint64 executionDelay,
-                uint128 quorum
-            ) = _getValidatorSettingsFromData(proposal.data);
-
-            proposalSettings.duration = duration;
-            proposalSettings.executionDelay = executionDelay;
-            proposalSettings.quorum = quorum;
-        } else if (proposalType == ProposalType.ChangeBalances) {
-            (address[] memory users, uint256[] memory newValues) = _getBalanceInfoFromData(
-                proposal.data
-            );
-            _changeBalances(newValues, users);
-        } else {
-            (
-                address[] memory tokens,
-                uint256[] memory amounts,
-                address destination
-            ) = _getCreditInfoFromData(proposal.data);
-            IGovPool(owner()).transferCreditAmount(tokens, amounts, destination);
-        }
+        (bool success, ) = address(this).call(proposal.data);
+        require(success, "Validators: failed to execute");
 
         emit InternalProposalExecuted(proposalId, msg.sender);
     }
@@ -367,16 +362,13 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         }
     }
 
-    function _validateChangeCreditLimit(
+    function _validateMonthlyWithdraw(
         address[] memory tokens,
         uint256[] memory amounts,
         address destination
     ) internal pure {
         uint tokensLength = tokens.length;
-        require(
-            amounts.length == tokensLength,
-            "Validators: number of tokens and amounts are not equal"
-        );
+        require(amounts.length == tokensLength, "Validators: invalid array length");
         for (uint i = 0; i < tokensLength; i++) {
             require(tokens[i] != address(0), "Validators: address of token cannot be zero");
         }
@@ -395,15 +387,27 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         ProposalType proposalType,
         bytes calldata data
     ) internal pure {
+        bytes4 selector = bytes4(data);
+        bytes calldata packedData = data[4:];
         if (proposalType == ProposalType.ChangeBalances) {
-            (address[] memory users, uint256[] memory newValues) = _getBalanceInfoFromData(data);
+            require(
+                selector == IGovValidators.changeBalances.selector,
+                "Validators: not ChangeBalances function"
+            );
+            (uint256[] memory newValues, address[] memory users) = _getBalanceInfoFromData(
+                packedData
+            );
             _validateChangeBalances(newValues, users);
         } else if (proposalType == ProposalType.ChangeSettings) {
+            require(
+                selector == IGovValidators.changeSettings.selector,
+                "Validators: not ChangeSettings function"
+            );
             (
                 uint64 duration,
                 uint64 executionDelay,
                 uint128 quorum
-            ) = _getValidatorSettingsFromData(data);
+            ) = _getValidatorSettingsFromData(packedData);
             ProposalSettings memory proposalSettings = ProposalSettings({
                 duration: duration,
                 executionDelay: executionDelay,
@@ -411,15 +415,17 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             });
 
             _validateProposalSettings(proposalSettings);
-        } else if (proposalType == ProposalType.ChangeCreditLimit) {
+        } else {
+            require(
+                selector == IGovValidators.monthlyWithdraw.selector,
+                "Validators: not MonthlyWithdraw function"
+            );
             (
                 address[] memory tokens,
                 uint256[] memory amounts,
                 address destination
-            ) = _getCreditInfoFromData(data);
-            _validateChangeCreditLimit(tokens, amounts, destination);
-        } else {
-            revert("Invalid proposal type");
+            ) = _getCreditInfoFromData(packedData);
+            _validateMonthlyWithdraw(tokens, amounts, destination);
         }
     }
 
@@ -431,8 +437,8 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
     function _getBalanceInfoFromData(
         bytes memory _data
-    ) internal pure returns (address[] memory userAddresses, uint256[] memory newValues) {
-        (userAddresses, newValues) = abi.decode(_data, (address[], uint256[]));
+    ) internal pure returns (uint256[] memory newValues, address[] memory userAddresses) {
+        (newValues, userAddresses) = abi.decode(_data, (uint256[], address[]));
     }
 
     function _getCreditInfoFromData(

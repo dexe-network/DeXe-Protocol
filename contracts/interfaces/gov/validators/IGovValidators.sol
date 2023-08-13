@@ -17,7 +17,7 @@ interface IGovValidators {
     enum ProposalType {
         ChangeSettings,
         ChangeBalances,
-        ChangeCreditLimit
+        MonthlyWithdraw
     }
 
     /// @notice The struct holds information about settings for validators proposal
@@ -89,7 +89,7 @@ interface IGovValidators {
     /// @param proposalType `ProposalType`
     /// 0 - `ChangeInternalDurationAndQuorum`, change base duration and quorum
     /// 1 - `ChangeBalances`, change address balance
-    /// 2 - `ChangeCreditLimit`, change validators withdraw limit
+    /// 2 - `MonthlyWithdraw`, monthly token withdraw
     /// @param data New packed data, depending on proposal type
     function createInternalProposal(
         ProposalType proposalType,
@@ -105,12 +105,20 @@ interface IGovValidators {
         ProposalSettings calldata proposalSettings
     ) external;
 
+    function changeSettings(uint64 duration, uint64 executionDelay, uint128 quorum) external;
+
     /// @notice The function for changing validators balances
     /// @param newValues the array of new balances
     /// @param userAddresses the array validators addresses
     function changeBalances(
         uint256[] calldata newValues,
         address[] calldata userAddresses
+    ) external;
+
+    function monthlyWithdraw(
+        address[] calldata tokens,
+        uint256[] calldata amounts,
+        address destination
     ) external;
 
     /// @notice Vote in proposal

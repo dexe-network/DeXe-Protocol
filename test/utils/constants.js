@@ -43,7 +43,7 @@ const ValidatorsProposalState = {
 const ProposalType = {
   ChangeSettings: 0,
   ChangeBalances: 1,
-  ChangeCreditLimit: 2,
+  MonthlyWithdraw: 2,
 };
 
 const ParticipationType = {

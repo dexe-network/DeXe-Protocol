@@ -29,7 +29,7 @@ const {
 const {
   getBytesChangeInternalBalances,
   getBytesChangeValidatorSettings,
-  getBytesChangeCreditLimit,
+  getBytesMonthlyWithdraw,
 } = require("../utils/gov-validators-utils");
 
 const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
@@ -145,10 +145,10 @@ describe("GovPool", () => {
         data = getBytesChangeValidatorSettings(amounts);
         break;
       case ProposalType.ChangeBalances:
-        data = getBytesChangeInternalBalances(users, amounts);
+        data = getBytesChangeInternalBalances(amounts, users);
         break;
-      case ProposalType.ChangeCreditLimit:
-        data = getBytesChangeCreditLimit(users.slice(0, users.length - 1), amounts, users[users.length - 1]);
+      case ProposalType.MonthlyWithdraw:
+        data = getBytesMonthlyWithdraw(users.slice(0, users.length - 1), amounts, users[users.length - 1]);
         break;
       default:
         assert.isTrue(false);
@@ -3785,7 +3785,7 @@ describe("GovPool", () => {
 
         it("could withdraw with internal proposal", async () => {
           await createInternalProposal(
-            ProposalType.ChangeCreditLimit,
+            ProposalType.MonthlyWithdraw,
             "example.com",
             [wei("777")],
             [CREDIT_TOKEN.address, SECOND],
@@ -3800,6 +3800,37 @@ describe("GovPool", () => {
           await validators.execute(proposalId);
           assert.equal((await CREDIT_TOKEN.balanceOf(SECOND)).toFixed(), wei("777"));
           assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN.address, wei("1000"), wei("223")]]);
+        });
+
+        it("execute reverts if credit balance was dropped", async () => {
+          await createInternalProposal(
+            ProposalType.MonthlyWithdraw,
+            "example.com",
+            [wei("777")],
+            [CREDIT_TOKEN.address, SECOND],
+            OWNER
+          );
+
+          const proposalId = await validators.latestInternalProposalId();
+          await validators.vote(proposalId, wei("100"), true, true);
+          await validators.vote(proposalId, wei("1000000000000"), true, true, { from: SECOND });
+
+          await govPool.createProposal(
+            "example.com",
+            "misc",
+            [[govPool.address, 0, getBytesSetCreditInfo([CREDIT_TOKEN.address], [0])]],
+            []
+          );
+
+          await govPool.vote(2, wei("100000000000000000000"), [], true, { from: SECOND });
+
+          await govPool.moveProposalToValidators(2);
+          await validators.vote(2, wei("100"), false, true);
+          await validators.vote(2, wei("1000000000000"), false, true, { from: SECOND });
+
+          await govPool.execute(2);
+
+          await truffleAssert.reverts(validators.execute(proposalId), "Validators: failed to execute");
         });
       });
     });

@@ -6,7 +6,11 @@ const truffleAssert = require("truffle-assertions");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { ValidatorsProposalState, ProposalType, ProposalState } = require("../utils/constants");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
-const { getBytesChangeInternalBalances, getBytesChangeValidatorSettings } = require("../utils/gov-validators-utils");
+const {
+  getBytesChangeInternalBalances,
+  getBytesChangeValidatorSettings,
+  getBytesMonthlyWithdraw,
+} = require("../utils/gov-validators-utils");
 
 const GovValidators = artifacts.require("GovValidators");
 const GovValidatorsToken = artifacts.require("GovValidatorsToken");
@@ -33,7 +37,10 @@ describe("GovValidators", () => {
         data = getBytesChangeValidatorSettings(amounts);
         break;
       case ProposalType.ChangeBalances:
-        data = getBytesChangeInternalBalances(users, amounts);
+        data = getBytesChangeInternalBalances(amounts, users);
+        break;
+      case ProposalType.MonthlyWithdraw:
+        data = getBytesMonthlyWithdraw(users.slice(0, users.length - 1), amounts, users[users.length - 1]);
         break;
       default:
         assert.isTrue(false);
@@ -175,13 +182,25 @@ describe("GovValidators", () => {
 
       it("only owner should call these functions", async () => {
         await truffleAssert.reverts(
+          validators.executeExternalProposal(1, { from: SECOND }),
+          "Ownable: caller is not the owner"
+        );
+      });
+
+      it("only validators contract should call these functions", async () => {
+        await truffleAssert.reverts(
+          validators.changeSettings(50, 100, toPercent("50"), { from: SECOND }),
+          "Validators: not this contract"
+        );
+
+        await truffleAssert.reverts(
           validators.changeBalances([100], [SECOND], { from: SECOND }),
           "Validators: not this nor GovPool contract"
         );
 
         await truffleAssert.reverts(
-          validators.executeExternalProposal(1, { from: SECOND }),
-          "Ownable: caller is not the owner"
+          validators.monthlyWithdraw([SECOND], [100], THIRD, { from: SECOND }),
+          "Validators: not this contract"
         );
       });
 
@@ -237,6 +256,11 @@ describe("GovValidators", () => {
           createInternalProposal(ProposalType.ChangeBalances, "example.com", [13, 15], [OWNER], SECOND),
           "Validators: invalid array length"
         );
+
+        await truffleAssert.reverts(
+          createInternalProposal(ProposalType.MonthlyWithdraw, "example.com", [13, 15], [OWNER], SECOND),
+          "Validators: invalid array length"
+        );
       });
 
       it("should revert if invalid duration value", async () => {
@@ -265,6 +289,54 @@ describe("GovValidators", () => {
           createInternalProposal(ProposalType.ChangeBalances, "example.com", [0], [ZERO_ADDR], SECOND),
           "Validators: invalid address"
         );
+
+        await truffleAssert.reverts(
+          createInternalProposal(ProposalType.MonthlyWithdraw, "example.com", [0], [ZERO_ADDR, SECOND], SECOND),
+          "Validators: address of token cannot be zero"
+        );
+
+        await truffleAssert.reverts(
+          createInternalProposal(ProposalType.MonthlyWithdraw, "example.com", [0], [SECOND, ZERO_ADDR], SECOND),
+          "Validators: destination address cannot be zero"
+        );
+      });
+
+      describe("should revert if wrong selector", () => {
+        it("changeSettings()", async () => {
+          await truffleAssert.reverts(
+            validators.createInternalProposal(
+              ProposalType.ChangeSettings,
+              "example.com",
+              getBytesChangeInternalBalances([wei(1)], [SECOND]),
+              { from: SECOND }
+            ),
+            "Validators: not ChangeSettings function"
+          );
+        });
+
+        it("changeBalances()", async () => {
+          await truffleAssert.reverts(
+            validators.createInternalProposal(
+              ProposalType.ChangeBalances,
+              "example.com",
+              getBytesChangeValidatorSettings([1, 1, toPercent(51)]),
+              { from: SECOND }
+            ),
+            "Validators: not ChangeBalances function"
+          );
+        });
+
+        it("monthlyWithdraw()", async () => {
+          await truffleAssert.reverts(
+            validators.createInternalProposal(
+              ProposalType.MonthlyWithdraw,
+              "example.com",
+              getBytesChangeInternalBalances([wei(1)], [SECOND]),
+              { from: SECOND }
+            ),
+            "Validators: not MonthlyWithdraw function"
+          );
+        });
       });
     });
 
@@ -557,7 +629,15 @@ describe("GovValidators", () => {
             data = getBytesChangeValidatorSettings(proposal.newValues);
             break;
           case ProposalType.ChangeBalances:
-            data = getBytesChangeInternalBalances(proposal.userAddresses, proposal.newValues);
+            data = getBytesChangeInternalBalances(proposal.newValues, proposal.userAddresses);
+            break;
+          case ProposalType.MonthlyWithdraw:
+            let l = proposal.userAddresses.length;
+            data = getBytesMonthlyWithdraw(
+              proposal.userAddresses.slice(0, l - 1),
+              proposal.newValues,
+              proposal.userAddresses[l - 1]
+            );
             break;
           default:
             assert.isTrue(false);
@@ -582,6 +662,7 @@ describe("GovValidators", () => {
       describe("after adding internal proposals", async () => {
         let internalProposals;
 
+        // ADD PROPOSAL TO MONTHLY WITHDRAW
         beforeEach("setup", async () => {
           internalProposals = [
             {
@@ -614,6 +695,12 @@ describe("GovValidators", () => {
               newValues: [wei("200")],
               userAddresses: [SECOND],
             },
+            {
+              proposalType: ProposalType.MonthlyWithdraw.toString(),
+              descriptionURL: "example6.com",
+              newValues: [wei("200")],
+              userAddresses: [SECOND, THIRD],
+            },
           ];
 
           for (const internalProposal of internalProposals) {
@@ -627,7 +714,7 @@ describe("GovValidators", () => {
         });
 
         it("should return whole range properly", async () => {
-          const proposals = (await validators.getInternalProposals(0, 5)).map(internalProposalToObject);
+          const proposals = (await validators.getInternalProposals(0, 6)).map(internalProposalToObject);
           const internalProposalsWithData = internalProposals.map(internalProposalAddData);
           assert.deepEqual(proposals, internalProposalsWithData);
         });
@@ -645,7 +732,7 @@ describe("GovValidators", () => {
         });
 
         it("should not return proposals if offset > latestProposalId", async () => {
-          const proposals = (await validators.getInternalProposals(5, 1)).map(internalProposalToObject);
+          const proposals = (await validators.getInternalProposals(6, 1)).map(internalProposalToObject);
           assert.deepEqual(proposals, []);
         });
       });
@@ -801,6 +888,7 @@ describe("GovValidators", () => {
         assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Undefined);
 
         await createInternalProposal(ProposalType.ChangeBalances, "example.com", [wei("200")], [SECOND], SECOND);
+
         await validators.vote(1, wei("200"), true, true, { from: THIRD });
 
         assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Locked);
