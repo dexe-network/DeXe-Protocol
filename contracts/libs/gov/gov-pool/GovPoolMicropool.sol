@@ -3,6 +3,8 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+import "@solarity/solidity-lib/libs/arrays/ArrayHelper.sol";
+
 import "../../utils/TokenBalance.sol";
 import "../../math/MathHelper.sol";
 
@@ -13,6 +15,7 @@ library GovPoolMicropool {
     using TokenBalance for address;
     using Math for uint256;
     using MathHelper for uint256;
+    using ArrayHelper for uint256[];
 
     function updateRewards(
         IGovPool.MicropoolInfo storage micropool,
@@ -58,18 +61,15 @@ library GovPoolMicropool {
         uint256[] calldata proposalIds,
         address delegatee
     ) external {
-        /// TODO: fix double spending
-        uint256[] memory rewards = _getExpectedRewards(
-            micropool,
-            proposals,
-            voteInfos,
-            proposalIds,
-            msg.sender,
-            delegatee
-        );
-
         for (uint256 i; i < proposalIds.length; i++) {
-            uint256 reward = rewards[i];
+            uint256 reward = _getExpectedRewards(
+                micropool,
+                proposals,
+                voteInfos,
+                proposalIds[i],
+                msg.sender,
+                delegatee
+            );
 
             require(reward != 0, "Gov: no micropool rewards");
 
@@ -92,18 +92,9 @@ library GovPoolMicropool {
         address delegator,
         address delegatee
     ) external view returns (IGovPool.DelegatorRewards memory rewards) {
-        rewards.expectedRewards = _getExpectedRewards(
-            micropool,
-            proposals,
-            voteInfos,
-            proposalIds,
-            delegator,
-            delegatee
-        );
-
+        rewards.expectedRewards = new uint256[](proposalIds.length);
         rewards.rewardTokens = new address[](proposalIds.length);
         rewards.isVoteFor = new bool[](proposalIds.length);
-        rewards.executed = new bool[](proposalIds.length);
         rewards.isClaimed = new bool[](proposalIds.length);
 
         for (uint256 i; i < proposalIds.length; i++) {
@@ -111,13 +102,22 @@ library GovPoolMicropool {
 
             IGovPool.Proposal storage proposal = proposals[proposalId];
 
+            if (proposal.core.executionTime == 0) {
+                continue;
+            }
+
+            rewards.expectedRewards[i] = _getExpectedRewards(
+                micropool,
+                proposals,
+                voteInfos,
+                proposalId,
+                delegator,
+                delegatee
+            );
             rewards.rewardTokens[i] = proposal.core.settings.rewardsInfo.rewardToken;
             rewards.isVoteFor[i] = voteInfos[proposalId][delegatee][
                 IGovPool.VoteType.MicropoolVote
             ].isVoteFor;
-
-            /// TODO: return rewards only for the executed proposals
-            rewards.executed[i] = proposal.core.executionTime != 0;
             rewards.isClaimed[i] = micropool.delegatorInfos[delegator].isClaimed[proposalId];
         }
     }
@@ -127,74 +127,43 @@ library GovPoolMicropool {
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
             storage voteInfos,
-        uint256[] calldata proposalIds,
+        uint256 proposalId,
         address delegator,
         address delegatee
-    ) private view returns (uint256[] memory rewards) {
+    ) private view returns (uint256) {
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
-        rewards = new uint256[](proposalIds.length);
+        IGovPool.ProposalCore storage core = proposals[proposalId].core;
+        IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][delegatee][
+            IGovPool.VoteType.MicropoolVote
+        ];
+        IGovPool.DelegatorInfo storage delegatorInfo = micropool.delegatorInfos[delegator];
 
-        for (uint256 i; i < proposalIds.length; i++) {
-            uint256 proposalId = proposalIds[i];
+        uint256 pendingRewards = micropool.pendingRewards[proposalId];
 
-            IGovPool.ProposalCore storage core = proposals[proposalId].core;
-            IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][delegatee][
-                IGovPool.VoteType.MicropoolVote
-            ];
-            IGovPool.DelegatorInfo storage delegatorInfo = micropool.delegatorInfos[delegator];
+        if (
+            core.executionTime == 0 || delegatorInfo.isClaimed[proposalId] || pendingRewards == 0
+        ) {
+            return 0;
+        }
 
-            uint256 pendingRewards = micropool.pendingRewards[proposalId];
+        uint256[] storage delegationTimes = delegatorInfo.delegationTimes;
 
-            if (
-                core.executionTime == 0 ||
-                delegatorInfo.isClaimed[proposalId] ||
-                pendingRewards == 0
-            ) {
-                continue;
-            }
+        uint256 index = delegationTimes.lowerBound(core.executionTime);
 
-            (uint256 index, bool found) = _searchLastLess(
-                delegatorInfo.delegationTimes,
-                core.executionTime
+        if (index == 0) {
+            return 0;
+        }
+
+        --index;
+
+        uint256 delegationAmount = delegatorInfo.tokenAmounts[index] +
+            IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(
+                delegatorInfo.nftIds[index],
+                core.nftPowerSnapshotId
             );
 
-            if (!found) {
-                continue;
-            }
-
-            uint256 delegationAmount = delegatorInfo.tokenAmounts[index] +
-                IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(
-                    delegatorInfo.nftIds[index],
-                    core.nftPowerSnapshotId
-                );
-
-            // TODO: use here nftPower + token instead of totalVoted
-            rewards[i] = pendingRewards.ratio(delegationAmount, voteInfo.totalVoted);
-        }
-    }
-
-    // TODO: use dlsl binary search
-    function _searchLastLess(
-        uint256[] storage array,
-        uint256 element
-    ) private view returns (uint256 index, bool found) {
-        (uint256 low, uint256 high) = (0, array.length);
-
-        while (low < high) {
-            uint256 mid = (low + high) >> 1;
-
-            if (array[mid] >= element) {
-                high = mid;
-            } else {
-                low = mid + 1;
-            }
-        }
-
-        if (high == 0) {
-            return (0, false);
-        }
-
-        return (high - 1, true);
+        return
+            pendingRewards.ratio(delegationAmount, voteInfo.tokensVoted + voteInfo.nftPowerVoted);
     }
 }

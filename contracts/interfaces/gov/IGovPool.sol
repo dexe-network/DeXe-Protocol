@@ -171,7 +171,6 @@ interface IGovPool {
     struct DelegatorRewards {
         address[] rewardTokens;
         bool[] isVoteFor;
-        bool[] executed;
         bool[] isClaimed;
         uint256[] expectedRewards;
     }
