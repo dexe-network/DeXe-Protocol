@@ -329,6 +329,7 @@ contract GovPool is
         uint256[] calldata nftIds
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
+        require(msg.sender != delegatee, "Gov: delegator's equal delegatee");
 
         _unlock(msg.sender, VoteType.PersonalVote);
         _unlock(delegatee, VoteType.MicropoolVote);
