@@ -59,7 +59,7 @@ library GovPoolStaking {
         IGovPool.MicropoolInfo storage micropool,
         address delegatee
     ) external {
-        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
         uint256 currentDelegatorStake = IGovUserKeeper(userKeeper).getDelegatedStakeAmount(
             msg.sender,
@@ -75,7 +75,7 @@ library GovPoolStaking {
         mapping(address => IGovPool.MicropoolInfo) storage micropoolInfos,
         address delegator
     ) external view returns (IGovPool.UserStakeRewardsView[] memory rewards) {
-        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
         address[] memory delegatees = IGovUserKeeper(userKeeper).getDelegatees(delegator);
 
@@ -164,7 +164,7 @@ library GovPoolStaking {
         address delegator,
         address delegatee
     ) private view returns (address[] memory rewardTokens, uint256[] memory pendingRewards) {
-        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
         uint256 currentDelegatorStake = IGovUserKeeper(userKeeper).getDelegatedStakeAmount(
             delegator,
