@@ -353,7 +353,6 @@ contract GovPool is
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
         require(getExpertStatus(delegatee), "Gov: delegatee is not an expert");
 
-        /// TODO: check _unlock(msg.sender, VoteType.TreasuryVote);
         _unlock(delegatee, VoteType.TreasuryVote);
 
         if (amount != 0) {
