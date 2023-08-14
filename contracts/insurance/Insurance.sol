@@ -5,9 +5,9 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
-import "@dlsl/dev-modules/libs/data-structures/StringSet.sol";
-import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
+import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
+import "@solarity/solidity-lib/libs/data-structures/StringSet.sol";
+import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 
 import "../interfaces/insurance/IInsurance.sol";
 import "../interfaces/factory/IPoolRegistry.sol";
@@ -44,7 +44,7 @@ contract Insurance is IInsurance, OwnableUpgradeable, AbstractDependant {
         __Ownable_init();
     }
 
-    function setDependencies(address contractsRegistry) external override dependant {
+    function setDependencies(address contractsRegistry, bytes memory) public override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         _dexe = ERC20(registry.getDEXEContract());

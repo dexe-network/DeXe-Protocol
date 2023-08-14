@@ -4,11 +4,12 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
+import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 
 import "../../../interfaces/gov/IGovPool.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
+import "../../../core/CoreProperties.sol";
 import "../../../gov/proposals/TokenSaleProposal.sol";
 
 import "../../../libs/math/MathHelper.sol";
@@ -16,7 +17,7 @@ import "./TokenSaleProposalDecode.sol";
 
 library TokenSaleProposalBuy {
     using MathHelper for uint256;
-    using DecimalsConverter for uint256;
+    using DecimalsConverter for *;
     using SafeERC20 for IERC20;
     using TokenSaleProposalDecode for ITokenSaleProposal.Tier;
     using EnumerableMap for EnumerableMap.AddressToUintMap;
@@ -29,7 +30,7 @@ library TokenSaleProposalBuy {
     ) external {
         ITokenSaleProposal.UserInfo storage userInfo = tier.users[msg.sender];
         ITokenSaleProposal.PurchaseInfo storage purchaseInfo = userInfo.purchaseInfo;
-        ITokenSaleProposal.TierInitParams memory tierInitParams = tier.tierInitParams;
+        ITokenSaleProposal.TierInitParams storage tierInitParams = tier.tierInitParams;
 
         if (tokenToBuyWith == ETHEREUM_ADDRESS) {
             amount = msg.value;
@@ -55,17 +56,35 @@ library TokenSaleProposalBuy {
 
         userInfo.vestingUserInfo.vestingTotalAmount += vestingCurrentAmount;
 
-        address govAddress = TokenSaleProposal(address(this)).govAddress();
+        _purchaseWithCommission(tokenToBuyWith, amount);
+    }
 
-        if (tokenToBuyWith == ETHEREUM_ADDRESS) {
-            (bool success, ) = govAddress.call{value: amount}("");
+    function _purchaseWithCommission(address token, uint256 amount) internal {
+        TokenSaleProposal tokenSaleProposal = TokenSaleProposal(address(this));
+        address govAddress = tokenSaleProposal.govAddress();
+        address dexeGovAddress = tokenSaleProposal.dexeGovAddress();
+
+        if (govAddress != dexeGovAddress) {
+            CoreProperties coreProperties = CoreProperties(tokenSaleProposal.coreProperties());
+
+            uint256 commission = amount.percentage(
+                coreProperties.getTokenSaleProposalCommissionPercentage()
+            );
+
+            _sendFunds(token, dexeGovAddress, commission);
+
+            amount -= commission;
+        }
+
+        _sendFunds(token, govAddress, amount);
+    }
+
+    function _sendFunds(address token, address to, uint256 amount) internal {
+        if (token == ETHEREUM_ADDRESS) {
+            (bool success, ) = to.call{value: amount}("");
             require(success, "TSP: failed to transfer ether");
         } else {
-            IERC20(tokenToBuyWith).safeTransferFrom(
-                msg.sender,
-                govAddress,
-                amount.from18(ERC20(tokenToBuyWith).decimals())
-            );
+            IERC20(token).safeTransferFrom(msg.sender, to, amount.from18(token.decimals()));
         }
     }
 
@@ -122,8 +141,7 @@ library TokenSaleProposalBuy {
                 IGovUserKeeper(govUserKeeper)
                 .votingPower(
                     _asSingletonArray(user),
-                    _asSingletonArray(false),
-                    _asSingletonArray(true)
+                    _asSingletonArray(IGovPool.VoteType.DelegatedVote)
                 )[0].power >
                 tier.decodeDAOVotes();
         } else if (participationType == ITokenSaleProposal.ParticipationType.Whitelist) {
@@ -174,8 +192,10 @@ library TokenSaleProposalBuy {
         }
     }
 
-    function _asSingletonArray(bool element) private pure returns (bool[] memory arr) {
-        arr = new bool[](1);
+    function _asSingletonArray(
+        IGovPool.VoteType element
+    ) private pure returns (IGovPool.VoteType[] memory arr) {
+        arr = new IGovPool.VoteType[](1);
         arr[0] = element;
     }
 

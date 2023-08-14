@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@dlsl/dev-modules/pool-contracts-registry/pool-factory/AbstractPoolFactory.sol";
+import "@solarity/solidity-lib/contracts-registry/pools/pool-factory/AbstractPoolFactory.sol";
 
 import "../interfaces/factory/IPoolFactory.sol";
 import "../interfaces/trader/ITraderPool.sol";
@@ -10,6 +10,8 @@ import "../interfaces/core/ISBT721.sol";
 
 import {DistributionProposal} from "../gov/proposals/DistributionProposal.sol";
 import {TokenSaleProposal} from "../gov/proposals/TokenSaleProposal.sol";
+import {ERC721Expert} from "../gov/ERC721/ERC721Expert.sol";
+import {ERC721Multiplier} from "../gov/ERC721/ERC721Multiplier.sol";
 import "../gov/GovPool.sol";
 import "../gov/user-keeper/GovUserKeeper.sol";
 import "../gov/settings/GovSettings.sol";
@@ -21,7 +23,7 @@ import "../trader/TraderPoolRiskyProposal.sol";
 import "../trader/TraderPoolInvestProposal.sol";
 
 import "../core/CoreProperties.sol";
-import "./PoolRegistry.sol";
+import {PoolRegistry} from "./PoolRegistry.sol";
 
 import "../libs/factory/GovTokenDeployer.sol";
 
@@ -29,6 +31,12 @@ import "../core/Globals.sol";
 
 contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     using GovTokenDeployer for *;
+
+    string internal constant EXPERT_NAME_POSTFIX = (" Expert Nft");
+    string internal constant EXPERT_SYMBOL_POSTFIX = (" EXPNFT");
+
+    string internal constant NFT_MULTIPLIER_NAME_POSTFIX = (" NFT Multiplier");
+    string internal constant NFT_MULTIPLIER_SYMBOL_POSTFIX = (" MULTIPLIER");
 
     PoolRegistry internal _poolRegistry;
     CoreProperties internal _coreProperties;
@@ -55,12 +63,13 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address settings,
         address govUserKeeper,
         address localExpertNft,
+        address nftMultiplier,
         address sender
     );
     event DaoTokenSaleDeployed(address govPool, address tokenSale, address token);
 
-    function setDependencies(address contractsRegistry) public override {
-        super.setDependencies(contractsRegistry);
+    function setDependencies(address contractsRegistry, bytes memory data) public override {
+        super.setDependencies(contractsRegistry, data);
 
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
@@ -79,7 +88,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         govPoolDeps.distributionAddress = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
         govPoolDeps.settingsAddress = _deploy(_poolRegistry.SETTINGS_NAME());
         address poolProxy = _deploy2(poolType, parameters.name);
-        govPoolDeps.expertNftAddress = _deployExpertNft(poolProxy, parameters.name);
+        govPoolDeps.expertNftAddress = _deploy(_poolRegistry.EXPERT_NFT_NAME());
+        govPoolDeps.nftMultiplierAddress = _deploy(_poolRegistry.NFT_MULTIPLIER_NAME());
 
         emit DaoPoolDeployed(
             parameters.name,
@@ -89,6 +99,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             govPoolDeps.settingsAddress,
             govPoolDeps.userKeeperAddress,
             govPoolDeps.expertNftAddress,
+            govPoolDeps.nftMultiplierAddress,
             msg.sender
         );
 
@@ -99,6 +110,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         GovSettings(govPoolDeps.settingsAddress).transferOwnership(poolProxy);
         GovUserKeeper(govPoolDeps.userKeeperAddress).transferOwnership(poolProxy);
         GovValidators(govPoolDeps.validatorsAddress).transferOwnership(poolProxy);
+        ERC721Expert(govPoolDeps.expertNftAddress).transferOwnership(poolProxy);
+        ERC721Multiplier(govPoolDeps.nftMultiplierAddress).transferOwnership(poolProxy);
 
         _register(poolType, poolProxy);
         _injectDependencies(poolProxy);
@@ -117,7 +130,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         govPoolDeps.distributionAddress = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
         govPoolDeps.settingsAddress = _deploy(_poolRegistry.SETTINGS_NAME());
         address poolProxy = _deploy2(poolType, parameters.name);
-        govPoolDeps.expertNftAddress = _deployExpertNft(poolProxy, parameters.name);
+        govPoolDeps.expertNftAddress = _deploy(_poolRegistry.EXPERT_NFT_NAME());
+        govPoolDeps.nftMultiplierAddress = _deploy(_poolRegistry.NFT_MULTIPLIER_NAME());
 
         emit DaoPoolDeployed(
             parameters.name,
@@ -127,6 +141,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             govPoolDeps.settingsAddress,
             govPoolDeps.userKeeperAddress,
             govPoolDeps.expertNftAddress,
+            govPoolDeps.nftMultiplierAddress,
             msg.sender
         );
 
@@ -144,11 +159,13 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         TokenSaleProposal(tokenSaleProxy).addToWhitelist(tokenSaleParameters.whitelistParams);
 
         _initGovPool(poolProxy, govPoolDeps, parameters);
-        TokenSaleProposal(tokenSaleProxy).__TokenSaleProposal_init(poolProxy, _babt);
+        TokenSaleProposal(tokenSaleProxy).__TokenSaleProposal_init(poolProxy);
 
         GovSettings(govPoolDeps.settingsAddress).transferOwnership(poolProxy);
         GovUserKeeper(govPoolDeps.userKeeperAddress).transferOwnership(poolProxy);
         GovValidators(govPoolDeps.validatorsAddress).transferOwnership(poolProxy);
+        ERC721Expert(govPoolDeps.expertNftAddress).transferOwnership(poolProxy);
+        ERC721Multiplier(govPoolDeps.nftMultiplierAddress).transferOwnership(poolProxy);
 
         _register(poolType, poolProxy);
         _injectDependencies(poolProxy);
@@ -248,19 +265,13 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address poolProxy
     ) internal returns (address tokenSaleProxy) {
         tokenSaleProxy = _deploy2(_poolRegistry.TOKEN_SALE_PROPOSAL_NAME(), parameters.name);
+        _injectDependencies(tokenSaleProxy);
 
         bytes32 govSalt = _calculateGovSalt(tx.origin, parameters.name);
 
         if (parameters.userKeeperParams.tokenAddress == govSalt.predictTokenAddress()) {
             poolProxy.deployToken(tokenSaleProxy, govSalt, tokenSaleParameters.tokenParams);
         }
-    }
-
-    function _deployExpertNft(
-        address poolProxy,
-        string calldata name_
-    ) internal returns (address) {
-        return poolProxy.deployExpertNft(name_);
     }
 
     function _initGovPool(
@@ -300,7 +311,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         );
         GovPool(payable(poolProxy)).__GovPool_init(
             govPoolDeps,
-            parameters.nftMultiplierAddress,
             parameters.regularVoteModifier,
             parameters.expertVoteModifier,
             parameters.verifier,
@@ -308,6 +318,14 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             babtId,
             parameters.descriptionURL,
             parameters.name
+        );
+        ERC721Expert(govPoolDeps.expertNftAddress).__ERC721Expert_init(
+            parameters.name.concatStrings(EXPERT_NAME_POSTFIX),
+            parameters.name.concatStrings(EXPERT_SYMBOL_POSTFIX)
+        );
+        ERC721Multiplier(govPoolDeps.nftMultiplierAddress).__ERC721Multiplier_init(
+            parameters.name.concatStrings(NFT_MULTIPLIER_NAME_POSTFIX),
+            parameters.name.concatStrings(NFT_MULTIPLIER_SYMBOL_POSTFIX)
         );
     }
 

@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721Enumer
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
+import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 
 import "../../interfaces/gov/ERC721/IERC721Power.sol";
 
@@ -20,7 +20,7 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
     using SafeERC20 for IERC20;
     using Math for uint256;
     using MathHelper for uint256;
-    using DecimalsConverter for uint256;
+    using DecimalsConverter for *;
     using TokenBalance for address;
 
     uint64 public powerCalcStartTimestamp;
@@ -110,7 +110,7 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
         IERC20(collateralToken).safeTransferFrom(
             msg.sender,
             address(this),
-            amount.from18(ERC20(collateralToken).decimals())
+            amount.from18(collateralToken.decimals())
         );
 
         recalculateNftPower(tokenId);
@@ -136,7 +136,7 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
 
         IERC20(collateralToken).safeTransfer(
             msg.sender,
-            amount.from18(ERC20(collateralToken).decimals())
+            amount.from18(collateralToken.decimals())
         );
     }
 

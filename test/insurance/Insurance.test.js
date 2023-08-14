@@ -80,7 +80,7 @@ describe("Insurance", () => {
     });
 
     it("should not set dependencies from non dependant", async () => {
-      await truffleAssert.reverts(insurance.setDependencies(OWNER), "Dependant: Not an injector");
+      await truffleAssert.reverts(insurance.setDependencies(OWNER, "0x"), "Dependant: not an injector");
     });
 
     it("only owner should call these methods", async () => {

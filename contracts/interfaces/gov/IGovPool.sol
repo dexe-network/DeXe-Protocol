@@ -11,6 +11,17 @@ import "./validators/IGovValidators.sol";
  * the factory. The users can participate in proposal's creation, voting and execution processes
  */
 interface IGovPool {
+    /// @notice The enum that holds information about proposal state
+    /// @param Voting the proposal is in voting state
+    /// @param WaitingForVotingTransfer the proposal is approved and waiting for transfer to validators contract
+    /// @param ValidatorVoting the proposal is in validators voting state
+    /// @param Defeated the proposal is defeated
+    /// @param SucceededFor the proposal is succeeded on for step
+    /// @param SucceededAgainst the proposal is succeeded on against step
+    /// @param Locked the proposal is locked
+    /// @param ExecutedFor the proposal is executed on for step
+    /// @param ExecutedAgainst the proposal is executed on against step
+    /// @param Undefined the proposal is undefined
     enum ProposalState {
         Voting,
         WaitingForVotingTransfer,
@@ -24,23 +35,54 @@ interface IGovPool {
         Undefined
     }
 
+    /// @notice The enum that holds information about reward type
+    /// @param Create the reward type for proposal creation
+    /// @param VoteFor the reward type for voting for proposal
+    /// @param VoteAgainst the reward type for voting against proposal
+    /// @param VoteForDelegated the reward type for delegated voting for proposal
+    /// @param VoteAgainstDelegated the reward type for delegated voting against proposal
+    /// @param VoteForTreasury the reward type for treasury voting for proposal
+    /// @param VoteAgainstTreasury the reward type for treasury voting against proposal
+    /// @param Execute the reward type for proposal execution
+    /// @param SaveOffchainResults the reward type for saving off-chain results
     enum RewardType {
         Create,
         VoteFor,
         VoteAgainst,
         VoteForDelegated,
         VoteAgainstDelegated,
+        VoteForTreasury,
+        VoteAgainstTreasury,
         Execute,
         SaveOffchainResults
     }
 
-    // TODO: ADD DOCS
+    /// @notice The enum that holds information about vote type
+    /// @param PersonalVote the vote type for personal voting
+    /// @param MicropoolVote the vote type for micropool voting
+    /// @param DelegatedVote the vote type for delegated voting
+    /// @param TreasuryVote the vote type for treasury voting
+    enum VoteType {
+        PersonalVote,
+        MicropoolVote,
+        DelegatedVote,
+        TreasuryVote
+    }
+
+    /// @notice The struct that holds information about dependencies
+    /// @param settingsAddress the address of settings contract
+    /// @param userKeeperAddress the address of user keeper contract
+    /// @param distributionAddress the address of distribution contract
+    /// @param validatorsAddress the address of validators contract
+    /// @param expertNftAddress the address of expert nft contract
+    /// @param nftMultiplierAddress the address of nft multiplier contract
     struct Dependencies {
         address settingsAddress;
         address userKeeperAddress;
         address distributionAddress;
         address validatorsAddress;
         address expertNftAddress;
+        address nftMultiplierAddress;
     }
 
     /// @notice The struct holds core properties of proposal
@@ -89,14 +131,12 @@ interface IGovPool {
     /// @param proposalState the value from enum `ProposalState`, that shows proposal state at current time
     /// @param requiredQuorum the required votes amount to confirm the proposal
     /// @param requiredValidatorsQuorum the the required validator votes to confirm the proposal
-    /// @param executeAfter the timestamp of start available execution in seconds
     struct ProposalView {
         Proposal proposal;
         IGovValidators.ExternalProposal validatorProposal;
         ProposalState proposalState;
         uint256 requiredQuorum;
         uint256 requiredValidatorsQuorum;
-        uint64 executeAfter;
     }
 
     /// @notice The struct that holds information about the votes of the user in a single proposal
@@ -228,10 +268,6 @@ interface IGovPool {
         mapping(bytes32 => bool) usedHashes;
     }
 
-    /// @notice The function to get nft multiplier
-    /// @return `address` of nft multiplier
-    function nftMultiplier() external view returns (address);
-
     /// @notice The function to get helper contract of this pool
     /// @return settings settings address
     /// @return userKeeper user keeper address
@@ -246,6 +282,16 @@ interface IGovPool {
             address validators,
             address distributionProposal
         );
+
+    /// @notice The function to get the nft contracts of this pool
+    /// @return nftMultiplier rewards multiplier nft contract
+    /// @return expertNft local expert nft contract
+    /// @return dexeExpertNft global expert nft contract
+    /// @return babt binance bound token
+    function getNftContracts()
+        external
+        view
+        returns (address nftMultiplier, address expertNft, address dexeExpertNft, address babt);
 
     /// @notice Create proposal
     /// @notice For internal proposal, last executor should be `GovSetting` contract
@@ -309,6 +355,16 @@ interface IGovPool {
     /// @param nftIds the array of nft ids to delegate
     function delegate(address delegatee, uint256 amount, uint256[] calldata nftIds) external;
 
+    /// @notice The function for delegating tokens from treasury
+    /// @param delegatee the target address for delegation (person who will receive the delegation)
+    /// @param amount the erc20 delegation amount
+    /// @param nftIds the array of nft ids to delegate
+    function delegateTreasury(
+        address delegatee,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external;
+
     /// @notice The function for requesting delegated tokens
     /// @param delegatee the delegation target address (person who will be delegated)
     /// @param amount the erc20 delegation amount
@@ -321,20 +377,20 @@ interface IGovPool {
     /// @param nftIds the array of nft ids to undelegate
     function undelegate(address delegatee, uint256 amount, uint256[] calldata nftIds) external;
 
+    /// @notice The function for undelegating delegated tokens from treasury
+    /// @param delegatee the undelegation target address (person who will be undelegated)
+    /// @param amount the erc20 undelegation amount
+    /// @param nftIds the array of nft ids to undelegate
+    function undelegateTreasury(
+        address delegatee,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external;
+
     /// @notice The function that unlocks user funds in completed proposals
     /// @param user the user whose funds to unlock
-    /// @param isMicropool the bool flag for micropool (unlock personal or delegated funds)
-    function unlock(address user, bool isMicropool) external;
-
-    /// @notice The function to unlock user funds from completed proposals
-    /// @param proposalIds the array of proposals to unlock the funds in
-    /// @param user the user to unlock the funds of
-    /// @param isMicropool the bool flag for micropool (unlock personal or delegated funds)
-    function unlockInProposals(
-        uint256[] memory proposalIds,
-        address user,
-        bool isMicropool
-    ) external;
+    /// @param voteType the type of vote
+    function unlock(address user, VoteType voteType) external;
 
     /// @notice Execute proposal
     /// @param proposalId Proposal ID
@@ -411,11 +467,11 @@ interface IGovPool {
     /// @notice The function for getting total votes in the proposal by one voter
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
-    /// @param isMicropool the bool flag for micropool (personal or delegated votes)
+    /// @param voteType the type of vote
     function getTotalVotes(
         uint256 proposalId,
         address voter,
-        bool isMicropool
+        VoteType voteType
     ) external view returns (uint256, uint256, uint256, uint256);
 
     /// @notice The function to get required quorum of proposal
@@ -426,12 +482,12 @@ interface IGovPool {
     /// @notice The function to get information about user's votes
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
-    /// @param isMicropool the bool flag for micropool (personal or delegated votes)
+    /// @param voteType the type of vote
     /// @return `VoteInfoView` array
     function getUserVotes(
         uint256 proposalId,
         address voter,
-        bool isMicropool
+        VoteType voteType
     ) external view returns (VoteInfoView memory);
 
     /// @notice The function to get withdrawable assets
@@ -463,29 +519,29 @@ interface IGovPool {
     /// @return the list of credit infos
     function getCreditInfo() external view returns (CreditInfoView[] memory);
 
-    /// @notice The function to get off-chain voting results
+    /// @notice The function to get off-chain info
+    /// @return validator the verifier address
     /// @return resultsHash the ipfs hash
-    function getOffchainResultsHash() external view returns (string memory resultsHash);
+    function getOffchainInfo()
+        external
+        view
+        returns (address validator, string memory resultsHash);
 
     /// @notice The function to get the sign hash from string resultsHash, chainid, govPool address
     /// @param resultsHash the ipfs hash
     /// @return bytes32 hash
     function getOffchainSignHash(string calldata resultsHash) external view returns (bytes32);
 
-    /// @notice The function to get off-chain verifier address
-    /// @return address of verifier
-    function getVerifier() external view returns (address);
-
     /// @notice The function to get expert status of a voter
     /// @return address of a person, who votes
     function getExpertStatus(address user) external view returns (bool);
 
     /// @notice The function to get current vote modifier
-    /// @return `Arguments`: regular modifier, expert modifier (with 18 precision decimals)
+    /// @return `Arguments`: regular modifier, expert modifier (with 25 precision decimals)
     function getVoteModifiers() external view returns (uint256, uint256);
 
     /// @notice The function to get current vote modifier for particular user
     /// @param user the address of the user
-    /// @return uint256 the modifier with 18 precision decimals
+    /// @return uint256 the modifier with 25 precision decimals
     function getVoteModifierForUser(address user) external view returns (uint256);
 }

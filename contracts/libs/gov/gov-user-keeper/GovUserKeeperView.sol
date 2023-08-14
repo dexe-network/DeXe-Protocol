@@ -4,9 +4,10 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
+
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
-import "../../utils/ArrayCropper.sol";
 import "../../math/MathHelper.sol";
 
 import "../../../gov/ERC721/ERC721Power.sol";
@@ -15,14 +16,13 @@ import "../../../gov/user-keeper/GovUserKeeper.sol";
 library GovUserKeeperView {
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using ArrayCropper for uint256[];
+    using Vector for Vector.UintVector;
     using MathHelper for uint256;
     using Math for uint256;
 
     function votingPower(
         address[] calldata users,
-        bool[] calldata isMicropools,
-        bool[] calldata useDelegated
+        IGovPool.VoteType[] calldata voteTypes
     ) external view returns (IGovUserKeeper.VotingPowerView[] memory votingPowers) {
         GovUserKeeper userKeeper = GovUserKeeper(address(this));
         votingPowers = new IGovUserKeeper.VotingPowerView[](users.length);
@@ -36,8 +36,7 @@ library GovUserKeeperView {
             if (tokenAddressExists) {
                 (power.power, power.ownedBalance) = userKeeper.tokenBalance(
                     users[i],
-                    isMicropools[i],
-                    useDelegated[i]
+                    voteTypes[i]
                 );
             }
 
@@ -45,8 +44,7 @@ library GovUserKeeperView {
                 /// @dev FE should `crop` this array if it's micropool
                 (power.nftIds, power.ownedLength) = userKeeper.nftExactBalance(
                     users[i],
-                    isMicropools[i],
-                    useDelegated[i]
+                    voteTypes[i]
                 );
                 (power.nftPower, power.perNftPower) = nftVotingPower(power.nftIds, true);
 
@@ -159,16 +157,15 @@ library GovUserKeeperView {
         undelegateableTokens = delegatorInfo.delegatedTokens[delegatee].min(withdrawableTokens);
         EnumerableSet.UintSet storage delegatedNfts = delegatorInfo.delegatedNfts[delegatee];
 
-        undelegateableNfts = new uint256[](withdrawableNfts.length);
-        uint256 nftsLength;
+        Vector.UintVector memory nfts = Vector.newUint();
 
-        for (uint256 i; i < undelegateableNfts.length; i++) {
+        for (uint256 i; i < withdrawableNfts.length; i++) {
             if (delegatedNfts.contains(withdrawableNfts[i])) {
-                undelegateableNfts[nftsLength++] = withdrawableNfts[i];
+                nfts.push(withdrawableNfts[i]);
             }
         }
 
-        undelegateableNfts.crop(nftsLength);
+        undelegateableNfts = nfts.toArray();
     }
 
     function getWithdrawableAssets(
@@ -196,10 +193,10 @@ library GovUserKeeperView {
 
         withdrawableTokens = balanceInfo.tokenBalance - newLockedAmount;
 
-        withdrawableNfts = new uint256[](balanceInfo.nftBalance.length());
-        uint256 nftsLength;
+        Vector.UintVector memory nfts = Vector.newUint();
+        uint256 nftsLength = balanceInfo.nftBalance.length();
 
-        for (uint256 i; i < withdrawableNfts.length; i++) {
+        for (uint256 i; i < nftsLength; i++) {
             uint256 nftId = balanceInfo.nftBalance.at(i);
             uint256 nftLockAmount = nftLockedNums[nftId];
 
@@ -212,10 +209,10 @@ library GovUserKeeperView {
             }
 
             if (nftLockAmount == 0) {
-                withdrawableNfts[nftsLength++] = nftId;
+                nfts.push(nftId);
             }
         }
 
-        withdrawableNfts.crop(nftsLength);
+        withdrawableNfts = nfts.toArray();
     }
 }

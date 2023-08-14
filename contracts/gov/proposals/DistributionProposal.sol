@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
+import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/proposals/IDistributionProposal.sol";
@@ -18,7 +18,7 @@ import "../../core/Globals.sol";
 contract DistributionProposal is IDistributionProposal, Initializable {
     using SafeERC20 for IERC20Metadata;
     using MathHelper for uint256;
-    using DecimalsConverter for uint256;
+    using DecimalsConverter for *;
     using TokenBalance for address;
 
     address public govAddress;
@@ -50,9 +50,7 @@ contract DistributionProposal is IDistributionProposal, Initializable {
         require(amount > 0, "DP: zero amount");
 
         proposal.rewardAddress = token;
-        proposal.rewardAmount = token == ETHEREUM_ADDRESS
-            ? amount
-            : amount.to18(ERC20(token).decimals());
+        proposal.rewardAmount = token == ETHEREUM_ADDRESS ? amount : amount.to18(token.decimals());
     }
 
     function claim(address voter, uint256[] calldata proposalIds) external override {
@@ -87,7 +85,7 @@ contract DistributionProposal is IDistributionProposal, Initializable {
             uint256 totalVotesAgainst,
             uint256 voterVotesFor,
             uint256 voterVotesAgainst
-        ) = IGovPool(govAddress).getTotalVotes(proposalId, voter, false);
+        ) = IGovPool(govAddress).getTotalVotes(proposalId, voter, IGovPool.VoteType.PersonalVote);
 
         if (totalVotesFor == 0 || voterVotesFor <= voterVotesAgainst) {
             return 0;

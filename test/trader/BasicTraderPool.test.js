@@ -331,8 +331,8 @@ describe("BasicTraderPool", () => {
       });
 
       it("should not set dependencies from non dependant", async () => {
-        await truffleAssert.reverts(traderPool.setDependencies(OWNER), "Dependant: Not an injector");
-        await truffleAssert.reverts(proposalPool.setDependencies(OWNER), "Dependant: Not an injector");
+        await truffleAssert.reverts(traderPool.setDependencies(OWNER, "0x"), "Dependant: not an injector");
+        await truffleAssert.reverts(proposalPool.setDependencies(OWNER, "0x"), "Dependant: not an injector");
       });
 
       it("only trader admin should call these methods", async () => {
@@ -440,7 +440,7 @@ describe("BasicTraderPool", () => {
 
         const poolInfo = await traderPool.getPoolInfo();
 
-        assert.deepEqual(poolInfo[3], [tokens.DEXE.address, tokens.USD.address]);
+        assert.deepEqual(poolInfo[3], [tokens.USD.address, tokens.DEXE.address]);
       });
 
       it("should revert when tokens are not in whitelist", async () => {

@@ -79,7 +79,13 @@ contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgr
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view virtual override(ERC721Upgradeable, IERC165Upgradeable) returns (bool) {
+    )
+        public
+        view
+        virtual
+        override(ERC721URIStorageUpgradeable, IERC165Upgradeable)
+        returns (bool)
+    {
         return
             interfaceId == bytes4(0x0489b56f) || // EIP-5484
             interfaceId == type(IERC721Expert).interfaceId ||

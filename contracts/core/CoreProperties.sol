@@ -5,8 +5,9 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
-import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
+import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
+import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
+import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
 
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/IContractsRegistry.sol";
@@ -19,6 +20,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
     using EnumerableSet for EnumerableSet.AddressSet;
     using AddressSetHelper for EnumerableSet.AddressSet;
     using Paginator for EnumerableSet.AddressSet;
+    using Vector for Vector.AddressVector;
     using Math for uint256;
 
     CoreParameters public coreParameters;
@@ -36,7 +38,10 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         coreParameters = _coreParameters;
     }
 
-    function setDependencies(address contractsRegistry) public virtual override dependant {
+    function setDependencies(
+        address contractsRegistry,
+        bytes memory
+    ) public virtual override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         _insuranceAddress = registry.getInsuranceContract();
@@ -99,6 +104,14 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         coreParameters.govParams.govCommissionPercentage = govCommission;
     }
 
+    function setTokenSaleProposalCommissionPercentage(
+        uint256 tokenSaleProposalCommissionPercentage
+    ) external override onlyOwner {
+        coreParameters
+            .govParams
+            .tokenSaleProposalCommissionPercentage = tokenSaleProposalCommissionPercentage;
+    }
+
     function setTraderCommissionPercentages(
         uint256 minTraderCommission,
         uint256[] calldata maxTraderCommissions
@@ -153,24 +166,16 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
 
     function getFilteredPositions(
         address[] memory positions
-    ) external view override returns (address[] memory filteredPositions) {
-        uint256 newLength = positions.length;
+    ) external view override returns (address[] memory) {
+        Vector.AddressVector memory filter = Vector.newAddress();
 
         for (uint256 i = positions.length; i > 0; i--) {
-            if (_blacklistTokens.contains(positions[i - 1])) {
-                if (i == newLength) {
-                    --newLength;
-                } else {
-                    positions[i - 1] = positions[--newLength];
-                }
+            if (!_blacklistTokens.contains(positions[i - 1])) {
+                filter.push(positions[i - 1]);
             }
         }
 
-        filteredPositions = new address[](newLength);
-
-        for (uint256 i = 0; i < newLength; i++) {
-            filteredPositions[i] = positions[i];
-        }
+        return filter.toArray();
     }
 
     function getMaximumPoolInvestors() external view override returns (uint64) {
@@ -208,6 +213,10 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
             coreParameters.traderParams.dexeCommissionDistributionPercentages,
             [_insuranceAddress, _treasuryAddress, _dividendsAddress]
         );
+    }
+
+    function getTokenSaleProposalCommissionPercentage() external view override returns (uint256) {
+        return coreParameters.govParams.tokenSaleProposalCommissionPercentage;
     }
 
     function getTraderCommissions() external view override returns (uint256, uint256[] memory) {

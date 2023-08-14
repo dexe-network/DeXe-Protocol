@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "@dlsl/dev-modules/pool-contracts-registry/presets/OwnablePoolContractsRegistry.sol";
-import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
+import "@solarity/solidity-lib/contracts-registry/pools/presets/OwnablePoolContractsRegistry.sol";
+import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 
 import "../interfaces/factory/IPoolRegistry.sol";
 import "../interfaces/core/IContractsRegistry.sol";
@@ -26,6 +27,9 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     string public constant DISTRIBUTION_PROPOSAL_NAME = "DISTRIBUTION_PROPOSAL";
     string public constant TOKEN_SALE_PROPOSAL_NAME = "TOKEN_SALE_PROPOSAL";
 
+    string public constant EXPERT_NFT_NAME = "EXPERT_NFT";
+    string public constant NFT_MULTIPLIER_NAME = "NFT_MULTIPLIER";
+
     address internal _poolFactory;
 
     mapping(address => mapping(string => EnumerableSet.AddressSet)) internal _ownerPools; // pool owner => name => pool
@@ -35,8 +39,8 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         _;
     }
 
-    function setDependencies(address contractsRegistry) public override {
-        super.setDependencies(contractsRegistry);
+    function setDependencies(address contractsRegistry, bytes memory data) public override {
+        super.setDependencies(contractsRegistry, data);
 
         _poolFactory = IContractsRegistry(contractsRegistry).getPoolFactoryContract();
     }
@@ -98,11 +102,11 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     }
 
     function isBasicPool(address potentialPool) public view override returns (bool) {
-        return _isPool(BASIC_POOL_NAME, potentialPool);
+        return isPool(BASIC_POOL_NAME, potentialPool);
     }
 
     function isInvestPool(address potentialPool) public view override returns (bool) {
-        return _isPool(INVEST_POOL_NAME, potentialPool);
+        return isPool(INVEST_POOL_NAME, potentialPool);
     }
 
     function isTraderPool(address potentialPool) external view override returns (bool) {
@@ -110,11 +114,7 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     }
 
     function isGovPool(address potentialPool) external view override returns (bool) {
-        return _isPool(GOV_POOL_NAME, potentialPool);
-    }
-
-    function _isPool(string memory name, address potentialPool) internal view returns (bool) {
-        return _pools[name].contains(potentialPool);
+        return isPool(GOV_POOL_NAME, potentialPool);
     }
 
     function _onlyPoolFactory() internal view {

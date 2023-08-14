@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
+import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 
 import "../../../interfaces/trader/ITraderPool.sol";
 import "../../../interfaces/core/IPriceFeed.sol";
@@ -25,7 +25,7 @@ library TraderPoolView {
     using TraderPoolPrice for *;
     using TraderPoolCommission for *;
     using TraderPoolLeverage for *;
-    using DecimalsConverter for uint256;
+    using DecimalsConverter for *;
     using MathHelper for uint256;
     using Math for uint256;
     using TokenBalance for address;
@@ -262,14 +262,14 @@ library TraderPoolView {
             receptions.baseAmount = baseToken
                 .balanceOf(address(this))
                 .ratio(amountLP, totalSupply)
-                .to18(baseToken.decimals());
+                .to18(address(baseToken).decimals());
 
             for (uint256 i = 0; i < openPositions.length; i++) {
                 receptions.positions[i] = openPositions[i];
 
                 uint256 currentPositionNormBalance = ERC20(receptions.positions[i])
                     .balanceOf(address(this))
-                    .to18(ERC20(receptions.positions[i]).decimals());
+                    .to18(receptions.positions[i].decimals());
 
                 receptions.receivedAmounts[i] = priceFeed
                     .getNormPriceOut(

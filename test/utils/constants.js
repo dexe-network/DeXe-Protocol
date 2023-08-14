@@ -31,6 +31,13 @@ const ProposalState = {
   Undefined: 9,
 };
 
+const VoteType = {
+  PersonalVote: 0,
+  MicropoolVote: 1,
+  DelegatedVote: 2,
+  TreasuryVote: 3,
+};
+
 const ValidatorsProposalState = {
   Voting: 0,
   Defeated: 1,
@@ -82,6 +89,7 @@ const DEFAULT_CORE_PROPERTIES = {
   govParams: {
     govVotesLimit: 20,
     govCommissionPercentage: PRECISION.times(20).toFixed(),
+    tokenSaleProposalCommissionPercentage: PRECISION.toFixed(),
   },
 };
 
@@ -91,6 +99,7 @@ module.exports = {
   ComissionPeriods,
   ProposalState,
   ProposalType,
+  VoteType,
   ValidatorsProposalState,
   ParticipationType,
   DEFAULT_CORE_PROPERTIES,

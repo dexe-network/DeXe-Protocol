@@ -15,6 +15,18 @@ library GovUserKeeperLocal {
     }
 
     function exec(
+        function(address, uint256) external tokenFunc,
+        address user,
+        uint256 amount
+    ) internal {
+        if (amount == 0) {
+            return;
+        }
+
+        tokenFunc(user, amount);
+    }
+
+    function exec(
         function(address, address, uint256[] memory) external nftFunc,
         address user,
         uint256[] calldata nftIds
@@ -24,5 +36,17 @@ library GovUserKeeperLocal {
         }
 
         nftFunc(msg.sender, user, nftIds);
+    }
+
+    function exec(
+        function(address, uint256[] memory) external nftFunc,
+        address user,
+        uint256[] calldata nftIds
+    ) internal {
+        if (nftIds.length == 0) {
+            return;
+        }
+
+        nftFunc(user, nftIds);
     }
 }

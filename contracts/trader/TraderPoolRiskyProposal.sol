@@ -16,7 +16,7 @@ import "./TraderPoolProposal.sol";
 contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal {
     using EnumerableSet for EnumerableSet.UintSet;
     using SafeERC20 for IERC20;
-    using DecimalsConverter for uint256;
+    using DecimalsConverter for *;
     using MathHelper for uint256;
     using Math for uint256;
     using Address for address;
@@ -101,7 +101,7 @@ contract TraderPoolRiskyProposal is ITraderPoolRiskyProposal, TraderPoolProposal
 
         _proposalInfos[proposalId].descriptionURL = descriptionURL;
         _proposalInfos[proposalId].token = token;
-        _proposalInfos[proposalId].tokenDecimals = ERC20(token).decimals();
+        _proposalInfos[proposalId].tokenDecimals = token.decimals();
         _proposalInfos[proposalId].proposalLimits = proposalLimits;
 
         uint256 baseToExchange = baseInvestment.percentage(instantTradePercentage);
