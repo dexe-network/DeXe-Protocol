@@ -19,6 +19,7 @@ const GovValidators = artifacts.require("GovValidators");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
 const ERC721Expert = artifacts.require("ERC721Expert");
+const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const BABTMock = artifacts.require("BABTMock");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
@@ -151,6 +152,7 @@ describe("DistributionProposal", () => {
     userKeeper = await GovUserKeeper.new();
     dp = await DistributionProposal.new();
     expertNft = await ERC721Expert.new();
+    nftMultiplier = await ERC721Multiplier.new();
     govPool = await GovPool.new();
 
     await settings.__GovSettings_init(
@@ -182,9 +184,9 @@ describe("DistributionProposal", () => {
 
     await dp.__DistributionProposal_init(govPool.address);
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
+    await nftMultiplier.__ERC721Multiplier_init("Mock Nft Multiplier", "MCKNFTMLTPLR");
     await govPool.__GovPool_init(
-      [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address],
-      poolParams.nftMultiplierAddress,
+      [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address, nftMultiplier.address],
       wei("1", 25),
       wei("1", 25),
       OWNER,
@@ -198,6 +200,7 @@ describe("DistributionProposal", () => {
     await validators.transferOwnership(govPool.address);
     await userKeeper.transferOwnership(govPool.address);
     await expertNft.transferOwnership(govPool.address);
+    await nftMultiplier.transferOwnership(govPool.address);
 
     await poolRegistry.addProxyPool(NAME, govPool.address, {
       from: FACTORY,
@@ -331,7 +334,6 @@ describe("DistributionProposal", () => {
           totalPowerInTokens: wei("33000"),
           nftsTotalSupply: 33,
         },
-        nftMultiplierAddress: ZERO_ADDR,
         onlyBABTHolders: false,
         deployerBABTid: 1,
         descriptionURL: "example.com",
