@@ -65,23 +65,30 @@ library GovPoolRewards {
 
         if (proposalId != 0) {
             rewardToken = rewardsInfo.rewardToken;
-            IGovPool.Rewards storage userProposalRewards = userRewards.onchainRewards[proposalId];
 
             if (
-                rewardType == IGovPool.RewardType.VoteFor ||
-                rewardType == IGovPool.RewardType.VoteForDelegated ||
-                rewardType == IGovPool.RewardType.VoteForTreasury
+                rewardType == IGovPool.RewardType.Create ||
+                rewardType == IGovPool.RewardType.Execute
             ) {
-                userProposalRewards.rewardFor += amountToAdd;
-            } else if (
-                rewardType == IGovPool.RewardType.VoteAgainst ||
-                rewardType == IGovPool.RewardType.VoteAgainstDelegated ||
-                rewardType == IGovPool.RewardType.VoteAgainstTreasury
-            ) {
-                userProposalRewards.rewardAgainst += amountToAdd;
+                userRewards.staticRewards[proposalId] += amountToAdd;
             } else {
-                userProposalRewards.rewardFor += amountToAdd;
-                userProposalRewards.rewardAgainst += amountToAdd;
+                IGovPool.Rewards storage rewards = userRewards.votingRewards[
+                    _getVoteTypeByRewardType(rewardType)
+                ];
+
+                if (
+                    rewardType == IGovPool.RewardType.VoteFor ||
+                    rewardType == IGovPool.RewardType.VoteForDelegated ||
+                    rewardType == IGovPool.RewardType.VoteForTreasury
+                ) {
+                    rewards.rewardFor += amountToAdd;
+                } else if (
+                    rewardType == IGovPool.RewardType.VoteAgainst ||
+                    rewardType == IGovPool.RewardType.VoteAgainstDelegated ||
+                    rewardType == IGovPool.RewardType.VoteAgainstTreasury
+                ) {
+                    rewards.rewardAgainst += amountToAdd;
+                }
             }
         } else {
             (address settingsAddress, , , ) = IGovPool(address(this)).getHelperContracts();
@@ -112,25 +119,30 @@ library GovPoolRewards {
 
         uint256 amountToCancel = _calculateRewardForVoting(rewardsInfo, rewardType, amount);
 
-        IGovPool.Rewards storage userProposalRewards = pendingRewards[msg.sender].onchainRewards[
-            proposalId
-        ];
+        IGovPool.Rewards storage userRewards = pendingRewards[msg.sender];
 
         if (
-            rewardType == IGovPool.RewardType.VoteFor ||
-            rewardType == IGovPool.RewardType.VoteForDelegated ||
-            rewardType == IGovPool.RewardType.VoteForTreasury
+            rewardType == IGovPool.RewardType.Create || rewardType == IGovPool.RewardType.Execute
         ) {
-            userProposalRewards.rewardFor -= amountToCancel;
-        } else if (
-            rewardType == IGovPool.RewardType.VoteAgainst ||
-            rewardType == IGovPool.RewardType.VoteAgainstDelegated ||
-            rewardType == IGovPool.RewardType.VoteAgainstTreasury
-        ) {
-            userProposalRewards.rewardAgainst -= amountToCancel;
+            userRewards.staticRewards[proposalId] -= amountToCancel;
         } else {
-            userProposalRewards.rewardFor -= amountToCancel;
-            userProposalRewards.rewardAgainst -= amountToCancel;
+            IGovPool.Rewards storage rewards = userRewards.votingRewards[
+                _getVoteTypeByRewardType(rewardType)
+            ];
+
+            if (
+                rewardType == IGovPool.RewardType.VoteFor ||
+                rewardType == IGovPool.RewardType.VoteForDelegated ||
+                rewardType == IGovPool.RewardType.VoteForTreasury
+            ) {
+                rewards.rewardFor -= amountToCancel;
+            } else if (
+                rewardType == IGovPool.RewardType.VoteAgainst ||
+                rewardType == IGovPool.RewardType.VoteAgainstDelegated ||
+                rewardType == IGovPool.RewardType.VoteAgainstTreasury
+            ) {
+                rewards.rewardAgainst -= amountToCancel;
+            }
         }
 
         emit RewardCanceled(
@@ -253,5 +265,23 @@ library GovPoolRewards {
         }
 
         return amount.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
+    }
+
+    function _getVoteTypeByRewardType(
+        IGovPool.RewardType rewardType
+    ) internal pure returns (IGovPool.VoteType) {
+        if (
+            rewardType == IGovPool.RewardType.VoteFor ||
+            rewardType == IGovPool.RewardType.VoteAgainst
+        ) {
+            return IGovPool.VoteType.PersonalVote;
+        } else if (
+            rewardType == IGovPool.RewardType.VoteForDelegated ||
+            rewardType == IGovPool.RewardType.VoteAgainstDelegated
+        ) {
+            return IGovPool.VoteType.MicropoolVote;
+        } else {
+            return IGovPool.VoteType.TreasuryVote;
+        }
     }
 }
