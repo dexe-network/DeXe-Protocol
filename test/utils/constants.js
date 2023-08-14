@@ -44,6 +44,7 @@ const ProposalType = {
   ChangeSettings: 0,
   ChangeBalances: 1,
   MonthlyWithdraw: 2,
+  OffchainProposal: 3,
 };
 
 const ParticipationType = {

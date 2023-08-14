@@ -14,6 +14,7 @@ const {
 
 const GovValidators = artifacts.require("GovValidators");
 const GovValidatorsToken = artifacts.require("GovValidatorsToken");
+const ERC20Mock = artifacts.require("ERC20Mock");
 
 GovValidators.numberFormat = "BigNumber";
 GovValidatorsToken.numberFormat = "BigNumber";
@@ -41,6 +42,9 @@ describe("GovValidators", () => {
         break;
       case ProposalType.MonthlyWithdraw:
         data = getBytesMonthlyWithdraw(users.slice(0, users.length - 1), amounts, users[users.length - 1]);
+        break;
+      case ProposalType.OffchainProposal:
+        data = "0x";
         break;
       default:
         assert.isTrue(false);
@@ -298,6 +302,13 @@ describe("GovValidators", () => {
         await truffleAssert.reverts(
           createInternalProposal(ProposalType.MonthlyWithdraw, "example.com", [0], [SECOND, ZERO_ADDR], SECOND),
           "Validators: destination address cannot be zero"
+        );
+      });
+
+      it("should revert if nonzero data in offchain proposal", async () => {
+        await truffleAssert.reverts(
+          validators.createInternalProposal(ProposalType.OffchainProposal, "example.com", "0xff", { from: SECOND }),
+          "Validators: offchain proposal should not have data"
         );
       });
 
@@ -639,6 +650,9 @@ describe("GovValidators", () => {
               proposal.userAddresses[l - 1]
             );
             break;
+          case ProposalType.OffchainProposal:
+            data = "0x";
+            break;
           default:
             assert.isTrue(false);
         }
@@ -662,7 +676,6 @@ describe("GovValidators", () => {
       describe("after adding internal proposals", async () => {
         let internalProposals;
 
-        // ADD PROPOSAL TO MONTHLY WITHDRAW
         beforeEach("setup", async () => {
           internalProposals = [
             {
@@ -701,6 +714,12 @@ describe("GovValidators", () => {
               newValues: [wei("200")],
               userAddresses: [SECOND, THIRD],
             },
+            {
+              proposalType: ProposalType.OffchainProposal.toString(),
+              descriptionURL: "example7.com",
+              newValues: [],
+              userAddresses: [],
+            },
           ];
 
           for (const internalProposal of internalProposals) {
@@ -714,7 +733,7 @@ describe("GovValidators", () => {
         });
 
         it("should return whole range properly", async () => {
-          const proposals = (await validators.getInternalProposals(0, 6)).map(internalProposalToObject);
+          const proposals = (await validators.getInternalProposals(0, 7)).map(internalProposalToObject);
           const internalProposalsWithData = internalProposals.map(internalProposalAddData);
           assert.deepEqual(proposals, internalProposalsWithData);
         });
@@ -726,13 +745,13 @@ describe("GovValidators", () => {
         });
 
         it("should return proposals properly if offset + limit > latestProposalId", async () => {
-          const proposals = (await validators.getInternalProposals(2, 6)).map(internalProposalToObject);
+          const proposals = (await validators.getInternalProposals(2, 7)).map(internalProposalToObject);
           const internalProposalsWithData = internalProposals.map(internalProposalAddData);
           assert.deepEqual(proposals, internalProposalsWithData.slice(2));
         });
 
         it("should not return proposals if offset > latestProposalId", async () => {
-          const proposals = (await validators.getInternalProposals(6, 1)).map(internalProposalToObject);
+          const proposals = (await validators.getInternalProposals(7, 1)).map(internalProposalToObject);
           assert.deepEqual(proposals, []);
         });
       });
@@ -911,6 +930,24 @@ describe("GovValidators", () => {
         await validators.execute(2);
 
         assert.equal(await validatorsToken.balanceOf(SECOND), wei("0"));
+      });
+
+      it("should correctly execute `OffchainProposal` proposal", async () => {
+        assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Undefined);
+
+        await createInternalProposal(ProposalType.OffchainProposal, "example.com", [], [], SECOND);
+
+        await validators.vote(1, wei("200"), true, true, { from: THIRD });
+
+        assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Locked);
+
+        await setTime((await getCurrentBlockTime()) + 1);
+
+        assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Succeeded);
+
+        await validators.execute(1);
+
+        assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Executed);
       });
 
       it("should revert if proposal does not exist", async () => {

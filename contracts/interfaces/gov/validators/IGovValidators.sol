@@ -17,7 +17,8 @@ interface IGovValidators {
     enum ProposalType {
         ChangeSettings,
         ChangeBalances,
-        MonthlyWithdraw
+        MonthlyWithdraw,
+        OffchainProposal
     }
 
     /// @notice The struct holds information about settings for validators proposal
@@ -90,6 +91,7 @@ interface IGovValidators {
     /// 0 - `ChangeInternalDurationAndQuorum`, change base duration and quorum
     /// 1 - `ChangeBalances`, change address balance
     /// 2 - `MonthlyWithdraw`, monthly token withdraw
+    /// 3 - `OffchainProposal`, offchain action
     /// @param data New packed data, depending on proposal type
     function createInternalProposal(
         ProposalType proposalType,

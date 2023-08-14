@@ -150,6 +150,9 @@ describe("GovPool", () => {
       case ProposalType.MonthlyWithdraw:
         data = getBytesMonthlyWithdraw(users.slice(0, users.length - 1), amounts, users[users.length - 1]);
         break;
+      case ProposalType.OffchainProposal:
+        data = "0x";
+        break;
       default:
         assert.isTrue(false);
     }
@@ -3831,6 +3834,33 @@ describe("GovPool", () => {
           await govPool.execute(2);
 
           await truffleAssert.reverts(validators.execute(proposalId), "Validators: failed to execute");
+        });
+
+        it("should correctly execute `MonthlyWithdraw` proposal", async () => {
+          assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Undefined);
+
+          await createInternalProposal(
+            ProposalType.MonthlyWithdraw,
+            "example.com",
+            [wei("777")],
+            [CREDIT_TOKEN.address, SECOND],
+            OWNER
+          );
+
+          await validators.vote(1, wei("1000000000000"), true, true, { from: SECOND });
+
+          assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Locked);
+
+          await setTime((await getCurrentBlockTime()) + 1);
+
+          assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Succeeded);
+
+          assert.equal((await CREDIT_TOKEN.balanceOf(SECOND)).toFixed(), "0");
+          await validators.execute(1);
+          assert.equal((await CREDIT_TOKEN.balanceOf(SECOND)).toFixed(), wei("777"));
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN.address, wei("1000"), wei("223")]]);
+
+          assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Executed);
         });
       });
     });
