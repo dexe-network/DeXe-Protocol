@@ -87,8 +87,7 @@ contract DistributionProposal is IDistributionProposal, Initializable {
             bool isVoteFor
         ) = IGovPool(govAddress).getTotalVotes(proposalId, voter, IGovPool.VoteType.PersonalVote);
 
-        /// TODO: check
-        if (totalVotesFor == 0 || isVoteFor) {
+        if (totalVotesFor == 0 || !isVoteFor) {
             return 0;
         }
 
