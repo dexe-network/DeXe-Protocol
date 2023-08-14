@@ -139,6 +139,7 @@ library GovPoolRewards {
 
             delete userRewards.staticRewards[proposalId];
             delete votingRewards[IGovPool.VoteType.PersonalVote];
+            delete votingRewards[IGovPool.VoteType.DelegatedVote];
             delete votingRewards[IGovPool.VoteType.MicropoolVote];
             delete votingRewards[IGovPool.VoteType.TreasuryVote];
 
@@ -161,7 +162,8 @@ library GovPoolRewards {
     function getOnchainRewards(
         mapping(address => IGovPool.PendingRewards) storage pendingRewards,
         uint256 proposalId,
-        address user
+        address user,
+        bool clean
     ) public view returns (uint256) {
         IGovPool.PendingRewards storage userRewards = pendingRewards[user];
 
@@ -172,6 +174,7 @@ library GovPoolRewards {
         return
             userRewards.staticRewards[proposalId] +
             votingRewards[IGovPool.VoteType.PersonalVote] +
+            votingRewards[IGovPool.VoteType.DelegatedVote] +
             votingRewards[IGovPool.VoteType.MicropoolVote] +
             votingRewards[IGovPool.VoteType.TreasuryVote];
     }
