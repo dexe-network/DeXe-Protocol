@@ -71,7 +71,7 @@ library GovPoolRewards {
                 userRewards.staticRewards[proposalId] += amountToAdd;
             } else {
                 userRewards.votingRewards[proposalId][
-                    _getVoteTypeByRewardType(rewardType)
+                    _getVoteTypeByRewardType(core, rewardType)
                 ] += amountToAdd;
             }
         } else {
@@ -94,16 +94,22 @@ library GovPoolRewards {
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId,
         IGovPool.RewardType rewardType,
-        uint256 amount
+        uint256 totalVotedBefore,
+        uint256 totalVotedAfter
     ) external {
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
         IGovSettings.RewardsInfo storage rewardsInfo = core.settings.rewardsInfo;
 
-        uint256 amountToCancel = _calculateRewardForVoting(rewardsInfo, rewardType, amount);
+        IGovPool.VoteType voteType = _getVoteTypeByRewardType(core, rewardType);
 
-        pendingRewards[msg.sender].votingRewards[proposalId][
-            _getVoteTypeByRewardType(rewardType)
-        ] -= amountToCancel;
+        mapping(IGovPool.VoteType => uint256) storage votingRewards = pendingRewards[msg.sender]
+            .votingRewards[proposalId];
+
+        uint256 rewardsBefore = votingRewards[voteType];
+        uint256 amountToCancel = rewardsBefore -
+            rewardsBefore.ratio(totalVotedAfter, totalVotedBefore);
+
+        votingRewards[voteType] = rewardsBefore - amountToCancel;
 
         emit RewardCanceled(
             proposalId,
@@ -243,13 +249,17 @@ library GovPoolRewards {
     }
 
     function _getVoteTypeByRewardType(
+        IGovPool.ProposalCore storage core,
         IGovPool.RewardType rewardType
-    ) internal pure returns (IGovPool.VoteType) {
+    ) internal view returns (IGovPool.VoteType) {
         if (
             rewardType == IGovPool.RewardType.VoteFor ||
             rewardType == IGovPool.RewardType.VoteAgainst
         ) {
-            return IGovPool.VoteType.PersonalVote;
+            return
+                core.settings.delegatedVotingAllowed
+                    ? IGovPool.VoteType.PersonalVote
+                    : IGovPool.VoteType.DelegatedVote;
         } else if (
             rewardType == IGovPool.RewardType.VoteForDelegated ||
             rewardType == IGovPool.RewardType.VoteAgainstDelegated

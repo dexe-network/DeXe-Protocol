@@ -264,7 +264,7 @@ contract GovPool is
     ) external override onlyBABTHolder {
         _unlock(msg.sender, VoteType.PersonalVote);
 
-        uint256 reward = _proposals.cancelVote(
+        (uint256 totalVotedBefore, uint256 totalVotedAfter) = _proposals.cancelVote(
             _votedInProposals,
             _voteInfos,
             proposalId,
@@ -277,7 +277,8 @@ contract GovPool is
         _cancelRewards(
             proposalId,
             isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst,
-            reward
+            totalVotedBefore,
+            totalVotedAfter
         );
     }
 
@@ -631,8 +632,19 @@ contract GovPool is
         _pendingRewards.updateRewards(_proposals, proposalId, rewardType, amount);
     }
 
-    function _cancelRewards(uint256 proposalId, RewardType rewardType, uint256 amount) internal {
-        _pendingRewards.cancelRewards(_proposals, proposalId, rewardType, amount);
+    function _cancelRewards(
+        uint256 proposalId,
+        RewardType rewardType,
+        uint256 totalVotedBefore,
+        uint256 totalVotedAfter
+    ) internal {
+        _pendingRewards.cancelRewards(
+            _proposals,
+            proposalId,
+            rewardType,
+            totalVotedBefore,
+            totalVotedAfter
+        );
     }
 
     function _unlock(address user, VoteType voteType) internal {
@@ -677,7 +689,7 @@ contract GovPool is
         bool isVoteFor,
         RewardType rewardType
     ) internal {
-        uint256 reward = _proposals.cancelVoteDelegated(
+        (uint256 totalVotedBefore, uint256 totalVotedAfter) = _proposals.cancelVoteDelegated(
             _votedInProposals,
             _voteInfos,
             proposalId,
@@ -686,9 +698,7 @@ contract GovPool is
             isVoteFor
         );
 
-        uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
-
-        _cancelRewards(proposalId, rewardType, micropoolReward);
+        _cancelRewards(proposalId, rewardType, totalVotedBefore, totalVotedAfter);
 
         if (voteType == VoteType.MicropoolVote) {
             _micropoolInfos[delegatee].updateRewards(proposalId, 0);

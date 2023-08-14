@@ -146,6 +146,7 @@ interface IGovPool {
         bool isVoteFor;
         uint256 totalVoted;
         uint256 tokensVoted;
+        uint256 nftPowerVoted;
         EnumerableSet.UintSet nftsVoted;
     }
 
