@@ -62,7 +62,8 @@ library GovPoolCreate {
             executionTime: 0,
             votesFor: 0,
             votesAgainst: 0,
-            nftPowerSnapshotId: snapshotId
+            nftPowerSnapshotId: snapshotId,
+            givenRewards: 0
         });
         proposal.descriptionURL = _descriptionURL;
 

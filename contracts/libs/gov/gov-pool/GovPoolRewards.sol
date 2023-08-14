@@ -74,6 +74,8 @@ library GovPoolRewards {
                     _getVoteTypeByRewardType(core, rewardType)
                 ] += amountToAdd;
             }
+
+            core.givenRewards += amountToAdd;
         } else {
             (address settingsAddress, , , ) = IGovPool(address(this)).getHelperContracts();
 
@@ -111,6 +113,8 @@ library GovPoolRewards {
 
         votingRewards[voteType] = rewardsBefore - amountToCancel;
 
+        core.givenRewards -= amountToCancel;
+
         emit RewardCanceled(
             proposalId,
             rewardType,
@@ -132,7 +136,7 @@ library GovPoolRewards {
 
             require(core.executionTime != 0, "Gov: proposal is not executed");
 
-            uint256 rewards = getOnchainRewards(pendingRewards, proposalId, msg.sender);
+            uint256 rewards = _getOnchainRewards(pendingRewards, proposalId, msg.sender);
 
             mapping(IGovPool.VoteType => uint256) storage votingRewards = userRewards
                 .votingRewards[proposalId];
@@ -159,26 +163,6 @@ library GovPoolRewards {
         }
     }
 
-    function getOnchainRewards(
-        mapping(address => IGovPool.PendingRewards) storage pendingRewards,
-        uint256 proposalId,
-        address user,
-        bool clean
-    ) public view returns (uint256) {
-        IGovPool.PendingRewards storage userRewards = pendingRewards[user];
-
-        mapping(IGovPool.VoteType => uint256) storage votingRewards = userRewards.votingRewards[
-            proposalId
-        ];
-
-        return
-            userRewards.staticRewards[proposalId] +
-            votingRewards[IGovPool.VoteType.PersonalVote] +
-            votingRewards[IGovPool.VoteType.DelegatedVote] +
-            votingRewards[IGovPool.VoteType.MicropoolVote] +
-            votingRewards[IGovPool.VoteType.TreasuryVote];
-    }
-
     function getPendingRewards(
         mapping(address => IGovPool.PendingRewards) storage pendingRewards,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
@@ -200,7 +184,7 @@ library GovPoolRewards {
                 continue;
             }
 
-            rewards.onchainRewards[i] = getOnchainRewards(pendingRewards, proposalId, user);
+            rewards.onchainRewards[i] = _getOnchainRewards(pendingRewards, proposalId, user);
         }
 
         for (uint256 i = 0; i < rewards.offchainTokens.length; i++) {
@@ -247,6 +231,25 @@ library GovPoolRewards {
         }
 
         return amount.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
+    }
+
+    function _getOnchainRewards(
+        mapping(address => IGovPool.PendingRewards) storage pendingRewards,
+        uint256 proposalId,
+        address user
+    ) internal view returns (uint256) {
+        IGovPool.PendingRewards storage userRewards = pendingRewards[user];
+
+        mapping(IGovPool.VoteType => uint256) storage votingRewards = userRewards.votingRewards[
+            proposalId
+        ];
+
+        return
+            userRewards.staticRewards[proposalId] +
+            votingRewards[IGovPool.VoteType.PersonalVote] +
+            votingRewards[IGovPool.VoteType.DelegatedVote] +
+            votingRewards[IGovPool.VoteType.MicropoolVote] +
+            votingRewards[IGovPool.VoteType.TreasuryVote];
     }
 
     function _getVoteTypeByRewardType(

@@ -25,8 +25,7 @@ library GovPoolExecute {
 
     function execute(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        uint256 proposalId,
-        uint256 rewards
+        uint256 proposalId
     ) external {
         IGovPool.Proposal storage proposal = proposals[proposalId];
         IGovPool.ProposalCore storage core = proposal.core;
@@ -72,7 +71,7 @@ library GovPoolExecute {
             msg.sender
         );
 
-        core.settings.rewardsInfo.rewardToken.payCommission(rewards);
+        core.settings.rewardsInfo.rewardToken.payCommission(core.givenRewards);
     }
 
     function _proposalActionsResult(

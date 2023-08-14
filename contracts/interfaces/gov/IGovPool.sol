@@ -83,6 +83,7 @@ interface IGovPool {
         address expertNftAddress;
     }
 
+    /// TODO: fix
     /// @notice The struct holds core properties of proposal
     /// @param settings the struct that holds information about settings of the proposal
     /// @param voteEnd the timestamp of voting end for the proposal
@@ -99,6 +100,7 @@ interface IGovPool {
         uint256 votesFor;
         uint256 votesAgainst;
         uint256 nftPowerSnapshotId;
+        uint256 givenRewards;
     }
 
     /// @notice The struct holds information about proposal action

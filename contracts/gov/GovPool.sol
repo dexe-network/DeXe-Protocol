@@ -163,9 +163,7 @@ contract GovPool is
     function execute(uint256 proposalId) public override onlyBABTHolder {
         _updateRewards(proposalId, RewardType.Execute);
 
-        uint256 rewards = _pendingRewards.getOnchainRewards(proposalId, msg.sender);
-
-        _proposals.execute(proposalId, rewards);
+        _proposals.execute(proposalId);
     }
 
     function deposit(
