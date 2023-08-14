@@ -30,6 +30,7 @@ const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC721Mock = artifacts.require("ERC721Mock");
 const ERC721Expert = artifacts.require("ERC721Expert");
+const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
@@ -183,12 +184,14 @@ describe("TokenSaleProposal", () => {
 
   async function deployPool(poolParams) {
     const NAME = await poolRegistry.GOV_POOL_NAME();
+    const TSP_NAME = await poolRegistry.TOKEN_SALE_PROPOSAL_NAME();
 
     settings = await GovSettings.new();
     validators = await GovValidators.new();
     userKeeper = await GovUserKeeper.new();
     dp = await DistributionProposal.new();
     expertNft = await ERC721Expert.new();
+    nftMultiplier = await ERC721Multiplier.new();
     govPool = await GovPool.new();
     tsp = await TokenSaleProposal.new();
 
@@ -221,9 +224,9 @@ describe("TokenSaleProposal", () => {
 
     await dp.__DistributionProposal_init(govPool.address);
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
+    await nftMultiplier.__ERC721Multiplier_init("Mock Multiplier Nft", "MCKMULNFT");
     await govPool.__GovPool_init(
-      [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address],
-      poolParams.nftMultiplierAddress,
+      [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address, nftMultiplier.address],
       poolParams.regularVoteModifier,
       poolParams.expertVoteModifier,
       OWNER,
@@ -237,12 +240,19 @@ describe("TokenSaleProposal", () => {
     await validators.transferOwnership(govPool.address);
     await userKeeper.transferOwnership(govPool.address);
     await expertNft.transferOwnership(govPool.address);
+    await nftMultiplier.transferOwnership(govPool.address);
 
     await poolRegistry.addProxyPool(NAME, govPool.address, {
       from: FACTORY,
     });
 
     await poolRegistry.injectDependenciesToExistingPools(NAME, 0, 10);
+
+    await poolRegistry.addProxyPool(TSP_NAME, tsp.address, {
+      from: FACTORY,
+    });
+
+    await poolRegistry.injectDependenciesToExistingPools(TSP_NAME, 0, 10);
   }
 
   async function setupTokens() {
@@ -255,21 +265,6 @@ describe("TokenSaleProposal", () => {
     await govPool.deposit(OWNER, wei("1000"), []);
     await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
   }
-
-  describe("init", () => {
-    beforeEach(async () => {
-      tsp = await TokenSaleProposal.new();
-    });
-
-    it("should not init twice", async () => {
-      await tsp.__TokenSaleProposal_init(NOTHING, NOTHING, NOTHING, NOTHING);
-
-      await truffleAssert.reverts(
-        tsp.__TokenSaleProposal_init(NOTHING, NOTHING, NOTHING, NOTHING),
-        "Initializable: contract is already initialized"
-      );
-    });
-  });
 
   describe("proposals", () => {
     const acceptProposal = async (actionsFor, actionsAgainst = []) => {
@@ -465,7 +460,6 @@ describe("TokenSaleProposal", () => {
           totalPowerInTokens: wei("33000"),
           nftsTotalSupply: 33,
         },
-        nftMultiplierAddress: ZERO_ADDR,
         regularVoteModifier: wei("1.3", 25),
         expertVoteModifier: wei("1.132", 25),
         onlyBABTHolders: false,
@@ -477,12 +471,7 @@ describe("TokenSaleProposal", () => {
       await deployPool(POOL_PARAMETERS);
       await setupTokens();
 
-      await tsp.__TokenSaleProposal_init(
-        govPool.address,
-        babt.address,
-        await contractsRegistry.getTreasuryContract(),
-        coreProperties.address
-      );
+      await tsp.__TokenSaleProposal_init(govPool.address);
 
       erc20Params = {
         govAddress: govPool.address,
@@ -663,6 +652,19 @@ describe("TokenSaleProposal", () => {
           },
         },
       ];
+    });
+
+    describe("init", () => {
+      it("should not init twice", async () => {
+        await truffleAssert.reverts(
+          tsp.__TokenSaleProposal_init(NOTHING),
+          "Initializable: contract is already initialized"
+        );
+      });
+
+      it("should not set dependencies from non dependant", async () => {
+        await truffleAssert.reverts(tsp.setDependencies(OWNER, "0x"), "Dependant: not an injector");
+      });
     });
 
     describe("latestTierId", () => {
@@ -1391,16 +1393,9 @@ describe("TokenSaleProposal", () => {
 
         describe("if commission is not applied", () => {
           beforeEach(async () => {
-            await saleToken.mint(govPool.address, wei(5000));
+            await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), govPool.address);
 
-            tsp = await TokenSaleProposal.new();
-
-            await tsp.__TokenSaleProposal_init(govPool.address, babt.address, govPool.address, coreProperties.address);
-
-            await acceptProposal([
-              [saleToken.address, 0, getBytesTransfer(tsp.address, wei(5000))],
-              [tsp.address, 0, getBytesCreateTiersTSP(JSON.parse(JSON.stringify(tiers)))],
-            ]);
+            await poolRegistry.injectDependenciesToExistingPools(await poolRegistry.TOKEN_SALE_PROPOSAL_NAME(), 0, 10);
           });
 
           it("should buy if all conditions are met (daoVotes)", async () => {

@@ -9,9 +9,9 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgra
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
-import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
-import "@dlsl/dev-modules/libs/arrays/ArrayHelper.sol";
+import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
+import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
+import "@solarity/solidity-lib/libs/arrays/ArrayHelper.sol";
 
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/IGovPool.sol";

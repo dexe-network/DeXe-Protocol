@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/Multicall.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 
-import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
+import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
 
 import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
@@ -120,7 +120,6 @@ contract GovPool is
 
     function __GovPool_init(
         Dependencies calldata govPoolDeps,
-        address nftMultiplierAddress,
         uint256 regularVoteModifier,
         uint256 expertVoteModifier,
         address _verifier,
@@ -134,8 +133,7 @@ contract GovPool is
         _govValidators = IGovValidators(govPoolDeps.validatorsAddress);
         _distributionProposal = govPoolDeps.distributionAddress;
         _expertNft = IERC721Expert(govPoolDeps.expertNftAddress);
-
-        _nftMultiplier = nftMultiplierAddress;
+        _nftMultiplier = govPoolDeps.nftMultiplierAddress;
 
         _changeVoteModifiers(regularVoteModifier, expertVoteModifier);
 

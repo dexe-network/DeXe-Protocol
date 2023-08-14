@@ -75,12 +75,14 @@ interface IGovPool {
     /// @param distributionAddress the address of distribution contract
     /// @param validatorsAddress the address of validators contract
     /// @param expertNftAddress the address of expert nft contract
+    /// @param nftMultiplierAddress the address of nft multiplier contract
     struct Dependencies {
         address settingsAddress;
         address userKeeperAddress;
         address distributionAddress;
         address validatorsAddress;
         address expertNftAddress;
+        address nftMultiplierAddress;
     }
 
     /// TODO: fix

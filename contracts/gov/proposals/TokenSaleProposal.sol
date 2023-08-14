@@ -5,6 +5,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Supp
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts/utils/Multicall.sol";
 
+import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
+
 import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
 import "../../interfaces/core/ISBT721.sol";
 
@@ -19,6 +21,7 @@ contract TokenSaleProposal is
     ITokenSaleProposal,
     ERC721HolderUpgradeable,
     ERC1155SupplyUpgradeable,
+    AbstractDependant,
     Multicall
 {
     using TokenSaleProposalCreate for *;
@@ -52,16 +55,19 @@ contract TokenSaleProposal is
         _;
     }
 
-    function __TokenSaleProposal_init(
-        address _govAddress,
-        ISBT721 _babt,
-        address _dexeGovAddress,
-        CoreProperties _coreProperties
-    ) external initializer {
+    function __TokenSaleProposal_init(address _govAddress) external initializer {
         govAddress = _govAddress;
-        babt = _babt;
-        dexeGovAddress = _dexeGovAddress;
-        coreProperties = _coreProperties;
+    }
+
+    function setDependencies(
+        address contractsRegistry,
+        bytes memory
+    ) public virtual override dependant {
+        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
+
+        babt = ISBT721(registry.getBABTContract());
+        dexeGovAddress = registry.getTreasuryContract();
+        coreProperties = CoreProperties(registry.getCorePropertiesContract());
     }
 
     function createTiers(TierInitParams[] calldata tierInitParams) external override onlyGov {

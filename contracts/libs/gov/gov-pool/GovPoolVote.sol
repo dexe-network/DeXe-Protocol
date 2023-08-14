@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
+import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 
 import "../../../interfaces/gov/IGovPool.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";

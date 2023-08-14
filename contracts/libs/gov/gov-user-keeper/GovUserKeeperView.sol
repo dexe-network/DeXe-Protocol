@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "@dlsl/dev-modules/libs/data-structures/memory/Vector.sol";
+import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
 
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 

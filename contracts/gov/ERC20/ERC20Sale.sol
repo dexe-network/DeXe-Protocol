@@ -6,8 +6,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20Pausable
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
-import "@dlsl/dev-modules/libs/arrays/SetHelper.sol";
+import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
+import "@solarity/solidity-lib/libs/arrays/SetHelper.sol";
 
 import "../../interfaces/gov/ERC20/IERC20Sale.sol";
 

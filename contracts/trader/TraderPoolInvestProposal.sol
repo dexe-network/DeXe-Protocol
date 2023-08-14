@@ -7,8 +7,8 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/trader/ITraderPoolInvestProposal.sol";
 import "../interfaces/trader/IInvestTraderPool.sol";
 
-import "@dlsl/dev-modules/libs/decimals/DecimalsConverter.sol";
-import "@dlsl/dev-modules/libs/arrays/ArrayHelper.sol";
+import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
+import "@solarity/solidity-lib/libs/arrays/ArrayHelper.sol";
 
 import "../libs/trader/trader-pool-proposal/TraderPoolInvestProposalView.sol";
 
