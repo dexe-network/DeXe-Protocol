@@ -274,7 +274,7 @@ contract GovPool is
             isVoteFor
         );
 
-        _cancelRewards(
+        _cancelVotingRewards(
             proposalId,
             isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst,
             totalVotedBefore,
@@ -632,13 +632,13 @@ contract GovPool is
         _pendingRewards.updateRewards(_proposals, proposalId, rewardType, amount);
     }
 
-    function _cancelRewards(
+    function _cancelVotingRewards(
         uint256 proposalId,
         RewardType rewardType,
         uint256 totalVotedBefore,
         uint256 totalVotedAfter
     ) internal {
-        _pendingRewards.cancelRewards(
+        _pendingRewards.cancelVotingRewards(
             _proposals,
             proposalId,
             rewardType,
@@ -698,7 +698,7 @@ contract GovPool is
             isVoteFor
         );
 
-        _cancelRewards(proposalId, rewardType, totalVotedBefore, totalVotedAfter);
+        _cancelVotingRewards(proposalId, rewardType, totalVotedBefore, totalVotedAfter);
 
         if (voteType == VoteType.MicropoolVote) {
             _micropoolInfos[delegatee].updateRewards(proposalId, 0);

@@ -89,7 +89,7 @@ library GovPoolRewards {
         emit RewardCredited(proposalId, rewardType, rewardToken, amountToAdd, msg.sender);
     }
 
-    function cancelRewards(
+    function cancelVotingRewards(
         mapping(address => IGovPool.PendingRewards) storage pendingRewards,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId,
@@ -126,8 +126,6 @@ library GovPoolRewards {
         uint256 proposalId
     ) external {
         IGovPool.PendingRewards storage userRewards = pendingRewards[msg.sender];
-
-        IGovPool.ProposalState state = IGovPool(address(this)).getProposalState(proposalId);
 
         if (proposalId != 0) {
             IGovPool.ProposalCore storage core = proposals[proposalId].core;
