@@ -102,6 +102,11 @@ describe("CoreProperties", () => {
       );
 
       await truffleAssert.reverts(
+        coreProperties.setTokenSaleProposalCommissionPercentage(0, { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
         coreProperties.setTraderCommissionPercentages(10, [20, 50, 90], { from: SECOND }),
         "Ownable: caller is not the owner"
       );
@@ -198,6 +203,12 @@ describe("CoreProperties", () => {
         commissions[2].map((e) => e.toFixed()),
         ["50", "25", "25"]
       );
+    });
+
+    it("should set token sale proposal commission percentage", async () => {
+      await coreProperties.setTokenSaleProposalCommissionPercentage(1);
+
+      assert.equal(toBN(await coreProperties.getTokenSaleProposalCommissionPercentage()).toFixed(), "1");
     });
 
     it("should set trader commission percentages", async () => {

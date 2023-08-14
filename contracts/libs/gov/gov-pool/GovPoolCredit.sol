@@ -4,10 +4,13 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "@dlsl/dev-modules/libs/arrays/ArrayHelper.sol";
+
 import "../../../interfaces/gov/IGovPool.sol";
 
 library GovPoolCredit {
     using SafeERC20 for IERC20;
+    using ArrayHelper for uint256[];
 
     function setCreditInfo(
         IGovPool.CreditInfo storage creditInfo,
@@ -91,7 +94,7 @@ library GovPoolCredit {
         uint256[] storage amounts = tokenInfo.cumulativeAmounts;
         uint256 historyLength = amounts.length;
 
-        uint256 index = _upperBound(tokenInfo.timestamps, _monthAgo());
+        uint256 index = tokenInfo.timestamps.upperBound(_monthAgo());
         uint256 amountWithdrawn;
 
         if (index == historyLength) {
@@ -106,24 +109,5 @@ library GovPoolCredit {
 
     function _monthAgo() private view returns (uint256) {
         return block.timestamp - 30 days;
-    }
-
-    function _upperBound(
-        uint256[] storage array_,
-        uint256 element_
-    ) private view returns (uint256 index_) {
-        (uint256 low_, uint256 high_) = (0, array_.length);
-
-        while (low_ < high_) {
-            uint256 mid_ = (low_ + high_) / 2;
-
-            if (array_[mid_] > element_) {
-                high_ = mid_;
-            } else {
-                low_ = mid_ + 1;
-            }
-        }
-
-        return high_;
     }
 }

@@ -61,9 +61,11 @@ interface ICoreProperties {
     /// @notice The struct that stores GovPool parameters
     /// @param govVotesLimit the maximum number of simultaneous votes of the voter
     /// @param govCommission the protocol's commission percentage
+    /// @param tokenSaleProposalCommissionPercentage the commission percentage for the token sale proposal
     struct GovParameters {
         uint128 govVotesLimit;
         uint128 govCommissionPercentage;
+        uint256 tokenSaleProposalCommissionPercentage;
     }
 
     /// @notice The struct that stores vital platform's parameters that may be modified by the OWNER
@@ -124,6 +126,12 @@ interface ICoreProperties {
         uint128 dexeCommission,
         uint128 govCommission,
         uint128[] calldata distributionPercentages
+    ) external;
+
+    /// @notice The function to set new token sale proposal commission percentage
+    /// @param tokenSaleProposalCommissionPercentage the new commission percentage
+    function setTokenSaleProposalCommissionPercentage(
+        uint256 tokenSaleProposalCommissionPercentage
     ) external;
 
     /// @notice The function to set new bounds for the trader commission
@@ -227,6 +235,10 @@ interface ICoreProperties {
             uint128[] memory individualPercentages,
             address[3] memory commissionReceivers
         );
+
+    /// @notice The function to get the token sale proposal commission percentage
+    /// @return the commission percentage
+    function getTokenSaleProposalCommissionPercentage() external view returns (uint256);
 
     /// @notice The function to get trader's commission info
     /// @return minTraderCommission minimal available trader commission

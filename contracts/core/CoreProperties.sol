@@ -104,6 +104,14 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         coreParameters.govParams.govCommissionPercentage = govCommission;
     }
 
+    function setTokenSaleProposalCommissionPercentage(
+        uint256 tokenSaleProposalCommissionPercentage
+    ) external override onlyOwner {
+        coreParameters
+            .govParams
+            .tokenSaleProposalCommissionPercentage = tokenSaleProposalCommissionPercentage;
+    }
+
     function setTraderCommissionPercentages(
         uint256 minTraderCommission,
         uint256[] calldata maxTraderCommissions
@@ -205,6 +213,10 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
             coreParameters.traderParams.dexeCommissionDistributionPercentages,
             [_insuranceAddress, _treasuryAddress, _dividendsAddress]
         );
+    }
+
+    function getTokenSaleProposalCommissionPercentage() external view override returns (uint256) {
+        return coreParameters.govParams.tokenSaleProposalCommissionPercentage;
     }
 
     function getTraderCommissions() external view override returns (uint256, uint256[] memory) {

@@ -42,6 +42,7 @@ const DEFAULT_CORE_PROPERTIES = {
   govParams: {
     govVotesLimit: 20,
     govCommissionPercentage: PRECISION.times(20).toFixed(),
+    tokenSaleProposalCommissionPercentage: PRECISION.toFixed(),
   },
 };
 

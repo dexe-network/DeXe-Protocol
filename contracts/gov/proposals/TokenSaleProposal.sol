@@ -31,6 +31,9 @@ contract TokenSaleProposal is
     address public govAddress;
     ISBT721 public babt;
 
+    address public dexeGovAddress;
+    CoreProperties public coreProperties;
+
     uint256 public override latestTierId;
 
     mapping(uint256 => Tier) internal _tiers;
@@ -49,9 +52,16 @@ contract TokenSaleProposal is
         _;
     }
 
-    function __TokenSaleProposal_init(address _govAddress, ISBT721 _babt) external initializer {
+    function __TokenSaleProposal_init(
+        address _govAddress,
+        ISBT721 _babt,
+        address _dexeGovAddress,
+        CoreProperties _coreProperties
+    ) external initializer {
         govAddress = _govAddress;
         babt = _babt;
+        dexeGovAddress = _dexeGovAddress;
+        coreProperties = _coreProperties;
     }
 
     function createTiers(TierInitParams[] calldata tierInitParams) external override onlyGov {
