@@ -542,6 +542,7 @@ contract GovPool is
                 isVoteFor: info.isVoteFor,
                 totalVoted: info.totalVoted,
                 tokensVoted: info.tokensVoted,
+                nftPowerVoted: info.nftPowerVoted,
                 nftsVoted: info.nftsVoted.values()
             });
     }

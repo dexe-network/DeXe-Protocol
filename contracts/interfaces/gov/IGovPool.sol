@@ -154,7 +154,7 @@ interface IGovPool {
         EnumerableSet.UintSet nftsVoted;
     }
 
-    /// TODO: docs, add power?
+    /// TODO: docs
     /// @notice The struct that is used in view functions of contract as a return argument
     /// @param totalVoted the total power of votes from one user for the proposal
     /// @param tokensVoted the total erc20 amount voted from one user for the proposal
@@ -163,6 +163,7 @@ interface IGovPool {
         bool isVoteFor;
         uint256 totalVoted;
         uint256 tokensVoted;
+        uint256 nftPowerVoted;
         uint256[] nftsVoted;
     }
 
