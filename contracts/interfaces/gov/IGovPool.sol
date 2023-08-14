@@ -85,7 +85,7 @@ interface IGovPool {
         address nftMultiplierAddress;
     }
 
-    /// TODO: fix
+    /// TODO: docs
     /// @notice The struct holds core properties of proposal
     /// @param settings the struct that holds information about settings of the proposal
     /// @param voteEnd the timestamp of voting end for the proposal
