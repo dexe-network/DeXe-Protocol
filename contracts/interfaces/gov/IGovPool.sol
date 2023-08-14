@@ -185,18 +185,12 @@ interface IGovPool {
     }
 
     /// TODO: docs
-    struct Rewards {
-        uint256 rewardFor;
-        uint256 rewardAgainst;
-    }
-
-    /// TODO: docs
     /// @notice The struct that holds reward properties (only for internal needs)
     /// @param onchainRewards matching proposal ids to their rewards
     /// @param offchainRewards matching off-chain token addresses to their rewards
     /// @param offchainTokens the list of off-chain token addresses
     struct PendingRewards {
-        mapping(uint256 => mapping(VoteType => Rewards)) votingRewards;
+        mapping(uint256 => mapping(VoteType => uint256)) votingRewards;
         mapping(uint256 => uint256) staticRewards;
         mapping(address => uint256) offchainRewards;
         EnumerableSet.AddressSet offchainTokens;
@@ -297,14 +291,14 @@ interface IGovPool {
     /// @notice The function for voting for proposal with own tokens
     /// @notice values `voteAmount`, `voteNftIds` should be less or equal to the total deposit
     /// @param proposalId the id of proposal
+    /// @param isVoteFor the bool flag for voting for or against the proposal
     /// @param voteAmount the erc20 vote amount
     /// @param voteNftIds the nft ids that will be used in voting
-    /// @param isVoteFor the bool flag for voting for or against the proposal
     function vote(
         uint256 proposalId,
+        bool isVoteFor,
         uint256 voteAmount,
-        uint256[] calldata voteNftIds,
-        bool isVoteFor
+        uint256[] calldata voteNftIds
     ) external;
 
     /// @notice The function for voting for proposals with delegated tokens

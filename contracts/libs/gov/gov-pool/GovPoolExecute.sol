@@ -25,7 +25,8 @@ library GovPoolExecute {
 
     function execute(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        uint256 proposalId
+        uint256 proposalId,
+        uint256 rewards
     ) external {
         IGovPool.Proposal storage proposal = proposals[proposalId];
         IGovPool.ProposalCore storage core = proposal.core;
@@ -71,25 +72,7 @@ library GovPoolExecute {
             msg.sender
         );
 
-        _payCommission(core, validatorsVotingSucceeded, proposalState);
-    }
-
-    function _payCommission(
-        IGovPool.ProposalCore storage core,
-        bool validatorsVotingSucceeded,
-        IGovPool.ProposalState proposalState
-    ) internal {
-        IGovSettings.RewardsInfo storage rewardsInfo = core.settings.rewardsInfo;
-
-        uint256 creationRewards = rewardsInfo.creationReward * (validatorsVotingSucceeded ? 2 : 1);
-
-        uint256 voteRewards = proposalState == IGovPool.ProposalState.SucceededFor
-            ? core.votesFor.ratio(rewardsInfo.voteForRewardsCoefficient, PRECISION)
-            : core.votesAgainst.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
-
-        rewardsInfo.rewardToken.payCommission(
-            creationRewards + rewardsInfo.executionReward + voteRewards
-        );
+        core.settings.rewardsInfo.rewardToken.payCommission(rewards);
     }
 
     function _proposalActionsResult(

@@ -161,9 +161,11 @@ contract GovPool is
     }
 
     function execute(uint256 proposalId) public override onlyBABTHolder {
-        _proposals.execute(proposalId);
-
         _updateRewards(proposalId, RewardType.Execute);
+
+        uint256 rewards = _pendingRewards.getOnchainRewards(proposalId, msg.sender);
+
+        _proposals.execute(proposalId, rewards);
     }
 
     function deposit(
@@ -206,9 +208,9 @@ contract GovPool is
 
     function vote(
         uint256 proposalId,
+        bool isVoteFor,
         uint256 voteAmount,
-        uint256[] calldata voteNftIds,
-        bool isVoteFor
+        uint256[] calldata voteNftIds
     ) external override onlyBABTHolder {
         _unlock(msg.sender, VoteType.PersonalVote);
 
@@ -703,7 +705,7 @@ contract GovPool is
 
             RewardType rewardType;
 
-            if (voteType == VoteType.DelegatedVote) {
+            if (voteType == VoteType.MicropoolVote) {
                 rewardType = isVoteFor
                     ? RewardType.VoteForDelegated
                     : RewardType.VoteAgainstDelegated;
