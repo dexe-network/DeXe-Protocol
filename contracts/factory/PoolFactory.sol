@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@dlsl/dev-modules/contracts-registry/pools/pool-factory/AbstractPoolFactory.sol";
+import "@solarity/solidity-lib/contracts-registry/pools/pool-factory/AbstractPoolFactory.sol";
 
 import "../interfaces/factory/IPoolFactory.sol";
 import "../interfaces/trader/ITraderPool.sol";

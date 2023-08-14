@@ -4,8 +4,8 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "@dlsl/dev-modules/contracts-registry/pools/presets/OwnablePoolContractsRegistry.sol";
-import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
+import "@solarity/solidity-lib/contracts-registry/pools/presets/OwnablePoolContractsRegistry.sol";
+import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 
 import "../interfaces/factory/IPoolRegistry.sol";
 import "../interfaces/core/IContractsRegistry.sol";

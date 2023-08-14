@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Supp
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts/utils/Multicall.sol";
 
-import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
+import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
 
 import "../../interfaces/gov/proposals/ITokenSaleProposal.sol";
 import "../../interfaces/core/ISBT721.sol";
