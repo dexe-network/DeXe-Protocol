@@ -254,9 +254,9 @@ contract GovPool is
 
     function cancelVote(
         uint256 proposalId,
+        bool isVoteFor,
         uint256 voteAmount,
-        uint256[] calldata voteNftIds,
-        bool isVoteFor
+        uint256[] calldata voteNftIds
     ) external override onlyBABTHolder {
         _unlock(msg.sender, VoteType.PersonalVote);
 

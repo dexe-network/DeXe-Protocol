@@ -317,9 +317,9 @@ interface IGovPool {
     /// TODO: docs
     function cancelVote(
         uint256 proposalId,
+        bool isVoteFor,
         uint256 voteAmount,
-        uint256[] calldata voteNftIds,
-        bool isVoteFor
+        uint256[] calldata voteNftIds
     ) external;
 
     /// TODO: docs
