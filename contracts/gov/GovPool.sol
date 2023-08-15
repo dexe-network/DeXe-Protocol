@@ -57,9 +57,6 @@ contract GovPool is
     using DecimalsConverter for *;
     using TokenBalance for address;
 
-    uint256 internal constant PERCENTAGE_MICROPOOL_REWARDS = PERCENTAGE_100 / 5; // 20%
-    uint256 internal constant PERCENTAGE_TREASURY_REWARDS = (PERCENTAGE_100 * 809) / 50000; // 1.618%
-
     IGovSettings internal _govSettings;
     IGovUserKeeper internal _govUserKeeper;
     IGovValidators internal _govValidators;
@@ -248,19 +245,17 @@ contract GovPool is
             isVoteFor
         );
 
-        uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
-
         _updateRewards(
             proposalId,
             isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
-            micropoolReward
+            reward
         );
 
         _micropoolInfos[msg.sender].updateRewards(
             _proposals,
             proposalId,
             isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
-            reward - micropoolReward
+            reward
         );
     }
 
@@ -285,7 +280,7 @@ contract GovPool is
         _updateRewards(
             proposalId,
             isVoteFor ? RewardType.VoteForTreasury : RewardType.VoteAgainstTreasury,
-            reward.percentage(PERCENTAGE_TREASURY_REWARDS)
+            reward
         );
     }
 

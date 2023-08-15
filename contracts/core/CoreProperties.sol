@@ -105,11 +105,19 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
     }
 
     function setTokenSaleProposalCommissionPercentage(
-        uint256 tokenSaleProposalCommissionPercentage
+        uint128 tokenSaleProposalCommissionPercentage
     ) external override onlyOwner {
         coreParameters
             .govParams
             .tokenSaleProposalCommissionPercentage = tokenSaleProposalCommissionPercentage;
+    }
+
+    function setVoteRewardsPercentages(
+        uint128 micropoolVoteRewardsPercentage,
+        uint128 treasuryVoteRewardsPercentage
+    ) external override onlyOwner {
+        coreParameters.govParams.micropoolVoteRewardsPercentage = micropoolVoteRewardsPercentage;
+        coreParameters.govParams.treasuryVoteRewardsPercentage = treasuryVoteRewardsPercentage;
     }
 
     function setTraderCommissionPercentages(
@@ -215,8 +223,15 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         );
     }
 
-    function getTokenSaleProposalCommissionPercentage() external view override returns (uint256) {
+    function getTokenSaleProposalCommissionPercentage() external view override returns (uint128) {
         return coreParameters.govParams.tokenSaleProposalCommissionPercentage;
+    }
+
+    function getVoteRewardsPercentages() external view override returns (uint128, uint128) {
+        return (
+            coreParameters.govParams.micropoolVoteRewardsPercentage,
+            coreParameters.govParams.treasuryVoteRewardsPercentage
+        );
     }
 
     function getTraderCommissions() external view override returns (uint256, uint256[] memory) {
