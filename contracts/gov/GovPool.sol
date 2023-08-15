@@ -168,7 +168,7 @@ contract GovPool is
         address receiver,
         uint256 amount,
         uint256[] calldata nftIds
-    ) public override onlyBABTHolder {
+    ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty deposit");
 
         _govUserKeeper.depositTokens.exec(receiver, amount);
