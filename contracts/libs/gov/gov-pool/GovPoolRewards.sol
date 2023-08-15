@@ -3,6 +3,8 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+import "../../../interfaces/core/ICoreProperties.sol";
+
 import "../../../interfaces/gov/IGovPool.sol";
 import "../../../interfaces/gov/ERC721/IERC721Multiplier.sol";
 
@@ -220,6 +222,26 @@ library GovPoolRewards {
             (address govSettings, , , , ) = IGovPool(address(this)).getHelperContracts();
 
             return IGovSettings(govSettings).getInternalSettings().rewardsInfo.executionReward;
+        }
+
+        if (
+            rewardType == IGovPool.RewardType.VoteForDelegated ||
+            rewardType == IGovPool.RewardType.VoteAgainstDelegated
+        ) {
+            (uint256 percentage, ) = ICoreProperties(IGovPool(address(this)).coreProperties())
+                .getVoteRewardsPercentages();
+
+            amount = amount.percentage(percentage);
+        }
+
+        if (
+            rewardType == IGovPool.RewardType.VoteForTreasury ||
+            rewardType == IGovPool.RewardType.VoteAgainstTreasury
+        ) {
+            (, uint256 percentage) = ICoreProperties(IGovPool(address(this)).coreProperties())
+                .getVoteRewardsPercentages();
+
+            amount = amount.percentage(percentage);
         }
 
         if (

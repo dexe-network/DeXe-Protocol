@@ -6,9 +6,16 @@ const truffleAssert = require("truffle-assertions");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { ValidatorsProposalState, ProposalType, ProposalState } = require("../utils/constants");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
+const {
+  getBytesChangeInternalBalances,
+  getBytesChangeValidatorSettings,
+  getBytesMonthlyWithdraw,
+} = require("../utils/gov-validators-utils");
+const { web3 } = require("hardhat");
 
 const GovValidators = artifacts.require("GovValidators");
 const GovValidatorsToken = artifacts.require("GovValidatorsToken");
+const ERC20Mock = artifacts.require("ERC20Mock");
 
 GovValidators.numberFormat = "BigNumber";
 GovValidatorsToken.numberFormat = "BigNumber";
@@ -24,6 +31,27 @@ describe("GovValidators", () => {
   const reverter = new Reverter();
 
   const getInternalProposalByIndex = async (index) => (await validators.getInternalProposals(index - 1, 1))[0];
+
+  async function createInternalProposal(proposalType, description, amounts, users, from) {
+    let data;
+    switch (proposalType) {
+      case ProposalType.ChangeSettings:
+        data = getBytesChangeValidatorSettings(amounts);
+        break;
+      case ProposalType.ChangeBalances:
+        data = getBytesChangeInternalBalances(amounts, users);
+        break;
+      case ProposalType.MonthlyWithdraw:
+        data = getBytesMonthlyWithdraw(users.slice(0, users.length - 1), amounts, users[users.length - 1]);
+        break;
+      case ProposalType.OffchainProposal:
+        data = "0x";
+        break;
+      default:
+        assert.isTrue(false);
+    }
+    await validators.createInternalProposal(proposalType, description, data, { from: from });
+  }
 
   before("setup", async () => {
     OWNER = await accounts(0);
@@ -149,7 +177,7 @@ describe("GovValidators", () => {
           validators.__GovValidators_init(
             "Validator Token",
             "VT",
-            [500, 0, PRECISION.times("51").toFixed()],
+            [500, 0, toPercent(51)],
             [SECOND, THIRD],
             [wei("100"), wei("200")]
           ),
@@ -159,13 +187,25 @@ describe("GovValidators", () => {
 
       it("only owner should call these functions", async () => {
         await truffleAssert.reverts(
-          validators.changeBalances([100], [SECOND], { from: SECOND }),
+          validators.executeExternalProposal(1, { from: SECOND }),
           "Ownable: caller is not the owner"
+        );
+      });
+
+      it("only validators contract should call these functions", async () => {
+        await truffleAssert.reverts(
+          validators.changeSettings(50, 100, toPercent("50"), { from: SECOND }),
+          "Validators: not this contract"
         );
 
         await truffleAssert.reverts(
-          validators.executeExternalProposal(1, { from: SECOND }),
-          "Ownable: caller is not the owner"
+          validators.changeBalances([100], [SECOND], { from: SECOND }),
+          "Validators: not this nor GovPool contract"
+        );
+
+        await truffleAssert.reverts(
+          validators.monthlyWithdraw([SECOND], [100], THIRD, { from: SECOND }),
+          "Validators: not this contract"
         );
       });
 
@@ -173,13 +213,17 @@ describe("GovValidators", () => {
         assert.isFalse(await validators.isValidator(OWNER));
 
         await truffleAssert.reverts(
-          validators.createInternalProposal(ProposalType.ChangeInternalQuorum, "example.com", [100], [SECOND]),
+          createInternalProposal(ProposalType.ChangeSettings, "example.com", [100, 0, toPercent(51)], [SECOND]),
           "Validators: caller is not the validator"
         );
 
-        await validators.createInternalProposal(ProposalType.ChangeInternalQuorum, "example.com", [100], [SECOND], {
-          from: SECOND,
-        });
+        await createInternalProposal(
+          ProposalType.ChangeSettings,
+          "example.com",
+          [100, 0, toPercent(51)],
+          [SECOND],
+          SECOND
+        );
 
         await truffleAssert.reverts(validators.vote(1, 1, true, true), "Validators: caller is not the validator");
       });
@@ -189,9 +233,13 @@ describe("GovValidators", () => {
       it("should create internal proposals", async () => {
         let currentTime = await getCurrentBlockTime();
 
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [13], [OWNER], {
-          from: SECOND,
-        });
+        await createInternalProposal(
+          ProposalType.ChangeSettings,
+          "example.com",
+          [13, 0, toPercent(51)],
+          [OWNER],
+          SECOND
+        );
 
         const internal = (await getInternalProposalByIndex(1)).proposal;
 
@@ -210,57 +258,97 @@ describe("GovValidators", () => {
 
       it("should revert when arrays lengths not equals", async () => {
         await truffleAssert.reverts(
-          validators.createInternalProposal(ProposalType.ChangeBalances, "example.com", [13, 15], [OWNER], {
-            from: SECOND,
-          }),
+          createInternalProposal(ProposalType.ChangeBalances, "example.com", [13, 15], [OWNER], SECOND),
+          "Validators: invalid array length"
+        );
+
+        await truffleAssert.reverts(
+          createInternalProposal(ProposalType.MonthlyWithdraw, "example.com", [13, 15], [OWNER], SECOND),
           "Validators: invalid array length"
         );
       });
 
       it("should revert if invalid duration value", async () => {
         await truffleAssert.reverts(
-          validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [0], [], {
-            from: SECOND,
-          }),
+          createInternalProposal(ProposalType.ChangeSettings, "example.com", [0, 0, toPercent(51)], [], SECOND),
           "Validators: duration is zero"
         );
       });
 
       it("should revert if invalid quorum value", async () => {
         await truffleAssert.reverts(
-          validators.createInternalProposal(
-            ProposalType.ChangeInternalQuorum,
-            "example.com",
-            [toPercent(101)],
-            [OWNER],
-            {
-              from: SECOND,
-            }
-          ),
+          createInternalProposal(ProposalType.ChangeSettings, "example.com", [100, 0, toPercent(101)], [OWNER], SECOND),
           "Validators: invalid quorum value"
         );
       });
 
       it("should revert if invalid values", async () => {
         await truffleAssert.reverts(
-          validators.createInternalProposal(
-            ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
-            "example.com",
-            [1, 1, toPercent(101)],
-            [],
-            { from: SECOND }
-          ),
+          createInternalProposal(ProposalType.ChangeSettings, "example.com", [1, 1, toPercent(101)], [], SECOND),
           "Validators: invalid quorum value"
         );
       });
 
       it("should revert if invalid address", async () => {
         await truffleAssert.reverts(
-          validators.createInternalProposal(ProposalType.ChangeBalances, "example.com", [0], [ZERO_ADDR], {
-            from: SECOND,
-          }),
+          createInternalProposal(ProposalType.ChangeBalances, "example.com", [0], [ZERO_ADDR], SECOND),
           "Validators: invalid address"
         );
+
+        await truffleAssert.reverts(
+          createInternalProposal(ProposalType.MonthlyWithdraw, "example.com", [0], [ZERO_ADDR, SECOND], SECOND),
+          "Validators: address of token cannot be zero"
+        );
+
+        await truffleAssert.reverts(
+          createInternalProposal(ProposalType.MonthlyWithdraw, "example.com", [0], [SECOND, ZERO_ADDR], SECOND),
+          "Validators: destination address cannot be zero"
+        );
+      });
+
+      it("should revert if nonzero data in offchain proposal", async () => {
+        await truffleAssert.reverts(
+          validators.createInternalProposal(ProposalType.OffchainProposal, "example.com", "0xff", { from: SECOND }),
+          "Validators: offchain proposal should not have data"
+        );
+      });
+
+      describe("should revert if wrong selector", () => {
+        it("changeSettings()", async () => {
+          await truffleAssert.reverts(
+            validators.createInternalProposal(
+              ProposalType.ChangeSettings,
+              "example.com",
+              getBytesChangeInternalBalances([wei(1)], [SECOND]),
+              { from: SECOND }
+            ),
+            "Validators: not ChangeSettings function"
+          );
+        });
+
+        it("changeBalances()", async () => {
+          await truffleAssert.reverts(
+            validators.createInternalProposal(
+              ProposalType.ChangeBalances,
+              "example.com",
+              getBytesChangeValidatorSettings([1, 1, toPercent(51)]),
+              { from: SECOND }
+            ),
+            "Validators: not ChangeBalances function"
+          );
+        });
+
+        it("monthlyWithdraw()", async () => {
+          await truffleAssert.reverts(
+            validators.createInternalProposal(
+              ProposalType.MonthlyWithdraw,
+              "example.com",
+              getBytesChangeInternalBalances([wei(1)], [SECOND]),
+              { from: SECOND }
+            ),
+            "Validators: not MonthlyWithdraw function"
+          );
+        });
       });
     });
 
@@ -315,9 +403,7 @@ describe("GovValidators", () => {
 
     describe("vote()", () => {
       it("should vote with existed balance, internal proposals", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [100, 0, toPercent(51)], [], SECOND);
 
         await validators.vote(1, wei("40"), true, true, { from: SECOND });
 
@@ -350,9 +436,7 @@ describe("GovValidators", () => {
       });
 
       it("should vote when amount more than balance, internal proposals", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [100, 0, toPercent(51)], [], SECOND);
 
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
 
@@ -376,17 +460,13 @@ describe("GovValidators", () => {
       });
 
       it("should correctly vote by snapshot balance, internal proposals", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
-        await validators.createInternalProposal(
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [100, 0, toPercent(51)], [], SECOND);
+        await createInternalProposal(
           ProposalType.ChangeBalances,
           "example.com",
           [wei("40"), wei("60")],
           [SECOND, THIRD],
-          {
-            from: SECOND,
-          }
+          SECOND
         );
 
         await validators.vote(2, wei("200"), true, true, { from: THIRD });
@@ -407,9 +487,7 @@ describe("GovValidators", () => {
         assert.equal(core.votesFor, wei("100"));
         assert.equal(core.votesAgainst, wei("200"));
 
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [10], [], {
-          from: SECOND,
-        });
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [10, 0, toPercent(51)], [], SECOND);
 
         await validators.vote(3, wei("40"), true, false, { from: SECOND });
         await validators.vote(3, wei("60"), true, true, { from: THIRD });
@@ -458,9 +536,7 @@ describe("GovValidators", () => {
       });
 
       it("should change executeAfter after quorum has reached for internal proposal", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [100, 0, toPercent(51)], [], SECOND);
 
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("52"), true, true, { from: THIRD });
@@ -473,18 +549,14 @@ describe("GovValidators", () => {
       });
 
       it("should change executeAfter after quorum has reached for internal proposal with different executeDelay", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalExecutionDelay, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [500, 100, toPercent(51)], [], SECOND);
 
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("53"), true, true, { from: THIRD });
 
         await validators.execute(1);
 
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [100, 100, toPercent(51)], [], SECOND);
 
         await validators.vote(2, wei("100"), true, true, { from: SECOND });
         await validators.vote(2, wei("52"), true, true, { from: THIRD });
@@ -520,9 +592,7 @@ describe("GovValidators", () => {
       });
 
       it("should revert if not Voting state", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [100, 0, toPercent(51)], [], SECOND);
         await validators.vote(1, wei("200"), true, true, { from: THIRD });
 
         await truffleAssert.reverts(
@@ -532,9 +602,7 @@ describe("GovValidators", () => {
       });
 
       it("should revert if vote amount can't be zero", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [100, 0, toPercent(51)], [], SECOND);
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
 
         await truffleAssert.reverts(
@@ -547,6 +615,7 @@ describe("GovValidators", () => {
     describe("getExternalProposal()", () => {
       it("should return zero proposal if doesn't exist", async () => {
         const proposal = await validators.getExternalProposal(1);
+
         assert.equal(proposal.core.executed, false);
         assert.equal(proposal.core.voteEnd, 0);
         assert.equal(proposal.core.executeAfter, 0);
@@ -562,8 +631,38 @@ describe("GovValidators", () => {
         return {
           proposalType: proposal.proposal[0],
           descriptionURL: proposal.proposal[2],
-          newValues: proposal.proposal[3],
-          userAddresses: proposal.proposal[4],
+          data: proposal.proposal[3],
+        };
+      };
+
+      const internalProposalAddData = (proposal) => {
+        let data;
+        switch (parseInt(proposal.proposalType)) {
+          case ProposalType.ChangeSettings:
+            data = getBytesChangeValidatorSettings(proposal.newValues);
+            break;
+          case ProposalType.ChangeBalances:
+            data = getBytesChangeInternalBalances(proposal.newValues, proposal.userAddresses);
+            break;
+          case ProposalType.MonthlyWithdraw:
+            let l = proposal.userAddresses.length;
+            data = getBytesMonthlyWithdraw(
+              proposal.userAddresses.slice(0, l - 1),
+              proposal.newValues,
+              proposal.userAddresses[l - 1]
+            );
+            break;
+          case ProposalType.OffchainProposal:
+            data = "0x";
+            break;
+          default:
+            assert.isTrue(false);
+        }
+
+        return {
+          proposalType: proposal.proposalType,
+          descriptionURL: proposal.descriptionURL,
+          data: data,
         };
       };
 
@@ -582,25 +681,25 @@ describe("GovValidators", () => {
         beforeEach("setup", async () => {
           internalProposals = [
             {
-              proposalType: ProposalType.ChangeInternalDuration.toString(),
+              proposalType: ProposalType.ChangeSettings.toString(),
               descriptionURL: "example1.com",
-              newValues: ["100"],
+              newValues: ["100", "0", toPercent("51")],
               userAddresses: [],
             },
             {
-              proposalType: ProposalType.ChangeInternalExecutionDelay.toString(),
+              proposalType: ProposalType.ChangeSettings.toString(),
               descriptionURL: "example2.com",
-              newValues: ["100"],
+              newValues: ["500", "100", toPercent("51")],
               userAddresses: [],
             },
             {
-              proposalType: ProposalType.ChangeInternalQuorum.toString(),
+              proposalType: ProposalType.ChangeSettings.toString(),
               descriptionURL: "example3.com",
-              newValues: [toPercent("20")],
+              newValues: ["500", "0", toPercent("20")],
               userAddresses: [],
             },
             {
-              proposalType: ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum.toString(),
+              proposalType: ProposalType.ChangeSettings.toString(),
               descriptionURL: "example4.com",
               newValues: ["50", "100", toPercent("15")],
               userAddresses: [],
@@ -611,13 +710,23 @@ describe("GovValidators", () => {
               newValues: [wei("200")],
               userAddresses: [SECOND],
             },
+            {
+              proposalType: ProposalType.MonthlyWithdraw.toString(),
+              descriptionURL: "example6.com",
+              newValues: [wei("200")],
+              userAddresses: [SECOND, THIRD],
+            },
+            {
+              proposalType: ProposalType.OffchainProposal.toString(),
+              descriptionURL: "example7.com",
+              newValues: [],
+              userAddresses: [],
+            },
           ];
 
           for (const internalProposal of internalProposals) {
             const { proposalType, descriptionURL, newValues, userAddresses } = internalProposal;
-            await validators.createInternalProposal(proposalType, descriptionURL, newValues, userAddresses, {
-              from: SECOND,
-            });
+            await createInternalProposal(parseInt(proposalType), descriptionURL, newValues, userAddresses, SECOND);
           }
         });
 
@@ -626,22 +735,25 @@ describe("GovValidators", () => {
         });
 
         it("should return whole range properly", async () => {
-          const proposals = (await validators.getInternalProposals(0, 5)).map(internalProposalToObject);
-          assert.deepEqual(proposals, internalProposals);
+          const proposals = (await validators.getInternalProposals(0, 7)).map(internalProposalToObject);
+          const internalProposalsWithData = internalProposals.map(internalProposalAddData);
+          assert.deepEqual(proposals, internalProposalsWithData);
         });
 
         it("should return proposals properly from the middle of the range", async () => {
           const proposals = (await validators.getInternalProposals(1, 2)).map(internalProposalToObject);
-          assert.deepEqual(proposals, internalProposals.slice(1, 3));
+          const internalProposalsWithData = internalProposals.map(internalProposalAddData);
+          assert.deepEqual(proposals, internalProposalsWithData.slice(1, 3));
         });
 
         it("should return proposals properly if offset + limit > latestProposalId", async () => {
-          const proposals = (await validators.getInternalProposals(2, 6)).map(internalProposalToObject);
-          assert.deepEqual(proposals, internalProposals.slice(2));
+          const proposals = (await validators.getInternalProposals(2, 7)).map(internalProposalToObject);
+          const internalProposalsWithData = internalProposals.map(internalProposalAddData);
+          assert.deepEqual(proposals, internalProposalsWithData.slice(2));
         });
 
         it("should not return proposals if offset > latestProposalId", async () => {
-          const proposals = (await validators.getInternalProposals(5, 1)).map(internalProposalToObject);
+          const proposals = (await validators.getInternalProposals(7, 1)).map(internalProposalToObject);
           assert.deepEqual(proposals, []);
         });
       });
@@ -649,9 +761,7 @@ describe("GovValidators", () => {
 
     describe("getProposalState()", () => {
       it("should correctly return `Voting` state and `Succeeded` state when quorum reached", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [100, 0, toPercent(51)], [], SECOND);
 
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("52"), true, true, { from: THIRD });
@@ -668,9 +778,7 @@ describe("GovValidators", () => {
       });
 
       it("should correctly return `Succeeded` state when quorum reached and an amount of votes for more than against", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [100, 0, toPercent(51)], [], SECOND);
 
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("52"), true, false, { from: THIRD });
@@ -688,9 +796,7 @@ describe("GovValidators", () => {
 
       it("should correctly return `Defeated`", async () => {
         let currentTime = await getCurrentBlockTime();
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [100, 0, toPercent(51)], [], SECOND);
 
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("52"), true, true, { from: THIRD });
@@ -703,9 +809,7 @@ describe("GovValidators", () => {
       });
 
       it("should correctly return `Defeated` when an amount of votes for less than against", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [100, 0, toPercent(51)], [], SECOND);
 
         await validators.vote(1, wei("100"), true, false, { from: SECOND });
         await validators.vote(1, wei("53"), true, true, { from: THIRD });
@@ -714,9 +818,7 @@ describe("GovValidators", () => {
       });
 
       it("should correctly return `Executed` state", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [100], [], {
-          from: SECOND,
-        });
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [100, 0, toPercent(51)], [], SECOND);
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("53"), true, true, { from: THIRD });
 
@@ -733,9 +835,7 @@ describe("GovValidators", () => {
 
     describe("execute()", () => {
       it("should correctly execute `ChangeInternalDuration` proposal", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [1500], [], {
-          from: SECOND,
-        });
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [1500, 0, toPercent(51)], [], SECOND);
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("200"), true, true, { from: THIRD });
 
@@ -743,9 +843,7 @@ describe("GovValidators", () => {
 
         assert.equal((await validators.internalProposalSettings()).duration, 1500);
 
-        await validators.createInternalProposal(ProposalType.ChangeInternalDuration, "example.com", [333], [], {
-          from: THIRD,
-        });
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [333, 0, toPercent(51)], [], THIRD);
         await validators.vote(2, wei("100"), true, true, { from: SECOND });
         await validators.vote(2, wei("200"), true, true, { from: THIRD });
 
@@ -755,9 +853,13 @@ describe("GovValidators", () => {
       });
 
       it("should correctly execute `ChangeInternalExecutionDelay` proposal", async () => {
-        await validators.createInternalProposal(ProposalType.ChangeInternalExecutionDelay, "example.com", [1500], [], {
-          from: SECOND,
-        });
+        await createInternalProposal(
+          ProposalType.ChangeSettings,
+          "example.com",
+          [500, 1500, toPercent(51)],
+          [],
+          SECOND
+        );
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("200"), true, true, { from: THIRD });
 
@@ -765,9 +867,7 @@ describe("GovValidators", () => {
 
         assert.equal((await validators.internalProposalSettings()).executionDelay, 1500);
 
-        await validators.createInternalProposal(ProposalType.ChangeInternalExecutionDelay, "example.com", [333], [], {
-          from: THIRD,
-        });
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [500, 333, toPercent(51)], [], THIRD);
         await validators.vote(2, wei("100"), true, true, { from: SECOND });
         await validators.vote(2, wei("200"), true, true, { from: THIRD });
 
@@ -787,15 +887,7 @@ describe("GovValidators", () => {
       });
 
       it("should correctly execute `ChangeInternalQuorum` proposal", async () => {
-        await validators.createInternalProposal(
-          ProposalType.ChangeInternalQuorum,
-          "example.com",
-          [toPercent("20")],
-          [],
-          {
-            from: SECOND,
-          }
-        );
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [500, 0, toPercent(20)], [], SECOND);
         await validators.vote(1, wei("100"), true, true, { from: SECOND });
         await validators.vote(1, wei("200"), true, true, { from: THIRD });
 
@@ -803,13 +895,7 @@ describe("GovValidators", () => {
 
         assert.equal((await validators.internalProposalSettings()).quorum.toFixed(), toPercent("20"));
 
-        await validators.createInternalProposal(
-          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
-          "example.com",
-          [50, 100, toPercent("15")],
-          [],
-          { from: THIRD }
-        );
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [50, 100, toPercent("15")], [], THIRD);
 
         await validators.vote(2, wei("100"), true, true, { from: SECOND });
 
@@ -822,9 +908,8 @@ describe("GovValidators", () => {
       it("should correctly execute `ChangeBalances` proposal", async () => {
         assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Undefined);
 
-        await validators.createInternalProposal(ProposalType.ChangeBalances, "example.com", [wei("200")], [SECOND], {
-          from: SECOND,
-        });
+        await createInternalProposal(ProposalType.ChangeBalances, "example.com", [wei("200")], [SECOND], SECOND);
+
         await validators.vote(1, wei("200"), true, true, { from: THIRD });
 
         assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Locked);
@@ -839,9 +924,7 @@ describe("GovValidators", () => {
 
         assert.equal((await validatorsToken.balanceOf(SECOND)).toFixed(), wei("200"));
 
-        await validators.createInternalProposal(ProposalType.ChangeBalances, "example.com", [wei("0")], [SECOND], {
-          from: SECOND,
-        });
+        await createInternalProposal(ProposalType.ChangeBalances, "example.com", [wei("0")], [SECOND], SECOND);
 
         await validators.vote(2, wei("200"), true, true, { from: THIRD });
         await validators.vote(2, wei("100"), true, true, { from: SECOND });
@@ -851,17 +934,35 @@ describe("GovValidators", () => {
         assert.equal(await validatorsToken.balanceOf(SECOND), wei("0"));
       });
 
+      it("should correctly execute `OffchainProposal` proposal", async () => {
+        assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Undefined);
+
+        await createInternalProposal(ProposalType.OffchainProposal, "example.com", [], [], SECOND);
+
+        await validators.vote(1, wei("200"), true, true, { from: THIRD });
+
+        assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Locked);
+
+        await setTime((await getCurrentBlockTime()) + 1);
+
+        assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Succeeded);
+
+        await validators.execute(1);
+
+        assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Executed);
+      });
+
       it("should revert if proposal does not exist", async () => {
         await truffleAssert.reverts(validators.execute(1), "Validators: proposal does not exist");
       });
 
       it("should revert if not Succeeded state", async () => {
-        await validators.createInternalProposal(
-          ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum,
+        await createInternalProposal(
+          ProposalType.ChangeSettings,
           "example.com",
-          [wei("50"), 100, toPercent("50")],
+          [50, 100, toPercent("50")],
           [],
-          { from: SECOND }
+          SECOND
         );
         await truffleAssert.reverts(validators.execute(1), "Validators: not Succeeded state");
       });
@@ -880,6 +981,19 @@ describe("GovValidators", () => {
         await validators.changeBalances([10], [SECOND]);
 
         assert.equal(await validatorsToken.balanceOf(SECOND), 10);
+      });
+    });
+
+    describe("receive()", () => {
+      it("cant receive not from validators contract", async () => {
+        await truffleAssert.reverts(
+          web3.eth.sendTransaction({
+            from: OWNER,
+            to: validators.address,
+            value: wei(1),
+          }),
+          "Validators: not this contract"
+        );
       });
     });
   });

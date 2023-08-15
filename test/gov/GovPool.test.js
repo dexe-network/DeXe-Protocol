@@ -29,6 +29,11 @@ const {
   getBytesUndelegateTreasury,
   getBytesGovVoteTreasury,
 } = require("../utils/gov-pool-utils");
+const {
+  getBytesChangeInternalBalances,
+  getBytesChangeValidatorSettings,
+  getBytesMonthlyWithdraw,
+} = require("../utils/gov-validators-utils");
 const { ZERO_ADDR, ETHER_ADDR, PRECISION, DECIMAL } = require("../../scripts/utils/constants");
 const {
   ProposalState,
@@ -147,6 +152,27 @@ describe("GovPool", () => {
 
   async function executeAndClaim(proposalId, from) {
     await govPool.multicall([getBytesGovExecute(proposalId), getBytesGovClaimRewards([proposalId])], { from: from });
+  }
+
+  async function createInternalProposal(proposalType, description, amounts, users, from) {
+    let data;
+    switch (proposalType) {
+      case ProposalType.ChangeSettings:
+        data = getBytesChangeValidatorSettings(amounts);
+        break;
+      case ProposalType.ChangeBalances:
+        data = getBytesChangeInternalBalances(amounts, users);
+        break;
+      case ProposalType.MonthlyWithdraw:
+        data = getBytesMonthlyWithdraw(users.slice(0, users.length - 1), amounts, users[users.length - 1]);
+        break;
+      case ProposalType.OffchainProposal:
+        data = "0x";
+        break;
+      default:
+        assert.isTrue(false);
+    }
+    await validators.createInternalProposal(proposalType, description, data, { from: from });
   }
 
   async function tokensToVotes(tokenNumber) {
@@ -1712,7 +1738,7 @@ describe("GovPool", () => {
         });
 
         it("should return SucceededFor state when quorum has reached and votes for and with validators but there count is 0", async () => {
-          await validators.createInternalProposal(ProposalType.ChangeBalances, "", [0, 0], [OWNER, SECOND]);
+          await createInternalProposal(ProposalType.ChangeBalances, "", [0, 0], [OWNER, SECOND]);
           await validators.vote(1, wei("1000000000000"), true, true, { from: SECOND });
 
           await validators.execute(1);
@@ -1734,7 +1760,7 @@ describe("GovPool", () => {
         });
 
         it("should return SucceededAgainst state when quorum has reached and votes for and with validators but there count is 0", async () => {
-          await validators.createInternalProposal(ProposalType.ChangeBalances, "", [0, 0], [OWNER, SECOND]);
+          await createInternalProposal(ProposalType.ChangeBalances, "", [0, 0], [OWNER, SECOND]);
           await validators.vote(1, wei("1000000000000"), true, true, { from: SECOND });
 
           await validators.execute(1);
@@ -1985,7 +2011,7 @@ describe("GovPool", () => {
 
           assert.equal((await govPool.getProposalState(3)).toFixed(), ProposalState.WaitingForVotingTransfer);
 
-          await validators.createInternalProposal(ProposalType.ChangeBalances, "", [0, 0], [OWNER, SECOND]);
+          await createInternalProposal(ProposalType.ChangeBalances, "", [0, 0], [OWNER, SECOND]);
           await validators.vote(1, wei("1000000000000"), true, true, { from: SECOND });
 
           await validators.execute(1);
@@ -4752,7 +4778,6 @@ describe("GovPool", () => {
               assert.deepEqual(await govPool.getCreditInfo(), TOKENS.slice(i, i + j));
 
               await govPool.setCreditInfo([], [], { from: GOVPOOL });
-
               assert.deepEqual(await govPool.getCreditInfo(), []);
             }
           }
@@ -4782,7 +4807,6 @@ describe("GovPool", () => {
 
         it("cant call if not validator contract", async () => {
           await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["1000"], { from: GOVPOOL });
-
           await truffleAssert.reverts(
             govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1000"], SECOND),
             "Gov: not the validators contract"
@@ -4812,7 +4836,6 @@ describe("GovPool", () => {
 
         it("cant get more than month limit", async () => {
           await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["1000"], { from: GOVPOOL });
-
           await truffleAssert.reverts(
             govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1001"], SECOND, { from: VALIDATORS }),
             "GPC: Current credit permission < amount to withdraw"
@@ -4833,7 +4856,6 @@ describe("GovPool", () => {
         it("cant transfer on second withdraw more than reminder", async () => {
           await govPool.setCreditInfo([CREDIT_TOKEN_1.address], ["1000"], { from: GOVPOOL });
           await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["300"], SECOND, { from: VALIDATORS });
-
           await truffleAssert.reverts(
             govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["701"], SECOND, { from: VALIDATORS }),
             "GPC: Current credit permission < amount to withdraw"
@@ -4988,6 +5010,83 @@ describe("GovPool", () => {
 
         it("proposal sets credit info", async () => {
           assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN.address, wei("1000"), wei("1000")]]);
+        });
+
+        it("could withdraw with internal proposal", async () => {
+          await createInternalProposal(
+            ProposalType.MonthlyWithdraw,
+            "example.com",
+            [wei("777")],
+            [CREDIT_TOKEN.address, SECOND],
+            OWNER
+          );
+
+          const proposalId = await validators.latestInternalProposalId();
+          await validators.vote(proposalId, wei("100"), true, true);
+          await validators.vote(proposalId, wei("1000000000000"), true, true, { from: SECOND });
+
+          assert.equal((await CREDIT_TOKEN.balanceOf(SECOND)).toFixed(), "0");
+          await validators.execute(proposalId);
+          assert.equal((await CREDIT_TOKEN.balanceOf(SECOND)).toFixed(), wei("777"));
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN.address, wei("1000"), wei("223")]]);
+        });
+
+        it("execute reverts if credit balance was dropped", async () => {
+          await createInternalProposal(
+            ProposalType.MonthlyWithdraw,
+            "example.com",
+            [wei("777")],
+            [CREDIT_TOKEN.address, SECOND],
+            OWNER
+          );
+
+          const proposalId = await validators.latestInternalProposalId();
+          await validators.vote(proposalId, wei("100"), true, true);
+          await validators.vote(proposalId, wei("1000000000000"), true, true, { from: SECOND });
+
+          await govPool.createProposal(
+            "example.com",
+            "misc",
+            [[govPool.address, 0, getBytesSetCreditInfo([CREDIT_TOKEN.address], [0])]],
+            []
+          );
+
+          await govPool.vote(2, wei("100000000000000000000"), [], true, { from: SECOND });
+
+          await govPool.moveProposalToValidators(2);
+          await validators.vote(2, wei("100"), false, true);
+          await validators.vote(2, wei("1000000000000"), false, true, { from: SECOND });
+
+          await govPool.execute(2);
+
+          await truffleAssert.reverts(validators.execute(proposalId), "Validators: failed to execute");
+        });
+
+        it("should correctly execute `MonthlyWithdraw` proposal", async () => {
+          assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Undefined);
+
+          await createInternalProposal(
+            ProposalType.MonthlyWithdraw,
+            "example.com",
+            [wei("777")],
+            [CREDIT_TOKEN.address, SECOND],
+            OWNER
+          );
+
+          await validators.vote(1, wei("1000000000000"), true, true, { from: SECOND });
+
+          assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Locked);
+
+          await setTime((await getCurrentBlockTime()) + 1);
+
+          assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Succeeded);
+
+          assert.equal((await CREDIT_TOKEN.balanceOf(SECOND)).toFixed(), "0");
+          await validators.execute(1);
+          assert.equal((await CREDIT_TOKEN.balanceOf(SECOND)).toFixed(), wei("777"));
+          assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN.address, wei("1000"), wei("223")]]);
+
+          assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Executed);
         });
       });
     });

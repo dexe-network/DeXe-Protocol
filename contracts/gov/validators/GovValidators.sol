@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../../interfaces/gov/validators/IGovValidators.sol";
+import "../../interfaces/gov/IGovPool.sol";
 
 import "./GovValidatorsToken.sol";
 
@@ -45,6 +46,16 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         _;
     }
 
+    modifier onlyThis() {
+        _onlyThis();
+        _;
+    }
+
+    modifier onlyThisOrGovPool() {
+        _onlyThisOrGovPool();
+        _;
+    }
+
     function __GovValidators_init(
         string calldata name,
         string calldata symbol,
@@ -67,10 +78,9 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     function createInternalProposal(
         ProposalType proposalType,
         string calldata descriptionURL,
-        uint256[] calldata newValues,
-        address[] calldata users
+        bytes calldata data
     ) external override onlyValidator {
-        _validateInternalProposal(proposalType, newValues, users);
+        _validateInternalProposal(proposalType, data);
 
         ProposalSettings storage _internalProposalSettings = internalProposalSettings;
 
@@ -86,8 +96,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
                 snapshotId: uint56(govValidatorsToken.snapshot())
             }),
             descriptionURL: descriptionURL,
-            newValues: newValues,
-            userAddresses: users
+            data: data
         });
 
         emit InternalProposalCreated(
@@ -103,6 +112,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         ProposalSettings calldata proposalSettings
     ) external override onlyOwner {
         require(!_proposalExists(proposalId, false), "Validators: proposal already exists");
+
         _validateProposalSettings(proposalSettings);
 
         _externalProposals[proposalId] = ExternalProposal({
@@ -120,12 +130,34 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         emit ExternalProposalCreated(proposalId, proposalSettings.quorum);
     }
 
+    function changeSettings(
+        uint64 duration,
+        uint64 executionDelay,
+        uint128 quorum
+    ) external override onlyThis {
+        ProposalSettings storage proposalSettings = internalProposalSettings;
+
+        proposalSettings.duration = duration;
+        proposalSettings.executionDelay = executionDelay;
+        proposalSettings.quorum = quorum;
+    }
+
     function changeBalances(
         uint256[] calldata newValues,
         address[] calldata userAddresses
-    ) external override onlyOwner {
+    ) external override onlyThisOrGovPool {
         _changeBalances(newValues, userAddresses);
     }
+
+    function monthlyWithdraw(
+        address[] calldata tokens,
+        uint256[] calldata amounts,
+        address destination
+    ) external override onlyThis {
+        IGovPool(owner()).transferCreditAmount(tokens, amounts, destination);
+    }
+
+    receive() external payable onlyThis {}
 
     function vote(
         uint256 proposalId,
@@ -172,23 +204,8 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         proposal.core.executed = true;
 
-        ProposalType proposalType = proposal.proposalType;
-
-        ProposalSettings storage proposalSettings = internalProposalSettings;
-
-        if (proposalType == ProposalType.ChangeInternalDuration) {
-            proposalSettings.duration = uint64(proposal.newValues[0]);
-        } else if (proposalType == ProposalType.ChangeInternalExecutionDelay) {
-            proposalSettings.executionDelay = uint64(proposal.newValues[0]);
-        } else if (proposalType == ProposalType.ChangeInternalQuorum) {
-            proposalSettings.quorum = uint128(proposal.newValues[0]);
-        } else if (proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum) {
-            proposalSettings.duration = uint64(proposal.newValues[0]);
-            proposalSettings.executionDelay = uint64(proposal.newValues[1]);
-            proposalSettings.quorum = uint128(proposal.newValues[2]);
-        } else {
-            _changeBalances(proposal.newValues, proposal.userAddresses);
-        }
+        (bool success, ) = address(this).call(proposal.data);
+        require(success, "Validators: failed to execute");
 
         emit InternalProposalExecuted(proposalId, msg.sender);
     }
@@ -252,6 +269,37 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         return govValidatorsToken.balanceOf(user) > 0;
     }
 
+    function _changeBalances(uint256[] memory newValues, address[] memory userAddresses) internal {
+        GovValidatorsToken validatorsToken = govValidatorsToken;
+        uint256 length = newValues.length;
+
+        uint256 validatorsCount_ = validatorsCount;
+
+        for (uint256 i = 0; i < length; i++) {
+            address user = userAddresses[i];
+            uint256 newBalance = newValues[i];
+            uint256 balance = validatorsToken.balanceOf(user);
+
+            if (balance < newBalance) {
+                validatorsToken.mint(user, newBalance - balance);
+
+                if (balance == 0) {
+                    validatorsCount_++;
+                }
+            } else if (balance > newBalance) {
+                validatorsToken.burn(user, balance - newBalance);
+
+                if (newBalance == 0) {
+                    validatorsCount_--;
+                }
+            }
+        }
+
+        validatorsCount = validatorsCount_;
+
+        emit ChangedValidatorsBalances(userAddresses, newValues);
+    }
+
     function _getProposalState(ProposalCore storage core) internal view returns (ProposalState) {
         if (core.executed) {
             return ProposalState.Executed;
@@ -300,35 +348,78 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         return core.voteEnd != 0;
     }
 
-    function _changeBalances(uint256[] memory newValues, address[] memory userAddresses) internal {
-        GovValidatorsToken validatorsToken = govValidatorsToken;
-        uint256 length = newValues.length;
+    function _votesForMoreThanAgainst(ProposalCore storage core) internal view returns (bool) {
+        return core.votesFor > core.votesAgainst;
+    }
 
-        uint256 validatorsCount_ = validatorsCount;
+    function _onlyValidator() internal view {
+        require(isValidator(msg.sender), "Validators: caller is not the validator");
+    }
 
-        for (uint256 i = 0; i < length; i++) {
-            address user = userAddresses[i];
-            uint256 newBalance = newValues[i];
-            uint256 balance = validatorsToken.balanceOf(user);
+    function _onlyThis() internal view {
+        require(address(this) == msg.sender, "Validators: not this contract");
+    }
 
-            if (balance < newBalance) {
-                validatorsToken.mint(user, newBalance - balance);
+    function _onlyThisOrGovPool() internal view {
+        require(
+            address(this) == msg.sender || owner() == msg.sender,
+            "Validators: not this nor GovPool contract"
+        );
+    }
 
-                if (balance == 0) {
-                    validatorsCount_++;
-                }
-            } else if (balance > newBalance) {
-                validatorsToken.burn(user, balance - newBalance);
-
-                if (newBalance == 0) {
-                    validatorsCount_--;
-                }
-            }
+    function _validateInternalProposal(
+        ProposalType proposalType,
+        bytes calldata data
+    ) internal pure {
+        if (proposalType == ProposalType.OffchainProposal) {
+            require(data.length == 0, "Validators: offchain proposal should not have data");
+            return;
         }
 
-        validatorsCount = validatorsCount_;
+        bytes4 selector = bytes4(data);
+        bytes calldata packedData = data[4:];
 
-        emit ChangedValidatorsBalances(userAddresses, newValues);
+        if (proposalType == ProposalType.ChangeBalances) {
+            require(
+                selector == IGovValidators.changeBalances.selector,
+                "Validators: not ChangeBalances function"
+            );
+            (uint256[] memory newValues, address[] memory users) = _getBalanceInfoFromData(
+                packedData
+            );
+
+            _validateChangeBalances(newValues, users);
+        } else if (proposalType == ProposalType.ChangeSettings) {
+            require(
+                selector == IGovValidators.changeSettings.selector,
+                "Validators: not ChangeSettings function"
+            );
+            (
+                uint64 duration,
+                uint64 executionDelay,
+                uint128 quorum
+            ) = _getValidatorSettingsFromData(packedData);
+
+            ProposalSettings memory proposalSettings = ProposalSettings({
+                duration: duration,
+                executionDelay: executionDelay,
+                quorum: quorum
+            });
+
+            _validateProposalSettings(proposalSettings);
+        } else {
+            require(
+                selector == IGovValidators.monthlyWithdraw.selector,
+                "Validators: not MonthlyWithdraw function"
+            );
+            (
+                address[] memory tokens,
+                uint256[] memory amounts,
+                address destination
+            ) = _getCreditInfoFromData(packedData);
+
+            _validateMonthlyWithdraw(tokens, amounts, destination);
+        }
     }
 
     function _validateProposalSettings(ProposalSettings memory proposalSettings) internal pure {
@@ -348,41 +439,41 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         }
     }
 
-    function _votesForMoreThanAgainst(ProposalCore storage core) internal view returns (bool) {
-        return core.votesFor > core.votesAgainst;
-    }
-
-    function _onlyValidator() internal view {
-        require(isValidator(msg.sender), "Validators: caller is not the validator");
-    }
-
-    function _validateInternalProposal(
-        ProposalType proposalType,
-        uint256[] calldata newValues,
-        address[] calldata users
+    function _validateMonthlyWithdraw(
+        address[] memory tokens,
+        uint256[] memory amounts,
+        address destination
     ) internal pure {
-        if (proposalType == ProposalType.ChangeBalances) {
-            _validateChangeBalances(newValues, users);
-        } else {
-            ProposalSettings memory proposalSettings = ProposalSettings({
-                duration: 1,
-                executionDelay: 0,
-                quorum: 1
-            });
+        uint256 tokensLength = tokens.length;
 
-            if (proposalType == ProposalType.ChangeInternalDuration) {
-                proposalSettings.duration = uint64(newValues[0]);
-            } else if (proposalType == ProposalType.ChangeInternalQuorum) {
-                proposalSettings.quorum = uint128(newValues[0]);
-            } else if (
-                proposalType == ProposalType.ChangeInternalDurationAndExecutionDelayAndQuorum
-            ) {
-                proposalSettings.duration = uint64(newValues[0]);
-                proposalSettings.executionDelay = uint64(newValues[1]);
-                proposalSettings.quorum = uint128(newValues[2]);
-            }
+        require(amounts.length == tokensLength, "Validators: invalid array length");
 
-            _validateProposalSettings(proposalSettings);
+        for (uint256 i = 0; i < tokensLength; i++) {
+            require(tokens[i] != address(0), "Validators: address of token cannot be zero");
         }
+
+        require(destination != address(0), "Validators: destination address cannot be zero");
+    }
+
+    function _getValidatorSettingsFromData(
+        bytes memory _data
+    ) internal pure returns (uint64 duration, uint64 executionDelay, uint128 quorum) {
+        (duration, executionDelay, quorum) = abi.decode(_data, (uint64, uint64, uint128));
+    }
+
+    function _getBalanceInfoFromData(
+        bytes memory _data
+    ) internal pure returns (uint256[] memory newValues, address[] memory userAddresses) {
+        (newValues, userAddresses) = abi.decode(_data, (uint256[], address[]));
+    }
+
+    function _getCreditInfoFromData(
+        bytes memory _data
+    )
+        internal
+        pure
+        returns (address[] memory tokens, uint256[] memory amounts, address destination)
+    {
+        (tokens, amounts, destination) = abi.decode(_data, (address[], uint256[], address));
     }
 }

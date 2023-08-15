@@ -34,11 +34,11 @@ import "../libs/math/MathHelper.sol";
 import "../core/Globals.sol";
 
 contract GovPool is
-    IGovPool,
-    AbstractDependant,
-    ERC721HolderUpgradeable,
-    ERC1155HolderUpgradeable,
-    Multicall
+IGovPool,
+AbstractDependant,
+ERC721HolderUpgradeable,
+ERC1155HolderUpgradeable,
+Multicall
 {
     using MathHelper for uint256;
     using Math for uint256;
@@ -56,9 +56,6 @@ contract GovPool is
     using GovPoolMicropool for *;
     using DecimalsConverter for *;
     using TokenBalance for address;
-
-    uint256 internal constant PERCENTAGE_MICROPOOL_REWARDS = PERCENTAGE_100 / 5; // 20%
-    uint256 internal constant PERCENTAGE_TREASURY_REWARDS = (PERCENTAGE_100 * 809) / 50000; // 1.618%
 
     IGovSettings internal _govSettings;
     IGovUserKeeper internal _govUserKeeper;
@@ -482,16 +479,16 @@ contract GovPool is
     }
 
     function getHelperContracts()
-        external
-        view
-        override
-        returns (
-            address settings,
-            address userKeeper,
-            address validators,
-            address distributionProposal,
-            address poolRegistry
-        )
+    external
+    view
+    override
+    returns (
+        address settings,
+        address userKeeper,
+        address validators,
+        address distributionProposal,
+        address poolRegistry
+    )
     {
         return (
             address(_govSettings),
@@ -503,10 +500,10 @@ contract GovPool is
     }
 
     function getNftContracts()
-        external
-        view
-        override
-        returns (address nftMultiplier, address expertNft, address dexeExpertNft, address babt)
+    external
+    view
+    override
+    returns (address nftMultiplier, address expertNft, address dexeExpertNft, address babt)
     {
         return (_nftMultiplier, address(_expertNft), address(_dexeExpertNft), address(_babt));
     }
@@ -550,12 +547,12 @@ contract GovPool is
 
         return
             VoteInfoView({
-                isVoteFor: info.isVoteFor,
-                totalVoted: info.totalVoted,
-                tokensVoted: info.tokensVoted,
-                nftPowerVoted: info.nftPowerVoted,
-                nftsVoted: info.nftsVoted.values()
-            });
+            isVoteFor: info.isVoteFor,
+            totalVoted: info.totalVoted,
+            tokensVoted: info.tokensVoted,
+            nftPowerVoted: info.nftPowerVoted,
+            nftsVoted: info.nftsVoted.values()
+        });
     }
 
     function getWithdrawableAssets(
@@ -578,12 +575,12 @@ contract GovPool is
     ) external view override returns (DelegatorRewards memory) {
         return
             _micropoolInfos[delegatee].getDelegatorRewards(
-                _proposals,
-                _voteInfos,
-                proposalIds,
-                delegator,
-                delegatee
-            );
+            _proposals,
+            _voteInfos,
+            proposalIds,
+            delegator,
+            delegatee
+        );
     }
 
     function getCreditInfo() external view override returns (CreditInfoView[] memory) {
@@ -591,10 +588,10 @@ contract GovPool is
     }
 
     function getOffchainInfo()
-        external
-        view
-        override
-        returns (address validator, string memory resultsHash)
+    external
+    view
+    override
+    returns (address validator, string memory resultsHash)
     {
         return (_offChain.verifier, _offChain.resultsHash);
     }
@@ -680,12 +677,10 @@ contract GovPool is
             isVoteFor
         );
 
-        uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
-
-        _updateRewards(proposalId, rewardType, micropoolReward);
+        _updateRewards(proposalId, rewardType, reward);
 
         if (voteType == VoteType.MicropoolVote) {
-            _micropoolInfos[delegatee].updateRewards(proposalId, reward - micropoolReward);
+            _micropoolInfos[delegatee].updateRewards(proposalId, reward);
         }
     }
 

@@ -22,7 +22,7 @@ enum ProposalType {
     ChangeInternalDuration,
     ChangeInternalExecutionDelay,
     ChangeInternalQuorum,
-    ChangeInternalDurationAndExecutionDelayAndQuorum,
+    ChangeSettings,
     ChangeBalances
 }
 ```

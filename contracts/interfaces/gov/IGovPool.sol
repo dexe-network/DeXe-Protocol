@@ -3,6 +3,8 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+import "../core/ICoreProperties.sol";
+
 import "./settings/IGovSettings.sol";
 import "./validators/IGovValidators.sol";
 
@@ -80,7 +82,7 @@ interface IGovPool {
         address settingsAddress;
         address userKeeperAddress;
         address distributionAddress;
-        address validatorsAddress;
+        address payable validatorsAddress;
         address expertNftAddress;
         address nftMultiplierAddress;
     }
@@ -538,4 +540,8 @@ interface IGovPool {
     /// @param user the address of the user
     /// @return uint256 the modifier with 25 precision decimals
     function getVoteModifierForUser(address user) external view returns (uint256);
+
+    /// @notice The function to get core properties
+    /// @return `ICoreProperties` interface
+    function coreProperties() external view returns (ICoreProperties);
 }

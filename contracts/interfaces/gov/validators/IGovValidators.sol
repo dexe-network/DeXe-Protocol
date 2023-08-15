@@ -15,11 +15,10 @@ interface IGovValidators {
     }
 
     enum ProposalType {
-        ChangeInternalDuration,
-        ChangeInternalExecutionDelay,
-        ChangeInternalQuorum,
-        ChangeInternalDurationAndExecutionDelayAndQuorum,
-        ChangeBalances
+        ChangeSettings,
+        ChangeBalances,
+        MonthlyWithdraw,
+        OffchainProposal
     }
 
     /// @notice The struct holds information about settings for validators proposal
@@ -60,8 +59,7 @@ interface IGovValidators {
         ProposalType proposalType;
         ProposalCore core;
         string descriptionURL;
-        uint256[] newValues;
-        address[] userAddresses;
+        bytes data;
     }
 
     /// @notice The struct holds information about the external proposal
@@ -90,17 +88,15 @@ interface IGovValidators {
 
     /// @notice Create internal proposal for changing validators balances, base quorum, base duration
     /// @param proposalType `ProposalType`
-    /// 0 - `ChangeInternalDuration`, change base duration
-    /// 1 - `ChangeInternalQuorum`, change base quorum
-    /// 2 - `ChangeInternalDurationAndQuorum`, change base duration and quorum
-    /// 3 - `ChangeBalances`, change address balance
-    /// @param newValues New values (tokens amounts array, quorum or duration or both)
-    /// @param userAddresses Validators addresses, set it if `proposalType` == `ChangeBalances`
+    /// 0 - `ChangeInternalDurationAndQuorum`, change base duration and quorum
+    /// 1 - `ChangeBalances`, change address balance
+    /// 2 - `MonthlyWithdraw`, monthly token withdraw
+    /// 3 - `OffchainProposal`, offchain action
+    /// @param data New packed data, depending on proposal type
     function createInternalProposal(
         ProposalType proposalType,
         string calldata descriptionURL,
-        uint256[] calldata newValues,
-        address[] calldata userAddresses
+        bytes calldata data
     ) external;
 
     /// @notice Create external proposal. This function can call only `Gov` contract
@@ -111,12 +107,20 @@ interface IGovValidators {
         ProposalSettings calldata proposalSettings
     ) external;
 
+    function changeSettings(uint64 duration, uint64 executionDelay, uint128 quorum) external;
+
     /// @notice The function for changing validators balances
     /// @param newValues the array of new balances
     /// @param userAddresses the array validators addresses
     function changeBalances(
         uint256[] calldata newValues,
         address[] calldata userAddresses
+    ) external;
+
+    function monthlyWithdraw(
+        address[] calldata tokens,
+        uint256[] calldata amounts,
+        address destination
     ) external;
 
     /// @notice Vote in proposal
