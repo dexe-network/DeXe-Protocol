@@ -48,11 +48,10 @@ const ValidatorsProposalState = {
 };
 
 const ProposalType = {
-  ChangeInternalDuration: 0,
-  ChangeInternalExecutionDelay: 1,
-  ChangeInternalQuorum: 2,
-  ChangeInternalDurationAndExecutionDelayAndQuorum: 3,
-  ChangeBalances: 4,
+  ChangeSettings: 0,
+  ChangeBalances: 1,
+  MonthlyWithdraw: 2,
+  OffchainProposal: 3,
 };
 
 const ParticipationType = {

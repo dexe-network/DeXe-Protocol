@@ -83,7 +83,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         GovPool.Dependencies memory govPoolDeps;
 
-        govPoolDeps.validatorsAddress = _deploy(_poolRegistry.VALIDATORS_NAME());
+        govPoolDeps.validatorsAddress = payable(_deploy(_poolRegistry.VALIDATORS_NAME()));
         govPoolDeps.userKeeperAddress = _deploy(_poolRegistry.USER_KEEPER_NAME());
         govPoolDeps.distributionAddress = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
         govPoolDeps.settingsAddress = _deploy(_poolRegistry.SETTINGS_NAME());
@@ -125,7 +125,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         GovPool.Dependencies memory govPoolDeps;
 
-        govPoolDeps.validatorsAddress = _deploy(_poolRegistry.VALIDATORS_NAME());
+        govPoolDeps.validatorsAddress = payable(_deploy(_poolRegistry.VALIDATORS_NAME()));
         govPoolDeps.userKeeperAddress = _deploy(_poolRegistry.USER_KEEPER_NAME());
         govPoolDeps.distributionAddress = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
         govPoolDeps.settingsAddress = _deploy(_poolRegistry.SETTINGS_NAME());

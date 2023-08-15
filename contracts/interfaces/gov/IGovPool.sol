@@ -80,7 +80,7 @@ interface IGovPool {
         address settingsAddress;
         address userKeeperAddress;
         address distributionAddress;
-        address validatorsAddress;
+        address payable validatorsAddress;
         address expertNftAddress;
         address nftMultiplierAddress;
     }
