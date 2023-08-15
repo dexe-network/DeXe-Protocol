@@ -105,7 +105,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
     }
 
     function setTokenSaleProposalCommissionPercentage(
-        uint256 tokenSaleProposalCommissionPercentage
+        uint128 tokenSaleProposalCommissionPercentage
     ) external override onlyOwner {
         coreParameters
             .govParams
@@ -223,7 +223,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         );
     }
 
-    function getTokenSaleProposalCommissionPercentage() external view override returns (uint256) {
+    function getTokenSaleProposalCommissionPercentage() external view override returns (uint128) {
         return coreParameters.govParams.tokenSaleProposalCommissionPercentage;
     }
 

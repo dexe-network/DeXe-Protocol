@@ -67,7 +67,7 @@ interface ICoreProperties {
     struct GovParameters {
         uint128 govVotesLimit;
         uint128 govCommissionPercentage;
-        uint256 tokenSaleProposalCommissionPercentage;
+        uint128 tokenSaleProposalCommissionPercentage;
         uint128 micropoolVoteRewardsPercentage;
         uint128 treasuryVoteRewardsPercentage;
     }
@@ -135,7 +135,7 @@ interface ICoreProperties {
     /// @notice The function to set new token sale proposal commission percentage
     /// @param tokenSaleProposalCommissionPercentage the new commission percentage
     function setTokenSaleProposalCommissionPercentage(
-        uint256 tokenSaleProposalCommissionPercentage
+        uint128 tokenSaleProposalCommissionPercentage
     ) external;
 
     /// @notice The function to set new vote rewards percentages
@@ -250,7 +250,7 @@ interface ICoreProperties {
 
     /// @notice The function to get the token sale proposal commission percentage
     /// @return the commission percentage
-    function getTokenSaleProposalCommissionPercentage() external view returns (uint256);
+    function getTokenSaleProposalCommissionPercentage() external view returns (uint128);
 
     /// @notice The function to get the vote rewards percentages
     /// @return micropoolVoteRewardsPercentage the percentage of the rewards for the micropool voters
