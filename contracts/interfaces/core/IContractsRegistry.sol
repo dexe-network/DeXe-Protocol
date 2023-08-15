@@ -40,16 +40,8 @@ interface IContractsRegistry {
     function getUniswapV2FactoryContract() external view returns (address);
 
     /// @notice Used in dependency injection mechanism
-    /// @return Insurance contract address
-    function getInsuranceContract() external view returns (address);
-
-    /// @notice Used in dependency injection mechanism
     /// @return Treasury contract/wallet address
     function getTreasuryContract() external view returns (address);
-
-    /// @notice Used in dependency injection mechanism
-    /// @return Dividends contract/wallet address
-    function getDividendsContract() external view returns (address);
 
     /// @notice Used in dependency injection mechanism
     /// @return CoreProperties contract address

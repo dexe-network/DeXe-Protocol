@@ -4,8 +4,6 @@
 
 ## Abstract
 
-**DeXe** is a decentralized social trading platform design to copy the best trader strategies. You can create your personalized trading token, invest into other traders to multiply your assets by purchasing their tokens (each token is baked by real assets and its price depends on the trader's skills), repeat other wallets trading transactions using *Wallet-to-Wallet* copying.
-
 On **DeXe** platform user can also form a **DAO** for collective decision-making and execution of those decisions. 
 **DAO** pools can be useful for projects that want to give their community a vote in the development of the project or to control the treasuries.
 
@@ -19,9 +17,6 @@ At the core of **DeXe's** mission is the goal of building a community-driven dec
 - ***Validators***: validators in the **DAO** pool may be needed in order to validate incoming proposals after they have been approved by the community
 - ***TokenSale***: sale of a **DAO** pool token with custom settings (whitelists of users and exchange tokens, sales tiers, vesting, etc)
 - ***Staking***: if the user does not want to vote for proposals on his own, he can delegate part of his funds to another user and receive rewards
-- ***Trading***: user can earn by trading tokens on the platform, receive investments for your trading from other users
-- ***Investing***: on **DeXe** platform, user can invest own tokens into other traders 
-- ***Insurance***: investor can buy an insurance to be protected from fraud
 - ***Protocol Fees***: **DeXe** will charge fees in native token from trading operations to ensure protocol sustainability
 
 
@@ -80,27 +75,9 @@ The contract is responsible for the *CRUD* functionality of other contracts in t
 
 The purpose of this contract is to store system constant parameters.
 
-#### Insurance
-
-An insurance is needed to secure users' assets invested in pools. Any user can buy insurance for any amount in **DeXe** tokens and get ***10x*** insurance. An investor who has bought insurance can open an insured event and provide information indicating a loss of funds.
-
 #### PriceFeed
 
 Contract is used for finding the best path for token exchange on **DEXes**.
-
-#### TraderPools
-
-Traders can create their own investment pool (fund) by executing a transaction via the smart contract method. The pool can be either public or private. A private pool requires whitelisted addresses for investment, while a public pool is open to all investors.
-
-There are **2** types of pool:
-- *Standard*: trade using whitelisted tokens
-- *Invest*: invest into offchain assets 
-
-Pool has its native **ERC20** token with unique symbols and can have several managers.
-
-Maximum number of open positions - **25**.
-
-Maximum number of investors in the pool - **1000**.
 
 #### UserRegistry
 
@@ -112,7 +89,6 @@ Maximum number of investors in the pool - **1000**.
 Of all commission received on trading, **DeXe** charges its own commission of ***30%*** and use it to immediately purchase the **DEXE** token.
 Commission distribution:
 - ⅓ to the treasury of the protocol
-- ⅓ to the insurance fund
 - ⅓ to the NFT holders (in the form of extra rewards for the DAO activity) 
 
 ## Governance
@@ -123,6 +99,3 @@ Commission distribution:
 - Adding a token to the whitelist/blacklist
 - Upgrading contracts
 - Managing the limits on the number of users in pools
-- Managing the maximum number of positions for traders
-- Changing the parameters of the trader's leverage formula
-- Adjusting insurance parameters

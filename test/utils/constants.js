@@ -63,36 +63,11 @@ const ParticipationType = {
 };
 
 const DEFAULT_CORE_PROPERTIES = {
-  traderParams: {
-    maxPoolInvestors: 1000,
-    maxOpenPositions: 25,
-    leverageThreshold: 2500,
-    leverageSlope: 5,
-    commissionInitTimestamp: 0,
-    commissionDurations: [SECONDS_IN_MONTH, SECONDS_IN_MONTH * 3, SECONDS_IN_MONTH * 12],
-    dexeCommissionPercentage: PRECISION.times(30).toFixed(),
-    dexeCommissionDistributionPercentages: [
-      PRECISION.times(33).toFixed(),
-      PRECISION.times(33).toFixed(),
-      PRECISION.times(33).toFixed(),
-    ],
-    minTraderCommission: PRECISION.times(20).toFixed(),
-    maxTraderCommissions: [PRECISION.times(30).toFixed(), PRECISION.times(50).toFixed(), PRECISION.times(70).toFixed()],
-    delayForRiskyPool: SECONDS_IN_DAY * 20,
-  },
-  insuranceParams: {
-    insuranceFactor: 10,
-    maxInsurancePoolShare: PRECISION.times(33.3333).toFixed(),
-    minInsuranceDeposit: DECIMAL.times(10).toFixed(),
-    insuranceWithdrawalLock: SECONDS_IN_DAY,
-  },
-  govParams: {
-    govVotesLimit: 20,
-    govCommissionPercentage: PRECISION.times(20).toFixed(),
-    tokenSaleProposalCommissionPercentage: PRECISION.toFixed(),
-    micropoolVoteRewardsPercentage: PRECISION.times(20).toFixed(),
-    treasuryVoteRewardsPercentage: PRECISION.times(1.618).toFixed(),
-  },
+  govVotesLimit: 20,
+  govCommissionPercentage: PRECISION.times(20).toFixed(),
+  tokenSaleProposalCommissionPercentage: PRECISION.toFixed(),
+  micropoolVoteRewardsPercentage: PRECISION.times(20).toFixed(),
+  treasuryVoteRewardsPercentage: PRECISION.times(1.618).toFixed(),
 };
 
 module.exports = {

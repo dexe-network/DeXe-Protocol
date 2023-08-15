@@ -16,11 +16,11 @@ library GovPoolCommission {
     function payCommission(address rewardToken, uint256 commissionAmount) internal {
         GovPool govPool = GovPool(payable(address(this)));
 
-        (, uint256 commissionPercentage, , address[3] memory commissionReceivers) = govPool
+        (uint256 commissionPercentage, address commissionReceiver) = govPool
             .coreProperties()
             .getDEXECommissionPercentages();
 
-        if (rewardToken == address(0) || commissionReceivers[1] == address(this)) {
+        if (rewardToken == address(0) || commissionReceiver == address(this)) {
             return;
         }
 
@@ -28,6 +28,6 @@ library GovPoolCommission {
             commissionAmount.percentage(commissionPercentage)
         );
 
-        rewardToken.sendFunds(commissionReceivers[1], commission, TokenBalance.TransferType.Mint);
+        rewardToken.sendFunds(commissionReceiver, commission, TokenBalance.TransferType.Mint);
     }
 }

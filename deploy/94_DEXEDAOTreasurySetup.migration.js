@@ -9,10 +9,6 @@ module.exports = async (deployer, logger) => {
     "Add Treasury"
   );
   logger.logTransaction(
-    await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), deployer.dexeDaoAddress),
-    "Add Dividends"
-  );
-  logger.logTransaction(
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME()),
     "Inject CoreProperties"
   );
