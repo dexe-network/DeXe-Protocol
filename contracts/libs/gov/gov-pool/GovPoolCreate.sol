@@ -4,6 +4,8 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
+import "../../../interfaces/factory/IPoolRegistry.sol";
+
 import "../../../interfaces/gov/IGovPool.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../interfaces/gov/settings/IGovSettings.sol";
@@ -46,12 +48,7 @@ library GovPoolCreate {
 
         uint256 proposalId = GovPool(payable(address(this))).latestProposalId();
 
-        _restrictInterestedUsersFromProposal(
-            restrictedProposals,
-            actionsOnFor,
-            actionsOnAgainst,
-            proposalId
-        );
+        _restrictInterestedUsersFromProposal(restrictedProposals, actionsOnFor, proposalId);
 
         IGovPool.Proposal storage proposal = proposals[proposalId];
 
@@ -92,7 +89,7 @@ library GovPoolCreate {
         uint256 proposalId
     ) external {
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
-        (, , address govValidators, ) = IGovPool(address(this)).getHelperContracts();
+        (, , address govValidators, , ) = IGovPool(address(this)).getHelperContracts();
 
         require(
             IGovPool(address(this)).getProposalState(proposalId) ==
@@ -125,7 +122,7 @@ library GovPoolCreate {
     {
         require(actionsFor.length != 0, "Gov: invalid array length");
 
-        (address govSettingsAddress, address userKeeper, , ) = IGovPool(address(this))
+        (address govSettingsAddress, address userKeeper, , , ) = IGovPool(address(this))
             .getHelperContracts();
 
         IGovSettings govSettings = IGovSettings(govSettingsAddress);
@@ -136,11 +133,7 @@ library GovPoolCreate {
         bool forceDefaultSettings = _handleDataForProposal(settingsId, govSettings, actionsFor);
 
         if (actionsAgainst.length != 0) {
-            forceDefaultSettings =
-                _handleDataForProposal(settingsId, govSettings, actionsAgainst) ||
-                forceDefaultSettings ||
-                settingsId !=
-                govSettings.executorToSettings(actionsAgainst[actionsAgainst.length - 1].executor);
+            _validateDataCorrespondence(actionsFor, actionsAgainst);
         }
 
         if (forceDefaultSettings) {
@@ -181,19 +174,6 @@ library GovPoolCreate {
 
     function _restrictInterestedUsersFromProposal(
         mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
-        IGovPool.ProposalAction[] calldata actionsFor,
-        IGovPool.ProposalAction[] calldata actionsAgainst,
-        uint256 proposalId
-    ) internal {
-        _restrictUsersFromActions(restrictedProposals, actionsFor, proposalId);
-
-        if (actionsAgainst.length != 0) {
-            _restrictUsersFromActions(restrictedProposals, actionsAgainst, proposalId);
-        }
-    }
-
-    function _restrictUsersFromActions(
-        mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
         IGovPool.ProposalAction[] calldata actions,
         uint256 proposalId
     ) internal {
@@ -222,7 +202,7 @@ library GovPoolCreate {
             return;
         }
 
-        (, address userKeeper, , ) = govPool.getHelperContracts();
+        (, address userKeeper, , , ) = govPool.getHelperContracts();
 
         require(
             IGovUserKeeper(userKeeper).canCreate(
@@ -290,6 +270,42 @@ library GovPoolCreate {
         return _handleDataForExistingSettingsProposal(actions);
     }
 
+    function _validateDataCorrespondence(
+        IGovPool.ProposalAction[] calldata actionsFor,
+        IGovPool.ProposalAction[] calldata actionsAgainst
+    ) internal view {
+        require(actionsFor.length == actionsAgainst.length, "Gov: invalid actions length");
+
+        (, , , , address poolRegistryAddress) = IGovPool(address(this)).getHelperContracts();
+        IPoolRegistry poolRegistry = IPoolRegistry(poolRegistryAddress);
+
+        for (uint256 i; i < actionsFor.length; i++) {
+            IGovPool.ProposalAction calldata actionFor = actionsFor[i];
+            IGovPool.ProposalAction calldata actionAgainst = actionsAgainst[i];
+
+            address executor = actionFor.executor;
+            require(executor == actionAgainst.executor, "Gov: invalid executor");
+            require(poolRegistry.isGovPool(executor), "Gov: invalid executor");
+
+            bytes4 selector = actionFor.data.getSelector();
+            require(selector == actionAgainst.data.getSelector(), "Gov: invalid selector");
+            require(
+                selector == IGovPool.vote.selector ||
+                    selector == IGovPool.voteDelegated.selector ||
+                    selector == IGovPool.voteTreasury.selector,
+                "Gov: invalid selector"
+            );
+
+            (uint256 proposalIdFor, bool isVoteForOnFor) = _decodeVoteFunction(actionFor);
+            (uint256 proposalIdAgainst, bool isVoteForOnAgainst) = _decodeVoteFunction(
+                actionAgainst
+            );
+            require(proposalIdFor == proposalIdAgainst, "Gov: invalid proposal id");
+
+            require(isVoteForOnFor && !isVoteForOnAgainst, "Gov: invalid vote");
+        }
+    }
+
     function _handleDataForValidatorBalanceProposal(
         IGovPool.ProposalAction[] calldata actions
     ) internal pure {
@@ -321,5 +337,16 @@ library GovPoolCreate {
         }
 
         return false;
+    }
+
+    function _decodeVoteFunction(
+        IGovPool.ProposalAction calldata action
+    ) internal pure returns (uint256 proposalId, bool isVoteFor) {
+        // (proposalId, isVoteFor) = abi.decode(action.data[4:69], (uint256, bool));
+
+        (proposalId, , , isVoteFor) = abi.decode(
+            action.data[4:],
+            (uint256, uint256, uint256[], bool)
+        );
     }
 }

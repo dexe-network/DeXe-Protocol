@@ -273,6 +273,7 @@ interface IGovPool {
     /// @return userKeeper user keeper address
     /// @return validators validators address
     /// @return distributionProposal distribution proposal address
+    /// @return poolRegistry pool registry address
     function getHelperContracts()
         external
         view
@@ -280,7 +281,8 @@ interface IGovPool {
             address settings,
             address userKeeper,
             address validators,
-            address distributionProposal
+            address distributionProposal,
+            address poolRegistry
         );
 
     /// @notice The function to get the nft contracts of this pool
@@ -331,6 +333,18 @@ interface IGovPool {
     /// @param voteNftIds the nft ids that will be used in delegated voting
     /// @param isVoteFor the bool flag for voting for or against the proposal
     function voteDelegated(
+        uint256 proposalId,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds,
+        bool isVoteFor
+    ) external;
+
+    /// @notice The function for voting for proposals with delegated from treasury tokens
+    /// @param proposalId the id of proposal
+    /// @param voteAmount the erc20 vote amount
+    /// @param voteNftIds the nft ids that will be used in treasury voting
+    /// @param isVoteFor the bool flag for voting for or against the proposal
+    function voteTreasury(
         uint256 proposalId,
         uint256 voteAmount,
         uint256[] calldata voteNftIds,

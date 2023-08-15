@@ -168,7 +168,7 @@ library GovPoolVote {
             "Gov: vote limit reached"
         );
 
-        (, address userKeeperAddress, , ) = govPool.getHelperContracts();
+        (, address userKeeperAddress, , , ) = govPool.getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         if (voteAmount > 0) {
@@ -214,7 +214,7 @@ library GovPoolVote {
         IGovPool.VoteType voteType,
         bool isVoteFor
     ) internal {
-        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
         (uint256 tokenBalance, uint256 ownedBalance) = IGovUserKeeper(userKeeper).tokenBalance(
             msg.sender,
@@ -255,7 +255,7 @@ library GovPoolVote {
             );
         }
 
-        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         userKeeper.updateNftPowers(nftIds);
@@ -281,7 +281,7 @@ library GovPoolVote {
             "Gov: user restricted from voting in this proposal"
         );
 
-        (, address userKeeper, , ) = govPool.getHelperContracts();
+        (, address userKeeper, , , ) = govPool.getHelperContracts();
 
         require(
             IGovUserKeeper(userKeeper).canVote(
@@ -295,7 +295,7 @@ library GovPoolVote {
     }
 
     function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {
-        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
 
         return
             PERCENTAGE_100.ratio(
@@ -315,7 +315,7 @@ library GovPoolVote {
     }
 
     function _treasuryVoteCoefficient() internal view returns (uint256) {
-        (, address userKeeperAddress, , ) = GovPool(payable(address(this))).getHelperContracts();
+        (, address userKeeperAddress, , , ) = GovPool(payable(address(this))).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         (uint256 power, ) = userKeeper.tokenBalance(msg.sender, IGovPool.VoteType.TreasuryVote);

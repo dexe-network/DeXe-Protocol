@@ -800,6 +800,40 @@ const getBytesGovVoteDelegated = (proposalId, voteAmount, voteNftIds, isVoteFor 
   );
 };
 
+const getBytesGovVoteTreasury = (proposalId, voteAmount, voteNftIds, isVoteFor = true) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "uint256",
+          name: "proposalId",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256",
+          name: "voteAmount",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256[]",
+          name: "voteNftIds",
+          type: "uint256[]",
+        },
+        {
+          internalType: "bool",
+          name: "isVoteFor",
+          type: "bool",
+        },
+      ],
+      name: "voteTreasury",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [proposalId, voteAmount, voteNftIds, isVoteFor]
+  );
+};
+
 const getBytesGovDeposit = (receiver, amount, nftIds) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -1015,6 +1049,7 @@ module.exports = {
   getBytesGovClaimRewards,
   getBytesGovVote,
   getBytesGovVoteDelegated,
+  getBytesGovVoteTreasury,
   getBytesGovDeposit,
   getBytesKeeperWithdrawTokens,
   getBytesSetCreditInfo,

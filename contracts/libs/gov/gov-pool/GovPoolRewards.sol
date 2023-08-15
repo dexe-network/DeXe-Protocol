@@ -77,7 +77,7 @@ library GovPoolRewards {
                 userProposalRewards.rewardAgainst += amountToAdd;
             }
         } else {
-            (address settingsAddress, , , ) = IGovPool(address(this)).getHelperContracts();
+            (address settingsAddress, , , , ) = IGovPool(address(this)).getHelperContracts();
 
             rewardToken = IGovSettings(settingsAddress)
                 .getInternalSettings()
@@ -188,7 +188,7 @@ library GovPoolRewards {
         }
 
         if (rewardType == IGovPool.RewardType.SaveOffchainResults) {
-            (address govSettings, , , ) = IGovPool(address(this)).getHelperContracts();
+            (address govSettings, , , , ) = IGovPool(address(this)).getHelperContracts();
 
             return IGovSettings(govSettings).getInternalSettings().rewardsInfo.executionReward;
         }
