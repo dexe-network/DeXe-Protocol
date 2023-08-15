@@ -34,11 +34,11 @@ import "../libs/math/MathHelper.sol";
 import "../core/Globals.sol";
 
 contract GovPool is
-IGovPool,
-AbstractDependant,
-ERC721HolderUpgradeable,
-ERC1155HolderUpgradeable,
-Multicall
+    IGovPool,
+    AbstractDependant,
+    ERC721HolderUpgradeable,
+    ERC1155HolderUpgradeable,
+    Multicall
 {
     using MathHelper for uint256;
     using Math for uint256;
@@ -479,16 +479,16 @@ Multicall
     }
 
     function getHelperContracts()
-    external
-    view
-    override
-    returns (
-        address settings,
-        address userKeeper,
-        address validators,
-        address distributionProposal,
-        address poolRegistry
-    )
+        external
+        view
+        override
+        returns (
+            address settings,
+            address userKeeper,
+            address validators,
+            address distributionProposal,
+            address poolRegistry
+        )
     {
         return (
             address(_govSettings),
@@ -500,10 +500,10 @@ Multicall
     }
 
     function getNftContracts()
-    external
-    view
-    override
-    returns (address nftMultiplier, address expertNft, address dexeExpertNft, address babt)
+        external
+        view
+        override
+        returns (address nftMultiplier, address expertNft, address dexeExpertNft, address babt)
     {
         return (_nftMultiplier, address(_expertNft), address(_dexeExpertNft), address(_babt));
     }
@@ -547,12 +547,12 @@ Multicall
 
         return
             VoteInfoView({
-            isVoteFor: info.isVoteFor,
-            totalVoted: info.totalVoted,
-            tokensVoted: info.tokensVoted,
-            nftPowerVoted: info.nftPowerVoted,
-            nftsVoted: info.nftsVoted.values()
-        });
+                isVoteFor: info.isVoteFor,
+                totalVoted: info.totalVoted,
+                tokensVoted: info.tokensVoted,
+                nftPowerVoted: info.nftPowerVoted,
+                nftsVoted: info.nftsVoted.values()
+            });
     }
 
     function getWithdrawableAssets(
@@ -575,12 +575,12 @@ Multicall
     ) external view override returns (DelegatorRewards memory) {
         return
             _micropoolInfos[delegatee].getDelegatorRewards(
-            _proposals,
-            _voteInfos,
-            proposalIds,
-            delegator,
-            delegatee
-        );
+                _proposals,
+                _voteInfos,
+                proposalIds,
+                delegator,
+                delegatee
+            );
     }
 
     function getCreditInfo() external view override returns (CreditInfoView[] memory) {
@@ -588,10 +588,10 @@ Multicall
     }
 
     function getOffchainInfo()
-    external
-    view
-    override
-    returns (address validator, string memory resultsHash)
+        external
+        view
+        override
+        returns (address validator, string memory resultsHash)
     {
         return (_offChain.verifier, _offChain.resultsHash);
     }
