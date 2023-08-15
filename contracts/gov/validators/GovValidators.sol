@@ -467,5 +467,5 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         );
     }
 
-    receive() external payable {}
+    receive() external payable onlyThis {}
 }

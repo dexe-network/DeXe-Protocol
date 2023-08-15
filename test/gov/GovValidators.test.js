@@ -11,6 +11,7 @@ const {
   getBytesChangeValidatorSettings,
   getBytesMonthlyWithdraw,
 } = require("../utils/gov-validators-utils");
+const { web3 } = require("hardhat");
 
 const GovValidators = artifacts.require("GovValidators");
 const GovValidatorsToken = artifacts.require("GovValidatorsToken");
@@ -979,6 +980,19 @@ describe("GovValidators", () => {
         await validators.changeBalances([10], [SECOND]);
 
         assert.equal(await validatorsToken.balanceOf(SECOND), 10);
+      });
+    });
+
+    describe("receive()", () => {
+      it("cant receive not from validators contract", async () => {
+        await truffleAssert.reverts(
+          web3.eth.sendTransaction({
+            from: OWNER,
+            to: validators.address,
+            value: wei(1),
+          }),
+          "Validators: not this contract"
+        );
       });
     });
   });
