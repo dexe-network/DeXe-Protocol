@@ -389,6 +389,10 @@ contract GovPool is
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
         _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
 
+        _micropoolInfos[delegatee].saveDelegationInfo(delegatee);
+
+        _revoteDelegated(delegatee, VoteType.MicropoolVote);
+
         emit Delegated(msg.sender, delegatee, amount, nftIds, false);
     }
 
