@@ -39,9 +39,9 @@ library GovPoolVote {
     function vote(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
-            storage votedInProposals,
+        storage votedInProposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
-            storage voteInfos,
+        storage voteInfos,
         mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
         uint256 proposalId,
         address voter,
@@ -75,16 +75,16 @@ library GovPoolVote {
     function voteDelegated(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
-            storage votedInProposals,
+        storage votedInProposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
-            storage voteInfos,
+        storage voteInfos,
         mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
         uint256 proposalId,
         address voter,
         IGovPool.VoteType voteType,
         bool isVoteFor
     ) external returns (uint256) {
-        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
         (uint256 voteAmount, ) = IGovUserKeeper(userKeeper).tokenBalance(voter, voteType);
         (uint256[] memory voteNftIds, ) = IGovUserKeeper(userKeeper).nftExactBalance(
@@ -100,25 +100,25 @@ library GovPoolVote {
 
         return
             _vote(
-                core,
-                votedInProposals[voter][voteType],
-                voteInfos[proposalId][voter][voteType],
-                restrictedProposals[voter],
-                proposalId,
-                voter,
-                voteAmount,
-                voteNftIds,
-                voteType,
-                isVoteFor
-            );
+            core,
+            votedInProposals[voter][voteType],
+            voteInfos[proposalId][voter][voteType],
+            restrictedProposals[voter],
+            proposalId,
+            voter,
+            voteAmount,
+            voteNftIds,
+            voteType,
+            isVoteFor
+        );
     }
 
     function cancelVote(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
-            storage votedInProposals,
+        storage votedInProposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
-            storage voteInfos,
+        storage voteInfos,
         uint256 proposalId,
         address voter,
         uint256 voteAmount,
@@ -150,9 +150,9 @@ library GovPoolVote {
     function cancelVoteDelegated(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
-            storage votedInProposals,
+        storage votedInProposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
-            storage voteInfos,
+        storage voteInfos,
         uint256 proposalId,
         address voter,
         IGovPool.VoteType voteType,
@@ -167,16 +167,16 @@ library GovPoolVote {
 
         return
             _cancel(
-                proposals[proposalId].core,
-                votedInProposals[voter][voteType],
-                voteInfo,
-                proposalId,
-                voter,
-                voteAmount,
-                voteNftIds,
-                voteType,
-                isVoteFor
-            );
+            proposals[proposalId].core,
+            votedInProposals[voter][voteType],
+            voteInfo,
+            proposalId,
+            voter,
+            voteAmount,
+            voteNftIds,
+            voteType,
+            isVoteFor
+        );
     }
 
     function _vote(
@@ -199,7 +199,7 @@ library GovPoolVote {
             voteInfo.isVoteFor = isVoteFor;
         }
 
-        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         bool lockNeeded = voteType != IGovPool.VoteType.MicropoolVote &&
@@ -255,7 +255,7 @@ library GovPoolVote {
     ) internal returns (uint256 totalVotedBefore, uint256 totalVotedAfter) {
         require(isVoteFor == voteInfo.isVoteFor, "Gov: wrong is vote for");
 
-        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         totalVotedBefore = voteInfo.tokensVoted + voteInfo.nftPowerVoted;
@@ -281,7 +281,7 @@ library GovPoolVote {
         }
 
         uint256 cancelAmount = voteInfo.totalVoted -
-            voteInfo.totalVoted.ratio(totalVotedAfter, totalVotedBefore);
+                                voteInfo.totalVoted.ratio(totalVotedAfter, totalVotedBefore);
 
         voteInfo.totalVoted -= cancelAmount;
 
@@ -304,7 +304,7 @@ library GovPoolVote {
         uint256 amount,
         IGovPool.VoteType voteType
     ) internal {
-        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
         (uint256 tokenBalance, uint256 ownedBalance) = IGovUserKeeper(userKeeper).tokenBalance(
             voter,
@@ -330,7 +330,7 @@ library GovPoolVote {
             require(nftsVoted.add(nftIds[i]), "Gov: NFT already voted");
         }
 
-        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         userKeeper.updateNftPowers(nftIds);
@@ -357,7 +357,7 @@ library GovPoolVote {
             require(nftsVoted.remove(nftIds[i]), "Gov: NFT didn't vote");
         }
 
-        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         userKeeper.updateNftPowers(nftIds);
@@ -377,7 +377,7 @@ library GovPoolVote {
         bool isVoteFor
     ) internal view {
         IGovPool govPool = IGovPool(address(this));
-        (, address userKeeper, , ) = govPool.getHelperContracts();
+        (, address userKeeper, , , ) = govPool.getHelperContracts();
 
         require(voteInfo.isVoteFor == isVoteFor || voteInfo.totalVoted == 0, "Gov: dual vote");
         require(
@@ -400,7 +400,7 @@ library GovPoolVote {
     }
 
     function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {
-        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
 
         return
             PERCENTAGE_100.ratio(
@@ -410,7 +410,7 @@ library GovPoolVote {
     }
 
     function _treasuryVoteCoefficient(address voter) internal view returns (uint256) {
-        (, address userKeeperAddress, , ) = GovPool(payable(address(this))).getHelperContracts();
+        (, address userKeeperAddress, , , ) = GovPool(payable(address(this))).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         (uint256 power, ) = userKeeper.tokenBalance(voter, IGovPool.VoteType.TreasuryVote);
@@ -445,19 +445,5 @@ library GovPoolVote {
         }
 
         return voteAmount.pow(coefficient.ratio(DECIMALS, PRECISION));
-    }
-
-    function _getActualTotalVoted(
-        IGovPool.VoteInfo storage voteInfo,
-        uint256 snapshotId
-    ) internal view returns (uint256) {
-        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
-
-        return
-            voteInfo.tokensVoted +
-            IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(
-                voteInfo.nftsVoted.values(),
-                snapshotId
-            );
     }
 }

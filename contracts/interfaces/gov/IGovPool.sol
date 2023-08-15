@@ -254,6 +254,7 @@ interface IGovPool {
     /// @return userKeeper user keeper address
     /// @return validators validators address
     /// @return distributionProposal distribution proposal address
+    /// @return poolRegistry pool registry address
     function getHelperContracts()
         external
         view
@@ -261,7 +262,8 @@ interface IGovPool {
             address settings,
             address userKeeper,
             address validators,
-            address distributionProposal
+            address distributionProposal,
+            address poolRegistry
         );
 
     /// @notice The function to get the nft contracts of this pool

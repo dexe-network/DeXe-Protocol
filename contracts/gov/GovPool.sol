@@ -64,6 +64,7 @@ contract GovPool is
     IGovUserKeeper internal _govUserKeeper;
     IGovValidators internal _govValidators;
     address internal _distributionProposal;
+    address internal _poolRegistry;
 
     ICoreProperties public coreProperties;
 
@@ -152,6 +153,7 @@ contract GovPool is
         coreProperties = ICoreProperties(registry.getCorePropertiesContract());
         _babt = ISBT721(registry.getBABTContract());
         _dexeExpertNft = IERC721Expert(registry.getDexeExpertNftContract());
+        _poolRegistry = registry.getPoolRegistryContract();
     }
 
     function unlock(address user, VoteType voteType) public override onlyBABTHolder {
@@ -485,14 +487,16 @@ contract GovPool is
             address settings,
             address userKeeper,
             address validators,
-            address distributionProposal
+            address distributionProposal,
+            address poolRegistry
         )
     {
         return (
             address(_govSettings),
             address(_govUserKeeper),
             address(_govValidators),
-            _distributionProposal
+            _distributionProposal,
+            _poolRegistry
         );
     }
 
