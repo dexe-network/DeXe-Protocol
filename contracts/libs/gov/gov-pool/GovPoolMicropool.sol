@@ -17,6 +17,8 @@ library GovPoolMicropool {
     using MathHelper for uint256;
     using ArrayHelper for uint256[];
 
+    event MicropoolRewardClaimed(address user, address token, uint256 amount);
+
     function updateRewards(
         IGovPool.MicropoolInfo storage micropool,
         uint256 proposalId,
@@ -80,6 +82,8 @@ library GovPoolMicropool {
             address rewardToken = proposals[proposalId].core.settings.rewardsInfo.rewardToken;
 
             rewardToken.sendFunds(msg.sender, reward, TokenBalance.TransferType.TryMint);
+
+            emit MicropoolRewardClaimed(proposalId, msg.sender, rewardToken, reward);
         }
     }
 
