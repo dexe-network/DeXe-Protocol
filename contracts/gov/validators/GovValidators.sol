@@ -201,10 +201,8 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         proposal.core.executed = true;
 
-        if (proposal.proposalType != ProposalType.OffchainProposal) {
-            (bool success, ) = address(this).call(proposal.data);
-            require(success, "Validators: failed to execute");
-        }
+        (bool success, ) = address(this).call(proposal.data);
+        require(success, "Validators: failed to execute");
 
         emit InternalProposalExecuted(proposalId, msg.sender);
     }
@@ -468,4 +466,6 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             "Validators: not this nor GovPool contract"
         );
     }
+
+    receive() external payable {}
 }
