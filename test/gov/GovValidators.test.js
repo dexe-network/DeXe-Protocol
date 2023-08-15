@@ -615,6 +615,7 @@ describe("GovValidators", () => {
     describe("getExternalProposal()", () => {
       it("should return zero proposal if doesn't exist", async () => {
         const proposal = await validators.getExternalProposal(1);
+
         assert.equal(proposal.core.executed, false);
         assert.equal(proposal.core.voteEnd, 0);
         assert.equal(proposal.core.executeAfter, 0);
