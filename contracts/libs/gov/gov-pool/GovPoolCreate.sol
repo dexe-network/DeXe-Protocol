@@ -302,8 +302,7 @@ library GovPoolCreate {
             );
             require(proposalIdFor == proposalIdAgainst, "Gov: invalid proposal id");
 
-            require(isVoteForOnFor, "Gov: invalid vote");
-            require(!isVoteForOnAgainst, "Gov: invalid vote");
+            require(isVoteForOnFor && !isVoteForOnAgainst, "Gov: invalid vote");
         }
     }
 
