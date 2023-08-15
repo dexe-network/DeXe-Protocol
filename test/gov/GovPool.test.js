@@ -968,12 +968,34 @@ describe("GovPool", () => {
           );
         });
 
-        it("should not create proposal due to same vote", async () => {
+        it("should not create proposal due to invalid vote", async () => {
           await truffleAssert.reverts(
             govPool.createProposal(
               "",
               "misc",
               [[govPool2.address, 0, getBytesGovVote(1, wei("1"), [], true)]],
+              [[govPool2.address, 0, getBytesGovVote(1, wei("1"), [], true)]],
+              { from: SECOND }
+            ),
+            "Gov: invalid vote"
+          );
+
+          await truffleAssert.reverts(
+            govPool.createProposal(
+              "",
+              "misc",
+              [[govPool2.address, 0, getBytesGovVote(1, wei("1"), [], false)]],
+              [[govPool2.address, 0, getBytesGovVote(1, wei("1"), [], false)]],
+              { from: SECOND }
+            ),
+            "Gov: invalid vote"
+          );
+
+          await truffleAssert.reverts(
+            govPool.createProposal(
+              "",
+              "misc",
+              [[govPool2.address, 0, getBytesGovVote(1, wei("1"), [], false)]],
               [[govPool2.address, 0, getBytesGovVote(1, wei("1"), [], true)]],
               { from: SECOND }
             ),

@@ -174,14 +174,6 @@ library GovPoolCreate {
 
     function _restrictInterestedUsersFromProposal(
         mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
-        IGovPool.ProposalAction[] calldata actionsFor,
-        uint256 proposalId
-    ) internal {
-        _restrictUsersFromActions(restrictedProposals, actionsFor, proposalId);
-    }
-
-    function _restrictUsersFromActions(
-        mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
         IGovPool.ProposalAction[] calldata actions,
         uint256 proposalId
     ) internal {
@@ -278,17 +270,6 @@ library GovPoolCreate {
         return _handleDataForExistingSettingsProposal(actions);
     }
 
-    function _decodeVoteFunction(
-        IGovPool.ProposalAction calldata action
-    ) internal pure returns (uint256 proposalId, bool isVoteFor) {
-        // (proposalId, isVoteFor) = abi.decode(action.data[4:69], (uint256, bool));
-
-        (proposalId, , , isVoteFor) = abi.decode(
-            action.data[4:],
-            (uint256, uint256, uint256[], bool)
-        );
-    }
-
     function _validateDataCorrespondence(
         IGovPool.ProposalAction[] calldata actionsFor,
         IGovPool.ProposalAction[] calldata actionsAgainst
@@ -320,7 +301,9 @@ library GovPoolCreate {
                 actionAgainst
             );
             require(proposalIdFor == proposalIdAgainst, "Gov: invalid proposal id");
-            require(isVoteForOnFor == !isVoteForOnAgainst, "Gov: invalid vote");
+
+            require(isVoteForOnFor, "Gov: invalid vote");
+            require(!isVoteForOnAgainst, "Gov: invalid vote");
         }
     }
 
@@ -355,5 +338,16 @@ library GovPoolCreate {
         }
 
         return false;
+    }
+
+    function _decodeVoteFunction(
+        IGovPool.ProposalAction calldata action
+    ) internal pure returns (uint256 proposalId, bool isVoteFor) {
+        // (proposalId, isVoteFor) = abi.decode(action.data[4:69], (uint256, bool));
+
+        (proposalId, , , isVoteFor) = abi.decode(
+            action.data[4:],
+            (uint256, uint256, uint256[], bool)
+        );
     }
 }
