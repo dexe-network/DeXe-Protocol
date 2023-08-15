@@ -39,9 +39,9 @@ library GovPoolVote {
     function vote(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
-        storage votedInProposals,
+            storage votedInProposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
-        storage voteInfos,
+            storage voteInfos,
         mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
         uint256 proposalId,
         address voter,
@@ -75,9 +75,9 @@ library GovPoolVote {
     function voteDelegated(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
-        storage votedInProposals,
+            storage votedInProposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
-        storage voteInfos,
+            storage voteInfos,
         mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
         uint256 proposalId,
         address voter,
@@ -100,25 +100,25 @@ library GovPoolVote {
 
         return
             _vote(
-            core,
-            votedInProposals[voter][voteType],
-            voteInfos[proposalId][voter][voteType],
-            restrictedProposals[voter],
-            proposalId,
-            voter,
-            voteAmount,
-            voteNftIds,
-            voteType,
-            isVoteFor
-        );
+                core,
+                votedInProposals[voter][voteType],
+                voteInfos[proposalId][voter][voteType],
+                restrictedProposals[voter],
+                proposalId,
+                voter,
+                voteAmount,
+                voteNftIds,
+                voteType,
+                isVoteFor
+            );
     }
 
     function cancelVote(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
-        storage votedInProposals,
+            storage votedInProposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
-        storage voteInfos,
+            storage voteInfos,
         uint256 proposalId,
         address voter,
         uint256 voteAmount,
@@ -150,9 +150,9 @@ library GovPoolVote {
     function cancelVoteDelegated(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
-        storage votedInProposals,
+            storage votedInProposals,
         mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
-        storage voteInfos,
+            storage voteInfos,
         uint256 proposalId,
         address voter,
         IGovPool.VoteType voteType,
@@ -167,16 +167,16 @@ library GovPoolVote {
 
         return
             _cancel(
-            proposals[proposalId].core,
-            votedInProposals[voter][voteType],
-            voteInfo,
-            proposalId,
-            voter,
-            voteAmount,
-            voteNftIds,
-            voteType,
-            isVoteFor
-        );
+                proposals[proposalId].core,
+                votedInProposals[voter][voteType],
+                voteInfo,
+                proposalId,
+                voter,
+                voteAmount,
+                voteNftIds,
+                voteType,
+                isVoteFor
+            );
     }
 
     function _vote(
@@ -281,7 +281,7 @@ library GovPoolVote {
         }
 
         uint256 cancelAmount = voteInfo.totalVoted -
-                                voteInfo.totalVoted.ratio(totalVotedAfter, totalVotedBefore);
+            voteInfo.totalVoted.ratio(totalVotedAfter, totalVotedBefore);
 
         voteInfo.totalVoted -= cancelAmount;
 
