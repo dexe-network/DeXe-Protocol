@@ -4,6 +4,8 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+import "../../../interfaces/core/ICoreProperties.sol";
+
 import "../../../interfaces/gov/IGovPool.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
@@ -29,6 +31,8 @@ library GovPoolStaking {
         if (totalStake == 0) {
             return;
         }
+
+        amount = _calculateVoteRewardOnStaking(amount);
 
         IGovSettings.RewardsInfo storage rewardsInfo = proposals[proposalId]
             .core
@@ -195,5 +199,12 @@ library GovPoolStaking {
                     rewardsDeviation
                 );
         }
+    }
+
+    function _calculateVoteRewardOnStaking(uint256 amount) internal returns (uint256) {
+        (uint256 percentage, ) = ICoreProperties(IGovPool(address(this)).coreProperties())
+            .getVoteRewardsPercentages();
+
+        return amount - amount.percentage(percentage);
     }
 }

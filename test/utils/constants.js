@@ -91,6 +91,8 @@ const DEFAULT_CORE_PROPERTIES = {
     govVotesLimit: 20,
     govCommissionPercentage: PRECISION.times(20).toFixed(),
     tokenSaleProposalCommissionPercentage: PRECISION.toFixed(),
+    micropoolVoteRewardsPercentage: PRECISION.times(20).toFixed(),
+    treasuryVoteRewardsPercentage: PRECISION.times(1.618).toFixed(),
   },
 };
 
