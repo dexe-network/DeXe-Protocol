@@ -191,16 +191,22 @@ library GovPoolVote {
         IGovPool.VoteType voteType,
         bool isVoteFor
     ) internal returns (uint256) {
+        GovPool govPool = GovPool(payable(address(this)));
+        (, address userKeeperAddress, , , ) = govPool.getHelperContracts();
+        IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
+
         _canVote(core, voteInfo, restrictedUserProposals, proposalId, voter, voteType, isVoteFor);
 
         votes.add(proposalId);
 
+        require(
+            votes.length() <= govPool.coreProperties().getGovVotesLimit(),
+            "Gov: vote limit reached"
+        );
+
         if (voteInfo.totalVoted == 0) {
             voteInfo.isVoteFor = isVoteFor;
         }
-
-        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
-        IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         bool lockNeeded = voteType != IGovPool.VoteType.MicropoolVote &&
             voteType != IGovPool.VoteType.TreasuryVote;
