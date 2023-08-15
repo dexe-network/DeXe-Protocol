@@ -87,26 +87,28 @@ interface IGovPool {
         address nftMultiplierAddress;
     }
 
+    /// TODO: docs
     /// @notice The struct holds core properties of proposal
     /// @param settings the struct that holds information about settings of the proposal
-    /// @param executed the boolean flag that sets to true when the proposal gets executed
     /// @param voteEnd the timestamp of voting end for the proposal
     /// @param executeAfter the timestamp of execution in seconds after voting end
+    /// @param executionTime the timestamp of the proposal execution
     /// @param votesFor the total number votes for proposal from all voters
     /// @param votesAgainst the total number votes against proposal from all voters
     /// @param nftPowerSnapshotId the id of nft power snapshot
     struct ProposalCore {
         IGovSettings.ProposalSettings settings;
-        bool executed;
         uint64 voteEnd;
         uint64 executeAfter;
+        uint64 executionTime;
         uint256 votesFor;
         uint256 votesAgainst;
         uint256 nftPowerSnapshotId;
+        uint256 givenRewards;
     }
 
     /// @notice The struct holds information about proposal action
-    /// @param executor the addresse of call's target, bounded by index with `value` and `data`
+    /// @param executor the address of call's target, bounded by index with `value` and `data`
     /// @param value the eth value for call, bounded by index with `executor` and `data`
     /// @param data the of call data, bounded by index with `executor` and `value`
     struct ProposalAction {
@@ -141,83 +143,62 @@ interface IGovPool {
         uint256 requiredValidatorsQuorum;
     }
 
+    /// TODO: docs
     /// @notice The struct that holds information about the votes of the user in a single proposal
     /// @param totalVoted the total power of votes from one user for the proposal
     /// @param tokensVoted the total erc20 amount voted from one user for the proposal
     /// @param nftsVoted the set of ids of nfts voted from one user for the  proposal
     struct VoteInfo {
-        uint256 totalVotedFor;
-        uint256 totalVotedAgainst;
-        uint256 tokensVotedFor;
-        uint256 tokensVotedAgainst;
-        EnumerableSet.UintSet nftsVotedFor;
-        EnumerableSet.UintSet nftsVotedAgainst;
+        bool isVoteFor;
+        uint256 totalVoted;
+        uint256 tokensVoted;
+        uint256 nftPowerVoted;
+        EnumerableSet.UintSet nftsVoted;
     }
 
+    /// TODO: docs
     /// @notice The struct that is used in view functions of contract as a return argument
     /// @param totalVoted the total power of votes from one user for the proposal
     /// @param tokensVoted the total erc20 amount voted from one user for the proposal
     /// @param nftsVoted the array of ids of nfts voted from one user for the proposal
     struct VoteInfoView {
-        uint256 totalVotedFor;
-        uint256 totalVotedAgainst;
-        uint256 tokensVotedFor;
-        uint256 tokensVotedAgainst;
-        uint256[] nftsVotedFor;
-        uint256[] nftsVotedAgainst;
+        bool isVoteFor;
+        uint256 totalVoted;
+        uint256 tokensVoted;
+        uint256 nftPowerVoted;
+        uint256[] nftsVoted;
     }
 
-    /// @notice The struct that is used in view functions of contract as a return argument
-    /// @param micropool the address of the delegatee
-    /// @param rewardTokens the list of reward tokens addresses
-    /// @param expectedRewards the list of expected rewards
-    /// @param realRewards the list of real rewards (minimum of expected rewards and governance pool token balances)
-    struct UserStakeRewardsView {
-        address micropool;
+    /// TODO: docs
+    struct DelegatorRewards {
         address[] rewardTokens;
+        bool[] isVoteFor;
+        bool[] isClaimed;
         uint256[] expectedRewards;
-        uint256[] realRewards;
     }
 
-    /// @notice The struct that holds delegator properties (only for internal needs)
-    /// @param latestCumulativeSum delegator's latest cumulative sum
-    /// @param pendingRewards delegator's pending rewards
+    /// TODO: docs
     struct DelegatorInfo {
-        uint256 latestCumulativeSum;
-        uint256 pendingRewards;
+        uint256[] delegationTimes;
+        uint256[][] nftIds;
+        uint256[] tokenAmounts;
+        mapping(uint256 => bool) isClaimed;
     }
 
-    /// @notice The struct that holds reward token properties (only for internal needs)
-    /// @param delegators matching delegators addresses with their parameters
-    /// @param cumulativeSum global cumulative sum
-    struct RewardTokenInfo {
-        mapping(address => DelegatorInfo) delegators;
-        uint256 cumulativeSum;
-    }
-
-    /// @notice The struct that holds micropool properties (only for internal needs)
-    /// @param totalStake the current total sum of all delegators stakes
-    /// @param rewardTokens the list of reward tokens
-    /// @param rewardTokenInfos matching reward tokens to their parameters
-    /// @param latestDelegatorStake matching delegators to their latest stakes
+    /// TODO: docs
     struct MicropoolInfo {
-        uint256 totalStake;
-        EnumerableSet.AddressSet rewardTokens;
-        mapping(address => RewardTokenInfo) rewardTokenInfos;
-        mapping(address => uint256) latestDelegatorStake;
+        mapping(address => DelegatorInfo) delegatorInfos;
+        mapping(uint256 => uint256) pendingRewards;
     }
 
-    struct Rewards {
-        uint256 rewardFor;
-        uint256 rewardAgainst;
-    }
-
+    /// TODO: docs
     /// @notice The struct that holds reward properties (only for internal needs)
     /// @param onchainRewards matching proposal ids to their rewards
     /// @param offchainRewards matching off-chain token addresses to their rewards
     /// @param offchainTokens the list of off-chain token addresses
     struct PendingRewards {
-        mapping(uint256 => Rewards) onchainRewards;
+        mapping(uint256 => mapping(VoteType => uint256)) votingRewards;
+        mapping(uint256 => uint256) staticRewards;
         mapping(address => uint256) offchainRewards;
         EnumerableSet.AddressSet offchainTokens;
     }
@@ -319,39 +300,37 @@ interface IGovPool {
     /// @notice The function for voting for proposal with own tokens
     /// @notice values `voteAmount`, `voteNftIds` should be less or equal to the total deposit
     /// @param proposalId the id of proposal
+    /// @param isVoteFor the bool flag for voting for or against the proposal
     /// @param voteAmount the erc20 vote amount
     /// @param voteNftIds the nft ids that will be used in voting
-    /// @param isVoteFor the bool flag for voting for or against the proposal
     function vote(
         uint256 proposalId,
+        bool isVoteFor,
         uint256 voteAmount,
-        uint256[] calldata voteNftIds,
-        bool isVoteFor
+        uint256[] calldata voteNftIds
     ) external;
 
     /// @notice The function for voting for proposals with delegated tokens
     /// @param proposalId the id of proposal
-    /// @param voteAmount the erc20 vote amount
-    /// @param voteNftIds the nft ids that will be used in delegated voting
     /// @param isVoteFor the bool flag for voting for or against the proposal
-    function voteDelegated(
+    function voteDelegated(uint256 proposalId, bool isVoteFor) external;
+
+    /// TODO: docs
+    function voteTreasury(uint256 proposalId, bool isVoteFor) external;
+
+    /// TODO: docs
+    function cancelVote(
         uint256 proposalId,
+        bool isVoteFor,
         uint256 voteAmount,
-        uint256[] calldata voteNftIds,
-        bool isVoteFor
+        uint256[] calldata voteNftIds
     ) external;
 
-    /// @notice The function for voting for proposals with delegated from treasury tokens
-    /// @param proposalId the id of proposal
-    /// @param voteAmount the erc20 vote amount
-    /// @param voteNftIds the nft ids that will be used in treasury voting
-    /// @param isVoteFor the bool flag for voting for or against the proposal
-    function voteTreasury(
-        uint256 proposalId,
-        uint256 voteAmount,
-        uint256[] calldata voteNftIds,
-        bool isVoteFor
-    ) external;
+    /// TODO: docs
+    function cancelVoteDelegated(uint256 proposalId, bool isVoteFor) external;
+
+    /// TODO: docs
+    function cancelVoteTreasury(uint256 proposalId, bool isVoteFor) external;
 
     /// @notice The function for depositing tokens to the pool
     /// @param receiver the address of the deposit receiver
@@ -381,12 +360,6 @@ interface IGovPool {
         uint256[] calldata nftIds
     ) external;
 
-    /// @notice The function for requesting delegated tokens
-    /// @param delegatee the delegation target address (person who will be delegated)
-    /// @param amount the erc20 delegation amount
-    /// @param nftIds the array of nft ids to delegate
-    function request(address delegatee, uint256 amount, uint256[] calldata nftIds) external;
-
     /// @notice The function for undelegating delegated tokens
     /// @param delegatee the undelegation target address (person who will be undelegated)
     /// @param amount the erc20 undelegation amount
@@ -415,6 +388,11 @@ interface IGovPool {
     /// @notice The function for claiming rewards from executed proposals
     /// @param proposalIds the array of proposal ids
     function claimRewards(uint256[] calldata proposalIds) external;
+
+    /// @notice The function for claiming micropool rewards from executed proposals
+    /// @param proposalIds the array of proposal ids
+    /// @param delegatee the address of the delegatee
+    function claimMicropoolRewards(uint256[] calldata proposalIds, address delegatee) external;
 
     /// @notice The function for changing description url
     /// @param newDescriptionURL the string with new url
@@ -488,7 +466,7 @@ interface IGovPool {
         uint256 proposalId,
         address voter,
         VoteType voteType
-    ) external view returns (uint256, uint256, uint256, uint256);
+    ) external view returns (uint256, uint256, uint256, bool);
 
     /// @notice The function to get required quorum of proposal
     /// @param proposalId the id of proposal
@@ -508,11 +486,9 @@ interface IGovPool {
 
     /// @notice The function to get withdrawable assets
     /// @param delegator the delegator address
-    /// @param delegatee the delegatee address
     /// @return `Arguments`: erc20 amount, array nft ids
     function getWithdrawableAssets(
-        address delegator,
-        address delegatee
+        address delegator
     ) external view returns (uint256, uint256[] memory);
 
     /// @notice The function to get on-chain and off-chain rewards
@@ -525,11 +501,15 @@ interface IGovPool {
     ) external view returns (PendingRewardsView memory);
 
     /// @notice The function to get delegator staking rewards from all micropools
+    /// @param proposalIds the list of proposal ids
     /// @param delegator the address of the delegator
-    /// @return the list of rewards
-    function getDelegatorStakingRewards(
-        address delegator
-    ) external view returns (UserStakeRewardsView[] memory);
+    /// @param delegatee the address of the delegatee
+    /// @return rewards delegator rewards
+    function getDelegatorRewards(
+        uint256[] calldata proposalIds,
+        address delegator,
+        address delegatee
+    ) external view returns (DelegatorRewards memory);
 
     /// @notice The function to get info about validators credit limit
     /// @return the list of credit infos

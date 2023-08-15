@@ -40,7 +40,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     uint256 internal _latestPowerSnapshotId;
 
     mapping(address => UserInfo) internal _usersInfo; // user => info
-    mapping(address => Micropool) internal _micropoolsInfo; // user = micropool address => micropool
+    mapping(address => BalanceInfo) internal _micropoolsInfo; // user = micropool address => balance info
     mapping(address => BalanceInfo) internal _treasuryPoolsInfo; // user => balance info
 
     mapping(uint256 => uint256) internal _nftLockedNums; // tokenId => locked num
@@ -97,14 +97,17 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address receiver,
         uint256 amount
     ) external override onlyOwner withSupportedToken {
-        BalanceInfo storage payerBalanceInfo = _usersInfo[payer].balanceInfo;
+        UserInfo storage payerInfo = _usersInfo[payer];
+        BalanceInfo storage payerBalanceInfo = payerInfo.balanceInfo;
 
         address token = tokenAddress;
         uint256 balance = payerBalanceInfo.tokenBalance;
-        uint256 availableBalance = balance.max(payerBalanceInfo.maxTokensLocked) -
-            payerBalanceInfo.maxTokensLocked;
+        uint256 maxTokensLocked = payerInfo.maxTokensLocked;
 
-        require(amount <= availableBalance, "GovUK: can't withdraw this");
+        require(
+            amount <= balance.max(maxTokensLocked) - maxTokensLocked,
+            "GovUK: can't withdraw this"
+        );
 
         payerBalanceInfo.tokenBalance = balance - amount;
 
@@ -117,30 +120,19 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 amount
     ) external override onlyOwner withSupportedToken {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
+        BalanceInfo storage delegatorBalanceInfo = delegatorInfo.balanceInfo;
 
-        uint256 requestedAmount = delegatorInfo.requestedTokens[delegatee];
+        uint256 balance = delegatorBalanceInfo.tokenBalance;
+        uint256 maxTokensLocked = delegatorInfo.maxTokensLocked;
 
-        uint256 availableBalance = delegatorInfo.balanceInfo.tokenBalance.max(
-            delegatorInfo.balanceInfo.maxTokensLocked
-        ) - delegatorInfo.balanceInfo.maxTokensLocked;
+        require(amount <= balance.max(maxTokensLocked) - maxTokensLocked, "GovUK: overdelegation");
 
-        require(amount <= availableBalance + requestedAmount, "GovUK: overdelegation");
+        delegatorInfo.delegatedTokens[delegatee] += amount;
+        delegatorBalanceInfo.tokenBalance = balance - amount;
 
-        uint256 amountToUnrequest = amount.min(requestedAmount);
+        _micropoolsInfo[delegatee].tokenBalance += amount;
 
-        delegatorInfo.requestedTokens[delegatee] -= amountToUnrequest;
         delegatorInfo.delegatees.add(delegatee);
-
-        _micropoolsInfo[delegatee].requestedTokens -= amountToUnrequest;
-
-        uint256 availableAmount = amount - amountToUnrequest;
-
-        if (availableAmount != 0) {
-            delegatorInfo.balanceInfo.tokenBalance -= availableAmount;
-            delegatorInfo.delegatedTokens[delegatee] += availableAmount;
-
-            _micropoolsInfo[delegatee].balanceInfo.tokenBalance += availableAmount;
-        }
     }
 
     function delegateTokensTreasury(
@@ -150,51 +142,22 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         _treasuryPoolsInfo[delegatee].tokenBalance += amount;
     }
 
-    function requestTokens(
-        address delegator,
-        address delegatee,
-        uint256 amount
-    ) external override onlyOwner withSupportedToken {
-        UserInfo storage delegatorInfo = _usersInfo[delegator];
-        Micropool storage micropoolInfo = _micropoolsInfo[delegatee];
-
-        require(
-            amount <=
-                delegatorInfo.delegatedTokens[delegatee] -
-                    delegatorInfo.requestedTokens[delegatee],
-            "GovUK: overrequest"
-        );
-
-        micropoolInfo.requestedTokens += amount;
-        delegatorInfo.requestedTokens[delegatee] += amount;
-    }
-
     function undelegateTokens(
         address delegator,
         address delegatee,
         uint256 amount
     ) external override onlyOwner withSupportedToken {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
-        Micropool storage micropoolInfo = _micropoolsInfo[delegatee];
-        BalanceInfo storage micropoolBalanceInfo = micropoolInfo.balanceInfo;
-
-        uint256 delegated = delegatorInfo.delegatedTokens[delegatee];
-        uint256 availableAmount = micropoolBalanceInfo.tokenBalance -
-            micropoolBalanceInfo.maxTokensLocked;
 
         require(
-            amount <= delegated && amount <= availableAmount,
+            amount <= delegatorInfo.delegatedTokens[delegatee],
             "GovUK: amount exceeds delegation"
         );
 
-        micropoolBalanceInfo.tokenBalance -= amount;
-        micropoolInfo.requestedTokens -= amount.min(micropoolInfo.requestedTokens);
+        _micropoolsInfo[delegatee].tokenBalance -= amount;
 
         delegatorInfo.balanceInfo.tokenBalance += amount;
         delegatorInfo.delegatedTokens[delegatee] -= amount;
-        delegatorInfo.requestedTokens[delegatee] -= amount.min(
-            delegatorInfo.requestedTokens[delegatee]
-        );
 
         _cleanDelegatee(delegatorInfo, delegatee);
     }
@@ -221,7 +184,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address receiver,
         uint256[] calldata nftIds
     ) external override onlyOwner withSupportedNft {
-        BalanceInfo storage receiverInfo = _usersInfo[receiver].balanceInfo;
+        EnumerableSet.UintSet storage receiverNftBalance = _usersInfo[receiver]
+            .balanceInfo
+            .nftBalance;
 
         IERC721 nft = IERC721(nftAddress);
 
@@ -230,7 +195,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
             nft.safeTransferFrom(payer, address(this), nftId);
 
-            receiverInfo.nftBalance.add(nftId);
+            receiverNftBalance.add(nftId);
         }
     }
 
@@ -239,7 +204,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address receiver,
         uint256[] calldata nftIds
     ) external override onlyOwner withSupportedNft {
-        BalanceInfo storage payerBalance = _usersInfo[payer].balanceInfo;
+        EnumerableSet.UintSet storage payerNftBalance = _usersInfo[payer].balanceInfo.nftBalance;
 
         IERC721 nft = IERC721(nftAddress);
 
@@ -247,11 +212,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             uint256 nftId = nftIds[i];
 
             require(
-                payerBalance.nftBalance.contains(nftId) && _nftLockedNums[nftId] == 0,
+                payerNftBalance.contains(nftId) && _nftLockedNums[nftId] == 0,
                 "GovUK: NFT is not owned or locked"
             );
 
-            payerBalance.nftBalance.remove(nftId);
+            payerNftBalance.remove(nftId);
 
             nft.safeTransferFrom(address(this), receiver, nftId);
         }
@@ -264,26 +229,22 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     ) external override onlyOwner withSupportedNft {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
         EnumerableSet.UintSet storage delegatorNftBalance = delegatorInfo.balanceInfo.nftBalance;
-        BalanceInfo storage micropoolInfo = _micropoolsInfo[delegatee].balanceInfo;
 
         for (uint256 i; i < nftIds.length; i++) {
             uint256 nftId = nftIds[i];
 
-            if (_micropoolsInfo[delegatee].requestedNfts.remove(nftId)) {
-                delegatorInfo.requestedNfts[delegatee].remove(nftId);
-            } else {
-                require(
-                    delegatorNftBalance.contains(nftId) && _nftLockedNums[nftId] == 0,
-                    "GovUK: NFT is not owned or locked"
-                );
+            require(
+                delegatorNftBalance.contains(nftId) && _nftLockedNums[nftId] == 0,
+                "GovUK: NFT is not owned or locked"
+            );
 
-                delegatorNftBalance.remove(nftId);
-            }
+            delegatorNftBalance.remove(nftId);
 
-            delegatorInfo.delegatees.add(delegatee);
             delegatorInfo.delegatedNfts[delegatee].add(nftId);
 
-            micropoolInfo.nftBalance.add(nftId);
+            _micropoolsInfo[delegatee].nftBalance.add(nftId);
+
+            delegatorInfo.delegatees.add(delegatee);
         }
     }
 
@@ -291,31 +252,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address delegatee,
         uint256[] calldata nftIds
     ) external override onlyOwner withSupportedNft {
-        BalanceInfo storage delegateeBalanceInfo = _treasuryPoolsInfo[delegatee];
+        EnumerableSet.UintSet storage delegateeNftBalance = _treasuryPoolsInfo[delegatee]
+            .nftBalance;
 
         for (uint256 i; i < nftIds.length; i++) {
-            delegateeBalanceInfo.nftBalance.add(nftIds[i]);
-        }
-    }
-
-    function requestNfts(
-        address delegator,
-        address delegatee,
-        uint256[] calldata nftIds
-    ) external override onlyOwner withSupportedNft {
-        UserInfo storage delegatorInfo = _usersInfo[delegator];
-        Micropool storage micropoolInfo = _micropoolsInfo[delegatee];
-
-        for (uint256 i; i < nftIds.length; i++) {
-            uint256 nftId = nftIds[i];
-
-            require(
-                delegatorInfo.delegatedNfts[delegatee].contains(nftId),
-                "GovUK: NFT is not owned"
-            );
-
-            micropoolInfo.requestedNfts.add(nftId);
-            delegatorInfo.requestedNfts[delegatee].add(nftId);
+            delegateeNftBalance.add(nftIds[i]);
         }
     }
 
@@ -325,7 +266,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256[] calldata nftIds
     ) external override onlyOwner withSupportedNft {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
-        Micropool storage micropoolInfo = _micropoolsInfo[delegatee];
 
         for (uint256 i; i < nftIds.length; i++) {
             uint256 nftId = nftIds[i];
@@ -336,12 +276,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
                 "GovUK: NFT is not owned or locked"
             );
 
-            micropoolInfo.balanceInfo.nftBalance.remove(nftId);
-            micropoolInfo.requestedNfts.remove(nftId);
+            _micropoolsInfo[delegatee].nftBalance.remove(nftId);
 
             delegatorInfo.balanceInfo.nftBalance.add(nftId);
             delegatorInfo.delegatedNfts[delegatee].remove(nftId);
-            delegatorInfo.requestedNfts[delegatee].remove(nftId);
         }
 
         _cleanDelegatee(delegatorInfo, delegatee);
@@ -351,14 +289,15 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address delegatee,
         uint256[] calldata nftIds
     ) external override onlyOwner withSupportedNft {
-        BalanceInfo storage delegateeBalanceInfo = _treasuryPoolsInfo[delegatee];
+        EnumerableSet.UintSet storage delegateeNftBalance = _treasuryPoolsInfo[delegatee]
+            .nftBalance;
 
         IERC721 nft = IERC721(nftAddress);
 
         for (uint256 i; i < nftIds.length; i++) {
             uint256 nftId = nftIds[i];
 
-            require(delegateeBalanceInfo.nftBalance.remove(nftId), "GovUK: NFT is not owned");
+            require(delegateeNftBalance.remove(nftId), "GovUK: NFT is not owned");
 
             nft.safeTransferFrom(address(this), msg.sender, nftId);
         }
@@ -389,52 +328,43 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     function updateMaxTokenLockedAmount(
         uint256[] calldata lockedProposals,
-        address voter,
-        IGovPool.VoteType voteType
+        address voter
     ) external override onlyOwner {
-        BalanceInfo storage balanceInfo = _getBalanceInfoStorage(voter, voteType);
+        UserInfo storage voterInfo = _usersInfo[voter];
 
-        uint256 lockedAmount = balanceInfo.maxTokensLocked;
+        uint256 lockedAmount = voterInfo.maxTokensLocked;
         uint256 newLockedAmount;
 
         for (uint256 i; i < lockedProposals.length; i++) {
-            newLockedAmount = newLockedAmount.max(
-                balanceInfo.lockedInProposals[lockedProposals[i]]
-            );
+            newLockedAmount = newLockedAmount.max(voterInfo.lockedInProposals[lockedProposals[i]]);
 
             if (newLockedAmount == lockedAmount) {
                 break;
             }
         }
 
-        balanceInfo.maxTokensLocked = newLockedAmount;
+        voterInfo.maxTokensLocked = newLockedAmount;
     }
 
     function lockTokens(
         uint256 proposalId,
         address voter,
-        IGovPool.VoteType voteType,
         uint256 amount
     ) external override onlyOwner {
-        BalanceInfo storage balanceInfo = _getBalanceInfoStorage(voter, voteType);
+        UserInfo storage voterInfo = _usersInfo[voter];
 
-        balanceInfo.lockedInProposals[proposalId] += amount;
-
-        balanceInfo.maxTokensLocked = balanceInfo.maxTokensLocked.max(
-            balanceInfo.lockedInProposals[proposalId]
+        voterInfo.lockedInProposals[proposalId] += amount;
+        voterInfo.maxTokensLocked = voterInfo.maxTokensLocked.max(
+            voterInfo.lockedInProposals[proposalId]
         );
     }
 
     function unlockTokens(
         uint256 proposalId,
         address voter,
-        IGovPool.VoteType voteType
-    ) external override onlyOwner returns (uint256 unlockedAmount) {
-        BalanceInfo storage balanceInfo = _getBalanceInfoStorage(voter, voteType);
-
-        unlockedAmount = balanceInfo.lockedInProposals[proposalId];
-
-        delete balanceInfo.lockedInProposals[proposalId];
+        uint256 amount
+    ) external override onlyOwner {
+        _usersInfo[voter].lockedInProposals[proposalId] -= amount;
     }
 
     function lockNfts(
@@ -442,38 +372,37 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         IGovPool.VoteType voteType,
         uint256[] calldata nftIds
     ) external override onlyOwner {
-        BalanceInfo storage balanceInfo = _getBalanceInfoStorage(voter, voteType);
-        UserInfo storage userInfo = _usersInfo[voter];
+        UserInfo storage voterInfo = _usersInfo[voter];
 
         for (uint256 i; i < nftIds.length; i++) {
-            bool userContains = balanceInfo.nftBalance.contains(nftIds[i]) &&
-                (voteType != IGovPool.VoteType.MicropoolVote ||
-                    !_micropoolsInfo[voter].requestedNfts.contains(nftIds[i]));
+            uint256 nftId = nftIds[i];
 
-            bool delegatedContains;
+            bool hasNft = voterInfo.balanceInfo.nftBalance.contains(nftId);
 
-            if (!userContains && voteType == IGovPool.VoteType.DelegatedVote) {
-                uint256 delegateeLength = userInfo.delegatees.length();
+            if (!hasNft && voteType == IGovPool.VoteType.DelegatedVote) {
+                uint256 delegateeLength = voterInfo.delegatees.length();
 
                 for (uint256 j; j < delegateeLength; j++) {
-                    if (userInfo.delegatedNfts[userInfo.delegatees.at(j)].contains(nftIds[i])) {
-                        delegatedContains = true;
+                    if (voterInfo.delegatedNfts[voterInfo.delegatees.at(j)].contains(nftId)) {
+                        hasNft = true;
                         break;
                     }
                 }
             }
 
-            require(userContains || delegatedContains, "GovUK: NFT is not owned or requested");
+            require(hasNft, "GovUK: NFT is not owned");
 
-            _nftLockedNums[nftIds[i]]++;
+            _nftLockedNums[nftId]++;
         }
     }
 
     function unlockNfts(uint256[] calldata nftIds) external override onlyOwner {
         for (uint256 i; i < nftIds.length; i++) {
-            require(_nftLockedNums[nftIds[i]] > 0, "GovUK: NFT is not locked");
+            uint256 nftId = nftIds[i];
 
-            _nftLockedNums[nftIds[i]]--;
+            require(_nftLockedNums[nftId] > 0, "GovUK: NFT is not locked");
+
+            _nftLockedNums[nftId]--;
         }
     }
 
@@ -505,11 +434,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         return _nftInfo;
     }
 
-    function maxLockedAmount(
-        address voter,
-        IGovPool.VoteType voteType
-    ) external view override returns (uint256) {
-        return _getBalanceInfoStorage(voter, voteType).maxTokensLocked;
+    function maxLockedAmount(address voter) external view override returns (uint256) {
+        return _usersInfo[voter].maxTokensLocked;
     }
 
     function tokenBalance(
@@ -522,25 +448,25 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         totalBalance = _getBalanceInfoStorage(voter, voteType).tokenBalance;
 
-        if (voteType == IGovPool.VoteType.MicropoolVote) {
-            ownedBalance += _micropoolsInfo[voter].requestedTokens;
-        } else if (
-            voteType == IGovPool.VoteType.PersonalVote ||
-            voteType == IGovPool.VoteType.DelegatedVote
+        if (
+            voteType != IGovPool.VoteType.PersonalVote &&
+            voteType != IGovPool.VoteType.DelegatedVote
         ) {
-            if (voteType == IGovPool.VoteType.DelegatedVote) {
-                UserInfo storage userInfo = _usersInfo[voter];
-
-                uint256 delegateeLength = userInfo.delegatees.length();
-
-                for (uint256 i; i < delegateeLength; i++) {
-                    totalBalance += userInfo.delegatedTokens[userInfo.delegatees.at(i)];
-                }
-            }
-
-            ownedBalance = ERC20(tokenAddress).balanceOf(voter).to18(tokenAddress.decimals());
-            totalBalance += ownedBalance;
+            return (totalBalance, 0);
         }
+
+        if (voteType == IGovPool.VoteType.DelegatedVote) {
+            UserInfo storage userInfo = _usersInfo[voter];
+
+            uint256 delegateeLength = userInfo.delegatees.length();
+
+            for (uint256 i; i < delegateeLength; i++) {
+                totalBalance += userInfo.delegatedTokens[userInfo.delegatees.at(i)];
+            }
+        }
+
+        ownedBalance = ERC20(tokenAddress).balanceOf(voter).to18(tokenAddress.decimals());
+        totalBalance += ownedBalance;
     }
 
     function nftBalance(
@@ -553,25 +479,25 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         totalBalance = _getBalanceInfoStorage(voter, voteType).nftBalance.length();
 
-        if (voteType == IGovPool.VoteType.MicropoolVote) {
-            ownedBalance += _micropoolsInfo[voter].requestedNfts.length();
-        } else if (
-            voteType == IGovPool.VoteType.PersonalVote ||
-            voteType == IGovPool.VoteType.DelegatedVote
+        if (
+            voteType != IGovPool.VoteType.PersonalVote &&
+            voteType != IGovPool.VoteType.DelegatedVote
         ) {
-            if (voteType == IGovPool.VoteType.DelegatedVote) {
-                UserInfo storage userInfo = _usersInfo[voter];
-
-                uint256 delegateeLength = userInfo.delegatees.length();
-
-                for (uint256 i; i < delegateeLength; i++) {
-                    totalBalance += userInfo.delegatedNfts[userInfo.delegatees.at(i)].length();
-                }
-            }
-
-            ownedBalance = ERC721Upgradeable(nftAddress).balanceOf(voter);
-            totalBalance += ownedBalance;
+            return (totalBalance, 0);
         }
+
+        if (voteType == IGovPool.VoteType.DelegatedVote) {
+            UserInfo storage userInfo = _usersInfo[voter];
+
+            uint256 delegateeLength = userInfo.delegatees.length();
+
+            for (uint256 i; i < delegateeLength; i++) {
+                totalBalance += userInfo.delegatedNfts[userInfo.delegatees.at(i)].length();
+            }
+        }
+
+        ownedBalance = ERC721Upgradeable(nftAddress).balanceOf(voter);
+        totalBalance += ownedBalance;
     }
 
     function nftExactBalance(
@@ -593,41 +519,31 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             _getBalanceInfoStorage(voter, voteType).nftBalance.values()
         );
 
-        if (voteType == IGovPool.VoteType.MicropoolVote) {
-            uint256 last = currentLength - 1;
-
-            for (uint256 i; i < last; ) {
-                if (_micropoolsInfo[voter].requestedNfts.contains(nfts[i])) {
-                    (nfts[i], nfts[last]) = (nfts[last], nfts[i]);
-
-                    last--;
-                } else {
-                    i++;
-                }
-            }
-        } else if (
-            voteType == IGovPool.VoteType.PersonalVote ||
-            voteType == IGovPool.VoteType.DelegatedVote
+        if (
+            voteType != IGovPool.VoteType.PersonalVote &&
+            voteType != IGovPool.VoteType.DelegatedVote
         ) {
-            if (voteType == IGovPool.VoteType.DelegatedVote) {
-                UserInfo storage userInfo = _usersInfo[voter];
+            return (nfts, 0);
+        }
 
-                uint256 delegateeLength = userInfo.delegatees.length();
+        if (voteType == IGovPool.VoteType.DelegatedVote) {
+            UserInfo storage userInfo = _usersInfo[voter];
 
-                for (uint256 i; i < delegateeLength; i++) {
-                    currentLength = nfts.insert(
-                        currentLength,
-                        userInfo.delegatedNfts[userInfo.delegatees.at(i)].values()
-                    );
-                }
+            uint256 delegateeLength = userInfo.delegatees.length();
+
+            for (uint256 i; i < delegateeLength; i++) {
+                currentLength = nfts.insert(
+                    currentLength,
+                    userInfo.delegatedNfts[userInfo.delegatees.at(i)].values()
+                );
             }
+        }
 
-            if (_nftInfo.totalSupply == 0) {
-                ERC721Power nftContract = ERC721Power(nftAddress);
+        if (_nftInfo.totalSupply == 0) {
+            ERC721Power nftContract = ERC721Power(nftAddress);
 
-                for (uint256 i; i < ownedLength; i++) {
-                    nfts[currentLength++] = nftContract.tokenOfOwnerByIndex(voter, i);
-                }
+            for (uint256 i; i < ownedLength; i++) {
+                nfts[currentLength++] = nftContract.tokenOfOwnerByIndex(voter, i);
             }
         }
     }
@@ -652,12 +568,15 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             uint256 totalPowerInTokens = _nftInfo.totalPowerInTokens;
 
             for (uint256 i; i < nftIds.length; i++) {
-                uint256 power = nftContract.getNftPower(nftIds[i]);
-                nftsPower += totalPowerInTokens.ratio(power, totalNftsPower);
+                nftsPower += totalPowerInTokens.ratio(
+                    nftContract.getNftPower(nftIds[i]),
+                    totalNftsPower
+                );
             }
         }
 
-        return nftsPower;
+        /// @dev In the case of the custom ERC721Power, the power function can increase
+        return nftsPower.min(totalNftsPower);
     }
 
     function getTotalVoteWeight() external view override returns (uint256) {
@@ -685,7 +604,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
 
         (uint256[] memory nftIds, uint256 owned) = nftExactBalance(voter, voteType);
-        (uint256[] memory nftIdsMicropool, uint256 requested) = nftExactBalance(
+        (uint256[] memory nftIdsMicropool, ) = nftExactBalance(
             voter,
             IGovPool.VoteType.MicropoolVote
         );
@@ -695,7 +614,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         );
 
         nftIds.crop(nftIds.length - owned);
-        nftIdsMicropool.crop(nftIdsMicropool.length - requested);
 
         uint256 nftPower = getNftsPowerInTokensBySnapshot(nftIds, snapshotId) +
             getNftsPowerInTokensBySnapshot(nftIdsMicropool, snapshotId) +
@@ -710,19 +628,13 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 requiredVotes,
         uint256 snapshotId
     ) external view override returns (bool) {
-        (uint256 tokens, uint256 extra) = tokenBalance(voter, voteType);
+        (uint256 tokens, ) = tokenBalance(voter, voteType);
 
-        if (
-            (tokens -= (voteType == IGovPool.VoteType.MicropoolVote ? extra : 0)) >= requiredVotes
-        ) {
+        if (tokens >= requiredVotes) {
             return true;
         }
 
-        (uint256[] memory nftIds, uint256 requested) = nftExactBalance(voter, voteType);
-
-        if (voteType == IGovPool.VoteType.MicropoolVote) {
-            nftIds.crop(nftIds.length - requested);
-        }
+        (uint256[] memory nftIds, ) = nftExactBalance(voter, voteType);
 
         return tokens + getNftsPowerInTokensBySnapshot(nftIds, snapshotId) >= requiredVotes;
     }
@@ -743,30 +655,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function delegations(
         address user
     ) external view override returns (uint256 power, DelegationInfoView[] memory delegationsInfo) {
-        return user.delegations(_usersInfo);
-    }
-
-    function getUndelegateableAssets(
-        address delegator,
-        address delegatee,
-        uint256[] calldata lockedProposals,
-        uint256[] calldata unlockedNfts
-    )
-        external
-        view
-        override
-        returns (uint256 undelegateableTokens, uint256[] memory undelegateableNfts)
-    {
-        UserInfo storage delegatorInfo = _usersInfo[delegator];
-
-        return
-            delegatee.getUndelegateableAssets(
-                lockedProposals,
-                unlockedNfts,
-                _getBalanceInfoStorage(delegatee, IGovPool.VoteType.MicropoolVote),
-                delegatorInfo,
-                _nftLockedNums
-            );
+        return _usersInfo[user].delegations();
     }
 
     function getWithdrawableAssets(
@@ -780,38 +669,19 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts)
     {
         return
-            lockedProposals.getWithdrawableAssets(
-                unlockedNfts,
-                _getBalanceInfoStorage(voter, IGovPool.VoteType.PersonalVote),
-                _nftLockedNums
-            );
+            lockedProposals.getWithdrawableAssets(unlockedNfts, _usersInfo[voter], _nftLockedNums);
     }
 
-    function getDelegatees(address delegator) external view returns (address[] memory) {
-        return _usersInfo[delegator].delegatees.values();
-    }
-
-    function getDelegatedStakeAmount(
+    function getDelegatedAssets(
         address delegator,
         address delegatee
-    ) external view override returns (uint256) {
+    ) external view override returns (uint256 tokenAmount, uint256[] memory nftIds) {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
 
-        (uint256 delegatedNftsPower, ) = delegatorInfo
-            .delegatedNfts[delegatee]
-            .values()
-            .nftVotingPower(false);
-
-        (uint256 requestedNftsPower, ) = delegatorInfo
-            .requestedNfts[delegatee]
-            .values()
-            .nftVotingPower(false);
-
-        return
-            delegatorInfo.delegatedTokens[delegatee] +
-            delegatedNftsPower -
-            delegatorInfo.requestedTokens[delegatee] -
-            requestedNftsPower;
+        return (
+            delegatorInfo.delegatedTokens[delegatee],
+            delegatorInfo.delegatedNfts[delegatee].values()
+        );
     }
 
     function _cleanDelegatee(UserInfo storage delegatorInfo, address delegatee) internal {
@@ -843,18 +713,14 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         _nftInfo.totalPowerInTokens = totalPowerInTokens;
 
-        if (!IERC165(_nftAddress).supportsInterface(type(IERC721Power).interfaceId)) {
-            if (
-                !IERC165(_nftAddress).supportsInterface(
-                    type(IERC721EnumerableUpgradeable).interfaceId
-                )
-            ) {
-                require(uint128(nftsTotalSupply) > 0, "GovUK: total supply is zero");
-
-                _nftInfo.totalSupply = uint128(nftsTotalSupply);
-            }
-        } else {
+        if (IERC165(_nftAddress).supportsInterface(type(IERC721Power).interfaceId)) {
             _nftInfo.isSupportPower = true;
+        } else if (
+            !IERC165(_nftAddress).supportsInterface(type(IERC721EnumerableUpgradeable).interfaceId)
+        ) {
+            require(uint128(nftsTotalSupply) > 0, "GovUK: total supply is zero");
+
+            _nftInfo.totalSupply = uint128(nftsTotalSupply);
         }
 
         nftAddress = _nftAddress;
@@ -867,7 +733,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         IGovPool.VoteType voteType
     ) internal view returns (BalanceInfo storage) {
         if (voteType == IGovPool.VoteType.MicropoolVote) {
-            return _micropoolsInfo[voter].balanceInfo;
+            return _micropoolsInfo[voter];
         }
 
         if (voteType == IGovPool.VoteType.TreasuryVote) {

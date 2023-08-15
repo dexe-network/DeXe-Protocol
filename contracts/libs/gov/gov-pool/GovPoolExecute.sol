@@ -40,7 +40,7 @@ library GovPoolExecute {
             "Gov: invalid status"
         );
 
-        core.executed = true;
+        core.executionTime = uint64(block.timestamp);
 
         (, , address govValidatorsAddress, , ) = GovPool(payable(address(this)))
             .getHelperContracts();
@@ -71,25 +71,7 @@ library GovPoolExecute {
             msg.sender
         );
 
-        _payCommission(core, validatorsVotingSucceeded, proposalState);
-    }
-
-    function _payCommission(
-        IGovPool.ProposalCore storage core,
-        bool validatorsVotingSucceeded,
-        IGovPool.ProposalState proposalState
-    ) internal {
-        IGovSettings.RewardsInfo storage rewardsInfo = core.settings.rewardsInfo;
-
-        uint256 creationRewards = rewardsInfo.creationReward * (validatorsVotingSucceeded ? 2 : 1);
-
-        uint256 voteRewards = proposalState == IGovPool.ProposalState.SucceededFor
-            ? core.votesFor.ratio(rewardsInfo.voteForRewardsCoefficient, PRECISION)
-            : core.votesAgainst.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
-
-        rewardsInfo.rewardToken.payCommission(
-            creationRewards + rewardsInfo.executionReward + voteRewards
-        );
+        core.settings.rewardsInfo.rewardToken.payCommission(core.givenRewards);
     }
 
     function _proposalActionsResult(

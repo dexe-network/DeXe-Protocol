@@ -12,40 +12,26 @@ import "../../../interfaces/gov/IGovPool.sol";
 interface IGovUserKeeper {
     /// @notice The struct holds information about user deposited tokens
     /// @param tokenBalance the amount of deposited tokens
-    /// @param maxTokensLocked the upper bound of currently locked tokens
-    /// @param lockedInProposals the amount of deposited tokens locked in proposals
     /// @param nftBalance the array of deposited nfts
     struct BalanceInfo {
         uint256 tokenBalance;
-        uint256 maxTokensLocked;
-        mapping(uint256 => uint256) lockedInProposals; // proposal id => locked amount
         EnumerableSet.UintSet nftBalance; // array of NFTs
-    }
-
-    /// @notice The struct holds information about micropool
-    /// @param balanceInfo the BalanceInfo struct
-    /// @param requestedTokens the amount of requested tokens
-    /// @param requestedNfts the array of requested nfts
-    struct Micropool {
-        BalanceInfo balanceInfo;
-        uint256 requestedTokens;
-        EnumerableSet.UintSet requestedNfts;
     }
 
     /// @notice The struct holds information about user balances
     /// @param balanceInfo the BalanceInfo struct
     /// @param delegatedTokens the mapping of delegated tokens (delegatee address => delegated amount)
-    /// @param requestedTokens the mapping of requested tokens (delegatee address => requested amount)
     /// @param delegatedNfts the mapping of delegated nfts (delegatee address => array of delegated nft ids)
-    /// @param requestedNfts the mapping of requested nfts (delegatee address => array of requested nft ids)
     /// @param delegatees the array of delegatees
+    /// @param maxTokensLocked the upper bound of currently locked tokens
+    /// @param lockedInProposals the amount of deposited tokens locked in proposals
     struct UserInfo {
         BalanceInfo balanceInfo;
         mapping(address => uint256) delegatedTokens; // delegatee => amount
-        mapping(address => uint256) requestedTokens;
         mapping(address => EnumerableSet.UintSet) delegatedNfts; // delegatee => tokenIds
-        mapping(address => EnumerableSet.UintSet) requestedNfts;
         EnumerableSet.AddressSet delegatees;
+        uint256 maxTokensLocked;
+        mapping(uint256 => uint256) lockedInProposals; // proposal id => locked amount
     }
 
     /// @notice The struct holds information about nft contract
@@ -88,8 +74,6 @@ interface IGovUserKeeper {
         uint256[] delegatedNfts;
         uint256 nftPower;
         uint256[] perNftPower;
-        uint256 requestedTokens;
-        uint256[] requestedNfts;
     }
 
     /// @notice The function for depositing tokens
@@ -114,18 +98,6 @@ interface IGovUserKeeper {
     /// @param delegatee the address of delegatee
     /// @param amount the erc20 delegation amount
     function delegateTokensTreasury(address delegatee, uint256 amount) external;
-
-    /// @notice The function for requesting tokens
-    /// @param delegator the address of delegator
-    /// @param delegatee the address of delegatee
-    /// @param amount the erc20 requested amount
-    function requestTokens(address delegator, address delegatee, uint256 amount) external;
-
-    /// @notice The function for requesting nfts
-    /// @param delegator the address of delegator
-    /// @param delegatee the address of delegatee
-    /// @param nftIds the array of requested nft ids
-    function requestNfts(address delegator, address delegatee, uint256[] calldata nftIds) external;
 
     /// @notice The function for undelegating tokens
     /// @param delegator the address of delegator
@@ -187,34 +159,22 @@ interface IGovUserKeeper {
     /// @notice The function for recalculating max token locked amount of a user
     /// @param lockedProposals the array of proposal ids for recalculation
     /// @param voter the address of voter
-    /// @param voteType the type of vote
     function updateMaxTokenLockedAmount(
         uint256[] calldata lockedProposals,
-        address voter,
-        IGovPool.VoteType voteType
+        address voter
     ) external;
 
     /// @notice The function for locking tokens in a proposal
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
-    /// @param voteType the type of vote
     /// @param amount the amount of tokens to lock
-    function lockTokens(
-        uint256 proposalId,
-        address voter,
-        IGovPool.VoteType voteType,
-        uint256 amount
-    ) external;
+    function lockTokens(uint256 proposalId, address voter, uint256 amount) external;
 
     /// @notice The function for unlocking tokens in proposal
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
-    /// @param voteType the type of vote
-    function unlockTokens(
-        uint256 proposalId,
-        address voter,
-        IGovPool.VoteType voteType
-    ) external returns (uint256 unlockedAmount);
+    /// @param amount the amount of tokens to unlock
+    function unlockTokens(uint256 proposalId, address voter, uint256 amount) external;
 
     /// @notice The function for locking nfts
     /// @param voter the address of voter
@@ -262,12 +222,8 @@ interface IGovUserKeeper {
 
     /// @notice The function for getting max locked amount of a user
     /// @param voter the address of voter
-    /// @param voteType the type of vote
     /// @return `max locked amount`
-    function maxLockedAmount(
-        address voter,
-        IGovPool.VoteType voteType
-    ) external view returns (uint256);
+    function maxLockedAmount(address voter) external view returns (uint256);
 
     /// @notice The function for getting token balance of a user
     /// @param voter the address of voter
@@ -304,7 +260,7 @@ interface IGovUserKeeper {
     /// @param snapshotId the id of snapshot
     /// @return the power of nfts
     function getNftsPowerInTokensBySnapshot(
-        uint256[] calldata nftIds,
+        uint256[] memory nftIds,
         uint256 snapshotId
     ) external view returns (uint256);
 
@@ -363,19 +319,6 @@ interface IGovUserKeeper {
         address user
     ) external view returns (uint256 power, DelegationInfoView[] memory delegationsInfo);
 
-    /// @notice The function for getting information about funds that can be undelegated
-    /// @param delegator the delegator address
-    /// @param lockedProposals the array of ids of locked proposals
-    /// @param unlockedNfts the array of unlocked nfts
-    /// @return undelegateableTokens the tokens that can be undelegated
-    /// @return undelegateableNfts the array of nfts that can be undelegated
-    function getUndelegateableAssets(
-        address delegator,
-        address delegatee,
-        uint256[] calldata lockedProposals,
-        uint256[] calldata unlockedNfts
-    ) external view returns (uint256 undelegateableTokens, uint256[] memory undelegateableNfts);
-
     /// @notice The function for getting information about funds that can be withdrawn
     /// @param voter the address of voter
     /// @param lockedProposals the array of ids of locked proposals
@@ -388,17 +331,13 @@ interface IGovUserKeeper {
         uint256[] calldata unlockedNfts
     ) external view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts);
 
-    /// @notice The function for getting the list of delegatees by the delegator address
-    /// @param delegator the address of the delegator
-    /// @return the list of delegatees
-    function getDelegatees(address delegator) external view returns (address[] memory);
-
-    /// @notice The function for getting the total delegated stake amount by the delegator and the delegatee
+    /// @notice The function for getting the total delegated amount by the delegator and the delegatee
     /// @param delegator the address of the delegator
     /// @param delegatee the address of the delegatee
-    /// @return the delegated stake amount
-    function getDelegatedStakeAmount(
+    /// @return tokenAmount the amount of delegated tokens
+    /// @return nftIds the list of delegated nft ids
+    function getDelegatedAssets(
         address delegator,
         address delegatee
-    ) external view returns (uint256);
+    ) external view returns (uint256 tokenAmount, uint256[] memory nftIds);
 }

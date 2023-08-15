@@ -15,24 +15,38 @@ library TokenBalance {
     using DecimalsConverter for *;
     using SafeERC20 for IERC20;
 
+    enum TransferType {
+        Revert,
+        Mint,
+        TryMint
+    }
+
     function sendFunds(
         address token,
         address receiver,
         uint256 amount,
-        bool mintIfNotEnough
+        TransferType transferType
     ) internal {
         if (token == ETHEREUM_ADDRESS) {
             (bool status, ) = payable(receiver).call{value: amount}("");
 
             require(status, "Gov: failed to send eth");
         } else {
-            amount = amount.from18(token.decimals());
+            amount = amount.from18(ERC20(token).decimals());
 
-            if (mintIfNotEnough) {
-                uint256 balance = IERC20(token).balanceOf(address(this));
+            uint256 balance = IERC20(token).balanceOf(address(this));
 
-                if (balance < amount) {
-                    try IERC20Sale(token).mint(address(this), amount - balance) {} catch {}
+            if (balance < amount) {
+                if (transferType == TransferType.Revert) {
+                    revert("Gov: insufficient funds");
+                }
+
+                try IERC20Sale(token).mint(address(this), amount - balance) {} catch {
+                    if (transferType == TransferType.Mint) {
+                        revert("Gov: cannot mint");
+                    }
+
+                    amount = balance;
                 }
             }
 
@@ -41,7 +55,7 @@ library TokenBalance {
     }
 
     function sendFunds(address token, address receiver, uint256 amount) internal {
-        sendFunds(token, receiver, amount, false);
+        sendFunds(token, receiver, amount, TransferType.Revert);
     }
 
     function sendFunds(IERC20 token, address receiver, uint256 amount) internal {

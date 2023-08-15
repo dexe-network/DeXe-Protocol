@@ -24,6 +24,13 @@ library GovPoolRewards {
         uint256 amount,
         address sender
     );
+    event RewardCanceled(
+        uint256 proposalId,
+        IGovPool.RewardType rewardType,
+        address rewardToken,
+        uint256 amount,
+        address sender
+    );
 
     function updateRewards(
         mapping(address => IGovPool.PendingRewards) storage pendingRewards,
@@ -32,10 +39,8 @@ library GovPoolRewards {
         IGovPool.RewardType rewardType,
         uint256 amount
     ) external {
-        IGovSettings.RewardsInfo storage rewardsInfo = proposals[proposalId]
-            .core
-            .settings
-            .rewardsInfo;
+        IGovPool.ProposalCore storage core = proposals[proposalId].core;
+        IGovSettings.RewardsInfo storage rewardsInfo = core.settings.rewardsInfo;
 
         uint256 amountToAdd = _calculateRewardForVoting(rewardsInfo, rewardType, amount);
 
@@ -60,24 +65,19 @@ library GovPoolRewards {
 
         if (proposalId != 0) {
             rewardToken = rewardsInfo.rewardToken;
-            IGovPool.Rewards storage userProposalRewards = userRewards.onchainRewards[proposalId];
 
             if (
-                rewardType == IGovPool.RewardType.VoteFor ||
-                rewardType == IGovPool.RewardType.VoteForDelegated ||
-                rewardType == IGovPool.RewardType.VoteForTreasury
+                rewardType == IGovPool.RewardType.Create ||
+                rewardType == IGovPool.RewardType.Execute
             ) {
-                userProposalRewards.rewardFor += amountToAdd;
-            } else if (
-                rewardType == IGovPool.RewardType.VoteAgainst ||
-                rewardType == IGovPool.RewardType.VoteAgainstDelegated ||
-                rewardType == IGovPool.RewardType.VoteAgainstTreasury
-            ) {
-                userProposalRewards.rewardAgainst += amountToAdd;
+                userRewards.staticRewards[proposalId] += amountToAdd;
             } else {
-                userProposalRewards.rewardFor += amountToAdd;
-                userProposalRewards.rewardAgainst += amountToAdd;
+                userRewards.votingRewards[proposalId][
+                    _getVoteTypeByRewardType(core, rewardType)
+                ] += amountToAdd;
             }
+
+            core.givenRewards += amountToAdd;
         } else {
             (address settingsAddress, , , , ) = IGovPool(address(this)).getHelperContracts();
 
@@ -93,6 +93,39 @@ library GovPoolRewards {
         emit RewardCredited(proposalId, rewardType, rewardToken, amountToAdd, msg.sender);
     }
 
+    function cancelVotingRewards(
+        mapping(address => IGovPool.PendingRewards) storage pendingRewards,
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        uint256 proposalId,
+        IGovPool.RewardType rewardType,
+        uint256 totalVotedBefore,
+        uint256 totalVotedAfter
+    ) external {
+        IGovPool.ProposalCore storage core = proposals[proposalId].core;
+        IGovSettings.RewardsInfo storage rewardsInfo = core.settings.rewardsInfo;
+
+        IGovPool.VoteType voteType = _getVoteTypeByRewardType(core, rewardType);
+
+        mapping(IGovPool.VoteType => uint256) storage votingRewards = pendingRewards[msg.sender]
+            .votingRewards[proposalId];
+
+        uint256 rewardsBefore = votingRewards[voteType];
+        uint256 amountToCancel = rewardsBefore -
+            rewardsBefore.ratio(totalVotedAfter, totalVotedBefore);
+
+        votingRewards[voteType] = rewardsBefore - amountToCancel;
+
+        core.givenRewards -= amountToCancel;
+
+        emit RewardCanceled(
+            proposalId,
+            rewardType,
+            rewardsInfo.rewardToken,
+            amountToCancel,
+            msg.sender
+        );
+    }
+
     function claimReward(
         mapping(address => IGovPool.PendingRewards) storage pendingRewards,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
@@ -100,20 +133,21 @@ library GovPoolRewards {
     ) external {
         IGovPool.PendingRewards storage userRewards = pendingRewards[msg.sender];
 
-        IGovPool.ProposalState state = IGovPool(address(this)).getProposalState(proposalId);
-
         if (proposalId != 0) {
             IGovPool.ProposalCore storage core = proposals[proposalId].core;
 
-            require(core.executed, "Gov: proposal is not executed");
+            require(core.executionTime != 0, "Gov: proposal is not executed");
 
-            IGovPool.Rewards storage userProposalRewards = userRewards.onchainRewards[proposalId];
+            uint256 rewards = _getOnchainRewards(pendingRewards, proposalId, msg.sender);
 
-            uint256 rewards = state == IGovPool.ProposalState.ExecutedFor
-                ? userProposalRewards.rewardFor
-                : userProposalRewards.rewardAgainst;
+            mapping(IGovPool.VoteType => uint256) storage votingRewards = userRewards
+                .votingRewards[proposalId];
 
-            delete userRewards.onchainRewards[proposalId];
+            delete userRewards.staticRewards[proposalId];
+            delete votingRewards[IGovPool.VoteType.PersonalVote];
+            delete votingRewards[IGovPool.VoteType.DelegatedVote];
+            delete votingRewards[IGovPool.VoteType.MicropoolVote];
+            delete votingRewards[IGovPool.VoteType.TreasuryVote];
 
             _sendRewards(proposalId, core.settings.rewardsInfo.rewardToken, rewards);
         } else {
@@ -148,16 +182,11 @@ library GovPoolRewards {
         for (uint256 i = 0; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
 
-            if (!proposals[proposalId].core.executed) {
+            if (proposals[proposalId].core.executionTime == 0) {
                 continue;
             }
 
-            IGovPool.Rewards storage userProposalRewards = userRewards.onchainRewards[proposalId];
-
-            rewards.onchainRewards[i] = IGovPool(address(this)).getProposalState(proposalId) ==
-                IGovPool.ProposalState.ExecutedFor
-                ? userProposalRewards.rewardFor
-                : userProposalRewards.rewardAgainst;
+            rewards.onchainRewards[i] = _getOnchainRewards(pendingRewards, proposalId, user);
         }
 
         for (uint256 i = 0; i < rewards.offchainTokens.length; i++) {
@@ -171,7 +200,7 @@ library GovPoolRewards {
     function _sendRewards(uint256 proposalId, address rewardToken, uint256 rewards) internal {
         require(rewardToken != address(0), "Gov: rewards are off");
 
-        rewardToken.sendFunds(msg.sender, rewards, true);
+        rewardToken.sendFunds(msg.sender, rewards, TokenBalance.TransferType.Mint);
 
         emit RewardClaimed(proposalId, msg.sender, rewardToken, rewards);
     }
@@ -224,5 +253,46 @@ library GovPoolRewards {
         }
 
         return amount.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
+    }
+
+    function _getOnchainRewards(
+        mapping(address => IGovPool.PendingRewards) storage pendingRewards,
+        uint256 proposalId,
+        address user
+    ) internal view returns (uint256) {
+        IGovPool.PendingRewards storage userRewards = pendingRewards[user];
+
+        mapping(IGovPool.VoteType => uint256) storage votingRewards = userRewards.votingRewards[
+            proposalId
+        ];
+
+        return
+            userRewards.staticRewards[proposalId] +
+            votingRewards[IGovPool.VoteType.PersonalVote] +
+            votingRewards[IGovPool.VoteType.DelegatedVote] +
+            votingRewards[IGovPool.VoteType.MicropoolVote] +
+            votingRewards[IGovPool.VoteType.TreasuryVote];
+    }
+
+    function _getVoteTypeByRewardType(
+        IGovPool.ProposalCore storage core,
+        IGovPool.RewardType rewardType
+    ) internal view returns (IGovPool.VoteType) {
+        if (
+            rewardType == IGovPool.RewardType.VoteFor ||
+            rewardType == IGovPool.RewardType.VoteAgainst
+        ) {
+            return
+                core.settings.delegatedVotingAllowed
+                    ? IGovPool.VoteType.PersonalVote
+                    : IGovPool.VoteType.DelegatedVote;
+        } else if (
+            rewardType == IGovPool.RewardType.VoteForDelegated ||
+            rewardType == IGovPool.RewardType.VoteAgainstDelegated
+        ) {
+            return IGovPool.VoteType.MicropoolVote;
+        } else {
+            return IGovPool.VoteType.TreasuryVote;
+        }
     }
 }

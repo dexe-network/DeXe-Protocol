@@ -109,15 +109,12 @@ library GovUserKeeperView {
     }
 
     function delegations(
-        address user,
-        mapping(address => IGovUserKeeper.UserInfo) storage usersInfo
+        IGovUserKeeper.UserInfo storage userInfo
     )
         external
         view
         returns (uint256 power, IGovUserKeeper.DelegationInfoView[] memory delegationsInfo)
     {
-        IGovUserKeeper.UserInfo storage userInfo = usersInfo[user];
-
         delegationsInfo = new IGovUserKeeper.DelegationInfoView[](userInfo.delegatees.length());
 
         for (uint256 i; i < delegationsInfo.length; i++) {
@@ -131,64 +128,23 @@ library GovUserKeeperView {
                 delegation.delegatedNfts,
                 true
             );
-            delegation.requestedTokens = userInfo.requestedTokens[delegatee];
-            delegation.requestedNfts = userInfo.requestedNfts[delegatee].values();
 
-            // TODO: should we remove requested power?
             power += delegation.delegatedTokens + delegation.nftPower;
         }
-    }
-
-    function getUndelegateableAssets(
-        address delegatee,
-        uint256[] calldata lockedProposals,
-        uint256[] calldata unlockedNfts,
-        IGovUserKeeper.BalanceInfo storage balanceInfo,
-        IGovUserKeeper.UserInfo storage delegatorInfo,
-        mapping(uint256 => uint256) storage nftLockedNums
-    ) external view returns (uint256 undelegateableTokens, uint256[] memory undelegateableNfts) {
-        (uint256 withdrawableTokens, uint256[] memory withdrawableNfts) = _getFreeAssets(
-            lockedProposals,
-            unlockedNfts,
-            balanceInfo,
-            nftLockedNums
-        );
-
-        undelegateableTokens = delegatorInfo.delegatedTokens[delegatee].min(withdrawableTokens);
-        EnumerableSet.UintSet storage delegatedNfts = delegatorInfo.delegatedNfts[delegatee];
-
-        Vector.UintVector memory nfts = Vector.newUint();
-
-        for (uint256 i; i < withdrawableNfts.length; i++) {
-            if (delegatedNfts.contains(withdrawableNfts[i])) {
-                nfts.push(withdrawableNfts[i]);
-            }
-        }
-
-        undelegateableNfts = nfts.toArray();
     }
 
     function getWithdrawableAssets(
         uint256[] calldata lockedProposals,
         uint256[] calldata unlockedNfts,
-        IGovUserKeeper.BalanceInfo storage balanceInfo,
+        IGovUserKeeper.UserInfo storage userInfo,
         mapping(uint256 => uint256) storage nftLockedNums
     ) external view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts) {
-        return _getFreeAssets(lockedProposals, unlockedNfts, balanceInfo, nftLockedNums);
-    }
+        IGovUserKeeper.BalanceInfo storage balanceInfo = userInfo.balanceInfo;
 
-    function _getFreeAssets(
-        uint256[] calldata lockedProposals,
-        uint256[] calldata unlockedNfts,
-        IGovUserKeeper.BalanceInfo storage balanceInfo,
-        mapping(uint256 => uint256) storage nftLockedNums
-    ) private view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts) {
         uint256 newLockedAmount;
 
         for (uint256 i; i < lockedProposals.length; i++) {
-            newLockedAmount = newLockedAmount.max(
-                balanceInfo.lockedInProposals[lockedProposals[i]]
-            );
+            newLockedAmount = newLockedAmount.max(userInfo.lockedInProposals[lockedProposals[i]]);
         }
 
         withdrawableTokens = balanceInfo.tokenBalance - newLockedAmount;

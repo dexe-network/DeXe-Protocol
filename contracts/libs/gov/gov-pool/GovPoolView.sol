@@ -47,38 +47,6 @@ library GovPoolView {
         return IGovUserKeeper(userKeeper).getWithdrawableAssets(user, lockedIds, unlockedNfts);
     }
 
-    function getUndelegateableAssets(
-        address delegator,
-        address delegatee,
-        mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
-            storage _votedInProposals,
-        mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
-            storage _voteInfos
-    ) external view returns (uint256 undelegateableTokens, uint256[] memory undelegateableNfts) {
-        (uint256[] memory unlockedIds, uint256[] memory lockedIds) = _getUserProposals(
-            delegatee,
-            IGovPool.VoteType.MicropoolVote,
-            _votedInProposals
-        );
-
-        uint256[] memory unlockedNfts = _getUnlockedNfts(
-            unlockedIds,
-            delegatee,
-            IGovPool.VoteType.MicropoolVote,
-            _voteInfos
-        );
-
-        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
-
-        return
-            IGovUserKeeper(userKeeper).getUndelegateableAssets(
-                delegator,
-                delegatee,
-                lockedIds,
-                unlockedNfts
-            );
-    }
-
     function getProposals(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 offset,
@@ -118,7 +86,7 @@ library GovPoolView {
             return IGovPool.ProposalState.Undefined;
         }
 
-        if (core.executed) {
+        if (core.executionTime != 0) {
             return
                 _votesForMoreThanAgainst(core)
                     ? IGovPool.ProposalState.ExecutedFor
@@ -184,8 +152,7 @@ library GovPoolView {
         for (uint256 i; i < unlockedIds.length; i++) {
             IGovPool.VoteInfo storage voteInfo = _voteInfos[unlockedIds[i]][user][voteType];
 
-            nfts.push(voteInfo.nftsVotedFor.values());
-            nfts.push(voteInfo.nftsVotedAgainst.values());
+            nfts.push(voteInfo.nftsVoted.values());
         }
 
         unlockedNfts = nfts.toArray();
