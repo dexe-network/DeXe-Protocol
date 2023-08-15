@@ -201,7 +201,7 @@ library GovPoolStaking {
         }
     }
 
-    function _calculateVoteRewardOnStaking(uint256 amount) internal returns (uint256) {
+    function _calculateVoteRewardOnStaking(uint256 amount) internal view returns (uint256) {
         (uint256 percentage, ) = ICoreProperties(IGovPool(address(this)).coreProperties())
             .getVoteRewardsPercentages();
 
