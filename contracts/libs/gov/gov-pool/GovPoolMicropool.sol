@@ -17,7 +17,7 @@ library GovPoolMicropool {
     using MathHelper for uint256;
     using ArrayHelper for uint256[];
 
-    event MicropoolRewardClaimed(address user, address token, uint256 amount);
+    event MicropoolRewardClaimed(uint256 proposalId, address user, address token, uint256 amount);
 
     function updateRewards(
         IGovPool.MicropoolInfo storage micropool,

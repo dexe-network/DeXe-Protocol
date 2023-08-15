@@ -410,6 +410,8 @@ contract GovPool is
         _govUserKeeper.undelegateTokensTreasury.exec(delegatee, amount);
         _govUserKeeper.undelegateNftsTreasury.exec(delegatee, nftIds);
 
+        _revoteDelegated(delegatee, VoteType.TreasuryVote);
+
         emit DelegatedTreasury(delegatee, amount, nftIds, false);
     }
 
