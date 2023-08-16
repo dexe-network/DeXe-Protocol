@@ -22,9 +22,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
     string public constant UNISWAP_V2_ROUTER_NAME = "UNISWAP_V2_ROUTER";
     string public constant UNISWAP_V2_FACTORY_NAME = "UNISWAP_V2_FACTORY";
 
-    string public constant INSURANCE_NAME = "INSURANCE";
     string public constant TREASURY_NAME = "TREASURY";
-    string public constant DIVIDENDS_NAME = "DIVIDENDS";
 
     string public constant CORE_PROPERTIES_NAME = "CORE_PROPERTIES";
 
@@ -60,16 +58,8 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
         return getContract(UNISWAP_V2_FACTORY_NAME);
     }
 
-    function getInsuranceContract() external view override returns (address) {
-        return getContract(INSURANCE_NAME);
-    }
-
     function getTreasuryContract() external view override returns (address) {
         return getContract(TREASURY_NAME);
-    }
-
-    function getDividendsContract() external view override returns (address) {
-        return getContract(DIVIDENDS_NAME);
     }
 
     function getCorePropertiesContract() external view override returns (address) {

@@ -6,11 +6,11 @@ const PoolRegistry = artifacts.require("PoolRegistry");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
+const GovPoolMicropoolLib = artifacts.require("GovPoolMicropool");
 const GovPoolRewardsLib = artifacts.require("GovPoolRewards");
 const GovPoolUnlockLib = artifacts.require("GovPoolUnlock");
 const GovPoolVoteLib = artifacts.require("GovPoolVote");
 const GovPoolViewLib = artifacts.require("GovPoolView");
-const GovPoolStakingLib = artifacts.require("GovPoolStaking");
 const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
 const GovPoolCreditLib = artifacts.require("GovPoolCredit");
 const TokenSaleProposalCreateLib = artifacts.require("TokenSaleProposalCreate");
@@ -32,21 +32,21 @@ const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 async function linkGovPool(deployer) {
   await deployer.deploy(GovPoolCreateLib);
   await deployer.deploy(GovPoolExecuteLib);
+  await deployer.deploy(GovPoolMicropoolLib);
   await deployer.deploy(GovPoolRewardsLib);
   await deployer.deploy(GovPoolUnlockLib);
   await deployer.deploy(GovPoolVoteLib);
   await deployer.deploy(GovPoolViewLib);
-  await deployer.deploy(GovPoolStakingLib);
   await deployer.deploy(GovPoolOffchainLib);
   await deployer.deploy(GovPoolCreditLib);
 
   await deployer.link(GovPoolCreateLib, GovPool);
   await deployer.link(GovPoolExecuteLib, GovPool);
+  await deployer.link(GovPoolMicropoolLib, GovPool);
   await deployer.link(GovPoolRewardsLib, GovPool);
   await deployer.link(GovPoolUnlockLib, GovPool);
   await deployer.link(GovPoolVoteLib, GovPool);
   await deployer.link(GovPoolViewLib, GovPool);
-  await deployer.link(GovPoolStakingLib, GovPool);
   await deployer.link(GovPoolOffchainLib, GovPool);
   await deployer.link(GovPoolCreditLib, GovPool);
 }

@@ -25,12 +25,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
 
     CoreParameters public coreParameters;
 
-    address internal _insuranceAddress;
     address internal _treasuryAddress;
-    address internal _dividendsAddress;
-
-    EnumerableSet.AddressSet internal _whitelistTokens;
-    EnumerableSet.AddressSet internal _blacklistTokens;
 
     function __CoreProperties_init(CoreParameters calldata _coreParameters) external initializer {
         __Ownable_init();
@@ -44,9 +39,7 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
     ) public virtual override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
-        _insuranceAddress = registry.getInsuranceContract();
         _treasuryAddress = registry.getTreasuryContract();
-        _dividendsAddress = registry.getDividendsContract();
     }
 
     function setCoreParameters(
@@ -55,60 +48,14 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         coreParameters = _coreParameters;
     }
 
-    function addWhitelistTokens(address[] calldata tokens) external override onlyOwner {
-        _whitelistTokens.add(tokens);
-    }
-
-    function removeWhitelistTokens(address[] calldata tokens) external override onlyOwner {
-        _whitelistTokens.remove(tokens);
-    }
-
-    function addBlacklistTokens(address[] calldata tokens) external override onlyOwner {
-        _blacklistTokens.add(tokens);
-    }
-
-    function removeBlacklistTokens(address[] calldata tokens) external override onlyOwner {
-        _blacklistTokens.remove(tokens);
-    }
-
-    function setMaximumPoolInvestors(uint64 count) external override onlyOwner {
-        coreParameters.traderParams.maxPoolInvestors = count;
-    }
-
-    function setMaximumOpenPositions(uint64 count) external override onlyOwner {
-        coreParameters.traderParams.maxOpenPositions = count;
-    }
-
-    function setTraderLeverageParams(uint32 threshold, uint32 slope) external override onlyOwner {
-        coreParameters.traderParams.leverageThreshold = threshold;
-        coreParameters.traderParams.leverageSlope = slope;
-    }
-
-    function setCommissionInitTimestamp(uint64 timestamp) external override onlyOwner {
-        coreParameters.traderParams.commissionInitTimestamp = timestamp;
-    }
-
-    function setCommissionDurations(uint64[] calldata durations) external override onlyOwner {
-        coreParameters.traderParams.commissionDurations = durations;
-    }
-
-    function setDEXECommissionPercentages(
-        uint128 dexeCommission,
-        uint128 govCommission,
-        uint128[] calldata distributionPercentages
-    ) external override onlyOwner {
-        coreParameters.traderParams.dexeCommissionPercentage = dexeCommission;
-        coreParameters
-            .traderParams
-            .dexeCommissionDistributionPercentages = distributionPercentages;
-        coreParameters.govParams.govCommissionPercentage = govCommission;
+    function setDEXECommissionPercentages(uint128 govCommission) external override onlyOwner {
+        coreParameters.govCommissionPercentage = govCommission;
     }
 
     function setTokenSaleProposalCommissionPercentage(
         uint128 tokenSaleProposalCommissionPercentage
     ) external override onlyOwner {
         coreParameters
-            .govParams
             .tokenSaleProposalCommissionPercentage = tokenSaleProposalCommissionPercentage;
     }
 
@@ -116,169 +63,30 @@ contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependan
         uint128 micropoolVoteRewardsPercentage,
         uint128 treasuryVoteRewardsPercentage
     ) external override onlyOwner {
-        coreParameters.govParams.micropoolVoteRewardsPercentage = micropoolVoteRewardsPercentage;
-        coreParameters.govParams.treasuryVoteRewardsPercentage = treasuryVoteRewardsPercentage;
-    }
-
-    function setTraderCommissionPercentages(
-        uint256 minTraderCommission,
-        uint256[] calldata maxTraderCommissions
-    ) external override onlyOwner {
-        coreParameters.traderParams.minTraderCommission = minTraderCommission;
-        coreParameters.traderParams.maxTraderCommissions = maxTraderCommissions;
-    }
-
-    function setDelayForRiskyPool(uint64 delayForRiskyPool) external override onlyOwner {
-        coreParameters.traderParams.delayForRiskyPool = delayForRiskyPool;
-    }
-
-    function setInsuranceParameters(
-        InsuranceParameters calldata insuranceParams
-    ) external override onlyOwner {
-        coreParameters.insuranceParams = insuranceParams;
+        coreParameters.micropoolVoteRewardsPercentage = micropoolVoteRewardsPercentage;
+        coreParameters.treasuryVoteRewardsPercentage = treasuryVoteRewardsPercentage;
     }
 
     function setGovVotesLimit(uint128 newVotesLimit) external override onlyOwner {
-        coreParameters.govParams.govVotesLimit = newVotesLimit;
+        coreParameters.govVotesLimit = newVotesLimit;
     }
 
-    function totalWhitelistTokens() external view override returns (uint256) {
-        return _whitelistTokens.length();
-    }
-
-    function totalBlacklistTokens() external view override returns (uint256) {
-        return _blacklistTokens.length();
-    }
-
-    function getWhitelistTokens(
-        uint256 offset,
-        uint256 limit
-    ) external view override returns (address[] memory tokens) {
-        return _whitelistTokens.part(offset, limit);
-    }
-
-    function getBlacklistTokens(
-        uint256 offset,
-        uint256 limit
-    ) external view override returns (address[] memory tokens) {
-        return _blacklistTokens.part(offset, limit);
-    }
-
-    function isWhitelistedToken(address token) external view override returns (bool) {
-        return _whitelistTokens.contains(token);
-    }
-
-    function isBlacklistedToken(address token) external view override returns (bool) {
-        return _blacklistTokens.contains(token);
-    }
-
-    function getFilteredPositions(
-        address[] memory positions
-    ) external view override returns (address[] memory) {
-        Vector.AddressVector memory filter = Vector.newAddress();
-
-        for (uint256 i = positions.length; i > 0; i--) {
-            if (!_blacklistTokens.contains(positions[i - 1])) {
-                filter.push(positions[i - 1]);
-            }
-        }
-
-        return filter.toArray();
-    }
-
-    function getMaximumPoolInvestors() external view override returns (uint64) {
-        return coreParameters.traderParams.maxPoolInvestors;
-    }
-
-    function getMaximumOpenPositions() external view override returns (uint64) {
-        return coreParameters.traderParams.maxOpenPositions;
-    }
-
-    function getTraderLeverageParams() external view override returns (uint32, uint32) {
-        return (
-            coreParameters.traderParams.leverageThreshold,
-            coreParameters.traderParams.leverageSlope
-        );
-    }
-
-    function getCommissionInitTimestamp() public view override returns (uint64) {
-        return coreParameters.traderParams.commissionInitTimestamp;
-    }
-
-    function getCommissionDuration(CommissionPeriod period) public view override returns (uint64) {
-        return coreParameters.traderParams.commissionDurations[uint256(period)];
-    }
-
-    function getDEXECommissionPercentages()
-        external
-        view
-        override
-        returns (uint128, uint128, uint128[] memory, address[3] memory)
-    {
-        return (
-            coreParameters.traderParams.dexeCommissionPercentage,
-            coreParameters.govParams.govCommissionPercentage,
-            coreParameters.traderParams.dexeCommissionDistributionPercentages,
-            [_insuranceAddress, _treasuryAddress, _dividendsAddress]
-        );
+    function getDEXECommissionPercentages() external view override returns (uint128, address) {
+        return (coreParameters.govCommissionPercentage, _treasuryAddress);
     }
 
     function getTokenSaleProposalCommissionPercentage() external view override returns (uint128) {
-        return coreParameters.govParams.tokenSaleProposalCommissionPercentage;
+        return coreParameters.tokenSaleProposalCommissionPercentage;
     }
 
     function getVoteRewardsPercentages() external view override returns (uint128, uint128) {
         return (
-            coreParameters.govParams.micropoolVoteRewardsPercentage,
-            coreParameters.govParams.treasuryVoteRewardsPercentage
+            coreParameters.micropoolVoteRewardsPercentage,
+            coreParameters.treasuryVoteRewardsPercentage
         );
-    }
-
-    function getTraderCommissions() external view override returns (uint256, uint256[] memory) {
-        return (
-            coreParameters.traderParams.minTraderCommission,
-            coreParameters.traderParams.maxTraderCommissions
-        );
-    }
-
-    function getDelayForRiskyPool() external view override returns (uint64) {
-        return coreParameters.traderParams.delayForRiskyPool;
-    }
-
-    function getInsuranceFactor() external view override returns (uint64) {
-        return coreParameters.insuranceParams.insuranceFactor;
-    }
-
-    function getInsuranceWithdrawalLock() external view override returns (uint64) {
-        return coreParameters.insuranceParams.insuranceWithdrawalLock;
-    }
-
-    function getMaxInsurancePoolShare() external view override returns (uint128) {
-        return coreParameters.insuranceParams.maxInsurancePoolShare;
-    }
-
-    function getMinInsuranceDeposit() external view override returns (uint256) {
-        return coreParameters.insuranceParams.minInsuranceDeposit;
     }
 
     function getGovVotesLimit() external view override returns (uint128) {
-        return coreParameters.govParams.govVotesLimit;
-    }
-
-    function getCommissionEpochByTimestamp(
-        uint256 timestamp,
-        CommissionPeriod commissionPeriod
-    ) external view override returns (uint256) {
-        return
-            (timestamp - getCommissionInitTimestamp()) /
-            getCommissionDuration(commissionPeriod) +
-            1;
-    }
-
-    function getCommissionTimestampByEpoch(
-        uint256 epoch,
-        CommissionPeriod commissionPeriod
-    ) external view override returns (uint256) {
-        return getCommissionInitTimestamp() + epoch * getCommissionDuration(commissionPeriod) - 1;
+        return coreParameters.govVotesLimit;
     }
 }
