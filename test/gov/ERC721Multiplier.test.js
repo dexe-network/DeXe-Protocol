@@ -218,6 +218,17 @@ describe("ERC721Multiplier", () => {
 
           await nft.lock(second.id, { from: second.owner });
         });
+
+        it.only("should lock the same nft after expiration", async () => {
+          const first = TOKENS[0];
+
+          const startTime = await getCurrentBlockTime();
+          await nft.lock(first.id, { from: first.owner });
+
+          await setTime(startTime + parseInt(first.duration) + 1);
+
+          await nft.lock(first.id, { from: first.owner });
+        });
       });
 
       describe("isLocked()", () => {
