@@ -32,11 +32,14 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
 
     function lock(uint256 tokenId) external override {
         require(
+            ERC721Upgradeable.ownerOf(tokenId) == msg.sender,
+            "ERC721Multiplier: transfer from incorrect owner"
+        );
+
+        require(
             !isLocked(_latestLockedTokenIds[msg.sender]),
             "ERC721Multiplier: Cannot lock more than one nft"
         );
-
-        _transfer(msg.sender, address(this), tokenId);
 
         NftInfo storage tokenToBeLocked = _tokens[tokenId];
 
@@ -76,6 +79,17 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
 
     function setBaseUri(string calldata uri) external onlyOwner {
         baseURI = uri;
+    }
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 batchSize
+    ) internal override {
+        require(!isLocked(tokenId), "ERC721Multiplier: Cannot transfer locked token");
+
+        super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 
     function getExtraRewards(
