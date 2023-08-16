@@ -4,7 +4,6 @@ pragma solidity ^0.8.4;
 import "@solarity/solidity-lib/contracts-registry/pools/pool-factory/AbstractPoolFactory.sol";
 
 import "../interfaces/factory/IPoolFactory.sol";
-import "../interfaces/trader/ITraderPool.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ISBT721.sol";
 
@@ -16,11 +15,6 @@ import "../gov/GovPool.sol";
 import "../gov/user-keeper/GovUserKeeper.sol";
 import "../gov/settings/GovSettings.sol";
 import "../gov/validators/GovValidators.sol";
-
-import "../trader/BasicTraderPool.sol";
-import "../trader/InvestTraderPool.sol";
-import "../trader/TraderPoolRiskyProposal.sol";
-import "../trader/TraderPoolInvestProposal.sol";
 
 import "../core/CoreProperties.sol";
 import {PoolRegistry} from "./PoolRegistry.sol";
@@ -44,17 +38,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
     mapping(bytes32 => bool) private _usedSalts;
 
-    event TraderPoolDeployed(
-        string poolType,
-        string symbol,
-        string name,
-        address at,
-        address proposalContract,
-        address trader,
-        address basicToken,
-        uint256 commission,
-        string descriptionURL
-    );
     event DaoPoolDeployed(
         string name,
         address govPool,
@@ -171,72 +154,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _injectDependencies(poolProxy);
     }
 
-    function deployBasicPool(
-        string calldata name,
-        string calldata symbol,
-        TraderPoolDeployParameters calldata parameters
-    ) external override {
-        string memory poolType = _poolRegistry.BASIC_POOL_NAME();
-        ITraderPool.PoolParameters memory poolParameters = _validateTraderPoolParameters(
-            parameters
-        );
-
-        address proposalProxy = _deploy(_poolRegistry.RISKY_PROPOSAL_NAME());
-        address poolProxy = _deploy(poolType);
-
-        emit TraderPoolDeployed(
-            poolType,
-            symbol,
-            name,
-            poolProxy,
-            proposalProxy,
-            poolParameters.trader,
-            poolParameters.baseToken,
-            poolParameters.commissionPercentage,
-            poolParameters.descriptionURL
-        );
-
-        _initBasicPool(poolProxy, proposalProxy, name, symbol, poolParameters);
-
-        _register(poolType, poolProxy);
-        _injectDependencies(poolProxy);
-
-        _poolRegistry.associateUserWithPool(poolParameters.trader, poolType, poolProxy);
-    }
-
-    function deployInvestPool(
-        string calldata name,
-        string calldata symbol,
-        TraderPoolDeployParameters calldata parameters
-    ) external override {
-        string memory poolType = _poolRegistry.INVEST_POOL_NAME();
-        ITraderPool.PoolParameters memory poolParameters = _validateTraderPoolParameters(
-            parameters
-        );
-
-        address proposalProxy = _deploy(_poolRegistry.INVEST_PROPOSAL_NAME());
-        address poolProxy = _deploy(poolType);
-
-        emit TraderPoolDeployed(
-            poolType,
-            symbol,
-            name,
-            poolProxy,
-            proposalProxy,
-            poolParameters.trader,
-            poolParameters.baseToken,
-            poolParameters.commissionPercentage,
-            poolParameters.descriptionURL
-        );
-
-        _initInvestPool(poolProxy, proposalProxy, name, symbol, poolParameters);
-
-        _register(poolType, poolProxy);
-        _injectDependencies(poolProxy);
-
-        _poolRegistry.associateUserWithPool(poolParameters.trader, poolType, poolProxy);
-    }
-
     function predictGovAddresses(
         address deployer,
         string calldata poolName
@@ -329,52 +246,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         );
     }
 
-    function _initBasicPool(
-        address poolProxy,
-        address proposalProxy,
-        string calldata name,
-        string calldata symbol,
-        ITraderPool.PoolParameters memory poolParameters
-    ) internal {
-        BasicTraderPool(poolProxy).__BasicTraderPool_init(
-            name,
-            symbol,
-            poolParameters,
-            proposalProxy
-        );
-        TraderPoolRiskyProposal(proposalProxy).__TraderPoolRiskyProposal_init(
-            ITraderPoolProposal.ParentTraderPoolInfo(
-                poolProxy,
-                poolParameters.trader,
-                poolParameters.baseToken,
-                poolParameters.baseTokenDecimals
-            )
-        );
-    }
-
-    function _initInvestPool(
-        address poolProxy,
-        address proposalProxy,
-        string calldata name,
-        string calldata symbol,
-        ITraderPool.PoolParameters memory poolParameters
-    ) internal {
-        InvestTraderPool(poolProxy).__InvestTraderPool_init(
-            name,
-            symbol,
-            poolParameters,
-            proposalProxy
-        );
-        TraderPoolInvestProposal(proposalProxy).__TraderPoolInvestProposal_init(
-            ITraderPoolProposal.ParentTraderPoolInfo(
-                poolProxy,
-                poolParameters.trader,
-                poolParameters.baseToken,
-                poolParameters.baseTokenDecimals
-            )
-        );
-    }
-
     function _deploy(string memory poolType) internal returns (address) {
         return _deploy(address(_poolRegistry), poolType);
     }
@@ -398,42 +269,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
     function _injectDependencies(address proxy) internal {
         _injectDependencies(address(_poolRegistry), proxy);
-    }
-
-    function _validateTraderPoolParameters(
-        TraderPoolDeployParameters calldata parameters
-    ) internal view returns (ITraderPool.PoolParameters memory poolParameters) {
-        uint256 babtId;
-        (uint256 general, uint256[] memory byPeriod) = _coreProperties.getTraderCommissions();
-
-        require(parameters.trader != address(0), "PoolFactory: invalid trader address");
-        require(
-            !_coreProperties.isBlacklistedToken(parameters.baseToken),
-            "PoolFactory: token is blacklisted"
-        );
-        require(
-            parameters.commissionPercentage >= general &&
-                parameters.commissionPercentage <= byPeriod[uint256(parameters.commissionPeriod)],
-            "PoolFactory: Incorrect percentage"
-        );
-
-        if (_babt.balanceOf(parameters.trader) > 0) {
-            babtId = _babt.tokenIdOf(parameters.trader);
-        }
-
-        poolParameters = ITraderPool.PoolParameters(
-            parameters.descriptionURL,
-            parameters.trader,
-            parameters.privatePool,
-            ERC20(parameters.baseToken).decimals(),
-            parameters.onlyBABTHolders,
-            parameters.totalLPEmission,
-            parameters.baseToken,
-            parameters.minimalInvestment,
-            parameters.commissionPeriod,
-            parameters.commissionPercentage,
-            babtId
-        );
     }
 
     function _calculateGovSalt(

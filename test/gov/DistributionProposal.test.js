@@ -25,11 +25,11 @@ const BABTMock = artifacts.require("BABTMock");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
+const GovPoolMicropoolLib = artifacts.require("GovPoolMicropool");
 const GovPoolRewardsLib = artifacts.require("GovPoolRewards");
 const GovPoolUnlockLib = artifacts.require("GovPoolUnlock");
 const GovPoolVoteLib = artifacts.require("GovPoolVote");
 const GovPoolViewLib = artifacts.require("GovPoolView");
-const GovPoolStakingLib = artifacts.require("GovPoolStaking");
 const GovPoolCreditLib = artifacts.require("GovPoolCredit");
 const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
 
@@ -88,11 +88,11 @@ describe("DistributionProposal", () => {
 
     const govPoolCreateLib = await GovPoolCreateLib.new();
     const govPoolExecuteLib = await GovPoolExecuteLib.new();
+    const govPoolMicropoolLib = await GovPoolMicropoolLib.new();
     const govPoolRewardsLib = await GovPoolRewardsLib.new();
     const govPoolUnlockLib = await GovPoolUnlockLib.new();
     const govPoolVoteLib = await GovPoolVoteLib.new();
     const govPoolViewLib = await GovPoolViewLib.new();
-    const govPoolStakingLib = await GovPoolStakingLib.new();
     const govPoolCreditLib = await GovPoolCreditLib.new();
     const govPoolOffchainLib = await GovPoolOffchainLib.new();
 
@@ -100,11 +100,11 @@ describe("DistributionProposal", () => {
 
     await GovPool.link(govPoolCreateLib);
     await GovPool.link(govPoolExecuteLib);
+    await GovPool.link(govPoolMicropoolLib);
     await GovPool.link(govPoolRewardsLib);
     await GovPool.link(govPoolUnlockLib);
     await GovPool.link(govPoolVoteLib);
     await GovPool.link(govPoolViewLib);
-    await GovPool.link(govPoolStakingLib);
     await GovPool.link(govPoolCreditLib);
     await GovPool.link(govPoolOffchainLib);
 
@@ -124,8 +124,6 @@ describe("DistributionProposal", () => {
     await contractsRegistry.addContract(await contractsRegistry.POOL_FACTORY_NAME(), FACTORY);
 
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
-    await contractsRegistry.addContract(await contractsRegistry.DIVIDENDS_NAME(), NOTHING);
-    await contractsRegistry.addContract(await contractsRegistry.INSURANCE_NAME(), NOTHING);
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), _dexeExpertNft.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), BABT.address);

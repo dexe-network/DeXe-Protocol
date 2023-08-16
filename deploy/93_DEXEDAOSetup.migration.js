@@ -119,36 +119,10 @@ let POOL_PARAMETERS = {
   name: config.DEXEDAO.name,
 };
 
-async function setupInsuranceProposals(contractsRegistry) {
-  POOL_PARAMETERS.settingsParams.proposalSettings.push({
-    earlyCompletion: true,
-    delegatedVotingAllowed: false,
-    validatorsVote: true,
-    duration: 600,
-    durationValidators: 600,
-    quorum: PRECISION.times("0.00001").toFixed(),
-    quorumValidators: PRECISION.times("0.00001").toFixed(),
-    minVotesForVoting: wei("10"),
-    minVotesForCreating: wei("1"),
-    executionDelay: 0,
-    rewardsInfo: {
-      rewardToken: ZERO_ADDR,
-      creationReward: 0,
-      executionReward: 0,
-      voteForRewardsCoefficient: 0,
-      voteAgainstRewardsCoefficient: 0,
-    },
-    executorDescription: "insurance",
-  });
-  POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(await contractsRegistry.getInsuranceContract());
-}
-
 module.exports = async (deployer, logger) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
   const poolFactory = await PoolFactory.at(await contractsRegistry.getPoolFactoryContract());
-
-  await setupInsuranceProposals(contractsRegistry);
 
   let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);
 

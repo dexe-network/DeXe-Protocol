@@ -8,8 +8,8 @@ import "../gov/ERC20/IERC20Sale.sol";
 import "../core/ICoreProperties.sol";
 
 /**
- * This is the Factory contract for the trader and gov pools. Anyone can create a pool for themselves to become a trader
- * or a governance owner. There are 3 pools available: BasicTraderPool, InvestTraderPool and GovPool
+ * This is the Factory contract for the gov pools. Anyone can create a pool for themselves to become
+ * a governance owner (GovPool)
  */
 interface IPoolFactory {
     /// @notice General settings of the pool
@@ -78,28 +78,6 @@ interface IPoolFactory {
         IERC20Sale.ConstructorParams tokenParams;
     }
 
-    /// @notice The parameters one can specify on the trader pool's creation
-    /// @param descriptionURL the IPFS URL of the pool description
-    /// @param trader the trader of the pool
-    /// @param privatePool the publicity of the pool
-    /// @param onlyBABHolders if true, only KYCed users will be allowed to interact with the pool
-    /// @param totalLPEmission maximal* emission of LP tokens that can be invested
-    /// @param baseToken the address of the base token of the pool
-    /// @param minimalInvestment the minimal allowed investment into the pool
-    /// @param commissionPeriod the duration of the commission period
-    /// @param commissionPercentage trader's commission percentage (including DEXE commission)
-    struct TraderPoolDeployParameters {
-        string descriptionURL;
-        address trader;
-        bool privatePool;
-        bool onlyBABTHolders;
-        uint256 totalLPEmission; // zero means unlimited
-        address baseToken;
-        uint256 minimalInvestment; // zero means any value
-        ICoreProperties.CommissionPeriod commissionPeriod;
-        uint256 commissionPercentage;
-    }
-
     /// @notice The function to deploy gov pools
     /// @param parameters the pool deploy parameters
     function deployGovPool(GovPoolDeployParams calldata parameters) external;
@@ -110,26 +88,6 @@ interface IPoolFactory {
     function deployGovPoolWithTokenSale(
         GovPoolDeployParams calldata parameters,
         GovTokenSaleProposalDeployParams calldata tokenSaleParams
-    ) external;
-
-    /// @notice The function to deploy basic pools
-    /// @param name the ERC20 name of the pool
-    /// @param symbol the ERC20 symbol of the pool
-    /// @param parameters the pool deploy parameters
-    function deployBasicPool(
-        string calldata name,
-        string calldata symbol,
-        TraderPoolDeployParameters calldata parameters
-    ) external;
-
-    /// @notice The function to deploy invest pools
-    /// @param name the ERC20 name of the pool
-    /// @param symbol the ERC20 symbol of the pool
-    /// @param parameters the pool deploy parameters
-    function deployInvestPool(
-        string calldata name,
-        string calldata symbol,
-        TraderPoolDeployParameters calldata parameters
     ) external;
 
     /// @notice The view function that predicts the addresses where
