@@ -1,21 +1,10 @@
-const { PRECISION, SECONDS_IN_DAY, SECONDS_IN_MONTH, DECIMAL } = require("../../scripts/utils/constants");
-
-const ExchangeType = {
-  FROM_EXACT: 0,
-  TO_EXACT: 1,
-};
+const { PRECISION } = require("../../scripts/utils/constants");
 
 const ExecutorType = {
   DEFAULT: 0,
   INTERNAL: 1,
   DISTRIBUTION: 2,
   VALIDATORS: 3,
-};
-
-const ComissionPeriods = {
-  PERIOD_1: 0,
-  PERIOD_2: 1,
-  PERIOD_3: 2,
 };
 
 const ProposalState = {
@@ -71,9 +60,7 @@ const DEFAULT_CORE_PROPERTIES = {
 };
 
 module.exports = {
-  ExchangeType,
   ExecutorType,
-  ComissionPeriods,
   ProposalState,
   ProposalType,
   VoteType,

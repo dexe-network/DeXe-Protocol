@@ -3,7 +3,7 @@ const { toBN, accounts, wei } = require("../../scripts/utils/utils");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
-const { ComissionPeriods, DEFAULT_CORE_PROPERTIES, ParticipationType } = require("../utils/constants");
+const { DEFAULT_CORE_PROPERTIES, ParticipationType } = require("../utils/constants");
 const { toPercent } = require("../utils/utils");
 const { getCurrentBlockTime } = require("../helpers/block-helper");
 
