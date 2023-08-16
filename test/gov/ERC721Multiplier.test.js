@@ -178,7 +178,7 @@ describe("ERC721Multiplier", () => {
 
       describe("lock()", () => {
         it("should not lock if not the owner of the token", async () => {
-          await truffleAssert.reverts(nft.lock(2, { from: SECOND }), "ERC721Multiplier: transfer from incorrect owner");
+          await truffleAssert.reverts(nft.lock(2, { from: SECOND }), "ERC721Multiplier: not the nft owner");
         });
 
         it("should not lock more than one nft simultaneously", async () => {

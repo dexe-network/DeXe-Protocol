@@ -33,7 +33,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
     function lock(uint256 tokenId) external override {
         require(
             ERC721Upgradeable.ownerOf(tokenId) == msg.sender,
-            "ERC721Multiplier: transfer from incorrect owner"
+            "ERC721Multiplier: not the nft owner"
         );
 
         require(
@@ -78,17 +78,6 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         baseURI = uri;
     }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId,
-        uint256 batchSize
-    ) internal override {
-        require(!isLocked(tokenId), "ERC721Multiplier: Cannot transfer locked token");
-
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
-    }
-
     function getExtraRewards(
         address whose,
         uint256 rewards
@@ -128,6 +117,17 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         return
             interfaceId == type(IERC721Multiplier).interfaceId ||
             super.supportsInterface(interfaceId);
+    }
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 batchSize
+    ) internal override {
+        require(!isLocked(tokenId), "ERC721Multiplier: Cannot transfer locked token");
+
+        super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 
     function _baseURI() internal view override returns (string memory) {
