@@ -148,6 +148,34 @@ describe("ERC721Multiplier", () => {
         });
       });
 
+      describe("changeToken()", () => {
+        it("should not change if not the owner", async () => {
+          await truffleAssert.reverts(nft.changeToken(0, 0, 0, { from: SECOND }), "Ownable: caller is not the owner");
+        });
+
+        it("should not change if the token doesn't exist", async () => {
+          await truffleAssert.reverts(nft.changeToken(5, 0, 0), "ERC721Multiplier: Cannot change this token");
+        });
+
+        it("should not change if the token locked", async () => {
+          const first = TOKENS[0];
+
+          await nft.lock(first.id, { from: first.owner });
+
+          await truffleAssert.reverts(nft.changeToken(first.id, 0, 0), "ERC721Multiplier: Cannot change this token");
+        });
+
+        it("should change properly", async () => {
+          const first = TOKENS[0];
+
+          const tx = await nft.changeToken(first.id, 1, 2);
+
+          truffleAssert.eventEmitted(tx, "Changed", (e) => {
+            return e.tokenId.toFixed() === first.id && e.multiplier.toFixed() === "1" && e.duration.toFixed() === "2";
+          });
+        });
+      });
+
       describe("lock()", () => {
         it("should not lock if not the owner of the token", async () => {
           await truffleAssert.reverts(nft.lock(2, { from: SECOND }), "ERC721: transfer from incorrect owner");

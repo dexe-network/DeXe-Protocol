@@ -19,6 +19,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
 
     event Minted(address to, uint256 tokenId, uint256 multiplier, uint256 duration);
     event Locked(address from, uint256 tokenId, uint256 multiplier, uint256 duration);
+    event Changed(uint256 tokenId, uint256 multiplier, uint256 duration);
 
     function __ERC721Multiplier_init(
         string calldata name,
@@ -57,6 +58,20 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         });
 
         emit Minted(to, currentTokenId, multiplier, duration);
+    }
+
+    function changeToken(uint256 tokenId, uint256 multiplier, uint64 duration) external onlyOwner {
+        require(
+            _exists(tokenId) && !isLocked(tokenId),
+            "ERC721Multiplier: Cannot change this token"
+        );
+
+        NftInfo storage token = _tokens[tokenId];
+
+        token.multiplier = multiplier;
+        token.duration = duration;
+
+        emit Changed(tokenId, multiplier, duration);
     }
 
     function setBaseUri(string calldata uri) external onlyOwner {
