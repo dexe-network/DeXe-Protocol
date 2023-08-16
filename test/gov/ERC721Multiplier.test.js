@@ -154,15 +154,15 @@ describe("ERC721Multiplier", () => {
         });
 
         it("should not change if the token doesn't exist", async () => {
-          await truffleAssert.reverts(nft.changeToken(5, 0, 0), "ERC721Multiplier: Cannot change this token");
+          await truffleAssert.reverts(nft.changeToken(5, 0, 0), "ERC721: invalid token ID");
         });
 
-        it("should not change if the token locked", async () => {
+        it("should do change if the token locked", async () => {
           const first = TOKENS[0];
 
           await nft.lock(first.id, { from: first.owner });
 
-          await truffleAssert.reverts(nft.changeToken(first.id, 0, 0), "ERC721Multiplier: Cannot change this token");
+          assert.isOk(await nft.changeToken(first.id, 0, 0));
         });
 
         it("should change properly", async () => {
@@ -219,7 +219,7 @@ describe("ERC721Multiplier", () => {
           await nft.lock(second.id, { from: second.owner });
         });
 
-        it.only("should lock the same nft after expiration", async () => {
+        it("should lock the same nft after expiration", async () => {
           const first = TOKENS[0];
 
           const startTime = await getCurrentBlockTime();

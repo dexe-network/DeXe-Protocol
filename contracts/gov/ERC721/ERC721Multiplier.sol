@@ -64,10 +64,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
     }
 
     function changeToken(uint256 tokenId, uint256 multiplier, uint64 duration) external onlyOwner {
-        require(
-            _exists(tokenId) && !isLocked(tokenId),
-            "ERC721Multiplier: Cannot change this token"
-        );
+        _requireMinted(tokenId);
 
         NftInfo storage token = _tokens[tokenId];
 
