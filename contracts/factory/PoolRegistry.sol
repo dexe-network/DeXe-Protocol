@@ -27,8 +27,6 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
 
     address internal _poolFactory;
 
-    mapping(address => mapping(string => EnumerableSet.AddressSet)) internal _ownerPools; // pool owner => name => pool
-
     modifier onlyPoolFactory() {
         _onlyPoolFactory();
         _;
