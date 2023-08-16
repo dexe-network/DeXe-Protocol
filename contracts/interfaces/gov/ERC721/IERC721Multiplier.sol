@@ -28,6 +28,12 @@ interface IERC721Multiplier is IERC721EnumerableUpgradeable {
     /// @param duration the time for which an nft can be locked
     function mint(address to, uint256 multiplier, uint64 duration) external;
 
+    /// @notice This function is used to change the basic rewards multiplier and the time for which the current nft will be locked
+    /// @param tokenId the id of the nft to be changed
+    /// @param multiplier the basic rewards multiplier
+    /// @param duration the time for which an nft can be locked
+    function changeToken(uint256 tokenId, uint256 multiplier, uint64 duration) external;
+
     /// @notice This function is used to calculate extra rewards
     /// @param whose the address of the user who is to receive extra rewards
     /// @param rewards basic rewards to be multiplied

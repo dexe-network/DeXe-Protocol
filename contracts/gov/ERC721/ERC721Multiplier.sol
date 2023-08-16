@@ -63,7 +63,11 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         emit Minted(to, currentTokenId, multiplier, duration);
     }
 
-    function changeToken(uint256 tokenId, uint256 multiplier, uint64 duration) external onlyOwner {
+    function changeToken(
+        uint256 tokenId,
+        uint256 multiplier,
+        uint64 duration
+    ) external override onlyOwner {
         _requireMinted(tokenId);
 
         NftInfo storage token = _tokens[tokenId];
