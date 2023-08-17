@@ -18,14 +18,13 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
 
     function __GovSettings_init(
         address govPoolAddress,
-        address distributionProposalAddress,
         address validatorsAddress,
         address govUserKeeperAddress,
         ProposalSettings[] calldata proposalSettings,
         address[] calldata additionalProposalExecutors
     ) external initializer {
         require(
-            additionalProposalExecutors.length + 4 == proposalSettings.length,
+            additionalProposalExecutors.length + 3 == proposalSettings.length,
             "GovSettings: invalid proposal settings count"
         );
 
@@ -45,10 +44,6 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
                 _setExecutor(address(this), settingsId);
                 _setExecutor(govPoolAddress, settingsId);
                 _setExecutor(govUserKeeperAddress, settingsId);
-            } else if (settingsId == uint256(ExecutorType.DISTRIBUTION)) {
-                _validateDistributionSettings(executorSettings);
-
-                _setExecutor(distributionProposalAddress, settingsId);
             } else if (settingsId == uint256(ExecutorType.VALIDATORS)) {
                 _setExecutor(validatorsAddress, settingsId);
             } else if (settingsId > systemExecutors) {
@@ -80,10 +75,6 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         for (uint256 i; i < _settings.length; i++) {
             require(_settingsExist(settingsIds[i]), "GovSettings: settings do not exist");
 
-            if (settingsIds[i] == uint256(ExecutorType.DISTRIBUTION)) {
-                _validateDistributionSettings(_settings[i]);
-            }
-
             _validateProposalSettings(_settings[i]);
             _setSettings(_settings[i], settingsIds[i]);
         }
@@ -111,13 +102,6 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         require(
             _settings.quorumValidators <= PERCENTAGE_100,
             "GovSettings: invalid validator quorum value"
-        );
-    }
-
-    function _validateDistributionSettings(ProposalSettings calldata _settings) internal pure {
-        require(
-            _settings.delegatedVotingAllowed && !_settings.earlyCompletion,
-            "GovSettings: invalid distribution settings"
         );
     }
 

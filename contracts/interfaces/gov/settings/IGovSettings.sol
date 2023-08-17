@@ -8,7 +8,6 @@ interface IGovSettings {
     enum ExecutorType {
         DEFAULT,
         INTERNAL,
-        DISTRIBUTION,
         VALIDATORS
     }
 

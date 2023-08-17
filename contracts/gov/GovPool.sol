@@ -60,7 +60,6 @@ contract GovPool is
     IGovSettings internal _govSettings;
     IGovUserKeeper internal _govUserKeeper;
     IGovValidators internal _govValidators;
-    address internal _distributionProposal;
     address internal _poolRegistry;
 
     ICoreProperties public coreProperties;
@@ -129,7 +128,6 @@ contract GovPool is
         _govSettings = IGovSettings(govPoolDeps.settingsAddress);
         _govUserKeeper = IGovUserKeeper(govPoolDeps.userKeeperAddress);
         _govValidators = IGovValidators(govPoolDeps.validatorsAddress);
-        _distributionProposal = govPoolDeps.distributionAddress;
         _expertNft = IERC721Expert(govPoolDeps.expertNftAddress);
         _nftMultiplier = govPoolDeps.nftMultiplierAddress;
 
@@ -178,7 +176,6 @@ contract GovPool is
 
     function createProposal(
         string calldata _descriptionURL,
-        string calldata misc,
         ProposalAction[] calldata actionsOnFor,
         ProposalAction[] calldata actionsOnAgainst
     ) external override onlyBABTHolder {
@@ -187,7 +184,6 @@ contract GovPool is
         _proposals.createProposal(
             _restrictedProposals,
             _descriptionURL,
-            misc,
             actionsOnFor,
             actionsOnAgainst
         );
@@ -482,19 +478,12 @@ contract GovPool is
         external
         view
         override
-        returns (
-            address settings,
-            address userKeeper,
-            address validators,
-            address distributionProposal,
-            address poolRegistry
-        )
+        returns (address settings, address userKeeper, address validators, address poolRegistry)
     {
         return (
             address(_govSettings),
             address(_govUserKeeper),
             address(_govValidators),
-            _distributionProposal,
             _poolRegistry
         );
     }

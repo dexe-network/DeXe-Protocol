@@ -31,7 +31,7 @@ library GovPoolMicropool {
         IGovPool.MicropoolInfo storage micropool,
         address delegatee
     ) external {
-        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
         (uint256 currentTokenAmount, uint256[] memory currentNftIds) = IGovUserKeeper(userKeeper)
             .getDelegatedAssets(msg.sender, delegatee);
@@ -135,7 +135,7 @@ library GovPoolMicropool {
         address delegator,
         address delegatee
     ) private view returns (uint256) {
-        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
         IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][delegatee][

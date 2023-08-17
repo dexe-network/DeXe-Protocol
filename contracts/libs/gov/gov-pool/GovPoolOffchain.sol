@@ -41,7 +41,7 @@ library GovPoolOffchain {
     }
 
     function _payCommission() internal {
-        (address settingsAddress, , , , ) = GovPool(payable(address(this))).getHelperContracts();
+        (address settingsAddress, , , ) = GovPool(payable(address(this))).getHelperContracts();
 
         IGovSettings.ProposalSettings memory internalSettings = IGovSettings(settingsAddress)
             .getInternalSettings();

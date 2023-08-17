@@ -195,11 +195,10 @@ describe("TokenSaleProposal", () => {
 
     await settings.__GovSettings_init(
       govPool.address,
-      dp.address,
       validators.address,
       userKeeper.address,
       poolParams.settingsParams.proposalSettings,
-      poolParams.settingsParams.additionalProposalExecutors
+      [...poolParams.settingsParams.additionalProposalExecutors, dp.address]
     );
 
     await validators.__GovValidators_init(
@@ -224,7 +223,7 @@ describe("TokenSaleProposal", () => {
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
     await nftMultiplier.__ERC721Multiplier_init("Mock Multiplier Nft", "MCKMULNFT");
     await govPool.__GovPool_init(
-      [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address, nftMultiplier.address],
+      [settings.address, userKeeper.address, validators.address, expertNft.address, nftMultiplier.address],
       poolParams.regularVoteModifier,
       poolParams.expertVoteModifier,
       OWNER,
@@ -266,7 +265,7 @@ describe("TokenSaleProposal", () => {
 
   describe("proposals", () => {
     const acceptProposal = async (actionsFor, actionsAgainst = []) => {
-      await govPool.createProposal("example.com", "misc", actionsFor, actionsAgainst);
+      await govPool.createProposal("example.com", actionsFor, actionsAgainst);
 
       const proposalId = await govPool.latestProposalId();
 
@@ -399,26 +398,6 @@ describe("TokenSaleProposal", () => {
               executorDescription: "internal",
             },
             {
-              earlyCompletion: false,
-              delegatedVotingAllowed: true,
-              validatorsVote: false,
-              duration: 700,
-              durationValidators: 800,
-              quorum: PRECISION.times("71").toFixed(),
-              quorumValidators: PRECISION.times("100").toFixed(),
-              minVotesForVoting: wei("20"),
-              minVotesForCreating: wei("3"),
-              executionDelay: 0,
-              rewardsInfo: {
-                rewardToken: ZERO_ADDR,
-                creationReward: 0,
-                executionReward: 0,
-                voteForRewardsCoefficient: 0,
-                voteAgainstRewardsCoefficient: 0,
-              },
-              executorDescription: "DP",
-            },
-            {
               earlyCompletion: true,
               delegatedVotingAllowed: true,
               validatorsVote: true,
@@ -437,6 +416,26 @@ describe("TokenSaleProposal", () => {
                 voteAgainstRewardsCoefficient: 0,
               },
               executorDescription: "validators",
+            },
+            {
+              earlyCompletion: false,
+              delegatedVotingAllowed: true,
+              validatorsVote: false,
+              duration: 700,
+              durationValidators: 800,
+              quorum: PRECISION.times("71").toFixed(),
+              quorumValidators: PRECISION.times("100").toFixed(),
+              minVotesForVoting: wei("20"),
+              minVotesForCreating: wei("3"),
+              executionDelay: 0,
+              rewardsInfo: {
+                rewardToken: ZERO_ADDR,
+                creationReward: 0,
+                executionReward: 0,
+                voteForRewardsCoefficient: 0,
+                voteAgainstRewardsCoefficient: 0,
+              },
+              executorDescription: "DP",
             },
           ],
           additionalProposalExecutors: [],

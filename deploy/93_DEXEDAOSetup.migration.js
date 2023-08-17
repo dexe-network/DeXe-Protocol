@@ -1,7 +1,7 @@
 const config = require("./config/config.json");
 
 const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
-const { wei } = require("../scripts/utils/utils");
+const { accounts, wei } = require("../scripts/utils/utils");
 
 const Proxy = artifacts.require("ERC1967Proxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -52,26 +52,6 @@ let POOL_PARAMETERS = {
         executorDescription: "internal",
       },
       {
-        earlyCompletion: false,
-        delegatedVotingAllowed: true,
-        validatorsVote: false,
-        duration: 600,
-        durationValidators: 600,
-        quorum: PRECISION.times("0.00001").toFixed(),
-        quorumValidators: PRECISION.times("0.00001").toFixed(),
-        minVotesForVoting: wei("10"),
-        minVotesForCreating: wei("1"),
-        executionDelay: 0,
-        rewardsInfo: {
-          rewardToken: config.tokens.DEXE,
-          creationReward: wei("10"),
-          executionReward: wei("15"),
-          voteForRewardsCoefficient: PRECISION.times("10").toFixed(),
-          voteAgainstRewardsCoefficient: PRECISION.times("10").toFixed(),
-        },
-        executorDescription: "dp",
-      },
-      {
         earlyCompletion: true,
         delegatedVotingAllowed: false,
         validatorsVote: false,
@@ -111,6 +91,19 @@ let POOL_PARAMETERS = {
     totalPowerInTokens: 0,
     nftsTotalSupply: 0,
   },
+  tokenSaleParams: {
+    tiersParams: [],
+    whitelistParams: [],
+    tokenParams: {
+      name: "",
+      symbol: "",
+      users: [],
+      saleAmount: 0,
+      cap: 0,
+      mintedTotal: 0,
+      amounts: [],
+    },
+  },
   regularVoteModifier: wei("1.3", 25),
   expertVoteModifier: wei("1.132", 25),
   verifier: ZERO_ADDR,
@@ -119,10 +112,65 @@ let POOL_PARAMETERS = {
   name: config.DEXEDAO.name,
 };
 
+const DP_SETTINGS = {
+  earlyCompletion: false,
+  delegatedVotingAllowed: true,
+  validatorsVote: false,
+  duration: 600,
+  durationValidators: 600,
+  quorum: PRECISION.times("0.00001").toFixed(),
+  quorumValidators: PRECISION.times("0.00001").toFixed(),
+  minVotesForVoting: wei("10"),
+  minVotesForCreating: wei("1"),
+  executionDelay: 0,
+  rewardsInfo: {
+    rewardToken: config.tokens.DEXE,
+    creationReward: wei("10"),
+    executionReward: wei("15"),
+    voteForRewardsCoefficient: PRECISION.times("10").toFixed(),
+    voteAgainstRewardsCoefficient: PRECISION.times("10").toFixed(),
+  },
+  executorDescription: "dp",
+};
+
+const TOKENSALE_SETTINGS = {
+  earlyCompletion: true,
+  delegatedVotingAllowed: false,
+  validatorsVote: false,
+  duration: 600,
+  durationValidators: 600,
+  quorum: PRECISION.times("0.00001").toFixed(),
+  quorumValidators: PRECISION.times("0.00001").toFixed(),
+  minVotesForVoting: wei("10"),
+  minVotesForCreating: wei("1"),
+  executionDelay: 0,
+  rewardsInfo: {
+    rewardToken: config.tokens.DEXE,
+    creationReward: wei("10"),
+    executionReward: wei("15"),
+    voteForRewardsCoefficient: PRECISION.times("10").toFixed(),
+    voteAgainstRewardsCoefficient: PRECISION.times("10").toFixed(),
+  },
+  executorDescription: "tokensale",
+};
+
 module.exports = async (deployer, logger) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
   const poolFactory = await PoolFactory.at(await contractsRegistry.getPoolFactoryContract());
+
+  const predictedGovAddresses = await poolFactory.predictGovAddresses(await accounts(0), POOL_PARAMETERS.name);
+
+  logger.logTransaction(
+    await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), predictedGovAddresses.govPool),
+    "Add Treasury"
+  );
+
+  POOL_PARAMETERS.settingsParams.proposalSettings.push(DP_SETTINGS);
+  POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(predictedGovAddresses.distributionProposal);
+
+  POOL_PARAMETERS.settingsParams.proposalSettings.push(TOKENSALE_SETTINGS);
+  POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(predictedGovAddresses.govTokenSale);
 
   let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);
 

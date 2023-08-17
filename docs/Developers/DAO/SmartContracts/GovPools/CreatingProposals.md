@@ -9,14 +9,12 @@ Function ***`createProposal()`*** on `GovPool` is used to create proposals.
 ```solidity
 function createProposal(
     string calldata descriptionURL,
-    string calldata misc,
     ProposalAction[] calldata actionsOnFor,
     ProposalAction[] calldata actionsOnAgainst
 ) external onlyBABTHolder;
 ```
 
 - ***descriptionURL*** - *IPFS* URL to the proposal's description
-- ***misc*** - special string that will be saved on the subgraph
 - ***actionsOnFor*** - actions that will be executed if the proposal is accepted
 - ***actionsOnAgainst*** - actions that will be executed if the proposal is rejected
 
