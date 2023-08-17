@@ -5,10 +5,6 @@ module.exports = async (deployer, logger) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
   logger.logTransaction(
-    await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), deployer.dexeDaoAddress),
-    "Add Treasury"
-  );
-  logger.logTransaction(
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME()),
     "Inject CoreProperties"
   );

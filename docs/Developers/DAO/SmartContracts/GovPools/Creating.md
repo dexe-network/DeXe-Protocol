@@ -2,13 +2,31 @@
 
 **DAO** Pool address is determined by its name and the address of the creator.
 
-**DAO** Pool is deployed via ***`deployGovPool()`*** function on `PoolFactory`.
+### Deploying with TokenSale proposal
+
+Function ```deployGovPoolWithTokenSale()``` is used to deploy **DAO** Pool with *TokenSale* proposal (details on `Proposals`/`TokenSaleProposal`).
 
 ```solidity
-function deployGovPool(GovPoolDeployParams calldata parameters) external;
+function deployGovPoolWithTokenSale(
+    GovPoolDeployParams calldata parameters,
+    GovTokenSaleProposalDeployParams calldata tokenSaleParams
+) external;
 ```
 
 - ***parameters*** - the pool deploy parameters
+- ***tokenSaleParams*** - the **TokenSale** proposal parameters
+
+```solidity
+struct GovTokenSaleProposalDeployParams {
+    ITokenSaleProposal.TierView[] tiersParams;
+    ITokenSaleProposal.WhitelistingRequest[] whitelistParams;
+    IERC20Sale.ConstructorParams tokenParams;
+}
+```
+
+- ***tiersParams*** - tiers parameters
+- ***whitelistParams*** - whitelisted users (for participation in tiers)
+- ***tokenParams*** - parameters of the token
 
 ```solidity
 struct GovPoolDeployParams {
@@ -161,29 +179,3 @@ function listPools(
 - ***limit*** - the number of pools
 - **returns** **->**
   - **pools** - the array of pools proxies
-
-### Deploying with TokenSale proposal
-
-Function ```deployGovPoolWithTokenSale()``` is used to deploy **DAO** Pool with *TokenSale* proposal (details on `Proposals`/`TokenSaleProposal`).
-
-```solidity
-function deployGovPoolWithTokenSale(
-    GovPoolDeployParams calldata parameters,
-    GovTokenSaleProposalDeployParams calldata tokenSaleParams
-) external;
-```
-
-- ***parameters*** - the pool deploy parameters
-- ***tokenSaleParams*** - the **TokenSale** proposal parameters
-
-```solidity
-struct GovTokenSaleProposalDeployParams {
-    ITokenSaleProposal.TierView[] tiersParams;
-    ITokenSaleProposal.WhitelistingRequest[] whitelistParams;
-    IERC20Sale.ConstructorParams tokenParams;
-}
-```
-
-- ***tiersParams*** - tiers parameters
-- ***whitelistParams*** - whitelisted users (for participation in tiers)
-- ***tokenParams*** - parameters of the token

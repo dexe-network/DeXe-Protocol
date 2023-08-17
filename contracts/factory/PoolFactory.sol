@@ -41,15 +41,11 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     event DaoPoolDeployed(
         string name,
         address govPool,
-        address dp,
-        address validators,
-        address settings,
-        address govUserKeeper,
-        address localExpertNft,
-        address nftMultiplier,
+        GovPool.Dependencies govPoolDeps,
+        address tokenSale,
+        address token,
         address sender
     );
-    event DaoTokenSaleDeployed(address govPool, address tokenSale, address token);
 
     function setDependencies(address contractsRegistry, bytes memory data) public override {
         super.setDependencies(contractsRegistry, data);
@@ -61,48 +57,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _babt = ISBT721(registry.getBABTContract());
     }
 
-    function deployGovPool(GovPoolDeployParams calldata parameters) external override {
-        string memory poolType = _poolRegistry.GOV_POOL_NAME();
-
-        GovPool.Dependencies memory govPoolDeps;
-
-        govPoolDeps.validatorsAddress = payable(_deploy(_poolRegistry.VALIDATORS_NAME()));
-        govPoolDeps.userKeeperAddress = _deploy(_poolRegistry.USER_KEEPER_NAME());
-        govPoolDeps.distributionAddress = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
-        govPoolDeps.settingsAddress = _deploy(_poolRegistry.SETTINGS_NAME());
-        address poolProxy = _deploy2(poolType, parameters.name);
-        govPoolDeps.expertNftAddress = _deploy(_poolRegistry.EXPERT_NFT_NAME());
-        govPoolDeps.nftMultiplierAddress = _deploy(_poolRegistry.NFT_MULTIPLIER_NAME());
-
-        emit DaoPoolDeployed(
-            parameters.name,
-            poolProxy,
-            govPoolDeps.distributionAddress,
-            govPoolDeps.validatorsAddress,
-            govPoolDeps.settingsAddress,
-            govPoolDeps.userKeeperAddress,
-            govPoolDeps.expertNftAddress,
-            govPoolDeps.nftMultiplierAddress,
-            msg.sender
-        );
-
-        _updateSalt(parameters.name);
-
-        _initGovPool(poolProxy, govPoolDeps, parameters);
-
-        GovSettings(govPoolDeps.settingsAddress).transferOwnership(poolProxy);
-        GovUserKeeper(govPoolDeps.userKeeperAddress).transferOwnership(poolProxy);
-        GovValidators(govPoolDeps.validatorsAddress).transferOwnership(poolProxy);
-        ERC721Expert(govPoolDeps.expertNftAddress).transferOwnership(poolProxy);
-        ERC721Multiplier(govPoolDeps.nftMultiplierAddress).transferOwnership(poolProxy);
-
-        _register(poolType, poolProxy);
-        _injectDependencies(poolProxy);
-    }
-
     function deployGovPoolWithTokenSale(
-        GovPoolDeployParams calldata parameters,
-        GovTokenSaleProposalDeployParams calldata tokenSaleParameters
+        GovPoolDeployParams calldata parameters
     ) external override {
         string memory poolType = _poolRegistry.GOV_POOL_NAME();
 
@@ -110,36 +66,35 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         govPoolDeps.validatorsAddress = payable(_deploy(_poolRegistry.VALIDATORS_NAME()));
         govPoolDeps.userKeeperAddress = _deploy(_poolRegistry.USER_KEEPER_NAME());
-        govPoolDeps.distributionAddress = _deploy(_poolRegistry.DISTRIBUTION_PROPOSAL_NAME());
+        govPoolDeps.distributionAddress = _deploy2(
+            _poolRegistry.DISTRIBUTION_PROPOSAL_NAME(),
+            parameters.name
+        );
         govPoolDeps.settingsAddress = _deploy(_poolRegistry.SETTINGS_NAME());
         address poolProxy = _deploy2(poolType, parameters.name);
-        govPoolDeps.expertNftAddress = _deploy(_poolRegistry.EXPERT_NFT_NAME());
-        govPoolDeps.nftMultiplierAddress = _deploy(_poolRegistry.NFT_MULTIPLIER_NAME());
+        govPoolDeps.expertNftAddress = _deploy2(_poolRegistry.EXPERT_NFT_NAME(), parameters.name);
+        govPoolDeps.nftMultiplierAddress = _deploy2(
+            _poolRegistry.NFT_MULTIPLIER_NAME(),
+            parameters.name
+        );
+
+        address tokenSaleProxy = _deployTokenSale(parameters, poolProxy);
 
         emit DaoPoolDeployed(
             parameters.name,
             poolProxy,
-            govPoolDeps.distributionAddress,
-            govPoolDeps.validatorsAddress,
-            govPoolDeps.settingsAddress,
-            govPoolDeps.userKeeperAddress,
-            govPoolDeps.expertNftAddress,
-            govPoolDeps.nftMultiplierAddress,
-            msg.sender
-        );
-
-        address tokenSaleProxy = _deployTokenSale(parameters, tokenSaleParameters, poolProxy);
-
-        emit DaoTokenSaleDeployed(
-            poolProxy,
+            govPoolDeps,
             tokenSaleProxy,
-            parameters.userKeeperParams.tokenAddress
+            parameters.userKeeperParams.tokenAddress,
+            msg.sender
         );
 
         _updateSalt(parameters.name);
 
-        TokenSaleProposal(tokenSaleProxy).createTiers(tokenSaleParameters.tiersParams);
-        TokenSaleProposal(tokenSaleProxy).addToWhitelist(tokenSaleParameters.whitelistParams);
+        TokenSaleProposal(tokenSaleProxy).createTiers(parameters.tokenSaleParams.tiersParams);
+        TokenSaleProposal(tokenSaleProxy).addToWhitelist(
+            parameters.tokenSaleParams.whitelistParams
+        );
 
         _initGovPool(poolProxy, govPoolDeps, parameters);
         TokenSaleProposal(tokenSaleProxy).__TokenSaleProposal_init(poolProxy);
@@ -157,28 +112,35 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     function predictGovAddresses(
         address deployer,
         string calldata poolName
-    ) external view override returns (address, address, address) {
+    ) external view override returns (GovPoolPredictedAddresses memory) {
         if (bytes(poolName).length == 0) {
-            return (address(0), address(0), address(0));
+            return
+                GovPoolPredictedAddresses(
+                    address(0),
+                    address(0),
+                    address(0),
+                    address(0),
+                    address(0),
+                    address(0)
+                );
         }
 
         PoolRegistry poolRegistry = _poolRegistry;
         bytes32 govSalt = _calculateGovSalt(deployer, poolName);
 
-        return (
-            _predictPoolAddress(address(poolRegistry), poolRegistry.GOV_POOL_NAME(), govSalt),
-            _predictPoolAddress(
-                address(poolRegistry),
-                poolRegistry.TOKEN_SALE_PROPOSAL_NAME(),
-                govSalt
-            ),
-            govSalt.predictTokenAddress()
-        );
+        return
+            GovPoolPredictedAddresses(
+                _predictPoolAddress(poolRegistry.GOV_POOL_NAME(), govSalt),
+                _predictPoolAddress(poolRegistry.TOKEN_SALE_PROPOSAL_NAME(), govSalt),
+                govSalt.predictTokenAddress(),
+                _predictPoolAddress(poolRegistry.DISTRIBUTION_PROPOSAL_NAME(), govSalt),
+                _predictPoolAddress(poolRegistry.EXPERT_NFT_NAME(), govSalt),
+                _predictPoolAddress(poolRegistry.NFT_MULTIPLIER_NAME(), govSalt)
+            );
     }
 
     function _deployTokenSale(
         GovPoolDeployParams calldata parameters,
-        GovTokenSaleProposalDeployParams calldata tokenSaleParameters,
         address poolProxy
     ) internal returns (address tokenSaleProxy) {
         tokenSaleProxy = _deploy2(_poolRegistry.TOKEN_SALE_PROPOSAL_NAME(), parameters.name);
@@ -187,7 +149,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         bytes32 govSalt = _calculateGovSalt(tx.origin, parameters.name);
 
         if (parameters.userKeeperParams.tokenAddress == govSalt.predictTokenAddress()) {
-            poolProxy.deployToken(tokenSaleProxy, govSalt, tokenSaleParameters.tokenParams);
+            poolProxy.deployToken(tokenSaleProxy, govSalt, parameters.tokenSaleParams.tokenParams);
         }
     }
 
@@ -268,6 +230,13 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
     function _injectDependencies(address proxy) internal {
         _injectDependencies(address(_poolRegistry), proxy);
+    }
+
+    function _predictPoolAddress(
+        string memory poolType,
+        bytes32 salt
+    ) internal view returns (address) {
+        return _predictPoolAddress(address(_poolRegistry), poolType, salt);
     }
 
     function _calculateGovSalt(

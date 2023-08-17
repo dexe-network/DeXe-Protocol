@@ -52,26 +52,6 @@ let POOL_PARAMETERS = {
         executorDescription: "internal",
       },
       {
-        earlyCompletion: false,
-        delegatedVotingAllowed: true,
-        validatorsVote: false,
-        duration: 600,
-        durationValidators: 600,
-        quorum: PRECISION.times("0.00001").toFixed(),
-        quorumValidators: PRECISION.times("0.00001").toFixed(),
-        minVotesForVoting: wei("10"),
-        minVotesForCreating: wei("1"),
-        executionDelay: 0,
-        rewardsInfo: {
-          rewardToken: config.tokens.DEXE,
-          creationReward: wei("10"),
-          executionReward: wei("15"),
-          voteForRewardsCoefficient: PRECISION.times("10").toFixed(),
-          voteAgainstRewardsCoefficient: PRECISION.times("10").toFixed(),
-        },
-        executorDescription: "dp",
-      },
-      {
         earlyCompletion: true,
         delegatedVotingAllowed: false,
         validatorsVote: false,
@@ -111,6 +91,20 @@ let POOL_PARAMETERS = {
     totalPowerInTokens: 0,
     nftsTotalSupply: 0,
   },
+  // TODO: check params
+  tokenSaleParams: {
+    tiersParams: [],
+    whitelistParams: [],
+    tokenParams: {
+      name: "sale token",
+      symbol: "st",
+      users: [],
+      saleAmount: wei("100"),
+      cap: wei("1000"),
+      mintedTotal: wei("150"),
+      amounts: [],
+    },
+  },
   regularVoteModifier: wei("1.3", 25),
   expertVoteModifier: wei("1.132", 25),
   verifier: ZERO_ADDR,
@@ -119,12 +113,71 @@ let POOL_PARAMETERS = {
   name: config.DEXEDAO.name,
 };
 
+const DP_SETTINGS = {
+  earlyCompletion: false,
+  delegatedVotingAllowed: true,
+  validatorsVote: false,
+  duration: 600,
+  durationValidators: 600,
+  quorum: PRECISION.times("0.00001").toFixed(),
+  quorumValidators: PRECISION.times("0.00001").toFixed(),
+  minVotesForVoting: wei("10"),
+  minVotesForCreating: wei("1"),
+  executionDelay: 0,
+  rewardsInfo: {
+    rewardToken: config.tokens.DEXE,
+    creationReward: wei("10"),
+    executionReward: wei("15"),
+    voteForRewardsCoefficient: PRECISION.times("10").toFixed(),
+    voteAgainstRewardsCoefficient: PRECISION.times("10").toFixed(),
+  },
+  executorDescription: "dp",
+};
+
+const TOKEN_SETTINGS = {
+  earlyCompletion: false,
+  delegatedVotingAllowed: false,
+  validatorsVote: false,
+  duration: 500,
+  durationValidators: 600,
+  quorum: PRECISION.times("51").toFixed(),
+  quorumValidators: PRECISION.times("61").toFixed(),
+  minVotesForVoting: wei("10"),
+  minVotesForCreating: wei("5"),
+  executionDelay: 0,
+  rewardsInfo: {
+    rewardToken: ZERO_ADDR,
+    creationReward: 0,
+    executionReward: 0,
+    voteForRewardsCoefficient: 0,
+    voteAgainstRewardsCoefficient: 0,
+  },
+  executorDescription: "Token Sale",
+};
+
 module.exports = async (deployer, logger) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
   const poolFactory = await PoolFactory.at(await contractsRegistry.getPoolFactoryContract());
 
-  let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);
+  // TODO: is it ok?
+  const addressThis = (await deployer.hre.web3.eth.getAccounts())[0];
+
+  const predictedGovAddresses = await poolFactory.predictGovAddresses(addressThis, POOL_PARAMETERS.name);
+
+  logger.logTransaction(
+    await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), predictedGovAddresses.govPool),
+    "Add Treasury"
+  );
+
+  // TODO: do we need this?
+  // POOL_PARAMETERS.settingsParams.proposalSettings.push(TOKEN_SETTINGS);
+  // POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(predictedGovAddresses.govToken);
+
+  POOL_PARAMETERS.settingsParams.proposalSettings.push(DP_SETTINGS);
+  POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(predictedGovAddresses.distributionProposal);
+
+  let tx = await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS);
 
   const dexeDaoAddress = tx.receipt.logs[0].args.govPool;
 

@@ -210,8 +210,8 @@ describe("PoolFactory", () => {
   afterEach(reverter.revert);
 
   describe("GovPools", () => {
-    function getGovPoolDefaultDeployParams() {
-      return {
+    function getGovPoolSaleConfiguredParams() {
+      let POOL_PARAMETERS = {
         settingsParams: {
           proposalSettings: [
             {
@@ -255,26 +255,6 @@ describe("PoolFactory", () => {
               executorDescription: "internal",
             },
             {
-              earlyCompletion: false,
-              delegatedVotingAllowed: true,
-              validatorsVote: false,
-              duration: 500,
-              durationValidators: 600,
-              quorum: PRECISION.times("51").toFixed(),
-              quorumValidators: PRECISION.times("61").toFixed(),
-              minVotesForVoting: wei("10"),
-              minVotesForCreating: wei("5"),
-              executionDelay: 0,
-              rewardsInfo: {
-                rewardToken: ZERO_ADDR,
-                creationReward: 0,
-                executionReward: 0,
-                voteForRewardsCoefficient: 0,
-                voteAgainstRewardsCoefficient: 0,
-              },
-              executorDescription: "DP",
-            },
-            {
               earlyCompletion: true,
               delegatedVotingAllowed: false,
               validatorsVote: true,
@@ -314,6 +294,45 @@ describe("PoolFactory", () => {
           totalPowerInTokens: wei("33000"),
           nftsTotalSupply: 33,
         },
+        tokenSaleParams: {
+          tiersParams: [
+            {
+              metadata: {
+                name: "tier1",
+                description: "description",
+              },
+              totalTokenProvided: wei("100"),
+              saleStartTime: 0,
+              saleEndTime: 1000000,
+              claimLockDuration: 0,
+              saleTokenAddress: ZERO_ADDR,
+              purchaseTokenAddresses: [testERC20.address],
+              exchangeRates: [PRECISION.toFixed()],
+              minAllocationPerUser: wei("1"),
+              maxAllocationPerUser: wei("100"),
+              vestingSettings: {
+                vestingPercentage: toPercent(50),
+                vestingDuration: 86400,
+                cliffPeriod: 0,
+                unlockStep: 1,
+              },
+              participationDetails: {
+                participationType: ParticipationType.Whitelist,
+                data: "0x",
+              },
+            },
+          ],
+          whitelistParams: [],
+          tokenParams: {
+            name: "sale token",
+            symbol: "st",
+            users: [],
+            saleAmount: wei("100"),
+            cap: wei("1000"),
+            mintedTotal: wei("150"),
+            amounts: [],
+          },
+        },
         regularVoteModifier: wei("1", 25),
         expertVoteModifier: wei("1", 25),
         verifier: OWNER,
@@ -321,52 +340,6 @@ describe("PoolFactory", () => {
         descriptionURL: "example.com",
         name: "Pool name",
       };
-    }
-
-    function getTokenSaleDefaultDeployParams() {
-      return {
-        tiersParams: [
-          {
-            metadata: {
-              name: "tier1",
-              description: "description",
-            },
-            totalTokenProvided: wei("100"),
-            saleStartTime: 0,
-            saleEndTime: 1000000,
-            claimLockDuration: 0,
-            saleTokenAddress: ZERO_ADDR,
-            purchaseTokenAddresses: [testERC20.address],
-            exchangeRates: [PRECISION.toFixed()],
-            minAllocationPerUser: wei("1"),
-            maxAllocationPerUser: wei("100"),
-            vestingSettings: {
-              vestingPercentage: toPercent(50),
-              vestingDuration: 86400,
-              cliffPeriod: 0,
-              unlockStep: 1,
-            },
-            participationDetails: {
-              participationType: ParticipationType.Whitelist,
-              data: "0x",
-            },
-          },
-        ],
-        whitelistParams: [],
-        tokenParams: {
-          name: "sale token",
-          symbol: "st",
-          users: [],
-          saleAmount: wei("100"),
-          cap: wei("1000"),
-          mintedTotal: wei("150"),
-          amounts: [],
-        },
-      };
-    }
-
-    function getGovPoolSaleConfiguredParams() {
-      let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
 
       POOL_PARAMETERS.settingsParams.proposalSettings.push({
         earlyCompletion: false,
@@ -394,108 +367,11 @@ describe("PoolFactory", () => {
       return POOL_PARAMETERS;
     }
 
-    describe("deployGovPool", () => {
-      it("should deploy pool with DP", async () => {
-        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
-
-        const predictedGovAddress = (await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name))[0];
-
-        let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);
-
-        let event = tx.receipt.logs[0];
-
-        assert.isTrue(await poolRegistry.isGovPool(event.args.govPool));
-        assert.equal((await poolRegistry.countPools(await poolRegistry.GOV_POOL_NAME())).toFixed(), "1");
-
-        let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
-
-        assert.equal(govPool.address, predictedGovAddress);
-
-        let helperContracts = await govPool.getHelperContracts();
-
-        let govSettings = await GovSettings.at(helperContracts[0]);
-        let govValidators = await GovValidators.at(helperContracts[2]);
-        let settings = await govSettings.getExecutorSettings(helperContracts[3]);
-
-        assert.equal(await govPool.descriptionURL(), "example.com");
-
-        assert.equal((await govValidators.validatorsCount()).toFixed(), 1);
-
-        assert.equal(settings[0], POOL_PARAMETERS.settingsParams.proposalSettings[2].earlyCompletion);
-      });
-
-      it("should deploy pool with Expert Nft", async () => {
-        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
-        const predictedGovAddress = (await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name))[0];
-
-        await poolFactory.deployGovPool(POOL_PARAMETERS);
-
-        let govPool = await GovPool.at(predictedGovAddress);
-
-        let dexeNftAddress = (await govPool.getNftContracts()).dexeExpertNft;
-        let nftAddress = (await govPool.getNftContracts()).expertNft;
-
-        assert.isTrue(nftAddress != ZERO_ADDR);
-        assert.isTrue(dexeNftAddress != ZERO_ADDR);
-
-        let expertNft = await ERC721Expert.at(nftAddress);
-
-        assert.equal(await expertNft.owner(), predictedGovAddress);
-        assert.equal(await expertNft.name(), POOL_PARAMETERS.name + " Expert Nft");
-        assert.equal(await expertNft.symbol(), POOL_PARAMETERS.name + " EXPNFT");
-      });
-
-      it("should deploy pool with NFT multiplier", async () => {
-        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
-        const predictedGovAddress = (await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name))[0];
-
-        await poolFactory.deployGovPool(POOL_PARAMETERS);
-
-        let govPool = await GovPool.at(predictedGovAddress);
-
-        let nftMultiplierAddress = (await govPool.getNftContracts()).nftMultiplier;
-
-        assert.isTrue(nftMultiplierAddress != ZERO_ADDR);
-
-        let nftMultiplier = await ERC721Multiplier.at(nftMultiplierAddress);
-
-        assert.equal(await nftMultiplier.owner(), predictedGovAddress);
-        assert.equal(await nftMultiplier.name(), POOL_PARAMETERS.name + " NFT Multiplier");
-        assert.equal(await nftMultiplier.symbol(), POOL_PARAMETERS.name + " MULTIPLIER");
-      });
-
-      it("should deploy pool with voting parameters", async () => {
-        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
-        const predictedGovAddress = (await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name))[0];
-
-        await poolFactory.deployGovPool(POOL_PARAMETERS);
-
-        let govPool = await GovPool.at(predictedGovAddress);
-
-        let votingParameters = await govPool.getVoteModifiers();
-        assert.equal(votingParameters[0].toFixed(), POOL_PARAMETERS.regularVoteModifier);
-        assert.equal(votingParameters[1].toFixed(), POOL_PARAMETERS.expertVoteModifier);
-      });
-
-      it("should deploy pool from address with BABT", async () => {
-        await babt.attest(OWNER);
-
-        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
-
-        await poolFactory.deployGovPool(POOL_PARAMETERS);
-
-        let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
-
-        assert.equal((await govPool.deployerBABTid()).toFixed(), (await babt.tokenIdOf(OWNER)).toFixed());
-      });
-    });
-
     describe("deployGovPoolWithTokenSale", () => {
       it("should deploy pool and instantiate token sale", async () => {
         let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
-        let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
 
-        SALE_PARAMETERS.tiersParams.push({
+        POOL_PARAMETERS.tokenSaleParams.tiersParams.push({
           metadata: {
             name: "tier2",
             description: "description",
@@ -523,21 +399,27 @@ describe("PoolFactory", () => {
 
         const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
 
-        SALE_PARAMETERS.tiersParams[0].saleTokenAddress = predictedGovAddresses[2];
-        POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedGovAddresses[2];
-        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses[1];
+        POOL_PARAMETERS.tokenSaleParams.tiersParams[0].saleTokenAddress = predictedGovAddresses.govTokenSale;
+        POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedGovAddresses.govTokenSale;
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govToken;
 
-        let tx = await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS);
-        let event = tx.receipt.logs[1];
+        let tx = await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS);
+        let event = tx.receipt.logs[0];
 
         let tokenSale = await TokenSaleProposal.at(event.args.tokenSale);
         let token = await ERC20Mock.at(event.args.token);
+        let dp = await DistributionProposal.at(event.args.govPoolDeps.distributionAddress);
+        let localExpertNft = await ERC721Expert.at(event.args.govPoolDeps.expertNftAddress);
+        let nftMultiplier = await ERC721Multiplier.at(event.args.govPoolDeps.nftMultiplierAddress);
 
         let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
 
-        assert.equal(govPool.address, predictedGovAddresses[0]);
-        assert.equal(tokenSale.address, predictedGovAddresses[1]);
-        assert.equal(token.address, predictedGovAddresses[2]);
+        assert.equal(govPool.address, predictedGovAddresses.govPool);
+        assert.equal(tokenSale.address, predictedGovAddresses.govToken);
+        assert.equal(token.address, predictedGovAddresses.govTokenSale);
+        assert.equal(dp.address, predictedGovAddresses.distributionProposal);
+        assert.equal(localExpertNft.address, predictedGovAddresses.expertNft);
+        assert.equal(nftMultiplier.address, predictedGovAddresses.nftMultiplier);
 
         let helperContracts = await govPool.getHelperContracts();
 
@@ -554,15 +436,14 @@ describe("PoolFactory", () => {
 
       it("should deploy pool with empty token sale", async () => {
         let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
-        let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
 
         const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
 
-        SALE_PARAMETERS.tiersParams.pop();
-        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses[1];
+        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govToken;
 
-        let tx = await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS);
-        let event = tx.receipt.logs[1];
+        let tx = await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS);
+        let event = tx.receipt.logs[0];
 
         let tokenSale = await TokenSaleProposal.at(event.args.tokenSale);
         let token = await ERC20Mock.at(event.args.token);
@@ -581,7 +462,7 @@ describe("PoolFactory", () => {
 
     describe("deploy2 validation", () => {
       it("should deploy pools with the same name from different deployers", async () => {
-        let POOL_PARAMETERS = getGovPoolDefaultDeployParams();
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
 
         const predictedAddressOwner = (await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name))[0];
         const predictedAddressSecond = (await poolFactory.predictGovAddresses(SECOND, POOL_PARAMETERS.name))[0];
@@ -590,8 +471,13 @@ describe("PoolFactory", () => {
         assert.notEqual(predictedAddressSecond, ZERO_ADDR);
         assert.notEqual(predictedAddressOwner, predictedAddressSecond);
 
-        await poolFactory.deployGovPool(POOL_PARAMETERS);
-        await poolFactory.deployGovPool(POOL_PARAMETERS, { from: SECOND });
+        const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+
+        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govToken;
+
+        await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS);
+        await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, { from: SECOND });
 
         assert.deepEqual(await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 2), [
           predictedAddressOwner,
@@ -601,37 +487,25 @@ describe("PoolFactory", () => {
 
       it("should not deploy pools with the same salt", async () => {
         let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
-        let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
 
-        SALE_PARAMETERS.tiersParams.pop();
+        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
 
-        await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS);
-
-        await truffleAssert.reverts(
-          poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS),
-          "PoolFactory: pool name is already taken"
-        );
+        await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS);
 
         await truffleAssert.reverts(
-          poolFactory.deployGovPool(POOL_PARAMETERS),
+          poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS),
           "PoolFactory: pool name is already taken"
         );
       });
 
       it("should revert if name is an empty string", async () => {
         let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
-        let SALE_PARAMETERS = getTokenSaleDefaultDeployParams();
 
-        SALE_PARAMETERS.tiersParams.pop();
+        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
         POOL_PARAMETERS.name = "";
 
         await truffleAssert.reverts(
-          poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS, SALE_PARAMETERS),
-          "PoolFactory: pool name cannot be empty"
-        );
-
-        await truffleAssert.reverts(
-          poolFactory.deployGovPool(POOL_PARAMETERS),
+          poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS),
           "PoolFactory: pool name cannot be empty"
         );
       });
@@ -639,11 +513,14 @@ describe("PoolFactory", () => {
 
     describe("predictGovAddress", () => {
       it("should return zero address if name is an empty string", async () => {
-        assert.deepEqual(Object.values(await poolFactory.predictGovAddresses(OWNER, "")), [
-          ZERO_ADDR,
-          ZERO_ADDR,
-          ZERO_ADDR,
-        ]);
+        const predictedAddress = await poolFactory.predictGovAddresses(OWNER, "");
+
+        assert.equal(predictedAddress.govPool, ZERO_ADDR);
+        assert.equal(predictedAddress.govToken, ZERO_ADDR);
+        assert.equal(predictedAddress.govTokenSale, ZERO_ADDR);
+        assert.equal(predictedAddress.distributionProposal, ZERO_ADDR);
+        assert.equal(predictedAddress.expertNft, ZERO_ADDR);
+        assert.equal(predictedAddress.nftMultiplier, ZERO_ADDR);
       });
     });
   });
