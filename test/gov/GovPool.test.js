@@ -330,7 +330,7 @@ describe("GovPool", () => {
     await dp.__DistributionProposal_init(govPool.address);
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
     await govPool.__GovPool_init(
-      [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address, nftMultiplier.address],
+      [settings.address, userKeeper.address, validators.address, expertNft.address, nftMultiplier.address],
       wei("1", 25),
       wei("1", 25),
       OWNER,
@@ -673,7 +673,6 @@ describe("GovPool", () => {
         assert.equal(contracts.settings, settings.address);
         assert.equal(contracts.userKeeper, userKeeper.address);
         assert.equal(contracts.validators, validators.address);
-        assert.equal(contracts.distributionProposal, dp.address);
         assert.equal(contracts.poolRegistry, poolRegistry.address);
       });
     });
@@ -682,14 +681,7 @@ describe("GovPool", () => {
       it("should not initialize twice", async () => {
         await truffleAssert.reverts(
           govPool.__GovPool_init(
-            [
-              settings.address,
-              userKeeper.address,
-              dp.address,
-              validators.address,
-              expertNft.address,
-              nftMultiplier.address,
-            ],
+            [settings.address, userKeeper.address, validators.address, expertNft.address, nftMultiplier.address],
             wei("1.3", 25),
             wei("1.132", 25),
             OWNER,
