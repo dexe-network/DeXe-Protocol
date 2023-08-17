@@ -324,7 +324,7 @@ describe("PoolFactory", () => {
           ],
           whitelistParams: [],
           tokenParams: {
-            name: "sale token",
+            name: "gov token",
             symbol: "st",
             users: [],
             saleAmount: wei("100"),

@@ -18,7 +18,7 @@ function deployGovPool(
 struct GovTokenSaleProposalDeployParams {
     ITokenSaleProposal.TierView[] tiersParams;
     ITokenSaleProposal.WhitelistingRequest[] whitelistParams;
-    IERC20Sale.ConstructorParams tokenParams;
+    IERC20Gov.ConstructorParams tokenParams;
 }
 ```
 
