@@ -223,30 +223,6 @@ contract GovPool is
         );
     }
 
-    function voteDelegated(uint256 proposalId, bool isVoteFor) external override onlyBABTHolder {
-        _unlock(msg.sender, VoteType.MicropoolVote);
-
-        _voteDelegated(
-            proposalId,
-            msg.sender,
-            VoteType.MicropoolVote,
-            isVoteFor,
-            isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated
-        );
-    }
-
-    function voteTreasury(uint256 proposalId, bool isVoteFor) external override onlyBABTHolder {
-        _unlock(msg.sender, VoteType.TreasuryVote);
-
-        _voteDelegated(
-            proposalId,
-            msg.sender,
-            VoteType.TreasuryVote,
-            isVoteFor,
-            isVoteFor ? RewardType.VoteForTreasury : RewardType.VoteAgainstTreasury
-        );
-    }
-
     function cancelVote(
         uint256 proposalId,
         bool isVoteFor,
@@ -270,36 +246,6 @@ contract GovPool is
             isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst,
             totalVotedBefore,
             totalVotedAfter
-        );
-    }
-
-    function cancelVoteDelegated(
-        uint256 proposalId,
-        bool isVoteFor
-    ) external override onlyBABTHolder {
-        _unlock(msg.sender, VoteType.MicropoolVote);
-
-        _cancelVoteDelegated(
-            proposalId,
-            msg.sender,
-            VoteType.MicropoolVote,
-            isVoteFor,
-            isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated
-        );
-    }
-
-    function cancelVoteTreasury(
-        uint256 proposalId,
-        bool isVoteFor
-    ) external override onlyBABTHolder {
-        _unlock(msg.sender, VoteType.TreasuryVote);
-
-        _cancelVoteDelegated(
-            proposalId,
-            msg.sender,
-            VoteType.TreasuryVote,
-            isVoteFor,
-            isVoteFor ? RewardType.VoteForTreasury : RewardType.VoteAgainstTreasury
         );
     }
 

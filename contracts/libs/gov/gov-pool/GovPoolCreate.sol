@@ -262,12 +262,7 @@ library GovPoolCreate {
 
             bytes4 selector = actionFor.data.getSelector();
             require(selector == actionAgainst.data.getSelector(), "Gov: invalid selector");
-            require(
-                selector == IGovPool.vote.selector ||
-                    selector == IGovPool.voteDelegated.selector ||
-                    selector == IGovPool.voteTreasury.selector,
-                "Gov: invalid selector"
-            );
+            require(selector == IGovPool.vote.selector, "Gov: invalid selector");
 
             (uint256 proposalIdFor, bool isVoteForOnFor) = _decodeVoteFunction(actionFor);
             (uint256 proposalIdAgainst, bool isVoteForOnAgainst) = _decodeVoteFunction(

@@ -299,14 +299,6 @@ interface IGovPool {
         uint256[] calldata voteNftIds
     ) external;
 
-    /// @notice The function for voting for proposals with delegated tokens
-    /// @param proposalId the id of proposal
-    /// @param isVoteFor the bool flag for voting for or against the proposal
-    function voteDelegated(uint256 proposalId, bool isVoteFor) external;
-
-    /// TODO: docs
-    function voteTreasury(uint256 proposalId, bool isVoteFor) external;
-
     /// TODO: docs
     function cancelVote(
         uint256 proposalId,
@@ -314,12 +306,6 @@ interface IGovPool {
         uint256 voteAmount,
         uint256[] calldata voteNftIds
     ) external;
-
-    /// TODO: docs
-    function cancelVoteDelegated(uint256 proposalId, bool isVoteFor) external;
-
-    /// TODO: docs
-    function cancelVoteTreasury(uint256 proposalId, bool isVoteFor) external;
 
     /// @notice The function for depositing tokens to the pool
     /// @param receiver the address of the deposit receiver
