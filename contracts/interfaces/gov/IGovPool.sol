@@ -283,12 +283,10 @@ interface IGovPool {
     /// @notice For typed proposal, last executor should be typed contract
     /// @notice For external proposal, any configuration of addresses and bytes
     /// @param descriptionURL IPFS url to the proposal's description
-    /// @param misc the string with additional information
     /// @param actionsOnFor the array of structs with information about actions on for step
     /// @param actionsOnAgainst the array of structs with information about actions on against step
     function createProposal(
         string calldata descriptionURL,
-        string calldata misc,
         ProposalAction[] calldata actionsOnFor,
         ProposalAction[] calldata actionsOnAgainst
     ) external;

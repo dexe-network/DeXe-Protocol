@@ -265,7 +265,7 @@ describe("TokenSaleProposal", () => {
 
   describe("proposals", () => {
     const acceptProposal = async (actionsFor, actionsAgainst = []) => {
-      await govPool.createProposal("example.com", "misc", actionsFor, actionsAgainst);
+      await govPool.createProposal("example.com", actionsFor, actionsAgainst);
 
       const proposalId = await govPool.latestProposalId();
 

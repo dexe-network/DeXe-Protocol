@@ -368,7 +368,6 @@ describe("DistributionProposal", () => {
 
         await govPool.createProposal(
           "example.com",
-          "misc",
           [[dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100"))]],
           []
         );
@@ -440,7 +439,6 @@ describe("DistributionProposal", () => {
       it("should correctly claim", async () => {
         await govPool.createProposal(
           "example.com",
-          "misc",
           [
             [token.address, 0, getBytesTransfer(dp.address, wei("100000"))],
             [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
@@ -480,7 +478,6 @@ describe("DistributionProposal", () => {
 
         await govPool.createProposal(
           "example.com",
-          "misc",
           [[dp.address, wei("1"), getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))]],
           [],
           { from: SECOND }
@@ -504,7 +501,6 @@ describe("DistributionProposal", () => {
       it("should not claim if not enough votes", async () => {
         await govPool.createProposal(
           "example.com",
-          "misc",
           [
             [token.address, 0, getBytesTransfer(dp.address, wei("100000"))],
             [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
@@ -527,7 +523,6 @@ describe("DistributionProposal", () => {
 
         await govPool.createProposal(
           "example.com",
-          "misc",
           [[dp.address, wei("1"), getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))]],
           [],
           { from: SECOND }
@@ -554,7 +549,6 @@ describe("DistributionProposal", () => {
       it("should not claim if not enough ether", async () => {
         await govPool.createProposal(
           "example.com",
-          "misc",
           [[dp.address, 0, getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))]],
           [],
           { from: SECOND }
@@ -572,7 +566,6 @@ describe("DistributionProposal", () => {
       it("should revert when proposal amount < reward", async () => {
         await govPool.createProposal(
           "example.com",
-          "misc",
           [
             [token.address, 0, getBytesApprove(dp.address, wei("100000"))],
             [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
@@ -596,7 +589,6 @@ describe("DistributionProposal", () => {
       it("should revert if already claimed", async () => {
         await govPool.createProposal(
           "example.com",
-          "misc",
           [
             [token.address, 0, getBytesTransfer(dp.address, wei("100000"))],
             [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],

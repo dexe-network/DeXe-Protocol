@@ -178,7 +178,6 @@ contract GovPool is
 
     function createProposal(
         string calldata _descriptionURL,
-        string calldata misc,
         ProposalAction[] calldata actionsOnFor,
         ProposalAction[] calldata actionsOnAgainst
     ) external override onlyBABTHolder {
@@ -187,7 +186,6 @@ contract GovPool is
         _proposals.createProposal(
             _restrictedProposals,
             _descriptionURL,
-            misc,
             actionsOnFor,
             actionsOnAgainst
         );

@@ -23,8 +23,8 @@ library GovPoolCreate {
     event ProposalCreated(
         uint256 proposalId,
         string proposalDescription,
-        string misc,
         IGovPool.ProposalAction[] actionsOnFor,
+        IGovPool.ProposalAction[] actionsOnAgainst,
         uint256 quorum,
         uint256 proposalSettings,
         address rewardToken,
@@ -36,7 +36,6 @@ library GovPoolCreate {
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
         string calldata _descriptionURL,
-        string calldata misc,
         IGovPool.ProposalAction[] calldata actionsOnFor,
         IGovPool.ProposalAction[] calldata actionsOnAgainst
     ) external {
@@ -77,8 +76,8 @@ library GovPoolCreate {
         emit ProposalCreated(
             proposalId,
             _descriptionURL,
-            misc,
             actionsOnFor,
+            actionsOnAgainst,
             settings.quorum,
             settingsId,
             settings.rewardsInfo.rewardToken,
