@@ -18,7 +18,13 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
     mapping(address => uint256) private _latestLockedTokenIds;
 
     event Minted(address to, uint256 tokenId, uint256 multiplier, uint256 duration);
-    event Locked(address from, uint256 tokenId, uint256 multiplier, uint256 duration);
+    event Locked(
+        address from,
+        uint256 tokenId,
+        uint256 multiplier,
+        uint256 duration,
+        bool isLocked
+    );
     event Changed(uint256 tokenId, uint256 multiplier, uint256 duration);
 
     function __ERC721Multiplier_init(
@@ -46,7 +52,37 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         tokenToBeLocked.lockedAt = uint64(block.timestamp);
         _latestLockedTokenIds[msg.sender] = tokenId;
 
-        emit Locked(msg.sender, tokenId, tokenToBeLocked.multiplier, tokenToBeLocked.duration);
+        emit Locked(
+            msg.sender,
+            tokenId,
+            tokenToBeLocked.multiplier,
+            tokenToBeLocked.duration,
+            true
+        );
+    }
+
+    function unlock(uint256 tokenId) external override {
+        require(
+            ERC721Upgradeable.ownerOf(tokenId) == msg.sender,
+            "ERC721Multiplier: not the nft owner"
+        );
+
+        require(
+            isLocked(_latestLockedTokenIds[msg.sender]),
+            "ERC721Multiplier: Nft is not locked"
+        );
+
+        NftInfo storage tokenToBeUnlocked = _tokens[tokenId];
+
+        tokenToBeUnlocked.lockedAt = 0;
+
+        emit Locked(
+            msg.sender,
+            tokenId,
+            tokenToBeUnlocked.multiplier,
+            tokenToBeUnlocked.duration,
+            false
+        );
     }
 
     function mint(address to, uint256 multiplier, uint64 duration) external override onlyOwner {

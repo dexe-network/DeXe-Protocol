@@ -22,6 +22,10 @@ interface IERC721Multiplier is IERC721EnumerableUpgradeable {
     /// @param tokenId the id of the nft to be locked
     function lock(uint256 tokenId) external;
 
+    /// @notice This function is used to unlock an nft (disable corresponding basic rewards multiplier)
+    /// @param tokenId the id of the nft to be unlocked
+    function unlock(uint256 tokenId) external;
+
     /// @notice This function is used to mint an nft to the user's address
     /// @param to the address to which an nft should be minted
     /// @param multiplier the basic rewards multiplier
