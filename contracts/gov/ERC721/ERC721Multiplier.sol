@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
+import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/ERC721/IERC721Multiplier.sol";
 import "../../core/Globals.sol";
 
@@ -11,6 +12,8 @@ import "../../libs/math/MathHelper.sol";
 
 contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, OwnableUpgradeable {
     using MathHelper for uint256;
+
+    IGovPool internal _govPool;
 
     string public baseURI;
 
@@ -29,11 +32,16 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
 
     function __ERC721Multiplier_init(
         string calldata name,
-        string calldata symbol
+        string calldata symbol,
+        address govAddress
     ) external initializer {
         __Ownable_init();
         __ERC721Enumerable_init();
         __ERC721_init(name, symbol);
+
+        require(govAddress != address(0), "ERC721Multiplier: govAddress is zero");
+
+        _govPool = IGovPool(govAddress);
     }
 
     function lock(uint256 tokenId) external override {
@@ -74,6 +82,11 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         require(
             isLocked(_latestLockedTokenIds[tokenOwner]),
             "ERC721Multiplier: Nft is not locked"
+        );
+
+        require(
+            _noActiveProposals(tokenOwner),
+            "ERC721Multiplier: Cannot unlock with active proposals"
         );
 
         NftInfo storage tokenToBeUnlocked = _tokens[tokenId];
@@ -176,5 +189,9 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
 
     function _baseURI() internal view override returns (string memory) {
         return baseURI;
+    }
+
+    function _noActiveProposals(address user) internal view returns (bool) {
+        return _govPool.getUserActiveProposals(user).length == 0;
     }
 }

@@ -515,6 +515,12 @@ contract GovPool is
         return _proposals.getProposals(offset, limit);
     }
 
+    function getUserActiveProposals(
+        address user
+    ) external view override returns (uint256[] memory) {
+        return _votedInProposals.getUserActiveProposals(user);
+    }
+
     function getProposalRequiredQuorum(
         uint256 proposalId
     ) external view override returns (uint256) {
@@ -621,7 +627,7 @@ contract GovPool is
     function _changeVoteModifiers(uint256 regularModifier, uint256 expertModifier) internal {
         require(
             regularModifier >= PRECISION && expertModifier >= PRECISION,
-            "Gov: vote modifiers are less than 1"
+            "Gov: modifiers are less than 1"
         );
 
         _regularVoteModifier = regularModifier;

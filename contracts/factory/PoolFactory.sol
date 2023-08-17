@@ -242,7 +242,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         );
         ERC721Multiplier(govPoolDeps.nftMultiplierAddress).__ERC721Multiplier_init(
             parameters.name.concatStrings(NFT_MULTIPLIER_NAME_POSTFIX),
-            parameters.name.concatStrings(NFT_MULTIPLIER_SYMBOL_POSTFIX)
+            parameters.name.concatStrings(NFT_MULTIPLIER_SYMBOL_POSTFIX),
+            poolProxy
         );
     }
 

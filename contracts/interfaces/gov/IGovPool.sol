@@ -458,6 +458,11 @@ interface IGovPool {
     /// 9 -`Undefined`, nonexistent proposal
     function getProposalState(uint256 proposalId) external view returns (ProposalState);
 
+    /// @notice The function for getting suer's active proposals
+    /// @param user the address of user
+    /// @return the array of proposal ids
+    function getUserActiveProposals(address user) external view returns (uint256[] memory);
+
     /// @notice The function for getting total votes in the proposal by one voter
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
