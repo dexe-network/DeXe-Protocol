@@ -1,7 +1,7 @@
 const config = require("./config/config.json");
 
 const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
-const { wei } = require("../scripts/utils/utils");
+const { accounts, wei } = require("../scripts/utils/utils");
 
 const Proxy = artifacts.require("ERC1967Proxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -134,45 +134,17 @@ const DP_SETTINGS = {
   executorDescription: "dp",
 };
 
-const TOKEN_SETTINGS = {
-  earlyCompletion: false,
-  delegatedVotingAllowed: false,
-  validatorsVote: false,
-  duration: 500,
-  durationValidators: 600,
-  quorum: PRECISION.times("51").toFixed(),
-  quorumValidators: PRECISION.times("61").toFixed(),
-  minVotesForVoting: wei("10"),
-  minVotesForCreating: wei("5"),
-  executionDelay: 0,
-  rewardsInfo: {
-    rewardToken: ZERO_ADDR,
-    creationReward: 0,
-    executionReward: 0,
-    voteForRewardsCoefficient: 0,
-    voteAgainstRewardsCoefficient: 0,
-  },
-  executorDescription: "Token Sale",
-};
-
 module.exports = async (deployer, logger) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
   const poolFactory = await PoolFactory.at(await contractsRegistry.getPoolFactoryContract());
 
-  // TODO: is it ok?
-  const addressThis = (await deployer.hre.web3.eth.getAccounts())[0];
-
-  const predictedGovAddresses = await poolFactory.predictGovAddresses(addressThis, POOL_PARAMETERS.name);
+  const predictedGovAddresses = await poolFactory.predictGovAddresses(await accounts(0), POOL_PARAMETERS.name);
 
   logger.logTransaction(
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), predictedGovAddresses.govPool),
     "Add Treasury"
   );
-
-  // TODO: do we need this?
-  // POOL_PARAMETERS.settingsParams.proposalSettings.push(TOKEN_SETTINGS);
-  // POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(predictedGovAddresses.govToken);
 
   POOL_PARAMETERS.settingsParams.proposalSettings.push(DP_SETTINGS);
   POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(predictedGovAddresses.distributionProposal);
