@@ -183,7 +183,7 @@ describe("DistributionProposal", () => {
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
     await nftMultiplier.__ERC721Multiplier_init("Mock Nft Multiplier", "MCKNFTMLTPLR");
     await govPool.__GovPool_init(
-      [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address, nftMultiplier.address],
+      [settings.address, userKeeper.address, validators.address, expertNft.address, nftMultiplier.address],
       wei("1", 25),
       wei("1", 25),
       OWNER,
