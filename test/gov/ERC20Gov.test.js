@@ -4,11 +4,11 @@ const { ZERO_ADDR } = require("../../scripts/utils/constants");
 const truffleAssert = require("truffle-assertions");
 const Reverter = require("../helpers/reverter");
 
-const ERC20Sale = artifacts.require("ERC20Sale");
+const ERC20Gov = artifacts.require("ERC20Gov");
 
-ERC20Sale.numberFormat = "BigNumber";
+ERC20Gov.numberFormat = "BigNumber";
 
-describe("ERC20Sale", () => {
+describe("ERC20Gov", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -17,7 +17,7 @@ describe("ERC20Sale", () => {
 
   let DEFAULT_PARAMS;
 
-  let erc20Sale;
+  let erc20Gov;
 
   const reverter = new Reverter();
 
@@ -28,7 +28,7 @@ describe("ERC20Sale", () => {
     SALE_ADDRESS = await accounts(3);
     GOV_ADDRESS = await accounts(4);
 
-    erc20Sale = await ERC20Sale.new();
+    erc20Gov = await ERC20Gov.new();
 
     await reverter.snapshot();
   });
@@ -40,8 +40,8 @@ describe("ERC20Sale", () => {
       govAddress: GOV_ADDRESS,
       saleAddress: SALE_ADDRESS,
       constructorParameters: {
-        name: "ERC20SaleMocked",
-        symbol: "ERC20SM",
+        name: "ERC20GovMocked",
+        symbol: "ERC20GM",
         users: [SECOND, THIRD],
         saleAmount: wei(1),
         cap: wei(20),
@@ -56,12 +56,12 @@ describe("ERC20Sale", () => {
       DEFAULT_PARAMS.govAddress = ZERO_ADDR;
 
       await truffleAssert.reverts(
-        erc20Sale.__ERC20Sale_init(
+        erc20Gov.__ERC20Gov_init(
           DEFAULT_PARAMS.govAddress,
           DEFAULT_PARAMS.saleAddress,
           DEFAULT_PARAMS.constructorParameters
         ),
-        "ERC20Sale: govAddress is zero"
+        "ERC20Gov: govAddress is zero"
       );
     });
 
@@ -69,12 +69,12 @@ describe("ERC20Sale", () => {
       DEFAULT_PARAMS.constructorParameters.mintedTotal = wei(30);
 
       await truffleAssert.reverts(
-        erc20Sale.__ERC20Sale_init(
+        erc20Gov.__ERC20Gov_init(
           DEFAULT_PARAMS.govAddress,
           DEFAULT_PARAMS.saleAddress,
           DEFAULT_PARAMS.constructorParameters
         ),
-        "ERC20Sale: mintedTotal should not be greater than cap"
+        "ERC20Gov: mintedTotal should not be greater than cap"
       );
     });
 
@@ -82,12 +82,12 @@ describe("ERC20Sale", () => {
       DEFAULT_PARAMS.constructorParameters.users = [];
 
       await truffleAssert.reverts(
-        erc20Sale.__ERC20Sale_init(
+        erc20Gov.__ERC20Gov_init(
           DEFAULT_PARAMS.govAddress,
           DEFAULT_PARAMS.saleAddress,
           DEFAULT_PARAMS.constructorParameters
         ),
-        "ERC20Sale: users and amounts lengths mismatch"
+        "ERC20Gov: users and amounts lengths mismatch"
       );
     });
 
@@ -95,37 +95,37 @@ describe("ERC20Sale", () => {
       DEFAULT_PARAMS.constructorParameters.amounts = [wei(10), wei(10)];
 
       await truffleAssert.reverts(
-        erc20Sale.__ERC20Sale_init(
+        erc20Gov.__ERC20Gov_init(
           DEFAULT_PARAMS.govAddress,
           DEFAULT_PARAMS.saleAddress,
           DEFAULT_PARAMS.constructorParameters
         ),
-        "ERC20Sale: overminting"
+        "ERC20Gov: overminting"
       );
     });
 
     it("should deploy properly if all conditions are met", async () => {
-      await erc20Sale.__ERC20Sale_init(
+      await erc20Gov.__ERC20Gov_init(
         DEFAULT_PARAMS.govAddress,
         DEFAULT_PARAMS.saleAddress,
         DEFAULT_PARAMS.constructorParameters
       );
 
-      assert.equal((await erc20Sale.balanceOf(DEFAULT_PARAMS.constructorParameters.users[0])).toFixed(), wei(2));
-      assert.equal((await erc20Sale.balanceOf(DEFAULT_PARAMS.constructorParameters.users[1])).toFixed(), wei(3));
-      assert.equal((await erc20Sale.balanceOf(DEFAULT_PARAMS.saleAddress)).toFixed(), wei(1));
-      assert.equal((await erc20Sale.balanceOf(DEFAULT_PARAMS.govAddress)).toFixed(), wei(4));
+      assert.equal((await erc20Gov.balanceOf(DEFAULT_PARAMS.constructorParameters.users[0])).toFixed(), wei(2));
+      assert.equal((await erc20Gov.balanceOf(DEFAULT_PARAMS.constructorParameters.users[1])).toFixed(), wei(3));
+      assert.equal((await erc20Gov.balanceOf(DEFAULT_PARAMS.saleAddress)).toFixed(), wei(1));
+      assert.equal((await erc20Gov.balanceOf(DEFAULT_PARAMS.govAddress)).toFixed(), wei(4));
     });
 
     it("should not initialize twice", async () => {
-      await erc20Sale.__ERC20Sale_init(
+      await erc20Gov.__ERC20Gov_init(
         DEFAULT_PARAMS.govAddress,
         DEFAULT_PARAMS.saleAddress,
         DEFAULT_PARAMS.constructorParameters
       );
 
       await truffleAssert.reverts(
-        erc20Sale.__ERC20Sale_init(
+        erc20Gov.__ERC20Gov_init(
           DEFAULT_PARAMS.govAddress,
           DEFAULT_PARAMS.saleAddress,
           DEFAULT_PARAMS.constructorParameters
@@ -137,7 +137,7 @@ describe("ERC20Sale", () => {
 
   describe("functionality", () => {
     beforeEach(async () => {
-      await erc20Sale.__ERC20Sale_init(
+      await erc20Gov.__ERC20Gov_init(
         DEFAULT_PARAMS.govAddress,
         DEFAULT_PARAMS.saleAddress,
         DEFAULT_PARAMS.constructorParameters
@@ -146,151 +146,148 @@ describe("ERC20Sale", () => {
 
     describe("mint", () => {
       it("should not mint if caller is not govPool", async () => {
-        await truffleAssert.reverts(erc20Sale.mint(SALE_ADDRESS, wei(1)), "ERC20Sale: not a Gov contract");
+        await truffleAssert.reverts(erc20Gov.mint(SALE_ADDRESS, wei(1)), "ERC20Gov: not a Gov contract");
       });
 
       it("should not mint if the cap is reached", async () => {
-        await truffleAssert.reverts(
-          erc20Sale.mint(OWNER, wei(100), { from: GOV_ADDRESS }),
-          "ERC20Capped: cap exceeded"
-        );
+        await truffleAssert.reverts(erc20Gov.mint(OWNER, wei(100), { from: GOV_ADDRESS }), "ERC20Capped: cap exceeded");
       });
 
       it("should mint if all conditions are met", async () => {
-        assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), "0");
+        assert.equal((await erc20Gov.balanceOf(OWNER)).toFixed(), "0");
 
-        await erc20Sale.mint(OWNER, wei(1), { from: GOV_ADDRESS });
+        await erc20Gov.mint(OWNER, wei(1), { from: GOV_ADDRESS });
 
-        assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(1));
+        assert.equal((await erc20Gov.balanceOf(OWNER)).toFixed(), wei(1));
       });
     });
 
     describe("pause", () => {
       it("should not pause if caller is not govPool", async () => {
-        await truffleAssert.reverts(erc20Sale.pause(), "ERC20Sale: not a Gov contract");
+        await truffleAssert.reverts(erc20Gov.pause(), "ERC20Gov: not a Gov contract");
       });
 
-      it("should not mint if erc20Sale is paused", async () => {
-        await erc20Sale.pause({ from: GOV_ADDRESS });
+      it("should not mint if erc20Gov is paused", async () => {
+        await erc20Gov.pause({ from: GOV_ADDRESS });
 
         await truffleAssert.reverts(
-          erc20Sale.mint(OWNER, wei(1), { from: GOV_ADDRESS }),
+          erc20Gov.mint(OWNER, wei(1), { from: GOV_ADDRESS }),
           "ERC20Pausable: token transfer while paused"
         );
       });
 
-      it("should not transfer if erc20Sale is paused", async () => {
-        await erc20Sale.pause({ from: GOV_ADDRESS });
+      it("should not transfer if erc20Gov is paused", async () => {
+        await erc20Gov.pause({ from: GOV_ADDRESS });
 
         await truffleAssert.reverts(
-          erc20Sale.transfer(THIRD, wei(1), { from: SECOND }),
+          erc20Gov.transfer(THIRD, wei(1), { from: SECOND }),
           "ERC20Pausable: token transfer while paused"
         );
       });
 
-      it("should not blacklist if erc20Sale is paused", async () => {
-        await erc20Sale.pause({ from: GOV_ADDRESS });
+      it("should not blacklist if erc20Gov is paused", async () => {
+        await erc20Gov.pause({ from: GOV_ADDRESS });
 
-        await truffleAssert.reverts(erc20Sale.blacklist([THIRD], true), "Pausable: paused");
+        await truffleAssert.reverts(erc20Gov.blacklist([THIRD], true), "Pausable: paused");
       });
     });
 
     describe("unpause", () => {
       beforeEach(async () => {
-        await erc20Sale.pause({ from: GOV_ADDRESS });
-        await erc20Sale.unpause({ from: GOV_ADDRESS });
+        await erc20Gov.pause({ from: GOV_ADDRESS });
+        await erc20Gov.unpause({ from: GOV_ADDRESS });
       });
 
       it("should not unpause if caller is not govPool", async () => {
-        await truffleAssert.reverts(erc20Sale.unpause(), "ERC20Sale: not a Gov contract");
+        await truffleAssert.reverts(erc20Gov.unpause(), "ERC20Gov: not a Gov contract");
       });
 
-      it("should mint if erc20Sale is unpaused", async () => {
-        assert.equal((await erc20Sale.balanceOf(SECOND)).toFixed(), wei(2));
+      it("should mint if erc20Gov is unpaused", async () => {
+        assert.equal((await erc20Gov.balanceOf(SECOND)).toFixed(), wei(2));
 
-        await erc20Sale.mint(SECOND, wei(1), { from: GOV_ADDRESS });
+        await erc20Gov.mint(SECOND, wei(1), { from: GOV_ADDRESS });
 
-        assert.equal((await erc20Sale.balanceOf(SECOND)).toFixed(), wei(3));
+        assert.equal((await erc20Gov.balanceOf(SECOND)).toFixed(), wei(3));
       });
 
-      it("should transfer if erc20Sale is unpaused", async () => {
-        assert.equal((await erc20Sale.balanceOf(SECOND)).toFixed(), wei(2));
-        assert.equal((await erc20Sale.balanceOf(THIRD)).toFixed(), wei(3));
+      it("should transfer if erc20Gov is unpaused", async () => {
+        assert.equal((await erc20Gov.balanceOf(SECOND)).toFixed(), wei(2));
+        assert.equal((await erc20Gov.balanceOf(THIRD)).toFixed(), wei(3));
 
-        await erc20Sale.transfer(THIRD, wei(1), { from: SECOND });
+        await erc20Gov.transfer(THIRD, wei(1), { from: SECOND });
 
-        assert.equal((await erc20Sale.balanceOf(SECOND)).toFixed(), wei(1));
-        assert.equal((await erc20Sale.balanceOf(THIRD)).toFixed(), wei(4));
+        assert.equal((await erc20Gov.balanceOf(SECOND)).toFixed(), wei(1));
+        assert.equal((await erc20Gov.balanceOf(THIRD)).toFixed(), wei(4));
       });
 
-      it("should blacklist if erc20Sale is unpaused", async () => {
-        assert.ok(await erc20Sale.blacklist([SECOND], true, { from: GOV_ADDRESS }));
+      it("should blacklist if erc20Gov is unpaused", async () => {
+        assert.ok(await erc20Gov.blacklist([SECOND], true, { from: GOV_ADDRESS }));
       });
     });
 
     describe("blacklist", () => {
       it("should not blacklist if caller is not govPool", async () => {
-        await truffleAssert.reverts(erc20Sale.blacklist([SECOND], true), "ERC20Sale: not a Gov contract");
+        await truffleAssert.reverts(erc20Gov.blacklist([SECOND], true), "ERC20Gov: not a Gov contract");
       });
 
       it("should blacklist if caller is govPool", async () => {
-        assert.equal(await erc20Sale.totalBlacklistAccounts(), 0);
+        assert.equal(await erc20Gov.totalBlacklistAccounts(), 0);
 
-        await erc20Sale.blacklist([SECOND, THIRD], true, { from: GOV_ADDRESS });
+        await erc20Gov.blacklist([SECOND, THIRD], true, { from: GOV_ADDRESS });
 
-        assert.equal(await erc20Sale.totalBlacklistAccounts(), 2);
+        assert.equal(await erc20Gov.totalBlacklistAccounts(), 2);
       });
 
       it("should unblacklist if caller is govPool", async () => {
-        await erc20Sale.blacklist([SECOND], true, { from: GOV_ADDRESS });
+        await erc20Gov.blacklist([SECOND], true, { from: GOV_ADDRESS });
 
-        assert.equal(await erc20Sale.totalBlacklistAccounts(), 1);
+        assert.equal(await erc20Gov.totalBlacklistAccounts(), 1);
 
-        await erc20Sale.blacklist([SECOND], false, { from: GOV_ADDRESS });
+        await erc20Gov.blacklist([SECOND], false, { from: GOV_ADDRESS });
 
-        assert.equal(await erc20Sale.totalBlacklistAccounts(), 0);
+        assert.equal(await erc20Gov.totalBlacklistAccounts(), 0);
       });
 
       it("should not revert if account is already blacklisted", async () => {
-        await erc20Sale.blacklist([SECOND], true, { from: GOV_ADDRESS });
+        await erc20Gov.blacklist([SECOND], true, { from: GOV_ADDRESS });
 
-        assert.isOk(await erc20Sale.blacklist([SECOND], true, { from: GOV_ADDRESS }));
+        assert.isOk(await erc20Gov.blacklist([SECOND], true, { from: GOV_ADDRESS }));
 
-        assert.equal(await erc20Sale.totalBlacklistAccounts(), 1);
+        assert.equal(await erc20Gov.totalBlacklistAccounts(), 1);
       });
 
       it("should not revert if account is not blacklisted", async () => {
-        assert.isOk(erc20Sale.blacklist([SECOND], false, { from: GOV_ADDRESS }));
+        assert.isOk(erc20Gov.blacklist([SECOND], false, { from: GOV_ADDRESS }));
       });
 
       it("should not mint if the account is blacklisted", async () => {
-        await erc20Sale.blacklist([SECOND], true, { from: GOV_ADDRESS });
+        await erc20Gov.blacklist([SECOND], true, { from: GOV_ADDRESS });
 
         await truffleAssert.reverts(
-          erc20Sale.mint(SECOND, wei(1), { from: GOV_ADDRESS }),
-          "ERC20Sale: account is blacklisted"
+          erc20Gov.mint(SECOND, wei(1), { from: GOV_ADDRESS }),
+          "ERC20Gov: account is blacklisted"
         );
       });
 
       it("should not transfer if the account is blacklisted", async () => {
-        await erc20Sale.blacklist([SECOND], true, { from: GOV_ADDRESS });
+        await erc20Gov.blacklist([SECOND], true, { from: GOV_ADDRESS });
 
         await truffleAssert.reverts(
-          erc20Sale.transfer(GOV_ADDRESS, wei(1), { from: SECOND }),
-          "ERC20Sale: account is blacklisted"
+          erc20Gov.transfer(GOV_ADDRESS, wei(1), { from: SECOND }),
+          "ERC20Gov: account is blacklisted"
         );
       });
     });
 
     describe("getBlacklistTokens", () => {
       it("should return empty array if no accounts are blacklisted", async () => {
-        assert.deepEqual(await erc20Sale.getBlacklistAccounts(0, 10), []);
+        assert.deepEqual(await erc20Gov.getBlacklistAccounts(0, 10), []);
       });
 
       it("should return array of blacklisted accounts", async () => {
-        await erc20Sale.blacklist([SECOND], true, { from: GOV_ADDRESS });
+        await erc20Gov.blacklist([SECOND], true, { from: GOV_ADDRESS });
 
-        assert.deepEqual(await erc20Sale.getBlacklistAccounts(0, 10), [SECOND]);
+        assert.deepEqual(await erc20Gov.getBlacklistAccounts(0, 10), [SECOND]);
       });
     });
   });

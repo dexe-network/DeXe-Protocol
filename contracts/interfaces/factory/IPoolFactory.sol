@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import "../gov/settings/IGovSettings.sol";
 import "../gov/validators/IGovValidators.sol";
 import "../gov/proposals/ITokenSaleProposal.sol";
-import "../gov/ERC20/IERC20Sale.sol";
+import "../gov/ERC20/IERC20Gov.sol";
 import "../core/ICoreProperties.sol";
 
 /**
@@ -53,7 +53,7 @@ interface IPoolFactory {
     struct TokenSaleProposalDeployParams {
         ITokenSaleProposal.TierInitParams[] tiersParams;
         ITokenSaleProposal.WhitelistingRequest[] whitelistParams;
-        IERC20Sale.ConstructorParams tokenParams;
+        IERC20Gov.ConstructorParams tokenParams;
     }
 
     /// @notice The pool deploy parameters

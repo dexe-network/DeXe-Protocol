@@ -22,7 +22,7 @@ const CoreProperties = artifacts.require("CoreProperties");
 const GovPool = artifacts.require("GovPool");
 const DistributionProposal = artifacts.require("DistributionProposal");
 const TokenSaleProposal = artifacts.require("TokenSaleProposalMock");
-const ERC20Sale = artifacts.require("ERC20Sale");
+const ERC20Gov = artifacts.require("ERC20Gov");
 const BABTMock = artifacts.require("BABTMock");
 const GovSettings = artifacts.require("GovSettings");
 const GovValidators = artifacts.require("GovValidators");
@@ -54,7 +54,7 @@ CoreProperties.numberFormat = "BigNumber";
 GovPool.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 ERC721Mock.numberFormat = "BigNumber";
-ERC20Sale.numberFormat = "BigNumber";
+ERC20Gov.numberFormat = "BigNumber";
 ERC721Expert.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 TokenSaleProposal.numberFormat = "BigNumber";
@@ -74,7 +74,7 @@ describe("TokenSaleProposal", () => {
   let tiers;
 
   let tsp;
-  let erc20Sale;
+  let erc20Gov;
 
   let FACTORY;
   let NOTHING;
@@ -474,8 +474,8 @@ describe("TokenSaleProposal", () => {
         govAddress: govPool.address,
         saleAddress: tsp.address,
         constructorParameters: {
-          name: "ERC20SaleMocked",
-          symbol: "ERC20SM",
+          name: "ERC20GovMocked",
+          symbol: "ERC20GM",
           users: [SECOND, THIRD],
           saleAmount: wei(1000),
           cap: wei(2000),
@@ -484,9 +484,9 @@ describe("TokenSaleProposal", () => {
         },
       };
 
-      erc20Sale = await ERC20Sale.new();
+      erc20Gov = await ERC20Gov.new();
 
-      erc20Sale.__ERC20Sale_init(erc20Params.govAddress, erc20Params.saleAddress, erc20Params.constructorParameters);
+      erc20Gov.__ERC20Gov_init(erc20Params.govAddress, erc20Params.saleAddress, erc20Params.constructorParameters);
 
       purchaseToken1 = await ERC20Mock.new("PurchaseMockedToken1", "PMT1", 18);
       purchaseToken2 = await ERC20Mock.new("PurchaseMockedToken1", "PMT1", 18);
@@ -504,7 +504,7 @@ describe("TokenSaleProposal", () => {
           saleStartTime: (timeNow + 100).toString(),
           saleEndTime: (timeNow + 200).toString(),
           claimLockDuration: "10",
-          saleTokenAddress: erc20Sale.address,
+          saleTokenAddress: erc20Gov.address,
           purchaseTokenAddresses: [purchaseToken1.address, ETHER_ADDR],
           exchangeRates: [PRECISION.times(3).toFixed(), PRECISION.times(100).toFixed()],
           minAllocationPerUser: wei(20),
@@ -1677,7 +1677,7 @@ describe("TokenSaleProposal", () => {
 
           await acceptProposal([[tsp.address, 0, getBytesRecoverTSP([1])]]);
 
-          assert.equal((await erc20Sale.balanceOf(govPool.address)).toFixed(), wei("400"));
+          assert.equal((await erc20Gov.balanceOf(govPool.address)).toFixed(), wei("400"));
           assert.equal((await saleToken.balanceOf(govPool.address)).toFixed(), "0");
         });
 
@@ -1691,7 +1691,7 @@ describe("TokenSaleProposal", () => {
 
           await acceptProposal([[tsp.address, 0, getBytesRecoverTSP([1])]]);
 
-          assert.equal((await erc20Sale.balanceOf(govPool.address)).toFixed(), wei("400"));
+          assert.equal((await erc20Gov.balanceOf(govPool.address)).toFixed(), wei("400"));
           assert.equal((await saleToken.balanceOf(govPool.address)).toFixed(), "0");
         });
       });
@@ -1744,7 +1744,7 @@ describe("TokenSaleProposal", () => {
             (await tsp.getClaimAmounts(OWNER, [1])).map((e) => e.toFixed()),
             [wei(240)]
           );
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), "0");
+          assert.equal((await erc20Gov.balanceOf(OWNER)).toFixed(), "0");
 
           purchaseView = userViewsToObjects(await tsp.getUserViews(OWNER, [1]))[0].purchaseView;
 
@@ -1766,7 +1766,7 @@ describe("TokenSaleProposal", () => {
             (await tsp.getClaimAmounts(OWNER, [1])).map((e) => e.toFixed()),
             ["0"]
           );
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei(240));
+          assert.equal((await erc20Gov.balanceOf(OWNER)).toFixed(), wei(240));
         });
       });
 
@@ -1836,7 +1836,7 @@ describe("TokenSaleProposal", () => {
 
           await tsp.vestingWithdraw([1]);
 
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei("12.6"));
+          assert.equal((await erc20Gov.balanceOf(OWNER)).toFixed(), wei("12.6"));
 
           vestingUserView.latestVestingWithdraw = (firstVestingWithdraw + 20).toString();
           vestingUserView.amountToWithdraw = "0";
@@ -1881,7 +1881,7 @@ describe("TokenSaleProposal", () => {
             (await tsp.getVestingWithdrawAmounts(OWNER, [1])).map((e) => e.toFixed()),
             [wei("0")]
           );
-          assert.equal((await erc20Sale.balanceOf(OWNER)).toFixed(), wei("60"));
+          assert.equal((await erc20Gov.balanceOf(OWNER)).toFixed(), wei("60"));
 
           await setTime(firstVestingWithdraw + 500);
 

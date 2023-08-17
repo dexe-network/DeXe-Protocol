@@ -9,10 +9,10 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 import "@solarity/solidity-lib/libs/arrays/SetHelper.sol";
 
-import "../../interfaces/gov/ERC20/IERC20Sale.sol";
+import "../../interfaces/gov/ERC20/IERC20Gov.sol";
 
-contract ERC20Sale is
-    IERC20Sale,
+contract ERC20Gov is
+    IERC20Gov,
     ERC20CappedUpgradeable,
     ERC20PausableUpgradeable,
     ERC20BurnableUpgradeable
@@ -30,7 +30,7 @@ contract ERC20Sale is
         _;
     }
 
-    function __ERC20Sale_init(
+    function __ERC20Gov_init(
         address _govAddress,
         address _saleAddress,
         ConstructorParams calldata params
@@ -38,14 +38,14 @@ contract ERC20Sale is
         __ERC20_init(params.name, params.symbol);
         __ERC20Capped_init(params.cap);
 
-        require(_govAddress != address(0), "ERC20Sale: govAddress is zero");
+        require(_govAddress != address(0), "ERC20Gov: govAddress is zero");
         require(
             params.mintedTotal <= params.cap,
-            "ERC20Sale: mintedTotal should not be greater than cap"
+            "ERC20Gov: mintedTotal should not be greater than cap"
         );
         require(
             params.users.length == params.amounts.length,
-            "ERC20Sale: users and amounts lengths mismatch"
+            "ERC20Gov: users and amounts lengths mismatch"
         );
 
         govAddress = _govAddress;
@@ -56,7 +56,7 @@ contract ERC20Sale is
             ERC20Upgradeable._mint(params.users[i], params.amounts[i]);
         }
 
-        require(totalSupply() <= params.mintedTotal, "ERC20Sale: overminting");
+        require(totalSupply() <= params.mintedTotal, "ERC20Gov: overminting");
 
         ERC20Upgradeable._mint(_govAddress, params.mintedTotal - totalSupply());
     }
@@ -102,7 +102,7 @@ contract ERC20Sale is
     ) internal override(ERC20Upgradeable, ERC20PausableUpgradeable) {
         require(
             !_blacklistAccounts.contains(from) && !_blacklistAccounts.contains(to),
-            "ERC20Sale: account is blacklisted"
+            "ERC20Gov: account is blacklisted"
         );
 
         super._beforeTokenTransfer(from, to, amount);
@@ -116,6 +116,6 @@ contract ERC20Sale is
     }
 
     function _onlyGov() internal view {
-        require(msg.sender == govAddress, "ERC20Sale: not a Gov contract");
+        require(msg.sender == govAddress, "ERC20Gov: not a Gov contract");
     }
 }
