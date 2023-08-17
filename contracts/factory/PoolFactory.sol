@@ -96,7 +96,9 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.tokenSaleParams.whitelistParams
         );
 
-        _initGovPool(poolProxy, distributionAddress, govPoolDeps, parameters);
+        _initGovPool(poolProxy, govPoolDeps, parameters);
+
+        DistributionProposal(payable(distributionAddress)).__DistributionProposal_init(poolProxy);
         TokenSaleProposal(tokenSaleProxy).__TokenSaleProposal_init(poolProxy);
 
         GovSettings(govPoolDeps.settingsAddress).transferOwnership(poolProxy);
@@ -147,7 +149,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
     function _initGovPool(
         address poolProxy,
-        address distributionAddress,
         GovPool.Dependencies memory govPoolDeps,
         GovPoolDeployParams calldata parameters
     ) internal {
@@ -170,7 +171,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.userKeeperParams.totalPowerInTokens,
             parameters.userKeeperParams.nftsTotalSupply
         );
-        DistributionProposal(payable(distributionAddress)).__DistributionProposal_init(poolProxy);
         GovSettings(govPoolDeps.settingsAddress).__GovSettings_init(
             address(poolProxy),
             address(govPoolDeps.validatorsAddress),

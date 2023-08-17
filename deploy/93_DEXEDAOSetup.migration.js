@@ -91,17 +91,16 @@ let POOL_PARAMETERS = {
     totalPowerInTokens: 0,
     nftsTotalSupply: 0,
   },
-  // TODO: check params
   tokenSaleParams: {
     tiersParams: [],
     whitelistParams: [],
     tokenParams: {
-      name: "sale token",
-      symbol: "st",
+      name: "",
+      symbol: "",
       users: [],
-      saleAmount: wei("100"),
-      cap: wei("1000"),
-      mintedTotal: wei("150"),
+      saleAmount: 0,
+      cap: 0,
+      mintedTotal: 0,
       amounts: [],
     },
   },
@@ -134,6 +133,27 @@ const DP_SETTINGS = {
   executorDescription: "dp",
 };
 
+const TOKENSALE_SETTINGS = {
+  earlyCompletion: true,
+  delegatedVotingAllowed: false,
+  validatorsVote: false,
+  duration: 600,
+  durationValidators: 600,
+  quorum: PRECISION.times("0.00001").toFixed(),
+  quorumValidators: PRECISION.times("0.00001").toFixed(),
+  minVotesForVoting: wei("10"),
+  minVotesForCreating: wei("1"),
+  executionDelay: 0,
+  rewardsInfo: {
+    rewardToken: config.tokens.DEXE,
+    creationReward: wei("10"),
+    executionReward: wei("15"),
+    voteForRewardsCoefficient: PRECISION.times("10").toFixed(),
+    voteAgainstRewardsCoefficient: PRECISION.times("10").toFixed(),
+  },
+  executorDescription: "tokensale",
+};
+
 module.exports = async (deployer, logger) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
@@ -148,6 +168,9 @@ module.exports = async (deployer, logger) => {
 
   POOL_PARAMETERS.settingsParams.proposalSettings.push(DP_SETTINGS);
   POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(predictedGovAddresses.distributionProposal);
+
+  POOL_PARAMETERS.settingsParams.proposalSettings.push(TOKENSALE_SETTINGS);
+  POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(predictedGovAddresses.govTokenSale);
 
   let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);
 
