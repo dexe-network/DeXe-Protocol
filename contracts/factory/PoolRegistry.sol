@@ -25,6 +25,8 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     string public constant EXPERT_NFT_NAME = "EXPERT_NFT";
     string public constant NFT_MULTIPLIER_NAME = "NFT_MULTIPLIER";
 
+    string public constant ROOT_POWER_NAME = "ROOT_POWER";
+
     address internal _poolFactory;
 
     modifier onlyPoolFactory() {
