@@ -248,9 +248,6 @@ describe("GovPool", () => {
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721EnumMock.new("Mock", "Mock");
 
-    nftMultiplier = await ERC721Multiplier.new();
-    await nftMultiplier.__ERC721Multiplier_init("NFTMultiplierMock", "NFTMM");
-
     nftPower = await ERC721Power.new();
     await nftPower.__ERC721Power_init(
       "NFTPowerMock",
@@ -300,6 +297,7 @@ describe("GovPool", () => {
     const dp = await DistributionProposal.new();
     const expertNft = await ERC721Expert.new();
     const govPool = await GovPool.new();
+    const nftMultiplier = await ERC721Multiplier.new();
 
     await settings.__GovSettings_init(
       govPool.address,
@@ -328,6 +326,7 @@ describe("GovPool", () => {
       poolParams.userKeeperParams.nftsTotalSupply
     );
 
+    await nftMultiplier.__ERC721Multiplier_init("Mock Multiplier Nft", "MCKMULNFT", govPool.address);
     await dp.__DistributionProposal_init(govPool.address);
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
     await govPool.__GovPool_init(
@@ -359,6 +358,7 @@ describe("GovPool", () => {
       distributionProposal: dp,
       expertNft: expertNft,
       govPool: govPool,
+      nftMultiplier: nftMultiplier,
     };
   }
 
@@ -655,6 +655,7 @@ describe("GovPool", () => {
       validators = poolContracts.validators;
       dp = poolContracts.distributionProposal;
       expertNft = poolContracts.expertNft;
+      nftMultiplier = poolContracts.nftMultiplier;
 
       poolContracts = await deployPool(POOL_PARAMETERS);
       settings2 = poolContracts.settings;
@@ -5103,6 +5104,7 @@ describe("GovPool", () => {
       validators = poolContracts.validators;
       dp = poolContracts.distributionProposal;
       expertNft = poolContracts.expertNft;
+      nftMultiplier = poolContracts.nftMultiplier;
 
       await setupTokens();
     });
@@ -5188,6 +5190,7 @@ describe("GovPool", () => {
       validators = poolContracts.validators;
       dp = poolContracts.distributionProposal;
       expertNft = poolContracts.expertNft;
+      nftMultiplier = poolContracts.nftMultiplier;
 
       await setupTokens();
     });
@@ -5293,6 +5296,7 @@ describe("GovPool", () => {
       validators = poolContracts.validators;
       dp = poolContracts.distributionProposal;
       expertNft = poolContracts.expertNft;
+      nftMultiplier = poolContracts.nftMultiplier;
 
       await setupTokens();
 
