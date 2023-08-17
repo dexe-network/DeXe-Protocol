@@ -2722,11 +2722,11 @@ describe("GovPool", () => {
           it("should revert if user is provided modifiers less than 1", async () => {
             await truffleAssert.reverts(
               changeVoteModifiers(wei("1", 25), wei("0.99", 25)),
-              "Gov: modifiers are less than 1"
+              "Gov: vote modifiers are less than 1"
             );
             await truffleAssert.reverts(
               changeVoteModifiers(wei("0.99", 25), wei("1", 25)),
-              "Gov: modifiers are less than 1"
+              "Gov: vote modifiers are less than 1"
             );
           });
         });

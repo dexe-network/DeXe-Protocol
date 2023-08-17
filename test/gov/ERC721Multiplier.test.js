@@ -195,26 +195,6 @@ describe("ERC721Multiplier", () => {
             executorDescription: "internal",
           },
           {
-            earlyCompletion: false,
-            delegatedVotingAllowed: true,
-            validatorsVote: true,
-            duration: 600,
-            durationValidators: 800,
-            quorum: PRECISION.times("71").toFixed(),
-            quorumValidators: PRECISION.times("100").toFixed(),
-            minVotesForVoting: wei("20"),
-            minVotesForCreating: wei("3"),
-            executionDelay: 0,
-            rewardsInfo: {
-              rewardToken: rewardToken.address,
-              creationReward: wei("10"),
-              executionReward: wei("5"),
-              voteForRewardsCoefficient: PRECISION.toFixed(),
-              voteAgainstRewardsCoefficient: PRECISION.toFixed(),
-            },
-            executorDescription: "DP",
-          },
-          {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
             validatorsVote: true,
@@ -262,18 +242,6 @@ describe("ERC721Multiplier", () => {
     };
   }
 
-  async function setupTokens() {
-    await token.mint(OWNER, wei("100000000000"));
-    await token.approve(userKeeper.address, wei("10000000000"));
-
-    for (let i = 1; i < 10; i++) {
-      await nft.safeMint(OWNER, i);
-      await nft.approve(userKeeper.address, i);
-    }
-
-    await rewardToken.mint(govPool.address, wei("10000000000000000000000"));
-  }
-
   async function deployPool(poolParams) {
     const NAME = await poolRegistry.GOV_POOL_NAME();
 
@@ -288,7 +256,6 @@ describe("ERC721Multiplier", () => {
 
     await settings.__GovSettings_init(
       govPool.address,
-      dp.address,
       validators.address,
       userKeeper.address,
       poolParams.settingsParams.proposalSettings,
@@ -318,7 +285,7 @@ describe("ERC721Multiplier", () => {
     await dp.__DistributionProposal_init(govPool.address);
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
     await govPool.__GovPool_init(
-      [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address, nft.address],
+      [settings.address, userKeeper.address, validators.address, expertNft.address, nft.address],
       wei("1", 25),
       wei("1", 25),
       OWNER,
@@ -639,7 +606,7 @@ describe("ERC721Multiplier", () => {
           await nft.lock(first.id, { from: first.owner });
 
           await dexeExpertNft.mint(OWNER, "");
-          await govPool.createProposal("example.com", "misc", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
+          await govPool.createProposal("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
           await token.mint(first.owner, wei("100"));
           await token.approve(userKeeper.address, wei("100"), { from: SECOND });
           await govPool.deposit(first.owner, wei("100"), [], { from: SECOND });

@@ -616,7 +616,7 @@ contract GovPool is
     function _changeVoteModifiers(uint256 regularModifier, uint256 expertModifier) internal {
         require(
             regularModifier >= PRECISION && expertModifier >= PRECISION,
-            "Gov: modifiers are less than 1"
+            "Gov: vote modifiers are less than 1"
         );
 
         _regularVoteModifier = regularModifier;
