@@ -303,11 +303,10 @@ describe("GovPool", () => {
 
     await settings.__GovSettings_init(
       govPool.address,
-      dp.address,
       validators.address,
       userKeeper.address,
       poolParams.settingsParams.proposalSettings,
-      poolParams.settingsParams.additionalProposalExecutors
+      [...poolParams.settingsParams.additionalProposalExecutors, dp.address]
     );
 
     await validators.__GovValidators_init(
@@ -407,26 +406,6 @@ describe("GovPool", () => {
             executorDescription: "internal",
           },
           {
-            earlyCompletion: false,
-            delegatedVotingAllowed: true,
-            validatorsVote: true,
-            duration: 600,
-            durationValidators: 800,
-            quorum: PRECISION.times("71").toFixed(),
-            quorumValidators: PRECISION.times("100").toFixed(),
-            minVotesForVoting: wei("20"),
-            minVotesForCreating: wei("3"),
-            executionDelay: 0,
-            rewardsInfo: {
-              rewardToken: rewardToken.address,
-              creationReward: wei("10"),
-              executionReward: wei("5"),
-              voteForRewardsCoefficient: PRECISION.toFixed(),
-              voteAgainstRewardsCoefficient: PRECISION.toFixed(),
-            },
-            executorDescription: "DP",
-          },
-          {
             earlyCompletion: true,
             delegatedVotingAllowed: false,
             validatorsVote: true,
@@ -445,6 +424,26 @@ describe("GovPool", () => {
               voteAgainstRewardsCoefficient: PRECISION.toFixed(),
             },
             executorDescription: "validators",
+          },
+          {
+            earlyCompletion: false,
+            delegatedVotingAllowed: true,
+            validatorsVote: true,
+            duration: 600,
+            durationValidators: 800,
+            quorum: PRECISION.times("71").toFixed(),
+            quorumValidators: PRECISION.times("100").toFixed(),
+            minVotesForVoting: wei("20"),
+            minVotesForCreating: wei("3"),
+            executionDelay: 0,
+            rewardsInfo: {
+              rewardToken: rewardToken.address,
+              creationReward: wei("10"),
+              executionReward: wei("5"),
+              voteForRewardsCoefficient: PRECISION.toFixed(),
+              voteAgainstRewardsCoefficient: PRECISION.toFixed(),
+            },
+            executorDescription: "DP",
           },
         ],
         additionalProposalExecutors: [],

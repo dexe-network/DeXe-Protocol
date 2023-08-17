@@ -24,12 +24,12 @@ library GovPoolCreate {
         uint256 proposalId,
         string proposalDescription,
         string misc,
+        IGovPool.ProposalAction[] actionsOnFor,
         uint256 quorum,
         uint256 proposalSettings,
         address rewardToken,
         address sender
     );
-    event DPCreated(uint256 proposalId, address sender, address token, uint256 amount);
     event MovedToValidators(uint256 proposalId, address sender);
 
     function createProposal(
@@ -78,6 +78,7 @@ library GovPoolCreate {
             proposalId,
             _descriptionURL,
             misc,
+            actionsOnFor,
             settings.quorum,
             settingsId,
             settings.rewardsInfo.rewardToken,
@@ -145,32 +146,6 @@ library GovPoolCreate {
         }
 
         snapshotId = IGovUserKeeper(userKeeper).createNftPowerSnapshot();
-    }
-
-    function _handleDataForDistributionProposal(
-        IGovPool.ProposalAction[] calldata actions
-    ) internal {
-        (uint256 decodedId, address token, uint256 amount) = abi.decode(
-            actions[actions.length - 1].data[4:],
-            (uint256, address, uint256)
-        );
-
-        require(
-            decodedId == GovPool(payable(address(this))).latestProposalId(),
-            "Gov: invalid proposalId"
-        );
-
-        for (uint256 i; i < actions.length - 1; i++) {
-            bytes4 selector = actions[i].data.getSelector();
-
-            require(
-                actions[i].value == 0 &&
-                    (selector == IERC20.approve.selector || selector == IERC20.transfer.selector),
-                "Gov: invalid internal data"
-            );
-        }
-
-        emit DPCreated(decodedId, msg.sender, token, amount);
     }
 
     function _restrictInterestedUsersFromProposal(
@@ -251,19 +226,17 @@ library GovPoolCreate {
         uint256 settingsId,
         IGovSettings govSettings,
         IGovPool.ProposalAction[] calldata actions
-    ) internal returns (bool) {
+    ) internal view returns (bool) {
         if (settingsId == uint256(IGovSettings.ExecutorType.INTERNAL)) {
             _handleDataForInternalProposal(govSettings, actions);
             return false;
         }
+
         if (settingsId == uint256(IGovSettings.ExecutorType.VALIDATORS)) {
             _handleDataForValidatorBalanceProposal(actions);
             return false;
         }
-        if (settingsId == uint256(IGovSettings.ExecutorType.DISTRIBUTION)) {
-            _handleDataForDistributionProposal(actions);
-            return false;
-        }
+
         if (settingsId == uint256(IGovSettings.ExecutorType.DEFAULT)) {
             return false;
         }

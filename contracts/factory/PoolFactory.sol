@@ -220,7 +220,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         );
         GovSettings(govPoolDeps.settingsAddress).__GovSettings_init(
             address(poolProxy),
-            address(govPoolDeps.distributionAddress),
             address(govPoolDeps.validatorsAddress),
             address(govPoolDeps.userKeeperAddress),
             parameters.settingsParams.proposalSettings,
