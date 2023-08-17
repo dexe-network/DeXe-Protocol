@@ -3,8 +3,7 @@ const { PRECISION } = require("../../scripts/utils/constants");
 const ExecutorType = {
   DEFAULT: 0,
   INTERNAL: 1,
-  DISTRIBUTION: 2,
-  VALIDATORS: 3,
+  VALIDATORS: 2,
 };
 
 const ProposalState = {

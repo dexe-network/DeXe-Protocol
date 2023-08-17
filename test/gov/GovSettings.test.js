@@ -132,41 +132,12 @@ describe("GovSettings", () => {
       await truffleAssert.reverts(
         settings.__GovSettings_init(
           GOV_POOL_ADDRESS,
-          DP_ADDRESS,
           VALIDATORS_ADDRESS,
           USER_KEEPER_ADDRESS,
-          [DEFAULT_SETTINGS, INTERNAL_SETTINGS, DP_SETTINGS, VALIDATORS_BALANCES_SETTINGS],
+          [DEFAULT_SETTINGS, INTERNAL_SETTINGS, VALIDATORS_BALANCES_SETTINGS],
           [OWNER]
         ),
         "GovSettings: invalid proposal settings count"
-      );
-    });
-
-    it("should revert when delegatedVotingAllowed is off for DP", async () => {
-      await truffleAssert.reverts(
-        settings.__GovSettings_init(
-          GOV_POOL_ADDRESS,
-          DP_ADDRESS,
-          VALIDATORS_ADDRESS,
-          USER_KEEPER_ADDRESS,
-          [DEFAULT_SETTINGS, INTERNAL_SETTINGS, DEFAULT_SETTINGS, VALIDATORS_BALANCES_SETTINGS],
-          []
-        ),
-        "GovSettings: invalid distribution settings"
-      );
-    });
-
-    it("should revert when earlyComletion is on for DP", async () => {
-      await truffleAssert.reverts(
-        settings.__GovSettings_init(
-          GOV_POOL_ADDRESS,
-          DP_ADDRESS,
-          VALIDATORS_ADDRESS,
-          USER_KEEPER_ADDRESS,
-          [DEFAULT_SETTINGS, INTERNAL_SETTINGS, VALIDATORS_BALANCES_SETTINGS, VALIDATORS_BALANCES_SETTINGS],
-          []
-        ),
-        "GovSettings: invalid distribution settings"
       );
     });
   });
@@ -217,20 +188,19 @@ describe("GovSettings", () => {
     it("should add custom executors", async () => {
       await settings.__GovSettings_init(
         GOV_POOL_ADDRESS,
-        DP_ADDRESS,
         VALIDATORS_ADDRESS,
         USER_KEEPER_ADDRESS,
-        [DEFAULT_SETTINGS, INTERNAL_SETTINGS, DP_SETTINGS, VALIDATORS_BALANCES_SETTINGS, newSettings1, newSettings2],
+        [DEFAULT_SETTINGS, INTERNAL_SETTINGS, VALIDATORS_BALANCES_SETTINGS, newSettings1, newSettings2],
         [OWNER, SECOND]
       );
 
-      const settings1 = await settings.settings(4);
-      const settings2 = await settings.settings(5);
+      const settings1 = await settings.settings(3);
+      const settings2 = await settings.settings(4);
 
       assert.equal(settings1.executorDescription, newSettings1.executorDescription);
       assert.equal(settings2.executorDescription, newSettings2.executorDescription);
-      assert.equal(await settings.executorToSettings(OWNER), 4);
-      assert.equal(await settings.executorToSettings(SECOND), 5);
+      assert.equal(await settings.executorToSettings(OWNER), 3);
+      assert.equal(await settings.executorToSettings(SECOND), 4);
     });
   });
 
@@ -238,11 +208,10 @@ describe("GovSettings", () => {
     beforeEach("setup", async () => {
       await settings.__GovSettings_init(
         GOV_POOL_ADDRESS,
-        DP_ADDRESS,
         VALIDATORS_ADDRESS,
         USER_KEEPER_ADDRESS,
-        [DEFAULT_SETTINGS, INTERNAL_SETTINGS, DP_SETTINGS, VALIDATORS_BALANCES_SETTINGS],
-        []
+        [DEFAULT_SETTINGS, INTERNAL_SETTINGS, VALIDATORS_BALANCES_SETTINGS, DP_SETTINGS],
+        [DP_ADDRESS]
       );
     });
 
@@ -276,7 +245,7 @@ describe("GovSettings", () => {
         assert.equal(internalSettings.executionDelay, 0);
         assert.equal(internalSettings.executorDescription, "internal");
 
-        const dpSettings = await settings.settings(ExecutorType.DISTRIBUTION);
+        const dpSettings = await settings.settings(3);
 
         assert.isFalse(dpSettings.earlyCompletion);
         assert.isTrue(dpSettings.delegatedVotingAllowed);
@@ -313,10 +282,9 @@ describe("GovSettings", () => {
         await truffleAssert.reverts(
           settings.__GovSettings_init(
             GOV_POOL_ADDRESS,
-            DP_ADDRESS,
             VALIDATORS_ADDRESS,
             USER_KEEPER_ADDRESS,
-            [DEFAULT_SETTINGS, INTERNAL_SETTINGS, DP_SETTINGS, VALIDATORS_BALANCES_SETTINGS],
+            [DEFAULT_SETTINGS, INTERNAL_SETTINGS, VALIDATORS_BALANCES_SETTINGS],
             []
           ),
           "Initializable: contract is already initialized"
@@ -621,13 +589,6 @@ describe("GovSettings", () => {
         await truffleAssert.reverts(
           settings.editSettings([1, 10], [newSettings1, newSettings1]),
           "GovSettings: settings do not exist"
-        );
-      });
-
-      it("should revert if invalid distribution data", async () => {
-        await truffleAssert.reverts(
-          settings.editSettings([2], [DEFAULT_SETTINGS]),
-          "GovSettings: invalid distribution settings"
         );
       });
     });

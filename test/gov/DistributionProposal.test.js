@@ -155,11 +155,10 @@ describe("DistributionProposal", () => {
 
     await settings.__GovSettings_init(
       govPool.address,
-      dp.address,
       validators.address,
       userKeeper.address,
       poolParams.settingsParams.proposalSettings,
-      poolParams.settingsParams.additionalProposalExecutors
+      [...poolParams.settingsParams.additionalProposalExecutors, dp.address]
     );
 
     await validators.__GovValidators_init(
@@ -184,7 +183,7 @@ describe("DistributionProposal", () => {
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
     await nftMultiplier.__ERC721Multiplier_init("Mock Nft Multiplier", "MCKNFTMLTPLR");
     await govPool.__GovPool_init(
-      [settings.address, userKeeper.address, dp.address, validators.address, expertNft.address, nftMultiplier.address],
+      [settings.address, userKeeper.address, validators.address, expertNft.address, nftMultiplier.address],
       wei("1", 25),
       wei("1", 25),
       OWNER,
@@ -273,26 +272,6 @@ describe("DistributionProposal", () => {
               executorDescription: "internal",
             },
             {
-              earlyCompletion: false,
-              delegatedVotingAllowed: true,
-              validatorsVote: false,
-              duration: 700,
-              durationValidators: 800,
-              quorum: PRECISION.times("71").toFixed(),
-              quorumValidators: PRECISION.times("100").toFixed(),
-              minVotesForVoting: wei("20"),
-              minVotesForCreating: wei("3"),
-              executionDelay: 0,
-              rewardsInfo: {
-                rewardToken: ZERO_ADDR,
-                creationReward: 0,
-                executionReward: 0,
-                voteForRewardsCoefficient: 0,
-                voteAgainstRewardsCoefficient: 0,
-              },
-              executorDescription: "DP",
-            },
-            {
               earlyCompletion: true,
               delegatedVotingAllowed: true,
               validatorsVote: true,
@@ -311,6 +290,26 @@ describe("DistributionProposal", () => {
                 voteAgainstRewardsCoefficient: 0,
               },
               executorDescription: "validators",
+            },
+            {
+              earlyCompletion: false,
+              delegatedVotingAllowed: true,
+              validatorsVote: false,
+              duration: 700,
+              durationValidators: 800,
+              quorum: PRECISION.times("71").toFixed(),
+              quorumValidators: PRECISION.times("100").toFixed(),
+              minVotesForVoting: wei("20"),
+              minVotesForCreating: wei("3"),
+              executionDelay: 0,
+              rewardsInfo: {
+                rewardToken: ZERO_ADDR,
+                creationReward: 0,
+                executionReward: 0,
+                voteForRewardsCoefficient: 0,
+                voteAgainstRewardsCoefficient: 0,
+              },
+              executorDescription: "DP",
             },
           ],
           additionalProposalExecutors: [],
@@ -369,7 +368,6 @@ describe("DistributionProposal", () => {
 
         await govPool.createProposal(
           "example.com",
-          "misc",
           [[dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100"))]],
           []
         );
@@ -441,7 +439,6 @@ describe("DistributionProposal", () => {
       it.skip("should correctly claim", async () => {
         await govPool.createProposal(
           "example.com",
-          "misc",
           [
             [token.address, 0, getBytesTransfer(dp.address, wei("100000"))],
             [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
@@ -481,7 +478,6 @@ describe("DistributionProposal", () => {
 
         await govPool.createProposal(
           "example.com",
-          "misc",
           [[dp.address, wei("1"), getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))]],
           [],
           { from: SECOND }
@@ -505,7 +501,6 @@ describe("DistributionProposal", () => {
       it.skip("should not claim if not enough votes", async () => {
         await govPool.createProposal(
           "example.com",
-          "misc",
           [
             [token.address, 0, getBytesTransfer(dp.address, wei("100000"))],
             [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
@@ -528,7 +523,6 @@ describe("DistributionProposal", () => {
 
         await govPool.createProposal(
           "example.com",
-          "misc",
           [[dp.address, wei("1"), getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))]],
           [],
           { from: SECOND }
@@ -555,7 +549,6 @@ describe("DistributionProposal", () => {
       it.skip("should not claim if not enough ether", async () => {
         await govPool.createProposal(
           "example.com",
-          "misc",
           [[dp.address, 0, getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))]],
           [],
           { from: SECOND }
@@ -573,7 +566,6 @@ describe("DistributionProposal", () => {
       it.skip("should revert when proposal amount < reward", async () => {
         await govPool.createProposal(
           "example.com",
-          "misc",
           [
             [token.address, 0, getBytesApprove(dp.address, wei("100000"))],
             [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
@@ -597,7 +589,6 @@ describe("DistributionProposal", () => {
       it.skip("should revert if already claimed", async () => {
         await govPool.createProposal(
           "example.com",
-          "misc",
           [
             [token.address, 0, getBytesTransfer(dp.address, wei("100000"))],
             [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
