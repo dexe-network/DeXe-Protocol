@@ -9,7 +9,7 @@ import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 
 import "../../core/Globals.sol";
 
-import "../../interfaces/gov/ERC20/IERC20Sale.sol";
+import "../../interfaces/gov/ERC20/IERC20Gov.sol";
 
 library TokenBalance {
     using DecimalsConverter for *;
@@ -41,7 +41,7 @@ library TokenBalance {
                     revert("Gov: insufficient funds");
                 }
 
-                try IERC20Sale(token).mint(address(this), amount - balance) {} catch {
+                try IERC20Gov(token).mint(address(this), amount - balance) {} catch {
                     if (transferType == TransferType.Mint) {
                         revert("Gov: cannot mint");
                     }

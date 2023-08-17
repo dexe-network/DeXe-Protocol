@@ -42,7 +42,7 @@ library GovPoolExecute {
 
         core.executionTime = uint64(block.timestamp);
 
-        (, , address govValidatorsAddress, , ) = GovPool(payable(address(this)))
+        (, , address govValidatorsAddress, ) = GovPool(payable(address(this)))
             .getHelperContracts();
         IGovValidators govValidators = IGovValidators(govValidatorsAddress);
 

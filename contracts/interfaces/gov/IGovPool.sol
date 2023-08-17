@@ -74,14 +74,12 @@ interface IGovPool {
     /// @notice The struct that holds information about dependencies
     /// @param settingsAddress the address of settings contract
     /// @param userKeeperAddress the address of user keeper contract
-    /// @param distributionAddress the address of distribution contract
     /// @param validatorsAddress the address of validators contract
     /// @param expertNftAddress the address of expert nft contract
     /// @param nftMultiplierAddress the address of nft multiplier contract
     struct Dependencies {
         address settingsAddress;
         address userKeeperAddress;
-        address distributionAddress;
         address payable validatorsAddress;
         address expertNftAddress;
         address nftMultiplierAddress;
@@ -255,18 +253,11 @@ interface IGovPool {
     /// @return settings settings address
     /// @return userKeeper user keeper address
     /// @return validators validators address
-    /// @return distributionProposal distribution proposal address
     /// @return poolRegistry pool registry address
     function getHelperContracts()
         external
         view
-        returns (
-            address settings,
-            address userKeeper,
-            address validators,
-            address distributionProposal,
-            address poolRegistry
-        );
+        returns (address settings, address userKeeper, address validators, address poolRegistry);
 
     /// @notice The function to get the nft contracts of this pool
     /// @return nftMultiplier rewards multiplier nft contract
@@ -283,12 +274,10 @@ interface IGovPool {
     /// @notice For typed proposal, last executor should be typed contract
     /// @notice For external proposal, any configuration of addresses and bytes
     /// @param descriptionURL IPFS url to the proposal's description
-    /// @param misc the string with additional information
     /// @param actionsOnFor the array of structs with information about actions on for step
     /// @param actionsOnAgainst the array of structs with information about actions on against step
     function createProposal(
         string calldata descriptionURL,
-        string calldata misc,
         ProposalAction[] calldata actionsOnFor,
         ProposalAction[] calldata actionsOnAgainst
     ) external;

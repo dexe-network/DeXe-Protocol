@@ -44,7 +44,7 @@ library GovPoolView {
             _voteInfos
         );
 
-        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
         return IGovUserKeeper(userKeeper).getWithdrawableAssets(user, lockedIds, unlockedNfts);
     }
@@ -93,7 +93,7 @@ library GovPoolView {
         uint256 limit
     ) external view returns (IGovPool.ProposalView[] memory proposalViews) {
         GovPool govPool = GovPool(payable(address(this)));
-        (, , address validatorsAddress, , ) = govPool.getHelperContracts();
+        (, , address validatorsAddress, ) = govPool.getHelperContracts();
 
         IGovValidators validators = IGovValidators(validatorsAddress);
 
@@ -116,7 +116,7 @@ library GovPoolView {
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId
     ) external view returns (IGovPool.ProposalState) {
-        (, , address validators, , ) = IGovPool(address(this)).getHelperContracts();
+        (, , address validators, ) = IGovPool(address(this)).getHelperContracts();
 
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
 

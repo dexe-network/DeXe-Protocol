@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import "../gov/settings/IGovSettings.sol";
 import "../gov/validators/IGovValidators.sol";
 import "../gov/proposals/ITokenSaleProposal.sol";
-import "../gov/ERC20/IERC20Sale.sol";
+import "../gov/ERC20/IERC20Gov.sol";
 import "../core/ICoreProperties.sol";
 
 /**
@@ -46,10 +46,21 @@ interface IPoolFactory {
         uint256 nftsTotalSupply;
     }
 
+    /// @notice The token sale proposal parameters
+    /// @param tiersParams tiers parameters
+    /// @param whitelistParams whitelisted users (for participation in tiers)
+    /// @param tokenParams parameters of the token
+    struct TokenSaleProposalDeployParams {
+        ITokenSaleProposal.TierInitParams[] tiersParams;
+        ITokenSaleProposal.WhitelistingRequest[] whitelistParams;
+        IERC20Gov.ConstructorParams tokenParams;
+    }
+
     /// @notice The pool deploy parameters
     /// @param settingsParams general settings of the pool
     /// @param validatorsParams parameters of validators
     /// @param userKeeperParams parameters of the user keeper
+    /// @param tokenSaleParams the token sale proposal parameters
     /// @param regularVoteModifier voting parameter for regular users
     /// @param expertVoteModifier voting parameter for experts
     /// @param verifier the address of the verifier
@@ -60,6 +71,7 @@ interface IPoolFactory {
         SettingsDeployParams settingsParams;
         ValidatorsDeployParams validatorsParams;
         UserKeeperDeployParams userKeeperParams;
+        TokenSaleProposalDeployParams tokenSaleParams;
         uint256 regularVoteModifier;
         uint256 expertVoteModifier;
         address verifier;
@@ -68,35 +80,26 @@ interface IPoolFactory {
         string name;
     }
 
-    /// @notice The token sale proposal parameters
-    /// @param tiersParams tiers parameters
-    /// @param whitelistParams whitelisted users (for participation in tiers)
-    /// @param tokenParams parameters of the token
-    struct GovTokenSaleProposalDeployParams {
-        ITokenSaleProposal.TierInitParams[] tiersParams;
-        ITokenSaleProposal.WhitelistingRequest[] whitelistParams;
-        IERC20Sale.ConstructorParams tokenParams;
+    struct GovPoolPredictedAddresses {
+        address govPool;
+        address govToken;
+        address govTokenSale;
+        address distributionProposal;
+        address expertNft;
+        address nftMultiplier;
     }
-
-    /// @notice The function to deploy gov pools
-    /// @param parameters the pool deploy parameters
-    function deployGovPool(GovPoolDeployParams calldata parameters) external;
 
     /// @notice This function is used to deploy DAO Pool with TokenSale proposal
     /// @param parameters the pool deploy parameters
-    /// @param tokenSaleParams the token sale proposal parameters
-    function deployGovPoolWithTokenSale(
-        GovPoolDeployParams calldata parameters,
-        GovTokenSaleProposalDeployParams calldata tokenSaleParams
-    ) external;
+    function deployGovPool(GovPoolDeployParams calldata parameters) external;
 
     /// @notice The view function that predicts the addresses where
     /// the gov pool proxy, the gov token sale proxy and the gov token will be stored
     /// @param deployer the user that deploys the gov pool (tx.origin)
     /// @param poolName the name of the pool which is part of the salt
-    /// @return the predicted gov pool proxy, gov token sale proxy and gov token addresses
+    /// @return the predicted addresses
     function predictGovAddresses(
         address deployer,
         string calldata poolName
-    ) external view returns (address, address, address);
+    ) external view returns (GovPoolPredictedAddresses memory);
 }
