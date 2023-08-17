@@ -9,7 +9,7 @@ const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 
 ERC721Multiplier.numberFormat = "BigNumber";
 
-describe.only("ERC721Multiplier", () => {
+describe("ERC721Multiplier", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -230,6 +230,18 @@ describe.only("ERC721Multiplier", () => {
           await setTime(startTime + parseInt(first.duration) + 1);
 
           await nft.lock(first.id, { from: first.owner });
+        });
+
+        it("should lock if the token was transferred to user", async () => {
+          const first = TOKENS[0];
+
+          await nft.lock(first.id, { from: first.owner });
+
+          await nft.unlock(first.id, { from: first.owner });
+
+          await nft.transferFrom(first.owner, SECOND, first.id, { from: first.owner });
+
+          await nft.lock(first.id, { from: SECOND });
         });
       });
 
