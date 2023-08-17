@@ -149,7 +149,7 @@ module.exports = async (deployer, logger) => {
   POOL_PARAMETERS.settingsParams.proposalSettings.push(DP_SETTINGS);
   POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(predictedGovAddresses.distributionProposal);
 
-  let tx = await poolFactory.deployGovPoolWithTokenSale(POOL_PARAMETERS);
+  let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);
 
   const dexeDaoAddress = tx.receipt.logs[0].args.govPool;
 

@@ -42,6 +42,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         string name,
         address govPool,
         GovPool.Dependencies govPoolDeps,
+        address distributionProposal,
         address tokenSale,
         address token,
         address sender
@@ -57,16 +58,14 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _babt = ISBT721(registry.getBABTContract());
     }
 
-    function deployGovPoolWithTokenSale(
-        GovPoolDeployParams calldata parameters
-    ) external override {
+    function deployGovPool(GovPoolDeployParams calldata parameters) external override {
         string memory poolType = _poolRegistry.GOV_POOL_NAME();
 
         GovPool.Dependencies memory govPoolDeps;
 
         govPoolDeps.validatorsAddress = payable(_deploy(_poolRegistry.VALIDATORS_NAME()));
         govPoolDeps.userKeeperAddress = _deploy(_poolRegistry.USER_KEEPER_NAME());
-        govPoolDeps.distributionAddress = _deploy2(
+        address distributionAddress = _deploy2(
             _poolRegistry.DISTRIBUTION_PROPOSAL_NAME(),
             parameters.name
         );
@@ -84,6 +83,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.name,
             poolProxy,
             govPoolDeps,
+            distributionAddress,
             tokenSaleProxy,
             parameters.userKeeperParams.tokenAddress,
             msg.sender
@@ -96,7 +96,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.tokenSaleParams.whitelistParams
         );
 
-        _initGovPool(poolProxy, govPoolDeps, parameters);
+        _initGovPool(poolProxy, distributionAddress, govPoolDeps, parameters);
         TokenSaleProposal(tokenSaleProxy).__TokenSaleProposal_init(poolProxy);
 
         GovSettings(govPoolDeps.settingsAddress).transferOwnership(poolProxy);
@@ -112,17 +112,9 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     function predictGovAddresses(
         address deployer,
         string calldata poolName
-    ) external view override returns (GovPoolPredictedAddresses memory) {
+    ) external view override returns (GovPoolPredictedAddresses memory predictedAddresses) {
         if (bytes(poolName).length == 0) {
-            return
-                GovPoolPredictedAddresses(
-                    address(0),
-                    address(0),
-                    address(0),
-                    address(0),
-                    address(0),
-                    address(0)
-                );
+            return predictedAddresses;
         }
 
         PoolRegistry poolRegistry = _poolRegistry;
@@ -155,6 +147,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
     function _initGovPool(
         address poolProxy,
+        address distributionAddress,
         GovPool.Dependencies memory govPoolDeps,
         GovPoolDeployParams calldata parameters
     ) internal {
@@ -177,9 +170,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.userKeeperParams.totalPowerInTokens,
             parameters.userKeeperParams.nftsTotalSupply
         );
-        DistributionProposal(payable(govPoolDeps.distributionAddress)).__DistributionProposal_init(
-            poolProxy
-        );
+        DistributionProposal(payable(distributionAddress)).__DistributionProposal_init(poolProxy);
         GovSettings(govPoolDeps.settingsAddress).__GovSettings_init(
             address(poolProxy),
             address(govPoolDeps.validatorsAddress),

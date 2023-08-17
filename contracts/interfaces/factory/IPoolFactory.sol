@@ -91,7 +91,7 @@ interface IPoolFactory {
 
     /// @notice This function is used to deploy DAO Pool with TokenSale proposal
     /// @param parameters the pool deploy parameters
-    function deployGovPoolWithTokenSale(GovPoolDeployParams calldata parameters) external;
+    function deployGovPool(GovPoolDeployParams calldata parameters) external;
 
     /// @notice The view function that predicts the addresses where
     /// the gov pool proxy, the gov token sale proxy and the gov token will be stored

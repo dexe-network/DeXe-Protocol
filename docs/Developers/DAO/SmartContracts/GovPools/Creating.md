@@ -4,17 +4,15 @@
 
 ### Deploying with TokenSale proposal
 
-Function ```deployGovPoolWithTokenSale()``` is used to deploy **DAO** Pool with *TokenSale* proposal (details on `Proposals`/`TokenSaleProposal`).
+Function ```deployGovPool()``` is used to deploy **DAO** Pool with *TokenSale* proposal (details on `Proposals`/`TokenSaleProposal`).
 
 ```solidity
-function deployGovPoolWithTokenSale(
-    GovPoolDeployParams calldata parameters,
-    GovTokenSaleProposalDeployParams calldata tokenSaleParams
+function deployGovPool(
+    GovPoolDeployParams calldata parameters
 ) external;
 ```
 
 - ***parameters*** - the pool deploy parameters
-- ***tokenSaleParams*** - the **TokenSale** proposal parameters
 
 ```solidity
 struct GovTokenSaleProposalDeployParams {
