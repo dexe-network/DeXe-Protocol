@@ -17,10 +17,16 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
 
     string public baseURI;
 
-    mapping(uint256 => NftInfo) private _tokens;
-    mapping(address => uint256) private _latestLockedTokenIds;
+    mapping(uint256 => NftInfo) internal _tokens;
+    mapping(address => uint256) internal _latestLockedTokenIds;
 
-    event Minted(address to, uint256 tokenId, uint256 multiplier, uint256 duration);
+    event Minted(
+        address to,
+        uint256 tokenId,
+        uint256 multiplier,
+        uint256 duration,
+        uint256 averageBalance
+    );
     event Locked(
         address sender,
         uint256 tokenId,
@@ -28,13 +34,13 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         uint256 duration,
         bool isLocked
     );
-    event Changed(uint256 tokenId, uint256 multiplier, uint256 duration);
+    event Changed(uint256 tokenId, uint256 multiplier, uint256 duration, uint256 averageBalance);
 
     function __ERC721Multiplier_init(
         string calldata name,
         string calldata symbol,
         address govAddress
-    ) external initializer {
+    ) public initializer {
         __Ownable_init();
         __ERC721Enumerable_init();
         __ERC721_init(name, symbol);
@@ -102,7 +108,12 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         );
     }
 
-    function mint(address to, uint256 multiplier, uint64 duration) external override onlyOwner {
+    function mint(
+        address to,
+        uint256 multiplier,
+        uint64 duration,
+        uint256 averageBalance
+    ) public virtual override onlyOwner {
         uint256 currentTokenId = totalSupply() + 1;
 
         _mint(to, currentTokenId);
@@ -113,14 +124,15 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
             lockedAt: 0
         });
 
-        emit Minted(to, currentTokenId, multiplier, duration);
+        emit Minted(to, currentTokenId, multiplier, duration, averageBalance);
     }
 
     function changeToken(
         uint256 tokenId,
         uint256 multiplier,
-        uint64 duration
-    ) external override onlyOwner {
+        uint64 duration,
+        uint256 averageBalance
+    ) public virtual override onlyOwner {
         _requireMinted(tokenId);
 
         NftInfo storage token = _tokens[tokenId];
@@ -128,7 +140,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         token.multiplier = multiplier;
         token.duration = duration;
 
-        emit Changed(tokenId, multiplier, duration);
+        emit Changed(tokenId, multiplier, duration, averageBalance);
     }
 
     function setBaseUri(string calldata uri) external onlyOwner {
@@ -139,17 +151,15 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         address whose,
         uint256 rewards
     ) external view override returns (uint256) {
-        uint256 latestLockedTokenId = _latestLockedTokenIds[whose];
+        (uint256 multiplier, ) = getCurrentMultiplier(whose, rewards);
 
-        return
-            isLocked(latestLockedTokenId)
-                ? rewards.ratio(_tokens[latestLockedTokenId].multiplier, PRECISION)
-                : 0;
+        return multiplier == 0 ? 0 : rewards.ratio(multiplier, PRECISION);
     }
 
     function getCurrentMultiplier(
-        address whose
-    ) external view returns (uint256 multiplier, uint256 timeLeft) {
+        address whose,
+        uint256
+    ) public view virtual returns (uint256 multiplier, uint256 timeLeft) {
         uint256 latestLockedTokenId = _latestLockedTokenIds[whose];
 
         if (!isLocked(latestLockedTokenId)) {
