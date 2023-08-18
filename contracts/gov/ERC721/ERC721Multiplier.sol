@@ -72,20 +72,18 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
     }
 
     function unlock(uint256 tokenId) external override {
-        address tokenOwner = ERC721Upgradeable.ownerOf(tokenId);
-
         require(
-            tokenOwner == msg.sender || owner() == msg.sender,
+            ERC721Upgradeable.ownerOf(tokenId) == msg.sender,
             "ERC721Multiplier: not the nft owner"
         );
 
         require(
-            isLocked(_latestLockedTokenIds[tokenOwner]),
+            isLocked(_latestLockedTokenIds[msg.sender]),
             "ERC721Multiplier: Nft is not locked"
         );
 
         require(
-            _noActiveProposals(tokenOwner),
+            _noActiveProposals(msg.sender),
             "ERC721Multiplier: Cannot unlock with active proposals"
         );
 

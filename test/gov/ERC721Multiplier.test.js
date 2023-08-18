@@ -585,22 +585,6 @@ describe("ERC721Multiplier", () => {
           assert.equal(await nft.balanceOf(nft.address), 0);
         });
 
-        it("should unlock if the caller is owner of NFT", async () => {
-          const { id, owner, multiplier, duration } = TOKENS[0];
-          await nft.lock(id, { from: owner });
-
-          const tx = await nft.unlock(id, { from: OWNER });
-          truffleAssert.eventEmitted(tx, "Locked", (e) => {
-            return (
-              e.sender === OWNER &&
-              e.tokenId.toFixed() === id &&
-              e.multiplier.toFixed() === multiplier &&
-              e.duration.toFixed() === duration &&
-              e.isLocked === false
-            );
-          });
-        });
-
         it("should not unlock if caller has any active proposal", async () => {
           const first = TOKENS[0];
           await nft.lock(first.id, { from: first.owner });
