@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "./ERC721Multiplier.sol";
 
+import "hardhat/console.sol";
+
 contract DexeERC721Multiplier is ERC721Multiplier {
     using MathHelper for uint256;
     using Math for uint256;

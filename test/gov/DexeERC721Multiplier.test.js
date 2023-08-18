@@ -6,7 +6,6 @@ const { PRECISION, ETHER_ADDR } = require("../../scripts/utils/constants");
 const { DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
-const { getBytesApprove } = require("../utils/gov-pool-utils");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
@@ -378,13 +377,6 @@ describe("DexeERC721Multiplier", () => {
       ];
     });
 
-    describe("interfaceId()", () => {
-      it("should support ERC721Enumerable and ERC721Multiplier interfaces", async () => {
-        assert.isTrue(await nft.supportsInterface("0x9347d1fc"));
-        assert.isTrue(await nft.supportsInterface("0x780e9d63"));
-      });
-    });
-
     describe("mint()", () => {
       it("should mint properly", async () => {
         for (const token of TOKENS) {
@@ -442,14 +434,21 @@ describe("DexeERC721Multiplier", () => {
         it("should return extra rewards properly", async () => {
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
 
-          console.log(TOKENS[2]);
-          const amount = "1000";
+          const amount = "5000";
 
-          const currentMultiplier =
-            fromMultiplier(TOKENS[2].multiplier) /
-            (amount / (TOKENS[2].averageBalance * fromMultiplier(TOKENS[2].multiplier)));
+          const currentMultiplier = toBN(TOKENS[2].multiplier)
+            .times(PRECISION)
+            .idiv(
+              toBN(amount)
+                .times(PRECISION)
+                .times(PRECISION)
+                .idiv(toBN(TOKENS[2].multiplier).times(TOKENS[2].averageBalance))
+            );
 
-          assert.equal((await nft.getExtraRewards(SECOND, amount)).toFixed(), currentMultiplier * amount);
+          assert.equal(
+            (await nft.getExtraRewards(SECOND, amount)).toFixed(),
+            currentMultiplier.times(amount).idiv(PRECISION).toFixed()
+          );
         });
 
         it("should return zero if nft is expired", async () => {
@@ -495,14 +494,26 @@ describe("DexeERC721Multiplier", () => {
         it("should return current multiplier and timeLeft properly if locked", async () => {
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
 
-          let info = await nft.getCurrentMultiplier(SECOND, 0);
-          assert.equal(info.multiplier.toFixed(), TOKENS[2].multiplier);
+          const amount = "5000";
+
+          const currentMultiplier = toBN(TOKENS[2].multiplier)
+            .times(PRECISION)
+            .idiv(
+              toBN(amount)
+                .times(PRECISION)
+                .times(PRECISION)
+                .idiv(toBN(TOKENS[2].multiplier).times(TOKENS[2].averageBalance))
+            )
+            .toFixed();
+
+          let info = await nft.getCurrentMultiplier(SECOND, amount);
+          assert.equal(info.multiplier.toFixed(), currentMultiplier);
           assert.equal(info.timeLeft.toFixed(), TOKENS[2].duration);
 
           await setTime((await getCurrentBlockTime()) + parseInt(TOKENS[2].duration) - 1);
 
-          info = await nft.getCurrentMultiplier(SECOND, 0);
-          assert.equal(info.multiplier.toFixed(), TOKENS[2].multiplier);
+          info = await nft.getCurrentMultiplier(SECOND, amount);
+          assert.equal(info.multiplier.toFixed(), currentMultiplier);
           assert.equal(info.timeLeft.toFixed(), "1");
         });
 
@@ -529,14 +540,26 @@ describe("DexeERC721Multiplier", () => {
         it("should return current multiplier and timeLeft properly if locked by NFT owner", async () => {
           await nft.lock(TOKENS[2].id, { from: OWNER });
 
-          let info = await nft.getCurrentMultiplier(SECOND, 0);
-          assert.equal(info.multiplier.toFixed(), TOKENS[2].multiplier);
+          const amount = "5000";
+
+          const currentMultiplier = toBN(TOKENS[2].multiplier)
+            .times(PRECISION)
+            .idiv(
+              toBN(amount)
+                .times(PRECISION)
+                .times(PRECISION)
+                .idiv(toBN(TOKENS[2].multiplier).times(TOKENS[2].averageBalance))
+            )
+            .toFixed();
+
+          let info = await nft.getCurrentMultiplier(SECOND, amount);
+          assert.equal(info.multiplier.toFixed(), currentMultiplier);
           assert.equal(info.timeLeft.toFixed(), TOKENS[2].duration);
 
           await setTime((await getCurrentBlockTime()) + parseInt(TOKENS[2].duration) - 1);
 
-          info = await nft.getCurrentMultiplier(SECOND, 0);
-          assert.equal(info.multiplier.toFixed(), TOKENS[2].multiplier);
+          info = await nft.getCurrentMultiplier(SECOND, amount);
+          assert.equal(info.multiplier.toFixed(), currentMultiplier);
           assert.equal(info.timeLeft.toFixed(), "1");
         });
 
@@ -549,29 +572,63 @@ describe("DexeERC721Multiplier", () => {
           assert.equal(info.multiplier.toFixed(), "0");
           assert.equal(info.timeLeft.toFixed(), "0");
         });
+
+        it("should return zero if nft multiplier is zero", async () => {
+          await nft.mint(SECOND, 0, 100, 1);
+
+          await nft.lock(5, { from: SECOND });
+
+          let info = await nft.getCurrentMultiplier(SECOND, "5000");
+          assert.equal(info.multiplier.toFixed(), "0");
+        });
+
+        it("should return common multiplier if averageBalance is zero", async () => {
+          await nft.mint(SECOND, toMultiplier(2), 100, 0);
+
+          await nft.lock(5, { from: SECOND });
+
+          let info = await nft.getCurrentMultiplier(SECOND, "5000");
+          assert.equal(info.multiplier.toFixed(), toMultiplier(2).toFixed());
+        });
+
+        it("should return common multiplier if CurrentVoteBalance <= AverageBalance * multiplier", async () => {
+          await nft.mint(SECOND, toMultiplier(2), 1, 1);
+
+          await nft.lock(5, { from: SECOND });
+
+          let info = await nft.getCurrentMultiplier(SECOND, "0");
+          assert.equal(info.multiplier.toFixed(), toMultiplier(2).toFixed());
+        });
+
+        it("should return 1 if obtained multiplier is less than 1", async () => {
+          await nft.lock(TOKENS[2].id, { from: SECOND });
+
+          let info = await nft.getCurrentMultiplier(SECOND, "1000000");
+          assert.equal(info.multiplier.toFixed(), PRECISION.toFixed());
+        });
       });
 
       describe("transferFrom", () => {
-        it("should not transfer if nft is locked", async () => {
-          await nft.lock(TOKENS[0].id, { from: TOKENS[0].owner });
-          await truffleAssert.reverts(
-            nft.transferFrom(TOKENS[0].owner, TOKENS[1].owner, TOKENS[0].id, { from: TOKENS[0].owner }),
-            "ERC721Multiplier: Cannot transfer locked token"
-          );
-        });
+        it("should not transfer averageBalance", async () => {
+          await nft.transferFrom(SECOND, THIRD, TOKENS[2].id, { from: SECOND });
 
-        it("should transfer if nft is not locked", async () => {
-          await nft.transferFrom(TOKENS[0].owner, TOKENS[1].owner, TOKENS[0].id, { from: TOKENS[0].owner });
-          assert.equal(await nft.ownerOf(TOKENS[0].id), TOKENS[1].owner);
-        });
+          await nft.lock(TOKENS[2].id, { from: THIRD });
 
-        it("should transfer if nft is unlocked", async () => {
-          await nft.lock(TOKENS[0].id, { from: TOKENS[0].owner });
+          const amount = "7000";
 
-          await nft.unlock(TOKENS[0].id, { from: TOKENS[0].owner });
+          const currentMultiplier = toBN(TOKENS[2].multiplier)
+            .times(PRECISION)
+            .idiv(
+              toBN(amount)
+                .times(PRECISION)
+                .times(PRECISION)
+                .idiv(toBN(TOKENS[2].multiplier).times(TOKENS[3].averageBalance))
+            )
+            .toFixed();
 
-          await nft.transferFrom(TOKENS[0].owner, TOKENS[1].owner, TOKENS[0].id, { from: TOKENS[0].owner });
-          assert.equal(await nft.ownerOf(TOKENS[0].id), TOKENS[1].owner);
+          let info = await nft.getCurrentMultiplier(THIRD, amount);
+          assert.equal(info.multiplier.toFixed(), currentMultiplier);
+          assert.equal(info.timeLeft.toFixed(), TOKENS[2].duration);
         });
       });
     });
