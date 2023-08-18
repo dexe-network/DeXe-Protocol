@@ -504,10 +504,11 @@ contract GovPool is
         return _proposals.getProposals(offset, limit);
     }
 
-    function getUserActiveProposals(
-        address user
-    ) external view override returns (uint256[] memory) {
-        return _votedInProposals.getUserActiveProposals(user);
+    function getUserActiveProposalsCount(address user) external view override returns (uint256) {
+        return
+            _votedInProposals[user][VoteType.PersonalVote].length() +
+            // TODO: we do need to count DelegatedVote as well
+            _votedInProposals[user][VoteType.DelegatedVote].length();
     }
 
     function getProposalRequiredQuorum(

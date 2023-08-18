@@ -49,44 +49,6 @@ library GovPoolView {
         return IGovUserKeeper(userKeeper).getWithdrawableAssets(user, lockedIds, unlockedNfts);
     }
 
-    function getUserActiveProposals(
-        mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
-            storage _votedInProposals,
-        address user
-    ) external view returns (uint256[] memory) {
-        Vector.UintVector memory activeProposals = Vector.newUint();
-
-        _addActiveProposalsByType(
-            user,
-            IGovPool.VoteType.PersonalVote,
-            _votedInProposals,
-            activeProposals
-        );
-
-        _addActiveProposalsByType(
-            user,
-            IGovPool.VoteType.DelegatedVote,
-            _votedInProposals,
-            activeProposals
-        );
-
-        _addActiveProposalsByType(
-            user,
-            IGovPool.VoteType.MicropoolVote,
-            _votedInProposals,
-            activeProposals
-        );
-
-        _addActiveProposalsByType(
-            user,
-            IGovPool.VoteType.TreasuryVote,
-            _votedInProposals,
-            activeProposals
-        );
-
-        return activeProposals.toArray();
-    }
-
     function getProposals(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 offset,

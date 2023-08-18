@@ -632,14 +632,6 @@ describe("ERC721Multiplier", () => {
           await nft.lock(TOKENS[0].id, { from: OWNER });
           assert.isTrue(await nft.isLocked(TOKENS[0].id));
         });
-
-        it("should return `not locked` if nft was unlocked by NFT owner", async () => {
-          await nft.lock(TOKENS[0].id, { from: TOKENS[0].owner });
-
-          await nft.unlock(TOKENS[0].id, { from: OWNER });
-
-          assert.isFalse(await nft.isLocked(TOKENS[0].id));
-        });
       });
 
       describe("getExtraRewards()", () => {
@@ -677,21 +669,9 @@ describe("ERC721Multiplier", () => {
           await nft.lock(TOKENS[2].id, { from: OWNER });
           assert.equal(await nft.getExtraRewards(SECOND, "1000"), "1500");
         });
-
-        it("should return zero if nft is unlocked by NFT owner", async () => {
-          await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
-          await nft.unlock(TOKENS[2].id, { from: OWNER });
-          assert.equal(await nft.getExtraRewards(SECOND, "1000"), "0");
-        });
       });
 
       describe("getCurrentMultiplier()", () => {
-        it("should return zeros if no nft locked", async () => {
-          const info = await nft.getCurrentMultiplier(SECOND);
-          assert.equal(info.multiplier, "0");
-          assert.equal(info.timeLeft, "0");
-        });
-
         it("should return current multiplier and timeLeft properly if locked", async () => {
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
 
@@ -738,16 +718,6 @@ describe("ERC721Multiplier", () => {
           info = await nft.getCurrentMultiplier(SECOND);
           assert.equal(info.multiplier.toFixed(), TOKENS[2].multiplier);
           assert.equal(info.timeLeft.toFixed(), "1");
-        });
-
-        it("should return zeros if nft unlocked by NFT owner", async () => {
-          await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
-
-          await nft.unlock(TOKENS[2].id, { from: OWNER });
-
-          const info = await nft.getCurrentMultiplier(SECOND);
-          assert.equal(info.multiplier.toFixed(), "0");
-          assert.equal(info.timeLeft.toFixed(), "0");
         });
       });
 

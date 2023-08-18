@@ -190,6 +190,6 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
     }
 
     function _noActiveProposals(address user) internal view returns (bool) {
-        return _govPool.getUserActiveProposals(user).length == 0;
+        return _govPool.getUserActiveProposalsCount(user) == 0;
     }
 }
