@@ -18,14 +18,8 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
     mapping(uint256 => NftInfo) private _tokens;
     mapping(address => uint256) private _latestLockedTokenIds;
 
-    event Minted(address to, uint256 tokenId, uint256 multiplier, uint256 duration);
-    event Locked(
-        address sender,
-        uint256 tokenId,
-        uint256 multiplier,
-        uint256 duration,
-        bool isLocked
-    );
+    event Minted(uint256 tokenId, address to, uint256 multiplier, uint256 duration);
+    event Locked(uint256 tokenId, address sender, bool isLocked);
     event Changed(uint256 tokenId, uint256 multiplier, uint256 duration);
 
     function __ERC721Multiplier_init(
@@ -47,15 +41,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
 
         _latestLockedTokenIds[msg.sender] = tokenId;
 
-        NftInfo storage tokenToBeLocked = _tokens[tokenId];
-
-        emit Locked(
-            msg.sender,
-            tokenId,
-            tokenToBeLocked.multiplier,
-            tokenToBeLocked.duration,
-            true
-        );
+        emit Locked(tokenId, msg.sender, true);
     }
 
     function unlock() external override {
@@ -64,23 +50,14 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         _onlyTokenOwner(tokenId);
 
         require(isLocked(tokenId), "ERC721Multiplier: Nft is not locked");
-
         require(
             IGovPool(owner()).getUserActiveProposalsCount(msg.sender) == 0,
             "ERC721Multiplier: Cannot unlock with active proposals"
         );
 
-        _latestLockedTokenIds[msg.sender] = 0;
+        delete _latestLockedTokenIds[msg.sender];
 
-        NftInfo storage tokenToBeUnlocked = _tokens[tokenId];
-
-        emit Locked(
-            msg.sender,
-            tokenId,
-            tokenToBeUnlocked.multiplier,
-            tokenToBeUnlocked.duration,
-            false
-        );
+        emit Locked(tokenId, msg.sender, false);
     }
 
     function mint(address to, uint256 multiplier, uint64 duration) external override onlyOwner {
@@ -94,7 +71,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
             mintedAt: uint64(block.timestamp)
         });
 
-        emit Minted(to, currentTokenId, multiplier, duration);
+        emit Minted(currentTokenId, to, multiplier, duration);
     }
 
     function changeToken(
@@ -120,36 +97,31 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         address whose,
         uint256 rewards
     ) external view override returns (uint256) {
-        uint256 latestLockedTokenId = _latestLockedTokenIds[whose];
+        (uint256 multiplier, ) = getCurrentMultiplier(whose);
 
-        return
-            isLocked(latestLockedTokenId)
-                ? rewards.ratio(_tokens[latestLockedTokenId].multiplier, PRECISION)
-                : 0;
+        return rewards.ratio(multiplier, PRECISION);
     }
 
     function getCurrentMultiplier(
         address whose
-    ) external view returns (uint256 multiplier, uint256 timeLeft) {
+    ) public view returns (uint256 multiplier, uint256 timeLeft) {
         uint256 latestLockedTokenId = _latestLockedTokenIds[whose];
 
         if (!isLocked(latestLockedTokenId)) {
             return (0, 0);
         }
 
-        NftInfo storage info = _tokens[latestLockedTokenId];
+        NftInfo memory info = _tokens[latestLockedTokenId];
 
-        multiplier = info.multiplier;
-        timeLeft = info.mintedAt + info.duration - block.timestamp;
+        if (info.mintedAt + info.duration < block.timestamp) {
+            return (0, 0);
+        }
+
+        return (info.multiplier, info.mintedAt + info.duration - block.timestamp);
     }
 
     function isLocked(uint256 tokenId) public view override returns (bool) {
-        NftInfo storage info = _tokens[tokenId];
-
-        return
-            tokenId != 0 &&
-            _latestLockedTokenIds[ownerOf(tokenId)] == tokenId &&
-            info.mintedAt + info.duration >= block.timestamp;
+        return tokenId != 0 && _latestLockedTokenIds[ownerOf(tokenId)] == tokenId;
     }
 
     function supportsInterface(
@@ -168,10 +140,6 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
     ) internal override {
         if (from != address(0)) {
             require(!isLocked(tokenId), "ERC721Multiplier: Cannot transfer locked token");
-
-            if (_latestLockedTokenIds[from] == tokenId) {
-                _latestLockedTokenIds[from] = 0;
-            }
         }
 
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
