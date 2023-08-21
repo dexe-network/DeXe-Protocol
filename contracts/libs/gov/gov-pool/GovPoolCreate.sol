@@ -239,7 +239,31 @@ library GovPoolCreate {
             return false;
         }
 
-        return _handleDataForExistingSettingsProposal(actions);
+        return _handleDataForExistingSettingsProposal(govSettings, actions);
+    }
+
+    function _handleDataForExistingSettingsProposal(
+        IGovSettings govSettings,
+        IGovPool.ProposalAction[] calldata actions
+    ) internal view returns (bool) {
+        uint256 lastSettings = govSettings.executorToSettings(
+            actions[actions.length - 1].executor
+        );
+
+        for (uint256 i; i < actions.length - 1; i++) {
+            bytes4 selector = actions[i].data.getSelector();
+
+            if (
+                govSettings.executorToSettings(actions[i].executor) != lastSettings &&
+                (actions[i].value != 0 ||
+                    (selector != IERC20.approve.selector && // same as selector != IERC721.approve.selector
+                        selector != IERC721.setApprovalForAll.selector)) // same as IERC1155.setApprovalForAll.selector
+            ) {
+                return true; // should use default settings
+            }
+        }
+
+        return false;
     }
 
     function _validateDataCorrespondence(
@@ -261,12 +285,7 @@ library GovPoolCreate {
 
             bytes4 selector = actionFor.data.getSelector();
             require(selector == actionAgainst.data.getSelector(), "Gov: invalid selector");
-            require(
-                selector == IGovPool.vote.selector ||
-                    selector == IGovPool.voteDelegated.selector ||
-                    selector == IGovPool.voteTreasury.selector,
-                "Gov: invalid selector"
-            );
+            require(selector == IGovPool.vote.selector, "Gov: invalid selector");
 
             (uint256 proposalIdFor, bool isVoteForOnFor) = _decodeVoteFunction(actionFor);
             (uint256 proposalIdAgainst, bool isVoteForOnAgainst) = _decodeVoteFunction(
@@ -293,32 +312,9 @@ library GovPoolCreate {
         }
     }
 
-    function _handleDataForExistingSettingsProposal(
-        IGovPool.ProposalAction[] calldata actions
-    ) internal pure returns (bool) {
-        for (uint256 i; i < actions.length - 1; i++) {
-            bytes4 selector = actions[i].data.getSelector();
-
-            if (
-                actions[i].value != 0 ||
-                (selector != IERC20.approve.selector && // same as selector != IERC721.approve.selector
-                    selector != IERC721.setApprovalForAll.selector) // same as IERC1155.setApprovalForAll.selector
-            ) {
-                return true; // should use default settings
-            }
-        }
-
-        return false;
-    }
-
     function _decodeVoteFunction(
         IGovPool.ProposalAction calldata action
     ) internal pure returns (uint256 proposalId, bool isVoteFor) {
-        // (proposalId, isVoteFor) = abi.decode(action.data[4:69], (uint256, bool));
-
-        (proposalId, , , isVoteFor) = abi.decode(
-            action.data[4:],
-            (uint256, uint256, uint256[], bool)
-        );
+        (proposalId, isVoteFor) = abi.decode(action.data[4:69], (uint256, bool));
     }
 }

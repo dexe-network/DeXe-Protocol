@@ -12,7 +12,6 @@ contract LinearPower is IVotePower, OwnableUpgradeable {
 
     function transformVotes(
         address voter,
-        IGovPool.VoteType voteType,
         uint256 votes
     ) external view returns (uint256 resultingVotes) {
         return votes;

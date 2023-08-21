@@ -12,44 +12,14 @@ library GovPoolUnlock {
     using EnumerableSet for EnumerableSet.UintSet;
 
     function unlockInProposals(
-        mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
-            storage votedInProposals,
-        mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
-            storage voteInfos,
+        mapping(address => EnumerableSet.UintSet) storage votedInProposals,
+        mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos,
         uint256[] calldata proposalIds,
-        address user,
-        IGovPool.VoteType voteType
+        address user
     ) external {
-        require(voteType != IGovPool.VoteType.DelegatedVote, "Gov: invalid vote type");
+        EnumerableSet.UintSet storage userProposals = votedInProposals[user];
 
-        EnumerableSet.UintSet storage userProposals = votedInProposals[user][voteType];
-
-        if (
-            voteType == IGovPool.VoteType.MicropoolVote ||
-            voteType == IGovPool.VoteType.TreasuryVote
-        ) {
-            for (uint256 i; i < proposalIds.length; i++) {
-                uint256 proposalId = proposalIds[i];
-
-                if (!_proposalIsActive(proposalId)) {
-                    userProposals.remove(proposalId);
-                }
-            }
-        } else {
-            _unlockInProposals(userProposals, voteInfos, proposalIds, user, voteType);
-        }
-    }
-
-    function _unlockInProposals(
-        EnumerableSet.UintSet storage userProposals,
-        mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
-            storage voteInfos,
-        uint256[] calldata proposalIds,
-        address user,
-        IGovPool.VoteType voteType
-    ) internal {
         (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
-
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         uint256 maxLockedAmount = userKeeper.maxLockedAmount(user);
@@ -62,14 +32,21 @@ library GovPoolUnlock {
                 continue;
             }
 
-            IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][user][voteType];
+            IGovPool.VotePower storage personalPower = voteInfos[proposalId][user].votePowers[
+                IGovPool.VoteType.PersonalVote
+            ];
 
-            uint256 lockedInProposal = voteInfo.tokensVoted;
+            uint256 lockedInProposal = personalPower.tokensVoted;
 
             maxUnlocked = maxUnlocked.max(lockedInProposal);
 
-            userKeeper.unlockTokens(proposalId, user, lockedInProposal);
-            userKeeper.unlockNfts(voteInfo.nftsVoted.values());
+            if (lockedInProposal != 0) {
+                userKeeper.unlockTokens(proposalId, user, lockedInProposal);
+            }
+
+            if (personalPower.nftsVoted.length() != 0) {
+                userKeeper.unlockNfts(personalPower.nftsVoted.values());
+            }
 
             userProposals.remove(proposalId);
         }

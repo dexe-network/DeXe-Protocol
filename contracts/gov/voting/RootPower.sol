@@ -28,16 +28,12 @@ contract RootPower is IVotePower, OwnableUpgradeable {
         _expertVoteModifier = expertVoteModifier;
     }
 
-    function transformVotes(
-        address voter,
-        IGovPool.VoteType voteType,
-        uint256 votes
-    ) external view returns (uint256 resultingVotes) {
+    function transformVotes(address voter, uint256 votes) external view returns (uint256) {
         IGovPool govPool = IGovPool(owner());
         bool expertStatus = govPool.getExpertStatus(voter);
         uint256 coefficient = expertStatus ? _expertVoteModifier : _regularVoteModifier;
 
-        if (voteType == IGovPool.VoteType.TreasuryVote) {
+        if (expertStatus) {
             uint256 treasuryVoteCoefficient = _treasuryVoteCoefficient(voter);
 
             // @dev Assuming treasury vote coefficient is always <= 1
@@ -45,15 +41,14 @@ contract RootPower is IVotePower, OwnableUpgradeable {
         }
 
         if (coefficient <= PRECISION) {
-            resultingVotes = votes;
-            return resultingVotes;
+            return votes;
         }
 
-        resultingVotes = votes.pow(PRECISION.ratio(DECIMALS, coefficient));
+        return votes.pow(PRECISION.ratio(DECIMALS, coefficient));
     }
 
     function _treasuryVoteCoefficient(address voter) internal view returns (uint256) {
-        (, address userKeeperAddress, , , ) = IGovPool(owner()).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(payable(owner())).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         (uint256 power, ) = userKeeper.tokenBalance(voter, IGovPool.VoteType.TreasuryVote);

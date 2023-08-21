@@ -6,7 +6,6 @@ import "../../../interfaces/gov/IGovPool.sol";
 interface IVotePower {
     function transformVotes(
         address voter,
-        IGovPool.VoteType voteType,
         uint256 votes
     ) external view returns (uint256 resultingVotes);
 }
