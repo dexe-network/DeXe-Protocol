@@ -19,7 +19,7 @@ ERC721Mock.numberFormat = "BigNumber";
 ERC721EnumMock.numberFormat = "BigNumber";
 ERC721Power.numberFormat = "BigNumber";
 
-describe.only("GovUserKeeper", () => {
+describe("GovUserKeeper", () => {
   let OWNER;
   let SECOND;
   let THIRD;
