@@ -13,8 +13,6 @@ import "../../libs/math/MathHelper.sol";
 contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, OwnableUpgradeable {
     using MathHelper for uint256;
 
-    IGovPool internal _govPool;
-
     string public baseURI;
 
     mapping(uint256 => NftInfo) private _tokens;
@@ -32,16 +30,11 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
 
     function __ERC721Multiplier_init(
         string calldata name,
-        string calldata symbol,
-        address govAddress
+        string calldata symbol
     ) external initializer {
         __Ownable_init();
         __ERC721Enumerable_init();
         __ERC721_init(name, symbol);
-
-        require(govAddress != address(0), "ERC721Multiplier: govAddress is zero");
-
-        _govPool = IGovPool(govAddress);
     }
 
     function lock(uint256 tokenId) external override {
@@ -74,7 +67,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         require(isLocked(tokenId), "ERC721Multiplier: Nft is not locked");
 
         require(
-            _govPool.getUserActiveProposalsCount(msg.sender) == 0,
+            IGovPool(owner()).getUserActiveProposalsCount(msg.sender) == 0,
             "ERC721Multiplier: Cannot unlock with active proposals"
         );
 

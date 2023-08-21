@@ -280,7 +280,7 @@ describe("ERC721Multiplier", () => {
       poolParams.userKeeperParams.nftsTotalSupply
     );
 
-    await nft.__ERC721Multiplier_init(NFT_NAME, NFT_SYMBOL, govPool.address);
+    await nft.__ERC721Multiplier_init(NFT_NAME, NFT_SYMBOL);
 
     await dp.__DistributionProposal_init(govPool.address);
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
@@ -338,17 +338,8 @@ describe("ERC721Multiplier", () => {
 
     it("should not initialize twice", async () => {
       await truffleAssert.reverts(
-        nft.__ERC721Multiplier_init(NFT_NAME, NFT_SYMBOL, govPool.address),
+        nft.__ERC721Multiplier_init(NFT_NAME, NFT_SYMBOL),
         "Initializable: contract is already initialized"
-      );
-    });
-
-    it("should revert if gov address is zero", async () => {
-      const nft = await ERC721Multiplier.new();
-
-      await truffleAssert.reverts(
-        nft.__ERC721Multiplier_init(NFT_NAME, NFT_SYMBOL, ZERO_ADDR),
-        "ERC721Multiplier: govAddress is zero"
       );
     });
   });
@@ -452,14 +443,6 @@ describe("ERC721Multiplier", () => {
           await truffleAssert.reverts(nft.changeToken(5, 0, 0), "ERC721: invalid token ID");
         });
 
-        it("should do change if the token locked", async () => {
-          const first = TOKENS[0];
-
-          await nft.lock(first.id, { from: first.owner });
-
-          assert.isOk(await nft.changeToken(first.id, 0, 0));
-        });
-
         it("should change properly", async () => {
           const first = TOKENS[0];
 
@@ -472,6 +455,10 @@ describe("ERC721Multiplier", () => {
       });
 
       describe("lock()", () => {
+        beforeEach(async () => {
+          await nft.transferOwnership(govPool.address);
+        });
+
         it("should not lock if not the owner of the token", async () => {
           await truffleAssert.reverts(nft.lock(2, { from: SECOND }), "ERC721Multiplier: not the nft owner");
         });
@@ -597,6 +584,10 @@ describe("ERC721Multiplier", () => {
       });
 
       describe("unlock()", () => {
+        beforeEach(async () => {
+          await nft.transferOwnership(govPool.address);
+        });
+
         it("should not unlock if not the owner", async () => {
           await truffleAssert.reverts(nft.unlock({ from: SECOND }), "ERC721: invalid token ID");
         });
@@ -661,6 +652,10 @@ describe("ERC721Multiplier", () => {
       });
 
       describe("isLocked()", () => {
+        beforeEach(async () => {
+          await nft.transferOwnership(govPool.address);
+        });
+
         it("should return `not locked` if nft has never been locked", async () => {
           assert.isFalse(await nft.isLocked(TOKENS[0].id));
         });
@@ -687,6 +682,10 @@ describe("ERC721Multiplier", () => {
       });
 
       describe("getExtraRewards()", () => {
+        beforeEach(async () => {
+          await nft.transferOwnership(govPool.address);
+        });
+
         it("should return zero if no nft locked", async () => {
           assert.equal(await nft.getExtraRewards(SECOND, "1000"), "0");
         });
@@ -719,6 +718,10 @@ describe("ERC721Multiplier", () => {
       });
 
       describe("getCurrentMultiplier()", () => {
+        beforeEach(async () => {
+          await nft.transferOwnership(govPool.address);
+        });
+
         it("should return current multiplier and timeLeft properly if locked", async () => {
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
 
@@ -755,6 +758,10 @@ describe("ERC721Multiplier", () => {
       });
 
       describe("transferFrom", () => {
+        beforeEach(async () => {
+          await nft.transferOwnership(govPool.address);
+        });
+
         it("should not transfer if nft is locked", async () => {
           await nft.lock(TOKENS[0].id, { from: TOKENS[0].owner });
           await truffleAssert.reverts(
