@@ -21,9 +21,25 @@ library GovPoolMicropool {
 
     function updateRewards(
         IGovPool.MicropoolInfo storage micropool,
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId,
-        uint256 amount
+        uint256 amount,
+        IGovPool.RewardType rewardType
     ) external {
+        IGovSettings.RewardsInfo storage rewardsInfo = proposals[proposalId]
+            .core
+            .settings
+            .rewardsInfo;
+
+        (uint256 percentage, ) = ICoreProperties(IGovPool(address(this)).coreProperties())
+            .getVoteRewardsPercentages();
+
+        amount -= amount.percentage(percentage);
+
+        micropool.pendingRewards[proposalId] = rewardType == IGovPool.RewardType.VoteForDelegated
+            ? amount.ratio(rewardsInfo.voteForRewardsCoefficient, PRECISION)
+            : amount.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
+
         micropool.pendingRewards[proposalId] = amount;
     }
 

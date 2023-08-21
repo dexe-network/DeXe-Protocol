@@ -156,7 +156,7 @@ contract GovPool is
     }
 
     function execute(uint256 proposalId) public override onlyBABTHolder {
-        _updateRewards(proposalId, RewardType.Execute);
+        _updateRewards(proposalId, msg.sender, RewardType.Execute);
 
         _proposals.execute(proposalId);
     }
@@ -188,13 +188,13 @@ contract GovPool is
             actionsOnAgainst
         );
 
-        _updateRewards(proposalId, RewardType.Create);
+        _updateRewards(proposalId, msg.sender, RewardType.Create);
     }
 
     function moveProposalToValidators(uint256 proposalId) external override {
         _proposals.moveProposalToValidators(proposalId);
 
-        _updateRewards(proposalId, RewardType.Create);
+        _updateRewards(proposalId, msg.sender, RewardType.Create);
     }
 
     function vote(
@@ -215,7 +215,7 @@ contract GovPool is
             isVoteFor
         );
 
-        _updateVotingRewards(proposalId, isVoteFor, votes);
+        _updateVotingRewards(proposalId, msg.sender, isVoteFor, votes);
     }
 
     function cancelVote(uint256 proposalId) external override onlyBABTHolder {
@@ -223,7 +223,7 @@ contract GovPool is
 
         _proposals.cancelVote(_votedInProposals, _voteInfos, proposalId);
 
-        _cancelVotingRewards(proposalId);
+        _cancelVotingRewards(proposalId, msg.sender);
     }
 
     function withdraw(
@@ -388,7 +388,7 @@ contract GovPool is
     ) external override onlyBABTHolder {
         resultsHash.saveOffchainResults(signature, _offChain);
 
-        _updateRewards(0, RewardType.SaveOffchainResults);
+        _updateRewards(0, msg.sender, RewardType.SaveOffchainResults);
     }
 
     receive() external payable {}
@@ -557,38 +557,54 @@ contract GovPool is
         _expertVoteModifier = expertModifier;
     }
 
-    function _updateRewards(uint256 proposalId, RewardType rewardType) internal {
-        _updateRewards(proposalId, rewardType, 0);
+    function _updateRewards(uint256 proposalId, address user, RewardType rewardType) internal {
+        _updateRewards(proposalId, user, rewardType, 0);
     }
 
-    function _updateRewards(uint256 proposalId, RewardType rewardType, uint256 amount) internal {
-        _pendingRewards.updateRewards(_proposals, proposalId, rewardType, amount);
+    function _updateRewards(
+        uint256 proposalId,
+        address user,
+        RewardType rewardType,
+        uint256 amount
+    ) internal {
+        _pendingRewards.updateRewards(_proposals, proposalId, user, rewardType, amount);
     }
 
     function _updateVotingRewards(
         uint256 proposalId,
+        address voter,
         bool isVoteFor,
         Votes memory votes
     ) internal {
         _updateRewards(
             proposalId,
+            voter,
             isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst,
             votes.personal
         );
         _updateRewards(
             proposalId,
-            isVoteFor ? RewardType.VoteForDelegated : RewardType.VoteAgainstDelegated,
-            votes.micropool
-        );
-        _updateRewards(
-            proposalId,
+            voter,
             isVoteFor ? RewardType.VoteForTreasury : RewardType.VoteAgainstTreasury,
             votes.treasury
         );
+
+        RewardType micropoolRewardType = isVoteFor
+            ? RewardType.VoteForDelegated
+            : RewardType.VoteAgainstDelegated;
+
+        _updateRewards(proposalId, voter, micropoolRewardType, votes.micropool);
+
+        _micropoolInfos[voter].updateRewards(
+            _proposals,
+            proposalId,
+            votes.micropool,
+            micropoolRewardType
+        );
     }
 
-    function _cancelVotingRewards(uint256 proposalId) internal {
-        _pendingRewards.cancelVotingRewards(_proposals, proposalId);
+    function _cancelVotingRewards(uint256 proposalId, address voter) internal {
+        _pendingRewards.cancelVotingRewards(_proposals, proposalId, voter);
     }
 
     function _unlock(address user) internal {
@@ -609,10 +625,13 @@ contract GovPool is
                 voteType
             );
 
-            _cancelVotingRewards(proposalId);
-            _updateVotingRewards(proposalId, _voteInfos[proposalId][delegatee].isVoteFor, votes);
-
-            _micropoolInfos[delegatee].updateRewards(proposalId, votes.micropool);
+            _cancelVotingRewards(proposalId, delegatee);
+            _updateVotingRewards(
+                proposalId,
+                delegatee,
+                _voteInfos[proposalId][delegatee].isVoteFor,
+                votes
+            );
         }
     }
 

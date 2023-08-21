@@ -30,6 +30,7 @@ library GovPoolRewards {
         mapping(address => IGovPool.PendingRewards) storage pendingRewards,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId,
+        address user,
         IGovPool.RewardType rewardType,
         uint256 amount
     ) public {
@@ -47,13 +48,10 @@ library GovPoolRewards {
             rewardType != IGovPool.RewardType.VoteAgainstTreasury &&
             nftMultiplier != address(0)
         ) {
-            amountToAdd += IERC721Multiplier(nftMultiplier).getExtraRewards(
-                msg.sender,
-                amountToAdd
-            );
+            amountToAdd += IERC721Multiplier(nftMultiplier).getExtraRewards(user, amountToAdd);
         }
 
-        IGovPool.PendingRewards storage userRewards = pendingRewards[msg.sender];
+        IGovPool.PendingRewards storage userRewards = pendingRewards[user];
 
         address rewardToken;
 
@@ -82,19 +80,20 @@ library GovPoolRewards {
             userRewards.offchainTokens.add(rewardToken);
         }
 
-        emit RewardCredited(proposalId, rewardType, rewardToken, amountToAdd, msg.sender);
+        emit RewardCredited(proposalId, rewardType, rewardToken, amountToAdd, user);
     }
 
     function cancelVotingRewards(
         mapping(address => IGovPool.PendingRewards) storage pendingRewards,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        uint256 proposalId
+        uint256 proposalId,
+        address user
     ) external {
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
 
-        uint256 amountToCancel = pendingRewards[msg.sender].votingRewards[proposalId];
+        uint256 amountToCancel = pendingRewards[user].votingRewards[proposalId];
 
-        delete pendingRewards[msg.sender].votingRewards[proposalId];
+        delete pendingRewards[user].votingRewards[proposalId];
 
         core.givenRewards -= amountToCancel;
 
@@ -102,7 +101,7 @@ library GovPoolRewards {
             proposalId,
             core.settings.rewardsInfo.rewardToken,
             amountToCancel,
-            msg.sender
+            user
         );
     }
 
