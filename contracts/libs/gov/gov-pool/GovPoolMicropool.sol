@@ -21,9 +21,25 @@ library GovPoolMicropool {
 
     function updateRewards(
         IGovPool.MicropoolInfo storage micropool,
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId,
-        uint256 amount
+        uint256 amount,
+        IGovPool.RewardType rewardType
     ) external {
+        IGovSettings.RewardsInfo storage rewardsInfo = proposals[proposalId]
+            .core
+            .settings
+            .rewardsInfo;
+
+        (uint256 percentage, ) = ICoreProperties(IGovPool(address(this)).coreProperties())
+            .getVoteRewardsPercentages();
+
+        amount -= amount.percentage(percentage);
+
+        micropool.pendingRewards[proposalId] = rewardType == IGovPool.RewardType.VoteForDelegated
+            ? amount.ratio(rewardsInfo.voteForRewardsCoefficient, PRECISION)
+            : amount.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
+
         micropool.pendingRewards[proposalId] = amount;
     }
 
@@ -58,8 +74,7 @@ library GovPoolMicropool {
     function claim(
         IGovPool.MicropoolInfo storage micropool,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
-            storage voteInfos,
+        mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos,
         uint256[] calldata proposalIds,
         address delegatee
     ) external {
@@ -90,8 +105,7 @@ library GovPoolMicropool {
     function getDelegatorRewards(
         IGovPool.MicropoolInfo storage micropool,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
-            storage voteInfos,
+        mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos,
         uint256[] calldata proposalIds,
         address delegator,
         address delegatee
@@ -119,9 +133,7 @@ library GovPoolMicropool {
                 delegatee
             );
             rewards.rewardTokens[i] = proposal.core.settings.rewardsInfo.rewardToken;
-            rewards.isVoteFor[i] = voteInfos[proposalId][delegatee][
-                IGovPool.VoteType.MicropoolVote
-            ].isVoteFor;
+            rewards.isVoteFor[i] = voteInfos[proposalId][delegatee].isVoteFor;
             rewards.isClaimed[i] = micropool.delegatorInfos[delegator].isClaimed[proposalId];
         }
     }
@@ -129,8 +141,7 @@ library GovPoolMicropool {
     function _getExpectedRewards(
         IGovPool.MicropoolInfo storage micropool,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        mapping(uint256 => mapping(address => mapping(IGovPool.VoteType => IGovPool.VoteInfo)))
-            storage voteInfos,
+        mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos,
         uint256 proposalId,
         address delegator,
         address delegatee
@@ -138,7 +149,7 @@ library GovPoolMicropool {
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
 
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
-        IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][delegatee][
+        IGovPool.VotePower storage micropoolPower = voteInfos[proposalId][delegatee].votePowers[
             IGovPool.VoteType.MicropoolVote
         ];
         IGovPool.DelegatorInfo storage delegatorInfo = micropool.delegatorInfos[delegator];
@@ -151,9 +162,7 @@ library GovPoolMicropool {
             return 0;
         }
 
-        uint256[] storage delegationTimes = delegatorInfo.delegationTimes;
-
-        uint256 index = delegationTimes.lowerBound(core.executionTime);
+        uint256 index = delegatorInfo.delegationTimes.lowerBound(core.executionTime);
 
         if (index == 0) {
             return 0;
@@ -167,7 +176,6 @@ library GovPoolMicropool {
                 core.nftPowerSnapshotId
             );
 
-        return
-            pendingRewards.ratio(delegationAmount, voteInfo.tokensVoted + voteInfo.nftPowerVoted);
+        return pendingRewards.ratio(delegationAmount, micropoolPower.powerVoted);
     }
 }
