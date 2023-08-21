@@ -44,7 +44,7 @@ ERC721Expert.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 ERC721Multiplier.numberFormat = "BigNumber";
 
-describe("ERC721Multiplier", () => {
+describe.only("ERC721Multiplier", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -385,7 +385,7 @@ describe("ERC721Multiplier", () => {
 
     describe("interfaceId()", () => {
       it("should support ERC721Enumerable and ERC721Multiplier interfaces", async () => {
-        assert.isTrue(await nft.supportsInterface("0x9347d1fc"));
+        assert.isTrue(await nft.supportsInterface("0x5442c670"));
         assert.isTrue(await nft.supportsInterface("0x780e9d63"));
       });
     });
@@ -531,7 +531,7 @@ describe("ERC721Multiplier", () => {
 
           await nft.lock(first.id, { from: SECOND });
 
-          await nft.unlock(first.id, { from: SECOND });
+          await nft.unlock({ from: SECOND });
 
           await nft.transferFrom(SECOND, THIRD, first.id, { from: SECOND });
 
@@ -584,7 +584,7 @@ describe("ERC721Multiplier", () => {
 
           await nft.lock(first.id, { from: SECOND });
 
-          await nft.unlock(first.id, { from: SECOND });
+          await nft.unlock({ from: SECOND });
 
           await nft.transferFrom(SECOND, THIRD, first.id, { from: SECOND });
 
@@ -598,31 +598,25 @@ describe("ERC721Multiplier", () => {
 
       describe("unlock()", () => {
         it("should not unlock if not the owner", async () => {
-          await truffleAssert.reverts(nft.unlock(2, { from: SECOND }), "ERC721Multiplier: not the nft owner");
+          await truffleAssert.reverts(nft.unlock({ from: SECOND }), "ERC721: invalid token ID");
         });
 
         it("should not unlock if no locked token", async () => {
           const first = TOKENS[0];
-          await truffleAssert.reverts(
-            nft.unlock(first.id, { from: first.owner }),
-            "ERC721Multiplier: Nft is not locked"
-          );
+          await truffleAssert.reverts(nft.unlock({ from: first.owner }), "ERC721: invalid token ID");
 
           await nft.lock(first.id, { from: first.owner });
 
-          await nft.unlock(first.id, { from: first.owner });
+          await nft.unlock({ from: first.owner });
 
-          await truffleAssert.reverts(
-            nft.unlock(first.id, { from: first.owner }),
-            "ERC721Multiplier: Nft is not locked"
-          );
+          await truffleAssert.reverts(nft.unlock({ from: first.owner }), "ERC721Multiplier: Nft is not locked");
         });
 
         it("should unlock properly if all conditions are met", async () => {
           const { id, owner, multiplier, duration } = TOKENS[0];
           await nft.lock(id, { from: owner });
 
-          const tx = await nft.unlock(id, { from: owner });
+          const tx = await nft.unlock({ from: owner });
           truffleAssert.eventEmitted(tx, "Locked", (e) => {
             return (
               e.sender === owner &&
@@ -641,11 +635,11 @@ describe("ERC721Multiplier", () => {
           const { id, owner } = TOKENS[0];
           await nft.lock(id, { from: owner });
 
-          await nft.unlock(id, { from: owner });
+          await nft.unlock({ from: owner });
 
           await nft.lock(id, { from: owner });
 
-          await nft.unlock(id, { from: owner });
+          await nft.unlock({ from: owner });
         });
 
         it("should not unlock if caller has any active proposal", async () => {
@@ -660,7 +654,7 @@ describe("ERC721Multiplier", () => {
           await govPool.vote(1, true, wei("100"), [], { from: first.owner });
 
           await truffleAssert.reverts(
-            nft.unlock(first.id, { from: first.owner }),
+            nft.unlock({ from: first.owner }),
             "ERC721Multiplier: Cannot unlock with active proposals"
           );
         });
@@ -686,7 +680,7 @@ describe("ERC721Multiplier", () => {
         it("should return `not locked` if nft was unlocked", async () => {
           await nft.lock(TOKENS[0].id, { from: TOKENS[0].owner });
 
-          await nft.unlock(TOKENS[0].id, { from: TOKENS[0].owner });
+          await nft.unlock({ from: TOKENS[0].owner });
 
           assert.isFalse(await nft.isLocked(TOKENS[0].id));
         });
@@ -719,7 +713,7 @@ describe("ERC721Multiplier", () => {
 
         it("should return zero if nft is unlocked", async () => {
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
-          await nft.unlock(TOKENS[2].id, { from: TOKENS[2].owner });
+          await nft.unlock({ from: TOKENS[2].owner });
           assert.equal(await nft.getExtraRewards(SECOND, "1000"), "0");
         });
       });
@@ -752,7 +746,7 @@ describe("ERC721Multiplier", () => {
         it("should return zeros if nft unlocked", async () => {
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
 
-          await nft.unlock(TOKENS[2].id, { from: TOKENS[2].owner });
+          await nft.unlock({ from: TOKENS[2].owner });
 
           const info = await nft.getCurrentMultiplier(SECOND);
           assert.equal(info.multiplier.toFixed(), "0");
@@ -777,7 +771,7 @@ describe("ERC721Multiplier", () => {
         it("should transfer if nft is unlocked", async () => {
           await nft.lock(TOKENS[0].id, { from: TOKENS[0].owner });
 
-          await nft.unlock(TOKENS[0].id, { from: TOKENS[0].owner });
+          await nft.unlock({ from: TOKENS[0].owner });
 
           await nft.transferFrom(TOKENS[0].owner, TOKENS[1].owner, TOKENS[0].id, { from: TOKENS[0].owner });
           assert.equal(await nft.ownerOf(TOKENS[0].id), TOKENS[1].owner);

@@ -30,11 +30,6 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
     );
     event Changed(uint256 tokenId, uint256 multiplier, uint256 duration);
 
-    modifier onlyTokenOwner(uint256 tokenId) {
-        _onlyTokenOwner(tokenId);
-        _;
-    }
-
     function __ERC721Multiplier_init(
         string calldata name,
         string calldata symbol,
@@ -49,7 +44,9 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         _govPool = IGovPool(govAddress);
     }
 
-    function lock(uint256 tokenId) external override onlyTokenOwner(tokenId) {
+    function lock(uint256 tokenId) external override {
+        _onlyTokenOwner(tokenId);
+
         require(
             !isLocked(_latestLockedTokenIds[msg.sender]),
             "ERC721Multiplier: Cannot lock more than one nft"
@@ -69,7 +66,11 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         );
     }
 
-    function unlock(uint256 tokenId) external override onlyTokenOwner(tokenId) {
+    function unlock() external override {
+        uint256 tokenId = _latestLockedTokenIds[msg.sender];
+
+        _onlyTokenOwner(tokenId);
+
         require(isLocked(tokenId), "ERC721Multiplier: Nft is not locked");
 
         require(
