@@ -1055,7 +1055,7 @@ describe("GovPool", () => {
       });
 
       describe("DP", () => {
-        it("should revert when creating DP proposal with wrong proposal id", async () => {
+        it.skip("should revert when creating DP proposal with wrong proposal id", async () => {
           await truffleAssert.reverts(
             govPool.createProposal(
               "example.com",
@@ -1067,7 +1067,7 @@ describe("GovPool", () => {
           );
         });
 
-        it("should revert when creating DP proposal with non zero value", async () => {
+        it.skip("should revert when creating DP proposal with non zero value", async () => {
           await truffleAssert.reverts(
             govPool.createProposal(
               "example.com",

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@solarity/solidity-lib/contracts-registry/pools/pool-factory/AbstractPoolFactory.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "../interfaces/factory/IPoolFactory.sol";
 import "../interfaces/core/IContractsRegistry.sol";
@@ -77,6 +78,20 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.name
         );
 
+        if (parameters.votePowerParams.voteType == VotePowerType.LINEAR_VOTES) {
+            govPoolDeps.votePowerAddress = _deploy2(
+                _poolRegistry.LINEAR_POWER_NAME(),
+                parameters.name
+            );
+        } else if (parameters.votePowerParams.voteType == VotePowerType.ROOT_VOTES) {
+            govPoolDeps.votePowerAddress = _deploy2(
+                _poolRegistry.ROOT_POWER_NAME(),
+                parameters.name
+            );
+        } else {
+            govPoolDeps.votePowerAddress = parameters.votePowerParams.presetAddress;
+        }
+
         address tokenSaleProxy = _deployTokenSale(parameters, poolProxy);
 
         emit DaoPoolDeployed(
@@ -106,6 +121,9 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         GovValidators(govPoolDeps.validatorsAddress).transferOwnership(poolProxy);
         ERC721Expert(govPoolDeps.expertNftAddress).transferOwnership(poolProxy);
         ERC721Multiplier(govPoolDeps.nftMultiplierAddress).transferOwnership(poolProxy);
+        if (parameters.votePowerParams.voteType != VotePowerType.CUSTOM_VOTES) {
+            Ownable(govPoolDeps.votePowerAddress).transferOwnership(poolProxy);
+        }
 
         _register(poolType, poolProxy);
         _injectDependencies(poolProxy);
@@ -180,8 +198,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         );
         GovPool(payable(poolProxy)).__GovPool_init(
             govPoolDeps,
-            parameters.regularVoteModifier,
-            parameters.expertVoteModifier,
             parameters.verifier,
             parameters.onlyBABHolders,
             babtId,
@@ -196,6 +212,13 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.name.concatStrings(NFT_MULTIPLIER_NAME_POSTFIX),
             parameters.name.concatStrings(NFT_MULTIPLIER_SYMBOL_POSTFIX)
         );
+        if (parameters.votePowerParams.voteType == VotePowerType.ROOT_VOTES) {
+            // TODO Check init selector
+            (bool success, ) = (govPoolDeps.votePowerAddress).call(
+                parameters.votePowerParams.initData
+            );
+            require(success, "Root Power Contract initialization failed");
+        }
     }
 
     function _deploy(string memory poolType) internal returns (address) {

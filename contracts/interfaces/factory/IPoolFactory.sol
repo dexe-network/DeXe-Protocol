@@ -12,6 +12,12 @@ import "../core/ICoreProperties.sol";
  * a governance owner (GovPool)
  */
 interface IPoolFactory {
+    enum VotePowerType {
+        LINEAR_VOTES,
+        ROOT_VOTES,
+        CUSTOM_VOTES
+    }
+
     /// @notice General settings of the pool
     /// @param proposalSettings list of infos about settings for proposal types
     /// @param additionalProposalExecutors list of additional proposal executors
@@ -56,13 +62,18 @@ interface IPoolFactory {
         IERC20Gov.ConstructorParams tokenParams;
     }
 
+    struct VotePowerDeployParams {
+        VotePowerType voteType;
+        bytes initData;
+        address presetAddress;
+    }
+
     /// @notice The pool deploy parameters
     /// @param settingsParams general settings of the pool
     /// @param validatorsParams parameters of validators
     /// @param userKeeperParams parameters of the user keeper
     /// @param tokenSaleParams the token sale proposal parameters
-    /// @param regularVoteModifier voting parameter for regular users
-    /// @param expertVoteModifier voting parameter for experts
+    /// @param votePowerParams vote power parameters
     /// @param verifier the address of the verifier
     /// @param onlyBABHolders if true, only KYCed users will be allowed to interact with the pool
     /// @param descriptionURL the description of the pool
@@ -72,8 +83,7 @@ interface IPoolFactory {
         ValidatorsDeployParams validatorsParams;
         UserKeeperDeployParams userKeeperParams;
         TokenSaleProposalDeployParams tokenSaleParams;
-        uint256 regularVoteModifier;
-        uint256 expertVoteModifier;
+        VotePowerDeployParams votePowerParams;
         address verifier;
         bool onlyBABHolders;
         string descriptionURL;

@@ -83,6 +83,7 @@ interface IGovPool {
         address payable validatorsAddress;
         address expertNftAddress;
         address nftMultiplierAddress;
+        address votePowerAddress;
     }
 
     /// TODO: docs
@@ -269,6 +270,9 @@ interface IGovPool {
         view
         returns (address nftMultiplier, address expertNft, address dexeExpertNft, address babt);
 
+    // TODO DOCS
+    function getVotePowerContract() external view returns (address votePowerContract);
+
     /// @notice Create proposal
     /// @notice For internal proposal, last executor should be `GovSetting` contract
     /// @notice For typed proposal, last executor should be typed contract
@@ -390,11 +394,6 @@ interface IGovPool {
     /// @notice The function for changing verifier address
     /// @param newVerifier the address of verifier
     function changeVerifier(address newVerifier) external;
-
-    /// @notice The function for changing voting modifiers
-    /// @param regularModifier the new regular modifier value
-    /// @param expertModifier the new expert modifier value
-    function changeVoteModifiers(uint256 regularModifier, uint256 expertModifier) external;
 
     /// @notice The function for setting validators credit limit
     /// @param tokens the list of tokens to credit
@@ -520,15 +519,6 @@ interface IGovPool {
     /// @notice The function to get expert status of a voter
     /// @return address of a person, who votes
     function getExpertStatus(address user) external view returns (bool);
-
-    /// @notice The function to get current vote modifier
-    /// @return `Arguments`: regular modifier, expert modifier (with 25 precision decimals)
-    function getVoteModifiers() external view returns (uint256, uint256);
-
-    /// @notice The function to get current vote modifier for particular user
-    /// @param user the address of the user
-    /// @return uint256 the modifier with 25 precision decimals
-    function getVoteModifierForUser(address user) external view returns (uint256);
 
     /// @notice The function to get core properties
     /// @return `ICoreProperties` interface

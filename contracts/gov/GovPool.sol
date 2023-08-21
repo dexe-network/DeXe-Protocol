@@ -61,6 +61,7 @@ contract GovPool is
     IGovUserKeeper internal _govUserKeeper;
     IGovValidators internal _govValidators;
     address internal _poolRegistry;
+    address internal _votePowerContract;
 
     ICoreProperties public coreProperties;
 
@@ -76,9 +77,6 @@ contract GovPool is
 
     uint256 public latestProposalId;
     uint256 public deployerBABTid;
-
-    uint256 internal _regularVoteModifier;
-    uint256 internal _expertVoteModifier;
 
     CreditInfo internal _creditInfo;
 
@@ -117,8 +115,6 @@ contract GovPool is
 
     function __GovPool_init(
         Dependencies calldata govPoolDeps,
-        uint256 regularVoteModifier,
-        uint256 expertVoteModifier,
         address _verifier,
         bool _onlyBABTHolders,
         uint256 _deployerBABTid,
@@ -130,8 +126,7 @@ contract GovPool is
         _govValidators = IGovValidators(govPoolDeps.validatorsAddress);
         _expertNft = IERC721Expert(govPoolDeps.expertNftAddress);
         _nftMultiplier = govPoolDeps.nftMultiplierAddress;
-
-        _changeVoteModifiers(regularVoteModifier, expertVoteModifier);
+        _votePowerContract = govPoolDeps.votePowerAddress;
 
         onlyBABTHolders = _onlyBABTHolders;
         deployerBABTid = _deployerBABTid;
@@ -452,13 +447,6 @@ contract GovPool is
         _creditInfo.transferCreditAmount(tokens, amounts, destination);
     }
 
-    function changeVoteModifiers(
-        uint256 regularModifier,
-        uint256 expertModifier
-    ) external override onlyThis {
-        _changeVoteModifiers(regularModifier, expertModifier);
-    }
-
     function saveOffchainResults(
         string calldata resultsHash,
         bytes calldata signature
@@ -495,6 +483,10 @@ contract GovPool is
         returns (address nftMultiplier, address expertNft, address dexeExpertNft, address babt)
     {
         return (_nftMultiplier, address(_expertNft), address(_dexeExpertNft), address(_babt));
+    }
+
+    function getVotePowerContract() external view returns (address votePowerContract) {
+        return _votePowerContract;
     }
 
     function getProposals(
@@ -595,26 +587,8 @@ contract GovPool is
         return _expertNft.isExpert(user) || _dexeExpertNft.isExpert(user);
     }
 
-    function getVoteModifiers() external view override returns (uint256, uint256) {
-        return (_regularVoteModifier, _expertVoteModifier);
-    }
-
-    function getVoteModifierForUser(address user) external view returns (uint256) {
-        return getExpertStatus(user) ? _expertVoteModifier : _regularVoteModifier;
-    }
-
     function _setNftMultiplierAddress(address nftMultiplierAddress) internal {
         _nftMultiplier = nftMultiplierAddress;
-    }
-
-    function _changeVoteModifiers(uint256 regularModifier, uint256 expertModifier) internal {
-        require(
-            regularModifier >= PRECISION && expertModifier >= PRECISION,
-            "Gov: vote modifiers are less than 1"
-        );
-
-        _regularVoteModifier = regularModifier;
-        _expertVoteModifier = expertModifier;
     }
 
     function _updateRewards(uint256 proposalId, RewardType rewardType) internal {

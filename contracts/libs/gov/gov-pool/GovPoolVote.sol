@@ -8,6 +8,7 @@ import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 
 import "../../../interfaces/gov/IGovPool.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
+import "../../../interfaces/gov/voting/IVotePower.sol";
 
 import "../../../gov/GovPool.sol";
 
@@ -437,19 +438,8 @@ library GovPoolVote {
         uint256 voteAmount,
         IGovPool.VoteType voteType
     ) internal view returns (uint256) {
-        uint256 coefficient = IGovPool(address(this)).getVoteModifierForUser(voter);
+        IVotePower votePower = IVotePower(IGovPool(address(this)).getVotePowerContract());
 
-        if (voteType == IGovPool.VoteType.TreasuryVote) {
-            uint256 treasuryVoteCoefficient = _treasuryVoteCoefficient(voter);
-
-            // @dev Assuming treasury vote coefficient is always <= 1
-            coefficient -= treasuryVoteCoefficient;
-        }
-
-        if (coefficient <= PRECISION) {
-            return voteAmount;
-        }
-
-        return voteAmount.pow(coefficient.ratio(DECIMALS, PRECISION));
+        return votePower.transformVotes(voter, voteType, voteAmount);
     }
 }
