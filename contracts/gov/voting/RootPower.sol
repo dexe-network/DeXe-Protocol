@@ -19,7 +19,10 @@ contract RootPower is IVotePower, OwnableUpgradeable {
     uint256 internal _regularVoteModifier;
     uint256 internal _expertVoteModifier;
 
-    function __RootPower_init(uint256 regularVoteModifier, uint256 expertVoteModifier) external {
+    function __RootPower_init(
+        uint256 regularVoteModifier,
+        uint256 expertVoteModifier
+    ) external initializer {
         __Ownable_init();
         _regularVoteModifier = regularVoteModifier;
         _expertVoteModifier = expertVoteModifier;
@@ -46,12 +49,11 @@ contract RootPower is IVotePower, OwnableUpgradeable {
             return resultingVotes;
         }
 
-        coefficient = PRECISION.ratio(DECIMALS, PRECISION);
-        resultingVotes = votes.pow(coefficient);
+        resultingVotes = votes.pow(PRECISION.ratio(DECIMALS, coefficient));
     }
 
     function _treasuryVoteCoefficient(address voter) internal view returns (uint256) {
-        (, address userKeeperAddress, , ) = IGovPool(payable(address(this))).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(owner()).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         (uint256 power, ) = userKeeper.tokenBalance(voter, IGovPool.VoteType.TreasuryVote);

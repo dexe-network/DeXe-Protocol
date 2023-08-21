@@ -466,13 +466,20 @@ contract GovPool is
         external
         view
         override
-        returns (address settings, address userKeeper, address validators, address poolRegistry)
+        returns (
+            address settings,
+            address userKeeper,
+            address validators,
+            address poolRegistry,
+            address votePower
+        )
     {
         return (
             address(_govSettings),
             address(_govUserKeeper),
             address(_govValidators),
-            _poolRegistry
+            _poolRegistry,
+            _votePowerContract
         );
     }
 
@@ -483,10 +490,6 @@ contract GovPool is
         returns (address nftMultiplier, address expertNft, address dexeExpertNft, address babt)
     {
         return (_nftMultiplier, address(_expertNft), address(_dexeExpertNft), address(_babt));
-    }
-
-    function getVotePowerContract() external view returns (address votePowerContract) {
-        return _votePowerContract;
     }
 
     function getProposals(

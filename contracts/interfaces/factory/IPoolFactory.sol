@@ -12,6 +12,10 @@ import "../core/ICoreProperties.sol";
  * a governance owner (GovPool)
  */
 interface IPoolFactory {
+    /// @notice The enum that holds information about calculating vote power
+    /// @param LINEAR_VOTES the vote power = number of tokens
+    /// @param ROOT_VOTES the vote power calculated with root formula
+    /// @param CUSTOM_VOTES the vote type defined by a customer
     enum VotePowerType {
         LINEAR_VOTES,
         ROOT_VOTES,
@@ -62,6 +66,10 @@ interface IPoolFactory {
         IERC20Gov.ConstructorParams tokenParams;
     }
 
+    /// @notice The voting power parameters
+    /// @param voteType type of algorythm to calculate votes number from token number
+    /// @param initData initialization data for standard contract types
+    /// @param presetAddress address of custom contract (for custom voteType)
     struct VotePowerDeployParams {
         VotePowerType voteType;
         bytes initData;

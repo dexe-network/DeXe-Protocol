@@ -212,12 +212,12 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.name.concatStrings(NFT_MULTIPLIER_NAME_POSTFIX),
             parameters.name.concatStrings(NFT_MULTIPLIER_SYMBOL_POSTFIX)
         );
-        if (parameters.votePowerParams.voteType == VotePowerType.ROOT_VOTES) {
+        if (parameters.votePowerParams.voteType != VotePowerType.CUSTOM_VOTES) {
             // TODO Check init selector
             (bool success, ) = (govPoolDeps.votePowerAddress).call(
                 parameters.votePowerParams.initData
             );
-            require(success, "Root Power Contract initialization failed");
+            require(success, "Vote Power Contract initialization failed");
         }
     }
 

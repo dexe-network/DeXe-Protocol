@@ -90,7 +90,7 @@ library GovPoolCreate {
         uint256 proposalId
     ) external {
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
-        (, , address govValidators, ) = IGovPool(address(this)).getHelperContracts();
+        (, , address govValidators, , ) = IGovPool(address(this)).getHelperContracts();
 
         require(
             IGovPool(address(this)).getProposalState(proposalId) ==
@@ -123,7 +123,7 @@ library GovPoolCreate {
     {
         require(actionsFor.length != 0, "Gov: invalid array length");
 
-        (address govSettingsAddress, address userKeeper, , ) = IGovPool(address(this))
+        (address govSettingsAddress, address userKeeper, , , ) = IGovPool(address(this))
             .getHelperContracts();
 
         IGovSettings govSettings = IGovSettings(govSettingsAddress);
@@ -177,7 +177,7 @@ library GovPoolCreate {
             return;
         }
 
-        (, address userKeeper, , ) = govPool.getHelperContracts();
+        (, address userKeeper, , , ) = govPool.getHelperContracts();
 
         require(
             IGovUserKeeper(userKeeper).canCreate(
@@ -248,7 +248,7 @@ library GovPoolCreate {
     ) internal view {
         require(actionsFor.length == actionsAgainst.length, "Gov: invalid actions length");
 
-        (, , , address poolRegistryAddress) = IGovPool(address(this)).getHelperContracts();
+        (, , , address poolRegistryAddress, ) = IGovPool(address(this)).getHelperContracts();
         IPoolRegistry poolRegistry = IPoolRegistry(poolRegistryAddress);
 
         for (uint256 i; i < actionsFor.length; i++) {

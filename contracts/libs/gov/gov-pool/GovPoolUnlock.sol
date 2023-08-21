@@ -48,7 +48,7 @@ library GovPoolUnlock {
         address user,
         IGovPool.VoteType voteType
     ) internal {
-        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
 
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 

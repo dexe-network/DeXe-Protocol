@@ -77,6 +77,7 @@ interface IGovPool {
     /// @param validatorsAddress the address of validators contract
     /// @param expertNftAddress the address of expert nft contract
     /// @param nftMultiplierAddress the address of nft multiplier contract
+    /// @param votePowerAddress the address of vote power contract
     struct Dependencies {
         address settingsAddress;
         address userKeeperAddress;
@@ -255,10 +256,17 @@ interface IGovPool {
     /// @return userKeeper user keeper address
     /// @return validators validators address
     /// @return poolRegistry pool registry address
+    /// @return votePower vote power address
     function getHelperContracts()
         external
         view
-        returns (address settings, address userKeeper, address validators, address poolRegistry);
+        returns (
+            address settings,
+            address userKeeper,
+            address validators,
+            address poolRegistry,
+            address votePower
+        );
 
     /// @notice The function to get the nft contracts of this pool
     /// @return nftMultiplier rewards multiplier nft contract
@@ -269,9 +277,6 @@ interface IGovPool {
         external
         view
         returns (address nftMultiplier, address expertNft, address dexeExpertNft, address babt);
-
-    // TODO DOCS
-    function getVotePowerContract() external view returns (address votePowerContract);
 
     /// @notice Create proposal
     /// @notice For internal proposal, last executor should be `GovSetting` contract
