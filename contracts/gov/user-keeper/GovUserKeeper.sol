@@ -560,13 +560,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             return 0;
         }
 
+        uint256 totalPowerInTokens = _nftInfo.totalPowerInTokens;
         uint256 nftsPower;
 
         if (!_nftInfo.isSupportPower) {
-            nftsPower = nftIds.length.ratio(_nftInfo.totalPowerInTokens, totalNftsPower);
+            nftsPower = nftIds.length.ratio(totalPowerInTokens, totalNftsPower);
         } else {
-            uint256 totalPowerInTokens = _nftInfo.totalPowerInTokens;
-
             for (uint256 i; i < nftIds.length; i++) {
                 nftsPower += totalPowerInTokens.ratio(
                     nftContract.getNftPower(nftIds[i]),
@@ -576,7 +575,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
 
         /// @dev In the case of the custom ERC721Power, the power function can increase
-        return nftsPower.min(totalNftsPower);
+        return nftsPower.min(totalPowerInTokens);
     }
 
     function getTotalVoteWeight() external view override returns (uint256) {

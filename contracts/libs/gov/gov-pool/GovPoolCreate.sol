@@ -240,7 +240,31 @@ library GovPoolCreate {
             return false;
         }
 
-        return _handleDataForExistingSettingsProposal(actions);
+        return _handleDataForExistingSettingsProposal(govSettings, actions);
+    }
+
+    function _handleDataForExistingSettingsProposal(
+        IGovSettings govSettings,
+        IGovPool.ProposalAction[] calldata actions
+    ) internal view returns (bool) {
+        uint256 lastSettings = govSettings.executorToSettings(
+            actions[actions.length - 1].executor
+        );
+
+        for (uint256 i; i < actions.length - 1; i++) {
+            bytes4 selector = actions[i].data.getSelector();
+
+            if (
+                govSettings.executorToSettings(actions[i].executor) != lastSettings &&
+                (actions[i].value != 0 ||
+                    (selector != IERC20.approve.selector && // same as selector != IERC721.approve.selector
+                        selector != IERC721.setApprovalForAll.selector)) // same as IERC1155.setApprovalForAll.selector
+            ) {
+                return true; // should use default settings
+            }
+        }
+
+        return false;
     }
 
     function _validateDataCorrespondence(
@@ -287,24 +311,6 @@ library GovPoolCreate {
                 "Gov: invalid internal data"
             );
         }
-    }
-
-    function _handleDataForExistingSettingsProposal(
-        IGovPool.ProposalAction[] calldata actions
-    ) internal pure returns (bool) {
-        for (uint256 i; i < actions.length - 1; i++) {
-            bytes4 selector = actions[i].data.getSelector();
-
-            if (
-                actions[i].value != 0 ||
-                (selector != IERC20.approve.selector && // same as selector != IERC721.approve.selector
-                    selector != IERC721.setApprovalForAll.selector) // same as IERC1155.setApprovalForAll.selector
-            ) {
-                return true; // should use default settings
-            }
-        }
-
-        return false;
     }
 
     function _decodeVoteFunction(
