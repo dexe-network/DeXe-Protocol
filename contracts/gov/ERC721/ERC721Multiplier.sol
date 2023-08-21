@@ -19,13 +19,13 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
     mapping(address => uint256) internal _latestLockedTokenIds;
 
     event Minted(
-        address to,
         uint256 tokenId,
+        address to,
         uint256 multiplier,
         uint256 duration,
         uint256 averageBalance
     );
-    event Locked(address sender, uint256 tokenId, bool isLocked);
+    event Locked(uint256 tokenId, address sender, bool isLocked);
     event Changed(uint256 tokenId, uint256 multiplier, uint256 duration, uint256 averageBalance);
 
     function __ERC721Multiplier_init(

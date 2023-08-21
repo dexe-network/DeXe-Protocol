@@ -544,7 +544,7 @@ describe("ERC721Multiplier", () => {
 
           await nft.lock(first.id, { from: first.owner });
 
-          const info = await nft.getCurrentMultiplier(first.owner);
+          const info = await nft.getCurrentMultiplier(first.owner, 0);
           assert.equal(info.multiplier.toFixed(), "0");
           assert.equal(info.timeLeft.toFixed(), "0");
         });
@@ -728,7 +728,7 @@ describe("ERC721Multiplier", () => {
 
           await nft.lock(TOKENS[0].id, { from: TOKENS[1].owner });
 
-          let info = await nft.getCurrentMultiplier(TOKENS[1].owner);
+          let info = await nft.getCurrentMultiplier(TOKENS[1].owner, 0);
 
           assert.equal(info.multiplier.toFixed(), TOKENS[0].multiplier);
 

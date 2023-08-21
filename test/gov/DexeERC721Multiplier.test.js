@@ -406,6 +406,8 @@ describe("DexeERC721Multiplier", () => {
       beforeEach(async () => {
         for (const token of TOKENS) {
           await nft.mint(token.owner, token.multiplier, token.duration, token.averageBalance);
+
+          token.mintedAt = await getCurrentBlockTime();
         }
       });
 
@@ -462,10 +464,9 @@ describe("DexeERC721Multiplier", () => {
         });
 
         it("should change reward if the second nft is locked", async () => {
-          const startTime = await getCurrentBlockTime();
           await nft.lock(TOKENS[0].id, { from: TOKENS[0].owner });
           assert.equal(await nft.getExtraRewards(SECOND, "1000"), "1337000");
-          await setTime(startTime + parseInt(TOKENS[0].duration) + 1);
+          await nft.unlock({ from: TOKENS[0].owner });
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
           assert.equal(await nft.getExtraRewards(SECOND, "1000"), "1500");
         });
@@ -503,9 +504,11 @@ describe("DexeERC721Multiplier", () => {
 
           let info = await nft.getCurrentMultiplier(SECOND, amount);
           assert.equal(info.multiplier.toFixed(), currentMultiplier);
-          assert.equal(info.timeLeft.toFixed(), TOKENS[2].duration);
 
-          await setTime((await getCurrentBlockTime()) + parseInt(TOKENS[2].duration) - 1);
+          const timeLeft = parseInt(TOKENS[2].duration) + TOKENS[2].mintedAt - (await getCurrentBlockTime());
+          assert.equal(info.timeLeft.toFixed(), timeLeft);
+
+          await setTime(TOKENS[2].mintedAt + parseInt(TOKENS[2].duration) - 1);
 
           info = await nft.getCurrentMultiplier(SECOND, amount);
           assert.equal(info.multiplier.toFixed(), currentMultiplier);
@@ -559,7 +562,7 @@ describe("DexeERC721Multiplier", () => {
         });
 
         it("should return common multiplier if CurrentVoteBalance <= AverageBalance * multiplier", async () => {
-          await nft.mint(SECOND, toMultiplier(2), 1, 1);
+          await nft.mint(SECOND, toMultiplier(2), 10, 1);
 
           await nft.transferOwnership(govPool.address);
 
@@ -599,7 +602,9 @@ describe("DexeERC721Multiplier", () => {
 
           let info = await nft.getCurrentMultiplier(THIRD, amount);
           assert.equal(info.multiplier.toFixed(), currentMultiplier);
-          assert.equal(info.timeLeft.toFixed(), TOKENS[2].duration);
+
+          const timeLeft = parseInt(TOKENS[2].duration) + TOKENS[2].mintedAt - (await getCurrentBlockTime());
+          assert.equal(info.timeLeft.toFixed(), timeLeft);
         });
       });
     });
