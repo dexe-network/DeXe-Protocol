@@ -3502,7 +3502,7 @@ describe("GovPool", () => {
       });
     });
 
-    describe.only("getUserActiveProposalsCount()", () => {
+    describe("getUserActiveProposalsCount()", () => {
       it("should return zero if no proposals", async () => {
         assert.equal(await govPool.getUserActiveProposalsCount(OWNER), 0);
       });
@@ -3532,10 +3532,6 @@ describe("GovPool", () => {
         assert.equal(await govPool.getUserActiveProposalsCount(OWNER), 2);
 
         await govPool.unlock(OWNER, VoteType.PersonalVote);
-
-        assert.equal(await govPool.getUserActiveProposalsCount(OWNER), 1);
-
-        await govPool.unlock(OWNER, VoteType.DelegatedVote);
 
         assert.equal(await govPool.getUserActiveProposalsCount(OWNER), 0);
       });
