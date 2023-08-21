@@ -428,7 +428,7 @@ contract GovPool is
     }
 
     function getUserActiveProposalsCount(address user) external view override returns (uint256) {
-        return _votedInProposals[user][VoteType.PersonalVote].length();
+        return _votedInProposals[user].length();
     }
 
     function getProposalRequiredQuorum(
