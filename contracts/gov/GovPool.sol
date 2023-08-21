@@ -444,17 +444,24 @@ contract GovPool is
         address voter,
         VoteType voteType
     ) external view override returns (uint256, uint256, uint256, bool) {
+        require(voteType != VoteType.DelegatedVote, "Gov: use personal");
+
         ProposalCore storage core = _proposals[proposalId].core;
-
         VoteInfo storage info = _voteInfos[proposalId][voter];
-        mapping(VoteType => VotePower) storage votePowers = info.votePowers;
 
-        uint256 voterVotes = info.totalVoted.ratio(
-            votePowers[voteType].powerVoted,
-            votePowers[VoteType.PersonalVote].powerVoted +
-                votePowers[VoteType.MicropoolVote].powerVoted +
-                votePowers[VoteType.TreasuryVote].powerVoted
-        );
+        (IGovPool.Votes memory votes, ) = info.getVotes();
+
+        uint256 typedVotes;
+        if (voteType == VoteType.PersonalVote) {
+            typedVotes = votes.personal;
+        } else if (voteType == VoteType.MicropoolVote) {
+            typedVotes = votes.micropool;
+        } else {
+            typedVotes = votes.treasury;
+        }
+
+        uint256 totalVotes = votes.personal + votes.micropool + votes.treasury;
+        uint256 voterVotes = totalVotes != 0 ? info.totalVoted.ratio(typedVotes, totalVotes) : 0;
 
         return (core.votesFor, core.votesAgainst, voterVotes, info.isVoteFor);
     }
