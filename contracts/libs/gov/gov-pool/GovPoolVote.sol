@@ -46,14 +46,15 @@ library GovPoolVote {
         mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
 
         if (amount != 0 || nftIds.length != 0) {
-            (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
+            (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+            IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
             if (amount != 0) {
-                IGovUserKeeper(userKeeper).lockTokens(proposalId, msg.sender, amount);
+                userKeeper.lockTokens(proposalId, msg.sender, amount);
             }
 
             if (nftIds.length != 0) {
-                IGovUserKeeper(userKeeper).lockNfts(msg.sender, voteType, nftIds);
+                userKeeper.lockNfts(msg.sender, voteType, nftIds);
             }
 
             _vote(core, votePowers[IGovPool.VoteType.PersonalVote], amount, nftIds);
@@ -128,18 +129,15 @@ library GovPoolVote {
 
         IGovPool.VotePower storage personalPower = votePowers[IGovPool.VoteType.PersonalVote];
 
-        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+        IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         if (personalPower.tokensVoted != 0) {
-            IGovUserKeeper(userKeeper).unlockTokens(
-                proposalId,
-                msg.sender,
-                personalPower.tokensVoted
-            );
+            userKeeper.unlockTokens(proposalId, msg.sender, personalPower.tokensVoted);
         }
 
         if (personalPower.nftsVoted.length() != 0) {
-            IGovUserKeeper(userKeeper).unlockNfts(personalPower.nftsVoted.values());
+            userKeeper.unlockNfts(personalPower.nftsVoted.values());
         }
 
         _cancel(votePowers[IGovPool.VoteType.PersonalVote]);
