@@ -146,12 +146,24 @@ interface IGovPool {
     /// @param totalVoted the total power of votes from one user for the proposal
     /// @param tokensVoted the total erc20 amount voted from one user for the proposal
     /// @param nftsVoted the set of ids of nfts voted from one user for the  proposal
+    struct VotePower {
+        uint256 tokensVoted;
+        uint256 powerVoted;
+        EnumerableSet.UintSet nftsVoted;
+    }
+
+    /// TODO: docs
     struct VoteInfo {
+        mapping(VoteType => VotePower) votePowers;
         bool isVoteFor;
         uint256 totalVoted;
-        uint256 tokensVoted;
-        uint256 nftPowerVoted;
-        EnumerableSet.UintSet nftsVoted;
+    }
+
+    /// TODO: docs
+    struct Votes {
+        uint256 personal;
+        uint256 micropool;
+        uint256 treasury;
     }
 
     /// TODO: docs
@@ -163,7 +175,7 @@ interface IGovPool {
         bool isVoteFor;
         uint256 totalVoted;
         uint256 tokensVoted;
-        uint256 nftPowerVoted;
+        uint256 powerVoted;
         uint256[] nftsVoted;
     }
 
@@ -195,7 +207,7 @@ interface IGovPool {
     /// @param offchainRewards matching off-chain token addresses to their rewards
     /// @param offchainTokens the list of off-chain token addresses
     struct PendingRewards {
-        mapping(uint256 => mapping(VoteType => uint256)) votingRewards;
+        mapping(uint256 => uint256) votingRewards;
         mapping(uint256 => uint256) staticRewards;
         mapping(address => uint256) offchainRewards;
         EnumerableSet.AddressSet offchainTokens;
@@ -300,12 +312,7 @@ interface IGovPool {
     ) external;
 
     /// TODO: docs
-    function cancelVote(
-        uint256 proposalId,
-        bool isVoteFor,
-        uint256 voteAmount,
-        uint256[] calldata voteNftIds
-    ) external;
+    function cancelVote(uint256 proposalId) external;
 
     /// @notice The function for depositing tokens to the pool
     /// @param receiver the address of the deposit receiver
@@ -353,8 +360,7 @@ interface IGovPool {
 
     /// @notice The function that unlocks user funds in completed proposals
     /// @param user the user whose funds to unlock
-    /// @param voteType the type of vote
-    function unlock(address user, VoteType voteType) external;
+    function unlock(address user) external;
 
     /// @notice Execute proposal
     /// @param proposalId Proposal ID
