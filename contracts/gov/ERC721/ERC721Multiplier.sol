@@ -13,8 +13,6 @@ import "../../libs/math/MathHelper.sol";
 contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, OwnableUpgradeable {
     using MathHelper for uint256;
 
-    IGovPool internal _govPool;
-
     string public baseURI;
 
     mapping(uint256 => NftInfo) internal _tokens;
@@ -38,35 +36,25 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
 
     function __ERC721Multiplier_init(
         string calldata name,
-        string calldata symbol,
-        address govAddress
-    ) public initializer {
+        string calldata symbol
+    ) external initializer {
         __Ownable_init();
         __ERC721Enumerable_init();
         __ERC721_init(name, symbol);
-
-        require(govAddress != address(0), "ERC721Multiplier: govAddress is zero");
-
-        _govPool = IGovPool(govAddress);
     }
 
     function lock(uint256 tokenId) external override {
-        address tokenOwner = ERC721Upgradeable.ownerOf(tokenId);
+        _onlyTokenOwner(tokenId);
 
         require(
-            tokenOwner == msg.sender || owner() == msg.sender,
-            "ERC721Multiplier: not the nft owner"
-        );
-
-        require(
-            !isLocked(_latestLockedTokenIds[tokenOwner]),
+            !isLocked(_latestLockedTokenIds[msg.sender]),
             "ERC721Multiplier: Cannot lock more than one nft"
         );
 
         NftInfo storage tokenToBeLocked = _tokens[tokenId];
 
         tokenToBeLocked.lockedAt = uint64(block.timestamp);
-        _latestLockedTokenIds[tokenOwner] = tokenId;
+        _latestLockedTokenIds[msg.sender] = tokenId;
 
         emit Locked(
             msg.sender,
@@ -77,21 +65,15 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         );
     }
 
-    function unlock(uint256 tokenId) external override {
-        address tokenOwner = ERC721Upgradeable.ownerOf(tokenId);
+    function unlock() external override {
+        uint256 tokenId = _latestLockedTokenIds[msg.sender];
+
+        _onlyTokenOwner(tokenId);
+
+        require(isLocked(tokenId), "ERC721Multiplier: Nft is not locked");
 
         require(
-            tokenOwner == msg.sender || owner() == msg.sender,
-            "ERC721Multiplier: not the nft owner"
-        );
-
-        require(
-            isLocked(_latestLockedTokenIds[tokenOwner]),
-            "ERC721Multiplier: Nft is not locked"
-        );
-
-        require(
-            _noActiveProposals(tokenOwner),
+            IGovPool(owner()).getUserActiveProposalsCount(msg.sender) == 0,
             "ERC721Multiplier: Cannot unlock with active proposals"
         );
 
@@ -166,14 +148,14 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
             return (0, 0);
         }
 
-        NftInfo memory info = _tokens[latestLockedTokenId];
+        NftInfo storage info = _tokens[latestLockedTokenId];
 
         multiplier = info.multiplier;
         timeLeft = info.lockedAt + info.duration - block.timestamp;
     }
 
     function isLocked(uint256 tokenId) public view override returns (bool) {
-        NftInfo memory info = _tokens[tokenId];
+        NftInfo storage info = _tokens[tokenId];
 
         return info.lockedAt != 0 && info.lockedAt + info.duration >= block.timestamp;
     }
@@ -194,6 +176,10 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
     ) internal override {
         require(!isLocked(tokenId), "ERC721Multiplier: Cannot transfer locked token");
 
+        if (_latestLockedTokenIds[from] == tokenId) {
+            _latestLockedTokenIds[from] = 0;
+        }
+
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 
@@ -201,7 +187,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         return baseURI;
     }
 
-    function _noActiveProposals(address user) internal view returns (bool) {
-        return _govPool.getUserActiveProposals(user).length == 0;
+    function _onlyTokenOwner(uint256 tokenId) internal view {
+        require(ownerOf(tokenId) == msg.sender, "ERC721Multiplier: not the nft owner");
     }
 }

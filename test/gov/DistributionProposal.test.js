@@ -4,7 +4,7 @@ const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
 const { impersonate } = require("../helpers/impersonator");
-const { getBytesApprove, getBytesTransfer, getBytesDistributionProposal } = require("../utils/gov-pool-utils");
+const { getBytesApprove, getBytesDistributionProposal } = require("../utils/gov-pool-utils");
 const { DECIMAL, ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
 const { assert } = require("chai");
@@ -181,11 +181,11 @@ describe("DistributionProposal", () => {
 
     await dp.__DistributionProposal_init(govPool.address);
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
-    await nftMultiplier.__ERC721Multiplier_init("Mock Nft Multiplier", "MCKNFTMLTPLR", govPool.address);
+    await nftMultiplier.__ERC721Multiplier_init("Mock Nft Multiplier", "MCKNFTMLTPLR");
     await govPool.__GovPool_init(
       [settings.address, userKeeper.address, validators.address, expertNft.address, nftMultiplier.address],
-      wei("1", 25),
-      wei("1", 25),
+      poolParams.regularVoteModifier,
+      poolParams.expertVoteModifier,
       OWNER,
       poolParams.onlyBABTHolders,
       poolParams.deployerBABTid,
@@ -331,6 +331,8 @@ describe("DistributionProposal", () => {
           totalPowerInTokens: wei("33000"),
           nftsTotalSupply: 33,
         },
+        regularVoteModifier: wei("1", 25),
+        expertVoteModifier: wei("1", 25),
         onlyBABTHolders: false,
         deployerBABTid: 1,
         descriptionURL: "example.com",
@@ -362,17 +364,22 @@ describe("DistributionProposal", () => {
       beforeEach(async () => {
         startTime = await getCurrentBlockTime();
 
+        await token.mint(govPool.address, wei("100"));
+
         await govPool.deposit(OWNER, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
         await setTime(startTime + 999);
 
         await govPool.createProposal(
           "example.com",
-          [[dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100"))]],
+          [
+            [token.address, 0, getBytesApprove(dp.address, wei("100"))],
+            [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100"))],
+          ],
           []
         );
 
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9], true);
+        await govPool.vote(1, true, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
         await setTime(startTime + 10000);
       });
@@ -440,22 +447,25 @@ describe("DistributionProposal", () => {
         await govPool.createProposal(
           "example.com",
           [
-            [token.address, 0, getBytesTransfer(dp.address, wei("100000"))],
+            [token.address, 0, getBytesApprove(dp.address, wei("100000"))],
             [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
           ],
           [],
           { from: SECOND }
         );
 
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, { from: SECOND });
-        await govPool.vote(1, 0, [6, 7, 8, 9], true, { from: THIRD });
+        await govPool.vote(1, true, 0, [1, 2, 3, 4, 5], { from: SECOND });
+        await govPool.vote(1, true, 0, [6, 7, 8, 9], { from: THIRD });
 
         await setTime(startTime + 10000);
         await govPool.execute(1);
 
+        assert.isFalse(await dp.isClaimed(1, SECOND));
+
         await dp.claim(SECOND, [1]);
         await dp.claim(THIRD, [1]);
 
+        assert.isTrue(await dp.isClaimed(1, SECOND));
         assert.equal((await token.balanceOf(SECOND)).toFixed(), "55555555555555555555556");
         assert.equal((await token.balanceOf(THIRD)).toFixed(), "44444444444444444444443");
       });
@@ -465,10 +475,10 @@ describe("DistributionProposal", () => {
         const FIVE_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(5).dividedBy(9).integerValue().toFixed());
         const ALL_NFT_VOTES = FIVE_NFT_VOTES.plus(FOUR_NFT_VOTES);
 
-        async function dpClaim(user, nftList) {
+        async function dpClaim(user, proposals) {
           let balanceBefore = toBN(await web3.eth.getBalance(user));
 
-          await dp.claim(user, nftList);
+          await dp.claim(user, proposals);
 
           let balanceAfter = toBN(await web3.eth.getBalance(user));
           let diff = balanceAfter.minus(balanceBefore);
@@ -483,8 +493,8 @@ describe("DistributionProposal", () => {
           { from: SECOND }
         );
 
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, { from: SECOND });
-        await govPool.vote(1, 0, [6, 7, 8, 9], true, { from: THIRD });
+        await govPool.vote(1, true, 0, [1, 2, 3, 4, 5], { from: SECOND });
+        await govPool.vote(1, true, 0, [6, 7, 8, 9], { from: THIRD });
 
         await setTime(startTime + 10000);
         await govPool.execute(1);
@@ -498,19 +508,18 @@ describe("DistributionProposal", () => {
         assert.equal(reward, toBN(wei(1)).times(FOUR_NFT_VOTES).idiv(ALL_NFT_VOTES).toFixed());
       });
 
-      it("should not claim if not enough votes", async () => {
+      it("should not claim if vote against", async () => {
         await govPool.createProposal(
           "example.com",
           [
-            [token.address, 0, getBytesTransfer(dp.address, wei("100000"))],
+            [token.address, 0, getBytesApprove(dp.address, wei("100000"))],
             [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
           ],
           [],
           { from: SECOND }
         );
 
-        await govPool.vote(1, 0, [2, 3, 4, 5], false, { from: SECOND });
-        await govPool.vote(1, 0, [1], true, { from: SECOND });
+        await govPool.vote(1, false, 0, [2, 3, 4, 5], { from: SECOND });
 
         assert.equal(await dp.getPotentialReward(1, SECOND), 0);
       });
@@ -528,22 +537,18 @@ describe("DistributionProposal", () => {
           { from: SECOND }
         );
 
-        await govPool.vote(1, 0, [1, 2, 3, 4], true, { from: SECOND });
-        await govPool.vote(1, 0, [5], false, { from: SECOND });
-        await govPool.vote(1, 0, [6, 7, 8], true, { from: THIRD });
-        await govPool.vote(1, 0, [9], false, { from: THIRD });
+        await govPool.vote(1, true, 0, [1, 2, 3, 4, 5], { from: SECOND });
+        await govPool.vote(1, false, 0, [6, 7, 9], { from: THIRD });
 
         await setTime(startTime + 10000);
         await govPool.execute(1);
 
-        assert.equal(
-          await dp.getPotentialReward(1, SECOND),
-          toBN(wei(1)).times(FOUR_NFT_VOTES.minus(ONE_NFT_VOTE)).idiv(ALL_NFT_VOTES).toFixed()
+        assert.closeTo(
+          (await dp.getPotentialReward(1, SECOND)).toNumber(),
+          toBN(wei(1)).times(FOUR_NFT_VOTES.plus(ONE_NFT_VOTE)).idiv(ALL_NFT_VOTES.minus(ONE_NFT_VOTE)).toNumber(),
+          10
         );
-        assert.equal(
-          await dp.getPotentialReward(1, THIRD),
-          toBN(wei(1)).times(THREE_NFT_VOTES.minus(ONE_NFT_VOTE)).idiv(ALL_NFT_VOTES).toFixed()
-        );
+        assert.equal(await dp.getPotentialReward(1, THIRD), 0);
       });
 
       it("should not claim if not enough ether", async () => {
@@ -554,8 +559,8 @@ describe("DistributionProposal", () => {
           { from: SECOND }
         );
 
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, { from: SECOND });
-        await govPool.vote(1, 0, [6, 7, 8, 9], true, { from: THIRD });
+        await govPool.vote(1, true, 0, [1, 2, 3, 4, 5], { from: SECOND });
+        await govPool.vote(1, true, 0, [6, 7, 8, 9], { from: THIRD });
 
         await setTime(startTime + 10000);
         await govPool.execute(1);
@@ -563,7 +568,7 @@ describe("DistributionProposal", () => {
         await truffleAssert.reverts(dp.claim(SECOND, [1]));
       });
 
-      it("should revert when proposal amount < reward", async () => {
+      it("should revert if already claimed", async () => {
         await govPool.createProposal(
           "example.com",
           [
@@ -574,31 +579,8 @@ describe("DistributionProposal", () => {
           { from: SECOND }
         );
 
-        await token.mint(dp.address, wei("10"));
-
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, { from: SECOND });
-        await govPool.vote(1, 0, [6, 7, 8, 9], true, { from: THIRD });
-
-        await setTime(startTime + 10000);
-        await govPool.execute(1);
-
-        await truffleAssert.reverts(dp.claim(SECOND, [1]), "ERC20: transfer amount exceeds balance");
-        await truffleAssert.reverts(dp.claim(THIRD, [1]), "ERC20: transfer amount exceeds balance");
-      });
-
-      it("should revert if already claimed", async () => {
-        await govPool.createProposal(
-          "example.com",
-          [
-            [token.address, 0, getBytesTransfer(dp.address, wei("100000"))],
-            [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
-          ],
-          [],
-          { from: SECOND }
-        );
-
-        await govPool.vote(1, 0, [1, 2, 3, 4, 5], true, { from: SECOND });
-        await govPool.vote(1, 0, [6, 7, 8, 9], true, { from: THIRD });
+        await govPool.vote(1, true, 0, [1, 2, 3, 4, 5], { from: SECOND });
+        await govPool.vote(1, true, 0, [6, 7, 8, 9], { from: THIRD });
 
         await setTime(startTime + 10000);
         await govPool.execute(1);

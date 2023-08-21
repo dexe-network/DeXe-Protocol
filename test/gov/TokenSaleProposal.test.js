@@ -221,7 +221,7 @@ describe("TokenSaleProposal", () => {
 
     await dp.__DistributionProposal_init(govPool.address);
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
-    await nftMultiplier.__ERC721Multiplier_init("Mock Multiplier Nft", "MCKMULNFT", govPool.address);
+    await nftMultiplier.__ERC721Multiplier_init("Mock Multiplier Nft", "MCKMULNFT");
     await govPool.__GovPool_init(
       [settings.address, userKeeper.address, validators.address, expertNft.address, nftMultiplier.address],
       poolParams.regularVoteModifier,
@@ -269,8 +269,8 @@ describe("TokenSaleProposal", () => {
 
       const proposalId = await govPool.latestProposalId();
 
-      await govPool.vote(proposalId, wei("1000"), [], true);
-      await govPool.vote(proposalId, wei("100000000000000000000"), [], true, { from: SECOND });
+      await govPool.vote(proposalId, true, wei("1000"), []);
+      await govPool.vote(proposalId, true, wei("100000000000000000000"), [], { from: SECOND });
 
       await govPool.execute(proposalId);
     };
