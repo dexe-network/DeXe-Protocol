@@ -11,11 +11,11 @@ interface IERC721Multiplier is IERC721EnumerableUpgradeable {
     /// @notice This struct holds NFT Multiplier parameters
     /// @param multiplier the basic rewards multiplier
     /// @param duration the time for which an nft can be locked
-    /// @param lockedAt the time nft was locked
+    /// @param mintedAt the time nft was minter
     struct NftInfo {
         uint256 multiplier;
         uint64 duration;
-        uint64 lockedAt;
+        uint64 mintedAt;
     }
 
     /// @notice This function is used to lock an nft (enable corresponding basic rewards multiplier). Only one NFT for each address can be locked at the same time
