@@ -30,6 +30,11 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
     );
     event Changed(uint256 tokenId, uint256 multiplier, uint256 duration);
 
+    modifier onlyTokenOwner(uint256 tokenId) {
+        _onlyTokenOwner(tokenId);
+        _;
+    }
+
     function __ERC721Multiplier_init(
         string calldata name,
         string calldata symbol,
@@ -44,23 +49,16 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         _govPool = IGovPool(govAddress);
     }
 
-    function lock(uint256 tokenId) external override {
-        address tokenOwner = ERC721Upgradeable.ownerOf(tokenId);
-
+    function lock(uint256 tokenId) external override onlyTokenOwner(tokenId) {
         require(
-            tokenOwner == msg.sender || owner() == msg.sender,
-            "ERC721Multiplier: not the nft owner"
-        );
-
-        require(
-            !isLocked(_latestLockedTokenIds[tokenOwner]),
+            !isLocked(_latestLockedTokenIds[msg.sender]),
             "ERC721Multiplier: Cannot lock more than one nft"
         );
 
         NftInfo storage tokenToBeLocked = _tokens[tokenId];
 
         tokenToBeLocked.lockedAt = uint64(block.timestamp);
-        _latestLockedTokenIds[tokenOwner] = tokenId;
+        _latestLockedTokenIds[msg.sender] = tokenId;
 
         emit Locked(
             msg.sender,
@@ -71,19 +69,14 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         );
     }
 
-    function unlock(uint256 tokenId) external override {
-        require(
-            ERC721Upgradeable.ownerOf(tokenId) == msg.sender,
-            "ERC721Multiplier: not the nft owner"
-        );
-
+    function unlock(uint256 tokenId) external override onlyTokenOwner(tokenId) {
         require(
             isLocked(_latestLockedTokenIds[msg.sender]),
             "ERC721Multiplier: Nft is not locked"
         );
 
         require(
-            _noActiveProposals(msg.sender),
+            _govPool.getUserActiveProposalsCount(msg.sender) == 0,
             "ERC721Multiplier: Cannot unlock with active proposals"
         );
 
@@ -154,14 +147,14 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
             return (0, 0);
         }
 
-        NftInfo memory info = _tokens[latestLockedTokenId];
+        NftInfo storage info = _tokens[latestLockedTokenId];
 
         multiplier = info.multiplier;
         timeLeft = info.lockedAt + info.duration - block.timestamp;
     }
 
     function isLocked(uint256 tokenId) public view override returns (bool) {
-        NftInfo memory info = _tokens[tokenId];
+        NftInfo storage info = _tokens[tokenId];
 
         return info.lockedAt != 0 && info.lockedAt + info.duration >= block.timestamp;
     }
@@ -189,7 +182,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         return baseURI;
     }
 
-    function _noActiveProposals(address user) internal view returns (bool) {
-        return _govPool.getUserActiveProposalsCount(user) == 0;
+    function _onlyTokenOwner(uint256 tokenId) internal view {
+        require(ownerOf(tokenId) == msg.sender, "ERC721Multiplier: not the nft owner");
     }
 }

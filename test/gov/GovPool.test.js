@@ -3502,6 +3502,45 @@ describe("GovPool", () => {
       });
     });
 
+    describe.only("getUserActiveProposalsCount()", () => {
+      it("should return zero if no proposals", async () => {
+        assert.equal(await govPool.getUserActiveProposalsCount(OWNER), 0);
+      });
+
+      it("should correctly return count of active proposals", async () => {
+        await govPool.deposit(OWNER, wei("1000"), []);
+
+        await govPool.createProposal("example.com", [[SECOND, "0", getBytesApprove(SECOND, 1)]], []);
+        await govPool.createProposal(
+          "example.com",
+          [[dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100"))]],
+          []
+        );
+
+        assert.equal(await govPool.getUserActiveProposalsCount(OWNER), 0);
+
+        await govPool.vote(1, true, wei("500"), []);
+
+        assert.equal(await govPool.getUserActiveProposalsCount(OWNER), 1);
+
+        await govPool.vote(2, true, wei("500"), []);
+
+        assert.equal(await govPool.getUserActiveProposalsCount(OWNER), 2);
+
+        await setTime((await getCurrentBlockTime()) + 1000000);
+
+        assert.equal(await govPool.getUserActiveProposalsCount(OWNER), 2);
+
+        await govPool.unlock(OWNER, VoteType.PersonalVote);
+
+        assert.equal(await govPool.getUserActiveProposalsCount(OWNER), 1);
+
+        await govPool.unlock(OWNER, VoteType.DelegatedVote);
+
+        assert.equal(await govPool.getUserActiveProposalsCount(OWNER), 0);
+      });
+    });
+
     describe("reward", () => {
       let NEW_SETTINGS = {
         earlyCompletion: true,

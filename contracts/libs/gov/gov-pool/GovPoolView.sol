@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
-import "@solarity/solidity-lib/libs/arrays/SetHelper.sol";
 
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../interfaces/gov/IGovPool.sol";
@@ -19,7 +18,6 @@ import "../../../core/Globals.sol";
 
 library GovPoolView {
     using EnumerableSet for EnumerableSet.UintSet;
-    using SetHelper for EnumerableSet.AddressSet;
     using GovPoolVote for IGovPool.ProposalCore;
     using Vector for Vector.UintVector;
     using Math for uint256;
@@ -192,35 +190,6 @@ library GovPoolView {
 
         unlockedIds = unlocked.toArray();
         lockedIds = locked.toArray();
-    }
-
-    function _addActiveProposalsByType(
-        address user,
-        IGovPool.VoteType voteType,
-        mapping(address => mapping(IGovPool.VoteType => EnumerableSet.UintSet))
-            storage _votedInProposals,
-        Vector.UintVector memory activeProposals
-    ) internal view {
-        EnumerableSet.UintSet storage votes = _votedInProposals[user][voteType];
-        uint256 proposalsLength = votes.length();
-
-        for (uint256 i; i < proposalsLength; i++) {
-            uint256 proposalId = votes.at(i);
-
-            IGovPool.ProposalState state = IGovPool(address(this)).getProposalState(proposalId);
-
-            if (
-                state == IGovPool.ProposalState.ExecutedFor ||
-                state == IGovPool.ProposalState.ExecutedAgainst ||
-                state == IGovPool.ProposalState.SucceededFor ||
-                state == IGovPool.ProposalState.SucceededAgainst ||
-                state == IGovPool.ProposalState.Defeated
-            ) {
-                continue;
-            }
-
-            activeProposals.push(proposalId);
-        }
     }
 
     function _votesForMoreThanAgainst(
