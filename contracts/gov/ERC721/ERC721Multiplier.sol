@@ -49,7 +49,6 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
 
         _onlyTokenOwner(tokenId);
 
-        require(isLocked(tokenId), "ERC721Multiplier: Nft is not locked");
         require(
             IGovPool(owner()).getUserActiveProposalsCount(msg.sender) == 0,
             "ERC721Multiplier: Cannot unlock with active proposals"
