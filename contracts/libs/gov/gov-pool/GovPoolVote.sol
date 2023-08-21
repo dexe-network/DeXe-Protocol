@@ -256,37 +256,6 @@ library GovPoolVote {
         emit VoteChanged(proposalId, voter, isVoteFor, votes);
     }
 
-    function _canVote(
-        IGovPool.VoteInfo storage voteInfo,
-        EnumerableSet.UintSet storage restrictedUserProposals,
-        uint256 proposalId,
-        uint256 amount,
-        IGovPool.VoteType voteType
-    ) internal view {
-        IGovPool govPool = IGovPool(address(this));
-
-        mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
-
-        (, address userKeeper, , ) = govPool.getHelperContracts();
-        (uint256 tokenBalance, uint256 ownedBalance) = IGovUserKeeper(userKeeper).tokenBalance(
-            msg.sender,
-            voteType
-        );
-
-        (, bool isVoted) = getVotes(voteInfo);
-
-        require(isVoted, "Gov: need cancel");
-        require(
-            govPool.getProposalState(proposalId) == IGovPool.ProposalState.Voting,
-            "Gov: vote unavailable"
-        );
-        require(
-            !restrictedUserProposals.contains(proposalId),
-            "Gov: user restricted from voting in this proposal"
-        );
-        require(amount <= tokenBalance - ownedBalance, "Gov: wrong vote amount");
-    }
-
     function _globalVote(
         IGovPool.ProposalCore storage core,
         IGovPool.VoteInfo storage voteInfo,
@@ -345,6 +314,37 @@ library GovPoolVote {
 
         voteInfo.isVoteFor = false;
         voteInfo.totalVoted = 0;
+    }
+
+    function _canVote(
+        IGovPool.VoteInfo storage voteInfo,
+        EnumerableSet.UintSet storage restrictedUserProposals,
+        uint256 proposalId,
+        uint256 amount,
+        IGovPool.VoteType voteType
+    ) internal view {
+        IGovPool govPool = IGovPool(address(this));
+
+        mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
+
+        (, address userKeeper, , ) = govPool.getHelperContracts();
+        (uint256 tokenBalance, uint256 ownedBalance) = IGovUserKeeper(userKeeper).tokenBalance(
+            msg.sender,
+            voteType
+        );
+
+        (, bool isVoted) = getVotes(voteInfo);
+
+        require(!isVoted, "Gov: need cancel");
+        require(
+            govPool.getProposalState(proposalId) == IGovPool.ProposalState.Voting,
+            "Gov: vote unavailable"
+        );
+        require(
+            !restrictedUserProposals.contains(proposalId),
+            "Gov: user restricted from voting in this proposal"
+        );
+        require(amount <= tokenBalance - ownedBalance, "Gov: wrong vote amount");
     }
 
     function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {
