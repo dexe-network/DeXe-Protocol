@@ -2,7 +2,7 @@ const { assert } = require("chai");
 const { toPercent } = require("../utils/utils");
 const { accounts, wei } = require("../../scripts/utils/utils");
 const { setTime, getCurrentBlockTime } = require("../helpers/block-helper");
-const { PRECISION, ETHER_ADDR } = require("../../scripts/utils/constants");
+const { PRECISION, ETHER_ADDR, ZERO_ADDR } = require("../../scripts/utils/constants");
 const { DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
@@ -342,6 +342,15 @@ describe("ERC721Multiplier", () => {
         "Initializable: contract is already initialized"
       );
     });
+
+    it("should revert if gov address is zero", async () => {
+      const nft = await ERC721Multiplier.new();
+
+      await truffleAssert.reverts(
+        nft.__ERC721Multiplier_init(NFT_NAME, NFT_SYMBOL, ZERO_ADDR),
+        "ERC721Multiplier: govAddress is zero"
+      );
+    });
   });
 
   describe("functionality", async () => {
@@ -520,13 +529,70 @@ describe("ERC721Multiplier", () => {
         it("should lock if the token was transferred to user", async () => {
           const first = TOKENS[0];
 
-          await nft.lock(first.id, { from: first.owner });
+          await nft.lock(first.id, { from: SECOND });
 
-          await nft.unlock(first.id, { from: first.owner });
+          await nft.unlock(first.id, { from: SECOND });
 
-          await nft.transferFrom(first.owner, SECOND, first.id, { from: first.owner });
+          await nft.transferFrom(SECOND, THIRD, first.id, { from: SECOND });
+
+          await nft.lock(first.id, { from: THIRD });
+        });
+
+        it("should lock another tokens if any token was transferred from user", async () => {
+          const first = TOKENS[0];
+
+          const startTime = await getCurrentBlockTime();
 
           await nft.lock(first.id, { from: SECOND });
+
+          await setTime(startTime + parseInt(first.duration) + 1);
+
+          await nft.transferFrom(SECOND, THIRD, first.id, { from: SECOND });
+
+          await nft.lock(first.id, { from: THIRD });
+
+          const second = TOKENS[2];
+
+          await nft.lock(second.id, { from: SECOND });
+        });
+
+        it("should lock another tokens if any old token was transferred from user", async () => {
+          const first = TOKENS[0];
+          const second = TOKENS[2];
+
+          let startTime = await getCurrentBlockTime();
+
+          await nft.lock(first.id, { from: SECOND });
+
+          await setTime(startTime + parseInt(first.duration) + 1);
+
+          startTime = await getCurrentBlockTime();
+
+          await nft.lock(second.id, { from: SECOND });
+
+          await setTime(startTime + parseInt(second.duration) + 1);
+
+          await nft.transferFrom(SECOND, THIRD, first.id, { from: SECOND });
+
+          await nft.lock(first.id, { from: THIRD });
+
+          await nft.lock(second.id, { from: SECOND });
+        });
+
+        it("should lock another tokens if any token was unlocked and transferred from user", async () => {
+          const first = TOKENS[0];
+
+          await nft.lock(first.id, { from: SECOND });
+
+          await nft.unlock(first.id, { from: SECOND });
+
+          await nft.transferFrom(SECOND, THIRD, first.id, { from: SECOND });
+
+          await nft.lock(first.id, { from: THIRD });
+
+          const second = TOKENS[2];
+
+          await nft.lock(second.id, { from: SECOND });
         });
       });
 
@@ -569,6 +635,17 @@ describe("ERC721Multiplier", () => {
 
           assert.equal(await nft.balanceOf(owner), 2);
           assert.equal(await nft.balanceOf(nft.address), 0);
+        });
+
+        it("should unlock properly if token was unlocked", async () => {
+          const { id, owner } = TOKENS[0];
+          await nft.lock(id, { from: owner });
+
+          await nft.unlock(id, { from: owner });
+
+          await nft.lock(id, { from: owner });
+
+          await nft.unlock(id, { from: owner });
         });
 
         it("should not unlock if caller has any active proposal", async () => {

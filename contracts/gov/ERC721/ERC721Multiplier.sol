@@ -70,10 +70,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
     }
 
     function unlock(uint256 tokenId) external override onlyTokenOwner(tokenId) {
-        require(
-            isLocked(_latestLockedTokenIds[msg.sender]),
-            "ERC721Multiplier: Nft is not locked"
-        );
+        require(isLocked(tokenId), "ERC721Multiplier: Nft is not locked");
 
         require(
             _govPool.getUserActiveProposalsCount(msg.sender) == 0,
@@ -174,6 +171,10 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         uint256 batchSize
     ) internal override {
         require(!isLocked(tokenId), "ERC721Multiplier: Cannot transfer locked token");
+
+        if (_latestLockedTokenIds[from] == tokenId) {
+            _latestLockedTokenIds[from] = 0;
+        }
 
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
