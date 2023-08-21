@@ -44,7 +44,7 @@ ERC721Expert.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 ERC721Multiplier.numberFormat = "BigNumber";
 
-describe.only("ERC721Multiplier", () => {
+describe("ERC721Multiplier", () => {
   let OWNER;
   let SECOND;
   let THIRD;
