@@ -37,7 +37,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
     function __ERC721Multiplier_init(
         string calldata name,
         string calldata symbol
-    ) external initializer {
+    ) public initializer {
         __Ownable_init();
         __ERC721Enumerable_init();
         __ERC721_init(name, symbol);

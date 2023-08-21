@@ -13,12 +13,8 @@ contract DexeERC721Multiplier is ERC721Multiplier {
 
     mapping(address => uint256) internal _averageBalances; // user => average balance
 
-    function __DexeERC721Multiplier_init(
-        string calldata name,
-        string calldata symbol,
-        address govAddress
-    ) external {
-        __ERC721Multiplier_init(name, symbol, govAddress);
+    function __DexeERC721Multiplier_init(string calldata name, string calldata symbol) external {
+        __ERC721Multiplier_init(name, symbol);
     }
 
     function changeToken(

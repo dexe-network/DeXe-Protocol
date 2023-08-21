@@ -326,7 +326,6 @@ describe("ERC721Multiplier", () => {
     govPool = poolContracts.govPool;
     userKeeper = poolContracts.userKeeper;
     nft = poolContracts.nft;
-    // await setupTokens();
   });
 
   describe("initializer", async () => {
@@ -376,7 +375,7 @@ describe("ERC721Multiplier", () => {
 
     describe("interfaceId()", () => {
       it("should support ERC721Enumerable and ERC721Multiplier interfaces", async () => {
-        assert.isTrue(await nft.supportsInterface("0x5442c670"));
+        assert.isTrue(await nft.supportsInterface("0xdef1c5fd"));
         assert.isTrue(await nft.supportsInterface("0x780e9d63"));
       });
     });
@@ -721,8 +720,12 @@ describe("ERC721Multiplier", () => {
       });
 
       describe("getCurrentMultiplier()", () => {
+        beforeEach(async () => {
+          await nft.transferOwnership(govPool.address);
+        });
+
         it("should return zeros if no nft locked", async () => {
-          const info = await nft.getCurrentMultiplier(SECOND);
+          const info = await nft.getCurrentMultiplier(SECOND, 0);
           assert.equal(info.multiplier, "0");
           assert.equal(info.timeLeft, "0");
         });
@@ -754,39 +757,19 @@ describe("ERC721Multiplier", () => {
         it("should return zeros if nft unlocked", async () => {
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
 
-          await nft.unlock(TOKENS[2].id, { from: TOKENS[2].owner });
+          await nft.unlock({ from: TOKENS[2].owner });
 
           const info = await nft.getCurrentMultiplier(SECOND, 0);
-          assert.equal(info.multiplier.toFixed(), "0");
-          assert.equal(info.timeLeft.toFixed(), "0");
-        });
-
-        it("should return current multiplier and timeLeft properly if locked by NFT owner", async () => {
-          await nft.lock(TOKENS[2].id, { from: OWNER });
-
-          let info = await nft.getCurrentMultiplier(SECOND, 0);
-          assert.equal(info.multiplier.toFixed(), TOKENS[2].multiplier);
-          assert.equal(info.timeLeft.toFixed(), TOKENS[2].duration);
-
-          await setTime((await getCurrentBlockTime()) + parseInt(TOKENS[2].duration) - 1);
-
-          info = await nft.getCurrentMultiplier(SECOND, 0);
-          assert.equal(info.multiplier.toFixed(), TOKENS[2].multiplier);
-          assert.equal(info.timeLeft.toFixed(), "1");
-        });
-
-        it("should return zeros if nft unlocked by NFT owner", async () => {
-          await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
-
-          await nft.unlock(TOKENS[2].id, { from: OWNER });
-
-          const info = await nft.getCurrentMultiplier(SECOND);
           assert.equal(info.multiplier.toFixed(), "0");
           assert.equal(info.timeLeft.toFixed(), "0");
         });
       });
 
       describe("transferFrom", () => {
+        beforeEach(async () => {
+          await nft.transferOwnership(govPool.address);
+        });
+
         it("should not transfer if nft is locked", async () => {
           await nft.lock(TOKENS[0].id, { from: TOKENS[0].owner });
           await truffleAssert.reverts(

@@ -280,7 +280,7 @@ describe("DexeERC721Multiplier", () => {
       poolParams.userKeeperParams.nftsTotalSupply
     );
 
-    await nft.__DexeERC721Multiplier_init(NFT_NAME, NFT_SYMBOL, govPool.address);
+    await nft.__DexeERC721Multiplier_init(NFT_NAME, NFT_SYMBOL);
 
     await dp.__DistributionProposal_init(govPool.address);
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
@@ -337,7 +337,7 @@ describe("DexeERC721Multiplier", () => {
 
     it("should not initialize twice", async () => {
       await truffleAssert.reverts(
-        nft.__DexeERC721Multiplier_init(NFT_NAME, NFT_SYMBOL, govPool.address),
+        nft.__DexeERC721Multiplier_init(NFT_NAME, NFT_SYMBOL),
         "Initializable: contract is already initialized"
       );
     });
@@ -427,6 +427,10 @@ describe("DexeERC721Multiplier", () => {
       });
 
       describe("getExtraRewards()", () => {
+        beforeEach(async () => {
+          await nft.transferOwnership(govPool.address);
+        });
+
         it("should return zero if no nft locked", async () => {
           assert.equal(await nft.getExtraRewards(SECOND, "1000"), "0");
         });
@@ -468,18 +472,7 @@ describe("DexeERC721Multiplier", () => {
 
         it("should return zero if nft is unlocked", async () => {
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
-          await nft.unlock(TOKENS[2].id, { from: TOKENS[2].owner });
-          assert.equal(await nft.getExtraRewards(SECOND, "1000"), "0");
-        });
-
-        it("should return extra rewards properly if locked by NFT owner", async () => {
-          await nft.lock(TOKENS[2].id, { from: OWNER });
-          assert.equal(await nft.getExtraRewards(SECOND, "1000"), "1500");
-        });
-
-        it("should return zero if nft is unlocked by NFT owner", async () => {
-          await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
-          await nft.unlock(TOKENS[2].id, { from: OWNER });
+          await nft.unlock({ from: TOKENS[2].owner });
           assert.equal(await nft.getExtraRewards(SECOND, "1000"), "0");
         });
       });
@@ -492,6 +485,8 @@ describe("DexeERC721Multiplier", () => {
         });
 
         it("should return current multiplier and timeLeft properly if locked", async () => {
+          await nft.transferOwnership(govPool.address);
+
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
 
           const amount = "5000";
@@ -518,6 +513,8 @@ describe("DexeERC721Multiplier", () => {
         });
 
         it("should return zeros if nft expired", async () => {
+          await nft.transferOwnership(govPool.address);
+
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
 
           await setTime((await getCurrentBlockTime()) + parseInt(TOKENS[2].duration) + 1);
@@ -528,45 +525,11 @@ describe("DexeERC721Multiplier", () => {
         });
 
         it("should return zeros if nft unlocked", async () => {
+          await nft.transferOwnership(govPool.address);
+
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
 
-          await nft.unlock(TOKENS[2].id, { from: TOKENS[2].owner });
-
-          const info = await nft.getCurrentMultiplier(SECOND, 0);
-          assert.equal(info.multiplier.toFixed(), "0");
-          assert.equal(info.timeLeft.toFixed(), "0");
-        });
-
-        it("should return current multiplier and timeLeft properly if locked by NFT owner", async () => {
-          await nft.lock(TOKENS[2].id, { from: OWNER });
-
-          const amount = "5000";
-
-          const currentMultiplier = toBN(TOKENS[2].multiplier)
-            .times(PRECISION)
-            .idiv(
-              toBN(amount)
-                .times(PRECISION)
-                .times(PRECISION)
-                .idiv(toBN(TOKENS[2].multiplier).times(TOKENS[2].averageBalance))
-            )
-            .toFixed();
-
-          let info = await nft.getCurrentMultiplier(SECOND, amount);
-          assert.equal(info.multiplier.toFixed(), currentMultiplier);
-          assert.equal(info.timeLeft.toFixed(), TOKENS[2].duration);
-
-          await setTime((await getCurrentBlockTime()) + parseInt(TOKENS[2].duration) - 1);
-
-          info = await nft.getCurrentMultiplier(SECOND, amount);
-          assert.equal(info.multiplier.toFixed(), currentMultiplier);
-          assert.equal(info.timeLeft.toFixed(), "1");
-        });
-
-        it("should return zeros if nft unlocked by NFT owner", async () => {
-          await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
-
-          await nft.unlock(TOKENS[2].id, { from: OWNER });
+          await nft.unlock({ from: TOKENS[2].owner });
 
           const info = await nft.getCurrentMultiplier(SECOND, 0);
           assert.equal(info.multiplier.toFixed(), "0");
@@ -575,6 +538,8 @@ describe("DexeERC721Multiplier", () => {
 
         it("should return zero if nft multiplier is zero", async () => {
           await nft.mint(SECOND, 0, 100, 1);
+
+          await nft.transferOwnership(govPool.address);
 
           await nft.lock(5, { from: SECOND });
 
@@ -585,6 +550,8 @@ describe("DexeERC721Multiplier", () => {
         it("should return common multiplier if averageBalance is zero", async () => {
           await nft.mint(SECOND, toMultiplier(2), 100, 0);
 
+          await nft.transferOwnership(govPool.address);
+
           await nft.lock(5, { from: SECOND });
 
           let info = await nft.getCurrentMultiplier(SECOND, "5000");
@@ -594,6 +561,8 @@ describe("DexeERC721Multiplier", () => {
         it("should return common multiplier if CurrentVoteBalance <= AverageBalance * multiplier", async () => {
           await nft.mint(SECOND, toMultiplier(2), 1, 1);
 
+          await nft.transferOwnership(govPool.address);
+
           await nft.lock(5, { from: SECOND });
 
           let info = await nft.getCurrentMultiplier(SECOND, "0");
@@ -601,6 +570,8 @@ describe("DexeERC721Multiplier", () => {
         });
 
         it("should return 1 if obtained multiplier is less than 1", async () => {
+          await nft.transferOwnership(govPool.address);
+
           await nft.lock(TOKENS[2].id, { from: SECOND });
 
           let info = await nft.getCurrentMultiplier(SECOND, "1000000");
