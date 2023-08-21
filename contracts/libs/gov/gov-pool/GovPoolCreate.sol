@@ -286,12 +286,7 @@ library GovPoolCreate {
 
             bytes4 selector = actionFor.data.getSelector();
             require(selector == actionAgainst.data.getSelector(), "Gov: invalid selector");
-            require(
-                selector == IGovPool.vote.selector ||
-                    selector == IGovPool.voteDelegated.selector ||
-                    selector == IGovPool.voteTreasury.selector,
-                "Gov: invalid selector"
-            );
+            require(selector == IGovPool.vote.selector, "Gov: invalid selector");
 
             (uint256 proposalIdFor, bool isVoteForOnFor) = _decodeVoteFunction(actionFor);
             (uint256 proposalIdAgainst, bool isVoteForOnAgainst) = _decodeVoteFunction(
@@ -321,11 +316,6 @@ library GovPoolCreate {
     function _decodeVoteFunction(
         IGovPool.ProposalAction calldata action
     ) internal pure returns (uint256 proposalId, bool isVoteFor) {
-        // (proposalId, isVoteFor) = abi.decode(action.data[4:69], (uint256, bool));
-
-        (proposalId, , , isVoteFor) = abi.decode(
-            action.data[4:],
-            (uint256, uint256, uint256[], bool)
-        );
+        (proposalId, isVoteFor) = abi.decode(action.data[4:69], (uint256, bool));
     }
 }
