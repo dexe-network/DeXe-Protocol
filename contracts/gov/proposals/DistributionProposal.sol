@@ -23,9 +23,14 @@ contract DistributionProposal is IDistributionProposal, Initializable {
 
     address public govAddress;
 
-    mapping(uint256 => IDistributionProposal.DistributionProposalStruct) public proposals;
+    mapping(uint256 => IDistributionProposal.DPInfo) public proposals;
 
-    event DistributionProposalClaimed(uint256 proposalId, address sender, uint256 amount);
+    event DistributionProposalClaimed(
+        uint256 proposalId,
+        address token,
+        uint256 amount,
+        address sender
+    );
 
     modifier onlyGov() {
         require(msg.sender == govAddress, "DP: not a Gov contract");
@@ -43,14 +48,21 @@ contract DistributionProposal is IDistributionProposal, Initializable {
         address token,
         uint256 amount
     ) external payable override onlyGov {
-        IDistributionProposal.DistributionProposalStruct storage proposal = proposals[proposalId];
+        IDistributionProposal.DPInfo storage proposal = proposals[proposalId];
 
         require(proposal.rewardAddress == address(0), "DP: proposal already exists");
         require(token != address(0), "DP: zero address");
         require(amount > 0, "DP: zero amount");
 
         proposal.rewardAddress = token;
-        proposal.rewardAmount = token == ETHEREUM_ADDRESS ? amount : amount.to18(token.decimals());
+
+        if (token == ETHEREUM_ADDRESS) {
+            proposal.rewardAmount = amount;
+        } else {
+            IERC20Metadata(token).safeTransferFrom(msg.sender, address(this), amount);
+
+            proposal.rewardAmount = amount.to18(token.decimals());
+        }
     }
 
     function claim(address voter, uint256[] calldata proposalIds) external override {
@@ -58,7 +70,7 @@ contract DistributionProposal is IDistributionProposal, Initializable {
         require(voter != address(0), "DP: zero address");
 
         for (uint256 i; i < proposalIds.length; i++) {
-            DistributionProposalStruct storage dpInfo = proposals[proposalIds[i]];
+            DPInfo storage dpInfo = proposals[proposalIds[i]];
             address rewardToken = dpInfo.rewardAddress;
 
             require(rewardToken != address(0), "DP: zero address");
@@ -70,11 +82,13 @@ contract DistributionProposal is IDistributionProposal, Initializable {
 
             rewardToken.sendFunds(voter, reward);
 
-            emit DistributionProposalClaimed(proposalIds[i], voter, reward);
+            emit DistributionProposalClaimed(proposalIds[i], rewardToken, reward, voter);
         }
     }
 
-    receive() external payable {}
+    function isClaimed(uint256 proposalId, address voter) external view override returns (bool) {
+        return proposals[proposalId].claimed[voter];
+    }
 
     function getPotentialReward(
         uint256 proposalId,

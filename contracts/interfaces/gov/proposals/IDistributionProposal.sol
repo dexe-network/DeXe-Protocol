@@ -10,7 +10,7 @@ interface IDistributionProposal {
     /// @param rewardAddress the address of reward token
     /// @param rewardAmount the total amount of rewards
     /// @param claimed mapping, that indicates whether the user has claimed the rewards
-    struct DistributionProposalStruct {
+    struct DPInfo {
         address rewardAddress;
         uint256 rewardAmount;
         mapping(address => bool) claimed;
@@ -26,6 +26,12 @@ interface IDistributionProposal {
     /// @param voter Voter address
     /// @param proposalIds the array of proposal ids
     function claim(address voter, uint256[] calldata proposalIds) external;
+
+    /// @notice Function to check if voter claimed their reward
+    /// @param proposalId the distribution proposal id
+    /// @param voter the user to check
+    /// @return true if reward is claimed
+    function isClaimed(uint256 proposalId, address voter) external view returns (bool);
 
     /// @notice Return potential reward. If user hasn't voted, or `getTotalVotesWeight` is zero, return zero
     /// @param proposalId the proposal id

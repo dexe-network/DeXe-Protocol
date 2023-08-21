@@ -60,8 +60,8 @@ library GovPoolVote {
         return
             _vote(
                 core,
-                votedInProposals[voter][voteType],
-                voteInfos[proposalId][voter][voteType],
+                votedInProposals[voter][IGovPool.VoteType.PersonalVote],
+                voteInfos[proposalId][voter][IGovPool.VoteType.PersonalVote],
                 restrictedProposals[voter],
                 proposalId,
                 voter,
