@@ -416,6 +416,8 @@ describe("ERC721Multiplier", () => {
       beforeEach(async () => {
         for (const token of TOKENS) {
           await nft.mint(token.owner, token.multiplier, token.duration);
+
+          token.mintedAt = await getCurrentBlockTime();
         }
       });
 
@@ -598,7 +600,7 @@ describe("ERC721Multiplier", () => {
 
           await nft.lock(first.id, { from: first.owner });
 
-          await nft.unlock({ from: first.owner });
+          await setTime(first.mintedAt + parseInt(first.duration) + 1);
 
           await truffleAssert.reverts(nft.unlock({ from: first.owner }), "ERC721Multiplier: Nft is not locked");
         });
@@ -702,10 +704,9 @@ describe("ERC721Multiplier", () => {
         });
 
         it("should change reward if the second nft is locked", async () => {
-          const startTime = await getCurrentBlockTime();
           await nft.lock(TOKENS[0].id, { from: TOKENS[0].owner });
           assert.equal(await nft.getExtraRewards(SECOND, "1000"), "1337000");
-          await setTime(startTime + parseInt(TOKENS[0].duration) + 1);
+          await nft.unlock({ from: TOKENS[0].owner });
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
           assert.equal(await nft.getExtraRewards(SECOND, "1000"), "1500");
         });
@@ -727,9 +728,10 @@ describe("ERC721Multiplier", () => {
 
           let info = await nft.getCurrentMultiplier(SECOND);
           assert.equal(info.multiplier.toFixed(), TOKENS[2].multiplier);
-          assert.equal(info.timeLeft.toFixed(), TOKENS[2].duration);
+          const timeLeft = parseInt(TOKENS[2].duration) + TOKENS[2].mintedAt - (await getCurrentBlockTime());
+          assert.equal(info.timeLeft.toFixed(), timeLeft);
 
-          await setTime((await getCurrentBlockTime()) + parseInt(TOKENS[2].duration) - 1);
+          await setTime((await getCurrentBlockTime()) + timeLeft - 1);
 
           info = await nft.getCurrentMultiplier(SECOND);
           assert.equal(info.multiplier.toFixed(), TOKENS[2].multiplier);
