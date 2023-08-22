@@ -9,12 +9,14 @@ import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
  */
 interface ITokenSaleProposal {
     /// @notice The enum that represents the type of requirements to participate in the tier
+    /// @param NoWhitelist indicates that the proposal doesn't have the whitelist
     /// @param DAOVotes indicates that the user must have the required voting power
     /// @param Whitelist indicates that the user must be included in the whitelist of the tier
     /// @param BABT indicates that the user must own the BABT token
     /// @param TokenLock indicates that the user must lock a specific amount of tokens in the tier
     /// @param NftLock indicates that the user must lock an nft in the tier
     enum ParticipationType {
+        NoWhitelist,
         DAOVotes,
         Whitelist,
         BABT,

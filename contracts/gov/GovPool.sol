@@ -448,21 +448,7 @@ contract GovPool is
         ProposalCore storage core = _proposals[proposalId].core;
         VoteInfo storage info = _voteInfos[proposalId][voter];
 
-        (IGovPool.Votes memory votes, ) = info.getVotes();
-
-        uint256 typedVotes;
-        if (voteType == VoteType.PersonalVote) {
-            typedVotes = votes.personal;
-        } else if (voteType == VoteType.MicropoolVote) {
-            typedVotes = votes.micropool;
-        } else {
-            typedVotes = votes.treasury;
-        }
-
-        uint256 totalVotes = votes.personal + votes.micropool + votes.treasury;
-        uint256 voterVotes = totalVotes != 0 ? info.totalVoted.ratio(typedVotes, totalVotes) : 0;
-
-        return (core.votesFor, core.votesAgainst, voterVotes, info.isVoteFor);
+        return (core.votesFor, core.votesAgainst, info.getVoteShare(voteType), info.isVoteFor);
     }
 
     function getUserVotes(

@@ -134,7 +134,9 @@ library TokenSaleProposalBuy {
             .participationType;
         TokenSaleProposal tokenSaleProposal = TokenSaleProposal(address(this));
 
-        if (participationType == ITokenSaleProposal.ParticipationType.DAOVotes) {
+        if (participationType == ITokenSaleProposal.ParticipationType.NoWhitelist) {
+            _canParticipate = true;
+        } else if (participationType == ITokenSaleProposal.ParticipationType.DAOVotes) {
             (, address govUserKeeper, , , ) = IGovPool(tokenSaleProposal.govAddress())
                 .getHelperContracts();
             _canParticipate =
