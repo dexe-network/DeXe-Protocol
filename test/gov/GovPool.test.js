@@ -747,25 +747,6 @@ describe.only("GovPool", () => {
       });
     });
 
-    describe("request(),", () => {
-      it("should deposit tokens", async () => {
-        await govPool.deposit(OWNER, wei("100"), [1, 2, 3]);
-
-        await govPool.delegate(SECOND, wei("100"), [1, 2, 3]);
-
-        await govPool.request(SECOND, wei("50"), [1, 2]);
-
-        assert.equal(
-          (await userKeeper.tokenBalance(SECOND, VoteType.MicropoolVote)).totalBalance.toFixed(),
-          wei("100")
-        );
-        assert.equal((await userKeeper.tokenBalance(SECOND, VoteType.MicropoolVote)).ownedBalance.toFixed(), wei("50"));
-
-        assert.equal((await userKeeper.nftBalance(SECOND, VoteType.MicropoolVote)).totalBalance.toFixed(), "3");
-        assert.equal((await userKeeper.nftBalance(SECOND, VoteType.MicropoolVote)).ownedBalance.toFixed(), "2");
-      });
-    });
-
     describe("unlock()", () => {
       let startTime;
 
@@ -782,7 +763,7 @@ describe.only("GovPool", () => {
       });
 
       it("should unlock all", async () => {
-        const beforeUnlock = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
+        const beforeUnlock = await govPool.getWithdrawableAssets(OWNER);
 
         assert.equal(beforeUnlock.tokens.toFixed(), wei("900"));
         assert.deepEqual(
@@ -791,19 +772,15 @@ describe.only("GovPool", () => {
         );
 
         await setTime(startTime + 1000);
-        await govPool.unlock(OWNER, VoteType.PersonalVote);
+        await govPool.unlock(OWNER);
 
-        const afterUnlock = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
+        const afterUnlock = await govPool.getWithdrawableAssets(OWNER);
 
         assert.equal(afterUnlock.tokens.toFixed(), wei("1000"));
         assert.deepEqual(
           afterUnlock.nfts.map((e) => e.toFixed()),
           ["1", "2", "3", "4"]
         );
-      });
-
-      it("should revert if pass wrong vote type", async () => {
-        await truffleAssert.reverts(govPool.unlock(OWNER, VoteType.DelegatedVote), "Gov: invalid vote type");
       });
     });
 
