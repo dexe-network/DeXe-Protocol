@@ -952,6 +952,14 @@ describe("GovValidators", () => {
         assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Executed);
       });
 
+      it("should execute external proposal", async () => {
+        assert.isFalse((await validators.getExternalProposal(1)).core.executed);
+
+        await validators.executeExternalProposal(1);
+
+        assert.isTrue((await validators.getExternalProposal(1)).core.executed);
+      });
+
       it("should revert if proposal does not exist", async () => {
         await truffleAssert.reverts(validators.execute(1), "Validators: proposal does not exist");
       });
@@ -965,6 +973,24 @@ describe("GovValidators", () => {
           SECOND
         );
         await truffleAssert.reverts(validators.execute(1), "Validators: not Succeeded state");
+      });
+
+      it("should revert if failed to execute", async () => {
+        assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Undefined);
+
+        await createInternalProposal(
+          ProposalType.MonthlyWithdraw,
+          "example.com",
+          [wei("1")],
+          [validatorsToken.address, SECOND],
+          SECOND
+        );
+
+        await validators.vote(1, wei("200"), true, true, { from: THIRD });
+
+        await setTime((await getCurrentBlockTime()) + 1);
+
+        await truffleAssert.reverts(validators.execute(1), "Validators: failed to execute");
       });
     });
 

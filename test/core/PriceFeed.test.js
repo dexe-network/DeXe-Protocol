@@ -1,4 +1,5 @@
 const { assert } = require("chai");
+const { MAX_UINT } = require("../../scripts/utils/constants");
 const { toBN, accounts, wei } = require("../../scripts/utils/utils");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
@@ -480,6 +481,20 @@ describe("PriceFeed", () => {
       await priceFeed.exchangeToExact(WBTC.address, WBTC.address, wei("1000", 8), [], wei("1000", 8));
 
       assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("999000000", 8));
+    });
+
+    it("should approve to router tokens", async () => {
+      await DEXE.approve(priceFeed.address, wei("1000"));
+
+      assert.equal(await DEXE.allowance(priceFeed.address, uniswapV2Router.address), 0);
+
+      await priceFeed.exchangeFromExact(DEXE.address, WBTC.address, wei("500"), [], 0);
+
+      assert.equal(await DEXE.allowance(priceFeed.address, uniswapV2Router.address), MAX_UINT);
+
+      await priceFeed.exchangeFromExact(DEXE.address, WBTC.address, wei("500"), [], 0);
+
+      assert.equal(await DEXE.allowance(priceFeed.address, uniswapV2Router.address), MAX_UINT);
     });
   });
 

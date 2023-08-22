@@ -466,6 +466,23 @@ describe("PoolFactory", () => {
         assert.equal(await govUserKeeper.tokenAddress(), token.address);
         assert.equal(await govUserKeeper.tokenAddress(), testERC20.address);
       });
+
+      it("should set babt id correctly", async () => {
+        await babt.attest(OWNER);
+
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+
+        const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+
+        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govToken;
+
+        await poolFactory.deployGovPool(POOL_PARAMETERS);
+
+        let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+
+        assert.equal(await govPool.deployerBABTid(), "1");
+      });
     });
 
     describe("deploy2 validation", () => {
