@@ -742,6 +742,11 @@ const getBytesGovVote = (proposalId, voteAmount, voteNftIds, isVoteFor = true) =
           type: "uint256",
         },
         {
+          internalType: "bool",
+          name: "isVoteFor",
+          type: "bool",
+        },
+        {
           internalType: "uint256",
           name: "voteAmount",
           type: "uint256",
@@ -751,18 +756,13 @@ const getBytesGovVote = (proposalId, voteAmount, voteNftIds, isVoteFor = true) =
           name: "voteNftIds",
           type: "uint256[]",
         },
-        {
-          internalType: "bool",
-          name: "isVoteFor",
-          type: "bool",
-        },
       ],
       name: "vote",
       outputs: [],
       stateMutability: "nonpayable",
       type: "function",
     },
-    [proposalId, voteAmount, voteNftIds, isVoteFor]
+    [proposalId, isVoteFor, voteAmount, voteNftIds]
   );
 };
 

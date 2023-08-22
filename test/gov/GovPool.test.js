@@ -1,4 +1,4 @@
-const { toBN, accounts, wei, fromWei } = require("../../scripts/utils/utils");
+const { toBN, accounts, wei } = require("../../scripts/utils/utils");
 const { solidityPow } = require("../../scripts/utils/log-exp-math");
 const { toPercent } = require("../utils/utils");
 const {
