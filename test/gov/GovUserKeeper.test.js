@@ -19,7 +19,7 @@ ERC721Mock.numberFormat = "BigNumber";
 ERC721EnumMock.numberFormat = "BigNumber";
 ERC721Power.numberFormat = "BigNumber";
 
-describe.only("GovUserKeeper", () => {
+describe("GovUserKeeper", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -1036,7 +1036,14 @@ describe.only("GovUserKeeper", () => {
       });
     });
 
-    describe.only("canCreate()", () => {
+    describe("canCreate()", () => {
+      const DOUBLE_NFT_COST = wei("2000");
+      const TRIPLE_NFT_COST = wei("3000");
+
+      beforeEach(async () => {
+        await userKeeper.createNftPowerSnapshot();
+      });
+
       it("should return `true` if user has enough Personal tokens", async () => {
         await userKeeper.depositTokens(OWNER, OWNER, wei("1000"));
 
@@ -1063,30 +1070,49 @@ describe.only("GovUserKeeper", () => {
         assert.isFalse(await userKeeper.canCreate(OWNER, VoteType.DelegatedVote, wei("1001"), 1));
       });
 
-      it("should return `true` if user has enough Micropool tokens", async () => {
+      it("should return `true` if user has enough Personal NFTs", async () => {
+        await userKeeper.depositNfts(OWNER, OWNER, [1, 2]);
+
+        assert.isTrue(await userKeeper.canCreate(OWNER, VoteType.PersonalVote, DOUBLE_NFT_COST, 1));
+      });
+
+      it("should return `false` if user has not enough Personal NFTs", async () => {
+        await userKeeper.depositNfts(OWNER, OWNER, [1]);
+
+        assert.isFalse(await userKeeper.canCreate(OWNER, VoteType.PersonalVote, DOUBLE_NFT_COST, 1));
+      });
+
+      it("should return `true` if user has enough Delegated NFTs", async () => {
+        await userKeeper.depositNfts(OWNER, OWNER, [1, 2]);
+        await userKeeper.delegateNfts(OWNER, SECOND, [1, 2]);
+
+        assert.isTrue(await userKeeper.canCreate(OWNER, VoteType.DelegatedVote, DOUBLE_NFT_COST, 1));
+      });
+
+      it("should return `false` if user has not enough Delegated NFTs", async () => {
+        await userKeeper.depositNfts(OWNER, OWNER, [1]);
+        await userKeeper.delegateNfts(OWNER, SECOND, [1]);
+
+        assert.isFalse(await userKeeper.canCreate(OWNER, VoteType.DelegatedVote, DOUBLE_NFT_COST, 1));
+      });
+
+      it("should return `true` if user has enough tokens and NFTs", async () => {
         await userKeeper.depositTokens(OWNER, OWNER, wei("1000"));
-        await userKeeper.delegateTokens(OWNER, SECOND, wei("1000"));
+        await userKeeper.delegateTokens(OWNER, SECOND, wei("500"));
+        await userKeeper.delegateTokensTreasury(OWNER, wei("1000"));
 
-        assert.isTrue(await userKeeper.canCreate(SECOND, VoteType.MicropoolVote, wei("1000"), 1));
-      });
+        await userKeeper.depositNfts(OWNER, OWNER, [1, 2]);
+        await userKeeper.delegateNfts(OWNER, SECOND, [2]);
+        await userKeeper.delegateNftsTreasury(OWNER, [3]);
 
-      it.only("should return `false` if user has not enough Micropool tokens", async () => {
-        await userKeeper.depositTokens(OWNER, OWNER, wei("1000"));
-        await userKeeper.delegateTokens(OWNER, SECOND, wei("1000"));
-
-        assert.isFalse(await userKeeper.canCreate(SECOND, VoteType.MicropoolVote, wei("1001"), 1));
-      });
-
-      it("should return `true` if user has enough Treasury tokens", async () => {
-        await userKeeper.delegateTokensTreasury(SECOND, wei("1000"));
-
-        assert.isTrue(await userKeeper.canCreate(SECOND, VoteType.TreasuryVote, wei("1000"), 1));
-      });
-
-      it("should return `false` if user has not enough Treasury tokens", async () => {
-        await userKeeper.delegateTokensTreasury(SECOND, wei("1000"));
-
-        assert.isFalse(await userKeeper.canCreate(SECOND, VoteType.TreasuryVote, wei("1001"), 1));
+        assert.isTrue(
+          await userKeeper.canCreate(
+            OWNER,
+            VoteType.DelegatedVote,
+            toBN(TRIPLE_NFT_COST).plus(wei("2000")).toFixed(),
+            1
+          )
+        );
       });
     });
   });
