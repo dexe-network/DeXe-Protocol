@@ -1,4 +1,5 @@
 const config = require("./config/config.json");
+const { getBytesLinearPowerInit } = require("./config/utils.js");
 
 const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
 const { accounts, wei } = require("../scripts/utils/utils");
@@ -104,8 +105,11 @@ let POOL_PARAMETERS = {
       amounts: [],
     },
   },
-  regularVoteModifier: wei("1.3", 25),
-  expertVoteModifier: wei("1.132", 25),
+  votePowerParams: {
+    voteType: 0,
+    initData: getBytesLinearPowerInit(),
+    presetAddress: ZERO_ADDR,
+  },
   verifier: ZERO_ADDR,
   onlyBABTHolders: false,
   descriptionURL: "",

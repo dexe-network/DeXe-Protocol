@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@solarity/solidity-lib/contracts-registry/pools/pool-factory/AbstractPoolFactory.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+
+import "@solarity/solidity-lib/contracts-registry/pools/pool-factory/AbstractPoolFactory.sol";
 
 import "../interfaces/factory/IPoolFactory.sol";
 import "../interfaces/core/IContractsRegistry.sol";
@@ -72,6 +73,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         );
         govPoolDeps.settingsAddress = _deploy(_poolRegistry.SETTINGS_NAME());
         address poolProxy = _deploy2(poolType, parameters.name);
+
         govPoolDeps.expertNftAddress = _deploy2(_poolRegistry.EXPERT_NFT_NAME(), parameters.name);
         govPoolDeps.nftMultiplierAddress = _deploy2(
             _poolRegistry.NFT_MULTIPLIER_NAME(),
@@ -121,6 +123,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         GovValidators(govPoolDeps.validatorsAddress).transferOwnership(poolProxy);
         ERC721Expert(govPoolDeps.expertNftAddress).transferOwnership(poolProxy);
         ERC721Multiplier(govPoolDeps.nftMultiplierAddress).transferOwnership(poolProxy);
+
         if (parameters.votePowerParams.voteType != VotePowerType.CUSTOM_VOTES) {
             Ownable(govPoolDeps.votePowerAddress).transferOwnership(poolProxy);
         }
@@ -212,12 +215,12 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.name.concatStrings(NFT_MULTIPLIER_NAME_POSTFIX),
             parameters.name.concatStrings(NFT_MULTIPLIER_SYMBOL_POSTFIX)
         );
+
         if (parameters.votePowerParams.voteType != VotePowerType.CUSTOM_VOTES) {
-            // TODO Check init selector
             (bool success, ) = (govPoolDeps.votePowerAddress).call(
                 parameters.votePowerParams.initData
             );
-            require(success, "Vote Power Contract initialization failed");
+            require(success, "PoolFactory: power init failed");
         }
     }
 
