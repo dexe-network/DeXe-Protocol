@@ -2849,7 +2849,7 @@ describe("GovPool", () => {
             await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
             await govPool.execute(1);
 
-            await nftMultiplier.mint(THIRD, PRECISION.times("2.5"), 10000000000);
+            await nftMultiplier.mint(THIRD, PRECISION.times("2.5"), 10000000000, 0);
             await nftMultiplier.transferOwnership(govPool.address);
             await nftMultiplier.lock(1, { from: THIRD });
 
@@ -3646,7 +3646,7 @@ describe("GovPool", () => {
       it("should claim reward properly if nft multiplier has been set", async () => {
         await setNftMultiplierAddress(nftMultiplier.address);
 
-        await nftMultiplier.mint(OWNER, PRECISION.times("2.5"), 1000);
+        await nftMultiplier.mint(OWNER, PRECISION.times("2.5"), 1000, 0);
         await nftMultiplier.transferOwnership(govPool.address);
         await nftMultiplier.lock(1);
 
@@ -4045,7 +4045,7 @@ describe("GovPool", () => {
           await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
 
           await govPool.execute(1);
-          await nftMultiplier.mint(micropool, PRECISION.times("2.5"), 10000000000);
+          await nftMultiplier.mint(micropool, PRECISION.times("2.5"), 10000000000, 0);
           await nftMultiplier.transferOwnership(govPool.address);
           await nftMultiplier.lock(1, { from: micropool });
 
@@ -4086,7 +4086,7 @@ describe("GovPool", () => {
           await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
 
           await govPool.execute(1);
-          await nftMultiplier.mint(micropool, PRECISION.times("2.5"), 10000000000);
+          await nftMultiplier.mint(micropool, PRECISION.times("2.5"), 10000000000, 0);
           await nftMultiplier.transferOwnership(govPool.address);
           await nftMultiplier.lock(1, { from: micropool });
 
