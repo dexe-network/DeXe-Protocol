@@ -115,7 +115,7 @@ describe("GovUserKeeper", () => {
         );
       });
 
-      it.skip("only owner should call these functions", async () => {
+      it("only owner should call these functions", async () => {
         await truffleAssert.reverts(
           userKeeper.depositTokens(OWNER, SECOND, wei("100"), { from: SECOND }),
           "Ownable: caller is not the owner"
@@ -290,7 +290,7 @@ describe("GovUserKeeper", () => {
     });
 
     describe("delegateTokens(), undelegateTokens()", () => {
-      it.skip("should correctly delegate tokens, add delegators and spenders", async () => {
+      it("should correctly delegate tokens, add delegators and spenders", async () => {
         await userKeeper.depositTokens(OWNER, OWNER, wei("1000"));
 
         await userKeeper.delegateTokens(OWNER, SECOND, wei("333"));
@@ -394,7 +394,7 @@ describe("GovUserKeeper", () => {
         assert.equal((await userKeeper.tokenBalance(SECOND, VoteType.MicropoolVote)).ownedBalance.toFixed(), "0");
       });
 
-      it.skip("should not undelegate more tokens than available", async () => {
+      it("should not undelegate more tokens than available", async () => {
         await userKeeper.depositTokens(OWNER, OWNER, wei("1000"));
 
         await userKeeper.delegateTokens(OWNER, SECOND, wei("333"));
@@ -411,7 +411,7 @@ describe("GovUserKeeper", () => {
         await userKeeper.depositNfts(OWNER, OWNER, [1, 2, 3, 4, 5]);
       });
 
-      it.skip("should correctly delegate nfts and add new nfts", async () => {
+      it("should correctly delegate nfts and add new nfts", async () => {
         await userKeeper.delegateNfts(OWNER, SECOND, [1, 3]);
         await userKeeper.delegateNfts(OWNER, THIRD, [2, 4]);
 
@@ -524,7 +524,7 @@ describe("GovUserKeeper", () => {
         assert.equal(balanceOwner.ownedLength, "4");
       });
 
-      it.skip("should not undelegate unavailable NFTs", async () => {
+      it("should not undelegate unavailable NFTs", async () => {
         await userKeeper.depositNfts(OWNER, THIRD, [8]);
 
         await userKeeper.delegateNfts(OWNER, SECOND, [1, 3]);
@@ -608,7 +608,7 @@ describe("GovUserKeeper", () => {
         assert.equal((await token.balanceOf(THIRD)).toFixed(), wei("900"));
       });
 
-      it.skip("should withdraw part of token few times, considering lock", async () => {
+      it("should withdraw part of token few times, considering lock", async () => {
         await userKeeper.withdrawTokens(THIRD, THIRD, wei("100"));
 
         assert.equal((await token.balanceOf(THIRD)).toFixed(), wei("100"));
@@ -813,7 +813,7 @@ describe("GovUserKeeper", () => {
       });
     });
 
-    describe.skip("check snapshot", () => {
+    describe("check snapshot", () => {
       let startTime;
 
       beforeEach("setup", async () => {
@@ -914,7 +914,7 @@ describe("GovUserKeeper", () => {
       await userKeeper.__GovUserKeeper_init(ZERO_ADDR, nft.address, wei("33000"), 33);
     });
 
-    it.skip("should revert if token is not supported", async () => {
+    it("should revert if token is not supported", async () => {
       await truffleAssert.reverts(userKeeper.depositTokens(OWNER, OWNER, wei("100")), "GovUK: token is not supported");
 
       await truffleAssert.reverts(userKeeper.withdrawTokens(OWNER, OWNER, wei("100")), "GovUK: token is not supported");
@@ -982,7 +982,7 @@ describe("GovUserKeeper", () => {
       await userKeeper.__GovUserKeeper_init(token.address, ZERO_ADDR, wei("33000"), 33);
     });
 
-    it.skip("should revert if nft is not supported", async () => {
+    it("should revert if nft is not supported", async () => {
       await truffleAssert.reverts(userKeeper.depositNfts(OWNER, OWNER, [1]), "GovUK: nft is not supported");
 
       await truffleAssert.reverts(userKeeper.withdrawNfts(OWNER, OWNER, [1]), "GovUK: nft is not supported");

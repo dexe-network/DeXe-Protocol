@@ -672,7 +672,7 @@ describe("TokenSaleProposal", () => {
       });
     });
 
-    describe.skip("latestTierId", () => {
+    describe("latestTierId", () => {
       it("latestTierId should increase when tiers are created", async () => {
         assert.equal(await tsp.latestTierId(), 0);
 
@@ -687,7 +687,7 @@ describe("TokenSaleProposal", () => {
       });
     });
 
-    describe.skip("createTiers", () => {
+    describe("createTiers", () => {
       it("should not create tiers if caller is not govPool", async () => {
         await truffleAssert.reverts(tsp.createTiers(tiers), "TSP: not a Gov contract");
       });
@@ -865,7 +865,7 @@ describe("TokenSaleProposal", () => {
       });
     });
 
-    describe.skip("if tiers are created", () => {
+    describe("if tiers are created", () => {
       beforeEach(async () => {
         await saleToken.mint(govPool.address, wei(5000));
 

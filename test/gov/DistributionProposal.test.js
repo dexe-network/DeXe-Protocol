@@ -365,7 +365,7 @@ describe("DistributionProposal", () => {
       });
     });
 
-    describe.skip("execute()", () => {
+    describe("execute()", () => {
       let startTime;
 
       beforeEach(async () => {
@@ -450,7 +450,7 @@ describe("DistributionProposal", () => {
         assert.equal(await dp.getPotentialReward(1, OWNER), 0);
       });
 
-      it.skip("should correctly claim", async () => {
+      it("should correctly claim", async () => {
         await govPool.createProposal(
           "example.com",
           [
@@ -477,7 +477,7 @@ describe("DistributionProposal", () => {
         assert.equal((await token.balanceOf(THIRD)).toFixed(), "44444444444444444444443");
       });
 
-      it.skip("should correctly claim ether", async () => {
+      it("should correctly claim ether", async () => {
         const FOUR_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue().toFixed());
         const FIVE_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(5).dividedBy(9).integerValue().toFixed());
         const ALL_NFT_VOTES = FIVE_NFT_VOTES.plus(FOUR_NFT_VOTES);
@@ -515,7 +515,7 @@ describe("DistributionProposal", () => {
         assert.equal(reward, toBN(wei(1)).times(FOUR_NFT_VOTES).idiv(ALL_NFT_VOTES).toFixed());
       });
 
-      it.skip("should not claim if vote against", async () => {
+      it("should not claim if vote against", async () => {
         await govPool.createProposal(
           "example.com",
           [
@@ -531,7 +531,7 @@ describe("DistributionProposal", () => {
         assert.equal(await dp.getPotentialReward(1, SECOND), 0);
       });
 
-      it.skip("should correctly calculate reward", async () => {
+      it("should correctly calculate reward", async () => {
         const ONE_NFT_VOTE = await weiToVotes(SINGLE_NFT_POWER.dividedBy(9).integerValue().toFixed());
         const THREE_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(3).dividedBy(9).integerValue().toFixed());
         const FOUR_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue().toFixed());
@@ -558,7 +558,7 @@ describe("DistributionProposal", () => {
         assert.equal(await dp.getPotentialReward(1, THIRD), 0);
       });
 
-      it.skip("should not claim if not enough ether", async () => {
+      it("should not claim if not enough ether", async () => {
         await govPool.createProposal(
           "example.com",
           [[dp.address, 0, getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))]],
@@ -575,7 +575,7 @@ describe("DistributionProposal", () => {
         await truffleAssert.reverts(dp.claim(SECOND, [1]));
       });
 
-      it.skip("should revert if already claimed", async () => {
+      it("should revert if already claimed", async () => {
         await govPool.createProposal(
           "example.com",
           [
