@@ -31,6 +31,7 @@ const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC721Mock = artifacts.require("ERC721Mock");
 const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
+const LinearPower = artifacts.require("LinearPower");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
@@ -87,6 +88,7 @@ describe("TokenSaleProposal", () => {
   let participationToken;
   let participationNft;
   let expertNft;
+  let votePower;
 
   let settings;
   let validators;
@@ -190,6 +192,7 @@ describe("TokenSaleProposal", () => {
     dp = await DistributionProposal.new();
     expertNft = await ERC721Expert.new();
     nftMultiplier = await ERC721Multiplier.new();
+    votePower = await LinearPower.new();
     govPool = await GovPool.new();
     tsp = await TokenSaleProposal.new();
 
@@ -223,9 +226,14 @@ describe("TokenSaleProposal", () => {
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
     await nftMultiplier.__ERC721Multiplier_init("Mock Multiplier Nft", "MCKMULNFT");
     await govPool.__GovPool_init(
-      [settings.address, userKeeper.address, validators.address, expertNft.address, nftMultiplier.address],
-      poolParams.regularVoteModifier,
-      poolParams.expertVoteModifier,
+      [
+        settings.address,
+        userKeeper.address,
+        validators.address,
+        expertNft.address,
+        nftMultiplier.address,
+        votePower.address,
+      ],
       OWNER,
       poolParams.onlyBABTHolders,
       poolParams.deployerBABTid,
