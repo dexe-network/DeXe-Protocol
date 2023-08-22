@@ -1115,6 +1115,7 @@ describe.only("GovPool", () => {
           assert.equal(toBN(proposal.core.settings.quorum).toFixed(), NEW_SETTINGS.quorum);
         });
 
+        /// TODO: create
         it("should create default proposal", async () => {
           await govPool.createProposal(
             "example.com",
@@ -1892,7 +1893,7 @@ describe.only("GovPool", () => {
 
           assert.equal(await govPool.getProposalState(4), ProposalState.ValidatorVoting);
 
-          assert.equal(proposal.core.executed, afterMove.core.executed);
+          assert.equal(proposal.core.executionTime !== "0", afterMove.core.executed);
           assert.equal(proposal.core.settings.quorumValidators, afterMove.core.quorum);
 
           await validators.vote(4, wei("100"), false, true);
@@ -2130,7 +2131,7 @@ describe.only("GovPool", () => {
 
         await depositAndVote(1, wei("1000"), [], wei("500"), [], SECOND);
 
-        let withdrawable = await govPool.getWithdrawableAssets(SECOND, ZERO_ADDR);
+        let withdrawable = await govPool.getWithdrawableAssets(SECOND);
 
         assert.equal(toBN(withdrawable.tokens).toFixed(), wei("500"));
         assert.equal(withdrawable.nfts.length, "0");
@@ -2141,7 +2142,7 @@ describe.only("GovPool", () => {
 
         await setTime((await getCurrentBlockTime()) + 10000);
 
-        withdrawable = await govPool.getWithdrawableAssets(SECOND, ZERO_ADDR);
+        withdrawable = await govPool.getWithdrawableAssets(SECOND);
 
         assert.equal(toBN(withdrawable.tokens).toFixed(), wei("1000"));
         assert.equal(withdrawable.nfts.length, "0");
@@ -2164,14 +2165,14 @@ describe.only("GovPool", () => {
         await govPool.vote(1, true, wei("1000"), [1, 2, 3, 4]);
         await govPool.vote(2, true, wei("510"), [1, 2]);
 
-        let withdrawable = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
+        let withdrawable = await govPool.getWithdrawableAssets(OWNER);
 
         assert.equal(toBN(withdrawable.tokens).toFixed(), "0");
         assert.equal(withdrawable.nfts.length, "0");
 
         await govPool.unlock(OWNER, VoteType.PersonalVote);
 
-        withdrawable = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
+        withdrawable = await govPool.getWithdrawableAssets(OWNER);
 
         assert.equal(toBN(withdrawable.tokens).toFixed(), "0");
         assert.equal(withdrawable.nfts.length, "0");
@@ -2197,14 +2198,14 @@ describe.only("GovPool", () => {
 
         await govPool.vote(1, false, wei("1000"), [1, 2, 3, 4]);
 
-        let withdrawable = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
+        let withdrawable = await govPool.getWithdrawableAssets(OWNER);
 
         assert.equal(toBN(withdrawable.tokens).toFixed(), "0");
         assert.equal(withdrawable.nfts.length, "0");
 
         await govPool.unlock(OWNER, VoteType.PersonalVote);
 
-        withdrawable = await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR);
+        withdrawable = await govPool.getWithdrawableAssets(OWNER);
 
         assert.equal(toBN(withdrawable.tokens).toFixed(), "0");
         assert.equal(withdrawable.nfts.length, "0");
@@ -2326,21 +2327,21 @@ describe.only("GovPool", () => {
         await govPool.vote(1, true, wei("1000"), []);
         await govPool.vote(1, true, wei("100000000000000000000"), [], { from: SECOND });
 
-        assert.equal((await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR)).tokens.toFixed(), "0");
+        assert.equal((await govPool.getWithdrawableAssets(OWNER)).tokens.toFixed(), "0");
 
         await govPool.moveProposalToValidators(1);
         await validators.vote(1, wei("100"), false, true);
         await validators.vote(1, wei("1000000000000"), false, true, { from: SECOND });
 
-        assert.equal((await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR)).tokens.toFixed(), 0);
+        assert.equal((await govPool.getWithdrawableAssets(OWNER)).tokens.toFixed(), 0);
 
         await setTime((await getCurrentBlockTime()) + 1);
 
-        assert.equal((await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR)).tokens.toFixed(), wei("1000"));
+        assert.equal((await govPool.getWithdrawableAssets(OWNER)).tokens.toFixed(), wei("1000"));
 
         await govPool.execute(1);
 
-        assert.equal((await govPool.getWithdrawableAssets(OWNER, ZERO_ADDR)).tokens.toFixed(), wei("1000"));
+        assert.equal((await govPool.getWithdrawableAssets(OWNER)).tokens.toFixed(), wei("1000"));
 
         const addedSettings = await settings.settings(4);
 
@@ -2354,7 +2355,7 @@ describe.only("GovPool", () => {
         assert.equal(addedSettings.minVotesForCreating, 1);
         assert.equal(addedSettings.executionDelay, 101);
 
-        assert.isTrue((await getProposalByIndex(1)).core.executed);
+        assert.notEqual((await getProposalByIndex(1)).core.executionTime, "0");
       });
 
       it("should not execute random proposals", async () => {
