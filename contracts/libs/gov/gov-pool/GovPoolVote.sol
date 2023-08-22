@@ -69,7 +69,7 @@ library GovPoolVote {
             );
             _voteDelegated(
                 core,
-                votePowers[IGovPool.VoteType.MicropoolVote],
+                votePowers[IGovPool.VoteType.TreasuryVote],
                 msg.sender,
                 IGovPool.VoteType.TreasuryVote
             );
@@ -157,29 +157,24 @@ library GovPoolVote {
         );
     }
 
-    function getVotes(
-        IGovPool.VoteInfo storage voteInfo
-    ) public view returns (IGovPool.Votes memory votes, bool isVoted) {
-        mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
+    function getVoteShare(
+        IGovPool.VoteInfo storage voteInfo,
+        IGovPool.VoteType voteType
+    ) external view returns (uint256) {
+        IGovPool.Votes memory votes = _getVotes(voteInfo);
 
-        IGovPool.VotePower storage personalPower = votePowers[IGovPool.VoteType.PersonalVote];
-        IGovPool.VotePower storage micropoolPower = votePowers[IGovPool.VoteType.MicropoolVote];
-        IGovPool.VotePower storage treasuryPower = votePowers[IGovPool.VoteType.TreasuryVote];
+        uint256 typedVotes;
+        if (voteType == IGovPool.VoteType.PersonalVote) {
+            typedVotes = votes.personal;
+        } else if (voteType == IGovPool.VoteType.MicropoolVote) {
+            typedVotes = votes.micropool;
+        } else {
+            typedVotes = votes.treasury;
+        }
 
-        votes.personal = personalPower.powerVoted;
-        votes.micropool = micropoolPower.powerVoted;
-        votes.treasury = treasuryPower.powerVoted;
+        uint256 totalPowerVoted = votes.personal + votes.micropool + votes.treasury;
 
-        /// @dev nft power can be zero
-        return (
-            votes,
-            votes.personal != 0 ||
-                votes.micropool != 0 ||
-                votes.treasury != 0 ||
-                personalPower.nftsVoted.length() != 0 ||
-                micropoolPower.nftsVoted.length() != 0 ||
-                treasuryPower.nftsVoted.length() != 0
-        );
+        return totalPowerVoted != 0 ? voteInfo.totalVoted.ratio(typedVotes, totalPowerVoted) : 0;
     }
 
     function _voteDelegated(
@@ -213,7 +208,7 @@ library GovPoolVote {
         EnumerableSet.UintSet storage nftsVoted = votePower.nftsVoted;
 
         for (uint256 i; i < nftIds.length; i++) {
-            nftsVoted.add(nftIds[i]);
+            require(nftsVoted.add(nftIds[i]), "Gov: NFT already voted");
         }
 
         (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
@@ -245,11 +240,8 @@ library GovPoolVote {
         address voter,
         bool isVoteFor
     ) internal returns (IGovPool.Votes memory votes) {
-        bool isVoted;
-        (votes, isVoted) = getVotes(voteInfo);
-
-        if (isVoted) {
-            votes = _globalVote(core, voteInfo, activeVotes, proposalId, voter, isVoteFor, votes);
+        if (_isVoted(voteInfo)) {
+            votes = _globalVote(core, voteInfo, activeVotes, proposalId, voter, isVoteFor);
         } else {
             _globalCancel(core, voteInfo, activeVotes, proposalId, isVoteFor);
         }
@@ -263,9 +255,10 @@ library GovPoolVote {
         EnumerableSet.UintSet storage activeVotes,
         uint256 proposalId,
         address voter,
-        bool isVoteFor,
-        IGovPool.Votes memory votes
-    ) internal returns (IGovPool.Votes memory) {
+        bool isVoteFor
+    ) internal returns (IGovPool.Votes memory votes) {
+        votes = _getVotes(voteInfo);
+
         activeVotes.add(proposalId);
 
         require(
@@ -326,17 +319,13 @@ library GovPoolVote {
     ) internal view {
         IGovPool govPool = IGovPool(address(this));
 
-        mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
-
         (, address userKeeper, , ) = govPool.getHelperContracts();
         (uint256 tokenBalance, uint256 ownedBalance) = IGovUserKeeper(userKeeper).tokenBalance(
             msg.sender,
             voteType
         );
 
-        (, bool isVoted) = getVotes(voteInfo);
-
-        require(!isVoted, "Gov: need cancel");
+        require(!_isVoted(voteInfo), "Gov: need cancel");
         require(
             govPool.getProposalState(proposalId) == IGovPool.ProposalState.Voting,
             "Gov: vote unavailable"
@@ -346,6 +335,36 @@ library GovPoolVote {
             "Gov: user restricted from voting in this proposal"
         );
         require(amount <= tokenBalance - ownedBalance, "Gov: wrong vote amount");
+    }
+
+    function _getVotes(
+        IGovPool.VoteInfo storage voteInfo
+    ) internal view returns (IGovPool.Votes memory) {
+        mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
+
+        return
+            IGovPool.Votes({
+                personal: votePowers[IGovPool.VoteType.PersonalVote].powerVoted,
+                micropool: votePowers[IGovPool.VoteType.MicropoolVote].powerVoted,
+                treasury: votePowers[IGovPool.VoteType.TreasuryVote].powerVoted
+            });
+    }
+
+    function _isVoted(IGovPool.VoteInfo storage voteInfo) internal view returns (bool) {
+        mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
+
+        IGovPool.VotePower storage personalPower = votePowers[IGovPool.VoteType.PersonalVote];
+        IGovPool.VotePower storage micropoolPower = votePowers[IGovPool.VoteType.MicropoolVote];
+        IGovPool.VotePower storage treasuryPower = votePowers[IGovPool.VoteType.TreasuryVote];
+
+        /// @dev nft power can be zero
+        return
+            personalPower.powerVoted != 0 ||
+            micropoolPower.powerVoted != 0 ||
+            treasuryPower.powerVoted != 0 ||
+            personalPower.nftsVoted.length() != 0 ||
+            micropoolPower.nftsVoted.length() != 0 ||
+            treasuryPower.nftsVoted.length() != 0;
     }
 
     function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {

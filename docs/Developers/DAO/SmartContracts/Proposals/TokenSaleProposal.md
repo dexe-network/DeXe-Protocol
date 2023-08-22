@@ -78,6 +78,7 @@ struct ParticipationDetails {
 
 ```solidity
 enum ParticipationType {
+    NoWhitelist,
     DAOVotes,
     Whitelist,
     BABT,
@@ -86,6 +87,7 @@ enum ParticipationType {
 }
 ```
 
+- ***NoWhitelist*** - indicates that the proposal doesn't have the whitelist
 - ***DAOVotes*** - indicates that the user must have the required voting power
 - ***Whitelist*** - indicates that the user must be included in the whitelist of the tier
 - ***BABT*** - indicates that the user must own the BABT token

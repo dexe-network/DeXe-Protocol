@@ -149,6 +149,11 @@ library TokenSaleProposalCreate {
         ITokenSaleProposal.ParticipationDetails memory participationDetails
     ) private pure returns (bool) {
         if (
+            participationDetails.participationType ==
+            ITokenSaleProposal.ParticipationType.NoWhitelist
+        ) {
+            return participationDetails.data.length == 0;
+        } else if (
             participationDetails.participationType == ITokenSaleProposal.ParticipationType.DAOVotes
         ) {
             return participationDetails.data.length == 32;
