@@ -635,23 +635,6 @@ describe.only("GovPool", () => {
     await govPool.execute(proposalId);
   }
 
-  const assertBalanceDistribution = (balances, coefficients, tolerance) => {
-    for (let i = 0; i < balances.length - 1; i++) {
-      const epsilon = coefficients[i] + coefficients[i + 1];
-
-      const lhs = balances[i].idiv(wei("1")).times(coefficients[i + 1]);
-      const rhs = balances[i + 1].idiv(wei("1")).times(coefficients[i]);
-
-      assert.closeTo(lhs.toNumber(), rhs.toNumber(), tolerance + epsilon);
-    }
-  };
-
-  const assertNoZerosBalanceDistribution = (balances, coefficients, tolerance = 0) => {
-    balances.forEach((balance) => assert.notEqual(balance.toFixed(), "0"));
-
-    assertBalanceDistribution(balances, coefficients, tolerance);
-  };
-
   describe("Fullfat GovPool", () => {
     let POOL_PARAMETERS;
 
