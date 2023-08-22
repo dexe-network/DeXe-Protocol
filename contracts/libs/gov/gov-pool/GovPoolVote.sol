@@ -319,8 +319,6 @@ library GovPoolVote {
     ) internal view {
         IGovPool govPool = IGovPool(address(this));
 
-        mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
-
         (, address userKeeper, , ) = govPool.getHelperContracts();
         (uint256 tokenBalance, uint256 ownedBalance) = IGovUserKeeper(userKeeper).tokenBalance(
             msg.sender,
