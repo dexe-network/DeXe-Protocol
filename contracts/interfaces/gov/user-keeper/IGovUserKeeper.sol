@@ -281,19 +281,6 @@ interface IGovUserKeeper {
         uint256 snapshotId
     ) external view returns (bool);
 
-    /// @notice The function to define if voter is able to vote. Includes wallet balance
-    /// @param voter the address of voter
-    /// @param voteType the type of vote
-    /// @param requiredVotes the required voting power
-    /// @param snapshotId the id of snapshot
-    /// @return `true` - can participate, `false` - can't participate
-    function canVote(
-        address voter,
-        IGovPool.VoteType voteType,
-        uint256 requiredVotes,
-        uint256 snapshotId
-    ) external view returns (bool);
-
     /// @notice The function for getting voting power of users
     /// @param users the array of users addresses
     /// @param voteTypes the array of vote types
