@@ -69,7 +69,7 @@ library GovPoolVote {
             );
             _voteDelegated(
                 core,
-                votePowers[IGovPool.VoteType.MicropoolVote],
+                votePowers[IGovPool.VoteType.TreasuryVote],
                 msg.sender,
                 IGovPool.VoteType.TreasuryVote
             );
