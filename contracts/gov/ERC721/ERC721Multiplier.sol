@@ -18,15 +18,9 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
     mapping(uint256 => NftInfo) internal _tokens;
     mapping(address => uint256) internal _latestLockedTokenIds;
 
-    event Minted(
-        uint256 tokenId,
-        address to,
-        uint256 multiplier,
-        uint256 duration,
-        uint256 averageBalance
-    );
+    event Minted(uint256 tokenId, address to, uint256 multiplier, uint256 duration);
     event Locked(uint256 tokenId, address sender, bool isLocked);
-    event Changed(uint256 tokenId, uint256 multiplier, uint256 duration, uint256 averageBalance);
+    event Changed(uint256 tokenId, uint256 multiplier, uint256 duration);
 
     function __ERC721Multiplier_init(
         string calldata name,
@@ -65,12 +59,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         emit Locked(tokenId, msg.sender, false);
     }
 
-    function mint(
-        address to,
-        uint256 multiplier,
-        uint64 duration,
-        uint256 averageBalance
-    ) public virtual override onlyOwner {
+    function mint(address to, uint256 multiplier, uint64 duration) public override onlyOwner {
         uint256 currentTokenId = totalSupply() + 1;
 
         _mint(to, currentTokenId);
@@ -81,15 +70,14 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
             mintedAt: uint64(block.timestamp)
         });
 
-        emit Minted(currentTokenId, to, multiplier, duration, averageBalance);
+        emit Minted(currentTokenId, to, multiplier, duration);
     }
 
     function changeToken(
         uint256 tokenId,
         uint256 multiplier,
-        uint64 duration,
-        uint256 averageBalance
-    ) public virtual override onlyOwner {
+        uint64 duration
+    ) public override onlyOwner {
         _requireMinted(tokenId);
 
         NftInfo storage token = _tokens[tokenId];
@@ -97,7 +85,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         token.multiplier = multiplier;
         token.duration = duration;
 
-        emit Changed(tokenId, multiplier, duration, averageBalance);
+        emit Changed(tokenId, multiplier, duration);
     }
 
     function setBaseUri(string calldata uri) external onlyOwner {

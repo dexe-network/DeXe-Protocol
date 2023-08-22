@@ -375,7 +375,7 @@ describe("ERC721Multiplier", () => {
 
     describe("interfaceId()", () => {
       it("should support ERC721Enumerable and ERC721Multiplier interfaces", async () => {
-        assert.isTrue(await nft.supportsInterface("0xdef1c5fd"));
+        assert.isTrue(await nft.supportsInterface("0x97bdf62b"));
         assert.isTrue(await nft.supportsInterface("0x780e9d63"));
       });
     });
@@ -383,14 +383,14 @@ describe("ERC721Multiplier", () => {
     describe("mint()", () => {
       it("shouldn't mint if not the owner", async () => {
         await truffleAssert.reverts(
-          nft.mint(OWNER, TOKENS[0].multiplier, TOKENS[0].duration, 0, { from: SECOND }),
+          nft.mint(OWNER, TOKENS[0].multiplier, TOKENS[0].duration, { from: SECOND }),
           "Ownable: caller is not the owner"
         );
       });
 
       it("should mint properly", async () => {
         for (const token of TOKENS) {
-          const tx = await nft.mint(token.owner, token.multiplier, token.duration, 0);
+          const tx = await nft.mint(token.owner, token.multiplier, token.duration);
           truffleAssert.eventEmitted(tx, "Minted", (e) => {
             return (
               e.to === token.owner &&
@@ -414,7 +414,7 @@ describe("ERC721Multiplier", () => {
     describe("if minted", () => {
       beforeEach(async () => {
         for (const token of TOKENS) {
-          await nft.mint(token.owner, token.multiplier, token.duration, 0);
+          await nft.mint(token.owner, token.multiplier, token.duration);
 
           token.mintedAt = await getCurrentBlockTime();
         }
@@ -437,20 +437,17 @@ describe("ERC721Multiplier", () => {
 
       describe("changeToken()", () => {
         it("should not change if not the owner", async () => {
-          await truffleAssert.reverts(
-            nft.changeToken(0, 0, 0, 0, { from: SECOND }),
-            "Ownable: caller is not the owner"
-          );
+          await truffleAssert.reverts(nft.changeToken(0, 0, 0, { from: SECOND }), "Ownable: caller is not the owner");
         });
 
         it("should not change if the token doesn't exist", async () => {
-          await truffleAssert.reverts(nft.changeToken(5, 0, 0, 0), "ERC721: invalid token ID");
+          await truffleAssert.reverts(nft.changeToken(5, 0, 0), "ERC721: invalid token ID");
         });
 
         it("should change properly", async () => {
           const first = TOKENS[0];
 
-          const tx = await nft.changeToken(first.id, 1, 2, 0);
+          const tx = await nft.changeToken(first.id, 1, 2);
 
           truffleAssert.eventEmitted(tx, "Changed", (e) => {
             return e.tokenId.toFixed() === first.id && e.multiplier.toFixed() === "1" && e.duration.toFixed() === "2";
