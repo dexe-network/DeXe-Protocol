@@ -21,13 +21,11 @@ const {
   getBytesGovVote,
   getBytesGovDeposit,
   getBytesKeeperWithdrawTokens,
-  getBytesGovVoteDelegated,
   getBytesSetCreditInfo,
   getBytesChangeVoteModifiers,
   getBytesMintExpertNft,
   getBytesDelegateTreasury,
   getBytesUndelegateTreasury,
-  getBytesGovVoteTreasury,
 } = require("../utils/gov-pool-utils");
 const {
   getBytesChangeInternalBalances,
@@ -926,26 +924,6 @@ describe.only("GovPool", () => {
 
               [[govPool2.address, 0, getBytesGovVote(1, wei("1"), [], true)]],
               [[govPool2.address, 0, getBytesGovVote(1, wei("1"), [], false)]],
-              { from: SECOND }
-            )
-          );
-
-          assert.isOk(
-            await govPool.createProposal(
-              "",
-
-              [[govPool2.address, 0, getBytesGovVoteDelegated(1, wei("1"), [], true)]],
-              [[govPool2.address, 0, getBytesGovVoteDelegated(1, wei("1"), [], false)]],
-              { from: SECOND }
-            )
-          );
-
-          assert.isOk(
-            await govPool.createProposal(
-              "",
-
-              [[govPool2.address, 0, getBytesGovVoteTreasury(1, wei("1"), [], true)]],
-              [[govPool2.address, 0, getBytesGovVoteTreasury(1, wei("1"), [], false)]],
               { from: SECOND }
             )
           );
@@ -3281,24 +3259,6 @@ describe.only("GovPool", () => {
                 govPool.multicall([getBytesGovVote(3, wei("100000000000000000000"), []), getBytesGovExecute(3)], {
                   from: SECOND,
                 }),
-                "Gov: invalid status"
-              );
-            });
-
-            it("should not withdraw victim's tokens in the same block if vote delegated", async () => {
-              const bytes = getBytesKeeperWithdrawTokens(VICTIM, SECOND, wei("111222"));
-
-              await govPool.createProposal("example.com", [[userKeeper.address, 0, bytes]], [], {
-                from: SECOND,
-              });
-
-              await truffleAssert.reverts(
-                govPool.multicall(
-                  [getBytesGovVoteDelegated(3, wei("100000000000000000000"), []), getBytesGovExecute(3)],
-                  {
-                    from: SECOND,
-                  }
-                ),
                 "Gov: invalid status"
               );
             });
