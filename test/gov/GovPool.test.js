@@ -250,9 +250,6 @@ describe("GovPool", () => {
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721EnumMock.new("Mock", "Mock");
 
-    nftMultiplier = await ERC721Multiplier.new();
-    await nftMultiplier.__ERC721Multiplier_init("NFTMultiplierMock", "NFTMM");
-
     nftPower = await ERC721Power.new();
     await nftPower.__ERC721Power_init(
       "NFTPowerMock",
@@ -303,6 +300,7 @@ describe("GovPool", () => {
     const expertNft = await ERC721Expert.new();
     const linearPower = await LinearPower.new();
     const govPool = await GovPool.new();
+    const nftMultiplier = await ERC721Multiplier.new();
 
     await settings.__GovSettings_init(
       govPool.address,
@@ -330,6 +328,7 @@ describe("GovPool", () => {
       poolParams.userKeeperParams.nftsTotalSupply
     );
 
+    await nftMultiplier.__ERC721Multiplier_init("Mock Multiplier Nft", "MCKMULNFT");
     await dp.__DistributionProposal_init(govPool.address);
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
     await linearPower.__LinearPower_init();
@@ -369,6 +368,7 @@ describe("GovPool", () => {
       expertNft: expertNft,
       votePower: linearPower,
       govPool: govPool,
+      nftMultiplier: nftMultiplier,
     };
   }
 
@@ -666,6 +666,7 @@ describe("GovPool", () => {
       dp = poolContracts.distributionProposal;
       expertNft = poolContracts.expertNft;
       votePower = poolContracts.votePower;
+      nftMultiplier = poolContracts.nftMultiplier;
 
       poolContracts = await deployPool(POOL_PARAMETERS);
       settings2 = poolContracts.settings;
@@ -750,15 +751,18 @@ describe("GovPool", () => {
       it.skip("should deposit tokens", async () => {
         await govPool.deposit(OWNER, wei("100"), [1, 2, 3]);
 
-        await govPool.delegate(OWNER, wei("100"), [1, 2, 3]);
+        await govPool.delegate(SECOND, wei("100"), [1, 2, 3]);
 
-        await govPool.request(OWNER, wei("50"), [1, 2]);
+        await govPool.request(SECOND, wei("50"), [1, 2]);
 
-        assert.equal((await userKeeper.tokenBalance(OWNER, VoteType.MicropoolVote)).totalBalance.toFixed(), wei("100"));
-        assert.equal((await userKeeper.tokenBalance(OWNER, VoteType.MicropoolVote)).ownedBalance.toFixed(), wei("50"));
+        assert.equal(
+          (await userKeeper.tokenBalance(SECOND, VoteType.MicropoolVote)).totalBalance.toFixed(),
+          wei("100")
+        );
+        assert.equal((await userKeeper.tokenBalance(SECOND, VoteType.MicropoolVote)).ownedBalance.toFixed(), wei("50"));
 
-        assert.equal((await userKeeper.nftBalance(OWNER, VoteType.MicropoolVote)).totalBalance.toFixed(), "3");
-        assert.equal((await userKeeper.nftBalance(OWNER, VoteType.MicropoolVote)).ownedBalance.toFixed(), "2");
+        assert.equal((await userKeeper.nftBalance(SECOND, VoteType.MicropoolVote)).totalBalance.toFixed(), "3");
+        assert.equal((await userKeeper.nftBalance(SECOND, VoteType.MicropoolVote)).ownedBalance.toFixed(), "2");
       });
     });
 
@@ -838,7 +842,7 @@ describe("GovPool", () => {
         assert.equal(proposal.core.settings[8], defaultSettings.minVotesForCreating);
         assert.equal(proposal.core.settings[9], defaultSettings.executionDelay);
 
-        assert.isFalse(proposal.core.executed);
+        assert.equal(proposal.core.executionTime, "0");
         assert.equal(proposal.descriptionURL, "example.com");
         assert.deepEqual(proposal.actionsOnFor[0].data, getBytesApprove(SECOND, 1));
         assert.deepEqual(proposal.actionsOnAgainst, []);
@@ -858,7 +862,7 @@ describe("GovPool", () => {
         assert.equal(proposal.core.settings[8], defaultSettings.minVotesForCreating);
         assert.equal(proposal.core.settings[9], defaultSettings.executionDelay);
 
-        assert.isFalse(proposal.core.executed);
+        assert.equal(proposal.core.executionTime, "0");
         assert.equal(proposal.descriptionURL, "example2.com");
         assert.deepEqual(proposal.actionsOnFor[0].data, getBytesApprove(SECOND, 2));
         assert.deepEqual(proposal.actionsOnAgainst, []);
@@ -1071,36 +1075,7 @@ describe("GovPool", () => {
         });
       });
 
-      describe("DP", () => {
-        it.skip("should revert when creating DP proposal with wrong proposal id", async () => {
-          await truffleAssert.reverts(
-            govPool.createProposal(
-              "example.com",
-
-              [[dp.address, 0, getBytesDistributionProposal(2, token.address, wei("100"))]],
-              []
-            ),
-            "Gov: invalid proposalId"
-          );
-        });
-
-        it.skip("should revert when creating DP proposal with non zero value", async () => {
-          await truffleAssert.reverts(
-            govPool.createProposal(
-              "example.com",
-
-              [
-                [token.address, 1, getBytesApprove(dp.address, wei("100"))],
-                [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100"))],
-              ],
-              []
-            ),
-            "Gov: invalid internal data"
-          );
-        });
-      });
-
-      describe.skip("internal", () => {
+      describe("internal", () => {
         it("should create multi internal proposal", async () => {
           await truffleAssert.passes(
             govPool.createProposal(
@@ -2892,6 +2867,7 @@ describe("GovPool", () => {
             await govPool.execute(1);
 
             await nftMultiplier.mint(THIRD, PRECISION.times("2.5"), 10000000000);
+            await nftMultiplier.transferOwnership(govPool.address);
             await nftMultiplier.lock(1, { from: THIRD });
 
             await delegateTreasury(THIRD, wei("100"), ["10", "11"]);
@@ -3518,6 +3494,41 @@ describe("GovPool", () => {
       });
     });
 
+    describe("getUserActiveProposalsCount()", () => {
+      it("should return zero if no proposals", async () => {
+        assert.equal(await govPool.getUserActiveProposalsCount(OWNER), 0);
+      });
+
+      it("should correctly return count of active proposals", async () => {
+        await govPool.deposit(OWNER, wei("1000"), []);
+
+        await govPool.createProposal("example.com", [[SECOND, "0", getBytesApprove(SECOND, 1)]], []);
+        await govPool.createProposal(
+          "example.com",
+          [[dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100"))]],
+          []
+        );
+
+        assert.equal(await govPool.getUserActiveProposalsCount(OWNER), 0);
+
+        await govPool.vote(1, true, wei("500"), []);
+
+        assert.equal(await govPool.getUserActiveProposalsCount(OWNER), 1);
+
+        await govPool.vote(2, true, wei("500"), []);
+
+        assert.equal(await govPool.getUserActiveProposalsCount(OWNER), 2);
+
+        await setTime((await getCurrentBlockTime()) + 1000000);
+
+        assert.equal(await govPool.getUserActiveProposalsCount(OWNER), 2);
+
+        await govPool.unlock(OWNER, VoteType.PersonalVote);
+
+        assert.equal(await govPool.getUserActiveProposalsCount(OWNER), 0);
+      });
+    });
+
     describe.skip("reward", () => {
       let NEW_SETTINGS = {
         earlyCompletion: true,
@@ -3653,6 +3664,7 @@ describe("GovPool", () => {
         await setNftMultiplierAddress(nftMultiplier.address);
 
         await nftMultiplier.mint(OWNER, PRECISION.times("2.5"), 1000);
+        await nftMultiplier.transferOwnership(govPool.address);
         await nftMultiplier.lock(1);
 
         const bytes = getBytesAddSettings([NEW_SETTINGS]);
@@ -4051,6 +4063,7 @@ describe("GovPool", () => {
 
           await govPool.execute(1);
           await nftMultiplier.mint(micropool, PRECISION.times("2.5"), 10000000000);
+          await nftMultiplier.transferOwnership(govPool.address);
           await nftMultiplier.lock(1, { from: micropool });
 
           await govPool.createProposal("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
@@ -4091,6 +4104,7 @@ describe("GovPool", () => {
 
           await govPool.execute(1);
           await nftMultiplier.mint(micropool, PRECISION.times("2.5"), 10000000000);
+          await nftMultiplier.transferOwnership(govPool.address);
           await nftMultiplier.lock(1, { from: micropool });
 
           await setExpert(THIRD, async (proposalId) => {
@@ -5105,6 +5119,7 @@ describe("GovPool", () => {
       validators = poolContracts.validators;
       dp = poolContracts.distributionProposal;
       expertNft = poolContracts.expertNft;
+      nftMultiplier = poolContracts.nftMultiplier;
 
       await setupTokens();
     });
@@ -5190,6 +5205,7 @@ describe("GovPool", () => {
       validators = poolContracts.validators;
       dp = poolContracts.distributionProposal;
       expertNft = poolContracts.expertNft;
+      nftMultiplier = poolContracts.nftMultiplier;
 
       await setupTokens();
     });
@@ -5295,6 +5311,7 @@ describe("GovPool", () => {
       validators = poolContracts.validators;
       dp = poolContracts.distributionProposal;
       expertNft = poolContracts.expertNft;
+      nftMultiplier = poolContracts.nftMultiplier;
 
       await setupTokens();
 

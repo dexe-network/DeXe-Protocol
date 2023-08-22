@@ -207,6 +207,7 @@ library GovPoolVote {
         votePower.tokensVoted = amount;
 
         if (nftIds.length == 0) {
+            votePower.powerVoted = amount;
             return;
         }
 
