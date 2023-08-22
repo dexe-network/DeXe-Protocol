@@ -9,6 +9,7 @@ import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 
 import "../../../interfaces/gov/IGovPool.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
+import "../../../interfaces/gov/voting/IVotePower.sol";
 
 import "../../../gov/GovPool.sol";
 
@@ -46,7 +47,7 @@ library GovPoolVote {
         mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
 
         if (amount != 0 || nftIds.length != 0) {
-            (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+            (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
             IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
             if (amount != 0) {
@@ -129,7 +130,7 @@ library GovPoolVote {
 
         IGovPool.VotePower storage personalPower = votePowers[IGovPool.VoteType.PersonalVote];
 
-        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         if (personalPower.tokensVoted != 0) {
@@ -183,7 +184,7 @@ library GovPoolVote {
         address voter,
         IGovPool.VoteType voteType
     ) internal {
-        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         (uint256 amount, ) = userKeeper.tokenBalance(voter, voteType);
@@ -211,7 +212,7 @@ library GovPoolVote {
             require(nftsVoted.add(nftIds[i]), "Gov: NFT already voted");
         }
 
-        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
         votePower.powerVoted =
             amount +
@@ -319,7 +320,7 @@ library GovPoolVote {
     ) internal view {
         IGovPool govPool = IGovPool(address(this));
 
-        (, address userKeeper, , ) = govPool.getHelperContracts();
+        (, address userKeeper, , , ) = govPool.getHelperContracts();
         (uint256 tokenBalance, uint256 ownedBalance) = IGovUserKeeper(userKeeper).tokenBalance(
             msg.sender,
             voteType
@@ -368,7 +369,7 @@ library GovPoolVote {
     }
 
     function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {
-        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
 
         return
             PERCENTAGE_100.ratio(
@@ -377,37 +378,10 @@ library GovPoolVote {
             ) >= core.settings.quorum;
     }
 
-    function _treasuryVoteCoefficient(address voter) internal view returns (uint256) {
-        (, address userKeeperAddress, , ) = GovPool(payable(address(this))).getHelperContracts();
-        IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
-
-        (uint256 power, ) = userKeeper.tokenBalance(voter, IGovPool.VoteType.TreasuryVote);
-
-        (uint256[] memory nfts, ) = userKeeper.nftExactBalance(
-            voter,
-            IGovPool.VoteType.TreasuryVote
-        );
-        (uint256 nftPower, ) = userKeeper.nftVotingPower(nfts);
-
-        power += nftPower;
-
-        return power.ratio(PRECISION, userKeeper.getTotalVoteWeight()) / 10;
-    }
-
     function _calculateVotes(address voter, uint256 voteAmount) internal view returns (uint256) {
-        uint256 coefficient = IGovPool(address(this)).getVoteModifierForUser(voter);
+        (, , , , address votePowerAddress) = IGovPool(address(this)).getHelperContracts();
+        IVotePower votePower = IVotePower(votePowerAddress);
 
-        if (IGovPool(address(this)).getExpertStatus(voter)) {
-            uint256 treasuryVoteCoefficient = _treasuryVoteCoefficient(voter);
-
-            // @dev Assuming treasury vote coefficient is always <= 1
-            coefficient -= treasuryVoteCoefficient;
-        }
-
-        if (coefficient <= PRECISION) {
-            return voteAmount;
-        }
-
-        return voteAmount.pow(coefficient.ratio(DECIMALS, PRECISION));
+        return votePower.transformVotes(voter, voteAmount);
     }
 }

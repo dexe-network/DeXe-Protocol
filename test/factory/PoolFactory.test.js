@@ -2,6 +2,7 @@ const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../../scripts/utils/utils");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
+const { getBytesLinearPowerInit } = require("../utils/gov-vote-power-utils");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { DEFAULT_CORE_PROPERTIES, ParticipationType } = require("../utils/constants");
 const { toPercent } = require("../utils/utils");
@@ -13,6 +14,7 @@ const ERC721Mock = artifacts.require("ERC721Mock");
 const BABTMock = artifacts.require("BABTMock");
 const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
+const LinearPower = artifacts.require("LinearPower");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
 const PoolRegistry = artifacts.require("PoolRegistry");
@@ -174,6 +176,7 @@ describe("PoolFactory", () => {
     let tokenSaleProposal = await TokenSaleProposal.new();
     let expertNft = await ERC721Expert.new();
     let nftMultiplier = await ERC721Multiplier.new();
+    let linearPower = await LinearPower.new();
 
     let govPool = await GovPool.new();
     let govUserKeeper = await GovUserKeeper.new();
@@ -189,6 +192,7 @@ describe("PoolFactory", () => {
       await poolRegistry.TOKEN_SALE_PROPOSAL_NAME(),
       await poolRegistry.EXPERT_NFT_NAME(),
       await poolRegistry.NFT_MULTIPLIER_NAME(),
+      await poolRegistry.LINEAR_POWER_NAME(),
     ];
 
     const poolAddrs = [
@@ -200,6 +204,7 @@ describe("PoolFactory", () => {
       tokenSaleProposal.address,
       expertNft.address,
       nftMultiplier.address,
+      linearPower.address,
     ];
 
     await poolRegistry.setNewImplementations(poolNames, poolAddrs);
@@ -333,8 +338,11 @@ describe("PoolFactory", () => {
             amounts: [],
           },
         },
-        regularVoteModifier: wei("1", 25),
-        expertVoteModifier: wei("1", 25),
+        votePowerParams: {
+          voteType: 0,
+          initData: getBytesLinearPowerInit(),
+          presetAddress: ZERO_ADDR,
+        },
         verifier: OWNER,
         onlyBABTHolders: false,
         descriptionURL: "example.com",
