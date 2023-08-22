@@ -734,15 +734,18 @@ describe("GovPool", () => {
       it("should deposit tokens", async () => {
         await govPool.deposit(OWNER, wei("100"), [1, 2, 3]);
 
-        await govPool.delegate(OWNER, wei("100"), [1, 2, 3]);
+        await govPool.delegate(SECOND, wei("100"), [1, 2, 3]);
 
-        await govPool.request(OWNER, wei("50"), [1, 2]);
+        await govPool.request(SECOND, wei("50"), [1, 2]);
 
-        assert.equal((await userKeeper.tokenBalance(OWNER, VoteType.MicropoolVote)).totalBalance.toFixed(), wei("100"));
-        assert.equal((await userKeeper.tokenBalance(OWNER, VoteType.MicropoolVote)).ownedBalance.toFixed(), wei("50"));
+        assert.equal(
+          (await userKeeper.tokenBalance(SECOND, VoteType.MicropoolVote)).totalBalance.toFixed(),
+          wei("100")
+        );
+        assert.equal((await userKeeper.tokenBalance(SECOND, VoteType.MicropoolVote)).ownedBalance.toFixed(), wei("50"));
 
-        assert.equal((await userKeeper.nftBalance(OWNER, VoteType.MicropoolVote)).totalBalance.toFixed(), "3");
-        assert.equal((await userKeeper.nftBalance(OWNER, VoteType.MicropoolVote)).ownedBalance.toFixed(), "2");
+        assert.equal((await userKeeper.nftBalance(SECOND, VoteType.MicropoolVote)).totalBalance.toFixed(), "3");
+        assert.equal((await userKeeper.nftBalance(SECOND, VoteType.MicropoolVote)).ownedBalance.toFixed(), "2");
       });
     });
 
@@ -822,7 +825,7 @@ describe("GovPool", () => {
         assert.equal(proposal.core.settings[8], defaultSettings.minVotesForCreating);
         assert.equal(proposal.core.settings[9], defaultSettings.executionDelay);
 
-        assert.isFalse(proposal.core.executed);
+        assert.equal(proposal.core.executionTime, "0");
         assert.equal(proposal.descriptionURL, "example.com");
         assert.deepEqual(proposal.actionsOnFor[0].data, getBytesApprove(SECOND, 1));
         assert.deepEqual(proposal.actionsOnAgainst, []);
@@ -842,7 +845,7 @@ describe("GovPool", () => {
         assert.equal(proposal.core.settings[8], defaultSettings.minVotesForCreating);
         assert.equal(proposal.core.settings[9], defaultSettings.executionDelay);
 
-        assert.isFalse(proposal.core.executed);
+        assert.equal(proposal.core.executionTime, "0");
         assert.equal(proposal.descriptionURL, "example2.com");
         assert.deepEqual(proposal.actionsOnFor[0].data, getBytesApprove(SECOND, 2));
         assert.deepEqual(proposal.actionsOnAgainst, []);
@@ -1048,35 +1051,6 @@ describe("GovPool", () => {
               "example.com",
 
               [[validators.address, 1, getBytesChangeBalances([wei("10")], [THIRD])]],
-              []
-            ),
-            "Gov: invalid internal data"
-          );
-        });
-      });
-
-      describe("DP", () => {
-        it("should revert when creating DP proposal with wrong proposal id", async () => {
-          await truffleAssert.reverts(
-            govPool.createProposal(
-              "example.com",
-
-              [[dp.address, 0, getBytesDistributionProposal(2, token.address, wei("100"))]],
-              []
-            ),
-            "Gov: invalid proposalId"
-          );
-        });
-
-        it("should revert when creating DP proposal with non zero value", async () => {
-          await truffleAssert.reverts(
-            govPool.createProposal(
-              "example.com",
-
-              [
-                [token.address, 1, getBytesApprove(dp.address, wei("100"))],
-                [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100"))],
-              ],
               []
             ),
             "Gov: invalid internal data"
