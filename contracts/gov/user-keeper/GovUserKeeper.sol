@@ -621,39 +621,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         return tokens + nftPower >= requiredVotes;
     }
 
-    function canVote(
-        address voter,
-        IGovPool.VoteType voteType,
-        uint256 requiredVotes,
-        uint256 snapshotId
-    ) external view override returns (bool) {
-        (uint256 tokens, ) = tokenBalance(voter, voteType);
-        (uint256 tokensMicropool, ) = tokenBalance(voter, IGovPool.VoteType.MicropoolVote);
-        (uint256 tokensTreasury, ) = tokenBalance(voter, IGovPool.VoteType.TreasuryVote);
-
-        tokens = tokens + tokensMicropool + tokensTreasury;
-
-        if (tokens >= requiredVotes) {
-            return true;
-        }
-
-        (uint256[] memory nftIds, ) = nftExactBalance(voter, voteType);
-        (uint256[] memory nftIdsMicropool, ) = nftExactBalance(
-            voter,
-            IGovPool.VoteType.MicropoolVote
-        );
-        (uint256[] memory nftIdsTreasury, ) = nftExactBalance(
-            voter,
-            IGovPool.VoteType.TreasuryVote
-        );
-
-        uint256 nftPower = getNftsPowerInTokensBySnapshot(nftIds, snapshotId) +
-            getNftsPowerInTokensBySnapshot(nftIdsMicropool, snapshotId) +
-            getNftsPowerInTokensBySnapshot(nftIdsTreasury, snapshotId);
-
-        return tokens + nftPower >= requiredVotes;
-    }
-
     function votingPower(
         address[] calldata users,
         IGovPool.VoteType[] calldata voteTypes
