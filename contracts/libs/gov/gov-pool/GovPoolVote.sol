@@ -5,23 +5,16 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
-
 import "../../../interfaces/gov/IGovPool.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../interfaces/gov/voting/IVotePower.sol";
 
-import "../../../gov/GovPool.sol";
-
 import "../../math/MathHelper.sol";
-import "../../math/LogExpMath.sol";
 
 library GovPoolVote {
     using EnumerableSet for EnumerableSet.UintSet;
     using Math for uint256;
     using MathHelper for uint256;
-    using LogExpMath for uint256;
-    using DecimalsConverter for uint256;
 
     event VoteChanged(uint256 proposalId, address voter, bool isVoteFor, IGovPool.Votes votes);
 
