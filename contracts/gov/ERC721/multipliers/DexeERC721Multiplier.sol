@@ -3,19 +3,17 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "./ERC721Multiplier.sol";
+import "./AbstractERC721Multiplier.sol";
 
-contract DexeERC721Multiplier is ERC721Multiplier {
+import "../../../libs/math/MathHelper.sol";
+
+contract DexeERC721Multiplier is AbstractERC721Multiplier {
     using MathHelper for uint256;
     using Math for uint256;
 
     event AverageBalanceChanged(address user, uint256 averageBalance);
 
     mapping(address => uint256) internal _averageBalances; // user => average balance
-
-    function __DexeERC721Multiplier_init(string calldata name, string calldata symbol) external {
-        __ERC721Multiplier_init(name, symbol);
-    }
 
     function mintWithAverageBalance(
         address to,
@@ -45,11 +43,17 @@ contract DexeERC721Multiplier is ERC721Multiplier {
         emit AverageBalanceChanged(owner, averageBalance);
     }
 
+    function getExtraRewards(address whose, uint256 rewards) external view returns (uint256) {
+        (uint256 multiplier, ) = getCurrentMultiplier(whose, rewards);
+
+        return rewards.ratio(multiplier, PRECISION);
+    }
+
     function getCurrentMultiplier(
         address whose,
         uint256 rewards
-    ) public view override returns (uint256 multiplier, uint256 timeLeft) {
-        (multiplier, timeLeft) = super.getCurrentMultiplier(whose, rewards);
+    ) public view returns (uint256 multiplier, uint256 timeLeft) {
+        (multiplier, timeLeft) = _getCurrentMultiplier(whose);
 
         uint256 averageBalance = _averageBalances[whose];
 

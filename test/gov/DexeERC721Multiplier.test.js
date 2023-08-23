@@ -280,7 +280,7 @@ describe("DexeERC721Multiplier", () => {
       poolParams.userKeeperParams.nftsTotalSupply
     );
 
-    await nft.__DexeERC721Multiplier_init(NFT_NAME, NFT_SYMBOL);
+    await nft.__ERC721Multiplier_init(NFT_NAME, NFT_SYMBOL);
 
     await dp.__DistributionProposal_init(govPool.address);
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
@@ -337,7 +337,7 @@ describe("DexeERC721Multiplier", () => {
 
     it("should not initialize twice", async () => {
       await truffleAssert.reverts(
-        nft.__DexeERC721Multiplier_init(NFT_NAME, NFT_SYMBOL),
+        nft.__ERC721Multiplier_init(NFT_NAME, NFT_SYMBOL),
         "Initializable: contract is already initialized"
       );
     });

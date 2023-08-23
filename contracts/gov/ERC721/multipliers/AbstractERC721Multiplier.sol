@@ -4,18 +4,14 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import "../../interfaces/gov/IGovPool.sol";
-import "../../interfaces/gov/ERC721/IERC721Multiplier.sol";
-import "../../core/Globals.sol";
+import "../../../interfaces/gov/IGovPool.sol";
+import "../../../interfaces/gov/ERC721/multipliers/IERC721Multiplier.sol";
+import "../../../core/Globals.sol";
 
-import "../../libs/math/MathHelper.sol";
-
-contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, OwnableUpgradeable {
-    using MathHelper for uint256;
-
+abstract contract AbstractERC721Multiplier is ERC721EnumerableUpgradeable, OwnableUpgradeable {
     string public baseURI;
 
-    mapping(uint256 => NftInfo) internal _tokens;
+    mapping(uint256 => IERC721Multiplier.NftInfo) internal _tokens;
     mapping(address => uint256) internal _latestLockedTokenIds;
 
     event Minted(uint256 tokenId, address to, uint256 multiplier, uint256 duration);
@@ -31,7 +27,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         __ERC721_init(name, symbol);
     }
 
-    function lock(uint256 tokenId) external override {
+    function lock(uint256 tokenId) external {
         _onlyTokenOwner(tokenId);
 
         require(
@@ -44,7 +40,7 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         emit Locked(tokenId, msg.sender, true);
     }
 
-    function unlock() external override {
+    function unlock() external {
         uint256 tokenId = _latestLockedTokenIds[msg.sender];
 
         _onlyTokenOwner(tokenId);
@@ -59,12 +55,12 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         emit Locked(tokenId, msg.sender, false);
     }
 
-    function mint(address to, uint256 multiplier, uint64 duration) public override onlyOwner {
+    function mint(address to, uint256 multiplier, uint64 duration) public onlyOwner {
         uint256 currentTokenId = totalSupply() + 1;
 
         _mint(to, currentTokenId);
 
-        _tokens[currentTokenId] = NftInfo({
+        _tokens[currentTokenId] = IERC721Multiplier.NftInfo({
             multiplier: multiplier,
             duration: duration,
             mintedAt: uint64(block.timestamp)
@@ -73,14 +69,10 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         emit Minted(currentTokenId, to, multiplier, duration);
     }
 
-    function changeToken(
-        uint256 tokenId,
-        uint256 multiplier,
-        uint64 duration
-    ) public override onlyOwner {
+    function changeToken(uint256 tokenId, uint256 multiplier, uint64 duration) public onlyOwner {
         _requireMinted(tokenId);
 
-        NftInfo storage token = _tokens[tokenId];
+        IERC721Multiplier.NftInfo storage token = _tokens[tokenId];
 
         token.multiplier = multiplier;
         token.duration = duration;
@@ -92,44 +84,8 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
         baseURI = uri;
     }
 
-    function getExtraRewards(
-        address whose,
-        uint256 rewards
-    ) external view override returns (uint256) {
-        (uint256 multiplier, ) = getCurrentMultiplier(whose, rewards);
-
-        return rewards.ratio(multiplier, PRECISION);
-    }
-
-    function getCurrentMultiplier(
-        address whose,
-        uint256
-    ) public view virtual returns (uint256 multiplier, uint256 timeLeft) {
-        uint256 latestLockedTokenId = _latestLockedTokenIds[whose];
-
-        if (!isLocked(latestLockedTokenId)) {
-            return (0, 0);
-        }
-
-        NftInfo memory info = _tokens[latestLockedTokenId];
-
-        if (info.mintedAt + info.duration < block.timestamp) {
-            return (0, 0);
-        }
-
-        return (info.multiplier, info.mintedAt + info.duration - block.timestamp);
-    }
-
-    function isLocked(uint256 tokenId) public view override returns (bool) {
+    function isLocked(uint256 tokenId) public view returns (bool) {
         return tokenId != 0 && _latestLockedTokenIds[ownerOf(tokenId)] == tokenId;
-    }
-
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override(IERC165Upgradeable, ERC721EnumerableUpgradeable) returns (bool) {
-        return
-            interfaceId == type(IERC721Multiplier).interfaceId ||
-            super.supportsInterface(interfaceId);
     }
 
     function _beforeTokenTransfer(
@@ -147,6 +103,24 @@ contract ERC721Multiplier is IERC721Multiplier, ERC721EnumerableUpgradeable, Own
 
     function _baseURI() internal view override returns (string memory) {
         return baseURI;
+    }
+
+    function _getCurrentMultiplier(
+        address whose
+    ) internal view returns (uint256 multiplier, uint256 timeLeft) {
+        uint256 latestLockedTokenId = _latestLockedTokenIds[whose];
+
+        if (!isLocked(latestLockedTokenId)) {
+            return (0, 0);
+        }
+
+        IERC721Multiplier.NftInfo memory info = _tokens[latestLockedTokenId];
+
+        if (info.mintedAt + info.duration < block.timestamp) {
+            return (0, 0);
+        }
+
+        return (info.multiplier, info.mintedAt + info.duration - block.timestamp);
     }
 
     function _onlyTokenOwner(uint256 tokenId) internal view {

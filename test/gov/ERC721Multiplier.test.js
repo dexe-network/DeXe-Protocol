@@ -541,7 +541,7 @@ describe("ERC721Multiplier", () => {
 
           await nft.lock(first.id, { from: first.owner });
 
-          const info = await nft.getCurrentMultiplier(first.owner, 0);
+          const info = await nft.getCurrentMultiplier(first.owner);
           assert.equal(info.multiplier.toFixed(), "0");
           assert.equal(info.timeLeft.toFixed(), "0");
         });
@@ -680,7 +680,7 @@ describe("ERC721Multiplier", () => {
         });
 
         it("should return zeros if no nft locked", async () => {
-          const info = await nft.getCurrentMultiplier(SECOND, 0);
+          const info = await nft.getCurrentMultiplier(SECOND);
           assert.equal(info.multiplier, "0");
           assert.equal(info.timeLeft, "0");
         });
@@ -688,14 +688,14 @@ describe("ERC721Multiplier", () => {
         it("should return current multiplier and timeLeft properly if locked", async () => {
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
 
-          let info = await nft.getCurrentMultiplier(SECOND, 0);
+          let info = await nft.getCurrentMultiplier(SECOND);
           assert.equal(info.multiplier.toFixed(), TOKENS[2].multiplier);
           const timeLeft = parseInt(TOKENS[2].duration) + TOKENS[2].mintedAt - (await getCurrentBlockTime());
           assert.equal(info.timeLeft.toFixed(), timeLeft);
 
           await setTime((await getCurrentBlockTime()) + timeLeft - 1);
 
-          info = await nft.getCurrentMultiplier(SECOND, 0);
+          info = await nft.getCurrentMultiplier(SECOND);
           assert.equal(info.multiplier.toFixed(), TOKENS[2].multiplier);
           assert.equal(info.timeLeft.toFixed(), "1");
         });
@@ -705,7 +705,7 @@ describe("ERC721Multiplier", () => {
 
           await setTime((await getCurrentBlockTime()) + parseInt(TOKENS[2].duration) + 1);
 
-          const info = await nft.getCurrentMultiplier(SECOND, 0);
+          const info = await nft.getCurrentMultiplier(SECOND);
           assert.equal(info.multiplier.toFixed(), "0");
           assert.equal(info.timeLeft.toFixed(), "0");
         });
@@ -715,7 +715,7 @@ describe("ERC721Multiplier", () => {
 
           await nft.unlock({ from: TOKENS[2].owner });
 
-          const info = await nft.getCurrentMultiplier(SECOND, 0);
+          const info = await nft.getCurrentMultiplier(SECOND);
           assert.equal(info.multiplier.toFixed(), "0");
           assert.equal(info.timeLeft.toFixed(), "0");
         });
@@ -725,7 +725,7 @@ describe("ERC721Multiplier", () => {
 
           await nft.lock(TOKENS[0].id, { from: TOKENS[1].owner });
 
-          let info = await nft.getCurrentMultiplier(TOKENS[1].owner, 0);
+          let info = await nft.getCurrentMultiplier(TOKENS[1].owner);
 
           assert.equal(info.multiplier.toFixed(), TOKENS[0].multiplier);
 

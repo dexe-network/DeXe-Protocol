@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "../../../interfaces/core/ICoreProperties.sol";
 
 import "../../../interfaces/gov/IGovPool.sol";
-import "../../../interfaces/gov/ERC721/IERC721Multiplier.sol";
+import "../../../interfaces/gov/ERC721/multipliers/IERC721Multiplier.sol";
 
 import "../../utils/TokenBalance.sol";
 import "../../math/MathHelper.sol";
