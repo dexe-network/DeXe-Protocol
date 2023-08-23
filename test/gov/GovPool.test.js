@@ -173,14 +173,6 @@ describe("GovPool", () => {
     await validators.createInternalProposal(proposalType, description, data, { from: from });
   }
 
-  async function tokensToVotes(tokenNumber) {
-    return weiToVotes(wei(tokenNumber));
-  }
-
-  async function weiToVotes(tokenNumber) {
-    return toBN(tokenNumber);
-  }
-
   before("setup", async () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
@@ -2549,16 +2541,12 @@ describe("GovPool", () => {
 
         assert.equal(
           (await rewardToken.balanceOf(treasury)).toFixed(),
-          (await tokensToVotes("100000000000000000000"))
-            .plus(await tokensToVotes("1000"))
-            .plus(wei(25))
-            .idiv(5)
-            .toFixed()
+          toBN(wei("100000000000000000000")).plus(wei(1000)).plus(wei(25)).idiv(5).toFixed()
         );
 
         rewards = await govPool.getPendingRewards(OWNER, [1]);
 
-        let ownerReward = (await tokensToVotes(1000)).plus(wei(25));
+        let ownerReward = toBN(wei(1000)).plus(wei(25));
         assert.equal(rewards.onchainRewards[0], ownerReward.toFixed());
 
         await govPool.claimRewards([1]);
@@ -2605,16 +2593,12 @@ describe("GovPool", () => {
 
         assert.equal(
           (await rewardToken.balanceOf(treasury)).toFixed(),
-          (await tokensToVotes("100000000000000000000"))
-            .plus(await tokensToVotes("1000"))
-            .plus(wei(25))
-            .idiv(5)
-            .toFixed()
+          toBN(wei("100000000000000000000")).plus(wei(1000)).plus(wei(25)).idiv(5).toFixed()
         );
 
         rewards = await govPool.getPendingRewards(OWNER, [1]);
 
-        let ownerReward = (await tokensToVotes(1000)).plus(wei(25));
+        let ownerReward = toBN(wei(1000)).plus(wei(25));
         assert.equal(rewards.onchainRewards[0], ownerReward.toFixed());
 
         await govPool.claimRewards([1]);
@@ -2638,13 +2622,12 @@ describe("GovPool", () => {
         await govPool.moveProposalToValidators(2);
         await validators.vote(2, wei("100"), false, true);
         await validators.vote(2, wei("1000000000000"), false, true, { from: SECOND });
-
         await govPool.execute(2);
         await govPool.claimRewards([2]);
 
         assert.equal(
           (await rewardToken.balanceOf(OWNER)).toFixed(),
-          (await tokensToVotes(1000)).plus(wei(25)).times(3.5).toFixed()
+          toBN(wei(1000)).plus(wei(25)).times(3.5).toFixed()
         ); // f(1025) + f(1025) * 2.5
       });
 
@@ -2665,16 +2648,9 @@ describe("GovPool", () => {
 
         assert.equal(
           (await rewardToken.balanceOf(treasury)).toFixed(),
-          (await tokensToVotes("100000000000000000000"))
-            .plus(await tokensToVotes("1000"))
-            .plus(wei(25))
-            .idiv(5)
-            .toFixed()
+          toBN(wei("100000000000000000000")).plus(wei(1000)).plus(wei(25)).idiv(5).toFixed()
         );
-        assert.equal(
-          (await rewardToken.balanceOf(OWNER)).toFixed(),
-          (await tokensToVotes(1000)).plus(wei(25)).toFixed()
-        );
+        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), toBN(wei(1000)).plus(wei(25)).toFixed());
       });
 
       it("should claim reward in native", async () => {
