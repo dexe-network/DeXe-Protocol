@@ -474,10 +474,10 @@ describe("DexeERC721Multiplier", () => {
 
         it("should change reward if the second nft is locked", async () => {
           await nft.lock(TOKENS[0].id, { from: TOKENS[0].owner });
-          assert.equal(await nft.getExtraRewards(SECOND, "1000"), "1337000");
+          assert.equal(await nft.getExtraRewards(SECOND, "1000"), "1336000");
           await nft.unlock({ from: TOKENS[0].owner });
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
-          assert.equal(await nft.getExtraRewards(SECOND, "1000"), "1500");
+          assert.equal(await nft.getExtraRewards(SECOND, "1000"), "500");
         });
 
         it("should return zero if nft is unlocked", async () => {
@@ -572,7 +572,7 @@ describe("DexeERC721Multiplier", () => {
           assert.equal(info.multiplier.toFixed(), toMultiplier(2).toFixed());
         });
 
-        it("should return common multiplier if CurrentVoteBalance <= AverageBalance * multiplier", async () => {
+        it("should return `common multiplier - 1` if CurrentVoteBalance <= AverageBalance * multiplier", async () => {
           await nft.mintWithAverageBalance(SECOND, toMultiplier(2), 10, 1);
 
           await nft.transferOwnership(govPool.address);
@@ -580,7 +580,7 @@ describe("DexeERC721Multiplier", () => {
           await nft.lock(5, { from: SECOND });
 
           let info = await nft.getCurrentMultiplier(SECOND, "0");
-          assert.equal(info.multiplier.toFixed(), toMultiplier(2).toFixed());
+          assert.equal(info.multiplier.toFixed(), toMultiplier(1).toFixed());
         });
 
         it("should return 0 if obtained multiplier is less than 1", async () => {

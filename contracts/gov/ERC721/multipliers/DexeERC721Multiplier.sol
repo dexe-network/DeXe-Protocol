@@ -64,7 +64,9 @@ contract DexeERC721Multiplier is AbstractERC721Multiplier {
         uint256 coeff = rewards.ratio(PRECISION, averageBalance).ratio(PRECISION, multiplier);
 
         if (coeff > PRECISION) {
-            multiplier = multiplier.ratio(PRECISION, coeff).max(PRECISION) - PRECISION;
+            multiplier = multiplier.ratio(PRECISION, coeff);
         }
+
+        multiplier = multiplier.max(PRECISION) - PRECISION;
     }
 }
