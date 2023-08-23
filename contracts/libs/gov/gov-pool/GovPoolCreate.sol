@@ -124,16 +124,14 @@ library GovPoolCreate {
     {
         require(actionsFor.length != 0, "Gov: invalid array length");
 
+        address mainExecutor = actionsFor[actionsFor.length - 1].executor;
+
+        _validateProposalCreation(mainExecutor, actionsFor);
+
         (address govSettingsAddress, address userKeeper, , , ) = IGovPool(address(this))
             .getHelperContracts();
 
         IGovSettings govSettings = IGovSettings(govSettingsAddress);
-
-        address mainExecutor = actionsFor[actionsFor.length - 1].executor;
-
-        try IProposalValidator(mainExecutor).validate(actionsFor) returns (bool valid) {
-            require(valid, "Gov: validation failed");
-        } catch {}
 
         settingsId = govSettings.executorToSettings(mainExecutor);
 
@@ -169,6 +167,17 @@ library GovPoolCreate {
                 restrictedProposals[user].add(proposalId);
             }
         }
+    }
+
+    function _validateProposalCreation(
+        address executor,
+        IGovPool.ProposalAction[] calldata actionsFor
+    ) internal view {
+        (bool ok, bytes memory data) = executor.staticcall(
+            abi.encodeWithSelector(IProposalValidator.validate.selector, actionsFor)
+        );
+
+        require(!ok || data.length == 0 || abi.decode(data, (bool)), "Gov: validation failed");
     }
 
     function _canCreate(

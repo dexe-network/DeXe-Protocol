@@ -2459,7 +2459,7 @@ describe("GovPool", () => {
         await govPool.createProposal("example.com", [[SECOND, "0", getBytesApprove(SECOND, 1)]], []);
         await govPool.createProposal(
           "example.com",
-          [[dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100"))]],
+          [[dp.address, 0, getBytesDistributionProposal(2, token.address, wei("100"))]],
           []
         );
 
