@@ -549,6 +549,24 @@ describe("DistributionProposal", () => {
         assert.equal(await dp.getPotentialReward(1, SECOND), 0);
       });
 
+      it("should not claim if canceled votes", async () => {
+        await govPool.createProposal(
+          "example.com",
+          [
+            [token.address, 0, getBytesApprove(dp.address, wei("100000"))],
+            [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
+          ],
+          [],
+          { from: SECOND }
+        );
+
+        await govPool.vote(1, true, 0, [6, 7, 9], { from: THIRD });
+        await govPool.vote(1, true, 0, [2, 3, 4, 5], { from: SECOND });
+        await govPool.cancelVote(1, { from: SECOND });
+
+        assert.equal(await dp.getPotentialReward(1, SECOND), 0);
+      });
+
       it("should correctly calculate reward", async () => {
         const ONE_NFT_VOTE = await weiToVotes(SINGLE_NFT_POWER.dividedBy(9).integerValue().toFixed());
         const THREE_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(3).dividedBy(9).integerValue().toFixed());
