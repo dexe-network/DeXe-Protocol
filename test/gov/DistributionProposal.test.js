@@ -365,6 +365,24 @@ describe("DistributionProposal", () => {
       });
     });
 
+    describe("create DP", () => {
+      it("should not create DP if proposal id is frontrun", async () => {
+        startTime = await getCurrentBlockTime();
+
+        await truffleAssert.reverts(
+          govPool.createProposal(
+            "example.com",
+            [
+              [token.address, 0, getBytesApprove(dp.address, wei("100"))],
+              [dp.address, 0, getBytesDistributionProposal(2, token.address, wei("100"))],
+            ],
+            []
+          ),
+          "Gov: validation failed"
+        );
+      });
+    });
+
     describe("execute()", () => {
       let startTime;
 
