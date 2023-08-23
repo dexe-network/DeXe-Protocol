@@ -1,5 +1,5 @@
 const { assert } = require("chai");
-const { wei, fromWei, toBN } = require("../../scripts/utils/utils");
+const { wei } = require("../../scripts/utils/utils");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { ZERO_ADDR } = require("../../scripts/utils/constants");
@@ -8,7 +8,7 @@ const LinearPower = artifacts.require("LinearPower");
 
 LinearPower.numberFormat = "BigNumber";
 
-describe("LogExpMath", () => {
+describe("LinearPower", () => {
   let linearPower;
 
   const reverter = new Reverter();
