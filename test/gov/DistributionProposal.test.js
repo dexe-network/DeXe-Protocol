@@ -365,6 +365,24 @@ describe("DistributionProposal", () => {
       });
     });
 
+    describe("create DP", () => {
+      it("should not create DP if proposal id is frontrun", async () => {
+        startTime = await getCurrentBlockTime();
+
+        await truffleAssert.reverts(
+          govPool.createProposal(
+            "example.com",
+            [
+              [token.address, 0, getBytesApprove(dp.address, wei("100"))],
+              [dp.address, 0, getBytesDistributionProposal(2, token.address, wei("100"))],
+            ],
+            []
+          ),
+          "Gov: validation failed"
+        );
+      });
+    });
+
     describe("execute()", () => {
       let startTime;
 
@@ -527,6 +545,24 @@ describe("DistributionProposal", () => {
         );
 
         await govPool.vote(1, false, 0, [2, 3, 4, 5], { from: SECOND });
+
+        assert.equal(await dp.getPotentialReward(1, SECOND), 0);
+      });
+
+      it("should not claim if canceled votes", async () => {
+        await govPool.createProposal(
+          "example.com",
+          [
+            [token.address, 0, getBytesApprove(dp.address, wei("100000"))],
+            [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
+          ],
+          [],
+          { from: SECOND }
+        );
+
+        await govPool.vote(1, true, 0, [6, 7, 9], { from: THIRD });
+        await govPool.vote(1, true, 0, [2, 3, 4, 5], { from: SECOND });
+        await govPool.cancelVote(1, { from: SECOND });
 
         assert.equal(await dp.getPotentialReward(1, SECOND), 0);
       });

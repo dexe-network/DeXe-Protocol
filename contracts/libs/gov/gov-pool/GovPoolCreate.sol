@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "../../../interfaces/factory/IPoolRegistry.sol";
 
 import "../../../interfaces/gov/IGovPool.sol";
+import "../../../interfaces/gov/proposals/IProposalValidator.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../interfaces/gov/settings/IGovSettings.sol";
 import "../../../interfaces/gov/validators/IGovValidators.sol";
@@ -129,6 +130,11 @@ library GovPoolCreate {
         IGovSettings govSettings = IGovSettings(govSettingsAddress);
 
         address mainExecutor = actionsFor[actionsFor.length - 1].executor;
+
+        try IProposalValidator(mainExecutor).validate(actionsFor) returns (bool valid) {
+            require(valid, "Gov: validation failed");
+        } catch {}
+
         settingsId = govSettings.executorToSettings(mainExecutor);
 
         bool forceDefaultSettings = _handleDataForProposal(settingsId, govSettings, actionsFor);

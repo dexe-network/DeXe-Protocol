@@ -51,6 +51,12 @@ const ParticipationType = {
   NftLock: "5",
 };
 
+const VotePowerType = {
+  LINEAR_VOTES: "0",
+  ROOT_VOTES: "1",
+  CUSTOM_VOTES: "2",
+};
+
 const DEFAULT_CORE_PROPERTIES = {
   govVotesLimit: 20,
   govCommissionPercentage: PRECISION.times(20).toFixed(),
@@ -66,5 +72,6 @@ module.exports = {
   VoteType,
   ValidatorsProposalState,
   ParticipationType,
+  VotePowerType,
   DEFAULT_CORE_PROPERTIES,
 };

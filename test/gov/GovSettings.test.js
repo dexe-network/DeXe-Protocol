@@ -613,6 +613,24 @@ describe("GovSettings", () => {
       });
     });
 
+    describe("getDefaultSettings()", () => {
+      it("should return setting default settings", async () => {
+        const defaultSettings = await settings.getDefaultSettings();
+
+        assert.isFalse(defaultSettings.earlyCompletion);
+        assert.isFalse(defaultSettings.delegatedVotingAllowed);
+        assert.isTrue(defaultSettings.validatorsVote);
+        assert.equal(defaultSettings.duration, 700);
+        assert.equal(defaultSettings.durationValidators, 800);
+        assert.equal(defaultSettings.quorum, PRECISION.times("71").toFixed());
+        assert.equal(defaultSettings.quorumValidators, PRECISION.times("100").toFixed());
+        assert.equal(defaultSettings.minVotesForVoting, wei("20"));
+        assert.equal(defaultSettings.minVotesForCreating, wei("3"));
+        assert.equal(defaultSettings.executionDelay, 0);
+        assert.equal(defaultSettings.executorDescription, "default");
+      });
+    });
+
     describe("getExecutorSettings()", () => {
       it("should return setting for executor", async () => {
         const newSettings1 = {
