@@ -1,11 +1,10 @@
 const { toBN, accounts, wei } = require("../../scripts/utils/utils");
-const { solidityPow } = require("../../scripts/utils/log-exp-math");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
 const { impersonate } = require("../helpers/impersonator");
 const { getBytesApprove, getBytesDistributionProposal } = require("../utils/gov-pool-utils");
-const { DECIMAL, ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
+const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
 const { assert } = require("chai");
 
@@ -67,16 +66,6 @@ describe("DistributionProposal", () => {
   let dp;
 
   const reverter = new Reverter();
-
-  async function weiToVotes(tokenNumber) {
-    const voteModifier = (await govPool.getVoteModifiers())[0];
-
-    if (voteModifier.eq(PRECISION)) {
-      return toBN(tokenNumber);
-    }
-
-    return toBN(solidityPow(tokenNumber, DECIMAL.times(DECIMAL).div(voteModifier)));
-  }
 
   before("setup", async () => {
     OWNER = await accounts(0);
@@ -496,8 +485,8 @@ describe("DistributionProposal", () => {
       });
 
       it("should correctly claim ether", async () => {
-        const FOUR_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue().toFixed());
-        const FIVE_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(5).dividedBy(9).integerValue().toFixed());
+        const FOUR_NFT_VOTES = SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue();
+        const FIVE_NFT_VOTES = SINGLE_NFT_POWER.times(5).dividedBy(9).integerValue();
         const ALL_NFT_VOTES = FIVE_NFT_VOTES.plus(FOUR_NFT_VOTES);
 
         async function dpClaim(user, proposals) {
@@ -568,9 +557,9 @@ describe("DistributionProposal", () => {
       });
 
       it("should correctly calculate reward", async () => {
-        const ONE_NFT_VOTE = await weiToVotes(SINGLE_NFT_POWER.dividedBy(9).integerValue().toFixed());
-        const THREE_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(3).dividedBy(9).integerValue().toFixed());
-        const FOUR_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue().toFixed());
+        const ONE_NFT_VOTE = SINGLE_NFT_POWER.dividedBy(9).integerValue();
+        const THREE_NFT_VOTES = SINGLE_NFT_POWER.times(3).dividedBy(9).integerValue();
+        const FOUR_NFT_VOTES = SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue();
         const ALL_NFT_VOTES = THREE_NFT_VOTES.plus(FOUR_NFT_VOTES).plus(ONE_NFT_VOTE.times(2));
 
         await govPool.createProposal(

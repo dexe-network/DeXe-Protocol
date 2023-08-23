@@ -318,7 +318,6 @@ library GovPoolVote {
             voteType
         );
 
-        require(!_isVoted(voteInfo), "Gov: need cancel");
         require(
             govPool.getProposalState(proposalId) == IGovPool.ProposalState.Voting,
             "Gov: vote unavailable"
@@ -327,6 +326,7 @@ library GovPoolVote {
             !restrictedUserProposals.contains(proposalId),
             "Gov: user restricted from voting in this proposal"
         );
+        require(!_isVoted(voteInfo), "Gov: need cancel");
         require(amount <= tokenBalance - ownedBalance, "Gov: wrong vote amount");
     }
 
