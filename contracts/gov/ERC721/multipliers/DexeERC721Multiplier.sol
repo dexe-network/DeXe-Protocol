@@ -15,7 +15,7 @@ contract DexeERC721Multiplier is AbstractERC721Multiplier {
 
     mapping(address => uint256) internal _averageBalances; // user => average balance
 
-    function mintWithAverageBalance(
+    function mint(
         address to,
         uint256 multiplier,
         uint64 duration,
@@ -28,7 +28,7 @@ contract DexeERC721Multiplier is AbstractERC721Multiplier {
         emit AverageBalanceChanged(to, averageBalance);
     }
 
-    function changeTokenWithAverageBalance(
+    function changeToken(
         uint256 tokenId,
         uint256 multiplier,
         uint64 duration,

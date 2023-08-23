@@ -380,12 +380,7 @@ describe("DexeERC721Multiplier", () => {
     describe("mint()", () => {
       it("should mint properly", async () => {
         for (const token of TOKENS) {
-          const tx = await nft.mintWithAverageBalance(
-            token.owner,
-            token.multiplier,
-            token.duration,
-            token.averageBalance
-          );
+          const tx = await nft.mint(token.owner, token.multiplier, token.duration, token.averageBalance);
 
           truffleAssert.eventEmitted(tx, "Minted", (e) => {
             return (
@@ -414,7 +409,7 @@ describe("DexeERC721Multiplier", () => {
     describe("if minted", () => {
       beforeEach(async () => {
         for (const token of TOKENS) {
-          await nft.mintWithAverageBalance(token.owner, token.multiplier, token.duration, token.averageBalance);
+          await nft.mint(token.owner, token.multiplier, token.duration, token.averageBalance);
 
           token.mintedAt = await getCurrentBlockTime();
         }
@@ -424,7 +419,7 @@ describe("DexeERC721Multiplier", () => {
         it("should change properly", async () => {
           const first = TOKENS[0];
 
-          const tx = await nft.changeTokenWithAverageBalance(first.id, 1, 2, 3);
+          const tx = await nft.changeToken(first.id, 1, 2, 3);
 
           truffleAssert.eventEmitted(tx, "Changed", (e) => {
             return e.tokenId.toFixed() === first.id && e.multiplier.toFixed() === "1" && e.duration.toFixed() === "2";
@@ -551,7 +546,7 @@ describe("DexeERC721Multiplier", () => {
         });
 
         it("should return zero if nft multiplier is zero", async () => {
-          await nft.mintWithAverageBalance(SECOND, 0, 100, 1);
+          await nft.mint(SECOND, 0, 100, 1);
 
           await nft.transferOwnership(govPool.address);
 
@@ -562,7 +557,7 @@ describe("DexeERC721Multiplier", () => {
         });
 
         it("should return common multiplier if averageBalance is zero", async () => {
-          await nft.mintWithAverageBalance(SECOND, toMultiplier(2), 100, 0);
+          await nft.mint(SECOND, toMultiplier(2), 100, 0);
 
           await nft.transferOwnership(govPool.address);
 
@@ -573,7 +568,7 @@ describe("DexeERC721Multiplier", () => {
         });
 
         it("should return `common multiplier - 1` if CurrentVoteBalance <= AverageBalance * multiplier", async () => {
-          await nft.mintWithAverageBalance(SECOND, toMultiplier(2), 10, 1);
+          await nft.mint(SECOND, toMultiplier(2), 10, 1);
 
           await nft.transferOwnership(govPool.address);
 
