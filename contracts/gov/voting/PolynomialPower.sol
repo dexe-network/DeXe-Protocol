@@ -17,23 +17,23 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
     using MathHelper for int256;
     using LogExpMath for uint256;
 
-    int256 constant HOLDER_A = 1041 * (10 ** 22);
-    int256 constant HOLDER_B = -7211 * (10 ** 19);
-    int256 constant HOLDER_C = 1994 * (10 ** 17);
+    int256 private constant HOLDER_A = 1041 * (10 ** 22);
+    int256 private constant HOLDER_B = -7211 * (10 ** 19);
+    int256 private constant HOLDER_C = 1994 * (10 ** 17);
 
-    uint256 constant HOLDER_TRESHOLD = 7 * (10 ** 23);
+    uint256 private constant HOLDER_TRESHOLD = 7 * (10 ** 23);
 
-    int256 constant EXPERT_A = 883755895036092 * (10 ** 11);
-    int256 constant EXPERT_B = 113 * (10 ** 23);
-    int256 constant EXPERT_C = -6086 * (10 ** 19);
-    int256 constant EXPERT_D = 4147 * (10 ** 17);
-    int256 constant EXPERT_E = -148 * (10 ** 16);
-    int256 constant EXPERT_BEFORE_TRESHOLD_A = 1801894 * (10 ** 19);
-    int256 constant EXPERT_BEFORE_TRESHOLD_B = -169889 * (10 ** 19);
-    int256 constant EXPERT_BEFORE_TRESHOLD_C = 23761 * (10 ** 19);
-    int256 constant EXPERT_BEFORE_TRESHOLD_D = -1328 * (10 ** 19);
+    int256 private constant EXPERT_A = 883755895036092 * (10 ** 11);
+    int256 private constant EXPERT_B = 113 * (10 ** 23);
+    int256 private constant EXPERT_C = -6086 * (10 ** 19);
+    int256 private constant EXPERT_D = 4147 * (10 ** 17);
+    int256 private constant EXPERT_E = -148 * (10 ** 16);
+    int256 private constant EXPERT_BEFORE_TRESHOLD_A = 1801894 * (10 ** 19);
+    int256 private constant EXPERT_BEFORE_TRESHOLD_B = -169889 * (10 ** 19);
+    int256 private constant EXPERT_BEFORE_TRESHOLD_C = 23761 * (10 ** 19);
+    int256 private constant EXPERT_BEFORE_TRESHOLD_D = -1328 * (10 ** 19);
 
-    uint256 constant EXPERT_TRESHOLD = 663 * (10 ** 21);
+    uint256 private constant EXPERT_TRESHOLD = 663 * (10 ** 21);
 
     uint256 internal _k1;
     uint256 internal _k2;
@@ -53,37 +53,33 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
     ) external view override returns (uint256) {
         IGovPool govPool = IGovPool(owner());
         bool expertStatus = govPool.getExpertStatus(voter);
-        uint256 coefficient;
+        (uint256 treasuryRatio, uint256 totalSupply) = _getVoteCoefficients(voter);
 
-        if (expertStatus) {
-            uint256 treasuryVoteCoefficient = _treasuryVoteCoefficient(voter);
-
-            // @dev Assuming treasury vote coefficient is always <= 1
-            coefficient -= treasuryVoteCoefficient;
+        if (!expertStatus) {
+            return _forHolders(votes, totalSupply);
+        } else {
+            return
+                _forExperts(votes, totalSupply, false).ratio(
+                    PRECISION - treasuryRatio,
+                    PRECISION
+                ) + _forExperts(votes, totalSupply, true).ratio(treasuryRatio, PRECISION);
         }
-
-        if (coefficient <= PRECISION) {
-            return votes;
-        }
-
-        return votes.pow(PRECISION.ratio(DECIMALS, coefficient));
     }
 
-    function _treasuryVoteCoefficient(address voter) internal view returns (uint256) {
+    function _getVoteCoefficients(
+        address voter
+    ) internal view returns (uint256 treasuryRatio, uint totalSupply) {
         (, address userKeeperAddress, , , ) = IGovPool(payable(owner())).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
-        (uint256 power, ) = userKeeper.tokenBalance(voter, IGovPool.VoteType.TreasuryVote);
-
-        (uint256[] memory nfts, ) = userKeeper.nftExactBalance(
+        uint256 treasuryPower = userKeeper.getUserPowerForVoteType(
             voter,
             IGovPool.VoteType.TreasuryVote
         );
-        (uint256 nftPower, ) = userKeeper.nftVotingPower(nfts);
+        uint256 fullPower = userKeeper.getFullUserPower(voter);
 
-        power += nftPower;
-
-        return power.ratio(PRECISION, userKeeper.getTotalVoteWeight()) / 10;
+        treasuryRatio = treasuryPower.ratio(PRECISION, fullPower);
+        totalSupply = userKeeper.getTotalVoteWeight();
     }
 
     function _forHolders(uint256 x, uint256 totalSupply) internal view returns (uint256) {
@@ -118,11 +114,18 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
                 t
             ); // measure: unmeasured with precision
             return uint256(polynom).ratio(totalSupply, 100 * PRECISION).ratio(_k, PRECISION);
+        } else {
+            int256 t = int256(((100 * x * PRECISION) / totalSupply) - PRECISION.ratio(663, 100)); // measure: unmeasured with precision;
+            int256 polynom = _calculatePolynomial(
+                EXPERT_A,
+                EXPERT_B,
+                EXPERT_C,
+                EXPERT_D,
+                EXPERT_E,
+                t
+            );
+            return uint256(polynom).ratio(totalSupply, 100 * PRECISION).ratio(_k, PRECISION);
         }
-
-        int256 t = int256(((100 * x * PRECISION) / totalSupply) - PRECISION.ratio(663, 100)); // measure: unmeasured with precision;
-        int256 polynom = _calculatePolynomial(EXPERT_A, EXPERT_B, EXPERT_C, EXPERT_D, EXPERT_E, t);
-        return uint256(polynom).ratio(totalSupply, 100 * PRECISION).ratio(_k, PRECISION);
     }
 
     function _calculatePolynomial(

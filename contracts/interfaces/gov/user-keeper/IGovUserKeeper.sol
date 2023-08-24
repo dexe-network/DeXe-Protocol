@@ -255,6 +255,20 @@ interface IGovUserKeeper {
         IGovPool.VoteType voteType
     ) external view returns (uint256[] memory nfts, uint256 ownedLength);
 
+    /// @notice The function for getting voting balance of a user for specific vote type
+    /// @param user the address of voter
+    /// @param voteType the type of vote
+    /// @return power the total power for this vote type
+    function getUserPowerForVoteType(
+        address user,
+        IGovPool.VoteType voteType
+    ) external view returns (uint256 power);
+
+    /// @notice The function for getting voting balance of a user
+    /// @param user the address of voter
+    /// @return power the total voting power
+    function getFullUserPower(address user) external view returns (uint256 power);
+
     /// @notice The function for getting nft power from snapshot
     /// @param nftIds the array of nft ids to get the power of
     /// @param snapshotId the id of snapshot
