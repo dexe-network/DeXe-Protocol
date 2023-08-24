@@ -1,9 +1,9 @@
 const { assert } = require("chai");
-const { toBN, accounts, wei } = require("../../scripts/utils/utils");
-const { PRECISION, ZERO_ADDR, PERCENTAGE_100, ETHER_ADDR } = require("../../scripts/utils/constants");
-const Reverter = require("../helpers/reverter");
+const { toBN, accounts, wei } = require("../../../scripts/utils/utils");
+const { PRECISION, ZERO_ADDR, PERCENTAGE_100, ETHER_ADDR } = require("../../../scripts/utils/constants");
+const Reverter = require("../../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
-const { DEFAULT_CORE_PROPERTIES, ParticipationType } = require("../utils/constants");
+const { DEFAULT_CORE_PROPERTIES, ParticipationType } = require("../../utils/constants");
 const {
   getBytesTransfer,
   getBytesCreateTiersTSP,
@@ -13,8 +13,8 @@ const {
   getBytesBuyTSP,
   getBytesLockParticipationTokensTSP,
   getBytesLockParticipationNftTSP,
-} = require("../utils/gov-pool-utils");
-const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
+} = require("../../utils/gov-pool-utils");
+const { getCurrentBlockTime, setTime } = require("../../helpers/block-helper");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
