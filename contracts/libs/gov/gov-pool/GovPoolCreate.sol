@@ -330,6 +330,6 @@ library GovPoolCreate {
     function _decodeVoteFunction(
         IGovPool.ProposalAction calldata action
     ) internal pure returns (uint256 proposalId, bool isVoteFor) {
-        (proposalId, isVoteFor) = abi.decode(action.data[4:69], (uint256, bool));
+        (proposalId, isVoteFor) = abi.decode(action.data[4:68], (uint256, bool));
     }
 }
