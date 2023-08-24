@@ -48,6 +48,9 @@ const TokenSaleProposalVestingLib = artifacts.require("TokenSaleProposalVesting"
 const TokenSaleProposalWhitelistLib = artifacts.require("TokenSaleProposalWhitelist");
 const TokenSaleProposalClaimLib = artifacts.require("TokenSaleProposalClaim");
 const TokenSaleProposalRecoverLib = artifacts.require("TokenSaleProposalRecover");
+const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
+const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
+const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -111,6 +114,8 @@ describe("TokenSaleProposal", () => {
 
     const govUserKeeperViewLib = await GovUserKeeperViewLib.new();
 
+    await GovUserKeeper.link(govUserKeeperViewLib);
+
     const govPoolCreateLib = await GovPoolCreateLib.new();
     const govPoolExecuteLib = await GovPoolExecuteLib.new();
     const govPoolMicropoolLib = await GovPoolMicropoolLib.new();
@@ -120,15 +125,6 @@ describe("TokenSaleProposal", () => {
     const govPoolViewLib = await GovPoolViewLib.new();
     const govPoolCreditLib = await GovPoolCreditLib.new();
     const govPoolOffchainLib = await GovPoolOffchainLib.new();
-
-    const tspCreateLib = await TokenSaleProposalCreateLib.new();
-    const tspBuyLib = await TokenSaleProposalBuyLib.new();
-    const tspVestingLib = await TokenSaleProposalVestingLib.new();
-    const tspWhitelistLib = await TokenSaleProposalWhitelistLib.new();
-    const tspClaimLib = await TokenSaleProposalClaimLib.new();
-    const tspRecoverLib = await TokenSaleProposalRecoverLib.new();
-
-    await GovUserKeeper.link(govUserKeeperViewLib);
 
     await GovPool.link(govPoolCreateLib);
     await GovPool.link(govPoolExecuteLib);
@@ -140,12 +136,27 @@ describe("TokenSaleProposal", () => {
     await GovPool.link(govPoolCreditLib);
     await GovPool.link(govPoolOffchainLib);
 
+    const tspCreateLib = await TokenSaleProposalCreateLib.new();
+    const tspBuyLib = await TokenSaleProposalBuyLib.new();
+    const tspVestingLib = await TokenSaleProposalVestingLib.new();
+    const tspWhitelistLib = await TokenSaleProposalWhitelistLib.new();
+    const tspClaimLib = await TokenSaleProposalClaimLib.new();
+    const tspRecoverLib = await TokenSaleProposalRecoverLib.new();
+
     await TokenSaleProposal.link(tspCreateLib);
     await TokenSaleProposal.link(tspBuyLib);
     await TokenSaleProposal.link(tspVestingLib);
     await TokenSaleProposal.link(tspWhitelistLib);
     await TokenSaleProposal.link(tspClaimLib);
     await TokenSaleProposal.link(tspRecoverLib);
+
+    const govValidatorsCreateLib = await GovValidatorsCreateLib.new();
+    const govValidatorsVoteLib = await GovValidatorsVoteLib.new();
+    const govValidatorsExecuteLib = await GovValidatorsExecuteLib.new();
+
+    await GovValidators.link(govValidatorsCreateLib);
+    await GovValidators.link(govValidatorsVoteLib);
+    await GovValidators.link(govValidatorsExecuteLib);
 
     contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
