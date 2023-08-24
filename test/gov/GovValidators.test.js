@@ -784,10 +784,10 @@ describe("GovValidators", () => {
         await truffleAssert.reverts(validators.cancelVote(1, true, { from: SECOND }), "Validators: not Voting state");
       });
 
-      it("should not revert if user has not voted", async () => {
+      it("should revert if user has not voted", async () => {
         await createInternalProposal(ProposalType.ChangeSettings, "example.com", [100, 0, toPercent(51)], [], SECOND);
 
-        await truffleAssert.passes(validators.cancelVote(1, true, { from: SECOND }), "pass");
+        await truffleAssert.reverts(validators.cancelVote(1, true, { from: SECOND }), "Validators: didn't vote");
       });
     });
 

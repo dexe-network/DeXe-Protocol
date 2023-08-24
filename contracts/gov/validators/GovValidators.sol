@@ -38,14 +38,15 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     );
     event InternalProposalExecuted(uint256 proposalId, address executor);
 
-    event Voted(
+    event Voted(uint256 proposalId, address sender, uint256 vote, bool isInternal, bool isVoteFor);
+    event VoteCanceled(
         uint256 proposalId,
         address sender,
         uint256 vote,
         bool isInternal,
-        bool isVoteFor,
-        bool isVote
+        bool isVoteFor
     );
+
     event ChangedValidatorsBalances(address[] validators, uint256[] newBalance);
 
     /// @dev Access only for addresses that have validator tokens
@@ -203,7 +204,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             core.executeAfter += uint64(block.timestamp);
         }
 
-        emit Voted(proposalId, msg.sender, amount, isInternal, isVoteFor, true);
+        emit Voted(proposalId, msg.sender, amount, isInternal, isVoteFor);
     }
 
     function cancelVote(uint256 proposalId, bool isInternal) external {
@@ -224,9 +225,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
         if (amount == 0) {
             amount = votedInProposal[true];
 
-            if (amount == 0) {
-                return;
-            }
+            require(amount != 0, "Validators: didn't vote");
 
             isVoteFor = true;
         }
@@ -239,7 +238,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             core.votesAgainst -= amount;
         }
 
-        emit Voted(proposalId, msg.sender, amount, isInternal, isVoteFor, false);
+        emit VoteCanceled(proposalId, msg.sender, amount, isInternal, isVoteFor);
     }
 
     function execute(uint256 proposalId) external override {
