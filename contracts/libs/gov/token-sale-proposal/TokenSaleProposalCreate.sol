@@ -2,7 +2,6 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
@@ -14,7 +13,6 @@ import "../../../gov/proposals/TokenSaleProposal.sol";
 import "../../../core/Globals.sol";
 
 library TokenSaleProposalCreate {
-    using SafeERC20 for IERC20;
     using DecimalsConverter for *;
     using Math for uint256;
 
@@ -104,11 +102,13 @@ library TokenSaleProposalCreate {
             vestingEndTime: vestingStartTime + tierInitParams.vestingSettings.vestingDuration
         });
 
-        IERC20(tierInitParams.saleTokenAddress).safeTransferFrom(
-            msg.sender,
-            address(this),
-            totalTokenProvided
-        );
+        try
+            IERC20(tierInitParams.saleTokenAddress).transferFrom(
+                msg.sender,
+                address(this),
+                totalTokenProvided
+            )
+        {} catch {}
     }
 
     function getTierViews(

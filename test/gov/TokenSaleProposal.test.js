@@ -5,7 +5,6 @@ const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { DEFAULT_CORE_PROPERTIES, ParticipationType } = require("../utils/constants");
 const {
-  getBytesTransfer,
   getBytesCreateTiersTSP,
   getBytesOffTiersTSP,
   getBytesRecoverTSP,
@@ -13,6 +12,7 @@ const {
   getBytesBuyTSP,
   getBytesLockParticipationTokensTSP,
   getBytesLockParticipationNftTSP,
+  getBytesApprove,
 } = require("../utils/gov-pool-utils");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
 
@@ -63,7 +63,7 @@ GovSettings.numberFormat = "BigNumber";
 GovValidators.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 
-describe("TokenSaleProposal", () => {
+describe.only("TokenSaleProposal", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -343,6 +343,18 @@ describe("TokenSaleProposal", () => {
 
     const userViewsToObjects = (userViews) => {
       return userViews.map((e) => userViewToObject(e));
+    };
+
+    const createTiers = async (tiers) => {
+      let actionsFor = [];
+
+      for (const tier of tiers) {
+        actionsFor.push([tier.saleTokenAddress, 0, getBytesApprove(tsp.address, wei("1000000"))]);
+      }
+
+      actionsFor.push([tsp.address, 0, getBytesCreateTiersTSP(tiers)]);
+
+      await acceptProposal(actionsFor);
     };
 
     const lockParticipationTokensAndBuy = async (tierId, tokenToBuyWith, amount, from) => {
@@ -701,12 +713,9 @@ describe("TokenSaleProposal", () => {
       it("latestTierId should increase when tiers are created", async () => {
         assert.equal(await tsp.latestTierId(), 0);
 
-        await saleToken.mint(govPool.address, wei(5000));
+        await saleToken.mint(govPool.address, wei(6000));
 
-        await acceptProposal([
-          [saleToken.address, 0, getBytesTransfer(tsp.address, wei(5000))],
-          [tsp.address, 0, getBytesCreateTiersTSP(tiers)],
-        ]);
+        await createTiers(tiers);
 
         assert.equal((await tsp.latestTierId()).toFixed(), "7");
       });
@@ -720,55 +729,37 @@ describe("TokenSaleProposal", () => {
       it("should not create tiers if saleTokenAddress is zero", async () => {
         tiers[0].saleTokenAddress = ZERO_ADDR;
 
-        await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
-          "TSP: sale token cannot be zero"
-        );
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: sale token cannot be zero");
       });
 
       it("should not create tiers if saleTokenAddress is ether address", async () => {
         tiers[0].saleTokenAddress = ETHER_ADDR;
 
-        await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
-          "TSP: cannot sale native currency"
-        );
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: cannot sale native currency");
       });
 
       it("should not create tiers if sale token is not provided", async () => {
         tiers[0].totalTokenProvided = 0;
 
-        await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
-          "TSP: sale token is not provided"
-        );
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: sale token is not provided");
       });
 
       it("should not create tiers if saleStartTime > saleEndTime", async () => {
         tiers[0].saleStartTime = tiers[0].saleEndTime + 1;
 
-        await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
-          "TSP: saleEndTime is less than saleStartTime"
-        );
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: saleEndTime is less than saleStartTime");
       });
 
       it("should not create tiers if minAllocationPerUser > maxAllocationPerUser", async () => {
         tiers[0].minAllocationPerUser = tiers[0].maxAllocationPerUser + 1;
 
-        await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
-          "TSP: wrong allocation"
-        );
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: wrong allocation");
       });
 
       it("should not create tiers if vestingPercentage > 100%", async () => {
         tiers[0].vestingSettings.vestingPercentage = toBN(PERCENTAGE_100).plus(1).toFixed();
 
-        await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
-          "TSP: vesting settings validation failed"
-        );
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: vesting settings validation failed");
       });
 
       it("should not create tiers if participation details validation failed", async () => {
@@ -776,7 +767,7 @@ describe("TokenSaleProposal", () => {
           tiers[i].participationDetails.data = "0xff";
 
           await truffleAssert.reverts(
-            acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(i, i + 1))]]),
+            createTiers(tiers.slice(i, i + 1)),
             "TSP: participation details validation failed"
           );
         }
@@ -785,78 +776,53 @@ describe("TokenSaleProposal", () => {
       it("should not create tiers if vestingPercentage is not zero and unlockStep is zero", async () => {
         tiers[0].vestingSettings.unlockStep = 0;
 
-        await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
-          "TSP: vesting settings validation failed"
-        );
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: vesting settings validation failed");
       });
 
       it("should not create tiers if vestingDuration < unlockStep", async () => {
         tiers[0].vestingSettings.vestingDuration = 0;
 
-        await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
-          "TSP: vesting settings validation failed"
-        );
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: vesting settings validation failed");
       });
 
       it("should not create tiers if no purchaseTokenAddresses provided", async () => {
         tiers[0].purchaseTokenAddresses = [];
 
-        await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
-          "TSP: purchase tokens are not provided"
-        );
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: purchase tokens are not provided");
       });
 
       it("should not create tiers if purchaseTokenAddresses weren't provided", async () => {
         tiers[0].purchaseTokenAddresses = [];
 
-        await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
-          "TSP: purchase tokens are not provided"
-        );
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: purchase tokens are not provided");
       });
 
       it("should not create tiers if purchaseTokenAddresses and exchangeRates lengths mismatch", async () => {
         tiers[0].purchaseTokenAddresses = tiers[0].purchaseTokenAddresses.slice(0, 1);
 
-        await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
-          "TSP: tokens and rates lengths mismatch"
-        );
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: tokens and rates lengths mismatch");
       });
 
       it("should not create tiers if the purchaseTokenAddress is zero", async () => {
         tiers[0].purchaseTokenAddresses[1] = ZERO_ADDR;
 
-        await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
-          "TSP: purchase token cannot be zero"
-        );
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: purchase token cannot be zero");
       });
 
       it("should not create tiers if the exchange rate is zero", async () => {
         tiers[0].exchangeRates[1] = 0;
 
-        await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
-          [],
-          "TSP: rate cannot be zero"
-        );
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: rate cannot be zero");
       });
 
       it("should not create tiers if purchaseTokenAddresses are duplicated", async () => {
         tiers[0].purchaseTokenAddresses[0] = tiers[0].purchaseTokenAddresses[1];
 
-        await truffleAssert.reverts(
-          acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(tiers.slice(0, 1))]]),
-          "TSP: purchase tokens are duplicated"
-        );
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: purchase tokens are duplicated");
       });
 
       it("should create tiers if all conditions are met", async () => {
-        await acceptProposal([[tsp.address, 0, getBytesCreateTiersTSP(JSON.parse(JSON.stringify(tiers)))]]);
+        await createTiers(JSON.parse(JSON.stringify(tiers)));
 
         assert.deepEqual(
           tierInitParamsToObjects((await tsp.getTierViews(0, 7)).map((tier) => tier.tierInitParams)),
@@ -894,10 +860,7 @@ describe("TokenSaleProposal", () => {
       beforeEach(async () => {
         await saleToken.mint(govPool.address, wei(5000));
 
-        await acceptProposal([
-          [saleToken.address, 0, getBytesTransfer(tsp.address, wei(5000))],
-          [tsp.address, 0, getBytesCreateTiersTSP(JSON.parse(JSON.stringify(tiers)))],
-        ]);
+        await createTiers(JSON.parse(JSON.stringify(tiers)));
 
         await purchaseToken1.mint(OWNER, wei(1000));
 
