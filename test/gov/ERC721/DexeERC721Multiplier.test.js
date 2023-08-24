@@ -1,8 +1,8 @@
 const { assert } = require("chai");
-const { accounts, toBN } = require("../../scripts/utils/utils");
-const { setTime, getCurrentBlockTime } = require("../helpers/block-helper");
-const { PRECISION } = require("../../scripts/utils/constants");
-const Reverter = require("../helpers/reverter");
+const { accounts, toBN } = require("../../../scripts/utils/utils");
+const { setTime, getCurrentBlockTime } = require("../../helpers/block-helper");
+const { PRECISION } = require("../../../scripts/utils/constants");
+const Reverter = require("../../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
 const DexeERC721Multiplier = artifacts.require("DexeERC721Multiplier");
@@ -95,9 +95,9 @@ describe("DexeERC721Multiplier", () => {
     });
 
     describe("interfaceId()", () => {
-      it("should support ERC721Enumerable and ERC721Multiplier interfaces", async () => {
-        assert.isTrue(await nft.supportsInterface("0x7b25824d"));
+      it("should support ERC721Enumerable and AbstractERC721Multiplier interfaces", async () => {
         assert.isTrue(await nft.supportsInterface("0x780e9d63"));
+        assert.isTrue(await nft.supportsInterface("0x9958235b"));
       });
     });
 
@@ -201,21 +201,27 @@ describe("DexeERC721Multiplier", () => {
 
         it("should return zero if nft is expired", async () => {
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
+
           await setTime((await getCurrentBlockTime()) + parseInt(TOKENS[2].duration) + 1);
+
           assert.equal(await nft.getExtraRewards(SECOND, "1000"), "0");
         });
 
         it("should change reward if the second nft is locked", async () => {
           await nft.lock(TOKENS[0].id, { from: TOKENS[0].owner });
+
           assert.equal(await nft.getExtraRewards(SECOND, "1000"), "1336000");
+
           await nft.unlock({ from: TOKENS[0].owner });
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
+
           assert.equal(await nft.getExtraRewards(SECOND, "1000"), "500");
         });
 
         it("should return zero if nft is unlocked", async () => {
           await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
           await nft.unlock({ from: TOKENS[2].owner });
+
           assert.equal(await nft.getExtraRewards(SECOND, "1000"), "0");
         });
       });
@@ -223,6 +229,7 @@ describe("DexeERC721Multiplier", () => {
       describe("getCurrentMultiplier()", () => {
         it("should return zeros if no nft locked", async () => {
           const info = await nft.getCurrentMultiplier(SECOND, 0);
+
           assert.equal(info.multiplier, "0");
           assert.equal(info.timeLeft, "0");
         });

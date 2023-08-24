@@ -1,11 +1,11 @@
-const { toBN, accounts, wei } = require("../../scripts/utils/utils");
-const Reverter = require("../helpers/reverter");
+const { toBN, accounts, wei } = require("../../../scripts/utils/utils");
+const Reverter = require("../../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
-const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
-const { impersonate } = require("../helpers/impersonator");
-const { getBytesApprove, getBytesDistributionProposal } = require("../utils/gov-pool-utils");
-const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
-const { DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
+const { getCurrentBlockTime, setTime } = require("../../helpers/block-helper");
+const { impersonate } = require("../../helpers/impersonator");
+const { getBytesApprove, getBytesDistributionProposal } = require("../../utils/gov-pool-utils");
+const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../../scripts/utils/constants");
+const { DEFAULT_CORE_PROPERTIES } = require("../../utils/constants");
 const { assert } = require("chai");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");

@@ -1,8 +1,8 @@
 const { assert } = require("chai");
-const { wei } = require("../../scripts/utils/utils");
-const Reverter = require("../helpers/reverter");
+const { wei } = require("../../../scripts/utils/utils");
+const Reverter = require("../../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
-const { ZERO_ADDR } = require("../../scripts/utils/constants");
+const { ZERO_ADDR } = require("../../../scripts/utils/constants");
 
 const LinearPower = artifacts.require("LinearPower");
 

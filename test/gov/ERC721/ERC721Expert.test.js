@@ -1,6 +1,6 @@
 const { assert } = require("chai");
-const { accounts } = require("../../scripts/utils/utils");
-const Reverter = require("../helpers/reverter");
+const { accounts } = require("../../../scripts/utils/utils");
+const Reverter = require("../../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
 const ERC721Expert = artifacts.require("ERC721Expert");

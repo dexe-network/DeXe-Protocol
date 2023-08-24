@@ -3,19 +3,19 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "./AbstractERC721Multiplier.sol";
+import "../../../interfaces/gov/ERC721/multipliers/IDexeERC721Multiplier.sol";
 
 import "../../../libs/math/MathHelper.sol";
 
-import "../../../interfaces/gov/ERC721/multipliers/IDexeERC721Multiplier.sol";
+import "./AbstractERC721Multiplier.sol";
 
-contract DexeERC721Multiplier is AbstractERC721Multiplier {
+contract DexeERC721Multiplier is IDexeERC721Multiplier, AbstractERC721Multiplier {
     using MathHelper for uint256;
     using Math for uint256;
 
-    event AverageBalanceChanged(address user, uint256 averageBalance);
-
     mapping(address => uint256) internal _averageBalances; // user => average balance
+
+    event AverageBalanceChanged(address user, uint256 averageBalance);
 
     function mint(
         address to,
@@ -45,7 +45,10 @@ contract DexeERC721Multiplier is AbstractERC721Multiplier {
         emit AverageBalanceChanged(owner, averageBalance);
     }
 
-    function getExtraRewards(address whose, uint256 rewards) external view returns (uint256) {
+    function getExtraRewards(
+        address whose,
+        uint256 rewards
+    ) external view override returns (uint256) {
         (uint256 multiplier, ) = getCurrentMultiplier(whose, rewards);
 
         return rewards.ratio(multiplier, PRECISION);
@@ -70,11 +73,5 @@ contract DexeERC721Multiplier is AbstractERC721Multiplier {
         }
 
         multiplier = multiplier.max(PRECISION) - PRECISION;
-    }
-
-    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
-        return
-            interfaceId == type(IDexeERC721Multiplier).interfaceId ||
-            super.supportsInterface(interfaceId);
     }
 }
