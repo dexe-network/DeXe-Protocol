@@ -12,6 +12,16 @@ import "../core/ICoreProperties.sol";
  * a governance owner (GovPool)
  */
 interface IPoolFactory {
+    /// @notice The enum that holds information about calculating vote power
+    /// @param LINEAR_VOTES the vote power = number of tokens
+    /// @param ROOT_VOTES the vote power calculated with root formula
+    /// @param CUSTOM_VOTES the vote type defined by a customer
+    enum VotePowerType {
+        LINEAR_VOTES,
+        ROOT_VOTES,
+        CUSTOM_VOTES
+    }
+
     /// @notice General settings of the pool
     /// @param proposalSettings list of infos about settings for proposal types
     /// @param additionalProposalExecutors list of additional proposal executors
@@ -56,13 +66,22 @@ interface IPoolFactory {
         IERC20Gov.ConstructorParams tokenParams;
     }
 
+    /// @notice The voting power parameters
+    /// @param voteType type of algorythm to calculate votes number from token number
+    /// @param initData initialization data for standard contract types
+    /// @param presetAddress address of custom contract (for custom voteType)
+    struct VotePowerDeployParams {
+        VotePowerType voteType;
+        bytes initData;
+        address presetAddress;
+    }
+
     /// @notice The pool deploy parameters
     /// @param settingsParams general settings of the pool
     /// @param validatorsParams parameters of validators
     /// @param userKeeperParams parameters of the user keeper
     /// @param tokenSaleParams the token sale proposal parameters
-    /// @param regularVoteModifier voting parameter for regular users
-    /// @param expertVoteModifier voting parameter for experts
+    /// @param votePowerParams vote power parameters
     /// @param verifier the address of the verifier
     /// @param onlyBABHolders if true, only KYCed users will be allowed to interact with the pool
     /// @param descriptionURL the description of the pool
@@ -72,8 +91,7 @@ interface IPoolFactory {
         ValidatorsDeployParams validatorsParams;
         UserKeeperDeployParams userKeeperParams;
         TokenSaleProposalDeployParams tokenSaleParams;
-        uint256 regularVoteModifier;
-        uint256 expertVoteModifier;
+        VotePowerDeployParams votePowerParams;
         address verifier;
         bool onlyBABHolders;
         string descriptionURL;

@@ -230,6 +230,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         UserInfo storage delegatorInfo = _usersInfo[delegator];
         EnumerableSet.UintSet storage delegatorNftBalance = delegatorInfo.balanceInfo.nftBalance;
 
+        EnumerableSet.UintSet storage delegatedNfts = delegatorInfo.delegatedNfts[delegatee];
+        EnumerableSet.UintSet storage delegateeNftBalance = _micropoolsInfo[delegatee].nftBalance;
+
         for (uint256 i; i < nftIds.length; i++) {
             uint256 nftId = nftIds[i];
 
@@ -240,9 +243,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
             delegatorNftBalance.remove(nftId);
 
-            delegatorInfo.delegatedNfts[delegatee].add(nftId);
+            delegatedNfts.add(nftId);
 
-            _micropoolsInfo[delegatee].nftBalance.add(nftId);
+            delegateeNftBalance.add(nftId);
 
             delegatorInfo.delegatees.add(delegatee);
         }
@@ -266,20 +269,23 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256[] calldata nftIds
     ) external override onlyOwner withSupportedNft {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
+        EnumerableSet.UintSet storage delegatorNftBalance = delegatorInfo.balanceInfo.nftBalance;
+
+        EnumerableSet.UintSet storage delegatedNfts = delegatorInfo.delegatedNfts[delegatee];
+        EnumerableSet.UintSet storage delegateeNftBalance = _micropoolsInfo[delegatee].nftBalance;
 
         for (uint256 i; i < nftIds.length; i++) {
             uint256 nftId = nftIds[i];
 
             require(
-                delegatorInfo.delegatedNfts[delegatee].contains(nftId) &&
-                    _nftLockedNums[nftId] == 0,
+                delegatedNfts.contains(nftId) && _nftLockedNums[nftId] == 0,
                 "GovUK: NFT is not owned or locked"
             );
 
-            _micropoolsInfo[delegatee].nftBalance.remove(nftId);
+            delegateeNftBalance.remove(nftId);
 
-            delegatorInfo.balanceInfo.nftBalance.add(nftId);
-            delegatorInfo.delegatedNfts[delegatee].remove(nftId);
+            delegatorNftBalance.add(nftId);
+            delegatedNfts.remove(nftId);
         }
 
         _cleanDelegatee(delegatorInfo, delegatee);
@@ -621,39 +627,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         return tokens + nftPower >= requiredVotes;
     }
 
-    function canVote(
-        address voter,
-        IGovPool.VoteType voteType,
-        uint256 requiredVotes,
-        uint256 snapshotId
-    ) external view override returns (bool) {
-        (uint256 tokens, ) = tokenBalance(voter, voteType);
-        (uint256 tokensMicropool, ) = tokenBalance(voter, IGovPool.VoteType.MicropoolVote);
-        (uint256 tokensTreasury, ) = tokenBalance(voter, IGovPool.VoteType.TreasuryVote);
-
-        tokens = tokens + tokensMicropool + tokensTreasury;
-
-        if (tokens >= requiredVotes) {
-            return true;
-        }
-
-        (uint256[] memory nftIds, ) = nftExactBalance(voter, voteType);
-        (uint256[] memory nftIdsMicropool, ) = nftExactBalance(
-            voter,
-            IGovPool.VoteType.MicropoolVote
-        );
-        (uint256[] memory nftIdsTreasury, ) = nftExactBalance(
-            voter,
-            IGovPool.VoteType.TreasuryVote
-        );
-
-        uint256 nftPower = getNftsPowerInTokensBySnapshot(nftIds, snapshotId) +
-            getNftsPowerInTokensBySnapshot(nftIdsMicropool, snapshotId) +
-            getNftsPowerInTokensBySnapshot(nftIdsTreasury, snapshotId);
-
-        return tokens + nftPower >= requiredVotes;
-    }
-
     function votingPower(
         address[] calldata users,
         IGovPool.VoteType[] calldata voteTypes
@@ -664,7 +637,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function nftVotingPower(
         uint256[] memory nftIds
     ) external view override returns (uint256 nftPower, uint256[] memory perNftPower) {
-        return nftIds.nftVotingPower(true);
+        return nftIds.nftVotingPower();
     }
 
     function delegations(

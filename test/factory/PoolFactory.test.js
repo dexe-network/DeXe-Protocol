@@ -2,8 +2,9 @@ const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../../scripts/utils/utils");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
+const { getBytesLinearPowerInit, getBytesRootPowerInit } = require("../utils/gov-vote-power-utils");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
-const { DEFAULT_CORE_PROPERTIES, ParticipationType } = require("../utils/constants");
+const { DEFAULT_CORE_PROPERTIES, ParticipationType, VotePowerType } = require("../utils/constants");
 const { toPercent } = require("../utils/utils");
 const { getCurrentBlockTime } = require("../helpers/block-helper");
 
@@ -13,6 +14,8 @@ const ERC721Mock = artifacts.require("ERC721Mock");
 const BABTMock = artifacts.require("BABTMock");
 const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
+const LinearPower = artifacts.require("LinearPower");
+const RootPower = artifacts.require("RootPower");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
 const PoolRegistry = artifacts.require("PoolRegistry");
@@ -174,6 +177,8 @@ describe("PoolFactory", () => {
     let tokenSaleProposal = await TokenSaleProposal.new();
     let expertNft = await ERC721Expert.new();
     let nftMultiplier = await ERC721Multiplier.new();
+    let linearPower = await LinearPower.new();
+    let rootPower = await RootPower.new();
 
     let govPool = await GovPool.new();
     let govUserKeeper = await GovUserKeeper.new();
@@ -189,6 +194,8 @@ describe("PoolFactory", () => {
       await poolRegistry.TOKEN_SALE_PROPOSAL_NAME(),
       await poolRegistry.EXPERT_NFT_NAME(),
       await poolRegistry.NFT_MULTIPLIER_NAME(),
+      await poolRegistry.LINEAR_POWER_NAME(),
+      await poolRegistry.ROOT_POWER_NAME(),
     ];
 
     const poolAddrs = [
@@ -200,6 +207,8 @@ describe("PoolFactory", () => {
       tokenSaleProposal.address,
       expertNft.address,
       nftMultiplier.address,
+      linearPower.address,
+      rootPower.address,
     ];
 
     await poolRegistry.setNewImplementations(poolNames, poolAddrs);
@@ -333,8 +342,11 @@ describe("PoolFactory", () => {
             amounts: [],
           },
         },
-        regularVoteModifier: wei("1", 25),
-        expertVoteModifier: wei("1", 25),
+        votePowerParams: {
+          voteType: VotePowerType.LINEAR_VOTES,
+          initData: getBytesLinearPowerInit(),
+          presetAddress: ZERO_ADDR,
+        },
         verifier: OWNER,
         onlyBABTHolders: false,
         descriptionURL: "example.com",
@@ -432,6 +444,10 @@ describe("PoolFactory", () => {
         assert.equal(await tokenSale.latestTierId(), "2");
 
         assert.equal(await govUserKeeper.tokenAddress(), token.address);
+
+        const votePower = await RootPower.at(helperContracts[4]);
+
+        assert.equal(await votePower.transformVotes(ZERO_ADDR, 2), 2);
       });
 
       it("should deploy pool with empty token sale", async () => {
@@ -457,6 +473,80 @@ describe("PoolFactory", () => {
 
         assert.equal(await govUserKeeper.tokenAddress(), token.address);
         assert.equal(await govUserKeeper.tokenAddress(), testERC20.address);
+      });
+
+      it("should set babt id correctly", async () => {
+        await babt.attest(OWNER);
+
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+
+        const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+
+        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govToken;
+
+        await poolFactory.deployGovPool(POOL_PARAMETERS);
+
+        let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+
+        assert.equal(await govPool.deployerBABTid(), "1");
+      });
+
+      it("should deploy pool with root votes", async () => {
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+
+        const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+
+        POOL_PARAMETERS.votePowerParams.voteType = VotePowerType.ROOT_VOTES;
+        POOL_PARAMETERS.votePowerParams.initData = getBytesRootPowerInit(1, 2);
+
+        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govToken;
+
+        await poolFactory.deployGovPool(POOL_PARAMETERS);
+
+        let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+        let helperContracts = await govPool.getHelperContracts();
+
+        const votePower = await RootPower.at(helperContracts[4]);
+
+        assert.equal((await votePower.getVoteModifiers())[0], 1);
+        assert.equal((await votePower.getVoteModifiers())[1], 2);
+      });
+
+      it("should deploy pool with custom votes", async () => {
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+
+        const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+
+        POOL_PARAMETERS.votePowerParams.voteType = VotePowerType.CUSTOM_VOTES;
+        POOL_PARAMETERS.votePowerParams.initData = "0x";
+        POOL_PARAMETERS.votePowerParams.presetAddress = (await LinearPower.new()).address;
+
+        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govToken;
+
+        await poolFactory.deployGovPool(POOL_PARAMETERS);
+
+        let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+        let helperContracts = await govPool.getHelperContracts();
+
+        const votePower = await LinearPower.at(helperContracts[4]);
+
+        assert.equal(await votePower.transformVotes(ZERO_ADDR, 2), 2);
+      });
+
+      it("should revert if error during init root votes", async () => {
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+
+        const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+
+        POOL_PARAMETERS.votePowerParams.initData = getBytesRootPowerInit(1, 2);
+
+        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govToken;
+
+        await truffleAssert.reverts(poolFactory.deployGovPool(POOL_PARAMETERS), "PoolFactory: power init failed");
       });
     });
 

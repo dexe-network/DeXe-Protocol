@@ -5,22 +5,16 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
-
 import "../../../interfaces/gov/IGovPool.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
-
-import "../../../gov/GovPool.sol";
+import "../../../interfaces/gov/voting/IVotePower.sol";
 
 import "../../math/MathHelper.sol";
-import "../../math/LogExpMath.sol";
 
 library GovPoolVote {
     using EnumerableSet for EnumerableSet.UintSet;
     using Math for uint256;
     using MathHelper for uint256;
-    using LogExpMath for uint256;
-    using DecimalsConverter for uint256;
 
     event VoteChanged(uint256 proposalId, address voter, bool isVoteFor, IGovPool.Votes votes);
 
@@ -46,7 +40,7 @@ library GovPoolVote {
         mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
 
         if (amount != 0 || nftIds.length != 0) {
-            (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+            (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
             IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
             if (amount != 0) {
@@ -69,11 +63,13 @@ library GovPoolVote {
             );
             _voteDelegated(
                 core,
-                votePowers[IGovPool.VoteType.MicropoolVote],
+                votePowers[IGovPool.VoteType.TreasuryVote],
                 msg.sender,
                 IGovPool.VoteType.TreasuryVote
             );
         }
+
+        _checkMinVotesForVoting(core, voteInfo);
 
         return
             _updateGlobalState(
@@ -129,7 +125,7 @@ library GovPoolVote {
 
         IGovPool.VotePower storage personalPower = votePowers[IGovPool.VoteType.PersonalVote];
 
-        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         if (personalPower.tokensVoted != 0) {
@@ -157,29 +153,22 @@ library GovPoolVote {
         );
     }
 
-    function getVotes(
-        IGovPool.VoteInfo storage voteInfo
-    ) public view returns (IGovPool.Votes memory votes, bool isVoted) {
-        mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
+    function getVoteShare(
+        IGovPool.VoteInfo storage voteInfo,
+        IGovPool.VoteType voteType
+    ) external view returns (uint256) {
+        (IGovPool.Votes memory votes, uint256 totalPowerVoted) = _getVotes(voteInfo);
 
-        IGovPool.VotePower storage personalPower = votePowers[IGovPool.VoteType.PersonalVote];
-        IGovPool.VotePower storage micropoolPower = votePowers[IGovPool.VoteType.MicropoolVote];
-        IGovPool.VotePower storage treasuryPower = votePowers[IGovPool.VoteType.TreasuryVote];
+        uint256 typedVotes;
+        if (voteType == IGovPool.VoteType.PersonalVote) {
+            typedVotes = votes.personal;
+        } else if (voteType == IGovPool.VoteType.MicropoolVote) {
+            typedVotes = votes.micropool;
+        } else {
+            typedVotes = votes.treasury;
+        }
 
-        votes.personal = personalPower.powerVoted;
-        votes.micropool = micropoolPower.powerVoted;
-        votes.treasury = treasuryPower.powerVoted;
-
-        /// @dev nft power can be zero
-        return (
-            votes,
-            votes.personal != 0 ||
-                votes.micropool != 0 ||
-                votes.treasury != 0 ||
-                personalPower.nftsVoted.length() != 0 ||
-                micropoolPower.nftsVoted.length() != 0 ||
-                treasuryPower.nftsVoted.length() != 0
-        );
+        return totalPowerVoted != 0 ? voteInfo.totalVoted.ratio(typedVotes, totalPowerVoted) : 0;
     }
 
     function _voteDelegated(
@@ -188,7 +177,7 @@ library GovPoolVote {
         address voter,
         IGovPool.VoteType voteType
     ) internal {
-        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         (uint256 amount, ) = userKeeper.tokenBalance(voter, voteType);
@@ -213,10 +202,10 @@ library GovPoolVote {
         EnumerableSet.UintSet storage nftsVoted = votePower.nftsVoted;
 
         for (uint256 i; i < nftIds.length; i++) {
-            nftsVoted.add(nftIds[i]);
+            require(nftsVoted.add(nftIds[i]), "Gov: NFT already voted");
         }
 
-        (, address userKeeper, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
         votePower.powerVoted =
             amount +
@@ -245,11 +234,8 @@ library GovPoolVote {
         address voter,
         bool isVoteFor
     ) internal returns (IGovPool.Votes memory votes) {
-        bool isVoted;
-        (votes, isVoted) = getVotes(voteInfo);
-
-        if (isVoted) {
-            votes = _globalVote(core, voteInfo, activeVotes, proposalId, voter, isVoteFor, votes);
+        if (_isVoted(voteInfo)) {
+            votes = _globalVote(core, voteInfo, activeVotes, proposalId, voter, isVoteFor);
         } else {
             _globalCancel(core, voteInfo, activeVotes, proposalId, isVoteFor);
         }
@@ -263,9 +249,10 @@ library GovPoolVote {
         EnumerableSet.UintSet storage activeVotes,
         uint256 proposalId,
         address voter,
-        bool isVoteFor,
-        IGovPool.Votes memory votes
+        bool isVoteFor
     ) internal returns (IGovPool.Votes memory) {
+        (IGovPool.Votes memory votes, uint256 totalPowerVoted) = _getVotes(voteInfo);
+
         activeVotes.add(proposalId);
 
         require(
@@ -273,8 +260,7 @@ library GovPoolVote {
             "Gov: vote limit reached"
         );
 
-        uint256 totalVoted = votes.personal + votes.micropool + votes.treasury;
-        uint256 votePower = _calculateVotes(voter, totalVoted);
+        uint256 votePower = _calculateVotes(voter, totalPowerVoted);
 
         if (isVoteFor) {
             core.votesFor += votePower;
@@ -291,8 +277,8 @@ library GovPoolVote {
         voteInfo.isVoteFor = isVoteFor;
         voteInfo.totalVoted = votePower;
 
-        votes.personal = votes.personal.ratio(votePower, totalVoted);
-        votes.micropool = votes.micropool.ratio(votePower, totalVoted);
+        votes.personal = votes.personal.ratio(votePower, totalPowerVoted);
+        votes.micropool = votes.micropool.ratio(votePower, totalPowerVoted);
         votes.treasury = votePower - votes.personal - votes.micropool;
 
         return votes;
@@ -305,7 +291,7 @@ library GovPoolVote {
         uint256 proposalId,
         bool isVoteFor
     ) internal {
-        activeVotes.remove(proposalId);
+        require(activeVotes.remove(proposalId), "Gov: not active");
 
         if (isVoteFor) {
             core.votesFor -= voteInfo.totalVoted;
@@ -326,17 +312,12 @@ library GovPoolVote {
     ) internal view {
         IGovPool govPool = IGovPool(address(this));
 
-        mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
-
-        (, address userKeeper, , ) = govPool.getHelperContracts();
+        (, address userKeeper, , , ) = govPool.getHelperContracts();
         (uint256 tokenBalance, uint256 ownedBalance) = IGovUserKeeper(userKeeper).tokenBalance(
             msg.sender,
             voteType
         );
 
-        (, bool isVoted) = getVotes(voteInfo);
-
-        require(!isVoted, "Gov: need cancel");
         require(
             govPool.getProposalState(proposalId) == IGovPool.ProposalState.Voting,
             "Gov: vote unavailable"
@@ -345,11 +326,52 @@ library GovPoolVote {
             !restrictedUserProposals.contains(proposalId),
             "Gov: user restricted from voting in this proposal"
         );
+        require(!_isVoted(voteInfo), "Gov: need cancel");
         require(amount <= tokenBalance - ownedBalance, "Gov: wrong vote amount");
     }
 
+    function _getVotes(
+        IGovPool.VoteInfo storage voteInfo
+    ) internal view returns (IGovPool.Votes memory votes, uint256 totalPowerVoted) {
+        mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
+
+        votes = IGovPool.Votes({
+            personal: votePowers[IGovPool.VoteType.PersonalVote].powerVoted,
+            micropool: votePowers[IGovPool.VoteType.MicropoolVote].powerVoted,
+            treasury: votePowers[IGovPool.VoteType.TreasuryVote].powerVoted
+        });
+
+        totalPowerVoted = votes.personal + votes.micropool + votes.treasury;
+    }
+
+    function _isVoted(IGovPool.VoteInfo storage voteInfo) internal view returns (bool) {
+        mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
+
+        IGovPool.VotePower storage personalPower = votePowers[IGovPool.VoteType.PersonalVote];
+        IGovPool.VotePower storage micropoolPower = votePowers[IGovPool.VoteType.MicropoolVote];
+        IGovPool.VotePower storage treasuryPower = votePowers[IGovPool.VoteType.TreasuryVote];
+
+        /// @dev nft power can be zero
+        return
+            personalPower.powerVoted != 0 ||
+            micropoolPower.powerVoted != 0 ||
+            treasuryPower.powerVoted != 0 ||
+            personalPower.nftsVoted.length() != 0 ||
+            micropoolPower.nftsVoted.length() != 0 ||
+            treasuryPower.nftsVoted.length() != 0;
+    }
+
+    function _checkMinVotesForVoting(
+        IGovPool.ProposalCore storage core,
+        IGovPool.VoteInfo storage voteInfo
+    ) internal view {
+        (, uint256 totalPowerVoted) = _getVotes(voteInfo);
+
+        require(totalPowerVoted >= core.settings.minVotesForVoting, "Gov: low voting power");
+    }
+
     function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {
-        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
 
         return
             PERCENTAGE_100.ratio(
@@ -358,37 +380,10 @@ library GovPoolVote {
             ) >= core.settings.quorum;
     }
 
-    function _treasuryVoteCoefficient(address voter) internal view returns (uint256) {
-        (, address userKeeperAddress, , ) = GovPool(payable(address(this))).getHelperContracts();
-        IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
-
-        (uint256 power, ) = userKeeper.tokenBalance(voter, IGovPool.VoteType.TreasuryVote);
-
-        (uint256[] memory nfts, ) = userKeeper.nftExactBalance(
-            voter,
-            IGovPool.VoteType.TreasuryVote
-        );
-        (uint256 nftPower, ) = userKeeper.nftVotingPower(nfts);
-
-        power += nftPower;
-
-        return power.ratio(PRECISION, userKeeper.getTotalVoteWeight()) / 10;
-    }
-
     function _calculateVotes(address voter, uint256 voteAmount) internal view returns (uint256) {
-        uint256 coefficient = IGovPool(address(this)).getVoteModifierForUser(voter);
+        (, , , , address votePowerAddress) = IGovPool(address(this)).getHelperContracts();
+        IVotePower votePower = IVotePower(votePowerAddress);
 
-        if (IGovPool(address(this)).getExpertStatus(voter)) {
-            uint256 treasuryVoteCoefficient = _treasuryVoteCoefficient(voter);
-
-            // @dev Assuming treasury vote coefficient is always <= 1
-            coefficient -= treasuryVoteCoefficient;
-        }
-
-        if (coefficient <= PRECISION) {
-            return voteAmount;
-        }
-
-        return voteAmount.pow(coefficient.ratio(DECIMALS, PRECISION));
+        return votePower.transformVotes(voter, voteAmount);
     }
 }

@@ -742,6 +742,11 @@ const getBytesGovVote = (proposalId, voteAmount, voteNftIds, isVoteFor = true) =
           type: "uint256",
         },
         {
+          internalType: "bool",
+          name: "isVoteFor",
+          type: "bool",
+        },
+        {
           internalType: "uint256",
           name: "voteAmount",
           type: "uint256",
@@ -750,11 +755,6 @@ const getBytesGovVote = (proposalId, voteAmount, voteNftIds, isVoteFor = true) =
           internalType: "uint256[]",
           name: "voteNftIds",
           type: "uint256[]",
-        },
-        {
-          internalType: "bool",
-          name: "isVoteFor",
-          type: "bool",
         },
       ],
       name: "vote",
@@ -762,75 +762,7 @@ const getBytesGovVote = (proposalId, voteAmount, voteNftIds, isVoteFor = true) =
       stateMutability: "nonpayable",
       type: "function",
     },
-    [proposalId, voteAmount, voteNftIds, isVoteFor]
-  );
-};
-
-const getBytesGovVoteDelegated = (proposalId, voteAmount, voteNftIds, isVoteFor = true) => {
-  return web3.eth.abi.encodeFunctionCall(
-    {
-      inputs: [
-        {
-          internalType: "uint256",
-          name: "proposalId",
-          type: "uint256",
-        },
-        {
-          internalType: "uint256",
-          name: "voteAmount",
-          type: "uint256",
-        },
-        {
-          internalType: "uint256[]",
-          name: "voteNftIds",
-          type: "uint256[]",
-        },
-        {
-          internalType: "bool",
-          name: "isVoteFor",
-          type: "bool",
-        },
-      ],
-      name: "voteDelegated",
-      outputs: [],
-      stateMutability: "nonpayable",
-      type: "function",
-    },
-    [proposalId, voteAmount, voteNftIds, isVoteFor]
-  );
-};
-
-const getBytesGovVoteTreasury = (proposalId, voteAmount, voteNftIds, isVoteFor = true) => {
-  return web3.eth.abi.encodeFunctionCall(
-    {
-      inputs: [
-        {
-          internalType: "uint256",
-          name: "proposalId",
-          type: "uint256",
-        },
-        {
-          internalType: "uint256",
-          name: "voteAmount",
-          type: "uint256",
-        },
-        {
-          internalType: "uint256[]",
-          name: "voteNftIds",
-          type: "uint256[]",
-        },
-        {
-          internalType: "bool",
-          name: "isVoteFor",
-          type: "bool",
-        },
-      ],
-      name: "voteTreasury",
-      outputs: [],
-      stateMutability: "nonpayable",
-      type: "function",
-    },
-    [proposalId, voteAmount, voteNftIds, isVoteFor]
+    [proposalId, isVoteFor, voteAmount, voteNftIds]
   );
 };
 
@@ -1048,8 +980,6 @@ module.exports = {
   getBytesGovExecute,
   getBytesGovClaimRewards,
   getBytesGovVote,
-  getBytesGovVoteDelegated,
-  getBytesGovVoteTreasury,
   getBytesGovDeposit,
   getBytesKeeperWithdrawTokens,
   getBytesSetCreditInfo,

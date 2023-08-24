@@ -1,11 +1,10 @@
 const { toBN, accounts, wei } = require("../../scripts/utils/utils");
-const { solidityPow } = require("../../scripts/utils/log-exp-math");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
 const { impersonate } = require("../helpers/impersonator");
 const { getBytesApprove, getBytesDistributionProposal } = require("../utils/gov-pool-utils");
-const { DECIMAL, ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
+const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
 const { assert } = require("chai");
 
@@ -19,6 +18,7 @@ const GovValidators = artifacts.require("GovValidators");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
 const ERC721Expert = artifacts.require("ERC721Expert");
+const LinearPower = artifacts.require("LinearPower");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const BABTMock = artifacts.require("BABTMock");
@@ -66,16 +66,6 @@ describe("DistributionProposal", () => {
   let dp;
 
   const reverter = new Reverter();
-
-  async function weiToVotes(tokenNumber) {
-    const voteModifier = (await govPool.getVoteModifiers())[0];
-
-    if (voteModifier.eq(PRECISION)) {
-      return toBN(tokenNumber);
-    }
-
-    return toBN(solidityPow(tokenNumber, DECIMAL.times(DECIMAL).div(voteModifier)));
-  }
 
   before("setup", async () => {
     OWNER = await accounts(0);
@@ -151,6 +141,7 @@ describe("DistributionProposal", () => {
     dp = await DistributionProposal.new();
     expertNft = await ERC721Expert.new();
     nftMultiplier = await ERC721Multiplier.new();
+    let linearPower = await LinearPower.new();
     govPool = await GovPool.new();
 
     await settings.__GovSettings_init(
@@ -183,9 +174,14 @@ describe("DistributionProposal", () => {
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
     await nftMultiplier.__ERC721Multiplier_init("Mock Nft Multiplier", "MCKNFTMLTPLR");
     await govPool.__GovPool_init(
-      [settings.address, userKeeper.address, validators.address, expertNft.address, nftMultiplier.address],
-      poolParams.regularVoteModifier,
-      poolParams.expertVoteModifier,
+      [
+        settings.address,
+        userKeeper.address,
+        validators.address,
+        expertNft.address,
+        nftMultiplier.address,
+        linearPower.address,
+      ],
       OWNER,
       poolParams.onlyBABTHolders,
       poolParams.deployerBABTid,
@@ -358,6 +354,24 @@ describe("DistributionProposal", () => {
       });
     });
 
+    describe("create DP", () => {
+      it("should not create DP if proposal id is frontrun", async () => {
+        startTime = await getCurrentBlockTime();
+
+        await truffleAssert.reverts(
+          govPool.createProposal(
+            "example.com",
+            [
+              [token.address, 0, getBytesApprove(dp.address, wei("100"))],
+              [dp.address, 0, getBytesDistributionProposal(2, token.address, wei("100"))],
+            ],
+            []
+          ),
+          "Gov: validation failed"
+        );
+      });
+    });
+
     describe("execute()", () => {
       let startTime;
 
@@ -471,8 +485,8 @@ describe("DistributionProposal", () => {
       });
 
       it("should correctly claim ether", async () => {
-        const FOUR_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue().toFixed());
-        const FIVE_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(5).dividedBy(9).integerValue().toFixed());
+        const FOUR_NFT_VOTES = SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue();
+        const FIVE_NFT_VOTES = SINGLE_NFT_POWER.times(5).dividedBy(9).integerValue();
         const ALL_NFT_VOTES = FIVE_NFT_VOTES.plus(FOUR_NFT_VOTES);
 
         async function dpClaim(user, proposals) {
@@ -524,10 +538,28 @@ describe("DistributionProposal", () => {
         assert.equal(await dp.getPotentialReward(1, SECOND), 0);
       });
 
+      it("should not claim if canceled votes", async () => {
+        await govPool.createProposal(
+          "example.com",
+          [
+            [token.address, 0, getBytesApprove(dp.address, wei("100000"))],
+            [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
+          ],
+          [],
+          { from: SECOND }
+        );
+
+        await govPool.vote(1, true, 0, [6, 7, 9], { from: THIRD });
+        await govPool.vote(1, true, 0, [2, 3, 4, 5], { from: SECOND });
+        await govPool.cancelVote(1, { from: SECOND });
+
+        assert.equal(await dp.getPotentialReward(1, SECOND), 0);
+      });
+
       it("should correctly calculate reward", async () => {
-        const ONE_NFT_VOTE = await weiToVotes(SINGLE_NFT_POWER.dividedBy(9).integerValue().toFixed());
-        const THREE_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(3).dividedBy(9).integerValue().toFixed());
-        const FOUR_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue().toFixed());
+        const ONE_NFT_VOTE = SINGLE_NFT_POWER.dividedBy(9).integerValue();
+        const THREE_NFT_VOTES = SINGLE_NFT_POWER.times(3).dividedBy(9).integerValue();
+        const FOUR_NFT_VOTES = SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue();
         const ALL_NFT_VOTES = THREE_NFT_VOTES.plus(FOUR_NFT_VOTES).plus(ONE_NFT_VOTE.times(2));
 
         await govPool.createProposal(

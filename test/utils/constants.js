@@ -43,11 +43,18 @@ const ProposalType = {
 };
 
 const ParticipationType = {
-  DAOVotes: "0",
-  Whitelist: "1",
-  BABT: "2",
-  TokenLock: "3",
-  NftLock: "4",
+  NoWhitelist: "0",
+  DAOVotes: "1",
+  Whitelist: "2",
+  BABT: "3",
+  TokenLock: "4",
+  NftLock: "5",
+};
+
+const VotePowerType = {
+  LINEAR_VOTES: "0",
+  ROOT_VOTES: "1",
+  CUSTOM_VOTES: "2",
 };
 
 const DEFAULT_CORE_PROPERTIES = {
@@ -65,5 +72,6 @@ module.exports = {
   VoteType,
   ValidatorsProposalState,
   ParticipationType,
+  VotePowerType,
   DEFAULT_CORE_PROPERTIES,
 };

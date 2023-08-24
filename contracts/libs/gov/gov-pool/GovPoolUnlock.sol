@@ -19,7 +19,7 @@ library GovPoolUnlock {
     ) external {
         EnumerableSet.UintSet storage userProposals = votedInProposals[user];
 
-        (, address userKeeperAddress, , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         uint256 maxLockedAmount = userKeeper.maxLockedAmount(user);
