@@ -17,6 +17,7 @@ const GovSettings = artifacts.require("GovSettings");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC721Power = artifacts.require("ERC721Power");
 const ERC721Expert = artifacts.require("ERC721Expert");
+const LinearPower = artifacts.require("LinearPower");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const BABTMock = artifacts.require("BABTMock");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
@@ -249,6 +250,7 @@ describe("DexeERC721Multiplier", () => {
     const validators = await GovValidators.new();
     const userKeeper = await GovUserKeeper.new();
     const dp = await DistributionProposal.new();
+    const linearPower = await LinearPower.new();
     const expertNft = await ERC721Expert.new();
     const govPool = await GovPool.new();
 
@@ -279,15 +281,14 @@ describe("DexeERC721Multiplier", () => {
       poolParams.userKeeperParams.totalPowerInTokens,
       poolParams.userKeeperParams.nftsTotalSupply
     );
+    await linearPower.__LinearPower_init();
 
     await nft.__ERC721Multiplier_init(NFT_NAME, NFT_SYMBOL);
 
     await dp.__DistributionProposal_init(govPool.address);
     await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
     await govPool.__GovPool_init(
-      [settings.address, userKeeper.address, validators.address, expertNft.address, nft.address],
-      wei("1", 25),
-      wei("1", 25),
+      [settings.address, userKeeper.address, validators.address, expertNft.address, nft.address, linearPower.address],
       OWNER,
       poolParams.onlyBABTHolders,
       poolParams.deployerBABTid,
