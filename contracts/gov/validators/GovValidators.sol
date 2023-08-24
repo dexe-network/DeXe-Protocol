@@ -39,13 +39,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
     event InternalProposalExecuted(uint256 proposalId, address executor);
 
     event Voted(uint256 proposalId, address sender, uint256 vote, bool isInternal, bool isVoteFor);
-    event VoteCanceled(
-        uint256 proposalId,
-        address sender,
-        uint256 vote,
-        bool isInternal,
-        bool isVoteFor
-    );
+    event VoteCanceled(uint256 proposalId, address sender, bool isInternal);
 
     event ChangedValidatorsBalances(address[] validators, uint256[] newBalance);
 
@@ -238,7 +232,7 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
             core.votesAgainst -= amount;
         }
 
-        emit VoteCanceled(proposalId, msg.sender, amount, isInternal, isVoteFor);
+        emit VoteCanceled(proposalId, msg.sender, isInternal);
     }
 
     function execute(uint256 proposalId) external override {
