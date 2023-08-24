@@ -92,10 +92,7 @@ contract DistributionProposal is IDistributionProposal, IProposalValidator, Init
     function validate(
         IGovPool.ProposalAction[] calldata actions
     ) external view override returns (bool valid) {
-        (uint256 proposalId, , ) = abi.decode(
-            actions[actions.length - 1].data[4:],
-            (uint256, address, uint256)
-        );
+        uint256 proposalId = uint256(bytes32(actions[actions.length - 1].data[4:36]));
 
         return proposalId == GovPool(payable(govAddress)).latestProposalId();
     }
