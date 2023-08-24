@@ -102,6 +102,7 @@ library TokenSaleProposalCreate {
             vestingEndTime: vestingStartTime + tierInitParams.vestingSettings.vestingDuration
         });
 
+        /// @dev return value is not checked intentionally
         tierInitParams.saleTokenAddress.call(
             abi.encodeWithSelector(
                 IERC20.transferFrom.selector,
