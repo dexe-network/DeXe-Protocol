@@ -179,13 +179,19 @@ contract GovValidators is IGovValidators, OwnableUpgradeable {
 
         require(_getProposalState(core) == ProposalState.Voting, "Validators: not Voting state");
 
+        mapping(bool => uint256) storage votedInProposal = addressVoted[proposalId][isInternal][
+            msg.sender
+        ];
+
+        require(votedInProposal[!isVoteFor] == 0, "Validators: need cancel");
+
         uint256 balanceAt = govValidatorsToken.balanceOfAt(msg.sender, core.snapshotId);
-        uint256 voted = addressVoted[proposalId][isInternal][msg.sender][isVoteFor];
+        uint256 totalVoted = votedInProposal[isVoteFor] + amount;
 
         require(balanceAt != 0, "Validators: caller is not the validator");
-        require(amount + voted <= balanceAt, "Validators: excessive vote amount");
+        require(totalVoted <= balanceAt, "Validators: excessive vote amount");
 
-        addressVoted[proposalId][isInternal][msg.sender][isVoteFor] += amount;
+        votedInProposal[isVoteFor] = totalVoted;
 
         if (isVoteFor) {
             core.votesFor += amount;

@@ -427,18 +427,6 @@ describe("GovValidators", () => {
 
         assert.equal(core.votesFor, wei("90"));
         assert.equal(core.votesAgainst, "0");
-
-        await validators.vote(1, wei("60"), true, false, { from: SECOND });
-
-        assert.equal(await validators.addressVoted(1, true, SECOND, true), wei("40"));
-        assert.equal(await validators.addressVoted(1, true, SECOND, false), wei("60"));
-        assert.equal(await validators.addressVoted(1, true, THIRD, true), wei("50"));
-        assert.equal(await validators.addressVoted(1, true, THIRD, false), "0");
-
-        core = (await getInternalProposalByIndex(1)).proposal.core;
-
-        assert.equal(core.votesFor, wei("90"));
-        assert.equal(core.votesAgainst, wei("60"));
       });
 
       it("should vote when amount more than balance, internal proposals", async () => {
@@ -628,6 +616,16 @@ describe("GovValidators", () => {
         await truffleAssert.reverts(
           validators.vote(1, 1, true, true, { from: SECOND }),
           "Validators: excessive vote amount"
+        );
+      });
+
+      it("should revert if vote for 2 variants simultaneously", async () => {
+        await createInternalProposal(ProposalType.ChangeSettings, "example.com", [100, 0, toPercent(51)], [], SECOND);
+        await validators.vote(1, wei("50"), true, true, { from: SECOND });
+
+        await truffleAssert.reverts(
+          validators.vote(1, wei("50"), true, false, { from: SECOND }),
+          "Validators: need cancel"
         );
       });
     });
