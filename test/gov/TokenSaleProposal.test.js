@@ -63,7 +63,7 @@ GovSettings.numberFormat = "BigNumber";
 GovValidators.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 
-describe.only("TokenSaleProposal", () => {
+describe("TokenSaleProposal", () => {
   let OWNER;
   let SECOND;
   let THIRD;
