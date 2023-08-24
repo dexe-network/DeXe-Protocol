@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "../../../interfaces/core/ICoreProperties.sol";
 
 import "../../../interfaces/gov/IGovPool.sol";
-import "../../../interfaces/gov/ERC721/IERC721Multiplier.sol";
+import "../../../interfaces/gov/ERC721/multipliers/IAbstractERC721Multiplier.sol";
 
 import "../../utils/TokenBalance.sol";
 import "../../math/MathHelper.sol";
@@ -48,7 +48,10 @@ library GovPoolRewards {
             rewardType != IGovPool.RewardType.VoteAgainstTreasury &&
             nftMultiplier != address(0)
         ) {
-            amountToAdd += IERC721Multiplier(nftMultiplier).getExtraRewards(user, amountToAdd);
+            amountToAdd += IAbstractERC721Multiplier(nftMultiplier).getExtraRewards(
+                user,
+                amountToAdd
+            );
         }
 
         IGovPool.PendingRewards storage userRewards = pendingRewards[user];

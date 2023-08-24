@@ -1,8 +1,8 @@
 const { assert } = require("chai");
-const { accounts, wei } = require("../../scripts/utils/utils");
-const { ZERO_ADDR } = require("../../scripts/utils/constants");
+const { accounts, wei } = require("../../../scripts/utils/utils");
+const { ZERO_ADDR } = require("../../../scripts/utils/constants");
 const truffleAssert = require("truffle-assertions");
-const Reverter = require("../helpers/reverter");
+const Reverter = require("../../helpers/reverter");
 
 const ERC20Gov = artifacts.require("ERC20Gov");
 

@@ -45,6 +45,9 @@ const TokenSaleProposalVestingLib = artifacts.require("TokenSaleProposalVesting"
 const TokenSaleProposalWhitelistLib = artifacts.require("TokenSaleProposalWhitelist");
 const TokenSaleProposalClaimLib = artifacts.require("TokenSaleProposalClaim");
 const TokenSaleProposalRecoverLib = artifacts.require("TokenSaleProposalRecover");
+const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
+const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
+const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
 
 ContractsRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
@@ -123,6 +126,14 @@ describe("PoolFactory", () => {
     await TokenSaleProposal.link(tspWhitelistLib);
     await TokenSaleProposal.link(tspClaimLib);
     await TokenSaleProposal.link(tspRecoverLib);
+
+    const govValidatorsCreateLib = await GovValidatorsCreateLib.new();
+    const govValidatorsVoteLib = await GovValidatorsVoteLib.new();
+    const govValidatorsExecuteLib = await GovValidatorsExecuteLib.new();
+
+    await GovValidators.link(govValidatorsCreateLib);
+    await GovValidators.link(govValidatorsVoteLib);
+    await GovValidators.link(govValidatorsExecuteLib);
 
     const uniswapV2PathFinderLib = await UniswapV2PathFinderLib.new();
 

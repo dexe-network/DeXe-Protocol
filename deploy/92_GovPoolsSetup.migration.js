@@ -19,6 +19,9 @@ const TokenSaleProposalVestingLib = artifacts.require("TokenSaleProposalVesting"
 const TokenSaleProposalWhitelistLib = artifacts.require("TokenSaleProposalWhitelist");
 const TokenSaleProposalClaimLib = artifacts.require("TokenSaleProposalClaim");
 const TokenSaleProposalRecoverLib = artifacts.require("TokenSaleProposalRecover");
+const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
+const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
+const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
 
 const GovPool = artifacts.require("GovPool");
 const GovSettings = artifacts.require("GovSettings");
@@ -75,10 +78,21 @@ async function linkTokenSaleProposal(deployer) {
   await deployer.link(TokenSaleProposalRecoverLib, TokenSaleProposal);
 }
 
+async function linkGovValidators(deployer) {
+  await deployer.deploy(GovValidatorsCreateLib);
+  await deployer.deploy(GovValidatorsVoteLib);
+  await deployer.deploy(GovValidatorsExecuteLib);
+
+  await deployer.link(GovValidatorsCreateLib, GovValidators);
+  await deployer.link(GovValidatorsVoteLib, GovValidators);
+  await deployer.link(GovValidatorsExecuteLib, GovValidators);
+}
+
 async function link(deployer) {
   await linkGovUserKeeper(deployer);
   await linkGovPool(deployer);
   await linkTokenSaleProposal(deployer);
+  await linkGovValidators(deployer);
 }
 
 module.exports = async (deployer, logger) => {

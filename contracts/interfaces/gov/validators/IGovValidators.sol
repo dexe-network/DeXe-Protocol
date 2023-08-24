@@ -78,10 +78,6 @@ interface IGovValidators {
         uint256 requiredQuorum;
     }
 
-    /// @notice The function for getting the latest id of the internal proposal
-    /// @return `id` of latest internal proposal
-    function latestInternalProposalId() external view returns (uint256);
-
     /// @notice The function for getting current number of validators
     /// @return `number` of validators
     function validatorsCount() external view returns (uint256);
@@ -107,6 +103,22 @@ interface IGovValidators {
         ProposalSettings calldata proposalSettings
     ) external;
 
+    function voteInternalProposal(uint256 proposalId, uint256 amount, bool isVoteFor) external;
+
+    function voteExternalProposal(uint256 proposalId, uint256 amount, bool isVoteFor) external;
+
+    function cancelVoteInternalProposal(uint256 proposalId) external;
+
+    function cancelVoteExternalProposal(uint256 proposalId) external;
+
+    /// @notice Only for internal proposals. External proposals should be executed from governance.
+    /// @param proposalId Internal proposal ID
+    function executeInternalProposal(uint256 proposalId) external;
+
+    /// @notice The function called by governance that marks the external proposal as executed
+    /// @param proposalId External proposal ID
+    function executeExternalProposal(uint256 proposalId) external;
+
     function changeSettings(uint64 duration, uint64 executionDelay, uint128 quorum) external;
 
     /// @notice The function for changing validators balances
@@ -122,21 +134,6 @@ interface IGovValidators {
         uint256[] calldata amounts,
         address destination
     ) external;
-
-    /// @notice Vote in proposal
-    /// @param proposalId Proposal ID, internal or external
-    /// @param amount Amount of tokens to vote
-    /// @param isInternal If `true`, you will vote in internal proposal
-    /// @param isVoteFor If `true`, you will vote for proposal, else against
-    function vote(uint256 proposalId, uint256 amount, bool isInternal, bool isVoteFor) external;
-
-    /// @notice Only for internal proposals. External proposals should be executed from governance.
-    /// @param proposalId Internal proposal ID
-    function execute(uint256 proposalId) external;
-
-    /// @notice The function called by governance that marks the external proposal as executed
-    /// @param proposalId External proposal ID
-    function executeExternalProposal(uint256 proposalId) external;
 
     /// @notice The function for getting information about the external proposals
     /// @param index the index of proposal

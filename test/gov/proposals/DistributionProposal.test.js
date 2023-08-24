@@ -1,11 +1,11 @@
-const { toBN, accounts, wei } = require("../../scripts/utils/utils");
-const Reverter = require("../helpers/reverter");
+const { toBN, accounts, wei } = require("../../../scripts/utils/utils");
+const Reverter = require("../../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
-const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
-const { impersonate } = require("../helpers/impersonator");
-const { getBytesApprove, getBytesDistributionProposal } = require("../utils/gov-pool-utils");
-const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
-const { DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
+const { getCurrentBlockTime, setTime } = require("../../helpers/block-helper");
+const { impersonate } = require("../../helpers/impersonator");
+const { getBytesApprove, getBytesDistributionProposal } = require("../../utils/gov-pool-utils");
+const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../../scripts/utils/constants");
+const { DEFAULT_CORE_PROPERTIES } = require("../../utils/constants");
 const { assert } = require("chai");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -32,6 +32,9 @@ const GovPoolVoteLib = artifacts.require("GovPoolVote");
 const GovPoolViewLib = artifacts.require("GovPoolView");
 const GovPoolCreditLib = artifacts.require("GovPoolCredit");
 const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
+const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
+const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
+const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -76,6 +79,8 @@ describe("DistributionProposal", () => {
 
     const govUserKeeperViewLib = await GovUserKeeperViewLib.new();
 
+    await GovUserKeeper.link(govUserKeeperViewLib);
+
     const govPoolCreateLib = await GovPoolCreateLib.new();
     const govPoolExecuteLib = await GovPoolExecuteLib.new();
     const govPoolMicropoolLib = await GovPoolMicropoolLib.new();
@@ -86,8 +91,6 @@ describe("DistributionProposal", () => {
     const govPoolCreditLib = await GovPoolCreditLib.new();
     const govPoolOffchainLib = await GovPoolOffchainLib.new();
 
-    await GovUserKeeper.link(govUserKeeperViewLib);
-
     await GovPool.link(govPoolCreateLib);
     await GovPool.link(govPoolExecuteLib);
     await GovPool.link(govPoolMicropoolLib);
@@ -97,6 +100,14 @@ describe("DistributionProposal", () => {
     await GovPool.link(govPoolViewLib);
     await GovPool.link(govPoolCreditLib);
     await GovPool.link(govPoolOffchainLib);
+
+    const govValidatorsCreateLib = await GovValidatorsCreateLib.new();
+    const govValidatorsVoteLib = await GovValidatorsVoteLib.new();
+    const govValidatorsExecuteLib = await GovValidatorsExecuteLib.new();
+
+    await GovValidators.link(govValidatorsCreateLib);
+    await GovValidators.link(govValidatorsVoteLib);
+    await GovValidators.link(govValidatorsExecuteLib);
 
     const contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
