@@ -12,11 +12,11 @@ import "../../../libs/math/MathHelper.sol";
 contract ERC721Multiplier is AbstractERC721Multiplier {
     using MathHelper for uint256;
 
-    function mint(address to, uint256 multiplier, uint64 duration) external {
+    function mint(address to, uint256 multiplier, uint64 duration) external onlyOwner {
         _mint(to, multiplier, duration);
     }
 
-    function changeToken(uint256 tokenId, uint256 multiplier, uint64 duration) external {
+    function changeToken(uint256 tokenId, uint256 multiplier, uint64 duration) external onlyOwner {
         _changeToken(tokenId, multiplier, duration);
     }
 

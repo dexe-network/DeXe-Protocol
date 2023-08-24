@@ -22,7 +22,7 @@ contract DexeERC721Multiplier is AbstractERC721Multiplier {
         uint256 multiplier,
         uint64 duration,
         uint256 averageBalance
-    ) external {
+    ) external onlyOwner {
         _mint(to, multiplier, duration);
 
         _averageBalances[to] = averageBalance;
@@ -35,7 +35,7 @@ contract DexeERC721Multiplier is AbstractERC721Multiplier {
         uint256 multiplier,
         uint64 duration,
         uint256 averageBalance
-    ) external {
+    ) external onlyOwner {
         _changeToken(tokenId, multiplier, duration);
 
         address owner = ownerOf(tokenId);

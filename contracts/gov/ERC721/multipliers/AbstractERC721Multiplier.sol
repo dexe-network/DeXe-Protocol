@@ -63,7 +63,7 @@ abstract contract AbstractERC721Multiplier is ERC721EnumerableUpgradeable, Ownab
         return tokenId != 0 && _latestLockedTokenIds[ownerOf(tokenId)] == tokenId;
     }
 
-    function _mint(address to, uint256 multiplier, uint64 duration) internal onlyOwner {
+    function _mint(address to, uint256 multiplier, uint64 duration) internal {
         uint256 currentTokenId = totalSupply() + 1;
 
         _mint(to, currentTokenId);
@@ -77,11 +77,7 @@ abstract contract AbstractERC721Multiplier is ERC721EnumerableUpgradeable, Ownab
         emit Minted(currentTokenId, to, multiplier, duration);
     }
 
-    function _changeToken(
-        uint256 tokenId,
-        uint256 multiplier,
-        uint64 duration
-    ) internal onlyOwner {
+    function _changeToken(uint256 tokenId, uint256 multiplier, uint64 duration) internal {
         _requireMinted(tokenId);
 
         IERC721Multiplier.NftInfo storage token = _tokens[tokenId];

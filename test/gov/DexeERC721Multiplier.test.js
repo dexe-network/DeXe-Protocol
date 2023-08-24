@@ -412,6 +412,13 @@ describe("DexeERC721Multiplier", () => {
         assert.equal(await nft.tokenOfOwnerByIndex(THIRD, "0"), "2");
         assert.equal(await nft.tokenOfOwnerByIndex(THIRD, "1"), "4");
       });
+
+      it("shouldn't mint if not the owner", async () => {
+        await truffleAssert.reverts(
+          nft.mint(OWNER, TOKENS[0].multiplier, TOKENS[0].duration, TOKENS[0].averageBalance, { from: SECOND }),
+          "Ownable: caller is not the owner"
+        );
+      });
     });
 
     describe("if minted", () => {
@@ -436,6 +443,13 @@ describe("DexeERC721Multiplier", () => {
           truffleAssert.eventEmitted(tx, "AverageBalanceChanged", (e) => {
             return e.user === first.owner && e.averageBalance.toFixed() === "3";
           });
+        });
+
+        it("should not change if not the owner", async () => {
+          await truffleAssert.reverts(
+            nft.changeToken(0, 0, 0, 0, { from: SECOND }),
+            "Ownable: caller is not the owner"
+          );
         });
       });
 
