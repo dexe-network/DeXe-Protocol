@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
@@ -13,6 +14,7 @@ import "../../../gov/proposals/TokenSaleProposal.sol";
 import "../../../core/Globals.sol";
 
 library TokenSaleProposalCreate {
+    using SafeERC20 for IERC20;
     using DecimalsConverter for *;
     using Math for uint256;
 
@@ -53,6 +55,7 @@ library TokenSaleProposalCreate {
         );
 
         uint256 saleTokenDecimals = tierInitParams.saleTokenAddress.decimals();
+        uint256 totalTokenProvided = tierInitParams.totalTokenProvided;
 
         tierInitParams.minAllocationPerUser = tierInitParams.minAllocationPerUser.to18(
             saleTokenDecimals
@@ -60,9 +63,7 @@ library TokenSaleProposalCreate {
         tierInitParams.maxAllocationPerUser = tierInitParams.maxAllocationPerUser.to18(
             saleTokenDecimals
         );
-        tierInitParams.totalTokenProvided = tierInitParams.totalTokenProvided.to18(
-            saleTokenDecimals
-        );
+        tierInitParams.totalTokenProvided = totalTokenProvided.to18(saleTokenDecimals);
 
         if (
             tierInitParams.participationDetails.participationType ==
@@ -102,6 +103,12 @@ library TokenSaleProposalCreate {
             vestingStartTime: vestingStartTime,
             vestingEndTime: vestingStartTime + tierInitParams.vestingSettings.vestingDuration
         });
+
+        IERC20(tierInitParams.saleTokenAddress).safeTransferFrom(
+            msg.sender,
+            address(this),
+            totalTokenProvided
+        );
     }
 
     function getTierViews(
