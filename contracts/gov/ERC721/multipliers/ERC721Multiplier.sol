@@ -12,6 +12,14 @@ import "../../../libs/math/MathHelper.sol";
 contract ERC721Multiplier is AbstractERC721Multiplier {
     using MathHelper for uint256;
 
+    function mint(address to, uint256 multiplier, uint64 duration) external {
+        _mint(to, multiplier, duration);
+    }
+
+    function changeToken(uint256 tokenId, uint256 multiplier, uint64 duration) external {
+        _changeToken(tokenId, multiplier, duration);
+    }
+
     function getExtraRewards(address whose, uint256 rewards) external view returns (uint256) {
         (uint256 multiplier, ) = _getCurrentMultiplier(whose);
 
@@ -24,9 +32,9 @@ contract ERC721Multiplier is AbstractERC721Multiplier {
         return _getCurrentMultiplier(whose);
     }
 
-    // function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
-    //     return
-    //         interfaceId == type(IERC721Multiplier).interfaceId ||
-    //         super.supportsInterface(interfaceId);
-    // }
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        return
+            interfaceId == type(IERC721Multiplier).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
 }

@@ -55,7 +55,15 @@ abstract contract AbstractERC721Multiplier is ERC721EnumerableUpgradeable, Ownab
         emit Locked(tokenId, msg.sender, false);
     }
 
-    function mint(address to, uint256 multiplier, uint64 duration) public onlyOwner {
+    function setBaseUri(string calldata uri) external onlyOwner {
+        baseURI = uri;
+    }
+
+    function isLocked(uint256 tokenId) public view returns (bool) {
+        return tokenId != 0 && _latestLockedTokenIds[ownerOf(tokenId)] == tokenId;
+    }
+
+    function _mint(address to, uint256 multiplier, uint64 duration) internal onlyOwner {
         uint256 currentTokenId = totalSupply() + 1;
 
         _mint(to, currentTokenId);
@@ -69,7 +77,11 @@ abstract contract AbstractERC721Multiplier is ERC721EnumerableUpgradeable, Ownab
         emit Minted(currentTokenId, to, multiplier, duration);
     }
 
-    function changeToken(uint256 tokenId, uint256 multiplier, uint64 duration) public onlyOwner {
+    function _changeToken(
+        uint256 tokenId,
+        uint256 multiplier,
+        uint64 duration
+    ) internal onlyOwner {
         _requireMinted(tokenId);
 
         IERC721Multiplier.NftInfo storage token = _tokens[tokenId];
@@ -78,14 +90,6 @@ abstract contract AbstractERC721Multiplier is ERC721EnumerableUpgradeable, Ownab
         token.duration = duration;
 
         emit Changed(tokenId, multiplier, duration);
-    }
-
-    function setBaseUri(string calldata uri) external onlyOwner {
-        baseURI = uri;
-    }
-
-    function isLocked(uint256 tokenId) public view returns (bool) {
-        return tokenId != 0 && _latestLockedTokenIds[ownerOf(tokenId)] == tokenId;
     }
 
     function _beforeTokenTransfer(

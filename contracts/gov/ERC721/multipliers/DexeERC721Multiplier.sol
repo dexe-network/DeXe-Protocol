@@ -7,6 +7,8 @@ import "./AbstractERC721Multiplier.sol";
 
 import "../../../libs/math/MathHelper.sol";
 
+import "../../../interfaces/gov/ERC721/multipliers/IDexeERC721Multiplier.sol";
+
 contract DexeERC721Multiplier is AbstractERC721Multiplier {
     using MathHelper for uint256;
     using Math for uint256;
@@ -21,7 +23,7 @@ contract DexeERC721Multiplier is AbstractERC721Multiplier {
         uint64 duration,
         uint256 averageBalance
     ) external {
-        super.mint(to, multiplier, duration);
+        _mint(to, multiplier, duration);
 
         _averageBalances[to] = averageBalance;
 
@@ -34,7 +36,7 @@ contract DexeERC721Multiplier is AbstractERC721Multiplier {
         uint64 duration,
         uint256 averageBalance
     ) external {
-        super.changeToken(tokenId, multiplier, duration);
+        _changeToken(tokenId, multiplier, duration);
 
         address owner = ownerOf(tokenId);
 
@@ -68,5 +70,11 @@ contract DexeERC721Multiplier is AbstractERC721Multiplier {
         }
 
         multiplier = multiplier.max(PRECISION) - PRECISION;
+    }
+
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        return
+            interfaceId == type(IDexeERC721Multiplier).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }

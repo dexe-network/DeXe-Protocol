@@ -375,7 +375,7 @@ describe("ERC721Multiplier", () => {
 
     describe("interfaceId()", () => {
       it("should support ERC721Enumerable and ERC721Multiplier interfaces", async () => {
-        assert.isTrue(await nft.supportsInterface("0x97bdf62b"));
+        assert.isTrue(await nft.supportsInterface("0x5442c670"));
         assert.isTrue(await nft.supportsInterface("0x780e9d63"));
       });
     });

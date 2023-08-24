@@ -377,6 +377,13 @@ describe("DexeERC721Multiplier", () => {
       ];
     });
 
+    describe("interfaceId()", () => {
+      it("should support ERC721Enumerable and ERC721Multiplier interfaces", async () => {
+        assert.isTrue(await nft.supportsInterface("0x7b25824d"));
+        assert.isTrue(await nft.supportsInterface("0x780e9d63"));
+      });
+    });
+
     describe("mint()", () => {
       it("should mint properly", async () => {
         for (const token of TOKENS) {
