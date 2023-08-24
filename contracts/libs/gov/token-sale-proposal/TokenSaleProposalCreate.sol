@@ -102,13 +102,14 @@ library TokenSaleProposalCreate {
             vestingEndTime: vestingStartTime + tierInitParams.vestingSettings.vestingDuration
         });
 
-        try
-            IERC20(tierInitParams.saleTokenAddress).transferFrom(
+        tierInitParams.saleTokenAddress.call(
+            abi.encodeWithSelector(
+                IERC20.transferFrom.selector,
                 msg.sender,
                 address(this),
                 totalTokenProvided
             )
-        {} catch {}
+        );
     }
 
     function getTierViews(
