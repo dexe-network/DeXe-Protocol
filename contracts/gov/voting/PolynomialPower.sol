@@ -8,14 +8,12 @@ import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/voting/IVotePower.sol";
 
 import "../../libs/math/MathHelper.sol";
-import "../../libs/math/LogExpMath.sol";
 
 import "../../core/Globals.sol";
 
 contract PolynomialPower is IVotePower, OwnableUpgradeable {
     using MathHelper for uint256;
     using MathHelper for int256;
-    using LogExpMath for uint256;
 
     int256 private constant HOLDER_A = 1041 * (10 ** 22);
     int256 private constant HOLDER_B = -7211 * (10 ** 19);
