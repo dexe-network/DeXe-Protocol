@@ -165,4 +165,12 @@ describe("PolynomialPower", () => {
       await compareExpertsDao50Percent("90748777");
     });
   });
+  describe("initializer", () => {
+    it("cant initialize twice", async () => {
+      await truffleAssert.reverts(
+        power.__PolynomialPower_init(PRECISION.times("1.08"), PRECISION.times("0.92"), PRECISION.times("0.97")),
+        "Initializable: contract is already initialized"
+      );
+    });
+  });
 });

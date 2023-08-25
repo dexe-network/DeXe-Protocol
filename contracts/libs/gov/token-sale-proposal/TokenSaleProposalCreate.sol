@@ -53,6 +53,7 @@ library TokenSaleProposalCreate {
         );
 
         uint256 saleTokenDecimals = tierInitParams.saleTokenAddress.decimals();
+        uint256 totalTokenProvided = tierInitParams.totalTokenProvided;
 
         tierInitParams.minAllocationPerUser = tierInitParams.minAllocationPerUser.to18(
             saleTokenDecimals
@@ -60,9 +61,7 @@ library TokenSaleProposalCreate {
         tierInitParams.maxAllocationPerUser = tierInitParams.maxAllocationPerUser.to18(
             saleTokenDecimals
         );
-        tierInitParams.totalTokenProvided = tierInitParams.totalTokenProvided.to18(
-            saleTokenDecimals
-        );
+        tierInitParams.totalTokenProvided = totalTokenProvided.to18(saleTokenDecimals);
 
         if (
             tierInitParams.participationDetails.participationType ==
@@ -102,6 +101,16 @@ library TokenSaleProposalCreate {
             vestingStartTime: vestingStartTime,
             vestingEndTime: vestingStartTime + tierInitParams.vestingSettings.vestingDuration
         });
+
+        /// @dev return value is not checked intentionally
+        tierInitParams.saleTokenAddress.call(
+            abi.encodeWithSelector(
+                IERC20.transferFrom.selector,
+                msg.sender,
+                address(this),
+                totalTokenProvided
+            )
+        );
     }
 
     function getTierViews(

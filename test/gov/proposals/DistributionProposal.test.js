@@ -1,12 +1,11 @@
-const { toBN, accounts, wei } = require("../../scripts/utils/utils");
-const { solidityPow } = require("../../scripts/utils/log-exp-math");
-const Reverter = require("../helpers/reverter");
+const { toBN, accounts, wei } = require("../../../scripts/utils/utils");
+const Reverter = require("../../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
-const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
-const { impersonate } = require("../helpers/impersonator");
-const { getBytesApprove, getBytesDistributionProposal } = require("../utils/gov-pool-utils");
-const { DECIMAL, ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../scripts/utils/constants");
-const { DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
+const { getCurrentBlockTime, setTime } = require("../../helpers/block-helper");
+const { impersonate } = require("../../helpers/impersonator");
+const { getBytesApprove, getBytesDistributionProposal } = require("../../utils/gov-pool-utils");
+const { ZERO_ADDR, ETHER_ADDR, PRECISION } = require("../../../scripts/utils/constants");
+const { DEFAULT_CORE_PROPERTIES } = require("../../utils/constants");
 const { assert } = require("chai");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -33,6 +32,9 @@ const GovPoolVoteLib = artifacts.require("GovPoolVote");
 const GovPoolViewLib = artifacts.require("GovPoolView");
 const GovPoolCreditLib = artifacts.require("GovPoolCredit");
 const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
+const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
+const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
+const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -68,16 +70,6 @@ describe("DistributionProposal", () => {
 
   const reverter = new Reverter();
 
-  async function weiToVotes(tokenNumber) {
-    const voteModifier = (await govPool.getVoteModifiers())[0];
-
-    if (voteModifier.eq(PRECISION)) {
-      return toBN(tokenNumber);
-    }
-
-    return toBN(solidityPow(tokenNumber, DECIMAL.times(DECIMAL).div(voteModifier)));
-  }
-
   before("setup", async () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
@@ -86,6 +78,8 @@ describe("DistributionProposal", () => {
     NOTHING = await accounts(9);
 
     const govUserKeeperViewLib = await GovUserKeeperViewLib.new();
+
+    await GovUserKeeper.link(govUserKeeperViewLib);
 
     const govPoolCreateLib = await GovPoolCreateLib.new();
     const govPoolExecuteLib = await GovPoolExecuteLib.new();
@@ -97,8 +91,6 @@ describe("DistributionProposal", () => {
     const govPoolCreditLib = await GovPoolCreditLib.new();
     const govPoolOffchainLib = await GovPoolOffchainLib.new();
 
-    await GovUserKeeper.link(govUserKeeperViewLib);
-
     await GovPool.link(govPoolCreateLib);
     await GovPool.link(govPoolExecuteLib);
     await GovPool.link(govPoolMicropoolLib);
@@ -108,6 +100,14 @@ describe("DistributionProposal", () => {
     await GovPool.link(govPoolViewLib);
     await GovPool.link(govPoolCreditLib);
     await GovPool.link(govPoolOffchainLib);
+
+    const govValidatorsCreateLib = await GovValidatorsCreateLib.new();
+    const govValidatorsVoteLib = await GovValidatorsVoteLib.new();
+    const govValidatorsExecuteLib = await GovValidatorsExecuteLib.new();
+
+    await GovValidators.link(govValidatorsCreateLib);
+    await GovValidators.link(govValidatorsVoteLib);
+    await GovValidators.link(govValidatorsExecuteLib);
 
     const contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
@@ -365,6 +365,24 @@ describe("DistributionProposal", () => {
       });
     });
 
+    describe("create DP", () => {
+      it("should not create DP if proposal id is frontrun", async () => {
+        startTime = await getCurrentBlockTime();
+
+        await truffleAssert.reverts(
+          govPool.createProposal(
+            "example.com",
+            [
+              [token.address, 0, getBytesApprove(dp.address, wei("100"))],
+              [dp.address, 0, getBytesDistributionProposal(2, token.address, wei("100"))],
+            ],
+            []
+          ),
+          "Gov: validation failed"
+        );
+      });
+    });
+
     describe("execute()", () => {
       let startTime;
 
@@ -478,8 +496,8 @@ describe("DistributionProposal", () => {
       });
 
       it("should correctly claim ether", async () => {
-        const FOUR_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue().toFixed());
-        const FIVE_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(5).dividedBy(9).integerValue().toFixed());
+        const FOUR_NFT_VOTES = SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue();
+        const FIVE_NFT_VOTES = SINGLE_NFT_POWER.times(5).dividedBy(9).integerValue();
         const ALL_NFT_VOTES = FIVE_NFT_VOTES.plus(FOUR_NFT_VOTES);
 
         async function dpClaim(user, proposals) {
@@ -531,10 +549,28 @@ describe("DistributionProposal", () => {
         assert.equal(await dp.getPotentialReward(1, SECOND), 0);
       });
 
+      it("should not claim if canceled votes", async () => {
+        await govPool.createProposal(
+          "example.com",
+          [
+            [token.address, 0, getBytesApprove(dp.address, wei("100000"))],
+            [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
+          ],
+          [],
+          { from: SECOND }
+        );
+
+        await govPool.vote(1, true, 0, [6, 7, 9], { from: THIRD });
+        await govPool.vote(1, true, 0, [2, 3, 4, 5], { from: SECOND });
+        await govPool.cancelVote(1, { from: SECOND });
+
+        assert.equal(await dp.getPotentialReward(1, SECOND), 0);
+      });
+
       it("should correctly calculate reward", async () => {
-        const ONE_NFT_VOTE = await weiToVotes(SINGLE_NFT_POWER.dividedBy(9).integerValue().toFixed());
-        const THREE_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(3).dividedBy(9).integerValue().toFixed());
-        const FOUR_NFT_VOTES = await weiToVotes(SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue().toFixed());
+        const ONE_NFT_VOTE = SINGLE_NFT_POWER.dividedBy(9).integerValue();
+        const THREE_NFT_VOTES = SINGLE_NFT_POWER.times(3).dividedBy(9).integerValue();
+        const FOUR_NFT_VOTES = SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue();
         const ALL_NFT_VOTES = THREE_NFT_VOTES.plus(FOUR_NFT_VOTES).plus(ONE_NFT_VOTE.times(2));
 
         await govPool.createProposal(

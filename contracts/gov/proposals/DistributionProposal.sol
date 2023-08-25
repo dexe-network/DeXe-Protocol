@@ -9,13 +9,16 @@ import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/proposals/IDistributionProposal.sol";
+import "../../interfaces/gov/proposals/IProposalValidator.sol";
+
+import {GovPool} from "../GovPool.sol";
 
 import "../../libs/math/MathHelper.sol";
 import "../../libs/utils/TokenBalance.sol";
 
 import "../../core/Globals.sol";
 
-contract DistributionProposal is IDistributionProposal, Initializable {
+contract DistributionProposal is IDistributionProposal, IProposalValidator, Initializable {
     using SafeERC20 for IERC20Metadata;
     using MathHelper for uint256;
     using DecimalsConverter for *;
@@ -84,6 +87,14 @@ contract DistributionProposal is IDistributionProposal, Initializable {
 
             emit DistributionProposalClaimed(proposalIds[i], rewardToken, reward, voter);
         }
+    }
+
+    function validate(
+        IGovPool.ProposalAction[] calldata actions
+    ) external view override returns (bool valid) {
+        uint256 proposalId = uint256(bytes32(actions[actions.length - 1].data[4:36]));
+
+        return proposalId == GovPool(payable(govAddress)).latestProposalId();
     }
 
     function isClaimed(uint256 proposalId, address voter) external view override returns (bool) {

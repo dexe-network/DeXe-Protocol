@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "../../../interfaces/factory/IPoolRegistry.sol";
 
 import "../../../interfaces/gov/IGovPool.sol";
+import "../../../interfaces/gov/proposals/IProposalValidator.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../interfaces/gov/settings/IGovSettings.sol";
 import "../../../interfaces/gov/validators/IGovValidators.sol";
@@ -123,12 +124,15 @@ library GovPoolCreate {
     {
         require(actionsFor.length != 0, "Gov: invalid array length");
 
+        address mainExecutor = actionsFor[actionsFor.length - 1].executor;
+
+        _validateProposalCreation(mainExecutor, actionsFor);
+
         (address govSettingsAddress, address userKeeper, , , ) = IGovPool(address(this))
             .getHelperContracts();
 
         IGovSettings govSettings = IGovSettings(govSettingsAddress);
 
-        address mainExecutor = actionsFor[actionsFor.length - 1].executor;
         settingsId = govSettings.executorToSettings(mainExecutor);
 
         bool forceDefaultSettings = _handleDataForProposal(settingsId, govSettings, actionsFor);
@@ -163,6 +167,17 @@ library GovPoolCreate {
                 restrictedProposals[user].add(proposalId);
             }
         }
+    }
+
+    function _validateProposalCreation(
+        address executor,
+        IGovPool.ProposalAction[] calldata actionsFor
+    ) internal view {
+        (bool ok, bytes memory data) = executor.staticcall(
+            abi.encodeWithSelector(IProposalValidator.validate.selector, actionsFor)
+        );
+
+        require(!ok || data.length == 0 || abi.decode(data, (bool)), "Gov: validation failed");
     }
 
     function _canCreate(
@@ -315,6 +330,6 @@ library GovPoolCreate {
     function _decodeVoteFunction(
         IGovPool.ProposalAction calldata action
     ) internal pure returns (uint256 proposalId, bool isVoteFor) {
-        (proposalId, isVoteFor) = abi.decode(action.data[4:69], (uint256, bool));
+        (proposalId, isVoteFor) = abi.decode(action.data[4:68], (uint256, bool));
     }
 }

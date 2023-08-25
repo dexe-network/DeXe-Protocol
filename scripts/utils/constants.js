@@ -10,6 +10,8 @@ const PRECISION = toBN(10).pow(25);
 const PERCENTAGE_100 = PRECISION.times(100);
 const DECIMAL = toBN(10).pow(18);
 
+const MAX_UINT = toBN(2).pow(256) - 1;
+
 module.exports = {
   ZERO_ADDR,
   ETHER_ADDR,
@@ -18,4 +20,5 @@ module.exports = {
   PRECISION,
   PERCENTAGE_100,
   DECIMAL,
+  MAX_UINT,
 };
