@@ -10,7 +10,7 @@ const PolynomialPower = artifacts.require("PolynomialPower");
 PolynomialPower.numberFormat = "BigNumber";
 PolynomTesterMock.numberFormat = "BigNumber";
 
-describe.only("PolynomialPower", () => {
+describe("PolynomialPower", () => {
   let OWNER;
   let SECOND;
   let THIRD;
