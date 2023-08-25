@@ -39,7 +39,7 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
     uint256 internal _k2;
     uint256 internal _k3;
 
-    function __RootPower_init(uint256 k1, uint256 k2, uint256 k3) external initializer {
+    function __PolynomialPower_init(uint256 k1, uint256 k2, uint256 k3) external initializer {
         __Ownable_init();
 
         _k1 = k1;
@@ -53,7 +53,7 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
     ) external view override returns (uint256) {
         IGovPool govPool = IGovPool(owner());
         bool expertStatus = govPool.getExpertStatus(voter);
-        (uint256 treasuryRatio, uint256 totalSupply) = _getVoteCoefficients(voter);
+        (uint256 treasuryRatio, uint256 totalSupply) = _calculateParameters(voter);
 
         if (!expertStatus) {
             return _forHolders(votes, totalSupply);
@@ -66,7 +66,11 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
         }
     }
 
-    function _getVoteCoefficients(
+    function getVoteCoefficients() external view returns (uint256, uint256, uint256) {
+        return (_k1, _k2, _k3);
+    }
+
+    function _calculateParameters(
         address voter
     ) internal view returns (uint256 treasuryRatio, uint totalSupply) {
         (, address userKeeperAddress, , , ) = IGovPool(payable(owner())).getHelperContracts();
@@ -78,19 +82,19 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
         );
         uint256 fullPower = userKeeper.getFullUserPower(voter);
 
-        treasuryRatio = treasuryPower.ratio(PRECISION, fullPower);
+        treasuryRatio = fullPower == 0 ? 0 : treasuryPower.ratio(PRECISION, fullPower);
         totalSupply = userKeeper.getTotalVoteWeight();
     }
 
     function _forHolders(uint256 x, uint256 totalSupply) internal view returns (uint256) {
-        uint256 treshold = totalSupply.ratio(HOLDER_TRESHOLD, PRECISION); // measure: tokens
+        uint256 treshold = totalSupply.ratio(HOLDER_TRESHOLD, PRECISION);
 
         if (x < treshold) {
             return x;
         }
 
-        int256 t = int256(((100 * x * PRECISION) / totalSupply) - 7 * PRECISION); // measure: unmeasured with precision
-        int256 polynom = _calculatePolynomial(0, HOLDER_A, HOLDER_B, HOLDER_C, 0, t); // measure: unmeasured with precision
+        int256 t = int256(((100 * x * PRECISION) / totalSupply) - 7 * PRECISION);
+        int256 polynom = _calculatePolynomial(0, HOLDER_A, HOLDER_B, HOLDER_C, 0, t);
         return
             treshold + _k3.ratio(uint256(polynom), PRECISION).ratio(totalSupply, 100 * PRECISION);
     }
@@ -100,11 +104,11 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
         uint256 totalSupply,
         bool isDao
     ) internal view returns (uint256) {
-        uint256 treshold = totalSupply.ratio(EXPERT_TRESHOLD, PRECISION); // measure: tokens
+        uint256 treshold = totalSupply.ratio(EXPERT_TRESHOLD, PRECISION);
         uint256 _k = isDao ? _k1 : _k2;
 
         if (x < treshold) {
-            int256 t = int256((100 * x * PRECISION) / totalSupply); // measure: unmeasured with precision;
+            int256 t = int256((100 * x * PRECISION) / totalSupply);
             int256 polynom = _calculatePolynomial(
                 0,
                 EXPERT_BEFORE_TRESHOLD_A,
@@ -112,10 +116,10 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
                 EXPERT_BEFORE_TRESHOLD_C,
                 EXPERT_BEFORE_TRESHOLD_D,
                 t
-            ); // measure: unmeasured with precision
+            );
             return uint256(polynom).ratio(totalSupply, 100 * PRECISION).ratio(_k, PRECISION);
         } else {
-            int256 t = int256(((100 * x * PRECISION) / totalSupply) - PRECISION.ratio(663, 100)); // measure: unmeasured with precision;
+            int256 t = int256(((100 * x * PRECISION) / totalSupply) - PRECISION.ratio(663, 100));
             int256 polynom = _calculatePolynomial(
                 EXPERT_A,
                 EXPERT_B,
