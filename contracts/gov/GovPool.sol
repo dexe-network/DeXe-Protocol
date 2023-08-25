@@ -200,7 +200,7 @@ contract GovPool is
     ) external override onlyBABTHolder {
         _unlock(msg.sender);
 
-        Votes memory votes = _proposals.vote(
+        _proposals.vote(
             _votedInProposals,
             _voteInfos,
             _restrictedProposals,
@@ -209,16 +209,12 @@ contract GovPool is
             voteNftIds,
             isVoteFor
         );
-
-        _updateVotingRewards(proposalId, msg.sender, isVoteFor, votes);
     }
 
     function cancelVote(uint256 proposalId) external override onlyBABTHolder {
         _unlock(msg.sender);
 
         _proposals.cancelVote(_votedInProposals, _voteInfos, proposalId);
-
-        _cancelVotingRewards(proposalId, msg.sender);
     }
 
     function withdraw(
@@ -252,7 +248,12 @@ contract GovPool is
 
         _micropoolInfos[delegatee].saveDelegationInfo(delegatee);
 
-        _revoteDelegated(delegatee, VoteType.MicropoolVote);
+        _proposals.revoteDelegated(
+            _voteInfos,
+            _votedInProposals,
+            delegatee,
+            VoteType.MicropoolVote
+        );
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, true);
     }
@@ -285,7 +286,12 @@ contract GovPool is
             _govUserKeeper.delegateNftsTreasury(delegatee, nftIds);
         }
 
-        _revoteDelegated(delegatee, VoteType.TreasuryVote);
+        _proposals.revoteDelegated(
+            _voteInfos,
+            _votedInProposals,
+            delegatee,
+            VoteType.TreasuryVote
+        );
 
         emit DelegatedTreasury(delegatee, amount, nftIds, true);
     }
@@ -304,7 +310,12 @@ contract GovPool is
 
         _micropoolInfos[delegatee].saveDelegationInfo(delegatee);
 
-        _revoteDelegated(delegatee, VoteType.MicropoolVote);
+        _proposals.revoteDelegated(
+            _voteInfos,
+            _votedInProposals,
+            delegatee,
+            VoteType.MicropoolVote
+        );
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, false);
     }
@@ -321,7 +332,12 @@ contract GovPool is
         _govUserKeeper.undelegateTokensTreasury.exec(delegatee, amount);
         _govUserKeeper.undelegateNftsTreasury.exec(delegatee, nftIds);
 
-        _revoteDelegated(delegatee, VoteType.TreasuryVote);
+        _proposals.revoteDelegated(
+            _voteInfos,
+            _votedInProposals,
+            delegatee,
+            VoteType.TreasuryVote
+        );
 
         emit DelegatedTreasury(delegatee, amount, nftIds, false);
     }
@@ -537,69 +553,8 @@ contract GovPool is
         _pendingRewards.updateRewards(_proposals, proposalId, user, rewardType, amount);
     }
 
-    function _updateVotingRewards(
-        uint256 proposalId,
-        address voter,
-        bool isVoteFor,
-        Votes memory votes
-    ) internal {
-        _updateRewards(
-            proposalId,
-            voter,
-            isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst,
-            votes.personal
-        );
-        _updateRewards(
-            proposalId,
-            voter,
-            isVoteFor ? RewardType.VoteForTreasury : RewardType.VoteAgainstTreasury,
-            votes.treasury
-        );
-
-        RewardType micropoolRewardType = isVoteFor
-            ? RewardType.VoteForDelegated
-            : RewardType.VoteAgainstDelegated;
-
-        _updateRewards(proposalId, voter, micropoolRewardType, votes.micropool);
-
-        _micropoolInfos[voter].updateRewards(
-            _proposals,
-            proposalId,
-            votes.micropool,
-            micropoolRewardType
-        );
-    }
-
-    function _cancelVotingRewards(uint256 proposalId, address voter) internal {
-        _pendingRewards.cancelVotingRewards(_proposals, proposalId, voter);
-    }
-
     function _unlock(address user) internal {
         _votedInProposals.unlockInProposals(_voteInfos, _votedInProposals[user].values(), user);
-    }
-
-    function _revoteDelegated(address delegatee, VoteType voteType) internal {
-        uint256[] memory proposalIds = _votedInProposals[delegatee].values();
-
-        for (uint256 i; i < proposalIds.length; i++) {
-            uint256 proposalId = proposalIds[i];
-
-            Votes memory votes = _proposals.revoteDelegated(
-                _voteInfos,
-                _votedInProposals,
-                proposalId,
-                delegatee,
-                voteType
-            );
-
-            _cancelVotingRewards(proposalId, delegatee);
-            _updateVotingRewards(
-                proposalId,
-                delegatee,
-                _voteInfos[proposalId][delegatee].isVoteFor,
-                votes
-            );
-        }
     }
 
     function _onlyThis() internal view {

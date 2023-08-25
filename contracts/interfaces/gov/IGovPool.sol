@@ -103,6 +103,8 @@ interface IGovPool {
         uint64 executionTime;
         uint256 votesFor;
         uint256 votesAgainst;
+        uint256 votesPowerFor;
+        uint256 votesPowerAgainst;
         uint256 nftPowerSnapshotId;
         uint256 givenRewards;
     }

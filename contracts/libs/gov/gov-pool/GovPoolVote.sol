@@ -27,7 +27,7 @@ library GovPoolVote {
         uint256 amount,
         uint256[] calldata nftIds,
         bool isVoteFor
-    ) external returns (IGovPool.Votes memory) {
+    ) external {
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
         IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][msg.sender];
 
@@ -71,45 +71,50 @@ library GovPoolVote {
 
         _checkMinVotesForVoting(core, voteInfo);
 
-        return
-            _updateGlobalState(
-                core,
-                voteInfo,
-                votedInProposals[msg.sender],
-                proposalId,
-                msg.sender,
-                isVoteFor
-            );
+        _updateGlobalState(
+            core,
+            voteInfo,
+            votedInProposals[msg.sender],
+            proposalId,
+            msg.sender,
+            isVoteFor
+        );
     }
 
     function revoteDelegated(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos,
         mapping(address => EnumerableSet.UintSet) storage votedInProposals,
-        uint256 proposalId,
         address voter,
         IGovPool.VoteType voteType
-    ) external returns (IGovPool.Votes memory votes) {
-        IGovPool.ProposalCore storage core = proposals[proposalId].core;
-        IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][voter];
-        IGovPool.VotePower storage votePower = voteInfo.votePowers[voteType];
+    ) external {
+        EnumerableSet.UintSet storage activeProposals = votedInProposals[voter];
 
-        if (core.settings.delegatedVotingAllowed) {
-            return votes;
-        }
+        uint256[] memory proposalIds = activeProposals.values();
 
-        _cancel(votePower);
-        _voteDelegated(core, votePower, voter, voteType);
+        for (uint256 i = 0; i < proposalIds.length; i++) {
+            uint256 proposalId = proposalIds[i];
 
-        return
+            IGovPool.ProposalCore storage core = proposals[proposalId].core;
+            IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][voter];
+            IGovPool.VotePower storage votePower = voteInfo.votePowers[voteType];
+
+            if (core.settings.delegatedVotingAllowed) {
+                continue;
+            }
+
+            _cancel(votePower);
+            _voteDelegated(core, votePower, voter, voteType);
+
             _updateGlobalState(
                 core,
                 voteInfo,
-                votedInProposals[voter],
+                activeProposals,
                 proposalId,
                 voter,
                 voteInfo.isVoteFor
             );
+        }
     }
 
     function cancelVote(
@@ -233,12 +238,14 @@ library GovPoolVote {
         uint256 proposalId,
         address voter,
         bool isVoteFor
-    ) internal returns (IGovPool.Votes memory votes) {
+    ) internal {
         if (_isVoted(voteInfo)) {
-            votes = _globalVote(core, voteInfo, activeVotes, proposalId, voter, isVoteFor);
+            _globalVote(core, voteInfo, activeVotes, proposalId, voter, isVoteFor);
         } else {
             _globalCancel(core, voteInfo, activeVotes, proposalId, isVoteFor);
         }
+
+        (IGovPool.Votes memory votes, ) = _getVotes(voteInfo);
 
         emit VoteChanged(proposalId, voter, isVoteFor, votes);
     }
@@ -250,9 +257,7 @@ library GovPoolVote {
         uint256 proposalId,
         address voter,
         bool isVoteFor
-    ) internal returns (IGovPool.Votes memory) {
-        (IGovPool.Votes memory votes, uint256 totalPowerVoted) = _getVotes(voteInfo);
-
+    ) internal {
         activeVotes.add(proposalId);
 
         require(
@@ -260,11 +265,14 @@ library GovPoolVote {
             "Gov: vote limit reached"
         );
 
+        (, uint256 totalPowerVoted) = _getVotes(voteInfo);
         uint256 votePower = _calculateVotes(voter, totalPowerVoted);
 
         if (isVoteFor) {
+            core.votesPowerFor += totalPowerVoted;
             core.votesFor += votePower;
         } else {
+            core.votesPowerAgainst += totalPowerVoted;
             core.votesAgainst += votePower;
         }
 
@@ -276,12 +284,6 @@ library GovPoolVote {
 
         voteInfo.isVoteFor = isVoteFor;
         voteInfo.totalVoted = votePower;
-
-        votes.personal = votes.personal.ratio(votePower, totalPowerVoted);
-        votes.micropool = votes.micropool.ratio(votePower, totalPowerVoted);
-        votes.treasury = votePower - votes.personal - votes.micropool;
-
-        return votes;
     }
 
     function _globalCancel(
@@ -293,9 +295,13 @@ library GovPoolVote {
     ) internal {
         require(activeVotes.remove(proposalId), "Gov: not active");
 
+        (, uint256 totalPowerVoted) = _getVotes(voteInfo);
+
         if (isVoteFor) {
+            core.votesPowerFor -= totalPowerVoted;
             core.votesFor -= voteInfo.totalVoted;
         } else {
+            core.votesPowerAgainst -= totalPowerVoted;
             core.votesAgainst -= voteInfo.totalVoted;
         }
 

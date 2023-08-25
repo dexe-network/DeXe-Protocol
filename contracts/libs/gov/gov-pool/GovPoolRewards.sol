@@ -86,28 +86,6 @@ library GovPoolRewards {
         emit RewardCredited(proposalId, rewardType, rewardToken, amountToAdd, user);
     }
 
-    function cancelVotingRewards(
-        mapping(address => IGovPool.PendingRewards) storage pendingRewards,
-        mapping(uint256 => IGovPool.Proposal) storage proposals,
-        uint256 proposalId,
-        address user
-    ) external {
-        IGovPool.ProposalCore storage core = proposals[proposalId].core;
-
-        uint256 amountToCancel = pendingRewards[user].votingRewards[proposalId];
-
-        delete pendingRewards[user].votingRewards[proposalId];
-
-        core.givenRewards -= amountToCancel;
-
-        emit RewardCanceled(
-            proposalId,
-            core.settings.rewardsInfo.rewardToken,
-            amountToCancel,
-            user
-        );
-    }
-
     function claimReward(
         mapping(address => IGovPool.PendingRewards) storage pendingRewards,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
