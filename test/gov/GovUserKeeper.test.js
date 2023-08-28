@@ -205,7 +205,6 @@ describe("GovUserKeeper", () => {
       });
     });
 
-    // START!!!
     describe("depositTokens()", () => {
       it("should correctly add tokens to balance", async () => {
         assert.equal(toBN((await userKeeper.votingPower([SECOND], [VoteType.PersonalVote]))[0].power).toFixed(), "0");
@@ -1287,7 +1286,7 @@ describe("GovUserKeeper", () => {
     });
 
     describe("voting power", () => {
-      it.only("should calculate voting power", async () => {
+      it("should calculate voting power", async () => {
         assert.equal(toBN((await userKeeper.votingPower([OWNER], [VoteType.DelegatedVote]))[0].power).toFixed(), "0");
 
         await token.mint(OWNER, wei("10000"));
@@ -1330,11 +1329,43 @@ describe("GovUserKeeper", () => {
           ["1", "3", "5", "9", "2", "8", "4", "7", "6"]
         );
         assert.equal(balanceOwner.ownedLength, "6");
-        console.log((await userKeeper.getFullUserPower(OWNER)).toFixed());
-        console.log((await userKeeper.getUserPowerForVoteType(OWNER, VoteType.PersonalVote)).toFixed());
       });
 
-      it("should calculate custom voting power", async () => {});
+      it("should calculate custom voting power", async () => {
+        await token.mint(OWNER, wei("10000"));
+        await token.approve(userKeeper.address, wei("1000"));
+
+        for (let i = 1; i < 10; i++) {
+          await nft.safeMint(OWNER, i);
+          await nft.approve(userKeeper.address, i);
+        }
+
+        await userKeeper.depositTokens(OWNER, SECOND, wei("1000"));
+        await userKeeper.depositNfts(OWNER, SECOND, [1, 3, 5]);
+
+        assert.equal((await userKeeper.getUserPowerForVoteType(SECOND, VoteType.PersonalVote)).toFixed(), wei("12000"));
+
+        await token.approve(userKeeper.address, wei("2000"));
+        await userKeeper.depositTokens(OWNER, OWNER, wei("2000"));
+        await userKeeper.delegateTokens(OWNER, SECOND, wei("2000"));
+
+        await userKeeper.depositNfts(OWNER, OWNER, [2, 4, 7]);
+        await userKeeper.delegateNfts(OWNER, SECOND, [2, 4, 7]);
+
+        await userKeeper.delegateTokensTreasury(SECOND, wei("3000"));
+        await nft.transferFrom(OWNER, userKeeper.address, "6");
+        await nft.transferFrom(OWNER, userKeeper.address, "8");
+        await nft.transferFrom(OWNER, userKeeper.address, "9");
+        await userKeeper.delegateNftsTreasury(SECOND, [6, 8, 9]);
+
+        assert.equal((await userKeeper.getUserPowerForVoteType(SECOND, VoteType.PersonalVote)).toFixed(), wei("12000"));
+        assert.equal(
+          (await userKeeper.getUserPowerForVoteType(SECOND, VoteType.MicropoolVote)).toFixed(),
+          wei("13000")
+        );
+        assert.equal((await userKeeper.getUserPowerForVoteType(SECOND, VoteType.TreasuryVote)).toFixed(), wei("14000"));
+        assert.equal((await userKeeper.getFullUserPower(SECOND)).toFixed(), wei("39000"));
+      });
     });
 
     describe("snapshot", () => {
