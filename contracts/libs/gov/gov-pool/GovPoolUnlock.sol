@@ -14,10 +14,10 @@ library GovPoolUnlock {
     function unlockInProposals(
         mapping(address => EnumerableSet.UintSet) storage votedInProposals,
         mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos,
-        uint256[] calldata proposalIds,
         address user
     ) external {
         EnumerableSet.UintSet storage userProposals = votedInProposals[user];
+        uint256[] memory proposalIds = userProposals.values();
 
         (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);

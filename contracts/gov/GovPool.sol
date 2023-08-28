@@ -554,7 +554,7 @@ contract GovPool is
     }
 
     function _unlock(address user) internal {
-        _votedInProposals.unlockInProposals(_voteInfos, _votedInProposals[user].values(), user);
+        _votedInProposals.unlockInProposals(_voteInfos, user);
     }
 
     function _onlyThis() internal view {
