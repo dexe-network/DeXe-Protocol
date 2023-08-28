@@ -53,7 +53,7 @@ const ParticipationType = {
 
 const VotePowerType = {
   LINEAR_VOTES: "0",
-  ROOT_VOTES: "1",
+  POLYNOMIAL_VOTES: "1",
   CUSTOM_VOTES: "2",
 };
 

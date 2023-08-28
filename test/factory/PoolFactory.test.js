@@ -2,7 +2,7 @@ const { assert } = require("chai");
 const { toBN, accounts, wei } = require("../../scripts/utils/utils");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
-const { getBytesLinearPowerInit, getBytesRootPowerInit } = require("../utils/gov-vote-power-utils");
+const { getBytesLinearPowerInit, getBytesPolynomialPowerInit } = require("../utils/gov-vote-power-utils");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { DEFAULT_CORE_PROPERTIES, ParticipationType, VotePowerType } = require("../utils/constants");
 const { toPercent } = require("../utils/utils");
@@ -15,7 +15,7 @@ const BABTMock = artifacts.require("BABTMock");
 const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const LinearPower = artifacts.require("LinearPower");
-const RootPower = artifacts.require("RootPower");
+const PolynomialPower = artifacts.require("PolynomialPower");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
 const PoolRegistry = artifacts.require("PoolRegistry");
@@ -189,7 +189,7 @@ describe("PoolFactory", () => {
     let expertNft = await ERC721Expert.new();
     let nftMultiplier = await ERC721Multiplier.new();
     let linearPower = await LinearPower.new();
-    let rootPower = await RootPower.new();
+    let polynomialPower = await PolynomialPower.new();
 
     let govPool = await GovPool.new();
     let govUserKeeper = await GovUserKeeper.new();
@@ -206,7 +206,7 @@ describe("PoolFactory", () => {
       await poolRegistry.EXPERT_NFT_NAME(),
       await poolRegistry.NFT_MULTIPLIER_NAME(),
       await poolRegistry.LINEAR_POWER_NAME(),
-      await poolRegistry.ROOT_POWER_NAME(),
+      await poolRegistry.POLYNOMIAL_POWER_NAME(),
     ];
 
     const poolAddrs = [
@@ -219,7 +219,7 @@ describe("PoolFactory", () => {
       expertNft.address,
       nftMultiplier.address,
       linearPower.address,
-      rootPower.address,
+      polynomialPower.address,
     ];
 
     await poolRegistry.setNewImplementations(poolNames, poolAddrs);
@@ -456,7 +456,7 @@ describe("PoolFactory", () => {
 
         assert.equal(await govUserKeeper.tokenAddress(), token.address);
 
-        const votePower = await RootPower.at(helperContracts[4]);
+        const votePower = await PolynomialPower.at(helperContracts[4]);
 
         assert.equal(await votePower.transformVotes(ZERO_ADDR, 2), 2);
       });
@@ -503,13 +503,13 @@ describe("PoolFactory", () => {
         assert.equal(await govPool.deployerBABTid(), "1");
       });
 
-      it("should deploy pool with root votes", async () => {
+      it("should deploy pool with polynomial votes", async () => {
         let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
 
         const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
 
-        POOL_PARAMETERS.votePowerParams.voteType = VotePowerType.ROOT_VOTES;
-        POOL_PARAMETERS.votePowerParams.initData = getBytesRootPowerInit(1, 2);
+        POOL_PARAMETERS.votePowerParams.voteType = VotePowerType.POLYNOMIAL_VOTES;
+        POOL_PARAMETERS.votePowerParams.initData = getBytesPolynomialPowerInit(1, 2, 3);
 
         POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
         POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govToken;
@@ -519,10 +519,11 @@ describe("PoolFactory", () => {
         let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
         let helperContracts = await govPool.getHelperContracts();
 
-        const votePower = await RootPower.at(helperContracts[4]);
+        const votePower = await PolynomialPower.at(helperContracts[4]);
 
-        assert.equal((await votePower.getVoteModifiers())[0], 1);
-        assert.equal((await votePower.getVoteModifiers())[1], 2);
+        assert.equal((await votePower.getVoteCoefficients())[0], 1);
+        assert.equal((await votePower.getVoteCoefficients())[1], 2);
+        assert.equal((await votePower.getVoteCoefficients())[2], 3);
       });
 
       it("should deploy pool with custom votes", async () => {
@@ -547,12 +548,12 @@ describe("PoolFactory", () => {
         assert.equal(await votePower.transformVotes(ZERO_ADDR, 2), 2);
       });
 
-      it("should revert if error during init root votes", async () => {
+      it("should revert if error during init polynomial votes", async () => {
         let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
 
         const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
 
-        POOL_PARAMETERS.votePowerParams.initData = getBytesRootPowerInit(1, 2);
+        POOL_PARAMETERS.votePowerParams.initData = getBytesPolynomialPowerInit(1, 2, 3);
 
         POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
         POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govToken;

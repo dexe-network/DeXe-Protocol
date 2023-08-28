@@ -85,9 +85,9 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
                 _poolRegistry.LINEAR_POWER_NAME(),
                 parameters.name
             );
-        } else if (parameters.votePowerParams.voteType == VotePowerType.ROOT_VOTES) {
+        } else if (parameters.votePowerParams.voteType == VotePowerType.POLYNOMIAL_VOTES) {
             govPoolDeps.votePowerAddress = _deploy2(
-                _poolRegistry.ROOT_POWER_NAME(),
+                _poolRegistry.POLYNOMIAL_POWER_NAME(),
                 parameters.name
             );
         } else {

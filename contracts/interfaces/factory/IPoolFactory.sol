@@ -14,11 +14,11 @@ import "../core/ICoreProperties.sol";
 interface IPoolFactory {
     /// @notice The enum that holds information about calculating vote power
     /// @param LINEAR_VOTES the vote power = number of tokens
-    /// @param ROOT_VOTES the vote power calculated with root formula
+    /// @param POLYNOMIAL_VOTES the vote power calculated with polynomial formula
     /// @param CUSTOM_VOTES the vote type defined by a customer
     enum VotePowerType {
         LINEAR_VOTES,
-        ROOT_VOTES,
+        POLYNOMIAL_VOTES,
         CUSTOM_VOTES
     }
 
