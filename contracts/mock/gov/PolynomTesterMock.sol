@@ -2,10 +2,12 @@
 pragma solidity ^0.8.4;
 
 import "../../interfaces/gov/IGovPool.sol";
+import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
 contract PolynomTesterMock {
     mapping(address => bool) internal _expertStatus;
     mapping(address => mapping(IGovPool.VoteType => uint256)) internal _votes;
+
     uint256 internal _totalVotes;
 
     function setExpertStatus(address user, bool isExpert) external {
@@ -46,18 +48,16 @@ contract PolynomTesterMock {
         return _expertStatus[user];
     }
 
-    function getUserPowerForVoteType(
-        address user,
-        IGovPool.VoteType voteType
-    ) external view returns (uint256 power) {
-        return _votes[user][voteType];
-    }
+    function votingPower(
+        address[] calldata users,
+        IGovPool.VoteType[] calldata voteTypes,
+        bool
+    ) external view returns (IGovUserKeeper.VotingPowerView[] memory votingPowers) {
+        votingPowers = new IGovUserKeeper.VotingPowerView[](users.length);
 
-    function getFullUserPower(address user) external view returns (uint256 power) {
-        return
-            _votes[user][IGovPool.VoteType.PersonalVote] +
-            _votes[user][IGovPool.VoteType.MicropoolVote] +
-            _votes[user][IGovPool.VoteType.TreasuryVote];
+        for (uint256 i = 0; i < users.length; i++) {
+            votingPowers[i].rawPower = _votes[users[i]][voteTypes[i]];
+        }
     }
 
     function getTotalVoteWeight() external view returns (uint256) {

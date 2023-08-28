@@ -629,45 +629,24 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     function votingPower(
         address[] calldata users,
-        IGovPool.VoteType[] calldata voteTypes
+        IGovPool.VoteType[] calldata voteTypes,
+        bool perNftPowerArray
     ) external view override returns (VotingPowerView[] memory votingPowers) {
-        return users.votingPower(voteTypes);
+        return users.votingPower(voteTypes, perNftPowerArray);
     }
 
     function nftVotingPower(
-        uint256[] memory nftIds
+        uint256[] memory nftIds,
+        bool perNftPowerArray
     ) public view override returns (uint256 nftPower, uint256[] memory perNftPower) {
-        return nftIds.nftVotingPower();
-    }
-
-    // TODO add to interface
-    function getUserPowerForVoteType(
-        address user,
-        IGovPool.VoteType voteType
-    ) public view returns (uint256 power) {
-        (uint256 totalBalance, uint256 ownedBalance) = tokenBalance(user, voteType);
-        power = totalBalance - ownedBalance;
-
-        (uint256[] memory nfts, uint256 l) = nftExactBalance(user, voteType);
-        l = nfts.length - l;
-        assembly {
-            mstore(nfts, l)
-        }
-        (uint256 nftPower, ) = nftVotingPower(nfts);
-        power += nftPower;
-    }
-
-    function getFullUserPower(address user) external view returns (uint256 power) {
-        power =
-            getUserPowerForVoteType(user, IGovPool.VoteType.PersonalVote) +
-            getUserPowerForVoteType(user, IGovPool.VoteType.TreasuryVote) +
-            getUserPowerForVoteType(user, IGovPool.VoteType.MicropoolVote);
+        return nftIds.nftVotingPower(perNftPowerArray);
     }
 
     function delegations(
-        address user
+        address user,
+        bool perNftPowerArray
     ) external view override returns (uint256 power, DelegationInfoView[] memory delegationsInfo) {
-        return _usersInfo[user].delegations();
+        return _usersInfo[user].delegations(perNftPowerArray);
     }
 
     function getWithdrawableAssets(

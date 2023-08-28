@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "@solarity/solidity-lib/libs/utils/TypeCaster.sol";
 import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 
 import "../../../interfaces/gov/IGovPool.sol";
@@ -18,6 +19,7 @@ import "./TokenSaleProposalDecode.sol";
 library TokenSaleProposalBuy {
     using MathHelper for uint256;
     using DecimalsConverter for *;
+    using TypeCaster for *;
     using SafeERC20 for IERC20;
     using TokenSaleProposalDecode for ITokenSaleProposal.Tier;
     using EnumerableMap for EnumerableMap.AddressToUintMap;
@@ -142,8 +144,9 @@ library TokenSaleProposalBuy {
             _canParticipate =
                 IGovUserKeeper(govUserKeeper)
                 .votingPower(
-                    _asSingletonArray(user),
-                    _asSingletonArray(IGovPool.VoteType.DelegatedVote)
+                    user.asSingletonArray(),
+                    _asSingletonArray(IGovPool.VoteType.DelegatedVote),
+                    false
                 )[0].power >
                 tier.decodeDAOVotes();
         } else if (participationType == ITokenSaleProposal.ParticipationType.Whitelist) {
@@ -198,11 +201,6 @@ library TokenSaleProposalBuy {
         IGovPool.VoteType element
     ) private pure returns (IGovPool.VoteType[] memory arr) {
         arr = new IGovPool.VoteType[](1);
-        arr[0] = element;
-    }
-
-    function _asSingletonArray(address element) private pure returns (address[] memory arr) {
-        arr = new address[](1);
         arr[0] = element;
     }
 }

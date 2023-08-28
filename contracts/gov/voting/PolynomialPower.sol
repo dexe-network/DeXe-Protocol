@@ -3,6 +3,8 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
+import "@solarity/solidity-lib/libs/utils/TypeCaster.sol";
+
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/voting/IVotePower.sol";
@@ -14,6 +16,7 @@ import "../../core/Globals.sol";
 contract PolynomialPower is IVotePower, OwnableUpgradeable {
     using MathHelper for uint256;
     using MathHelper for int256;
+    using TypeCaster for *;
 
     int256 private constant HOLDER_A = 1041 * (10 ** 22);
     int256 private constant HOLDER_B = -7211 * (10 ** 19);
@@ -50,6 +53,7 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
         uint256 votes
     ) external view override returns (uint256) {
         IGovPool govPool = IGovPool(owner());
+
         bool expertStatus = govPool.getExpertStatus(voter);
         (uint256 treasuryRatio, uint256 totalSupply) = _calculateParameters(voter);
 
@@ -70,18 +74,37 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
 
     function _calculateParameters(
         address voter
-    ) internal view returns (uint256 treasuryRatio, uint totalSupply) {
+    ) internal view returns (uint256 treasuryRatio, uint256 totalSupply) {
+        uint256 fullPower;
+        uint256 treasuryPower;
+
+        (totalSupply, fullPower, treasuryPower) = _getPower(voter);
+
+        treasuryRatio = fullPower == 0 ? 0 : treasuryPower.ratio(PRECISION, fullPower);
+    }
+
+    function _getPower(
+        address user
+    ) internal view returns (uint256 totalPower, uint256 fullPower, uint256 treasuryPower) {
         (, address userKeeperAddress, , , ) = IGovPool(payable(owner())).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
-        uint256 treasuryPower = userKeeper.getUserPowerForVoteType(
-            voter,
-            IGovPool.VoteType.TreasuryVote
-        );
-        uint256 fullPower = userKeeper.getFullUserPower(voter);
+        IGovPool.VoteType[] memory voteTypes = new IGovPool.VoteType[](3);
 
-        treasuryRatio = fullPower == 0 ? 0 : treasuryPower.ratio(PRECISION, fullPower);
-        totalSupply = userKeeper.getTotalVoteWeight();
+        voteTypes[0] = IGovPool.VoteType.PersonalVote;
+        voteTypes[1] = IGovPool.VoteType.MicropoolVote;
+        voteTypes[2] = IGovPool.VoteType.TreasuryVote;
+
+        IGovUserKeeper.VotingPowerView[] memory votingPowers = userKeeper.votingPower(
+            [user, user, user].asDynamic(),
+            voteTypes,
+            false
+        );
+
+        treasuryPower = votingPowers[2].rawPower;
+        fullPower = votingPowers[0].rawPower + votingPowers[1].rawPower + treasuryPower;
+
+        totalPower = userKeeper.getTotalVoteWeight();
     }
 
     function _forHolders(uint256 x, uint256 totalSupply) internal view returns (uint256) {
@@ -93,6 +116,7 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
 
         int256 t = int256(((100 * x * PRECISION) / totalSupply) - 7 * PRECISION);
         int256 polynom = _calculatePolynomial(0, HOLDER_A, HOLDER_B, HOLDER_C, 0, t);
+
         return
             treshold + _k3.ratio(uint256(polynom), PRECISION).ratio(totalSupply, 100 * PRECISION);
     }
@@ -115,6 +139,7 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
                 EXPERT_BEFORE_TRESHOLD_D,
                 t
             );
+
             return uint256(polynom).ratio(totalSupply, 100 * PRECISION).ratio(_k, PRECISION);
         } else {
             int256 t = int256(((100 * x * PRECISION) / totalSupply) - PRECISION.ratio(663, 100));
@@ -126,6 +151,7 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
                 EXPERT_E,
                 t
             );
+
             return uint256(polynom).ratio(totalSupply, 100 * PRECISION).ratio(_k, PRECISION);
         }
     }
@@ -139,6 +165,7 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
         int256 x // variable with precision
     ) internal pure returns (int256 result) {
         int256 p = int256(PRECISION);
+
         result = a0;
         result += a1.signedRatio(x, p);
         result += a2.signedRatio(x, p).signedRatio(x, p);
