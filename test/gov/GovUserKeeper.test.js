@@ -205,6 +205,7 @@ describe("GovUserKeeper", () => {
       });
     });
 
+    // START!!!
     describe("depositTokens()", () => {
       it("should correctly add tokens to balance", async () => {
         assert.equal(toBN((await userKeeper.votingPower([SECOND], [VoteType.PersonalVote]))[0].power).toFixed(), "0");
@@ -1286,7 +1287,7 @@ describe("GovUserKeeper", () => {
     });
 
     describe("voting power", () => {
-      it("should calculate voting power", async () => {
+      it.only("should calculate voting power", async () => {
         assert.equal(toBN((await userKeeper.votingPower([OWNER], [VoteType.DelegatedVote]))[0].power).toFixed(), "0");
 
         await token.mint(OWNER, wei("10000"));
@@ -1329,7 +1330,11 @@ describe("GovUserKeeper", () => {
           ["1", "3", "5", "9", "2", "8", "4", "7", "6"]
         );
         assert.equal(balanceOwner.ownedLength, "6");
+        console.log((await userKeeper.getFullUserPower(OWNER)).toFixed());
+        console.log((await userKeeper.getUserPowerForVoteType(OWNER, VoteType.PersonalVote)).toFixed());
       });
+
+      it("should calculate custom voting power", async () => {});
     });
 
     describe("snapshot", () => {

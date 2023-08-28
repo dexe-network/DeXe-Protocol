@@ -645,8 +645,14 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address user,
         IGovPool.VoteType voteType
     ) public view returns (uint256 power) {
-        (power, ) = tokenBalance(user, voteType);
-        (uint256[] memory nfts, ) = nftExactBalance(user, voteType);
+        (uint256 totalBalance, uint256 ownedBalance) = tokenBalance(user, voteType);
+        power = totalBalance - ownedBalance;
+
+        (uint256[] memory nfts, uint256 l) = nftExactBalance(user, voteType);
+        l = nfts.length - l;
+        assembly {
+            mstore(nfts, l)
+        }
         (uint256 nftPower, ) = nftVotingPower(nfts);
         power += nftPower;
     }
