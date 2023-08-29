@@ -17,29 +17,20 @@ library GovPoolMicropool {
     using MathHelper for uint256;
     using ArrayHelper for uint256[];
 
-    event MicropoolRewardClaimed(uint256 proposalId, address user, address token, uint256 amount);
+    event DelegatorRewardsClaimed(
+        uint256 proposalId,
+        address delegator,
+        address delegatee,
+        address token,
+        uint256 amount
+    );
 
     function updateRewards(
         IGovPool.MicropoolInfo storage micropool,
-        mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId,
-        uint256 amount,
-        IGovPool.RewardType rewardType
+        uint256 amount
     ) external {
-        IGovSettings.RewardsInfo storage rewardsInfo = proposals[proposalId]
-            .core
-            .settings
-            .rewardsInfo;
-
-        (uint256 percentage, ) = ICoreProperties(IGovPool(address(this)).coreProperties())
-            .getVoteRewardsPercentages();
-
-        amount -= amount.percentage(percentage);
-
-        micropool.pendingRewards[proposalId] = rewardType == IGovPool.RewardType.VoteForDelegated
-            ? amount.ratio(rewardsInfo.voteForRewardsCoefficient, PRECISION)
-            : amount.ratio(rewardsInfo.voteAgainstRewardsCoefficient, PRECISION);
-
+        /// TODO: event needed?
         micropool.pendingRewards[proposalId] = amount;
     }
 
@@ -75,31 +66,27 @@ library GovPoolMicropool {
         IGovPool.MicropoolInfo storage micropool,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos,
-        uint256[] calldata proposalIds,
+        uint256 proposalId,
         address delegatee
     ) external {
-        for (uint256 i; i < proposalIds.length; i++) {
-            uint256 reward = _getExpectedRewards(
-                micropool,
-                proposals,
-                voteInfos,
-                proposalIds[i],
-                msg.sender,
-                delegatee
-            );
+        uint256 reward = _getExpectedRewards(
+            micropool,
+            proposals,
+            voteInfos,
+            proposalId,
+            msg.sender,
+            delegatee
+        );
 
-            require(reward != 0, "Gov: no micropool rewards");
+        require(reward != 0, "Gov: no micropool rewards");
 
-            uint256 proposalId = proposalIds[i];
+        micropool.delegatorInfos[msg.sender].isClaimed[proposalId] = true;
 
-            micropool.delegatorInfos[msg.sender].isClaimed[proposalId] = true;
+        address rewardToken = proposals[proposalId].core.settings.rewardsInfo.rewardToken;
 
-            address rewardToken = proposals[proposalId].core.settings.rewardsInfo.rewardToken;
+        rewardToken.sendFunds(msg.sender, reward, TokenBalance.TransferType.TryMint);
 
-            rewardToken.sendFunds(msg.sender, reward, TokenBalance.TransferType.TryMint);
-
-            emit MicropoolRewardClaimed(proposalId, msg.sender, rewardToken, reward);
-        }
+        emit DelegatorRewardsClaimed(proposalId, msg.sender, delegatee, rewardToken, reward);
     }
 
     function getDelegatorRewards(

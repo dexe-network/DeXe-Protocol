@@ -16,7 +16,7 @@ library GovPoolVote {
     using Math for uint256;
     using MathHelper for uint256;
 
-    event VoteChanged(uint256 proposalId, address voter, bool isVoteFor, IGovPool.Votes votes);
+    event VoteChanged(uint256 proposalId, address voter, bool isVoteFor, uint256 totalVoted);
 
     function vote(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
@@ -162,7 +162,7 @@ library GovPoolVote {
         IGovPool.VoteInfo storage voteInfo,
         IGovPool.VoteType voteType
     ) external view returns (uint256) {
-        (IGovPool.Votes memory votes, uint256 totalPowerVoted) = _getVotes(voteInfo);
+        (IGovPool.Votes memory votes, uint256 totalPowerVoted) = getVotes(voteInfo);
 
         uint256 typedVotes;
         if (voteType == IGovPool.VoteType.PersonalVote) {
@@ -245,9 +245,7 @@ library GovPoolVote {
             _globalCancel(core, voteInfo, activeVotes, proposalId, isVoteFor);
         }
 
-        (IGovPool.Votes memory votes, ) = _getVotes(voteInfo);
-
-        emit VoteChanged(proposalId, voter, isVoteFor, votes);
+        emit VoteChanged(proposalId, voter, isVoteFor, voteInfo.totalVoted);
     }
 
     function _globalVote(
@@ -265,7 +263,7 @@ library GovPoolVote {
             "Gov: vote limit reached"
         );
 
-        (, uint256 totalPowerVoted) = _getVotes(voteInfo);
+        (, uint256 totalPowerVoted) = getVotes(voteInfo);
         uint256 votePower = _calculateVotes(voter, totalPowerVoted);
 
         if (isVoteFor) {
@@ -295,7 +293,7 @@ library GovPoolVote {
     ) internal {
         require(activeVotes.remove(proposalId), "Gov: not active");
 
-        (, uint256 totalPowerVoted) = _getVotes(voteInfo);
+        (, uint256 totalPowerVoted) = getVotes(voteInfo);
 
         if (isVoteFor) {
             core.votesPowerFor -= totalPowerVoted;
@@ -336,9 +334,9 @@ library GovPoolVote {
         require(amount <= tokenBalance - ownedBalance, "Gov: wrong vote amount");
     }
 
-    function _getVotes(
+    function getVotes(
         IGovPool.VoteInfo storage voteInfo
-    ) internal view returns (IGovPool.Votes memory votes, uint256 totalPowerVoted) {
+    ) public view returns (IGovPool.Votes memory votes, uint256 totalPowerVoted) {
         mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
 
         votes = IGovPool.Votes({
@@ -371,7 +369,7 @@ library GovPoolVote {
         IGovPool.ProposalCore storage core,
         IGovPool.VoteInfo storage voteInfo
     ) internal view {
-        (, uint256 totalPowerVoted) = _getVotes(voteInfo);
+        (, uint256 totalPowerVoted) = getVotes(voteInfo);
 
         require(totalPowerVoted >= core.settings.minVotesForVoting, "Gov: low voting power");
     }

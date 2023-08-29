@@ -344,6 +344,10 @@ contract GovPool is
 
     function claimRewards(uint256[] calldata proposalIds) external override onlyBABTHolder {
         for (uint256 i; i < proposalIds.length; i++) {
+            uint256 proposalId = proposalIds[i];
+
+            _updateRewards(proposalId, msg.sender, RewardType.Vote);
+
             _pendingRewards.claimReward(_proposals, proposalIds[i]);
         }
     }
@@ -352,7 +356,13 @@ contract GovPool is
         uint256[] calldata proposalIds,
         address delegatee
     ) external override onlyBABTHolder {
-        _micropoolInfos[delegatee].claim(_proposals, _voteInfos, proposalIds, delegatee);
+        for (uint256 i; i < proposalIds.length; i++) {
+            uint256 proposalId = proposalIds[i];
+
+            _updateRewards(proposalId, delegatee, RewardType.Vote);
+
+            _micropoolInfos[delegatee].claim(_proposals, _voteInfos, proposalId, delegatee);
+        }
     }
 
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
@@ -541,16 +551,29 @@ contract GovPool is
     }
 
     function _updateRewards(uint256 proposalId, address user, RewardType rewardType) internal {
-        _updateRewards(proposalId, user, rewardType, 0);
-    }
+        if (rewardType == RewardType.Vote) {
+            IGovPool.VoteInfo storage info = _voteInfos[proposalId][user];
 
-    function _updateRewards(
-        uint256 proposalId,
-        address user,
-        RewardType rewardType,
-        uint256 amount
-    ) internal {
-        _pendingRewards.updateRewards(_proposals, proposalId, user, rewardType, amount);
+            (Votes memory votes, uint256 totalPowerVoted) = info.getVotes();
+
+            uint256 delegatorRewards = _pendingRewards.updateVotingRewards(
+                _proposals,
+                proposalId,
+                user,
+                info.isVoteFor,
+                info.totalVoted,
+                totalPowerVoted,
+                votes
+            );
+
+            if (delegatorRewards != 0) {
+                _micropoolInfos[user].updateRewards(proposalId, delegatorRewards);
+            }
+        } else if (rewardType == RewardType.SaveOffchainResults) {
+            _pendingRewards.updateOffchainRewards(_proposals, proposalId, user);
+        } else {
+            _pendingRewards.updateStaticRewards(_proposals, proposalId, user, rewardType);
+        }
     }
 
     function _unlock(address user) internal {

@@ -37,6 +37,7 @@ interface IGovPool {
         Undefined
     }
 
+    /// TODO: docs
     /// @notice The enum that holds information about reward type
     /// @param Create the reward type for proposal creation
     /// @param VoteFor the reward type for voting for proposal
@@ -49,12 +50,7 @@ interface IGovPool {
     /// @param SaveOffchainResults the reward type for saving off-chain results
     enum RewardType {
         Create,
-        VoteFor,
-        VoteAgainst,
-        VoteForDelegated,
-        VoteAgainstDelegated,
-        VoteForTreasury,
-        VoteAgainstTreasury,
+        Vote,
         Execute,
         SaveOffchainResults
     }
@@ -211,8 +207,8 @@ interface IGovPool {
     /// @param offchainRewards matching off-chain token addresses to their rewards
     /// @param offchainTokens the list of off-chain token addresses
     struct PendingRewards {
-        mapping(uint256 => uint256) votingRewards;
-        mapping(uint256 => uint256) staticRewards;
+        mapping(uint256 => bool) areVotingRewardsSet;
+        mapping(uint256 => uint256) onchainRewards;
         mapping(address => uint256) offchainRewards;
         EnumerableSet.AddressSet offchainTokens;
     }
