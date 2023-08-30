@@ -86,7 +86,7 @@ library GovPoolExecute {
     function _getCommission(IGovPool.ProposalCore storage core) internal view returns (uint256) {
         return
             core.givenRewards +
-            (core.votesPowerFor + core.votesPowerAgainst).ratio(
+            (core.rawVotesFor + core.rawVotesAgainst).ratio(
                 core.settings.rewardsInfo.voteRewardsCoefficient,
                 PRECISION
             );

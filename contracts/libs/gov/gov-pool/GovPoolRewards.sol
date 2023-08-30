@@ -232,14 +232,15 @@ library GovPoolRewards {
         IGovPool.ProposalCore storage core,
         IGovPool.VoteInfo storage voteInfo
     ) internal view returns (uint256) {
-        (uint256 coreVotes, uint256 coreVotesPower) = voteInfo.isVoteFor
-            ? (core.votesFor, core.votesPowerFor)
-            : (core.votesAgainst, core.votesPowerAgainst);
+        (uint256 coreVotes, uint256 coreRawVotes) = voteInfo.isVoteFor
+            ? (core.votesFor, core.rawVotesFor)
+            : (core.votesAgainst, core.rawVotesAgainst);
 
         return
-            coreVotesPower
-                .ratio(core.settings.rewardsInfo.voteRewardsCoefficient, PRECISION)
-                .ratio(voteInfo.totalVoted, coreVotes);
+            coreRawVotes.ratio(core.settings.rewardsInfo.voteRewardsCoefficient, PRECISION).ratio(
+                voteInfo.totalVoted,
+                coreVotes
+            );
     }
 
     function _splitVotingRewards(
@@ -247,23 +248,23 @@ library GovPoolRewards {
         address user,
         uint256 totalRewards
     ) internal view returns (uint256 votingRewards, uint256 delegatorRewards) {
-        mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
+        mapping(IGovPool.VoteType => IGovPool.RawVote) storage rawVotes = voteInfo.rawVotes;
 
         (uint256 micropoolPercentage, uint256 treasuryPercentage) = ICoreProperties(
             IGovPool(address(this)).coreProperties()
         ).getVoteRewardsPercentages();
 
-        uint256 personalRewards = votePowers[IGovPool.VoteType.PersonalVote].powerVoted;
-        uint256 micropoolRewards = votePowers[IGovPool.VoteType.MicropoolVote].powerVoted;
-        uint256 treasuryRewards = votePowers[IGovPool.VoteType.TreasuryVote].powerVoted;
-        uint256 totalPowerVoted = personalRewards + micropoolRewards + treasuryRewards;
+        uint256 personalRewards = rawVotes[IGovPool.VoteType.PersonalVote].totalVoted;
+        uint256 micropoolRewards = rawVotes[IGovPool.VoteType.MicropoolVote].totalVoted;
+        uint256 treasuryRewards = rawVotes[IGovPool.VoteType.TreasuryVote].totalVoted;
+        uint256 totalRawVotes = personalRewards + micropoolRewards + treasuryRewards;
 
         personalRewards = _getMultipliedRewards(
             user,
-            totalRewards.ratio(personalRewards, totalPowerVoted)
+            totalRewards.ratio(personalRewards, totalRawVotes)
         );
-        micropoolRewards = totalRewards.ratio(micropoolRewards, totalPowerVoted);
-        treasuryRewards = totalRewards.ratio(treasuryRewards, totalPowerVoted).percentage(
+        micropoolRewards = totalRewards.ratio(micropoolRewards, totalRawVotes);
+        treasuryRewards = totalRewards.ratio(treasuryRewards, totalRawVotes).percentage(
             treasuryPercentage
         );
 

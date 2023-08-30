@@ -59,8 +59,8 @@ library GovPoolCreate {
             executionTime: 0,
             votesFor: 0,
             votesAgainst: 0,
-            votesPowerFor: 0,
-            votesPowerAgainst: 0,
+            rawVotesFor: 0,
+            rawVotesAgainst: 0,
             nftPowerSnapshotId: snapshotId,
             givenRewards: 0
         });

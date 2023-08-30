@@ -99,8 +99,8 @@ interface IGovPool {
         uint64 executionTime;
         uint256 votesFor;
         uint256 votesAgainst;
-        uint256 votesPowerFor;
-        uint256 votesPowerAgainst;
+        uint256 rawVotesFor;
+        uint256 rawVotesAgainst;
         uint256 nftPowerSnapshotId;
         uint256 givenRewards;
     }
@@ -146,15 +146,15 @@ interface IGovPool {
     /// @param totalVoted the total power of votes from one user for the proposal
     /// @param tokensVoted the total erc20 amount voted from one user for the proposal
     /// @param nftsVoted the set of ids of nfts voted from one user for the  proposal
-    struct VotePower {
+    struct RawVote {
         uint256 tokensVoted;
-        uint256 powerVoted;
+        uint256 totalVoted;
         EnumerableSet.UintSet nftsVoted;
     }
 
     /// TODO: docs
     struct VoteInfo {
-        mapping(VoteType => VotePower) votePowers;
+        mapping(VoteType => RawVote) rawVotes;
         bool isVoteFor;
         uint256 totalVoted;
     }
@@ -168,7 +168,7 @@ interface IGovPool {
         bool isVoteFor;
         uint256 totalVoted;
         uint256 tokensVoted;
-        uint256 powerVoted;
+        uint256 totalRawVoted;
         uint256[] nftsVoted;
     }
 

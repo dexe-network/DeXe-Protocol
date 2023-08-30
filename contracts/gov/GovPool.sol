@@ -463,15 +463,15 @@ contract GovPool is
         VoteType voteType
     ) external view override returns (VoteInfoView memory voteInfo) {
         VoteInfo storage info = _voteInfos[proposalId][voter];
-        VotePower storage power = info.votePowers[voteType];
+        RawVote storage rawVote = info.rawVotes[voteType];
 
         return
             VoteInfoView({
                 isVoteFor: info.isVoteFor,
                 totalVoted: info.totalVoted,
-                tokensVoted: power.tokensVoted,
-                powerVoted: power.powerVoted,
-                nftsVoted: power.nftsVoted.values()
+                tokensVoted: rawVote.tokensVoted,
+                totalRawVoted: rawVote.totalVoted,
+                nftsVoted: rawVote.nftsVoted.values()
             });
     }
 

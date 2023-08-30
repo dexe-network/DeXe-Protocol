@@ -139,7 +139,7 @@ library GovPoolMicropool {
         (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
-        IGovPool.VotePower storage micropoolPower = voteInfos[proposalId][delegatee].votePowers[
+        IGovPool.RawVote storage micropoolRawVote = voteInfos[proposalId][delegatee].rawVotes[
             IGovPool.VoteType.MicropoolVote
         ];
         IGovPool.DelegatorInfo storage delegatorInfo = micropool.delegatorInfos[delegator];
@@ -166,6 +166,6 @@ library GovPoolMicropool {
                 core.nftPowerSnapshotId
             );
 
-        return pendingRewards.ratio(delegationAmount, micropoolPower.powerVoted);
+        return pendingRewards.ratio(delegationAmount, micropoolRawVote.totalVoted);
     }
 }
