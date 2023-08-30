@@ -170,7 +170,6 @@ library GovPoolRewards {
             uint256 proposalId = proposalIds[i];
 
             IGovPool.ProposalCore storage core = proposals[proposalId].core;
-            IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][user];
 
             if (core.executionTime == 0) {
                 continue;
