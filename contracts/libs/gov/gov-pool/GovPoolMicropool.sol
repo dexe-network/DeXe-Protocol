@@ -30,7 +30,6 @@ library GovPoolMicropool {
         uint256 proposalId,
         uint256 amount
     ) external {
-        /// TODO: event needed?
         micropool.pendingRewards[proposalId] = amount;
     }
 

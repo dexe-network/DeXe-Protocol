@@ -505,7 +505,7 @@ contract GovPool is
         address user,
         uint256[] calldata proposalIds
     ) external view override returns (PendingRewardsView memory) {
-        return _pendingRewards.getPendingRewards(_proposals, user, proposalIds);
+        return _pendingRewards.getPendingRewards(_proposals, _voteInfos, user, proposalIds);
     }
 
     function getDelegatorRewards(

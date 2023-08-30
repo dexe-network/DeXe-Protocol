@@ -90,16 +90,17 @@ library GovPoolRewards {
     ) external returns (uint256 delegatorRewards) {
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
         IGovPool.PendingRewards storage userRewards = pendingRewards[user];
-        IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][user];
+
+        if (userRewards.areVotingRewardsSet[proposalId]) {
+            return 0;
+        }
 
         uint256 votingRewards;
-        (votingRewards, delegatorRewards) = _getVotingRewards(
-            core,
-            userRewards,
-            voteInfo,
-            proposalId,
-            user
-        );
+        (votingRewards, delegatorRewards) = _getVotingRewards(core, voteInfos, proposalId, user);
+
+        if (votingRewards == 0 && delegatorRewards == 0) {
+            return 0;
+        }
 
         userRewards.onchainRewards[proposalId] += votingRewards;
         userRewards.areVotingRewardsSet[proposalId] = true;
@@ -153,6 +154,7 @@ library GovPoolRewards {
     function getPendingRewards(
         mapping(address => IGovPool.PendingRewards) storage pendingRewards,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
+        mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos,
         address user,
         uint256[] calldata proposalIds
     ) external view returns (IGovPool.PendingRewardsView memory rewards) {
@@ -167,12 +169,20 @@ library GovPoolRewards {
         for (uint256 i = 0; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
 
-            if (proposals[proposalId].core.executionTime == 0) {
+            IGovPool.ProposalCore storage core = proposals[proposalId].core;
+            IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][user];
+
+            if (core.executionTime == 0) {
                 continue;
             }
 
-            /// TODO: predict voting rewards
             rewards.onchainRewards[i] = userRewards.onchainRewards[proposalId];
+
+            if (!userRewards.areVotingRewardsSet[proposalId]) {
+                (uint256 votingRewards, ) = _getVotingRewards(core, voteInfos, proposalId, user);
+
+                rewards.onchainRewards[i] += votingRewards;
+            }
         }
 
         for (uint256 i = 0; i < rewards.offchainTokens.length; i++) {
@@ -203,20 +213,17 @@ library GovPoolRewards {
 
     function _getVotingRewards(
         IGovPool.ProposalCore storage core,
-        IGovPool.PendingRewards storage userRewards,
-        IGovPool.VoteInfo storage voteInfo,
+        mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos,
         uint256 proposalId,
         address user
     ) internal view returns (uint256 votingRewards, uint256 delegatorRewards) {
+        IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][user];
+
         IGovPool.ProposalState executedState = voteInfo.isVoteFor
             ? IGovPool.ProposalState.ExecutedFor
             : IGovPool.ProposalState.ExecutedAgainst;
 
-        /// TODO: ... || isVoted?
-        if (
-            IGovPool(address(this)).getProposalState(proposalId) != executedState ||
-            userRewards.areVotingRewardsSet[proposalId]
-        ) {
+        if (IGovPool(address(this)).getProposalState(proposalId) != executedState) {
             return (0, 0);
         }
 
