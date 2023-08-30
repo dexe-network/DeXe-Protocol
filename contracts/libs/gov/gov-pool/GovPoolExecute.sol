@@ -71,7 +71,7 @@ library GovPoolExecute {
             msg.sender
         );
 
-        core.settings.rewardsInfo.rewardToken.payCommission(core.givenRewards);
+        core.settings.rewardsInfo.rewardToken.payCommission(_getCommission(core));
     }
 
     function _proposalActionsResult(
@@ -81,5 +81,14 @@ library GovPoolExecute {
 
         return
             core.votesFor > core.votesAgainst ? proposal.actionsOnFor : proposal.actionsOnAgainst;
+    }
+
+    function _getCommission(IGovPool.ProposalCore storage core) internal view returns (uint256) {
+        return
+            core.givenRewards +
+            (core.votesPowerFor + core.votesPowerAgainst).ratio(
+                core.settings.rewardsInfo.voteRewardsCoefficient,
+                PRECISION
+            );
     }
 }
