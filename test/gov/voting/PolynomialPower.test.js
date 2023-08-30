@@ -4,13 +4,13 @@ const { PRECISION, DECIMAL } = require("../../../scripts/utils/constants");
 const truffleAssert = require("truffle-assertions");
 const Reverter = require("../../helpers/reverter");
 
-const PolynomTesterMock = artifacts.require("PolynomTesterMock");
+const PolynomialTesterMock = artifacts.require("PolynomialTesterMock");
 const PolynomialPower = artifacts.require("PolynomialPower");
 
 PolynomialPower.numberFormat = "BigNumber";
-PolynomTesterMock.numberFormat = "BigNumber";
+PolynomialTesterMock.numberFormat = "BigNumber";
 
-describe("PolynomialPower", () => {
+describe.only("PolynomialPower", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -21,13 +21,13 @@ describe("PolynomialPower", () => {
   const reverter = new Reverter();
 
   async function forHolders(votes) {
-    v = toBN(votes);
+    const v = toBN(votes);
 
     let totalSupply = toBN(await govPool.getTotalVoteWeight());
     let [k1, k2, k3] = Object.entries(await power.getVoteCoefficients()).map((x) => toBN(x[1]).div(PRECISION));
-    let treshold = totalSupply.times(7).div(100).minus(7);
+    let threshold = totalSupply.times(7).div(100).minus(7);
 
-    if (v.comparedTo(treshold) == -1) {
+    if (v.comparedTo(threshold) === -1) {
       return v;
     }
 
@@ -42,13 +42,13 @@ describe("PolynomialPower", () => {
     t = t.plus(t2).plus(t3);
     t = t.times(k3);
     t = t.times(totalSupply).div(100);
-    t = t.plus(treshold);
+    t = t.plus(threshold);
 
     return t;
   }
 
   async function forExpert(votes, isDao) {
-    v = toBN(votes);
+    const v = toBN(votes);
 
     let totalSupply = toBN(await govPool.getTotalVoteWeight());
     let [k1, k2, k3] = Object.entries(await power.getVoteCoefficients()).map((x) => toBN(x[1]).div(PRECISION));
@@ -60,9 +60,9 @@ describe("PolynomialPower", () => {
       k = k2;
     }
 
-    let treshold = totalSupply.times("0.0663");
+    let threshold = totalSupply.times("0.0663");
 
-    if (v.comparedTo(treshold) == -1) {
+    if (v.comparedTo(threshold) === -1) {
       let t = v.times(100).div(totalSupply);
       let t2 = t.times(t);
       let t3 = t2.times(t);
@@ -141,7 +141,7 @@ describe("PolynomialPower", () => {
     SECOND = await accounts(1);
     THIRD = await accounts(2);
 
-    govPool = await PolynomTesterMock.new();
+    govPool = await PolynomialTesterMock.new();
     power = await PolynomialPower.new();
 
     await power.__PolynomialPower_init(PRECISION.times("1.08"), PRECISION.times("0.92"), PRECISION.times("0.97"));

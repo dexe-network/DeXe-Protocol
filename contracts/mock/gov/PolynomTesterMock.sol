@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
-contract PolynomTesterMock {
+contract PolynomialTesterMock {
     mapping(address => bool) internal _expertStatus;
     mapping(address => mapping(IGovPool.VoteType => uint256)) internal _votes;
 
