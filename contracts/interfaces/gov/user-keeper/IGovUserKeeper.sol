@@ -53,7 +53,9 @@ interface IGovUserKeeper {
     /// @param nftIds the array of nft ids, bounded by index with perNftPower
     struct VotingPowerView {
         uint256 power;
+        uint256 rawPower;
         uint256 nftPower;
+        uint256 rawNftPower;
         uint256[] perNftPower;
         uint256 ownedBalance;
         uint256 ownedLength;
@@ -284,26 +286,32 @@ interface IGovUserKeeper {
     /// @notice The function for getting voting power of users
     /// @param users the array of users addresses
     /// @param voteTypes the array of vote types
+    /// @param perNftPowerArray should the nft powers array be calculated
     /// @return votingPowers the array of VotingPowerView structs
     function votingPower(
         address[] calldata users,
-        IGovPool.VoteType[] calldata voteTypes
+        IGovPool.VoteType[] calldata voteTypes,
+        bool perNftPowerArray
     ) external view returns (VotingPowerView[] memory votingPowers);
 
     /// @notice The function for getting power of nfts by ids
     /// @param nftIds the array of nft ids
+    /// @param perNftPowerArray should the nft powers array be calculated
     /// @return nftPower the total power of nfts
     /// @return perNftPower the array of nft powers, bounded with nftIds by index
     function nftVotingPower(
-        uint256[] memory nftIds
+        uint256[] memory nftIds,
+        bool perNftPowerArray
     ) external view returns (uint256 nftPower, uint256[] memory perNftPower);
 
     /// @notice The function for getting information about user's delegations
     /// @param user the address of user
+    /// @param perNftPowerArray should the nft powers array be calculated
     /// @return power the total delegated power
     /// @return delegationsInfo the array of DelegationInfoView structs
     function delegations(
-        address user
+        address user,
+        bool perNftPowerArray
     ) external view returns (uint256 power, DelegationInfoView[] memory delegationsInfo);
 
     /// @notice The function for getting information about funds that can be withdrawn

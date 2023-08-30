@@ -32,7 +32,7 @@ const TokenSaleProposal = artifacts.require("TokenSaleProposal");
 const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const LinearPower = artifacts.require("LinearPower");
-const RootPower = artifacts.require("RootPower");
+const PolynomialPower = artifacts.require("PolynomialPower");
 
 async function linkGovPool(deployer) {
   await deployer.deploy(GovPoolCreateLib);
@@ -111,7 +111,7 @@ module.exports = async (deployer, logger) => {
   const expertNft = await deployer.deploy(ERC721Expert);
   const nftMultiplier = await deployer.deploy(ERC721Multiplier);
   const linearPower = await deployer.deploy(LinearPower);
-  const rootPower = await deployer.deploy(RootPower);
+  const polynomialPower = await deployer.deploy(PolynomialPower);
 
   const govPoolName = await poolRegistry.GOV_POOL_NAME();
   const govSettingsName = await poolRegistry.SETTINGS_NAME();
@@ -122,7 +122,7 @@ module.exports = async (deployer, logger) => {
   const expertNftName = await poolRegistry.EXPERT_NFT_NAME();
   const nftMultiplierName = await poolRegistry.NFT_MULTIPLIER_NAME();
   const linearPowerName = await poolRegistry.LINEAR_POWER_NAME();
-  const rootPowerName = await poolRegistry.ROOT_POWER_NAME();
+  const polynomialPowerName = await poolRegistry.POLYNOMIAL_POWER_NAME();
 
   logger.logTransaction(
     await poolRegistry.setNewImplementations(
@@ -136,7 +136,7 @@ module.exports = async (deployer, logger) => {
         expertNftName,
         nftMultiplierName,
         linearPowerName,
-        rootPowerName,
+        polynomialPowerName,
       ],
       [
         govPool.address,
@@ -149,7 +149,7 @@ module.exports = async (deployer, logger) => {
         nftMultiplier.address,
 
         linearPower.address,
-        rootPower.address,
+        polynomialPower.address,
       ]
     ),
     "Set GovPools implementations"

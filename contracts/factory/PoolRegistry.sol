@@ -26,7 +26,7 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     string public constant NFT_MULTIPLIER_NAME = "NFT_MULTIPLIER";
 
     string public constant LINEAR_POWER_NAME = "LINEAR_POWER";
-    string public constant ROOT_POWER_NAME = "ROOT_POWER";
+    string public constant POLYNOMIAL_POWER_NAME = "POLYNOMIAL_POWER";
 
     address internal _poolFactory;
 

@@ -9,27 +9,31 @@ const getBytesLinearPowerInit = () => {
   );
 };
 
-const getBytesRootPowerInit = (regularVoteModifier, expertVoteModifier) => {
+const getBytesPolynomialPowerInit = (k1, k2, k3) => {
   return web3.eth.abi.encodeFunctionCall(
     {
-      name: "__RootPower_init",
+      name: "__PolynomialPower_init",
       type: "function",
       inputs: [
         {
           type: "uint256",
-          name: "regularVoteModifier",
+          name: "k1",
         },
         {
           type: "uint256",
-          name: "expertVoteModifier",
+          name: "k2",
+        },
+        {
+          type: "uint256",
+          name: "k3",
         },
       ],
     },
-    [regularVoteModifier, expertVoteModifier]
+    [k1, k2, k3]
   );
 };
 
 module.exports = {
   getBytesLinearPowerInit,
-  getBytesRootPowerInit,
+  getBytesPolynomialPowerInit,
 };
