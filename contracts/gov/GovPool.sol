@@ -552,18 +552,11 @@ contract GovPool is
 
     function _updateRewards(uint256 proposalId, address user, RewardType rewardType) internal {
         if (rewardType == RewardType.Vote) {
-            IGovPool.VoteInfo storage info = _voteInfos[proposalId][user];
-
-            (Votes memory votes, uint256 totalPowerVoted) = info.getVotes();
-
             uint256 delegatorRewards = _pendingRewards.updateVotingRewards(
                 _proposals,
+                _voteInfos,
                 proposalId,
-                user,
-                info.isVoteFor,
-                info.totalVoted,
-                totalPowerVoted,
-                votes
+                user
             );
 
             if (delegatorRewards != 0) {

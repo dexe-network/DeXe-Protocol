@@ -162,18 +162,14 @@ library GovPoolVote {
         IGovPool.VoteInfo storage voteInfo,
         IGovPool.VoteType voteType
     ) external view returns (uint256) {
-        (IGovPool.Votes memory votes, uint256 totalPowerVoted) = getVotes(voteInfo);
+        uint256 totalPowerVoted = _getTotalPowerVoted(voteInfo);
 
-        uint256 typedVotes;
-        if (voteType == IGovPool.VoteType.PersonalVote) {
-            typedVotes = votes.personal;
-        } else if (voteType == IGovPool.VoteType.MicropoolVote) {
-            typedVotes = votes.micropool;
-        } else {
-            typedVotes = votes.treasury;
+        if (totalPowerVoted == 0) {
+            return 0;
         }
 
-        return totalPowerVoted != 0 ? voteInfo.totalVoted.ratio(typedVotes, totalPowerVoted) : 0;
+        return
+            voteInfo.totalVoted.ratio(voteInfo.votePowers[voteType].powerVoted, totalPowerVoted);
     }
 
     function _voteDelegated(
@@ -263,7 +259,7 @@ library GovPoolVote {
             "Gov: vote limit reached"
         );
 
-        (, uint256 totalPowerVoted) = getVotes(voteInfo);
+        uint256 totalPowerVoted = _getTotalPowerVoted(voteInfo);
         uint256 votePower = _calculateVotes(voter, totalPowerVoted);
 
         if (isVoteFor) {
@@ -293,7 +289,7 @@ library GovPoolVote {
     ) internal {
         require(activeVotes.remove(proposalId), "Gov: not active");
 
-        (, uint256 totalPowerVoted) = getVotes(voteInfo);
+        uint256 totalPowerVoted = _getTotalPowerVoted(voteInfo);
 
         if (isVoteFor) {
             core.votesPowerFor -= totalPowerVoted;
@@ -334,18 +330,15 @@ library GovPoolVote {
         require(amount <= tokenBalance - ownedBalance, "Gov: wrong vote amount");
     }
 
-    function getVotes(
+    function _getTotalPowerVoted(
         IGovPool.VoteInfo storage voteInfo
-    ) public view returns (IGovPool.Votes memory votes, uint256 totalPowerVoted) {
+    ) internal view returns (uint256 totalPowerVoted) {
         mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
 
-        votes = IGovPool.Votes({
-            personal: votePowers[IGovPool.VoteType.PersonalVote].powerVoted,
-            micropool: votePowers[IGovPool.VoteType.MicropoolVote].powerVoted,
-            treasury: votePowers[IGovPool.VoteType.TreasuryVote].powerVoted
-        });
-
-        totalPowerVoted = votes.personal + votes.micropool + votes.treasury;
+        return
+            votePowers[IGovPool.VoteType.PersonalVote].powerVoted +
+            votePowers[IGovPool.VoteType.MicropoolVote].powerVoted +
+            votePowers[IGovPool.VoteType.TreasuryVote].powerVoted;
     }
 
     function _isVoted(IGovPool.VoteInfo storage voteInfo) internal view returns (bool) {
@@ -369,7 +362,7 @@ library GovPoolVote {
         IGovPool.ProposalCore storage core,
         IGovPool.VoteInfo storage voteInfo
     ) internal view {
-        (, uint256 totalPowerVoted) = getVotes(voteInfo);
+        uint256 totalPowerVoted = _getTotalPowerVoted(voteInfo);
 
         require(totalPowerVoted >= core.settings.minVotesForVoting, "Gov: low voting power");
     }

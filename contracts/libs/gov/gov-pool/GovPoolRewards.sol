@@ -84,43 +84,22 @@ library GovPoolRewards {
     function updateVotingRewards(
         mapping(address => IGovPool.PendingRewards) storage pendingRewards,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
+        mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos,
         uint256 proposalId,
-        address user,
-        bool isVoteFor,
-        uint256 totalVoted,
-        uint256 totalPowerVoted,
-        IGovPool.Votes memory votes
+        address user
     ) external returns (uint256 delegatorRewards) {
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
         IGovPool.PendingRewards storage userRewards = pendingRewards[user];
+        IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][user];
 
-        IGovSettings.RewardsInfo memory rewardsInfo = core.settings.rewardsInfo;
-
-        IGovPool.ProposalState executedState = isVoteFor
-            ? IGovPool.ProposalState.ExecutedFor
-            : IGovPool.ProposalState.ExecutedAgainst;
-
-        /// TODO: ... || isVoted?
-        if (
-            IGovPool(address(this)).getProposalState(proposalId) != executedState ||
-            userRewards.areVotingRewardsSet[proposalId]
-        ) {
-            return 0;
-        }
-
-        (uint256 coreVotes, uint256 coreVotesPower) = isVoteFor
-            ? (core.votesFor, core.votesPowerFor)
-            : (core.votesAgainst, core.votesPowerAgainst);
-
-        uint256 totalRewards = coreVotesPower
-            .ratio(rewardsInfo.voteRewardsCoefficient, PRECISION)
-            .ratio(totalVoted, coreVotes);
-
-        (votes, delegatorRewards) = _splitVotingRewards(totalRewards, totalPowerVoted, votes);
-
-        uint256 votingRewards = _getMultipliedRewards(user, votes.personal) +
-            votes.micropool +
-            votes.treasury;
+        uint256 votingRewards;
+        (votingRewards, delegatorRewards) = _getVotingRewards(
+            core,
+            userRewards,
+            voteInfo,
+            proposalId,
+            user
+        );
 
         userRewards.onchainRewards[proposalId] += votingRewards;
         userRewards.areVotingRewardsSet[proposalId] = true;
@@ -128,7 +107,7 @@ library GovPoolRewards {
         emit RewardCredited(
             proposalId,
             IGovPool.RewardType.Vote,
-            rewardsInfo.rewardToken,
+            core.settings.rewardsInfo.rewardToken,
             votingRewards,
             user
         );
@@ -192,6 +171,7 @@ library GovPoolRewards {
                 continue;
             }
 
+            /// TODO: predict voting rewards
             rewards.onchainRewards[i] = userRewards.onchainRewards[proposalId];
         }
 
@@ -221,24 +201,68 @@ library GovPoolRewards {
         return amount;
     }
 
+    function _getVotingRewards(
+        IGovPool.ProposalCore storage core,
+        IGovPool.PendingRewards storage userRewards,
+        IGovPool.VoteInfo storage voteInfo,
+        uint256 proposalId,
+        address user
+    ) internal view returns (uint256 votingRewards, uint256 delegatorRewards) {
+        IGovPool.ProposalState executedState = voteInfo.isVoteFor
+            ? IGovPool.ProposalState.ExecutedFor
+            : IGovPool.ProposalState.ExecutedAgainst;
+
+        /// TODO: ... || isVoted?
+        if (
+            IGovPool(address(this)).getProposalState(proposalId) != executedState ||
+            userRewards.areVotingRewardsSet[proposalId]
+        ) {
+            return (0, 0);
+        }
+
+        return _splitVotingRewards(voteInfo, user, _getInitialVotingRewards(core, voteInfo));
+    }
+
+    function _getInitialVotingRewards(
+        IGovPool.ProposalCore storage core,
+        IGovPool.VoteInfo storage voteInfo
+    ) internal view returns (uint256) {
+        (uint256 coreVotes, uint256 coreVotesPower) = voteInfo.isVoteFor
+            ? (core.votesFor, core.votesPowerFor)
+            : (core.votesAgainst, core.votesPowerAgainst);
+
+        return
+            coreVotesPower
+                .ratio(core.settings.rewardsInfo.voteRewardsCoefficient, PRECISION)
+                .ratio(voteInfo.totalVoted, coreVotes);
+    }
+
     function _splitVotingRewards(
-        uint256 totalRewards,
-        uint256 totalPowerVoted,
-        IGovPool.Votes memory votes
-    ) internal view returns (IGovPool.Votes memory userRewards, uint256 delegatorRewards) {
+        IGovPool.VoteInfo storage voteInfo,
+        address user,
+        uint256 totalRewards
+    ) internal view returns (uint256 votingRewards, uint256 delegatorRewards) {
+        mapping(IGovPool.VoteType => IGovPool.VotePower) storage votePowers = voteInfo.votePowers;
+
         (uint256 micropoolPercentage, uint256 treasuryPercentage) = ICoreProperties(
             IGovPool(address(this)).coreProperties()
         ).getVoteRewardsPercentages();
 
-        userRewards.personal = totalRewards.ratio(votes.personal, totalPowerVoted);
-        userRewards.micropool = totalRewards.ratio(votes.micropool, totalPowerVoted);
-        userRewards.treasury = totalRewards.ratio(votes.treasury, totalPowerVoted).percentage(
+        uint256 personalRewards = votePowers[IGovPool.VoteType.PersonalVote].powerVoted;
+        uint256 micropoolRewards = votePowers[IGovPool.VoteType.MicropoolVote].powerVoted;
+        uint256 treasuryRewards = votePowers[IGovPool.VoteType.TreasuryVote].powerVoted;
+        uint256 totalPowerVoted = personalRewards + micropoolRewards + treasuryRewards;
+
+        personalRewards = _getMultipliedRewards(
+            user,
+            totalRewards.ratio(personalRewards, totalPowerVoted)
+        );
+        micropoolRewards = totalRewards.ratio(micropoolRewards, totalPowerVoted);
+        treasuryRewards = totalRewards.ratio(treasuryRewards, totalPowerVoted).percentage(
             treasuryPercentage
         );
 
-        delegatorRewards =
-            userRewards.micropool -
-            userRewards.micropool.percentage(micropoolPercentage);
-        userRewards.micropool -= delegatorRewards;
+        delegatorRewards = micropoolRewards - micropoolRewards.percentage(micropoolPercentage);
+        votingRewards = personalRewards + micropoolRewards + treasuryRewards - delegatorRewards;
     }
 }
