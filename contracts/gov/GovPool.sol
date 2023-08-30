@@ -248,12 +248,7 @@ contract GovPool is
 
         _micropoolInfos[delegatee].saveDelegationInfo(delegatee);
 
-        _proposals.revoteDelegated(
-            _voteInfos,
-            _votedInProposals,
-            delegatee,
-            VoteType.MicropoolVote
-        );
+        _revoteDelegated(delegatee, VoteType.MicropoolVote);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, true);
     }
@@ -286,12 +281,7 @@ contract GovPool is
             _govUserKeeper.delegateNftsTreasury(delegatee, nftIds);
         }
 
-        _proposals.revoteDelegated(
-            _voteInfos,
-            _votedInProposals,
-            delegatee,
-            VoteType.TreasuryVote
-        );
+        _revoteDelegated(delegatee, VoteType.TreasuryVote);
 
         emit DelegatedTreasury(delegatee, amount, nftIds, true);
     }
@@ -310,12 +300,7 @@ contract GovPool is
 
         _micropoolInfos[delegatee].saveDelegationInfo(delegatee);
 
-        _proposals.revoteDelegated(
-            _voteInfos,
-            _votedInProposals,
-            delegatee,
-            VoteType.MicropoolVote
-        );
+        _revoteDelegated(delegatee, VoteType.MicropoolVote);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, false);
     }
@@ -332,12 +317,7 @@ contract GovPool is
         _govUserKeeper.undelegateTokensTreasury.exec(delegatee, amount);
         _govUserKeeper.undelegateNftsTreasury.exec(delegatee, nftIds);
 
-        _proposals.revoteDelegated(
-            _voteInfos,
-            _votedInProposals,
-            delegatee,
-            VoteType.TreasuryVote
-        );
+        _revoteDelegated(delegatee, VoteType.TreasuryVote);
 
         emit DelegatedTreasury(delegatee, amount, nftIds, false);
     }
@@ -348,7 +328,7 @@ contract GovPool is
 
             _updateRewards(proposalId, msg.sender, RewardType.Vote);
 
-            _pendingRewards.claimReward(_proposals, proposalIds[i]);
+            _pendingRewards.claimReward(_proposals, proposalId);
         }
     }
 
@@ -550,6 +530,10 @@ contract GovPool is
         _nftMultiplier = nftMultiplierAddress;
     }
 
+    function _revoteDelegated(address delegatee, VoteType voteType) internal {
+        _proposals.revoteDelegated(_voteInfos, _votedInProposals, delegatee, voteType);
+    }
+
     function _updateRewards(uint256 proposalId, address user, RewardType rewardType) internal {
         if (rewardType == RewardType.Vote) {
             uint256 delegatorRewards = _pendingRewards.updateVotingRewards(
@@ -563,7 +547,7 @@ contract GovPool is
                 _micropoolInfos[user].updateRewards(proposalId, delegatorRewards, user);
             }
         } else if (rewardType == RewardType.SaveOffchainResults) {
-            _pendingRewards.updateOffchainRewards(_proposals, proposalId, user);
+            _pendingRewards.updateOffchainRewards(proposalId, user);
         } else {
             _pendingRewards.updateStaticRewards(_proposals, proposalId, user, rewardType);
         }

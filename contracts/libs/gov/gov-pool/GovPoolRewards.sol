@@ -53,7 +53,6 @@ library GovPoolRewards {
 
     function updateOffchainRewards(
         mapping(address => IGovPool.PendingRewards) storage pendingRewards,
-        mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId,
         address user
     ) external {
