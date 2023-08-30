@@ -221,7 +221,10 @@ library GovPoolRewards {
             ? IGovPool.ProposalState.ExecutedFor
             : IGovPool.ProposalState.ExecutedAgainst;
 
-        if (IGovPool(address(this)).getProposalState(proposalId) != executedState) {
+        if (
+            IGovPool(address(this)).getProposalState(proposalId) != executedState ||
+            voteInfo.totalRawVoted == 0
+        ) {
             return (0, 0);
         }
 
@@ -250,21 +253,21 @@ library GovPoolRewards {
     ) internal view returns (uint256 votingRewards, uint256 delegatorRewards) {
         mapping(IGovPool.VoteType => IGovPool.RawVote) storage rawVotes = voteInfo.rawVotes;
 
+        uint256 personalRewards = rawVotes[IGovPool.VoteType.PersonalVote].totalVoted;
+        uint256 micropoolRewards = rawVotes[IGovPool.VoteType.MicropoolVote].totalVoted;
+        uint256 treasuryRewards = rawVotes[IGovPool.VoteType.TreasuryVote].totalVoted;
+        uint256 totalRawVoted = voteInfo.totalRawVoted;
+
         (uint256 micropoolPercentage, uint256 treasuryPercentage) = ICoreProperties(
             IGovPool(address(this)).coreProperties()
         ).getVoteRewardsPercentages();
 
-        uint256 personalRewards = rawVotes[IGovPool.VoteType.PersonalVote].totalVoted;
-        uint256 micropoolRewards = rawVotes[IGovPool.VoteType.MicropoolVote].totalVoted;
-        uint256 treasuryRewards = rawVotes[IGovPool.VoteType.TreasuryVote].totalVoted;
-        uint256 totalRawVotes = personalRewards + micropoolRewards + treasuryRewards;
-
         personalRewards = _getMultipliedRewards(
             user,
-            totalRewards.ratio(personalRewards, totalRawVotes)
+            totalRewards.ratio(personalRewards, totalRawVoted)
         );
-        micropoolRewards = totalRewards.ratio(micropoolRewards, totalRawVotes);
-        treasuryRewards = totalRewards.ratio(treasuryRewards, totalRawVotes).percentage(
+        micropoolRewards = totalRewards.ratio(micropoolRewards, totalRawVoted);
+        treasuryRewards = totalRewards.ratio(treasuryRewards, totalRawVoted).percentage(
             treasuryPercentage
         );
 
