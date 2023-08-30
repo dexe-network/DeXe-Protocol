@@ -8,7 +8,7 @@ const LinearPower = artifacts.require("LinearPower");
 
 LinearPower.numberFormat = "BigNumber";
 
-describe.only("LinearPower", () => {
+describe("LinearPower", () => {
   let linearPower;
 
   const reverter = new Reverter();
