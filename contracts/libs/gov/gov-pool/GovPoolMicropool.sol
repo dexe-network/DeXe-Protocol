@@ -17,6 +17,7 @@ library GovPoolMicropool {
     using MathHelper for uint256;
     using ArrayHelper for uint256[];
 
+    event DelegatorRewardsSet(uint256 proposalId, uint256 amount, address delegatee);
     event DelegatorRewardsClaimed(
         uint256 proposalId,
         address delegator,
@@ -28,9 +29,12 @@ library GovPoolMicropool {
     function updateRewards(
         IGovPool.MicropoolInfo storage micropool,
         uint256 proposalId,
-        uint256 amount
+        uint256 amount,
+        address delegatee
     ) external {
         micropool.pendingRewards[proposalId] = amount;
+
+        emit DelegatorRewardsSet(proposalId, amount, delegatee);
     }
 
     function saveDelegationInfo(

@@ -18,6 +18,7 @@ abstract contract AbstractERC721Multiplier is
 
     mapping(uint256 => IAbstractERC721Multiplier.NftInfo) internal _tokens;
     mapping(address => uint256) internal _latestLockedTokenIds;
+    mapping(uint256 => uint256) internal _lockedInBlocks;
 
     event Minted(uint256 tokenId, address to, uint256 multiplier, uint256 duration);
     event Locked(uint256 tokenId, address sender, bool isLocked);
@@ -41,6 +42,7 @@ abstract contract AbstractERC721Multiplier is
         );
 
         _latestLockedTokenIds[msg.sender] = tokenId;
+        _lockedInBlocks[tokenId] = block.timestamp;
 
         emit Locked(tokenId, msg.sender, true);
     }
@@ -50,6 +52,7 @@ abstract contract AbstractERC721Multiplier is
 
         _onlyTokenOwner(tokenId);
 
+        require(_lockedInBlocks[tokenId] != block.timestamp, "ERC721Multiplier: Zero lock time");
         require(
             IGovPool(owner()).getUserActiveProposalsCount(msg.sender) == 0,
             "ERC721Multiplier: Cannot unlock with active proposals"

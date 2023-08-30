@@ -560,7 +560,7 @@ contract GovPool is
             );
 
             if (delegatorRewards != 0) {
-                _micropoolInfos[user].updateRewards(proposalId, delegatorRewards);
+                _micropoolInfos[user].updateRewards(proposalId, delegatorRewards, user);
             }
         } else if (rewardType == RewardType.SaveOffchainResults) {
             _pendingRewards.updateOffchainRewards(_proposals, proposalId, user);
