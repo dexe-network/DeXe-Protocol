@@ -160,13 +160,6 @@ interface IGovPool {
     }
 
     /// TODO: docs
-    struct Votes {
-        uint256 personal;
-        uint256 micropool;
-        uint256 treasury;
-    }
-
-    /// TODO: docs
     /// @notice The struct that is used in view functions of contract as a return argument
     /// @param totalVoted the total power of votes from one user for the proposal
     /// @param tokensVoted the total erc20 amount voted from one user for the proposal
