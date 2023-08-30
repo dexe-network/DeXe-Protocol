@@ -246,11 +246,7 @@ const getBytesAddSettings = (settings) => {
                   type: "uint256",
                 },
                 {
-                  name: "voteForRewardsCoefficient",
-                  type: "uint256",
-                },
-                {
-                  name: "voteAgainstRewardsCoefficient",
+                  name: "voteRewardsCoefficient",
                   type: "uint256",
                 },
               ],
@@ -338,11 +334,7 @@ const getBytesEditSettings = (ids, settings) => {
                   type: "uint256",
                 },
                 {
-                  name: "voteForRewardsCoefficient",
-                  type: "uint256",
-                },
-                {
-                  name: "voteAgainstRewardsCoefficient",
+                  name: "voteRewardsCoefficient",
                   type: "uint256",
                 },
               ],

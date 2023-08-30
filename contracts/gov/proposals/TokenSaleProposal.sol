@@ -41,7 +41,7 @@ contract TokenSaleProposal is
 
     mapping(uint256 => Tier) internal _tiers;
 
-    event TierCreated(uint256 tierId, address saleToken);
+    event TierCreated(uint256 tierId, address saleToken, ParticipationType participationType);
     event Bought(uint256 tierId, address buyer);
     event Whitelisted(uint256 tierId, address user);
 
@@ -80,7 +80,11 @@ contract TokenSaleProposal is
 
             _tiers.createTier(newTierId, tierInitParams[i]);
 
-            emit TierCreated(newTierId, tierInitParams[i].saleTokenAddress);
+            emit TierCreated(
+                newTierId,
+                tierInitParams[i].saleTokenAddress,
+                tierInitParams[i].participationDetails.participationType
+            );
         }
     }
 

@@ -32,11 +32,11 @@ library GovPoolUnlock {
                 continue;
             }
 
-            IGovPool.VotePower storage personalPower = voteInfos[proposalId][user].votePowers[
+            IGovPool.RawVote storage personalRawVote = voteInfos[proposalId][user].rawVotes[
                 IGovPool.VoteType.PersonalVote
             ];
 
-            uint256 lockedInProposal = personalPower.tokensVoted;
+            uint256 lockedInProposal = personalRawVote.tokensVoted;
 
             maxUnlocked = maxUnlocked.max(lockedInProposal);
 
@@ -44,8 +44,8 @@ library GovPoolUnlock {
                 userKeeper.unlockTokens(proposalId, user, lockedInProposal);
             }
 
-            if (personalPower.nftsVoted.length() != 0) {
-                userKeeper.unlockNfts(personalPower.nftsVoted.values());
+            if (personalRawVote.nftsVoted.length() != 0) {
+                userKeeper.unlockNfts(personalRawVote.nftsVoted.values());
             }
 
             userProposals.remove(proposalId);

@@ -200,7 +200,7 @@ contract GovPool is
     ) external override onlyBABTHolder {
         _unlock(msg.sender);
 
-        Votes memory votes = _proposals.vote(
+        _proposals.vote(
             _votedInProposals,
             _voteInfos,
             _restrictedProposals,
@@ -209,16 +209,12 @@ contract GovPool is
             voteNftIds,
             isVoteFor
         );
-
-        _updateVotingRewards(proposalId, msg.sender, isVoteFor, votes);
     }
 
     function cancelVote(uint256 proposalId) external override onlyBABTHolder {
         _unlock(msg.sender);
 
         _proposals.cancelVote(_votedInProposals, _voteInfos, proposalId);
-
-        _cancelVotingRewards(proposalId, msg.sender);
     }
 
     function withdraw(
@@ -328,7 +324,11 @@ contract GovPool is
 
     function claimRewards(uint256[] calldata proposalIds) external override onlyBABTHolder {
         for (uint256 i; i < proposalIds.length; i++) {
-            _pendingRewards.claimReward(_proposals, proposalIds[i]);
+            uint256 proposalId = proposalIds[i];
+
+            _updateRewards(proposalId, msg.sender, RewardType.Vote);
+
+            _pendingRewards.claimReward(_proposals, proposalId);
         }
     }
 
@@ -336,7 +336,13 @@ contract GovPool is
         uint256[] calldata proposalIds,
         address delegatee
     ) external override onlyBABTHolder {
-        _micropoolInfos[delegatee].claim(_proposals, _voteInfos, proposalIds, delegatee);
+        for (uint256 i; i < proposalIds.length; i++) {
+            uint256 proposalId = proposalIds[i];
+
+            _updateRewards(proposalId, delegatee, RewardType.Vote);
+
+            _micropoolInfos[delegatee].claim(_proposals, _voteInfos, proposalId, delegatee);
+        }
     }
 
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
@@ -457,15 +463,15 @@ contract GovPool is
         VoteType voteType
     ) external view override returns (VoteInfoView memory voteInfo) {
         VoteInfo storage info = _voteInfos[proposalId][voter];
-        VotePower storage power = info.votePowers[voteType];
+        RawVote storage rawVote = info.rawVotes[voteType];
 
         return
             VoteInfoView({
                 isVoteFor: info.isVoteFor,
                 totalVoted: info.totalVoted,
-                tokensVoted: power.tokensVoted,
-                powerVoted: power.powerVoted,
-                nftsVoted: power.nftsVoted.values()
+                tokensVoted: rawVote.tokensVoted,
+                totalRawVoted: rawVote.totalVoted,
+                nftsVoted: rawVote.nftsVoted.values()
             });
     }
 
@@ -479,7 +485,7 @@ contract GovPool is
         address user,
         uint256[] calldata proposalIds
     ) external view override returns (PendingRewardsView memory) {
-        return _pendingRewards.getPendingRewards(_proposals, user, proposalIds);
+        return _pendingRewards.getPendingRewards(_proposals, _voteInfos, user, proposalIds);
     }
 
     function getDelegatorRewards(
@@ -524,82 +530,31 @@ contract GovPool is
         _nftMultiplier = nftMultiplierAddress;
     }
 
+    function _revoteDelegated(address delegatee, VoteType voteType) internal {
+        _proposals.revoteDelegated(_voteInfos, _votedInProposals, delegatee, voteType);
+    }
+
     function _updateRewards(uint256 proposalId, address user, RewardType rewardType) internal {
-        _updateRewards(proposalId, user, rewardType, 0);
-    }
+        if (rewardType == RewardType.Vote) {
+            uint256 delegatorRewards = _pendingRewards.updateVotingRewards(
+                _proposals,
+                _voteInfos,
+                proposalId,
+                user
+            );
 
-    function _updateRewards(
-        uint256 proposalId,
-        address user,
-        RewardType rewardType,
-        uint256 amount
-    ) internal {
-        _pendingRewards.updateRewards(_proposals, proposalId, user, rewardType, amount);
-    }
-
-    function _updateVotingRewards(
-        uint256 proposalId,
-        address voter,
-        bool isVoteFor,
-        Votes memory votes
-    ) internal {
-        _updateRewards(
-            proposalId,
-            voter,
-            isVoteFor ? RewardType.VoteFor : RewardType.VoteAgainst,
-            votes.personal
-        );
-        _updateRewards(
-            proposalId,
-            voter,
-            isVoteFor ? RewardType.VoteForTreasury : RewardType.VoteAgainstTreasury,
-            votes.treasury
-        );
-
-        RewardType micropoolRewardType = isVoteFor
-            ? RewardType.VoteForDelegated
-            : RewardType.VoteAgainstDelegated;
-
-        _updateRewards(proposalId, voter, micropoolRewardType, votes.micropool);
-
-        _micropoolInfos[voter].updateRewards(
-            _proposals,
-            proposalId,
-            votes.micropool,
-            micropoolRewardType
-        );
-    }
-
-    function _cancelVotingRewards(uint256 proposalId, address voter) internal {
-        _pendingRewards.cancelVotingRewards(_proposals, proposalId, voter);
+            if (delegatorRewards != 0) {
+                _micropoolInfos[user].updateRewards(proposalId, delegatorRewards, user);
+            }
+        } else if (rewardType == RewardType.SaveOffchainResults) {
+            _pendingRewards.updateOffchainRewards(proposalId, user);
+        } else {
+            _pendingRewards.updateStaticRewards(_proposals, proposalId, user, rewardType);
+        }
     }
 
     function _unlock(address user) internal {
         _votedInProposals.unlockInProposals(_voteInfos, user);
-    }
-
-    function _revoteDelegated(address delegatee, VoteType voteType) internal {
-        uint256[] memory proposalIds = _votedInProposals[delegatee].values();
-
-        for (uint256 i; i < proposalIds.length; i++) {
-            uint256 proposalId = proposalIds[i];
-
-            Votes memory votes = _proposals.revoteDelegated(
-                _voteInfos,
-                _votedInProposals,
-                proposalId,
-                delegatee,
-                voteType
-            );
-
-            _cancelVotingRewards(proposalId, delegatee);
-            _updateVotingRewards(
-                proposalId,
-                delegatee,
-                _voteInfos[proposalId][delegatee].isVoteFor,
-                votes
-            );
-        }
     }
 
     function _onlyThis() internal view {

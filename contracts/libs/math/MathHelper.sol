@@ -13,7 +13,7 @@ library MathHelper {
         return (base * num) / denom;
     }
 
-    function signedRatio(int256 base, int256 num, int256 denom) internal pure returns (int256) {
+    function ratio(int256 base, int256 num, int256 denom) internal pure returns (int256) {
         return (base * num) / denom;
     }
 }

@@ -39,6 +39,7 @@ interface IGovSettings {
         string executorDescription;
     }
 
+    /// TODO: docs
     /// @notice The struct holds information about rewards for proposals
     /// @param rewardToken the reward token address
     /// @param creationReward the amount of reward for proposal creation
@@ -49,8 +50,7 @@ interface IGovSettings {
         address rewardToken;
         uint256 creationReward;
         uint256 executionReward;
-        uint256 voteForRewardsCoefficient;
-        uint256 voteAgainstRewardsCoefficient;
+        uint256 voteRewardsCoefficient;
     }
 
     /// @notice The function to get settings of this executor

@@ -22,19 +22,19 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
     int256 private constant HOLDER_B = -7211 * (10 ** 19);
     int256 private constant HOLDER_C = 1994 * (10 ** 17);
 
-    uint256 private constant HOLDER_TRESHOLD = 7 * (10 ** 23);
+    uint256 private constant HOLDER_THRESHOLD = 7 * (10 ** 23);
 
     int256 private constant EXPERT_A = 883755895036092 * (10 ** 11);
     int256 private constant EXPERT_B = 113 * (10 ** 23);
     int256 private constant EXPERT_C = -6086 * (10 ** 19);
     int256 private constant EXPERT_D = 4147 * (10 ** 17);
     int256 private constant EXPERT_E = -148 * (10 ** 16);
-    int256 private constant EXPERT_BEFORE_TRESHOLD_A = 1801894 * (10 ** 19);
-    int256 private constant EXPERT_BEFORE_TRESHOLD_B = -169889 * (10 ** 19);
-    int256 private constant EXPERT_BEFORE_TRESHOLD_C = 23761 * (10 ** 19);
-    int256 private constant EXPERT_BEFORE_TRESHOLD_D = -1328 * (10 ** 19);
+    int256 private constant EXPERT_BEFORE_THRESHOLD_A = 1801894 * (10 ** 19);
+    int256 private constant EXPERT_BEFORE_THRESHOLD_B = -169889 * (10 ** 19);
+    int256 private constant EXPERT_BEFORE_THRESHOLD_C = 23761 * (10 ** 19);
+    int256 private constant EXPERT_BEFORE_THRESHOLD_D = -1328 * (10 ** 19);
 
-    uint256 private constant EXPERT_TRESHOLD = 663 * (10 ** 21);
+    uint256 private constant EXPERT_THRESHOLD = 663 * (10 ** 21);
 
     uint256 internal _k1;
     uint256 internal _k2;
@@ -108,17 +108,18 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
     }
 
     function _forHolders(uint256 x, uint256 totalSupply) internal view returns (uint256) {
-        uint256 treshold = totalSupply.ratio(HOLDER_TRESHOLD, PRECISION);
+        uint256 threshold = totalSupply.ratio(HOLDER_THRESHOLD, PRECISION);
 
-        if (x < treshold) {
+        if (x < threshold) {
             return x;
         }
 
         int256 t = int256(((100 * x * PRECISION) / totalSupply) - 7 * PRECISION);
-        int256 polynom = _calculatePolynomial(0, HOLDER_A, HOLDER_B, HOLDER_C, 0, t);
+        int256 polynomial = _calculatePolynomial(0, HOLDER_A, HOLDER_B, HOLDER_C, 0, t);
 
         return
-            treshold + _k3.ratio(uint256(polynom), PRECISION).ratio(totalSupply, 100 * PRECISION);
+            threshold +
+            _k3.ratio(uint256(polynomial), PRECISION).ratio(totalSupply, 100 * PRECISION);
     }
 
     function _forExperts(
@@ -126,24 +127,24 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
         uint256 totalSupply,
         bool isDao
     ) internal view returns (uint256) {
-        uint256 treshold = totalSupply.ratio(EXPERT_TRESHOLD, PRECISION);
+        uint256 threshold = totalSupply.ratio(EXPERT_THRESHOLD, PRECISION);
         uint256 _k = isDao ? _k1 : _k2;
 
-        if (x < treshold) {
+        if (x < threshold) {
             int256 t = int256((100 * x * PRECISION) / totalSupply);
-            int256 polynom = _calculatePolynomial(
+            int256 polynomial = _calculatePolynomial(
                 0,
-                EXPERT_BEFORE_TRESHOLD_A,
-                EXPERT_BEFORE_TRESHOLD_B,
-                EXPERT_BEFORE_TRESHOLD_C,
-                EXPERT_BEFORE_TRESHOLD_D,
+                EXPERT_BEFORE_THRESHOLD_A,
+                EXPERT_BEFORE_THRESHOLD_B,
+                EXPERT_BEFORE_THRESHOLD_C,
+                EXPERT_BEFORE_THRESHOLD_D,
                 t
             );
 
-            return uint256(polynom).ratio(totalSupply, 100 * PRECISION).ratio(_k, PRECISION);
+            return uint256(polynomial).ratio(totalSupply, 100 * PRECISION).ratio(_k, PRECISION);
         } else {
             int256 t = int256(((100 * x * PRECISION) / totalSupply) - PRECISION.ratio(663, 100));
-            int256 polynom = _calculatePolynomial(
+            int256 polynomial = _calculatePolynomial(
                 EXPERT_A,
                 EXPERT_B,
                 EXPERT_C,
@@ -152,24 +153,31 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
                 t
             );
 
-            return uint256(polynom).ratio(totalSupply, 100 * PRECISION).ratio(_k, PRECISION);
+            return uint256(polynomial).ratio(totalSupply, 100 * PRECISION).ratio(_k, PRECISION);
         }
     }
 
     function _calculatePolynomial(
-        int256 a0, // free coefficient with precision
-        int256 a1, // power1 coefficient with precision
-        int256 a2, // power2 coefficient with precision
-        int256 a3, // power3 coefficient with precision
-        int256 a4, // power4 coefficient with precision
-        int256 x // variable with precision
+        int256 freeCoefficient,
+        int256 power1Coefficient,
+        int256 power2Coefficient,
+        int256 power3Coefficient,
+        int256 power4Coefficient,
+        int256 variable
     ) internal pure returns (int256 result) {
-        int256 p = int256(PRECISION);
+        int256 precision = int256(PRECISION);
 
-        result = a0;
-        result += a1.signedRatio(x, p);
-        result += a2.signedRatio(x, p).signedRatio(x, p);
-        result += a3.signedRatio(x, p).signedRatio(x, p).signedRatio(x, p);
-        result += a4.signedRatio(x, p).signedRatio(x, p).signedRatio(x, p).signedRatio(x, p);
+        result = freeCoefficient;
+        result += power1Coefficient.ratio(variable, precision);
+        result += power2Coefficient.ratio(variable, precision).ratio(variable, precision);
+        result += power3Coefficient.ratio(variable, precision).ratio(variable, precision).ratio(
+            variable,
+            precision
+        );
+        result += power4Coefficient
+            .ratio(variable, precision)
+            .ratio(variable, precision)
+            .ratio(variable, precision)
+            .ratio(variable, precision);
     }
 }

@@ -146,7 +146,7 @@ library GovPoolView {
         Vector.UintVector memory nfts = Vector.newUint();
 
         for (uint256 i; i < unlockedIds.length; i++) {
-            IGovPool.VotePower storage votePower = voteInfos[unlockedIds[i]][user].votePowers[
+            IGovPool.RawVote storage votePower = voteInfos[unlockedIds[i]][user].rawVotes[
                 voteType
             ];
 
