@@ -25,8 +25,7 @@ const DEFAULT_SETTINGS = {
     rewardToken: ZERO_ADDR,
     creationReward: 0,
     executionReward: 0,
-    voteForRewardsCoefficient: 0,
-    voteAgainstRewardsCoefficient: 0,
+    voteRewardsCoefficient: 0,
   },
   executorDescription: "default",
 };
@@ -46,8 +45,7 @@ const INTERNAL_SETTINGS = {
     rewardToken: ZERO_ADDR,
     creationReward: 0,
     executionReward: 0,
-    voteForRewardsCoefficient: 0,
-    voteAgainstRewardsCoefficient: 0,
+    voteRewardsCoefficient: 0,
   },
   executorDescription: "internal",
 };
@@ -67,8 +65,7 @@ const DP_SETTINGS = {
     rewardToken: ZERO_ADDR,
     creationReward: 0,
     executionReward: 0,
-    voteForRewardsCoefficient: 0,
-    voteAgainstRewardsCoefficient: 0,
+    voteRewardsCoefficient: 0,
   },
   executorDescription: "DP",
 };
@@ -88,8 +85,7 @@ const VALIDATORS_BALANCES_SETTINGS = {
     rewardToken: ZERO_ADDR,
     creationReward: 0,
     executionReward: 0,
-    voteForRewardsCoefficient: 0,
-    voteAgainstRewardsCoefficient: 0,
+    voteRewardsCoefficient: 0,
   },
   executorDescription: "validators",
 };
@@ -158,8 +154,7 @@ describe("GovSettings", () => {
         rewardToken: ZERO_ADDR,
         creationReward: 0,
         executionReward: 0,
-        voteForRewardsCoefficient: 0,
-        voteAgainstRewardsCoefficient: 0,
+        voteRewardsCoefficient: 0,
       },
       executorDescription: "new_settings_1",
     };
@@ -179,8 +174,7 @@ describe("GovSettings", () => {
         rewardToken: ZERO_ADDR,
         creationReward: 0,
         executionReward: 0,
-        voteForRewardsCoefficient: 0,
-        voteAgainstRewardsCoefficient: 0,
+        voteRewardsCoefficient: 0,
       },
       executorDescription: "new_settings_2",
     };
@@ -326,8 +320,7 @@ describe("GovSettings", () => {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
             executionReward: 0,
-            voteForRewardsCoefficient: 0,
-            voteAgainstRewardsCoefficient: 0,
+            voteRewardsCoefficient: 0,
           },
           executorDescription: "new_settings_1",
         };
@@ -347,8 +340,7 @@ describe("GovSettings", () => {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
             executionReward: 0,
-            voteForRewardsCoefficient: 0,
-            voteAgainstRewardsCoefficient: 0,
+            voteRewardsCoefficient: 0,
           },
           executorDescription: "new_settings_2",
         };
@@ -399,8 +391,7 @@ describe("GovSettings", () => {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
             executionReward: 0,
-            voteForRewardsCoefficient: 0,
-            voteAgainstRewardsCoefficient: 0,
+            voteRewardsCoefficient: 0,
           },
           executorDescription: "new_settings",
         };
@@ -424,8 +415,7 @@ describe("GovSettings", () => {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
             executionReward: 0,
-            voteForRewardsCoefficient: 0,
-            voteAgainstRewardsCoefficient: 0,
+            voteRewardsCoefficient: 0,
           },
           executorDescription: "new_settings",
         };
@@ -449,8 +439,7 @@ describe("GovSettings", () => {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
             executionReward: 0,
-            voteForRewardsCoefficient: 0,
-            voteAgainstRewardsCoefficient: 0,
+            voteRewardsCoefficient: 0,
           },
           executorDescription: "new_settings",
         };
@@ -474,8 +463,7 @@ describe("GovSettings", () => {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
             executionReward: 0,
-            voteForRewardsCoefficient: 0,
-            voteAgainstRewardsCoefficient: 0,
+            voteRewardsCoefficient: 0,
           },
           executorDescription: "new_settings",
         };
@@ -502,8 +490,7 @@ describe("GovSettings", () => {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
             executionReward: 0,
-            voteForRewardsCoefficient: 0,
-            voteAgainstRewardsCoefficient: 0,
+            voteRewardsCoefficient: 0,
           },
           executorDescription: "new_settings",
         };
@@ -529,8 +516,7 @@ describe("GovSettings", () => {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
             executionReward: 0,
-            voteForRewardsCoefficient: 0,
-            voteAgainstRewardsCoefficient: 0,
+            voteRewardsCoefficient: 0,
           },
           executorDescription: "new_settings",
         };
@@ -580,8 +566,7 @@ describe("GovSettings", () => {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
             executionReward: 0,
-            voteForRewardsCoefficient: 0,
-            voteAgainstRewardsCoefficient: 0,
+            voteRewardsCoefficient: 0,
           },
           executorDescription: "new_settings",
         };
@@ -648,8 +633,7 @@ describe("GovSettings", () => {
             rewardToken: ZERO_ADDR,
             creationReward: 0,
             executionReward: 0,
-            voteForRewardsCoefficient: 0,
-            voteAgainstRewardsCoefficient: 0,
+            voteRewardsCoefficient: 0,
           },
           executorDescription: "new_settings",
         };
