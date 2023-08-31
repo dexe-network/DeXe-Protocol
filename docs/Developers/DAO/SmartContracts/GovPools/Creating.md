@@ -103,16 +103,14 @@ struct RewardsInfo {
     address rewardToken;
     uint256 creationReward;
     uint256 executionReward;
-    uint256 voteForRewardsCoefficient;
-    uint256 voteAgainstRewardsCoefficient;
+    uint256 voteRewardsCoefficient;
 }
 ```
 
 - ***rewardToken*** - the address of the token used for rewards
 - ***creationReward*** - the reward for creating the proposal
 - ***executionReward*** - the reward for executing the proposal
-- ***voteForRewardsCoefficient*** - the coefficient for calculating the reward for voting for the proposal
-- ***voteAgainstRewardsCoefficient*** - the coefficient for calculating the reward for voting against the proposal
+- ***voteRewardsCoefficient*** - the coefficient for calculating the reward for voting for the proposal
 
 #
 
