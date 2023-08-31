@@ -577,12 +577,8 @@ describe("GovUserKeeper", () => {
         await userKeeper.delegateNfts(OWNER, SECOND, [1, 3]);
         await userKeeper.delegateNfts(THIRD, SECOND, [8]);
 
-        await truffleAssert.reverts(userKeeper.undelegateNfts(OWNER, SECOND, [6]), "GovUK: NFT is not owned or locked");
-        await truffleAssert.reverts(userKeeper.undelegateNfts(OWNER, SECOND, [4]), "GovUK: NFT is not owned or locked");
-
-        await userKeeper.lockNfts(OWNER, VoteType.DelegatedVote, [1]);
-
-        await truffleAssert.reverts(userKeeper.undelegateNfts(OWNER, SECOND, [1]), "GovUK: NFT is not owned or locked");
+        await truffleAssert.reverts(userKeeper.undelegateNfts(OWNER, SECOND, [6]), "GovUK: NFT is not delegated");
+        await truffleAssert.reverts(userKeeper.undelegateNfts(OWNER, SECOND, [4]), "GovUK: NFT is not delegated");
       });
     });
 
