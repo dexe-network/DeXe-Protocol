@@ -27,18 +27,18 @@ library GovPoolMicropool {
     );
 
     function updateRewards(
-        IGovPool.MicropoolInfo storage micropool,
+        mapping(address => IGovPool.UserInfo) storage userInfos,
         uint256 proposalId,
         uint256 amount,
         address delegatee
     ) external {
-        micropool.pendingRewards[proposalId] = amount;
+        userInfos[delegatee].micropoolInfo.pendingRewards[proposalId] = amount;
 
         emit DelegatorRewardsSet(proposalId, amount, delegatee);
     }
 
     function saveDelegationInfo(
-        IGovPool.MicropoolInfo storage micropool,
+        mapping(address => IGovPool.UserInfo) storage userInfos,
         address delegatee
     ) external {
         (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
@@ -46,7 +46,9 @@ library GovPoolMicropool {
         (uint256 currentTokenAmount, uint256[] memory currentNftIds) = IGovUserKeeper(userKeeper)
             .getDelegatedAssets(msg.sender, delegatee);
 
-        IGovPool.DelegatorInfo storage delegatorInfo = micropool.delegatorInfos[msg.sender];
+        IGovPool.DelegatorInfo storage delegatorInfo = userInfos[delegatee]
+            .micropoolInfo
+            .delegatorInfos[msg.sender];
 
         uint256[] storage delegationTimes = delegatorInfo.delegationTimes;
         uint256[] storage tokenAmounts = delegatorInfo.tokenAmounts;
@@ -66,16 +68,14 @@ library GovPoolMicropool {
     }
 
     function claim(
-        IGovPool.MicropoolInfo storage micropool,
+        mapping(address => IGovPool.UserInfo) storage userInfos,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos,
         uint256 proposalId,
         address delegatee
     ) external {
         uint256 reward = _getExpectedRewards(
-            micropool,
+            userInfos,
             proposals,
-            voteInfos,
             proposalId,
             msg.sender,
             delegatee
@@ -83,7 +83,7 @@ library GovPoolMicropool {
 
         require(reward != 0, "Gov: no micropool rewards");
 
-        micropool.delegatorInfos[msg.sender].isClaimed[proposalId] = true;
+        userInfos[delegatee].micropoolInfo.delegatorInfos[msg.sender].isClaimed[proposalId] = true;
 
         address rewardToken = proposals[proposalId].core.settings.rewardsInfo.rewardToken;
 
@@ -93,9 +93,8 @@ library GovPoolMicropool {
     }
 
     function getDelegatorRewards(
-        IGovPool.MicropoolInfo storage micropool,
+        mapping(address => IGovPool.UserInfo) storage userInfos,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos,
         uint256[] calldata proposalIds,
         address delegator,
         address delegatee
@@ -104,6 +103,8 @@ library GovPoolMicropool {
         rewards.rewardTokens = new address[](proposalIds.length);
         rewards.isVoteFor = new bool[](proposalIds.length);
         rewards.isClaimed = new bool[](proposalIds.length);
+
+        IGovPool.UserInfo storage userInfo = userInfos[delegatee];
 
         for (uint256 i; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
@@ -115,23 +116,23 @@ library GovPoolMicropool {
             }
 
             rewards.expectedRewards[i] = _getExpectedRewards(
-                micropool,
+                userInfos,
                 proposals,
-                voteInfos,
                 proposalId,
                 delegator,
                 delegatee
             );
             rewards.rewardTokens[i] = proposal.core.settings.rewardsInfo.rewardToken;
-            rewards.isVoteFor[i] = voteInfos[proposalId][delegatee].isVoteFor;
-            rewards.isClaimed[i] = micropool.delegatorInfos[delegator].isClaimed[proposalId];
+            rewards.isVoteFor[i] = userInfo.voteInfos[proposalId].isVoteFor;
+            rewards.isClaimed[i] = userInfo.micropoolInfo.delegatorInfos[delegator].isClaimed[
+                proposalId
+            ];
         }
     }
 
     function _getExpectedRewards(
-        IGovPool.MicropoolInfo storage micropool,
+        mapping(address => IGovPool.UserInfo) storage userInfos,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos,
         uint256 proposalId,
         address delegator,
         address delegatee
@@ -139,12 +140,15 @@ library GovPoolMicropool {
         (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
-        IGovPool.RawVote storage micropoolRawVote = voteInfos[proposalId][delegatee].rawVotes[
+        IGovPool.UserInfo storage userInfo = userInfos[delegatee];
+        IGovPool.RawVote storage micropoolRawVote = userInfo.voteInfos[proposalId].rawVotes[
             IGovPool.VoteType.MicropoolVote
         ];
-        IGovPool.DelegatorInfo storage delegatorInfo = micropool.delegatorInfos[delegator];
+        IGovPool.DelegatorInfo storage delegatorInfo = userInfo.micropoolInfo.delegatorInfos[
+            delegator
+        ];
 
-        uint256 pendingRewards = micropool.pendingRewards[proposalId];
+        uint256 pendingRewards = userInfo.micropoolInfo.pendingRewards[proposalId];
 
         if (
             core.executionTime == 0 || delegatorInfo.isClaimed[proposalId] || pendingRewards == 0
