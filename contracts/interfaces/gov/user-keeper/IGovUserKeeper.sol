@@ -18,11 +18,12 @@ interface IGovUserKeeper {
         EnumerableSet.UintSet nftBalance; // array of NFTs
     }
 
-    /// TODO: docs
     /// @notice The struct holds information about user balances
     /// @param balanceInfo the BalanceInfo struct
     /// @param delegatedTokens the mapping of delegated tokens (delegatee address => delegated amount)
+    /// @param allDelegatedTokens the total amount of delegated tokens
     /// @param delegatedNfts the mapping of delegated nfts (delegatee address => array of delegated nft ids)
+    /// @param allDelegatedNfts the list of all delegated nfts
     /// @param delegatees the array of delegatees
     /// @param maxTokensLocked the upper bound of currently locked tokens
     /// @param lockedInProposals the amount of deposited tokens locked in proposals

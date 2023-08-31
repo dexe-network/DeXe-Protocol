@@ -32,7 +32,7 @@ interface IGovValidators {
     }
 
     /// @notice The struct holds core properties of a proposal
-    /// @param executed the boolean flag that indicated whether the proposal is executed or not
+    /// @param executed the boolean flag that indicates whether the proposal is executed or not
     /// @param snapshotId the id of snapshot
     /// @param voteEnd the timestamp of voting end of the proposal
     /// @param executeAfter the timestamp of execution in seconds after voting end
