@@ -186,7 +186,7 @@ contract GovPool is
         _updateRewards(proposalId, msg.sender, RewardType.Create);
     }
 
-    function moveProposalToValidators(uint256 proposalId) external override {
+    function moveProposalToValidators(uint256 proposalId) external override onlyBABTHolder {
         _proposals.moveProposalToValidators(proposalId);
 
         _updateRewards(proposalId, msg.sender, RewardType.Create);
