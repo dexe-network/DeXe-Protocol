@@ -26,14 +26,14 @@ library GovPoolRewards {
     );
 
     function updateStaticRewards(
-        mapping(address => IGovPool.PendingRewards) storage pendingRewards,
+        mapping(address => IGovPool.UserInfo) storage userInfos,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId,
         address user,
         IGovPool.RewardType rewardType
     ) external {
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
-        IGovSettings.RewardsInfo memory rewardsInfo = core.settings.rewardsInfo;
+        IGovSettings.RewardsInfo storage rewardsInfo = core.settings.rewardsInfo;
 
         uint256 amountToAdd = _getMultipliedRewards(
             user,
@@ -42,9 +42,7 @@ library GovPoolRewards {
                 : rewardsInfo.executionReward
         );
 
-        IGovPool.PendingRewards storage userRewards = pendingRewards[user];
-
-        userRewards.onchainRewards[proposalId] += amountToAdd;
+        userInfos[user].pendingRewards.onchainRewards[proposalId] += amountToAdd;
 
         core.givenRewards += amountToAdd;
 
@@ -52,7 +50,7 @@ library GovPoolRewards {
     }
 
     function updateOffchainRewards(
-        mapping(address => IGovPool.PendingRewards) storage pendingRewards,
+        mapping(address => IGovPool.UserInfo) storage userInfos,
         uint256 proposalId,
         address user
     ) external {
@@ -66,7 +64,7 @@ library GovPoolRewards {
 
         address rewardToken = rewardsInfo.rewardToken;
 
-        IGovPool.PendingRewards storage userRewards = pendingRewards[user];
+        IGovPool.PendingRewards storage userRewards = userInfos[user].pendingRewards;
 
         userRewards.offchainRewards[rewardToken] += amountToAdd;
         userRewards.offchainTokens.add(rewardToken);
@@ -81,21 +79,20 @@ library GovPoolRewards {
     }
 
     function updateVotingRewards(
-        mapping(address => IGovPool.PendingRewards) storage pendingRewards,
+        mapping(address => IGovPool.UserInfo) storage userInfos,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos,
         uint256 proposalId,
         address user
     ) external returns (uint256 delegatorRewards) {
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
-        IGovPool.PendingRewards storage userRewards = pendingRewards[user];
+        IGovPool.PendingRewards storage userRewards = userInfos[user].pendingRewards;
 
         if (userRewards.areVotingRewardsSet[proposalId]) {
             return 0;
         }
 
         uint256 votingRewards;
-        (votingRewards, delegatorRewards) = _getVotingRewards(core, voteInfos, proposalId, user);
+        (votingRewards, delegatorRewards) = _getVotingRewards(core, userInfos, proposalId, user);
 
         if (votingRewards == 0 && delegatorRewards == 0) {
             return 0;
@@ -114,11 +111,11 @@ library GovPoolRewards {
     }
 
     function claimReward(
-        mapping(address => IGovPool.PendingRewards) storage pendingRewards,
+        mapping(address => IGovPool.UserInfo) storage userInfos,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId
     ) external {
-        IGovPool.PendingRewards storage userRewards = pendingRewards[msg.sender];
+        IGovPool.PendingRewards storage userRewards = userInfos[msg.sender].pendingRewards;
 
         if (proposalId != 0) {
             IGovPool.ProposalCore storage core = proposals[proposalId].core;
@@ -151,13 +148,12 @@ library GovPoolRewards {
     }
 
     function getPendingRewards(
-        mapping(address => IGovPool.PendingRewards) storage pendingRewards,
+        mapping(address => IGovPool.UserInfo) storage userInfos,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos,
         address user,
         uint256[] calldata proposalIds
     ) external view returns (IGovPool.PendingRewardsView memory rewards) {
-        IGovPool.PendingRewards storage userRewards = pendingRewards[user];
+        IGovPool.PendingRewards storage userRewards = userInfos[user].pendingRewards;
 
         uint256 tokensLength = userRewards.offchainTokens.length();
 
@@ -177,7 +173,7 @@ library GovPoolRewards {
             rewards.onchainRewards[i] = userRewards.onchainRewards[proposalId];
 
             if (!userRewards.areVotingRewardsSet[proposalId]) {
-                (uint256 votingRewards, ) = _getVotingRewards(core, voteInfos, proposalId, user);
+                (uint256 votingRewards, ) = _getVotingRewards(core, userInfos, proposalId, user);
 
                 rewards.onchainRewards[i] += votingRewards;
             }
@@ -211,11 +207,11 @@ library GovPoolRewards {
 
     function _getVotingRewards(
         IGovPool.ProposalCore storage core,
-        mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos,
+        mapping(address => IGovPool.UserInfo) storage userInfos,
         uint256 proposalId,
         address user
     ) internal view returns (uint256 votingRewards, uint256 delegatorRewards) {
-        IGovPool.VoteInfo storage voteInfo = voteInfos[proposalId][user];
+        IGovPool.VoteInfo storage voteInfo = userInfos[user].voteInfos[proposalId];
 
         IGovPool.ProposalState executedState = voteInfo.isVoteFor
             ? IGovPool.ProposalState.ExecutedFor

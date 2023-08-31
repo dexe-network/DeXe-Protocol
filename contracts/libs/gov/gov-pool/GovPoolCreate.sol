@@ -35,7 +35,7 @@ library GovPoolCreate {
 
     function createProposal(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
+        mapping(address => IGovPool.UserInfo) storage userInfos,
         string calldata _descriptionURL,
         IGovPool.ProposalAction[] calldata actionsOnFor,
         IGovPool.ProposalAction[] calldata actionsOnAgainst
@@ -48,7 +48,7 @@ library GovPoolCreate {
 
         uint256 proposalId = GovPool(payable(address(this))).latestProposalId();
 
-        _restrictInterestedUsersFromProposal(restrictedProposals, actionsOnFor, proposalId);
+        _restrictInterestedUsersFromProposal(userInfos, actionsOnFor, proposalId);
 
         IGovPool.Proposal storage proposal = proposals[proposalId];
 
@@ -154,7 +154,7 @@ library GovPoolCreate {
     }
 
     function _restrictInterestedUsersFromProposal(
-        mapping(address => EnumerableSet.UintSet) storage restrictedProposals,
+        mapping(address => IGovPool.UserInfo) storage userInfos,
         IGovPool.ProposalAction[] calldata actions,
         uint256 proposalId
     ) internal {
@@ -166,7 +166,7 @@ library GovPoolCreate {
                 action.data.getSelector() == IGovPool.undelegateTreasury.selector
             ) {
                 address user = abi.decode(action.data[4:36], (address));
-                restrictedProposals[user].add(proposalId);
+                userInfos[user].restrictedProposals.add(proposalId);
             }
         }
     }

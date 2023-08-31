@@ -12,11 +12,10 @@ library GovPoolUnlock {
     using EnumerableSet for EnumerableSet.UintSet;
 
     function unlockInProposals(
-        mapping(address => EnumerableSet.UintSet) storage votedInProposals,
-        mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos,
+        mapping(address => IGovPool.UserInfo) storage userInfos,
         address user
     ) external {
-        EnumerableSet.UintSet storage userProposals = votedInProposals[user];
+        EnumerableSet.UintSet storage userProposals = userInfos[user].votedInProposals;
         uint256[] memory proposalIds = userProposals.values();
 
         (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
@@ -32,9 +31,9 @@ library GovPoolUnlock {
                 continue;
             }
 
-            IGovPool.RawVote storage personalRawVote = voteInfos[proposalId][user].rawVotes[
-                IGovPool.VoteType.PersonalVote
-            ];
+            IGovPool.RawVote storage personalRawVote = userInfos[user]
+                .voteInfos[proposalId]
+                .rawVotes[IGovPool.VoteType.PersonalVote];
 
             uint256 lockedInProposal = personalRawVote.tokensVoted;
 

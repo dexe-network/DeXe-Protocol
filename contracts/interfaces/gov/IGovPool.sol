@@ -217,6 +217,15 @@ interface IGovPool {
         EnumerableSet.AddressSet offchainTokens;
     }
 
+    /// TODO: docs
+    struct UserInfo {
+        mapping(uint256 => VoteInfo) voteInfos; // proposalId => info
+        PendingRewards pendingRewards;
+        MicropoolInfo micropoolInfo;
+        EnumerableSet.UintSet votedInProposals;
+        EnumerableSet.UintSet restrictedProposals;
+    }
+
     /// @notice The struct that is used in view functions of contract as a return argument
     /// @param onchainRewards the list of on-chain rewards
     /// @param offchainRewards the list of off-chain rewards

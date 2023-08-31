@@ -23,20 +23,19 @@ library GovPoolView {
     using Math for uint256;
 
     function getWithdrawableAssets(
-        address user,
-        mapping(address => EnumerableSet.UintSet) storage votedInProposals,
-        mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos
+        mapping(address => IGovPool.UserInfo) storage userInfos,
+        address user
     ) external view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts) {
         (uint256[] memory unlockedIds, uint256[] memory lockedIds) = _getUserProposals(
-            user,
-            votedInProposals
+            userInfos,
+            user
         );
 
         uint256[] memory unlockedNfts = _getUnlockedNfts(
+            userInfos,
             unlockedIds,
             user,
-            IGovPool.VoteType.PersonalVote,
-            voteInfos
+            IGovPool.VoteType.PersonalVote
         );
 
         (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
@@ -138,17 +137,17 @@ library GovPoolView {
     }
 
     function _getUnlockedNfts(
+        mapping(address => IGovPool.UserInfo) storage userInfos,
         uint256[] memory unlockedIds,
         address user,
-        IGovPool.VoteType voteType,
-        mapping(uint256 => mapping(address => IGovPool.VoteInfo)) storage voteInfos
+        IGovPool.VoteType voteType
     ) internal view returns (uint256[] memory unlockedNfts) {
         Vector.UintVector memory nfts = Vector.newUint();
 
         for (uint256 i; i < unlockedIds.length; i++) {
-            IGovPool.RawVote storage votePower = voteInfos[unlockedIds[i]][user].rawVotes[
-                voteType
-            ];
+            IGovPool.RawVote storage votePower = userInfos[user]
+                .voteInfos[unlockedIds[i]]
+                .rawVotes[voteType];
 
             nfts.push(votePower.nftsVoted.values());
         }
@@ -157,10 +156,10 @@ library GovPoolView {
     }
 
     function _getUserProposals(
-        address user,
-        mapping(address => EnumerableSet.UintSet) storage votedInProposals
+        mapping(address => IGovPool.UserInfo) storage userInfos,
+        address user
     ) internal view returns (uint256[] memory unlockedIds, uint256[] memory lockedIds) {
-        EnumerableSet.UintSet storage votes = votedInProposals[user];
+        EnumerableSet.UintSet storage votes = userInfos[user].votedInProposals;
         uint256 proposalsLength = votes.length();
 
         Vector.UintVector memory unlocked = Vector.newUint();

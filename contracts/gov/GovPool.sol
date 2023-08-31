@@ -57,6 +57,11 @@ contract GovPool is
     using DecimalsConverter for *;
     using TokenBalance for address;
 
+    address internal _nftMultiplier;
+    IERC721Expert internal _expertNft;
+    IERC721Expert internal _dexeExpertNft;
+    ISBT721 internal _babt;
+
     IGovSettings internal _govSettings;
     IGovUserKeeper internal _govUserKeeper;
     IGovValidators internal _govValidators;
@@ -65,33 +70,19 @@ contract GovPool is
 
     ICoreProperties public coreProperties;
 
-    address internal _nftMultiplier;
-    IERC721Expert internal _expertNft;
-    IERC721Expert internal _dexeExpertNft;
-    ISBT721 internal _babt;
-
-    bool public onlyBABTHolders;
-
     string public descriptionURL;
     string public name;
+
+    bool public onlyBABTHolders;
 
     uint256 public latestProposalId;
     uint256 public deployerBABTid;
 
     CreditInfo internal _creditInfo;
-
     OffChain internal _offChain;
 
     mapping(uint256 => Proposal) internal _proposals; // proposalId => info
-
-    mapping(uint256 => mapping(address => VoteInfo)) internal _voteInfos; // proposalId => voter => info
-    mapping(address => EnumerableSet.UintSet) internal _votedInProposals; // voter => active proposal ids
-
-    mapping(address => PendingRewards) internal _pendingRewards; // user => pending rewards
-
-    mapping(address => MicropoolInfo) internal _micropoolInfos; // delegatee => info
-
-    mapping(address => EnumerableSet.UintSet) internal _restrictedProposals; // voter => restricted proposal ids
+    mapping(address => UserInfo) internal _userInfos; // user => info
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
     event DelegatedTreasury(address to, uint256 amount, uint256[] nfts, bool isDelegate);
@@ -176,12 +167,7 @@ contract GovPool is
     ) external override onlyBABTHolder {
         uint256 proposalId = ++latestProposalId;
 
-        _proposals.createProposal(
-            _restrictedProposals,
-            _descriptionURL,
-            actionsOnFor,
-            actionsOnAgainst
-        );
+        _proposals.createProposal(_userInfos, _descriptionURL, actionsOnFor, actionsOnAgainst);
 
         _updateRewards(proposalId, msg.sender, RewardType.Create);
     }
@@ -200,21 +186,13 @@ contract GovPool is
     ) external override onlyBABTHolder {
         _unlock(msg.sender);
 
-        _proposals.vote(
-            _votedInProposals,
-            _voteInfos,
-            _restrictedProposals,
-            proposalId,
-            voteAmount,
-            voteNftIds,
-            isVoteFor
-        );
+        _proposals.vote(_userInfos, proposalId, voteAmount, voteNftIds, isVoteFor);
     }
 
     function cancelVote(uint256 proposalId) external override onlyBABTHolder {
         _unlock(msg.sender);
 
-        _proposals.cancelVote(_votedInProposals, _voteInfos, proposalId);
+        _proposals.cancelVote(_userInfos, proposalId);
     }
 
     function withdraw(
@@ -246,7 +224,7 @@ contract GovPool is
         _govUserKeeper.delegateTokens.exec(delegatee, amount);
         _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
 
-        _micropoolInfos[delegatee].saveDelegationInfo(delegatee);
+        _userInfos.saveDelegationInfo(delegatee);
 
         _revoteDelegated(delegatee, VoteType.MicropoolVote);
 
@@ -298,7 +276,7 @@ contract GovPool is
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
         _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
 
-        _micropoolInfos[delegatee].saveDelegationInfo(delegatee);
+        _userInfos.saveDelegationInfo(delegatee);
 
         _revoteDelegated(delegatee, VoteType.MicropoolVote);
 
@@ -328,7 +306,7 @@ contract GovPool is
 
             _updateRewards(proposalId, msg.sender, RewardType.Vote);
 
-            _pendingRewards.claimReward(_proposals, proposalId);
+            _userInfos.claimReward(_proposals, proposalId);
         }
     }
 
@@ -341,7 +319,7 @@ contract GovPool is
 
             _updateRewards(proposalId, delegatee, RewardType.Vote);
 
-            _micropoolInfos[delegatee].claim(_proposals, _voteInfos, proposalId, delegatee);
+            _userInfos.claim(_proposals, proposalId, delegatee);
         }
     }
 
@@ -429,7 +407,7 @@ contract GovPool is
     }
 
     function getUserActiveProposalsCount(address user) external view override returns (uint256) {
-        return _votedInProposals[user].length();
+        return _userInfos[user].votedInProposals.length();
     }
 
     function getProposalRequiredQuorum(
@@ -452,7 +430,7 @@ contract GovPool is
         require(voteType != VoteType.DelegatedVote, "Gov: use personal");
 
         ProposalCore storage core = _proposals[proposalId].core;
-        VoteInfo storage info = _voteInfos[proposalId][voter];
+        VoteInfo storage info = _userInfos[voter].voteInfos[proposalId];
 
         return (core.votesFor, core.votesAgainst, info.getVoteShare(voteType), info.isVoteFor);
     }
@@ -462,7 +440,7 @@ contract GovPool is
         address voter,
         VoteType voteType
     ) external view override returns (VoteInfoView memory voteInfo) {
-        VoteInfo storage info = _voteInfos[proposalId][voter];
+        VoteInfo storage info = _userInfos[voter].voteInfos[proposalId];
         RawVote storage rawVote = info.rawVotes[voteType];
 
         return
@@ -478,14 +456,14 @@ contract GovPool is
     function getWithdrawableAssets(
         address delegator
     ) external view override returns (uint256 tokens, uint256[] memory nfts) {
-        return delegator.getWithdrawableAssets(_votedInProposals, _voteInfos);
+        return _userInfos.getWithdrawableAssets(delegator);
     }
 
     function getPendingRewards(
         address user,
         uint256[] calldata proposalIds
     ) external view override returns (PendingRewardsView memory) {
-        return _pendingRewards.getPendingRewards(_proposals, _voteInfos, user, proposalIds);
+        return _userInfos.getPendingRewards(_proposals, user, proposalIds);
     }
 
     function getDelegatorRewards(
@@ -493,14 +471,7 @@ contract GovPool is
         address delegator,
         address delegatee
     ) external view override returns (DelegatorRewards memory) {
-        return
-            _micropoolInfos[delegatee].getDelegatorRewards(
-                _proposals,
-                _voteInfos,
-                proposalIds,
-                delegator,
-                delegatee
-            );
+        return _userInfos.getDelegatorRewards(_proposals, proposalIds, delegator, delegatee);
     }
 
     function getCreditInfo() external view override returns (CreditInfoView[] memory) {
@@ -531,30 +502,29 @@ contract GovPool is
     }
 
     function _revoteDelegated(address delegatee, VoteType voteType) internal {
-        _proposals.revoteDelegated(_voteInfos, _votedInProposals, delegatee, voteType);
+        _proposals.revoteDelegated(_userInfos, delegatee, voteType);
     }
 
     function _updateRewards(uint256 proposalId, address user, RewardType rewardType) internal {
         if (rewardType == RewardType.Vote) {
-            uint256 delegatorRewards = _pendingRewards.updateVotingRewards(
+            uint256 delegatorRewards = _userInfos.updateVotingRewards(
                 _proposals,
-                _voteInfos,
                 proposalId,
                 user
             );
 
             if (delegatorRewards != 0) {
-                _micropoolInfos[user].updateRewards(proposalId, delegatorRewards, user);
+                _userInfos.updateRewards(proposalId, delegatorRewards, user);
             }
         } else if (rewardType == RewardType.SaveOffchainResults) {
-            _pendingRewards.updateOffchainRewards(proposalId, user);
+            _userInfos.updateOffchainRewards(proposalId, user);
         } else {
-            _pendingRewards.updateStaticRewards(_proposals, proposalId, user, rewardType);
+            _userInfos.updateStaticRewards(_proposals, proposalId, user, rewardType);
         }
     }
 
     function _unlock(address user) internal {
-        _votedInProposals.unlockInProposals(_voteInfos, user);
+        _userInfos.unlockInProposals(user);
     }
 
     function _onlyThis() internal view {
