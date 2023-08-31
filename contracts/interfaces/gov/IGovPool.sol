@@ -323,7 +323,7 @@ interface IGovPool {
     ) external;
 
     /// @notice The function for canceling vote
-    /// @param the id of the proposal to cancel all votes from which
+    /// @param proposalId the id of the proposal to cancel all votes from which
     function cancelVote(uint256 proposalId) external;
 
     /// @notice The function for depositing tokens to the pool
