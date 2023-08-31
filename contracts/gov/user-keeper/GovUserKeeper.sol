@@ -12,6 +12,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 import "@solarity/solidity-lib/libs/arrays/ArrayHelper.sol";
+import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
 
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/IGovPool.sol";
@@ -31,6 +32,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     using Paginator for EnumerableSet.UintSet;
     using DecimalsConverter for *;
     using GovUserKeeperView for *;
+    using Vector for Vector.UintVector;
 
     address public tokenAddress;
     address public nftAddress;
@@ -509,27 +511,16 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function nftExactBalance(
         address voter,
         IGovPool.VoteType voteType
-    ) public view override returns (uint256[] memory nfts, uint256 ownedLength) {
-        uint256 length;
-        (length, ownedLength) = nftBalance(voter, voteType);
+    ) public view override returns (uint256[] memory _nfts, uint256 ownedLength) {
+        Vector.UintVector memory nfts = Vector.newUint();
 
-        if (length == 0) {
-            return (nfts, 0);
-        }
-
-        uint256 currentLength;
-        nfts = new uint256[](length);
-
-        currentLength = nfts.insert(
-            currentLength,
-            _getBalanceInfoStorage(voter, voteType).nftBalance.values()
-        );
+        nfts.push(_getBalanceInfoStorage(voter, voteType).nftBalance.values());
 
         if (
             voteType != IGovPool.VoteType.PersonalVote &&
             voteType != IGovPool.VoteType.DelegatedVote
         ) {
-            return (nfts, 0);
+            return (nfts.toArray(), 0);
         }
 
         if (voteType == IGovPool.VoteType.DelegatedVote) {
@@ -538,20 +529,25 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             uint256 delegateeLength = userInfo.delegatees.length();
 
             for (uint256 i; i < delegateeLength; i++) {
-                currentLength = nfts.insert(
-                    currentLength,
-                    userInfo.delegatedNfts[userInfo.delegatees.at(i)].values()
-                );
+                nfts.push(userInfo.delegatedNfts[userInfo.delegatees.at(i)].values());
             }
         }
 
-        if (_nftInfo.totalSupply == 0) {
-            ERC721Power nftContract = ERC721Power(nftAddress);
+        ownedLength = ERC721Upgradeable(nftAddress).balanceOf(voter);
 
-            for (uint256 i; i < ownedLength; i++) {
-                nfts[currentLength++] = nftContract.tokenOfOwnerByIndex(voter, i);
-            }
+        if (_nftInfo.totalSupply != 0) {
+            nfts.push(new uint256[](ownedLength));
+
+            return (nfts.toArray(), ownedLength);
         }
+
+        ERC721Power nftContract = ERC721Power(nftAddress);
+
+        for (uint256 i; i < ownedLength; i++) {
+            nfts.push(nftContract.tokenOfOwnerByIndex(voter, i));
+        }
+
+        return (nfts.toArray(), ownedLength);
     }
 
     function getNftsPowerInTokensBySnapshot(
