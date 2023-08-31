@@ -164,7 +164,7 @@ library GovUserKeeperView {
             newLockedAmount = newLockedAmount.max(userInfo.lockedInProposals[lockedProposals[i]]);
         }
 
-        withdrawableTokens = balanceInfo.tokenBalance - newLockedAmount;
+        withdrawableTokens = balanceInfo.tokenBalance.max(newLockedAmount) - newLockedAmount;
 
         Vector.UintVector memory nfts = Vector.newUint();
         uint256 nftsLength = balanceInfo.nftBalance.length();

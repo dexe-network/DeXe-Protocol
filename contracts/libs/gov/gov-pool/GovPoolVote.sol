@@ -69,8 +69,6 @@ library GovPoolVote {
             );
         }
 
-        _checkMinVotesForVoting(core, voteInfo);
-
         _updateGlobalState(
             core,
             voteInfo,
@@ -79,6 +77,8 @@ library GovPoolVote {
             msg.sender,
             isVoteFor
         );
+
+        _checkMinVotesForVoting(core, voteInfo);
     }
 
     function revoteDelegated(
@@ -162,13 +162,13 @@ library GovPoolVote {
         IGovPool.VoteInfo storage voteInfo,
         IGovPool.VoteType voteType
     ) external view returns (uint256) {
-        uint256 totalRawVotes = _getTotalRawVotes(voteInfo);
+        uint256 totalRawVoted = voteInfo.totalRawVoted;
 
-        if (totalRawVotes == 0) {
+        if (totalRawVoted == 0) {
             return 0;
         }
 
-        return voteInfo.totalVoted.ratio(voteInfo.rawVotes[voteType].totalVoted, totalRawVotes);
+        return voteInfo.totalVoted.ratio(voteInfo.rawVotes[voteType].totalVoted, totalRawVoted);
     }
 
     function _voteDelegated(
@@ -258,15 +258,19 @@ library GovPoolVote {
             "Gov: vote limit reached"
         );
 
-        uint256 totalRawVotes = _getTotalRawVotes(voteInfo);
-        uint256 votePower = _calculateVotes(voter, totalRawVotes);
+        mapping(IGovPool.VoteType => IGovPool.RawVote) storage rawVotes = voteInfo.rawVotes;
+
+        uint256 totalRawVoted = rawVotes[IGovPool.VoteType.PersonalVote].totalVoted +
+            rawVotes[IGovPool.VoteType.MicropoolVote].totalVoted +
+            rawVotes[IGovPool.VoteType.TreasuryVote].totalVoted;
+        uint256 totalVoted = _calculateVotes(voter, totalRawVoted);
 
         if (isVoteFor) {
-            core.rawVotesFor += totalRawVotes;
-            core.votesFor += votePower;
+            core.rawVotesFor += totalRawVoted;
+            core.votesFor += totalVoted;
         } else {
-            core.rawVotesAgainst += totalRawVotes;
-            core.votesAgainst += votePower;
+            core.rawVotesAgainst += totalRawVoted;
+            core.votesAgainst += totalVoted;
         }
 
         if (core.executeAfter == 0 && _quorumReached(core)) {
@@ -276,7 +280,8 @@ library GovPoolVote {
         }
 
         voteInfo.isVoteFor = isVoteFor;
-        voteInfo.totalVoted = votePower;
+        voteInfo.totalVoted = totalVoted;
+        voteInfo.totalRawVoted = totalRawVoted;
     }
 
     function _globalCancel(
@@ -288,18 +293,17 @@ library GovPoolVote {
     ) internal {
         require(activeVotes.remove(proposalId), "Gov: not active");
 
-        uint256 totalRawVotes = _getTotalRawVotes(voteInfo);
-
         if (isVoteFor) {
-            core.rawVotesFor -= totalRawVotes;
+            core.rawVotesFor -= voteInfo.totalRawVoted;
             core.votesFor -= voteInfo.totalVoted;
         } else {
-            core.rawVotesAgainst -= totalRawVotes;
+            core.rawVotesAgainst -= voteInfo.totalRawVoted;
             core.votesAgainst -= voteInfo.totalVoted;
         }
 
         voteInfo.isVoteFor = false;
         voteInfo.totalVoted = 0;
+        voteInfo.totalRawVoted = 0;
     }
 
     function _canVote(
@@ -329,17 +333,6 @@ library GovPoolVote {
         require(amount <= tokenBalance - ownedBalance, "Gov: wrong vote amount");
     }
 
-    function _getTotalRawVotes(
-        IGovPool.VoteInfo storage voteInfo
-    ) internal view returns (uint256) {
-        mapping(IGovPool.VoteType => IGovPool.RawVote) storage rawVotes = voteInfo.rawVotes;
-
-        return
-            rawVotes[IGovPool.VoteType.PersonalVote].totalVoted +
-            rawVotes[IGovPool.VoteType.MicropoolVote].totalVoted +
-            rawVotes[IGovPool.VoteType.TreasuryVote].totalVoted;
-    }
-
     function _isVoted(IGovPool.VoteInfo storage voteInfo) internal view returns (bool) {
         mapping(IGovPool.VoteType => IGovPool.RawVote) storage rawVotes = voteInfo.rawVotes;
 
@@ -362,7 +355,7 @@ library GovPoolVote {
         IGovPool.VoteInfo storage voteInfo
     ) internal view {
         require(
-            _getTotalRawVotes(voteInfo) >= core.settings.minVotesForVoting,
+            voteInfo.totalRawVoted >= core.settings.minVotesForVoting,
             "Gov: low voting power"
         );
     }

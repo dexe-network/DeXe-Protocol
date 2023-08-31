@@ -157,6 +157,7 @@ interface IGovPool {
         mapping(VoteType => RawVote) rawVotes;
         bool isVoteFor;
         uint256 totalVoted;
+        uint256 totalRawVoted;
     }
 
     /// TODO: docs
