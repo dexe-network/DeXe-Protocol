@@ -36,40 +36,39 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
 
     uint256 private constant EXPERT_THRESHOLD = 663 * (10 ** 21);
 
-    uint256 internal _k1;
-    uint256 internal _k2;
-    uint256 internal _k3;
+    uint256 internal _coefficient1;
+    uint256 internal _coefficient2;
+    uint256 internal _coefficient3;
 
-    function __PolynomialPower_init(uint256 k1, uint256 k2, uint256 k3) external initializer {
+    function __PolynomialPower_init(
+        uint256 coefficient1,
+        uint256 coefficient2,
+        uint256 coefficient3
+    ) external initializer {
         __Ownable_init();
 
-        _k1 = k1;
-        _k2 = k2;
-        _k3 = k3;
+        _coefficient1 = coefficient1;
+        _coefficient2 = coefficient2;
+        _coefficient3 = coefficient3;
     }
 
     function transformVotes(
         address voter,
         uint256 votes
     ) external view override returns (uint256) {
-        IGovPool govPool = IGovPool(owner());
-
-        bool expertStatus = govPool.getExpertStatus(voter);
         (uint256 treasuryRatio, uint256 totalSupply) = _calculateParameters(voter);
 
-        if (!expertStatus) {
+        if (!IGovPool(owner()).getExpertStatus(voter)) {
             return _forHolders(votes, totalSupply);
-        } else {
-            return
-                _forExperts(votes, totalSupply, false).ratio(
-                    PRECISION - treasuryRatio,
-                    PRECISION
-                ) + _forExperts(votes, totalSupply, true).ratio(treasuryRatio, PRECISION);
         }
+
+        return
+            _forExperts(votes, totalSupply, false).ratio(PRECISION - treasuryRatio, PRECISION) +
+            _forExperts(votes, totalSupply, true).ratio(treasuryRatio, PRECISION);
     }
 
     function getVoteCoefficients() external view returns (uint256, uint256, uint256) {
-        return (_k1, _k2, _k3);
+        return (_coefficient1, _coefficient2, _coefficient3);
     }
 
     function _calculateParameters(
@@ -107,54 +106,63 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
         totalPower = userKeeper.getTotalVoteWeight();
     }
 
-    function _forHolders(uint256 x, uint256 totalSupply) internal view returns (uint256) {
+    function _forHolders(uint256 votes, uint256 totalSupply) internal view returns (uint256) {
         uint256 threshold = totalSupply.ratio(HOLDER_THRESHOLD, PRECISION);
 
-        if (x < threshold) {
-            return x;
+        if (votes < threshold) {
+            return votes;
         }
 
-        int256 t = int256(((100 * x * PRECISION) / totalSupply) - 7 * PRECISION);
-        int256 polynomial = _calculatePolynomial(0, HOLDER_A, HOLDER_B, HOLDER_C, 0, t);
+        int256 polynomial = _calculatePolynomial(
+            0,
+            HOLDER_A,
+            HOLDER_B,
+            HOLDER_C,
+            0,
+            int256(((100 * votes * PRECISION) / totalSupply) - 7 * PRECISION)
+        );
 
         return
             threshold +
-            _k3.ratio(uint256(polynomial), PRECISION).ratio(totalSupply, 100 * PRECISION);
+            _coefficient3.ratio(uint256(polynomial), PRECISION).ratio(
+                totalSupply,
+                100 * PRECISION
+            );
     }
 
     function _forExperts(
-        uint256 x,
+        uint256 votes,
         uint256 totalSupply,
         bool isDao
     ) internal view returns (uint256) {
         uint256 threshold = totalSupply.ratio(EXPERT_THRESHOLD, PRECISION);
-        uint256 _k = isDao ? _k1 : _k2;
+        int256 polynomial;
 
-        if (x < threshold) {
-            int256 t = int256((100 * x * PRECISION) / totalSupply);
-            int256 polynomial = _calculatePolynomial(
+        if (votes < threshold) {
+            polynomial = _calculatePolynomial(
                 0,
                 EXPERT_BEFORE_THRESHOLD_A,
                 EXPERT_BEFORE_THRESHOLD_B,
                 EXPERT_BEFORE_THRESHOLD_C,
                 EXPERT_BEFORE_THRESHOLD_D,
-                t
+                int256((100 * votes * PRECISION) / totalSupply)
             );
-
-            return uint256(polynomial).ratio(totalSupply, 100 * PRECISION).ratio(_k, PRECISION);
         } else {
-            int256 t = int256(((100 * x * PRECISION) / totalSupply) - PRECISION.ratio(663, 100));
-            int256 polynomial = _calculatePolynomial(
+            polynomial = _calculatePolynomial(
                 EXPERT_A,
                 EXPERT_B,
                 EXPERT_C,
                 EXPERT_D,
                 EXPERT_E,
-                t
+                int256(((100 * votes * PRECISION) / totalSupply) - PRECISION.ratio(663, 100))
             );
-
-            return uint256(polynomial).ratio(totalSupply, 100 * PRECISION).ratio(_k, PRECISION);
         }
+
+        return
+            uint256(polynomial).ratio(totalSupply, 100 * PRECISION).ratio(
+                isDao ? _coefficient1 : _coefficient2,
+                PRECISION
+            );
     }
 
     function _calculatePolynomial(
