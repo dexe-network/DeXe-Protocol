@@ -69,8 +69,6 @@ library GovPoolVote {
             );
         }
 
-        _checkMinVotesForVoting(core, voteInfo);
-
         _updateGlobalState(
             core,
             voteInfo,
@@ -79,6 +77,8 @@ library GovPoolVote {
             msg.sender,
             isVoteFor
         );
+
+        _checkMinVotesForVoting(core, voteInfo);
     }
 
     function revoteDelegated(
