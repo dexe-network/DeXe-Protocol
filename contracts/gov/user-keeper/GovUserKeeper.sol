@@ -480,7 +480,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function nftBalance(
         address voter,
         IGovPool.VoteType voteType
-    ) public view override returns (uint256 totalBalance, uint256 ownedBalance) {
+    ) external view override returns (uint256 totalBalance, uint256 ownedBalance) {
         if (nftAddress == address(0)) {
             return (0, 0);
         }
