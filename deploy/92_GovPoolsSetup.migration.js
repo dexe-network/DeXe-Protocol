@@ -147,7 +147,6 @@ module.exports = async (deployer, logger) => {
         tokenSaleProposal.address,
         expertNft.address,
         nftMultiplier.address,
-
         linearPower.address,
         polynomialPower.address,
       ]
