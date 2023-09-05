@@ -122,6 +122,8 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
             int256(((100 * votes * PRECISION) / totalSupply) - 7 * PRECISION)
         );
 
+        assert(polynomial >= 0);
+
         return
             threshold +
             _coefficient3.ratio(uint256(polynomial), PRECISION).ratio(
@@ -157,6 +159,8 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
                 int256(((100 * votes * PRECISION) / totalSupply) - PRECISION.ratio(663, 100))
             );
         }
+
+        assert(polynomial >= 0);
 
         return
             uint256(polynomial).ratio(totalSupply, 100 * PRECISION).ratio(
