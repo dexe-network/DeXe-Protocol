@@ -25,7 +25,7 @@ module.exports = async (deployer, logger) => {
     "Add BABT"
   );
   logger.logTransaction(
-    await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), nftAddress),
+    await contractsRegistry.addProxyContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), nftAddress),
     "Add Global Expert Nft"
   );
 };
