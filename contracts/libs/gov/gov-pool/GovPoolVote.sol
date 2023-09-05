@@ -243,11 +243,11 @@ library GovPoolVote {
         uint256 totalVoted = _calculateVotes(voter, totalRawVoted);
 
         if (isVoteFor) {
-            core.rawVotesFor += totalRawVoted;
-            core.votesFor += totalVoted;
+            core.rawVotesFor = core.rawVotesFor - voteInfo.totalRawVoted + totalRawVoted;
+            core.votesFor = core.votesFor - voteInfo.totalVoted + totalVoted;
         } else {
-            core.rawVotesAgainst += totalRawVoted;
-            core.votesAgainst += totalVoted;
+            core.rawVotesAgainst = core.rawVotesAgainst - voteInfo.totalRawVoted + totalRawVoted;
+            core.votesAgainst = core.votesAgainst - voteInfo.totalVoted + totalVoted;
         }
 
         if (core.executeAfter == 0 && _quorumReached(core)) {
@@ -257,8 +257,8 @@ library GovPoolVote {
         }
 
         voteInfo.isVoteFor = isVoteFor;
-        voteInfo.totalVoted = totalVoted;
         voteInfo.totalRawVoted = totalRawVoted;
+        voteInfo.totalVoted = totalVoted;
     }
 
     function _globalCancel(
