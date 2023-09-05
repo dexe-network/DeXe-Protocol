@@ -92,7 +92,7 @@ ERC20.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
-describe("GovPool", () => {
+describe.only("GovPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -461,46 +461,13 @@ describe("GovPool", () => {
     await rewardToken.mint(govPool.address, wei("10000000000000000000000"));
   }
 
-  async function setNftMultiplierAddress(addr) {
-    const bytesSetAddress = getBytesSetNftMultiplierAddress(addr);
-
-    await govPool.createProposal("example.com", [[govPool.address, 0, bytesSetAddress]], []);
-
-    const proposalId = await govPool.latestProposalId();
-
-    await govPool.vote(proposalId, true, wei("1000"), []);
-    await govPool.vote(proposalId, true, wei("100000000000000000000"), [], { from: SECOND });
-
-    await govPool.moveProposalToValidators(proposalId);
-    await validators.voteExternalProposal(proposalId, wei("100"), true);
-    await validators.voteExternalProposal(proposalId, wei("1000000000000"), true, { from: SECOND });
-
-    await govPool.execute(proposalId);
+  async function setNftMultiplierAddress(nftMultiplierAddress) {
+    await acceptValidatorProposal([[govPool.address, 0, getBytesSetNftMultiplierAddress(nftMultiplierAddress)]]);
   }
 
-  async function setExpert(addr) {
-    const bytesMint = getBytesMintExpertNft(addr, "URI");
-
-    await govPool.createProposal("example.com", [[expertNft.address, 0, bytesMint]], []);
-
-    const proposalId = await govPool.latestProposalId();
-
-    await govPool.vote(proposalId, true, wei("1000"), []);
-    await govPool.vote(proposalId, true, wei("100000000000000000000"), [], { from: SECOND });
-
-    await setTime((await getCurrentBlockTime()) + 999);
-
-    await govPool.moveProposalToValidators(proposalId);
-
-    await validators.voteExternalProposal(proposalId, wei("100"), true);
-    await validators.voteExternalProposal(proposalId, wei("1000000000000"), true, { from: SECOND });
-
-    await govPool.execute(proposalId);
-  }
-
-  async function delegateTreasury(addr, amount, nftIds) {
-    if (!(await govPool.getExpertStatus(addr))) {
-      await setExpert(addr);
+  async function delegateTreasury(delegatee, amount, nftIds) {
+    if (!(await govPool.getExpertStatus(delegatee))) {
+      await acceptValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(delegatee, "URI")]]);
     }
 
     await token.mint(govPool.address, amount);
@@ -509,57 +476,47 @@ describe("GovPool", () => {
       await nft.safeMint(govPool.address, i);
     }
 
-    const bytesDelegateTreasury = getBytesDelegateTreasury(addr, amount, nftIds);
-
-    await govPool.createProposal("example.com", [[govPool.address, 0, bytesDelegateTreasury]], []);
-
-    const proposalId = await govPool.latestProposalId();
-
-    await govPool.vote(proposalId, true, wei("1000"), []);
-    await govPool.vote(proposalId, true, wei("100000000000000000000"), [], { from: SECOND });
-
-    await govPool.moveProposalToValidators(proposalId);
-
-    await validators.voteExternalProposal(proposalId, wei("1000000000000"), true, { from: SECOND });
-
-    await govPool.execute(proposalId);
+    await acceptValidatorProposal([[govPool.address, 0, getBytesDelegateTreasury(delegatee, amount, nftIds)]]);
   }
 
-  async function undelegateTreasury(addr, amount, nftIds) {
-    const bytesUndelegateTreasury = getBytesUndelegateTreasury(addr, amount, nftIds);
-
-    await govPool.createProposal("example.com", [[govPool.address, 0, bytesUndelegateTreasury]], []);
-
-    const proposalId = await govPool.latestProposalId();
-
-    await govPool.vote(proposalId, true, wei("1000"), []);
-    await govPool.vote(proposalId, true, wei("100000000000000000000"), [], { from: SECOND });
-
-    await govPool.moveProposalToValidators(proposalId);
-
-    await validators.voteExternalProposal(proposalId, wei("1000000000000"), true, { from: SECOND });
-
-    await govPool.execute(proposalId);
+  async function undelegateTreasury(delegatee, amount, nftIds) {
+    await acceptValidatorProposal([[govPool.address, 0, getBytesUndelegateTreasury(delegatee, amount, nftIds)]]);
   }
 
   async function acceptProposal(actionsFor, actionsAgainst = [], isVoteFor = true) {
+    const executorSettings = await settings.getExecutorSettings(actionsFor[actionsFor.length - 1][0]);
+
     await govPool.createProposal("example.com", actionsFor, actionsAgainst);
 
     const proposalId = await govPool.latestProposalId();
 
     await govPool.vote(proposalId, isVoteFor, wei("100000000000000000000"), [], { from: SECOND });
+
+    if (!executorSettings.earlyCompletion) {
+      await setTime((await getCurrentBlockTime()) + 999);
+    }
 
     await govPool.execute(proposalId);
   }
 
   async function acceptValidatorProposal(actionsFor, actionsAgainst = [], isVoteFor = true) {
+    const executorSettings = await settings.getExecutorSettings(actionsFor[actionsFor.length - 1][0]);
+
     await govPool.createProposal("example.com", actionsFor, actionsAgainst);
 
     const proposalId = await govPool.latestProposalId();
 
     await govPool.vote(proposalId, isVoteFor, wei("100000000000000000000"), [], { from: SECOND });
 
+    if (!executorSettings.earlyCompletion) {
+      await setTime((await getCurrentBlockTime()) + 999);
+    }
+
     await govPool.moveProposalToValidators(proposalId);
+
+    if (executorSettings.quorumValidators === PRECISION.times("100").toFixed()) {
+      await validators.voteExternalProposal(proposalId, wei("100"), true);
+    }
 
     await validators.voteExternalProposal(proposalId, wei("1000000000000"), true, { from: SECOND });
 
