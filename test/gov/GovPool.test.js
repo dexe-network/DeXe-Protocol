@@ -1222,47 +1222,62 @@ describe.only("GovPool", () => {
         it.only("should voteTreasury if all conditions are met", async () => {
           await acceptValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(SECOND, "URI")]]);
 
-          await delegateTreasury(SECOND, wei("10000000000000000000"), [100]);
+          await delegateTreasury(SECOND, wei("1000000000000000000"), [100]);
 
           await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
 
-          await govPool.vote(3, true, wei("10000000000000000000"), [], { from: SECOND });
+          await govPool.vote(3, true, wei("68000000000000000000"), [], { from: SECOND });
 
           assert.equal(
             (await govPool.getUserVotes(3, SECOND, VoteType.PersonalVote)).totalRawVoted,
-            wei("10000000000000000000")
+            wei("68000000000000000000")
           );
           assert.equal(
             (await govPool.getUserVotes(3, SECOND, VoteType.TreasuryVote)).totalRawVoted,
-            toBN(wei("10000000000000000000"))
+            toBN(wei("1000000000000000000"))
               .plus(toBN(wei("33000")).idiv(11))
               .toFixed()
           );
           assert.equal(
             (await govPool.getTotalVotes(3, SECOND, VoteType.TreasuryVote))[0].toFixed(),
-            toBN(wei("20000000000000000000"))
+            toBN(wei("69000000000000000000"))
               .plus(toBN(wei("33000")).idiv(11))
               .toFixed()
           );
 
-          await delegateTreasury(SECOND, wei("10000000000000000000"), [101]);
+          await delegateTreasury(SECOND, wei("1000000000000000000"), [101]);
 
           assert.equal(
             (await govPool.getUserVotes(3, SECOND, VoteType.TreasuryVote)).totalRawVoted,
-            toBN(wei("20000000000000000000"))
+            toBN(wei("2000000000000000000"))
               .plus(toBN(wei("33000")).idiv(11).multipliedBy(2))
               .toFixed()
           );
           assert.equal(
             (await govPool.getTotalVotes(3, SECOND, VoteType.TreasuryVote))[0].toFixed(),
-            toBN(wei("30000000000000000000"))
+            toBN(wei("70000000000000000000"))
               .plus(toBN(wei("33000")).idiv(11).multipliedBy(2))
               .toFixed()
           );
 
-          await delegateTreasury(SECOND, wei("10000000000000000000"), []);
+          await delegateTreasury(SECOND, wei("10000000000000000000"), [102, 103]);
 
-          /// TODO: imeplement
+          assert.equal(
+            (await govPool.getUserVotes(3, SECOND, VoteType.TreasuryVote)).totalRawVoted,
+            toBN(wei("12000000000000000000"))
+              .plus(toBN(wei("33000")).idiv(11).multipliedBy(4))
+              .toFixed()
+          );
+          assert.equal(
+            (await govPool.getTotalVotes(3, SECOND, VoteType.TreasuryVote))[0].toFixed(),
+            toBN(wei("80000000000000000000"))
+              .plus(toBN(wei("33000")).idiv(11).multipliedBy(4))
+              .toFixed()
+          );
+
+          await setTime((await getCurrentBlockTime()) + 999);
+
+          assert.equal(await govPool.getProposalState(3), ProposalState.WaitingForVotingTransfer);
         });
       });
     });
