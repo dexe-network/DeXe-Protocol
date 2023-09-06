@@ -1219,7 +1219,7 @@ describe.only("GovPool", () => {
       });
 
       describe("voteTreasury & revoteDelegated", () => {
-        it.only("should voteTreasury if all conditions are met", async () => {
+        it("should voteTreasury if all conditions are met", async () => {
           await acceptValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(SECOND, "URI")]]);
 
           await delegateTreasury(SECOND, wei("1000000000000000000"), [100]);
