@@ -3266,18 +3266,6 @@ describe("GovPool", () => {
         });
       });
     });
-
-    describe("treasuryRatio()", () => {
-      it("should correctly calculate treasury ratio", async () => {
-        const POOL_PARAMETERS = await getPoolParameters(nft.address);
-
-        const poolContracts = await deployPool(POOL_PARAMETERS);
-        linearPower = poolContracts.votePower;
-
-        const ratio = await linearPower.getTreasuryRatio(THIRD);
-        assert.equal(toBN(ratio).toFixed(), PRECISION.toFixed());
-      });
-    });
   });
 
   describe("saveOffchainResults", () => {

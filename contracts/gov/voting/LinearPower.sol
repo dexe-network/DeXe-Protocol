@@ -20,9 +20,7 @@ contract LinearPower is IVotePower, OwnableUpgradeable {
         return votes;
     }
 
-    function getTreasuryRatio(
-        address voter
-    ) external view override returns (uint256 treasuryRatio) {
-        treasuryRatio = PRECISION;
+    function getVotesRatio(address) external pure override returns (uint256 votesRatio) {
+        return PRECISION;
     }
 }
