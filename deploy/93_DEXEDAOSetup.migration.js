@@ -1,5 +1,5 @@
 const config = require("./config/config.json");
-const { getBytesLinearPowerInit } = require("./config/utils.js");
+const { getBytesPolynomialPowerInit } = require("./config/utils.js");
 
 const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
 const { accounts, wei } = require("../scripts/utils/utils");
@@ -103,8 +103,8 @@ let POOL_PARAMETERS = {
     },
   },
   votePowerParams: {
-    voteType: 0,
-    initData: getBytesLinearPowerInit(),
+    voteType: 1,
+    initData: getBytesPolynomialPowerInit(PRECISION.times("1.08"), PRECISION.times("0.92"), PRECISION.times("0.97")),
     presetAddress: ZERO_ADDR,
   },
   verifier: ZERO_ADDR,

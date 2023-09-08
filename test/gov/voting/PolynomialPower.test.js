@@ -11,9 +11,7 @@ PolynomialPower.numberFormat = "BigNumber";
 PolynomialTesterMock.numberFormat = "BigNumber";
 
 describe("PolynomialPower", () => {
-  let OWNER;
   let SECOND;
-  let THIRD;
 
   let govPool;
   let power;
@@ -137,9 +135,7 @@ describe("PolynomialPower", () => {
   }
 
   before("setup", async () => {
-    OWNER = await accounts(0);
     SECOND = await accounts(1);
-    THIRD = await accounts(2);
 
     govPool = await PolynomialTesterMock.new();
     power = await PolynomialPower.new();
@@ -194,6 +190,14 @@ describe("PolynomialPower", () => {
       await compareExpertsDao50Percent("23594682");
       await compareExpertsDao50Percent("52634291");
       await compareExpertsDao50Percent("90748777");
+    });
+  });
+
+  describe("check functionality", () => {
+    it("getVotesRatio", async () => {
+      await govPool.setVotes(SECOND, 0, 500, 500);
+
+      assert.equal(toBN(await power.getVotesRatio(SECOND)).toFixed(), PRECISION.idiv(2).toFixed());
     });
   });
 
