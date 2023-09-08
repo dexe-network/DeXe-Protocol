@@ -5,6 +5,8 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "../../interfaces/gov/voting/IVotePower.sol";
 
+import "../../core/Globals.sol";
+
 /// @dev has to be ownable for compatibility reasons
 contract LinearPower is IVotePower, OwnableUpgradeable {
     function __LinearPower_init() external initializer {
@@ -16,5 +18,11 @@ contract LinearPower is IVotePower, OwnableUpgradeable {
         uint256 votes
     ) external pure override returns (uint256 resultingVotes) {
         return votes;
+    }
+
+    function getTreasuryRatio(
+        address voter
+    ) external view override returns (uint256 treasuryRatio) {
+        treasuryRatio = PRECISION;
     }
 }

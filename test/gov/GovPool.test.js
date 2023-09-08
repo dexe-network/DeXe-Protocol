@@ -57,6 +57,7 @@ const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const LinearPower = artifacts.require("LinearPower");
+const PolynomialPower = artifacts.require("PolynomialPower");
 const ERC721Power = artifacts.require("ERC721Power");
 const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC20Mock = artifacts.require("ERC20Mock");
@@ -3264,6 +3265,18 @@ describe("GovPool", () => {
 
           assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Executed);
         });
+      });
+    });
+
+    describe("treasuryRatio()", () => {
+      it("should correctly calculate treasury ratio", async () => {
+        const POOL_PARAMETERS = await getPoolParameters(nft.address);
+
+        const poolContracts = await deployPool(POOL_PARAMETERS);
+        linearPower = poolContracts.votePower;
+
+        const ratio = await linearPower.getTreasuryRatio(THIRD);
+        assert.equal(toBN(ratio).toFixed(), PRECISION.toFixed());
       });
     });
   });

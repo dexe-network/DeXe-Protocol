@@ -197,6 +197,13 @@ describe("PolynomialPower", () => {
     });
   });
 
+  describe("check functionality", () => {
+    it("getTreasuryRatio", async () => {
+      await govPool.setVotes(SECOND, 0, 500, 500);
+      assert.equal(toBN(await power.getTreasuryRatio(SECOND)).toFixed(), PRECISION.idiv(2).toFixed());
+    });
+  });
+
   describe("initializer", () => {
     it("can't initialize twice", async () => {
       await truffleAssert.reverts(
