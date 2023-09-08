@@ -71,6 +71,10 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
         return (_coefficient1, _coefficient2, _coefficient3);
     }
 
+    function getVotesRatio(address voter) external view override returns (uint256 votesRatio) {
+        (votesRatio, ) = _calculateParameters(voter);
+    }
+
     function _calculateParameters(
         address voter
     ) internal view returns (uint256 treasuryRatio, uint256 totalSupply) {
