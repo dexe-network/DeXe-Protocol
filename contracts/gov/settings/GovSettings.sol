@@ -11,7 +11,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
     uint256 public newSettingsId;
 
     mapping(uint256 => ProposalSettings) public settings; // settingsId => info
-    mapping(address => uint256) public executorToSettings; // executor => seetingsId
+    mapping(address => uint256) public executorToSettings; // executor => settingsId
 
     event SettingsChanged(uint256 settingsId, string description);
     event ExecutorChanged(uint256 settingsId, address executor);

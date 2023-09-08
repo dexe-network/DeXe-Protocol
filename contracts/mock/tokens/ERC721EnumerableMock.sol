@@ -9,4 +9,8 @@ contract ERC721EnumerableMock is ERC721Enumerable {
     function safeMint(address to, uint256 tokenId) external {
         _safeMint(to, tokenId);
     }
+
+    function burn(uint256 tokenId) external {
+        _burn(tokenId);
+    }
 }
