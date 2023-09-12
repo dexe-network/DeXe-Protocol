@@ -250,7 +250,7 @@ library GovPoolVote {
             core.votesAgainst = core.votesAgainst - voteInfo.totalVoted + totalVoted;
         }
 
-        if (core.executeAfter == 0 && _quorumReached(core)) {
+        if (_quorumReached(core)) {
             core.executeAfter =
                 core.settings.executionDelay +
                 (core.settings.earlyCompletion ? uint64(block.timestamp) : core.voteEnd);

@@ -507,15 +507,7 @@ contract GovPool is
 
     function _updateRewards(uint256 proposalId, address user, RewardType rewardType) internal {
         if (rewardType == RewardType.Vote) {
-            uint256 delegatorRewards = _userInfos.updateVotingRewards(
-                _proposals,
-                proposalId,
-                user
-            );
-
-            if (delegatorRewards != 0) {
-                _userInfos.updateRewards(proposalId, delegatorRewards, user);
-            }
+            _userInfos.updateVotingRewards(_proposals, proposalId, user);
         } else if (rewardType == RewardType.SaveOffchainResults) {
             _userInfos.updateOffchainRewards(proposalId, user);
         } else {

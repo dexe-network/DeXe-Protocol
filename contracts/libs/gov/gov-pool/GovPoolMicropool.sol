@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@solarity/solidity-lib/libs/arrays/ArrayHelper.sol";
 
+import "./GovPoolRewards.sol";
+
 import "../../utils/TokenBalance.sol";
 import "../../math/MathHelper.sol";
 
@@ -16,8 +18,8 @@ library GovPoolMicropool {
     using Math for uint256;
     using MathHelper for uint256;
     using ArrayHelper for uint256[];
+    using GovPoolRewards for *;
 
-    event DelegatorRewardsSet(uint256 proposalId, uint256 amount, address delegatee);
     event DelegatorRewardsClaimed(
         uint256 proposalId,
         address delegator,
@@ -25,17 +27,6 @@ library GovPoolMicropool {
         address token,
         uint256 amount
     );
-
-    function updateRewards(
-        mapping(address => IGovPool.UserInfo) storage userInfos,
-        uint256 proposalId,
-        uint256 amount,
-        address delegatee
-    ) external {
-        userInfos[delegatee].micropoolInfo.pendingRewards[proposalId] = amount;
-
-        emit DelegatorRewardsSet(proposalId, amount, delegatee);
-    }
 
     function saveDelegationInfo(
         mapping(address => IGovPool.UserInfo) storage userInfos,
@@ -148,15 +139,18 @@ library GovPoolMicropool {
             delegator
         ];
 
-        uint256 pendingRewards = userInfo.micropoolInfo.pendingRewards[proposalId];
+        (, uint256 delegatorsRewards) = core._getVotingRewards(userInfos, proposalId, delegatee);
 
         if (
-            core.executionTime == 0 || delegatorInfo.isClaimed[proposalId] || pendingRewards == 0
+            core.executionTime == 0 ||
+            delegatorInfo.isClaimed[proposalId] ||
+            delegatorsRewards == 0
         ) {
             return 0;
         }
 
-        uint256 index = delegatorInfo.delegationTimes.lowerBound(core.executionTime);
+        uint256 quorumReachedTime = core.executeAfter - core.settings.executionDelay;
+        uint256 index = delegatorInfo.delegationTimes.lowerBound(quorumReachedTime);
 
         if (index == 0) {
             return 0;
@@ -170,6 +164,6 @@ library GovPoolMicropool {
                 core.nftPowerSnapshotId
             );
 
-        return pendingRewards.ratio(delegationAmount, micropoolRawVote.totalVoted);
+        return delegatorsRewards.ratio(delegationAmount, micropoolRawVote.totalVoted);
     }
 }

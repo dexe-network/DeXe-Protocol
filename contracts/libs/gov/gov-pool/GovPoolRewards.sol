@@ -83,19 +83,18 @@ library GovPoolRewards {
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId,
         address user
-    ) external returns (uint256 delegatorRewards) {
+    ) external {
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
         IGovPool.PendingRewards storage userRewards = userInfos[user].pendingRewards;
 
         if (userRewards.areVotingRewardsSet[proposalId]) {
-            return 0;
+            return;
         }
 
-        uint256 votingRewards;
-        (votingRewards, delegatorRewards) = _getVotingRewards(core, userInfos, proposalId, user);
+        (uint256 votingRewards, ) = _getVotingRewards(core, userInfos, proposalId, user);
 
-        if (votingRewards == 0 && delegatorRewards == 0) {
-            return 0;
+        if (votingRewards == 0) {
+            return;
         }
 
         userRewards.onchainRewards[proposalId] += votingRewards;
