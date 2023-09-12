@@ -167,6 +167,8 @@ library GovPoolRewards {
                 (uint256 votingRewards, ) = _getVotingRewards(core, userInfos, proposalId, user);
 
                 rewards.onchainRewards[i] += votingRewards;
+            } else {
+                rewards.onchainRewards[i] += userRewards.votingRewards[proposalId];
             }
         }
 
