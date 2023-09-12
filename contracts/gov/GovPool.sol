@@ -323,6 +323,12 @@ contract GovPool is
         }
     }
 
+    function changeVotePower(address votePower) external override onlyThis {
+        require(votePower != address(0), "Gov: zero vote power contract");
+
+        _votePowerContract = votePower;
+    }
+
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
         descriptionURL = newDescriptionURL;
     }

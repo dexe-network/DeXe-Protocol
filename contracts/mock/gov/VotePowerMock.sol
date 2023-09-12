@@ -22,10 +22,6 @@ contract VotePowerMock is IVotePower, OwnableUpgradeable {
         address,
         uint256 votes
     ) external view override returns (uint256 resultingVotes) {
-        if (_power == 0) {
-            return votes;
-        }
-
         return votes * votes;
     }
 

@@ -62,6 +62,25 @@ const getBytesTransfer = (address, amount) => {
   );
 };
 
+const getBytesChangeVotePower = (votePower) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "votePower",
+          type: "address",
+        },
+      ],
+      name: "changeVotePower",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [votePower]
+  );
+};
+
 const getBytesEditUrl = (url) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -980,6 +999,7 @@ module.exports = {
   getBytesApprove,
   getBytesApproveAll,
   getBytesTransfer,
+  getBytesChangeVotePower,
   getBytesEditUrl,
   getBytesSetNftMultiplierAddress,
   getBytesDistributionProposal,

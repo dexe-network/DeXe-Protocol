@@ -396,6 +396,10 @@ interface IGovPool {
     /// @param delegatee the address of the delegatee
     function claimMicropoolRewards(uint256[] calldata proposalIds, address delegatee) external;
 
+    /// @notice The function to change vote power contract
+    /// @param votePower new contract for the voting power formula
+    function changeVotePower(address votePower) external;
+
     /// @notice The function for changing description url
     /// @param newDescriptionURL the string with new url
     function editDescriptionURL(string calldata newDescriptionURL) external;

@@ -225,6 +225,7 @@ library GovPoolCreate {
                         selector == IGovSettings.changeExecutors.selector ||
                         selector == IGovUserKeeper.setERC20Address.selector ||
                         selector == IGovUserKeeper.setERC721Address.selector ||
+                        selector == IGovPool.changeVotePower.selector ||
                         selector == IGovPool.editDescriptionURL.selector ||
                         selector == IGovPool.setNftMultiplierAddress.selector ||
                         selector == IGovPool.changeVerifier.selector ||
