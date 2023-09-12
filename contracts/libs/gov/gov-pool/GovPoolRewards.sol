@@ -188,6 +188,7 @@ library GovPoolRewards {
 
     function _sendRewards(uint256 proposalId, address rewardToken, uint256 rewards) internal {
         require(rewardToken != address(0), "Gov: rewards are off");
+        require(rewards != 0, "Gov: zero rewards");
 
         rewardToken.sendFunds(msg.sender, rewards, TokenBalance.TransferType.Mint);
 
