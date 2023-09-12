@@ -1385,7 +1385,8 @@ describe.only("GovPool", () => {
 
           assert.equal(await govPool.getProposalState(1), ProposalState.WaitingForVotingTransfer);
 
-          await govPool.undelegate(THIRD, wei("6000000000000000000"), [100], { from: delegator1 });
+          await govPool.undelegate(THIRD, "0", [100], { from: delegator1 });
+          await govPool.undelegate(THIRD, wei("6000000000000000000"), [], { from: delegator1 });
           await govPool.undelegate(THIRD, wei("6000000000000000000"), [], { from: delegator2 });
 
           assert.equal(await govPool.getProposalState(1), ProposalState.WaitingForVotingTransfer);
@@ -1413,6 +1414,8 @@ describe.only("GovPool", () => {
             (await govPool.getTotalVotes(2, SECOND, VoteType.PersonalVote))[0].toFixed(),
             wei("68000000000000000000")
           );
+
+          await truffleAssert.reverts(govPool.getTotalVotes(2, SECOND, VoteType.DelegatedVote), "Gov: use personal");
 
           await govPool.delegate(SECOND, wei("5000000000000000000"), [101], { from: delegator1 });
           await govPool.delegate(SECOND, wei("5000000000000000000"), [202, 203], { from: delegator2 });
