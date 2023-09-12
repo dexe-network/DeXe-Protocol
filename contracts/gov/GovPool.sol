@@ -528,6 +528,11 @@ contract GovPool is
     }
 
     function _onlyBABTHolder() internal view {
-        require(!onlyBABTHolders || _babt.balanceOf(msg.sender) > 0, "Gov: not BABT holder");
+        require(
+            !onlyBABTHolders ||
+                _babt.balanceOf(msg.sender) > 0 ||
+                IPoolRegistry(_poolRegistry).isGovPool(msg.sender),
+            "Gov: not BABT holder"
+        );
     }
 }

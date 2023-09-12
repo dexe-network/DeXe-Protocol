@@ -4357,6 +4357,23 @@ describe.only("GovPool", () => {
       await govPool.deposit(SECOND, wei("3"), [], { from: SECOND });
     });
 
+    it("should bypass the onlyBABT restriction if the caller is a pool", async () => {
+      await impersonate(govPool.address);
+
+      await token.mint(govPool.address, wei("1000000"));
+      await token.approve(userKeeper.address, wei("1000000"), { from: govPool.address });
+
+      assert.equal((await userKeeper.tokenBalance(THIRD, VoteType.PersonalVote)).totalBalance.toFixed(), "0");
+      assert.equal((await babt.balanceOf(govPool.address)).toFixed(), "0");
+
+      await govPool.deposit(THIRD, wei("1000000"), [], { from: govPool.address });
+
+      assert.equal(
+        (await userKeeper.tokenBalance(THIRD, VoteType.PersonalVote)).totalBalance.toFixed(),
+        wei("1000000")
+      );
+    });
+
     describe("onlyBABTHolder modifier reverts", () => {
       it("createProposal()", async () => {
         await truffleAssert.reverts(
@@ -4365,11 +4382,19 @@ describe.only("GovPool", () => {
         );
       });
 
+      it("moveProposalToValidators()", async () => {
+        await truffleAssert.reverts(govPool.moveProposalToValidators(1), REVERT_STRING);
+      });
+
       it("vote()", async () => {
         await govPool.createProposal("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], [], {
           from: SECOND,
         });
         await truffleAssert.reverts(govPool.vote(1, true, wei("100"), []), REVERT_STRING);
+      });
+
+      it("cancelVote()", async () => {
+        await truffleAssert.reverts(govPool.cancelVote(1), REVERT_STRING);
       });
 
       it("deposit()", async () => {
@@ -4398,6 +4423,10 @@ describe.only("GovPool", () => {
 
       it("claimRewards()", async () => {
         await truffleAssert.reverts(govPool.claimRewards([1]), REVERT_STRING);
+      });
+
+      it("claimMicropoolRewards()", async () => {
+        await truffleAssert.reverts(govPool.claimMicropoolRewards([1], SECOND), REVERT_STRING);
       });
 
       it("saveOffchainResults()", async () => {
