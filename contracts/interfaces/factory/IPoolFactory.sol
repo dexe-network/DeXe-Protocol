@@ -100,8 +100,8 @@ interface IPoolFactory {
 
     struct GovPoolPredictedAddresses {
         address govPool;
-        address govToken;
         address govTokenSale;
+        address govToken;
         address distributionProposal;
         address expertNft;
         address nftMultiplier;

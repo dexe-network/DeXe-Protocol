@@ -418,9 +418,9 @@ describe("PoolFactory", () => {
 
         const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
 
-        POOL_PARAMETERS.tokenSaleParams.tiersParams[0].saleTokenAddress = predictedGovAddresses.govTokenSale;
-        POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedGovAddresses.govTokenSale;
-        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govToken;
+        POOL_PARAMETERS.tokenSaleParams.tiersParams[0].saleTokenAddress = predictedGovAddresses.govToken;
+        POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedGovAddresses.govToken;
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
 
         let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);
         let event = tx.receipt.logs[0];
@@ -434,8 +434,8 @@ describe("PoolFactory", () => {
         let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
 
         assert.equal(govPool.address, predictedGovAddresses.govPool);
-        assert.equal(tokenSale.address, predictedGovAddresses.govToken);
-        assert.equal(token.address, predictedGovAddresses.govTokenSale);
+        assert.equal(token.address, predictedGovAddresses.govToken);
+        assert.equal(tokenSale.address, predictedGovAddresses.govTokenSale);
         assert.equal(dp.address, predictedGovAddresses.distributionProposal);
         assert.equal(localExpertNft.address, predictedGovAddresses.expertNft);
         assert.equal(nftMultiplier.address, predictedGovAddresses.nftMultiplier);
@@ -463,7 +463,7 @@ describe("PoolFactory", () => {
         const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
 
         POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
-        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govToken;
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
 
         let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);
         let event = tx.receipt.logs[0];
@@ -490,7 +490,7 @@ describe("PoolFactory", () => {
         const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
 
         POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
-        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govToken;
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
 
         await poolFactory.deployGovPool(POOL_PARAMETERS);
 
@@ -508,7 +508,7 @@ describe("PoolFactory", () => {
         POOL_PARAMETERS.votePowerParams.initData = getBytesPolynomialPowerInit(1, 2, 3);
 
         POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
-        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govToken;
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
 
         await poolFactory.deployGovPool(POOL_PARAMETERS);
 
@@ -532,7 +532,7 @@ describe("PoolFactory", () => {
         POOL_PARAMETERS.votePowerParams.presetAddress = (await LinearPower.new()).address;
 
         POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
-        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govToken;
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
 
         await poolFactory.deployGovPool(POOL_PARAMETERS);
 
@@ -552,7 +552,7 @@ describe("PoolFactory", () => {
         POOL_PARAMETERS.votePowerParams.initData = getBytesPolynomialPowerInit(1, 2, 3);
 
         POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
-        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govToken;
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
 
         await truffleAssert.reverts(poolFactory.deployGovPool(POOL_PARAMETERS), "PoolFactory: power init failed");
       });
@@ -572,7 +572,7 @@ describe("PoolFactory", () => {
         const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
 
         POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
-        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govToken;
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
 
         await poolFactory.deployGovPool(POOL_PARAMETERS);
         await poolFactory.deployGovPool(POOL_PARAMETERS, { from: SECOND });
