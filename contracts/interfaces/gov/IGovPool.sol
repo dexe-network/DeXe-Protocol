@@ -207,12 +207,14 @@ interface IGovPool {
 
     /// @notice The struct that holds reward properties (only for internal needs)
     /// @param areVotingRewardsSet matching proposals ids with flags indicating whether voting rewards have been set during the personal or micropool claim
-    /// @param onchainRewards matching proposal ids to their on-chain rewards
+    /// @param staticRewards matching proposal ids to their static rewards
+    /// @param votingRewards matching proposal ids to their voting rewards
     /// @param offchainRewards matching off-chain token addresses to their rewards
     /// @param offchainTokens the list of off-chain token addresses
     struct PendingRewards {
         mapping(uint256 => bool) areVotingRewardsSet;
-        mapping(uint256 => uint256) onchainRewards;
+        mapping(uint256 => uint256) staticRewards;
+        mapping(uint256 => uint256) votingRewards;
         mapping(address => uint256) offchainRewards;
         EnumerableSet.AddressSet offchainTokens;
     }
