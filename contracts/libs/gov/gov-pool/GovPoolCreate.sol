@@ -56,7 +56,7 @@ library GovPoolCreate {
             settings: settings,
             voteEnd: uint64(block.timestamp + settings.duration),
             executeAfter: 0,
-            executionTime: 0,
+            executed: false,
             votesFor: 0,
             votesAgainst: 0,
             rawVotesFor: 0,

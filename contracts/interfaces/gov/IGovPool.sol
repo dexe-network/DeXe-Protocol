@@ -81,7 +81,7 @@ interface IGovPool {
     /// @param settings the struct that holds information about settings of the proposal
     /// @param voteEnd the timestamp of voting end for the proposal
     /// @param executeAfter the timestamp of execution in seconds after voting end
-    /// @param executionTime the timestamp of the proposal execution
+    /// @param executed the boolean indicating whether the proposal has been executed
     /// @param votesFor the total number of votes for the proposal from all voters
     /// @param votesAgainst the total number of votes against the proposal from all voters
     /// @param rawVotesFor the total number of votes for the proposal from all voters before the formula
@@ -92,7 +92,7 @@ interface IGovPool {
         IGovSettings.ProposalSettings settings;
         uint64 voteEnd;
         uint64 executeAfter;
-        uint64 executionTime;
+        bool executed;
         uint256 votesFor;
         uint256 votesAgainst;
         uint256 rawVotesFor;

@@ -793,7 +793,7 @@ describe.only("GovPool", () => {
         assert.equal(proposal.core.settings[8], defaultSettings.minVotesForCreating);
         assert.equal(proposal.core.settings[9], defaultSettings.executionDelay);
 
-        assert.equal(proposal.core.executionTime, "0");
+        assert.isFalse(proposal.core.executed);
         assert.equal(proposal.descriptionURL, "example.com");
         assert.deepEqual(proposal.actionsOnFor[0].data, getBytesApprove(SECOND, 1));
         assert.deepEqual(proposal.actionsOnAgainst, []);
@@ -813,7 +813,7 @@ describe.only("GovPool", () => {
         assert.equal(proposal.core.settings[8], defaultSettings.minVotesForCreating);
         assert.equal(proposal.core.settings[9], defaultSettings.executionDelay);
 
-        assert.equal(proposal.core.executionTime, "0");
+        assert.isFalse(proposal.core.executed);
         assert.equal(proposal.descriptionURL, "example2.com");
         assert.deepEqual(proposal.actionsOnFor[0].data, getBytesApprove(SECOND, 2));
         assert.deepEqual(proposal.actionsOnAgainst, []);
@@ -2222,7 +2222,7 @@ describe.only("GovPool", () => {
         const validatorProposal = await validators.getExternalProposal(2);
 
         assert.equal(await govPool.getProposalState(2), ProposalState.ValidatorVoting);
-        assert.equal(proposal.core.executionTime !== "0", validatorProposal.core.executed);
+        assert.equal(proposal.core.executed, validatorProposal.core.executed);
         assert.equal(proposal.core.settings.quorumValidators, validatorProposal.core.quorum);
       });
 
@@ -2415,7 +2415,7 @@ describe.only("GovPool", () => {
         assert.equal(addedSettings.minVotesForCreating, 1);
         assert.equal(addedSettings.executionDelay, 101);
 
-        assert.notEqual((await getProposalByIndex(1)).core.executionTime, "0");
+        assert.isTrue((await getProposalByIndex(1)).core.executed);
       });
 
       it("should not execute random proposals", async () => {

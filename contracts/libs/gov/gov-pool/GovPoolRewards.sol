@@ -119,7 +119,7 @@ library GovPoolRewards {
         if (proposalId != 0) {
             IGovPool.ProposalCore storage core = proposals[proposalId].core;
 
-            require(core.executionTime != 0, "Gov: proposal is not executed");
+            require(core.executed, "Gov: proposal is not executed");
 
             mapping(uint256 => uint256) storage onchainRewards = userRewards.onchainRewards;
 
@@ -165,7 +165,7 @@ library GovPoolRewards {
 
             IGovPool.ProposalCore storage core = proposals[proposalId].core;
 
-            if (core.executionTime == 0) {
+            if (!core.executed) {
                 continue;
             }
 

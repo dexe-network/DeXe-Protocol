@@ -102,7 +102,7 @@ library GovPoolMicropool {
 
             IGovPool.Proposal storage proposal = proposals[proposalId];
 
-            if (proposal.core.executionTime == 0) {
+            if (!proposal.core.executed) {
                 continue;
             }
 
@@ -141,11 +141,7 @@ library GovPoolMicropool {
 
         (, uint256 delegatorsRewards) = core._getVotingRewards(userInfos, proposalId, delegatee);
 
-        if (
-            core.executionTime == 0 ||
-            delegatorInfo.isClaimed[proposalId] ||
-            delegatorsRewards == 0
-        ) {
+        if (!core.executed || delegatorInfo.isClaimed[proposalId] || delegatorsRewards == 0) {
             return 0;
         }
 
