@@ -17,13 +17,6 @@ library GovPoolRewards {
     using MathHelper for uint256;
 
     event RewardClaimed(uint256 proposalId, address sender, address token, uint256 amount);
-    event RewardCredited(
-        uint256 proposalId,
-        IGovPool.RewardType rewardType,
-        address rewardToken,
-        uint256 amount,
-        address sender
-    );
 
     function updateStaticRewards(
         mapping(address => IGovPool.UserInfo) storage userInfos,
@@ -45,8 +38,6 @@ library GovPoolRewards {
         userInfos[user].pendingRewards.onchainRewards[proposalId] += amountToAdd;
 
         core.givenRewards += amountToAdd;
-
-        emit RewardCredited(proposalId, rewardType, rewardsInfo.rewardToken, amountToAdd, user);
     }
 
     function updateOffchainRewards(
@@ -68,14 +59,6 @@ library GovPoolRewards {
 
         userRewards.offchainRewards[rewardToken] += amountToAdd;
         userRewards.offchainTokens.add(rewardToken);
-
-        emit RewardCredited(
-            proposalId,
-            IGovPool.RewardType.SaveOffchainResults,
-            rewardToken,
-            amountToAdd,
-            user
-        );
     }
 
     function updateVotingRewards(
@@ -99,14 +82,6 @@ library GovPoolRewards {
 
         userRewards.onchainRewards[proposalId] += votingRewards;
         userRewards.areVotingRewardsSet[proposalId] = true;
-
-        emit RewardCredited(
-            proposalId,
-            IGovPool.RewardType.Vote,
-            core.settings.rewardsInfo.rewardToken,
-            votingRewards,
-            user
-        );
     }
 
     function claimReward(
