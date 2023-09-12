@@ -1234,6 +1234,11 @@ describe("GovUserKeeper", () => {
 
       assert.equal(nftBalance.totalBalance, "0");
       assert.equal(nftBalance.ownedBalance, "0");
+
+      const nftExactBalance = await userKeeper.nftExactBalance(OWNER, VoteType.PersonalVote);
+
+      assert.deepEqual(nftExactBalance.nfts, []);
+      assert.equal(nftExactBalance.ownedLength, "0");
     });
 
     it("should return zero delegated assets", async () => {
