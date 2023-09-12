@@ -17,6 +17,7 @@ library GovPoolVote {
     using MathHelper for uint256;
 
     event VoteChanged(uint256 proposalId, address voter, bool isVoteFor, uint256 totalVoted);
+    event QuorumReached(uint256 proposalId);
 
     function vote(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
@@ -260,6 +261,8 @@ library GovPoolVote {
             core.executeAfter =
                 core.settings.executionDelay +
                 (core.settings.earlyCompletion ? uint64(block.timestamp) : core.voteEnd);
+
+            emit QuorumReached(proposalId);
         }
 
         voteInfo.isVoteFor = isVoteFor;
