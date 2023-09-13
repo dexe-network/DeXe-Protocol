@@ -95,7 +95,7 @@ ERC20.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
-describe("GovPool", () => {
+describe.only("GovPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -1374,6 +1374,33 @@ describe("GovPool", () => {
           assert.equal(await govPool.getProposalState(1), ProposalState.WaitingForVotingTransfer);
         });
 
+        it("should voteMicropool after quorum reached", async () => {
+          await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
+
+          await govPool.delegate(SECOND, wei("6000000000000000000"), [], { from: delegator1 });
+          await govPool.delegate(SECOND, wei("6000000000000000000"), [], { from: delegator2 });
+
+          await govPool.vote(1, true, wei("68000000000000000000"), [], { from: SECOND });
+
+          let core = (await govPool.getProposals(0, 1))[0].proposal.core;
+
+          assert.equal(core.executeAfter, core.voteEnd);
+
+          await govPool.undelegate(SECOND, wei("6000000000000000000"), [], { from: delegator1 });
+          await govPool.undelegate(SECOND, wei("6000000000000000000"), [], { from: delegator2 });
+
+          core = (await govPool.getProposals(0, 1))[0].proposal.core;
+
+          assert.equal(core.executeAfter, "0");
+
+          await govPool.delegate(SECOND, wei("6000000000000000000"), [], { from: delegator1 });
+          await govPool.delegate(SECOND, wei("6000000000000000000"), [], { from: delegator2 });
+
+          core = (await govPool.getProposals(0, 1))[0].proposal.core;
+
+          assert.equal(core.executeAfter, core.voteEnd);
+        });
+
         it("should voteMicropool with zero personal balance", async () => {
           await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
 
@@ -1495,6 +1522,33 @@ describe("GovPool", () => {
           await setTime((await getCurrentBlockTime()) + 999);
 
           assert.equal(await govPool.getProposalState(3), ProposalState.WaitingForVotingTransfer);
+        });
+
+        it("should voteTreasury after quorum reached", async () => {
+          await delegateTreasury(THIRD, wei("13000000000000000000"), []);
+
+          await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
+
+          await govPool.vote(3, true, wei("68000000000000000000"), [], { from: SECOND });
+          await govPool.vote(3, true, "0", [], { from: THIRD });
+
+          let core = (await govPool.getProposals(2, 1))[0].proposal.core;
+
+          assert.equal(core.executeAfter, core.voteEnd);
+
+          await undelegateTreasury(THIRD, wei("12000000000000000000"), []);
+
+          core = (await govPool.getProposals(2, 1))[0].proposal.core;
+
+          assert.equal(core.executeAfter, "0");
+
+          await executeValidatorProposal([
+            [govPool.address, 0, getBytesDelegateTreasury(THIRD, wei("12000000000000000000"), [])],
+          ]);
+
+          core = (await govPool.getProposals(2, 1))[0].proposal.core;
+
+          assert.equal(core.executeAfter, core.voteEnd);
         });
 
         it("should voteTreasury with zero personal balance", async () => {
@@ -1768,6 +1822,28 @@ describe("GovPool", () => {
         assert.equal(vote.totalRawVoted, wei("200"));
         assert.equal(coreVotes[0].toFixed(), "0");
         assert.equal(coreVotes[1].toFixed(), wei("200"));
+      });
+
+      it("should vote cancel vote after quorum reached", async () => {
+        await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
+
+        await govPool.vote(1, true, wei("100000000000000000000"), [], { from: SECOND });
+
+        let core = (await govPool.getProposals(0, 1))[0].proposal.core;
+
+        assert.equal(core.executeAfter, core.voteEnd);
+
+        await govPool.cancelVote(1, { from: SECOND });
+
+        core = (await govPool.getProposals(0, 1))[0].proposal.core;
+
+        assert.equal(core.executeAfter, "0");
+
+        await govPool.vote(1, true, wei("100000000000000000000"), [], { from: SECOND });
+
+        core = (await govPool.getProposals(0, 1))[0].proposal.core;
+
+        assert.equal(core.executeAfter, core.voteEnd);
       });
 
       it("should cancel properly if delegated voting is on", async () => {
