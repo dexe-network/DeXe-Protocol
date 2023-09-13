@@ -117,7 +117,8 @@ contract GovPool is
         _govValidators = IGovValidators(govPoolDeps.validatorsAddress);
         _expertNft = IERC721Expert(govPoolDeps.expertNftAddress);
         _nftMultiplier = govPoolDeps.nftMultiplierAddress;
-        _votePowerContract = govPoolDeps.votePowerAddress;
+
+        _changeVotePower(govPoolDeps.votePowerAddress);
 
         onlyBABTHolders = _onlyBABTHolders;
         deployerBABTid = _deployerBABTid;
@@ -324,9 +325,7 @@ contract GovPool is
     }
 
     function changeVotePower(address votePower) external override onlyThis {
-        require(votePower != address(0), "Gov: zero vote power contract");
-
-        _votePowerContract = votePower;
+        _changeVotePower(votePower);
     }
 
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
@@ -342,7 +341,7 @@ contract GovPool is
     }
 
     function setNftMultiplierAddress(address nftMultiplierAddress) external override onlyThis {
-        _setNftMultiplierAddress(nftMultiplierAddress);
+        _nftMultiplier = nftMultiplierAddress;
     }
 
     function setCreditInfo(
@@ -503,10 +502,6 @@ contract GovPool is
         return _expertNft.isExpert(user) || _dexeExpertNft.isExpert(user);
     }
 
-    function _setNftMultiplierAddress(address nftMultiplierAddress) internal {
-        _nftMultiplier = nftMultiplierAddress;
-    }
-
     function _revoteDelegated(address delegatee, VoteType voteType) internal {
         _proposals.revoteDelegated(_userInfos, delegatee, voteType);
     }
@@ -523,6 +518,12 @@ contract GovPool is
 
     function _unlock(address user) internal {
         _userInfos.unlockInProposals(user);
+    }
+
+    function _changeVotePower(address votePower) internal {
+        require(votePower != address(0), "Gov: zero vote power contract");
+
+        _votePowerContract = votePower;
     }
 
     function _onlyThis() internal view {
