@@ -37,9 +37,9 @@ library GovPoolMicropool {
         (uint256 currentTokenAmount, uint256[] memory currentNftIds) = IGovUserKeeper(userKeeper)
             .getDelegatedAssets(msg.sender, delegatee);
 
-        IGovPool.DelegatorInfo storage delegatorInfo = userInfos[delegatee]
-            .micropoolInfo
-            .delegatorInfos[msg.sender];
+        IGovPool.DelegatorInfo storage delegatorInfo = userInfos[delegatee].delegatorInfos[
+            msg.sender
+        ];
 
         uint256[] storage delegationTimes = delegatorInfo.delegationTimes;
         uint256[] storage tokenAmounts = delegatorInfo.tokenAmounts;
@@ -74,7 +74,7 @@ library GovPoolMicropool {
 
         require(reward != 0, "Gov: no micropool rewards");
 
-        userInfos[delegatee].micropoolInfo.delegatorInfos[msg.sender].isClaimed[proposalId] = true;
+        userInfos[delegatee].delegatorInfos[msg.sender].isClaimed[proposalId] = true;
 
         address rewardToken = proposals[proposalId].core.settings.rewardsInfo.rewardToken;
 
@@ -115,9 +115,7 @@ library GovPoolMicropool {
             );
             rewards.rewardTokens[i] = proposal.core.settings.rewardsInfo.rewardToken;
             rewards.isVoteFor[i] = userInfo.voteInfos[proposalId].isVoteFor;
-            rewards.isClaimed[i] = userInfo.micropoolInfo.delegatorInfos[delegator].isClaimed[
-                proposalId
-            ];
+            rewards.isClaimed[i] = userInfo.delegatorInfos[delegator].isClaimed[proposalId];
         }
     }
 
@@ -135,9 +133,7 @@ library GovPoolMicropool {
         IGovPool.RawVote storage micropoolRawVote = userInfo.voteInfos[proposalId].rawVotes[
             IGovPool.VoteType.MicropoolVote
         ];
-        IGovPool.DelegatorInfo storage delegatorInfo = userInfo.micropoolInfo.delegatorInfos[
-            delegator
-        ];
+        IGovPool.DelegatorInfo storage delegatorInfo = userInfo.delegatorInfos[delegator];
 
         (, uint256 delegatorsRewards) = core._getVotingRewards(userInfos, proposalId, delegatee);
 

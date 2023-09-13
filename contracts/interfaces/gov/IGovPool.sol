@@ -197,14 +197,6 @@ interface IGovPool {
         mapping(uint256 => bool) isClaimed;
     }
 
-    /// @notice The struct that holds information about the micropool (only for internal needs)
-    /// @param delegatorInfos matching delegator addresses with their infos
-    /// @param pendingRewards matching proposal ids with rewards to be distributed among delegators
-    struct MicropoolInfo {
-        mapping(address => DelegatorInfo) delegatorInfos;
-        mapping(uint256 => uint256) pendingRewards;
-    }
-
     /// @notice The struct that holds reward properties (only for internal needs)
     /// @param areVotingRewardsSet matching proposals ids with flags indicating whether voting rewards have been set during the personal or micropool claim
     /// @param staticRewards matching proposal ids to their static rewards
@@ -223,7 +215,7 @@ interface IGovPool {
     struct UserInfo {
         mapping(uint256 => VoteInfo) voteInfos; // proposalId => info
         PendingRewards pendingRewards;
-        MicropoolInfo micropoolInfo;
+        mapping(address => DelegatorInfo) delegatorInfos;
         EnumerableSet.UintSet votedInProposals;
         EnumerableSet.UintSet restrictedProposals;
     }
