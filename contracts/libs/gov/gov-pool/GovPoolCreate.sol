@@ -56,7 +56,7 @@ library GovPoolCreate {
             settings: settings,
             voteEnd: uint64(block.timestamp + settings.duration),
             executeAfter: 0,
-            executionTime: 0,
+            executed: false,
             votesFor: 0,
             votesAgainst: 0,
             rawVotesFor: 0,
@@ -225,6 +225,7 @@ library GovPoolCreate {
                         selector == IGovSettings.changeExecutors.selector ||
                         selector == IGovUserKeeper.setERC20Address.selector ||
                         selector == IGovUserKeeper.setERC721Address.selector ||
+                        selector == IGovPool.changeVotePower.selector ||
                         selector == IGovPool.editDescriptionURL.selector ||
                         selector == IGovPool.setNftMultiplierAddress.selector ||
                         selector == IGovPool.changeVerifier.selector ||

@@ -62,6 +62,25 @@ const getBytesTransfer = (address, amount) => {
   );
 };
 
+const getBytesChangeVotePower = (votePower) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "votePower",
+          type: "address",
+        },
+      ],
+      name: "changeVotePower",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [votePower]
+  );
+};
+
 const getBytesEditUrl = (url) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -787,6 +806,35 @@ const getBytesGovDeposit = (receiver, amount, nftIds) => {
   );
 };
 
+const getBytesGovDelegate = (delegatee, amount, nftIds) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "delegatee",
+          type: "address",
+        },
+        {
+          internalType: "uint256",
+          name: "amount",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256[]",
+          name: "nftIds",
+          type: "uint256[]",
+        },
+      ],
+      name: "delegate",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [delegatee, amount, nftIds]
+  );
+};
+
 const getBytesKeeperWithdrawTokens = (payer, receiver, amount) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -951,6 +999,7 @@ module.exports = {
   getBytesApprove,
   getBytesApproveAll,
   getBytesTransfer,
+  getBytesChangeVotePower,
   getBytesEditUrl,
   getBytesSetNftMultiplierAddress,
   getBytesDistributionProposal,
@@ -973,6 +1022,7 @@ module.exports = {
   getBytesGovClaimRewards,
   getBytesGovVote,
   getBytesGovDeposit,
+  getBytesGovDelegate,
   getBytesKeeperWithdrawTokens,
   getBytesSetCreditInfo,
   getBytesChangeVoteModifiers,

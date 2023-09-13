@@ -82,7 +82,7 @@ library GovPoolView {
             return IGovPool.ProposalState.Undefined;
         }
 
-        if (core.executionTime != 0) {
+        if (core.executed) {
             return
                 _votesForMoreThanAgainst(core)
                     ? IGovPool.ProposalState.ExecutedFor

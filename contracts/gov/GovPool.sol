@@ -117,7 +117,8 @@ contract GovPool is
         _govValidators = IGovValidators(govPoolDeps.validatorsAddress);
         _expertNft = IERC721Expert(govPoolDeps.expertNftAddress);
         _nftMultiplier = govPoolDeps.nftMultiplierAddress;
-        _votePowerContract = govPoolDeps.votePowerAddress;
+
+        _changeVotePower(govPoolDeps.votePowerAddress);
 
         onlyBABTHolders = _onlyBABTHolders;
         deployerBABTid = _deployerBABTid;
@@ -323,6 +324,10 @@ contract GovPool is
         }
     }
 
+    function changeVotePower(address votePower) external override onlyThis {
+        _changeVotePower(votePower);
+    }
+
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
         descriptionURL = newDescriptionURL;
     }
@@ -336,7 +341,7 @@ contract GovPool is
     }
 
     function setNftMultiplierAddress(address nftMultiplierAddress) external override onlyThis {
-        _setNftMultiplierAddress(nftMultiplierAddress);
+        _nftMultiplier = nftMultiplierAddress;
     }
 
     function setCreditInfo(
@@ -497,25 +502,13 @@ contract GovPool is
         return _expertNft.isExpert(user) || _dexeExpertNft.isExpert(user);
     }
 
-    function _setNftMultiplierAddress(address nftMultiplierAddress) internal {
-        _nftMultiplier = nftMultiplierAddress;
-    }
-
     function _revoteDelegated(address delegatee, VoteType voteType) internal {
         _proposals.revoteDelegated(_userInfos, delegatee, voteType);
     }
 
     function _updateRewards(uint256 proposalId, address user, RewardType rewardType) internal {
         if (rewardType == RewardType.Vote) {
-            uint256 delegatorRewards = _userInfos.updateVotingRewards(
-                _proposals,
-                proposalId,
-                user
-            );
-
-            if (delegatorRewards != 0) {
-                _userInfos.updateRewards(proposalId, delegatorRewards, user);
-            }
+            _userInfos.updateVotingRewards(_proposals, proposalId, user);
         } else if (rewardType == RewardType.SaveOffchainResults) {
             _userInfos.updateOffchainRewards(proposalId, user);
         } else {
@@ -527,6 +520,12 @@ contract GovPool is
         _userInfos.unlockInProposals(user);
     }
 
+    function _changeVotePower(address votePower) internal {
+        require(votePower != address(0), "Gov: zero vote power contract");
+
+        _votePowerContract = votePower;
+    }
+
     function _onlyThis() internal view {
         require(address(this) == msg.sender, "Gov: not this contract");
     }
@@ -536,6 +535,11 @@ contract GovPool is
     }
 
     function _onlyBABTHolder() internal view {
-        require(!onlyBABTHolders || _babt.balanceOf(msg.sender) > 0, "Gov: not BABT holder");
+        require(
+            !onlyBABTHolders ||
+                _babt.balanceOf(msg.sender) > 0 ||
+                IPoolRegistry(_poolRegistry).isGovPool(msg.sender),
+            "Gov: not BABT holder"
+        );
     }
 }

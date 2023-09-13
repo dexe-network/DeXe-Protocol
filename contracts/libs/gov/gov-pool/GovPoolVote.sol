@@ -17,6 +17,7 @@ library GovPoolVote {
     using MathHelper for uint256;
 
     event VoteChanged(uint256 proposalId, address voter, bool isVoteFor, uint256 totalVoted);
+    event QuorumReached(uint256 proposalId);
 
     function vote(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
@@ -86,6 +87,10 @@ library GovPoolVote {
         for (uint256 i = 0; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
 
+            if (!_isVotingState(proposalId)) {
+                continue;
+            }
+
             IGovPool.ProposalCore storage core = proposals[proposalId].core;
             IGovPool.VoteInfo storage voteInfo = userInfos[voter].voteInfos[proposalId];
             IGovPool.RawVote storage rawVote = voteInfo.rawVotes[voteType];
@@ -106,6 +111,8 @@ library GovPoolVote {
         mapping(address => IGovPool.UserInfo) storage userInfos,
         uint256 proposalId
     ) external {
+        require(_isVotingState(proposalId), "Gov: cancel unavailable");
+
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
         IGovPool.VoteInfo storage voteInfo = userInfos[msg.sender].voteInfos[proposalId];
 
@@ -250,10 +257,12 @@ library GovPoolVote {
             core.votesAgainst = core.votesAgainst - voteInfo.totalVoted + totalVoted;
         }
 
-        if (core.executeAfter == 0 && _quorumReached(core)) {
+        if (_quorumReached(core)) {
             core.executeAfter =
                 core.settings.executionDelay +
                 (core.settings.earlyCompletion ? uint64(block.timestamp) : core.voteEnd);
+
+            emit QuorumReached(proposalId);
         }
 
         voteInfo.isVoteFor = isVoteFor;
@@ -299,10 +308,7 @@ library GovPoolVote {
 
         IGovPool.UserInfo storage userInfo = userInfos[msg.sender];
 
-        require(
-            govPool.getProposalState(proposalId) == IGovPool.ProposalState.Voting,
-            "Gov: vote unavailable"
-        );
+        require(_isVotingState(proposalId), "Gov: vote unavailable");
         require(
             !userInfo.restrictedProposals.contains(proposalId),
             "Gov: user restricted from voting in this proposal"
@@ -343,5 +349,10 @@ library GovPoolVote {
         IVotePower votePower = IVotePower(votePowerAddress);
 
         return votePower.transformVotes(voter, voteAmount);
+    }
+
+    function _isVotingState(uint256 proposalId) internal view returns (bool) {
+        return
+            IGovPool(address(this)).getProposalState(proposalId) == IGovPool.ProposalState.Voting;
     }
 }

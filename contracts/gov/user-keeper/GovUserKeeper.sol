@@ -499,6 +499,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address voter,
         IGovPool.VoteType voteType
     ) public view override returns (uint256[] memory nfts, uint256 ownedLength) {
+        if (nftAddress == address(0)) {
+            return (nfts, 0);
+        }
+
         Vector.UintVector memory nftsVector = Vector.newUint(
             _getBalanceInfoStorage(voter, voteType).nftBalance.values()
         );

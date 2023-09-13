@@ -16,13 +16,12 @@ library GovPoolRewards {
     using TokenBalance for address;
     using MathHelper for uint256;
 
-    event RewardClaimed(uint256 proposalId, address sender, address token, uint256 amount);
-    event RewardCredited(
+    event RewardClaimed(
         uint256 proposalId,
-        IGovPool.RewardType rewardType,
-        address rewardToken,
-        uint256 amount,
-        address sender
+        bool isStatic,
+        address sender,
+        address token,
+        uint256 amount
     );
 
     function updateStaticRewards(
@@ -42,11 +41,9 @@ library GovPoolRewards {
                 : rewardsInfo.executionReward
         );
 
-        userInfos[user].pendingRewards.onchainRewards[proposalId] += amountToAdd;
+        userInfos[user].pendingRewards.staticRewards[proposalId] += amountToAdd;
 
         core.givenRewards += amountToAdd;
-
-        emit RewardCredited(proposalId, rewardType, rewardsInfo.rewardToken, amountToAdd, user);
     }
 
     function updateOffchainRewards(
@@ -68,14 +65,6 @@ library GovPoolRewards {
 
         userRewards.offchainRewards[rewardToken] += amountToAdd;
         userRewards.offchainTokens.add(rewardToken);
-
-        emit RewardCredited(
-            proposalId,
-            IGovPool.RewardType.SaveOffchainResults,
-            rewardToken,
-            amountToAdd,
-            user
-        );
     }
 
     function updateVotingRewards(
@@ -83,31 +72,22 @@ library GovPoolRewards {
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId,
         address user
-    ) external returns (uint256 delegatorRewards) {
+    ) external {
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
         IGovPool.PendingRewards storage userRewards = userInfos[user].pendingRewards;
 
         if (userRewards.areVotingRewardsSet[proposalId]) {
-            return 0;
+            return;
         }
 
-        uint256 votingRewards;
-        (votingRewards, delegatorRewards) = _getVotingRewards(core, userInfos, proposalId, user);
+        (uint256 votingRewards, ) = _getVotingRewards(core, userInfos, proposalId, user);
 
-        if (votingRewards == 0 && delegatorRewards == 0) {
-            return 0;
+        if (votingRewards == 0) {
+            return;
         }
 
-        userRewards.onchainRewards[proposalId] += votingRewards;
+        userRewards.votingRewards[proposalId] += votingRewards;
         userRewards.areVotingRewardsSet[proposalId] = true;
-
-        emit RewardCredited(
-            proposalId,
-            IGovPool.RewardType.Vote,
-            core.settings.rewardsInfo.rewardToken,
-            votingRewards,
-            user
-        );
     }
 
     function claimReward(
@@ -120,15 +100,24 @@ library GovPoolRewards {
         if (proposalId != 0) {
             IGovPool.ProposalCore storage core = proposals[proposalId].core;
 
-            require(core.executionTime != 0, "Gov: proposal is not executed");
+            require(core.executed, "Gov: proposal is not executed");
 
-            mapping(uint256 => uint256) storage onchainRewards = userRewards.onchainRewards;
+            uint256 staticRewards = userRewards.staticRewards[proposalId];
+            uint256 votingRewards = userRewards.votingRewards[proposalId];
 
-            uint256 rewards = onchainRewards[proposalId];
+            delete userRewards.staticRewards[proposalId];
+            delete userRewards.votingRewards[proposalId];
 
-            delete onchainRewards[proposalId];
+            address rewardToken = core.settings.rewardsInfo.rewardToken;
 
-            _sendRewards(proposalId, core.settings.rewardsInfo.rewardToken, rewards);
+            _sendRewards(
+                proposalId,
+                core.settings.rewardsInfo.rewardToken,
+                staticRewards + votingRewards
+            );
+
+            emit RewardClaimed(proposalId, true, msg.sender, rewardToken, staticRewards);
+            emit RewardClaimed(proposalId, false, msg.sender, rewardToken, votingRewards);
         } else {
             EnumerableSet.AddressSet storage offchainTokens = userRewards.offchainTokens;
             mapping(address => uint256) storage offchainRewards = userRewards.offchainRewards;
@@ -143,6 +132,8 @@ library GovPoolRewards {
                 offchainTokens.remove(rewardToken);
 
                 _sendRewards(0, rewardToken, rewards);
+
+                emit RewardClaimed(0, false, msg.sender, rewardToken, rewards);
             }
         }
     }
@@ -166,16 +157,18 @@ library GovPoolRewards {
 
             IGovPool.ProposalCore storage core = proposals[proposalId].core;
 
-            if (core.executionTime == 0) {
+            if (!core.executed) {
                 continue;
             }
 
-            rewards.onchainRewards[i] = userRewards.onchainRewards[proposalId];
+            rewards.onchainRewards[i] = userRewards.staticRewards[proposalId];
 
             if (!userRewards.areVotingRewardsSet[proposalId]) {
                 (uint256 votingRewards, ) = _getVotingRewards(core, userInfos, proposalId, user);
 
                 rewards.onchainRewards[i] += votingRewards;
+            } else {
+                rewards.onchainRewards[i] += userRewards.votingRewards[proposalId];
             }
         }
 
@@ -189,10 +182,9 @@ library GovPoolRewards {
 
     function _sendRewards(uint256 proposalId, address rewardToken, uint256 rewards) internal {
         require(rewardToken != address(0), "Gov: rewards are off");
+        require(rewards != 0, "Gov: zero rewards");
 
         rewardToken.sendFunds(msg.sender, rewards, TokenBalance.TransferType.Mint);
-
-        emit RewardClaimed(proposalId, msg.sender, rewardToken, rewards);
     }
 
     function _getMultipliedRewards(address user, uint256 amount) internal view returns (uint256) {

@@ -81,7 +81,7 @@ interface IGovPool {
     /// @param settings the struct that holds information about settings of the proposal
     /// @param voteEnd the timestamp of voting end for the proposal
     /// @param executeAfter the timestamp of execution in seconds after voting end
-    /// @param executionTime the timestamp of the proposal execution
+    /// @param executed the boolean indicating whether the proposal has been executed
     /// @param votesFor the total number of votes for the proposal from all voters
     /// @param votesAgainst the total number of votes against the proposal from all voters
     /// @param rawVotesFor the total number of votes for the proposal from all voters before the formula
@@ -92,7 +92,7 @@ interface IGovPool {
         IGovSettings.ProposalSettings settings;
         uint64 voteEnd;
         uint64 executeAfter;
-        uint64 executionTime;
+        bool executed;
         uint256 votesFor;
         uint256 votesAgainst;
         uint256 rawVotesFor;
@@ -207,12 +207,14 @@ interface IGovPool {
 
     /// @notice The struct that holds reward properties (only for internal needs)
     /// @param areVotingRewardsSet matching proposals ids with flags indicating whether voting rewards have been set during the personal or micropool claim
-    /// @param onchainRewards matching proposal ids to their on-chain rewards
+    /// @param staticRewards matching proposal ids to their static rewards
+    /// @param votingRewards matching proposal ids to their voting rewards
     /// @param offchainRewards matching off-chain token addresses to their rewards
     /// @param offchainTokens the list of off-chain token addresses
     struct PendingRewards {
         mapping(uint256 => bool) areVotingRewardsSet;
-        mapping(uint256 => uint256) onchainRewards;
+        mapping(uint256 => uint256) staticRewards;
+        mapping(uint256 => uint256) votingRewards;
         mapping(address => uint256) offchainRewards;
         EnumerableSet.AddressSet offchainTokens;
     }
@@ -395,6 +397,10 @@ interface IGovPool {
     /// @param proposalIds the array of proposal ids
     /// @param delegatee the address of the delegatee
     function claimMicropoolRewards(uint256[] calldata proposalIds, address delegatee) external;
+
+    /// @notice The function to change vote power contract
+    /// @param votePower new contract for the voting power formula
+    function changeVotePower(address votePower) external;
 
     /// @notice The function for changing description url
     /// @param newDescriptionURL the string with new url
