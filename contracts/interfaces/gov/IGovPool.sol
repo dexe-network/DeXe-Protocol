@@ -211,9 +211,14 @@ interface IGovPool {
         EnumerableSet.AddressSet offchainTokens;
     }
 
-    /// TODO: docs
+    /// @notice The struct that holds the user info (only for internal needs)
+    /// @param voteInfos matching proposal ids to their infos
+    /// @param pendingRewards user's pending rewards
+    /// @param delegatorInfos matching delegators to their infos
+    /// @param votedInProposals the list of active proposals user voted in
+    /// @param restrictedProposals the list of proposals user is restricted to vote in
     struct UserInfo {
-        mapping(uint256 => VoteInfo) voteInfos; // proposalId => info
+        mapping(uint256 => VoteInfo) voteInfos;
         PendingRewards pendingRewards;
         mapping(address => DelegatorInfo) delegatorInfos;
         EnumerableSet.UintSet votedInProposals;

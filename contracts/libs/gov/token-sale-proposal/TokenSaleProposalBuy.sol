@@ -3,10 +3,12 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 import "@solarity/solidity-lib/libs/utils/TypeCaster.sol";
 import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 
+import "../../../interfaces/gov/proposals/ITokenSaleProposal.sol";
 import "../../../interfaces/gov/IGovPool.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
@@ -14,14 +16,13 @@ import "../../../core/CoreProperties.sol";
 import "../../../gov/proposals/TokenSaleProposal.sol";
 
 import "../../../libs/math/MathHelper.sol";
-import "./TokenSaleProposalDecode.sol";
 
 library TokenSaleProposalBuy {
     using MathHelper for uint256;
     using DecimalsConverter for *;
     using TypeCaster for *;
     using SafeERC20 for IERC20;
-    using TokenSaleProposalDecode for ITokenSaleProposal.Tier;
+    using EnumerableSet for *;
     using EnumerableMap for EnumerableMap.AddressToUintMap;
 
     function buy(
@@ -129,39 +130,43 @@ library TokenSaleProposalBuy {
         ITokenSaleProposal.Tier storage tier,
         uint256 tierId,
         address user
-    ) public view returns (bool _canParticipate) {
-        ITokenSaleProposal.ParticipationType participationType = tier
-            .tierInitParams
-            .participationDetails
-            .participationType;
+    ) public view returns (bool) {
+        ITokenSaleProposal.ParticipationInfo storage participationInfo = tier.participationInfo;
         TokenSaleProposal tokenSaleProposal = TokenSaleProposal(address(this));
 
-        if (participationType == ITokenSaleProposal.ParticipationType.NoWhitelist) {
-            _canParticipate = true;
-        } else if (participationType == ITokenSaleProposal.ParticipationType.DAOVotes) {
+        bool _canParticipate = true;
+
+        if (participationInfo.requiredDaoVotes > 0) {
             (, address govUserKeeper, , , ) = IGovPool(tokenSaleProposal.govAddress())
                 .getHelperContracts();
             _canParticipate =
+                _canParticipate &&
                 IGovUserKeeper(govUserKeeper)
                 .votingPower(
                     user.asSingletonArray(),
                     _asSingletonArray(IGovPool.VoteType.DelegatedVote),
                     false
                 )[0].power >
-                tier.decodeDAOVotes();
-        } else if (participationType == ITokenSaleProposal.ParticipationType.Whitelist) {
-            _canParticipate = tokenSaleProposal.balanceOf(user, tierId) > 0;
-        } else if (participationType == ITokenSaleProposal.ParticipationType.BABT) {
-            _canParticipate = tokenSaleProposal.babt().balanceOf(user) > 0;
-        } else {
-            ITokenSaleProposal.PurchaseInfo storage purchaseInfo = tier.users[user].purchaseInfo;
-
-            if (participationType == ITokenSaleProposal.ParticipationType.TokenLock) {
-                _canParticipate = purchaseInfo.lockedAmount > 0;
-            } else {
-                _canParticipate = purchaseInfo.lockedId > 0;
-            }
+                participationInfo.requiredDaoVotes;
         }
+
+        if (participationInfo.isWhitelisted) {
+            _canParticipate = _canParticipate && tokenSaleProposal.balanceOf(user, tierId) > 0;
+        }
+
+        if (participationInfo.isBABTed) {
+            _canParticipate = _canParticipate && tokenSaleProposal.babt().balanceOf(user) > 0;
+        }
+
+        if (participationInfo.requiredTokenLock.length() > 0) {
+            _canParticipate = _canParticipate && _checkUserLockedTokens(tier, user);
+        }
+
+        if (participationInfo.requiredNftLock.length() > 0) {
+            _canParticipate = _canParticipate && _checkUserLockedNfts(tier, user);
+        }
+
+        return _canParticipate;
     }
 
     function getPurchaseView(
@@ -181,8 +186,30 @@ library TokenSaleProposalBuy {
         purchaseView.boughtTotalAmount =
             purchaseView.claimTotalAmount +
             userInfo.vestingUserInfo.vestingTotalAmount;
-        purchaseView.lockedAmount = purchaseInfo.lockedAmount;
-        purchaseView.lockedId = purchaseInfo.lockedId;
+
+        uint256 lockedTokenLength = purchaseInfo.lockedTokens.length();
+
+        purchaseView.lockedTokenAddresses = new address[](lockedTokenLength);
+        purchaseView.lockedTokenAmounts = new uint256[](lockedTokenLength);
+
+        for (uint256 i = 0; i < lockedTokenLength; i++) {
+            (
+                purchaseView.lockedTokenAddresses[i],
+                purchaseView.lockedTokenAmounts[i]
+            ) = purchaseInfo.lockedTokens.at(i);
+        }
+
+        uint256 lockedNftLength = purchaseInfo.lockedNftAddresses.length();
+
+        purchaseView.lockedNftAddresses = new address[](lockedNftLength);
+        purchaseView.lockedNftIds = new uint256[][](lockedNftLength);
+
+        for (uint256 i = 0; i < lockedNftLength; i++) {
+            address lockedNftAddress = purchaseInfo.lockedNftAddresses.at(i);
+
+            purchaseView.lockedNftAddresses[i] = lockedNftAddress;
+            purchaseView.lockedNftIds[i] = purchaseInfo.lockedNfts[lockedNftAddress].values();
+        }
 
         uint256 purchaseTokenLength = purchaseInfo.spentAmounts.length();
 
@@ -195,6 +222,56 @@ library TokenSaleProposalBuy {
                 purchaseView.purchaseTokenAmounts[i]
             ) = purchaseInfo.spentAmounts.at(i);
         }
+    }
+
+    function _checkUserLockedTokens(
+        ITokenSaleProposal.Tier storage tier,
+        address user
+    ) internal view returns (bool) {
+        EnumerableMap.AddressToUintMap storage requiredTokenLock = tier
+            .participationInfo
+            .requiredTokenLock;
+        EnumerableMap.AddressToUintMap storage lockedTokens = tier
+            .users[user]
+            .purchaseInfo
+            .lockedTokens;
+
+        bool ok = true;
+        uint256 length = requiredTokenLock.length();
+
+        for (uint256 i = 0; i < length && ok; i++) {
+            (address requiredToken, uint256 requiredAmount) = requiredTokenLock.at(i);
+
+            (, uint256 lockedAmount) = lockedTokens.tryGet(requiredToken);
+
+            ok = ok && (lockedAmount == requiredAmount);
+        }
+
+        return ok;
+    }
+
+    function _checkUserLockedNfts(
+        ITokenSaleProposal.Tier storage tier,
+        address user
+    ) internal view returns (bool) {
+        EnumerableMap.AddressToUintMap storage requiredNftLock = tier
+            .participationInfo
+            .requiredNftLock;
+        mapping(address => EnumerableSet.UintSet) storage lockedNfts = tier
+            .users[user]
+            .purchaseInfo
+            .lockedNfts;
+
+        bool ok = true;
+        uint256 length = requiredNftLock.length();
+
+        for (uint256 i = 0; i < length && ok; i++) {
+            (address requiredNft, uint256 requiredAmount) = requiredNftLock.at(i);
+
+            ok = ok && (lockedNfts[requiredNft].length() == requiredAmount);
+        }
+
+        return ok;
     }
 
     function _asSingletonArray(

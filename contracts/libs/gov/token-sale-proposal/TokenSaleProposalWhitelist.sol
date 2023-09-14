@@ -5,86 +5,145 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
+import "@solarity/solidity-lib/libs/arrays/SetHelper.sol";
 
 import "../../../gov/proposals/TokenSaleProposal.sol";
 
 import "../../../libs/utils/TokenBalance.sol";
-import "./TokenSaleProposalDecode.sol";
+import "./TokenSaleProposalBuy.sol";
 
 library TokenSaleProposalWhitelist {
-    using TokenSaleProposalDecode for ITokenSaleProposal.Tier;
+    using TokenSaleProposalBuy for ITokenSaleProposal.Tier;
     using TokenBalance for address;
     using DecimalsConverter for *;
+    using SetHelper for EnumerableSet.UintSet;
     using SafeERC20 for IERC20;
+    using EnumerableSet for *;
+    using EnumerableMap for EnumerableMap.AddressToUintMap;
 
-    function lockParticipationTokens(ITokenSaleProposal.Tier storage tier) external {
-        ITokenSaleProposal.PurchaseInfo storage purchaseInfo = tier.users[msg.sender].purchaseInfo;
+    function lockParticipationTokens(
+        ITokenSaleProposal.Tier storage tier,
+        address tokenToLock,
+        uint256 amountToLock
+    ) external {
+        ITokenSaleProposal.ParticipationInfo storage participationInfo = tier.participationInfo;
+        EnumerableMap.AddressToUintMap storage lockedTokens = tier
+            .users[msg.sender]
+            .purchaseInfo
+            .lockedTokens;
 
-        (address token, uint256 amount) = tier.decodeTokenLock();
+        require(amountToLock > 0, "TSP: zero amount to lock");
 
-        require(purchaseInfo.lockedAmount == 0, "TSP: already locked");
+        (, uint256 lockedAmount) = lockedTokens.tryGet(tokenToLock);
+        (, uint256 requiredAmount) = participationInfo.requiredTokenLock.tryGet(tokenToLock);
 
-        purchaseInfo.lockedAmount = amount;
+        uint256 newLockedAmount = lockedAmount + amountToLock;
 
-        if (token != ETHEREUM_ADDRESS) {
-            IERC20(token).safeTransferFrom(
+        require(newLockedAmount <= requiredAmount, "TSP: token overlock");
+
+        lockedTokens.set(tokenToLock, newLockedAmount);
+
+        if (tokenToLock != ETHEREUM_ADDRESS) {
+            IERC20(tokenToLock).safeTransferFrom(
                 msg.sender,
                 address(this),
-                amount.from18(token.decimals())
+                amountToLock.from18(tokenToLock.decimals())
             );
         } else {
-            require(msg.value == amount, "TSP: wrong lock amount");
+            require(msg.value == amountToLock, "TSP: wrong lock amount");
         }
     }
 
-    function lockParticipationNft(ITokenSaleProposal.Tier storage tier, uint256 tokenId) external {
+    function lockParticipationNft(
+        ITokenSaleProposal.Tier storage tier,
+        address nftToLock,
+        uint256[] calldata nftIdsToLock
+    ) external {
         ITokenSaleProposal.PurchaseInfo storage purchaseInfo = tier.users[msg.sender].purchaseInfo;
+        EnumerableSet.UintSet storage lockedNfts = purchaseInfo.lockedNfts[nftToLock];
 
-        address token = tier.decodeNftLock();
+        require(nftIdsToLock.length > 0, "TSP: zero nft ids to lock");
 
-        require(purchaseInfo.lockedId == 0, "TSP: already locked");
+        purchaseInfo.lockedNftAddresses.add(nftToLock);
 
-        purchaseInfo.lockedId = tokenId;
+        for (uint256 i = 0; i < nftIdsToLock.length; i++) {
+            require(lockedNfts.add(nftIdsToLock[i]), "lock nfts are duplicated");
+        }
 
-        IERC721(token).safeTransferFrom(msg.sender, address(this), tokenId);
+        (, uint256 requiredAmount) = tier.participationInfo.requiredNftLock.tryGet(nftToLock);
+
+        require(lockedNfts.length() <= requiredAmount, "TSP: nft overlock");
+
+        for (uint256 i = 0; i < nftIdsToLock.length; i++) {
+            IERC721(nftToLock).safeTransferFrom(msg.sender, address(this), nftIdsToLock[i]);
+        }
     }
 
-    function unlockParticipationTokens(ITokenSaleProposal.Tier storage tier) external {
-        ITokenSaleProposal.PurchaseInfo storage purchaseInfo = tier.users[msg.sender].purchaseInfo;
+    function unlockParticipationTokens(
+        ITokenSaleProposal.Tier storage tier,
+        address tokenToUnlock,
+        uint256 amountToUnlock
+    ) external {
+        EnumerableMap.AddressToUintMap storage lockedTokens = tier
+            .users[msg.sender]
+            .purchaseInfo
+            .lockedTokens;
 
-        (address token, uint256 amount) = tier.decodeTokenLock();
+        require(
+            block.timestamp >= tier.tierInitParams.saleEndTime ||
+                !tier._checkUserLockedTokens(msg.sender),
+            "TSP: unlock unavailable"
+        );
 
-        require(block.timestamp >= tier.tierInitParams.saleEndTime, "TSP: sale is not over");
-        require(purchaseInfo.lockedAmount == amount, "TSP: not locked");
+        require(amountToUnlock > 0, "TSP: zero amount to unlock");
 
-        purchaseInfo.lockedAmount = 0;
+        (, uint256 lockedAmount) = lockedTokens.tryGet(tokenToUnlock);
 
-        token.sendFunds(msg.sender, amount);
+        require(amountToUnlock <= lockedAmount, "TSP: unlock exceeds lock");
+
+        if (amountToUnlock == lockedAmount) {
+            lockedTokens.remove(tokenToUnlock);
+        } else {
+            lockedTokens.set(tokenToUnlock, lockedAmount - amountToUnlock);
+        }
+
+        tokenToUnlock.sendFunds(msg.sender, amountToUnlock);
     }
 
-    function unlockParticipationNft(ITokenSaleProposal.Tier storage tier) external {
+    function unlockParticipationNft(
+        ITokenSaleProposal.Tier storage tier,
+        address nftToUnlock,
+        uint256[] calldata nftIdsToUnlock
+    ) external {
         ITokenSaleProposal.PurchaseInfo storage purchaseInfo = tier.users[msg.sender].purchaseInfo;
+        EnumerableSet.UintSet storage lockedNfts = purchaseInfo.lockedNfts[nftToUnlock];
 
-        address token = tier.decodeNftLock();
-        uint256 tokenId = purchaseInfo.lockedId;
+        require(
+            block.timestamp >= tier.tierInitParams.saleEndTime ||
+                !tier._checkUserLockedNfts(msg.sender),
+            "TSP: unlock unavailable"
+        );
 
-        require(block.timestamp >= tier.tierInitParams.saleEndTime, "TSP: sale is not over");
-        require(tokenId != 0, "TSP: not locked");
+        require(nftIdsToUnlock.length > 0, "TSP: zero nft ids to unlock");
 
-        purchaseInfo.lockedId = 0;
+        for (uint256 i = 0; i < nftIdsToUnlock.length; i++) {
+            require(lockedNfts.remove(nftIdsToUnlock[i]), "nft is not locked");
+        }
 
-        IERC721(token).safeTransferFrom(address(this), msg.sender, tokenId);
+        if (lockedNfts.length() == 0) {
+            purchaseInfo.lockedNftAddresses.remove(nftToUnlock);
+        }
+
+        for (uint256 i = 0; i < nftIdsToUnlock.length; i++) {
+            IERC721(nftToUnlock).safeTransferFrom(address(this), msg.sender, nftIdsToUnlock[i]);
+        }
     }
 
     function addToWhitelist(
         ITokenSaleProposal.Tier storage tier,
         ITokenSaleProposal.WhitelistingRequest calldata request
     ) external {
-        require(
-            tier.tierInitParams.participationDetails.participationType ==
-                ITokenSaleProposal.ParticipationType.Whitelist,
-            "TSP: wrong participation type"
-        );
+        require(tier.participationInfo.isWhitelisted, "TSP: tier is not whitelisted");
 
         tier.tierInfo.uri = request.uri;
 

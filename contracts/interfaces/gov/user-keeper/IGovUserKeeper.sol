@@ -29,13 +29,13 @@ interface IGovUserKeeper {
     /// @param lockedInProposals the amount of deposited tokens locked in proposals
     struct UserInfo {
         BalanceInfo balanceInfo;
-        mapping(address => uint256) delegatedTokens; // delegatee => amount
+        mapping(address => uint256) delegatedTokens;
         uint256 allDelegatedTokens;
-        mapping(address => EnumerableSet.UintSet) delegatedNfts; // delegatee => tokenIds
+        mapping(address => EnumerableSet.UintSet) delegatedNfts;
         EnumerableSet.UintSet allDelegatedNfts;
         EnumerableSet.AddressSet delegatees;
         uint256 maxTokensLocked;
-        mapping(uint256 => uint256) lockedInProposals; // proposal id => locked amount
+        mapping(uint256 => uint256) lockedInProposals;
     }
 
     /// @notice The struct holds information about nft contract
