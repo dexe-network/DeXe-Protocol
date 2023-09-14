@@ -463,10 +463,11 @@ interface IGovPool {
     /// @return the number of active proposals
     function getUserActiveProposalsCount(address user) external view returns (uint256);
 
-    /// @notice The function for getting total votes in the proposal by one voter
+    /// @notice The function for getting total raw votes in the proposal by one voter
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
     /// @param voteType the type of vote
+    /// @return `Arguments`: core raw votes for, core raw votes against, user typed raw votes, is vote for indicator
     function getTotalVotes(
         uint256 proposalId,
         address voter,

@@ -437,7 +437,12 @@ contract GovPool is
         ProposalCore storage core = _proposals[proposalId].core;
         VoteInfo storage info = _userInfos[voter].voteInfos[proposalId];
 
-        return (core.votesFor, core.votesAgainst, info.getVoteShare(voteType), info.isVoteFor);
+        return (
+            core.rawVotesFor,
+            core.rawVotesAgainst,
+            info.rawVotes[VoteType.PersonalVote].totalVoted,
+            info.isVoteFor
+        );
     }
 
     function getUserVotes(

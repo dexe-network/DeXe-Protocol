@@ -141,19 +141,6 @@ library GovPoolVote {
         _updateGlobalState(core, userInfos, proposalId, msg.sender, voteInfo.isVoteFor);
     }
 
-    function getVoteShare(
-        IGovPool.VoteInfo storage voteInfo,
-        IGovPool.VoteType voteType
-    ) external view returns (uint256) {
-        uint256 totalRawVoted = voteInfo.totalRawVoted;
-
-        if (totalRawVoted == 0) {
-            return 0;
-        }
-
-        return voteInfo.totalVoted.ratio(voteInfo.rawVotes[voteType].totalVoted, totalRawVoted);
-    }
-
     function _voteDelegated(
         IGovPool.ProposalCore storage core,
         IGovPool.RawVote storage rawVote,
