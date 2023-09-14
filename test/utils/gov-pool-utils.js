@@ -502,9 +502,9 @@ const getBytesCreateTiersTSP = (tiers) => {
                   type: "bytes",
                 },
               ],
-              internalType: "struct ITokenSaleProposal.ParticipationDetails",
+              internalType: "struct ITokenSaleProposal.ParticipationDetails[]",
               name: "participationDetails",
-              type: "tuple",
+              type: "tuple[]",
             },
           ],
           internalType: "struct ITokenSaleProposal.TierInitParams[]",
@@ -624,13 +624,23 @@ const getBytesBuyTSP = (tierId, tokenToBuyWith, amount) => {
   );
 };
 
-const getBytesLockParticipationTokensTSP = (tierId) => {
+const getBytesLockParticipationTokensTSP = (tierId, tokenToLock, amountToLock) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       inputs: [
         {
           internalType: "uint256",
           name: "tierId",
+          type: "uint256",
+        },
+        {
+          internalType: "address",
+          name: "tokenToLock",
+          type: "address",
+        },
+        {
+          internalType: "uint256",
+          name: "amountToLock",
           type: "uint256",
         },
       ],
@@ -639,11 +649,11 @@ const getBytesLockParticipationTokensTSP = (tierId) => {
       stateMutability: "payable",
       type: "function",
     },
-    [tierId]
+    [tierId, tokenToLock, amountToLock]
   );
 };
 
-const getBytesLockParticipationNftTSP = (tierId, tokenId) => {
+const getBytesLockParticipationNftTSP = (tierId, nftToLock, nftIdsToLock) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       inputs: [
@@ -653,9 +663,14 @@ const getBytesLockParticipationNftTSP = (tierId, tokenId) => {
           type: "uint256",
         },
         {
-          internalType: "uint256",
-          name: "tokenId",
-          type: "uint256",
+          internalType: "address",
+          name: "nftToLock",
+          type: "address",
+        },
+        {
+          internalType: "uint256[]",
+          name: "nftIdsToLock",
+          type: "uint256[]",
         },
       ],
       name: "lockParticipationNft",
@@ -663,7 +678,7 @@ const getBytesLockParticipationNftTSP = (tierId, tokenId) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [tierId, tokenId]
+    [tierId, nftToLock, nftIdsToLock]
   );
 };
 

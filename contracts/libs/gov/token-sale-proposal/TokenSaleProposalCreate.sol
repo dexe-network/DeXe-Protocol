@@ -112,7 +112,7 @@ library TokenSaleProposalCreate {
                 participationDetails.participationType ==
                 ITokenSaleProposal.ParticipationType.DAOVotes
             ) {
-                require(participationDetails.data.length == 32, "invalid DAO votes data");
+                require(participationDetails.data.length == 32, "TSP: invalid DAO votes data");
 
                 uint256 requiredDaoVotes = abi.decode(participationDetails.data, (uint256));
 
@@ -127,14 +127,14 @@ library TokenSaleProposalCreate {
                 participationDetails.participationType ==
                 ITokenSaleProposal.ParticipationType.Whitelist
             ) {
-                require(participationDetails.data.length == 0, "invalid whitelist data");
+                require(participationDetails.data.length == 0, "TSP: invalid whitelist data");
                 require(!participationInfo.isWhitelisted, "TSP: multiple whitelist requirements");
 
                 participationInfo.isWhitelisted = true;
             } else if (
                 participationDetails.participationType == ITokenSaleProposal.ParticipationType.BABT
             ) {
-                require(participationDetails.data.length == 0, "invalid BABT data");
+                require(participationDetails.data.length == 0, "TSP: invalid BABT data");
                 require(!participationInfo.isBABTed, "TSP: multiple BABT requirements");
 
                 participationInfo.isBABTed = true;
@@ -142,7 +142,7 @@ library TokenSaleProposalCreate {
                 participationDetails.participationType ==
                 ITokenSaleProposal.ParticipationType.TokenLock
             ) {
-                require(participationDetails.data.length == 64, "invalid token lock data");
+                require(participationDetails.data.length == 64, "TSP: invalid token lock data");
 
                 (address token, uint256 amount) = abi.decode(
                     participationDetails.data,
@@ -155,21 +155,21 @@ library TokenSaleProposalCreate {
 
                 participationDetails.data = abi.encode(token, to18Amount);
 
-                require(to18Amount > 0, "zero token lock amount");
+                require(to18Amount > 0, "TSP: zero token lock amount");
                 require(
                     participationInfo.requiredTokenLock.set(token, to18Amount),
                     "TSP: multiple token lock requirements"
                 );
             } else {
                 /// @dev ITokenSaleProposal.ParticipationType.NftLock
-                require(participationDetails.data.length == 64, "invalid nft lock data");
+                require(participationDetails.data.length == 64, "TSP: invalid nft lock data");
 
                 (address nft, uint256 amount) = abi.decode(
                     participationDetails.data,
                     (address, uint256)
                 );
 
-                require(amount > 0, "zero nft lock amount");
+                require(amount > 0, "TSP: zero nft lock amount");
                 require(
                     participationInfo.requiredNftLock.set(nft, amount),
                     "TSP: multiple nft lock requirements"
