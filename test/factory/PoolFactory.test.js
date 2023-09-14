@@ -1,5 +1,5 @@
 const { assert } = require("chai");
-const { toBN, accounts, wei } = require("../../scripts/utils/utils");
+const { accounts, wei } = require("../../scripts/utils/utils");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { getBytesLinearPowerInit, getBytesPolynomialPowerInit } = require("../utils/gov-vote-power-utils");
@@ -333,10 +333,12 @@ describe("PoolFactory", () => {
                 cliffPeriod: 0,
                 unlockStep: 1,
               },
-              participationDetails: {
-                participationType: ParticipationType.Whitelist,
-                data: "0x",
-              },
+              participationDetails: [
+                {
+                  participationType: ParticipationType.Whitelist,
+                  data: "0x",
+                },
+              ],
             },
           ],
           whitelistParams: [],
@@ -410,10 +412,12 @@ describe("PoolFactory", () => {
             cliffPeriod: 0,
             unlockStep: 1,
           },
-          participationDetails: {
-            participationType: ParticipationType.BABT,
-            data: "0x",
-          },
+          participationDetails: [
+            {
+              participationType: ParticipationType.BABT,
+              data: "0x",
+            },
+          ],
         });
 
         const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);

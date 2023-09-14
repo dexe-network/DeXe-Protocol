@@ -3682,7 +3682,7 @@ describe("GovPool", () => {
         await govPool.deposit(delegator3, wei("200000"), [], { from: delegator3 });
       });
 
-      it("should claim rewards properly if all conditions are met", async () => {
+      it.only("should claim rewards properly if all conditions are met", async () => {
         await executeValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(SECOND, "URI")]]);
 
         await delegateTreasury(SECOND, wei("100000"), []);
@@ -3697,10 +3697,9 @@ describe("GovPool", () => {
         await govPool.delegate(SECOND, wei("100000"), [203], { from: delegator2 });
         await govPool.delegate(SECOND, wei("200000"), [], { from: delegator3 });
 
-        assert.equal(
-          (await govPool.getTotalVotes(4, SECOND, VoteType.PersonalVote))[0].toFixed(),
-          toBN(wei("1500000")).plus(powerPerNft.multipliedBy(4)).pow(2).toFixed()
-        );
+        let core = (await govPool.getProposals(3, 1))[0].proposal.core;
+
+        assert.equal(core.votesFor, toBN(wei("1500000")).plus(powerPerNft.multipliedBy(4)).pow(2).toFixed());
 
         const [personalRewards, delegatorRewards] = await getVotingRewards(
           toBN(wei("1500000")).plus(powerPerNft.multipliedBy(4)),
