@@ -3682,7 +3682,7 @@ describe("GovPool", () => {
         await govPool.deposit(delegator3, wei("200000"), [], { from: delegator3 });
       });
 
-      it.only("should claim rewards properly if all conditions are met", async () => {
+      it("should claim rewards properly if all conditions are met", async () => {
         await executeValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(SECOND, "URI")]]);
 
         await delegateTreasury(SECOND, wei("100000"), []);

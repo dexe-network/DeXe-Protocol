@@ -24,7 +24,7 @@ library GovUserKeeperView {
         address[] calldata users,
         IGovPool.VoteType[] calldata voteTypes,
         bool perNftPowerArray
-    ) external view returns (IGovUserKeeper.VotingPowerView[] memory votingPowers) {
+    ) public view returns (IGovUserKeeper.VotingPowerView[] memory votingPowers) {
         GovUserKeeper userKeeper = GovUserKeeper(address(this));
         votingPowers = new IGovUserKeeper.VotingPowerView[](users.length);
 
@@ -66,6 +66,18 @@ library GovUserKeeperView {
                 power.rawPower += power.rawNftPower;
             }
         }
+    }
+
+    function transformedVotingPower(
+        address[] calldata users,
+        IGovPool.VoteType[] calldata voteTypes,
+        bool perNftPowerArray
+    ) external view returns (IGovUserKeeper.VotingPowerView[] memory votingPowers) {
+        IGovUserKeeper.VotingPowerView[] memory votingPowers = votingPower(
+            users,
+            voteTypes,
+            perNftPowerArray
+        );
     }
 
     function nftVotingPower(
