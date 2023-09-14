@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
 
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
+import "../../../interfaces/gov/voting/IVotePower.sol";
 
 import "../../math/MathHelper.sol";
 
@@ -73,11 +74,30 @@ library GovUserKeeperView {
         IGovPool.VoteType[] calldata voteTypes,
         bool perNftPowerArray
     ) external view returns (IGovUserKeeper.VotingPowerView[] memory votingPowers) {
-        IGovUserKeeper.VotingPowerView[] memory votingPowers = votingPower(
-            users,
-            voteTypes,
-            perNftPowerArray
-        );
+        address govPool = GovUserKeeper(address(this)).owner();
+
+        (, , , , address votePowerAddress) = IGovPool(govPool).getHelperContracts();
+        IVotePower votePower = IVotePower(votePowerAddress);
+
+        votingPowers = votingPower(users, voteTypes, perNftPowerArray);
+
+        for (uint256 i = 0; i < votingPowers.length; i++) {
+            IGovUserKeeper.VotingPowerView memory votingPower = votingPowers[i];
+            address user = users[i];
+
+            votingPower.power = votePower.transformVotes(user, votingPower.power);
+            votingPower.rawPower = votePower.transformVotes(user, votingPower.rawPower);
+            votingPower.nftPower = votePower.transformVotes(user, votingPower.nftPower);
+            votingPower.rawNftPower = votePower.transformVotes(user, votingPower.rawNftPower);
+            votingPower.ownedBalance = votePower.transformVotes(user, votingPower.ownedBalance);
+
+            for (uint256 j = 0; j < votingPower.perNftPower.length; j++) {
+                votingPower.perNftPower[j] = votePower.transformVotes(
+                    user,
+                    votingPower.perNftPower[j]
+                );
+            }
+        }
     }
 
     function nftVotingPower(

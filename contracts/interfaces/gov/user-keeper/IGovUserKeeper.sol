@@ -50,7 +50,9 @@ interface IGovUserKeeper {
 
     /// @notice The struct that is used in view functions of contract as a return argument
     /// @param power the total vote power of a user
+    /// @param rawPower the total deposited assets power of a user
     /// @param nftPower the total nft power of a user
+    /// @param rawNftPower the total deposited nft power of a user
     /// @param perNftPower the power of every nft, bounded by index with nftIds
     /// @param ownedBalance the owned erc20 balance, decimals = 18
     /// @param ownedLength the amount of owned nfts
