@@ -12,6 +12,8 @@ const ERC721Mock = artifacts.require("ERC721Mock");
 const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
 const ERC721Power = artifacts.require("ERC721Power");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
+const GovPoolMock = artifacts.require("GovPoolMock");
+const VotePowerMock = artifacts.require("VotePowerMock");
 
 GovUserKeeper.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
@@ -1341,6 +1343,63 @@ describe("GovUserKeeper", () => {
         assert.equal(
           toBN((await userKeeper.votingPower([OWNER], [VoteType.MicropoolVote], false))[0].power).toFixed(),
           "0"
+        );
+
+        const balanceOwner = await userKeeper.nftExactBalance(OWNER, VoteType.PersonalVote);
+
+        assert.deepEqual(
+          balanceOwner.nfts.map((e) => e.toFixed()),
+          ["1", "3", "5", "9", "2", "8", "4", "7", "6"]
+        );
+        assert.equal(balanceOwner.ownedLength, "6");
+      });
+
+      it("should calculate transformed voting power", async () => {
+        const govPoolMock = await GovPoolMock.new();
+        const votePowerMock = await VotePowerMock.new();
+        await govPoolMock.setVotePowerContract(votePowerMock.address);
+
+        assert.equal(
+          toBN((await userKeeper.votingPower([OWNER], [VoteType.DelegatedVote], false))[0].power).toFixed(),
+          "0"
+        );
+
+        await token.mint(OWNER, wei("10000"));
+        await token.approve(userKeeper.address, wei("1000"));
+
+        for (let i = 1; i < 10; i++) {
+          await nft.safeMint(OWNER, i);
+          await nft.approve(userKeeper.address, i);
+        }
+
+        await userKeeper.depositTokens(OWNER, OWNER, wei("1000"));
+        await userKeeper.depositNfts(OWNER, OWNER, [1, 3, 5]);
+
+        await userKeeper.transferOwnership(govPoolMock.address);
+
+        const power = (await userKeeper.transformedVotingPower([OWNER], [VoteType.PersonalVote], true))[0];
+        const singleNFTPower = toBN(wei("33000")).idiv(9).pow(2).toFixed();
+
+        assert.equal(toBN(power.power).toFixed(), toBN(wei("43000")).pow(2).toFixed());
+        assert.equal(toBN(power.rawPower).toFixed(), toBN(wei("12000")).pow(2).toFixed());
+        assert.equal(toBN(power.nftPower).toFixed(), toBN(wei("33000")).pow(2).toFixed());
+        assert.equal(toBN(power.rawNftPower).toFixed(), toBN(wei("11000")).pow(2).toFixed());
+        assert.equal(toBN(power.ownedBalance).toFixed(), toBN(wei("9000")).pow(2).toFixed());
+        assert.equal(toBN(power.ownedLength).toFixed(), "6");
+
+        assert.deepEqual(
+          power.perNftPower.map((e) => toBN(e).toFixed()),
+          [
+            singleNFTPower,
+            singleNFTPower,
+            singleNFTPower,
+            singleNFTPower,
+            singleNFTPower,
+            singleNFTPower,
+            singleNFTPower,
+            singleNFTPower,
+            singleNFTPower,
+          ]
         );
 
         const balanceOwner = await userKeeper.nftExactBalance(OWNER, VoteType.PersonalVote);
