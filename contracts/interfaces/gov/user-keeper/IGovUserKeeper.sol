@@ -49,8 +49,10 @@ interface IGovUserKeeper {
     }
 
     /// @notice The struct that is used in view functions of contract as a return argument
-    /// @param power the total vote power of a user
+    /// @param power the total token vote power of a user
+    /// @param rawPower the total deposited (not delegated) token vote power of a user
     /// @param nftPower the total nft power of a user
+    /// @param rawNftPower the total nft power deposited (not delegated) of a user
     /// @param perNftPower the power of every nft, bounded by index with nftIds
     /// @param ownedBalance the owned erc20 balance, decimals = 18
     /// @param ownedLength the amount of owned nfts
@@ -293,6 +295,17 @@ interface IGovUserKeeper {
     /// @param perNftPowerArray should the nft powers array be calculated
     /// @return votingPowers the array of VotingPowerView structs
     function votingPower(
+        address[] calldata users,
+        IGovPool.VoteType[] calldata voteTypes,
+        bool perNftPowerArray
+    ) external view returns (VotingPowerView[] memory votingPowers);
+
+    /// @notice The function for getting transformed (after votePower formula) voting power of users
+    /// @param users the array of users addresses
+    /// @param voteTypes the array of vote types
+    /// @param perNftPowerArray should the nft powers array be calculated
+    /// @return votingPowers the array of VotingPowerView structs
+    function transformedVotingPower(
         address[] calldata users,
         IGovPool.VoteType[] calldata voteTypes,
         bool perNftPowerArray
