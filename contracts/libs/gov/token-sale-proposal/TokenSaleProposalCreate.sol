@@ -116,7 +116,7 @@ library TokenSaleProposalCreate {
 
                 uint256 requiredDaoVotes = abi.decode(participationDetails.data, (uint256));
 
-                require(requiredDaoVotes > 0, "TSP: zero dao votes");
+                require(requiredDaoVotes > 0, "TSP: zero DAO votes");
                 require(
                     participationInfo.requiredDaoVotes == 0,
                     "TSP: multiple DAO votes requirements"

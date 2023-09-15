@@ -664,7 +664,7 @@ describe("TokenSaleProposal", () => {
           participationDetails: [
             {
               participationType: ParticipationType.NftLock,
-              data: web3.eth.abi.encodeParameters(["address", "uint256"], [participationNft.address, "1"]),
+              data: web3.eth.abi.encodeParameters(["address", "uint256"], [participationNft.address, "3"]),
             },
           ],
         },
@@ -832,6 +832,169 @@ describe("TokenSaleProposal", () => {
         tiers[0].purchaseTokenAddresses[0] = tiers[0].purchaseTokenAddresses[1];
 
         await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: purchase tokens are duplicated");
+      });
+
+      it("should not create tiers if invalid DAO votes data", async () => {
+        tiers[0].participationDetails = [
+          {
+            participationType: ParticipationType.DAOVotes,
+            data: "0x01",
+          },
+        ];
+
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: invalid DAO votes data");
+      });
+
+      it("should not create tiers if zero DAO votes", async () => {
+        tiers[0].participationDetails = [
+          {
+            participationType: ParticipationType.DAOVotes,
+            data: web3.eth.abi.encodeParameter("uint256", 0),
+          },
+        ];
+
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: zero DAO votes");
+      });
+
+      it("should not create tiers if multiple DAO votes requirements", async () => {
+        tiers[0].participationDetails = [
+          {
+            participationType: ParticipationType.DAOVotes,
+            data: web3.eth.abi.encodeParameter("uint256", 1),
+          },
+          {
+            participationType: ParticipationType.DAOVotes,
+            data: web3.eth.abi.encodeParameter("uint256", 2),
+          },
+        ];
+
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: multiple DAO votes requirements");
+      });
+
+      it("should not create tiers if invalid whitelist data", async () => {
+        tiers[0].participationDetails = [
+          {
+            participationType: ParticipationType.Whitelist,
+            data: web3.eth.abi.encodeParameter("uint256", 1),
+          },
+        ];
+
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: invalid whitelist data");
+      });
+
+      it("should not create tiers if multiple whitelist requirements", async () => {
+        tiers[0].participationDetails = [
+          {
+            participationType: ParticipationType.Whitelist,
+            data: "0x",
+          },
+          {
+            participationType: ParticipationType.Whitelist,
+            data: "0x",
+          },
+        ];
+
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: multiple whitelist requirements");
+      });
+
+      it("should not create tiers if invalid BABT data", async () => {
+        tiers[0].participationDetails = [
+          {
+            participationType: ParticipationType.BABT,
+            data: web3.eth.abi.encodeParameter("uint256", 1),
+          },
+        ];
+
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: invalid BABT data");
+      });
+
+      it("should not create tiers if multiple BABT requirements", async () => {
+        tiers[0].participationDetails = [
+          {
+            participationType: ParticipationType.BABT,
+            data: "0x",
+          },
+          {
+            participationType: ParticipationType.BABT,
+            data: "0x",
+          },
+        ];
+
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: multiple BABT requirements");
+      });
+
+      it("should not create tiers if invalid token lock data", async () => {
+        tiers[0].participationDetails = [
+          {
+            participationType: ParticipationType.TokenLock,
+            data: web3.eth.abi.encodeParameter("uint256", 1),
+          },
+        ];
+
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: invalid token lock data");
+      });
+
+      it("should not create tiers if zero token lock amount", async () => {
+        tiers[0].participationDetails = [
+          {
+            participationType: ParticipationType.TokenLock,
+            data: web3.eth.abi.encodeParameters(["address", "uint256"], [ETHER_ADDR, 0]),
+          },
+        ];
+
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: zero token lock amount");
+      });
+
+      it("should not create tiers if multiple token lock requirements", async () => {
+        tiers[0].participationDetails = [
+          {
+            participationType: ParticipationType.TokenLock,
+            data: web3.eth.abi.encodeParameters(["address", "uint256"], [ETHER_ADDR, 1]),
+          },
+          {
+            participationType: ParticipationType.TokenLock,
+            data: web3.eth.abi.encodeParameters(["address", "uint256"], [ETHER_ADDR, 2]),
+          },
+        ];
+
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: multiple token lock requirements");
+      });
+
+      it("should not create tiers if invalid nft lock data", async () => {
+        tiers[0].participationDetails = [
+          {
+            participationType: ParticipationType.NftLock,
+            data: web3.eth.abi.encodeParameter("uint256", 1),
+          },
+        ];
+
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: invalid nft lock data");
+      });
+
+      it("should not create tiers if zero nft lock amount", async () => {
+        tiers[0].participationDetails = [
+          {
+            participationType: ParticipationType.NftLock,
+            data: web3.eth.abi.encodeParameters(["address", "uint256"], [participationNft.address, 0]),
+          },
+        ];
+
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: zero nft lock amount");
+      });
+
+      it("should not create tiers if multiple nft lock requirements", async () => {
+        tiers[0].participationDetails = [
+          {
+            participationType: ParticipationType.NftLock,
+            data: web3.eth.abi.encodeParameters(["address", "uint256"], [participationNft.address, 1]),
+          },
+          {
+            participationType: ParticipationType.NftLock,
+            data: web3.eth.abi.encodeParameters(["address", "uint256"], [participationNft.address, 2]),
+          },
+        ];
+
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: multiple nft lock requirements");
       });
 
       it("should create tiers if all conditions are met", async () => {
@@ -1020,6 +1183,27 @@ describe("TokenSaleProposal", () => {
           );
         });
 
+        it("should not lock participation tokens if zero amount to lock", async () => {
+          await truffleAssert.reverts(
+            tsp.lockParticipationTokens(4, participationToken.address, 0),
+            "TSP: zero amount to lock"
+          );
+        });
+
+        it("should not lock participation tokens if token overlock", async () => {
+          await truffleAssert.reverts(
+            tsp.lockParticipationTokens(4, participationToken.address, defaultTokenAmount.plus(1)),
+            "TSP: token overlock"
+          );
+        });
+
+        it("should not lock participation tokens if wrong lock amount", async () => {
+          await truffleAssert.reverts(
+            tsp.lockParticipationTokens(7, ETHER_ADDR, defaultTokenAmount, { value: 1 }),
+            "TSP: wrong lock amount"
+          );
+        });
+
         it("should lock participation tokens if all conditions are met (erc20)", async () => {
           let purchaseView = (await tsp.getUserViews(OWNER, [4]))[0].purchaseView;
 
@@ -1082,6 +1266,36 @@ describe("TokenSaleProposal", () => {
           await truffleAssert.reverts(tsp.lockParticipationNft(5, participationNft.address, [1]), "TSP: tier is off");
         });
 
+        it("should not lock participation nft if zero nft ids to lock", async () => {
+          await truffleAssert.reverts(
+            tsp.lockParticipationNft(5, participationNft.address, []),
+            "TSP: zero nft ids to lock"
+          );
+        });
+
+        it("should not lock participation nft if lock nfts are duplicated", async () => {
+          await participationNft.safeMint(OWNER, 1);
+          await participationNft.approve(tsp.address, 1);
+
+          await truffleAssert.reverts(
+            tsp.lockParticipationNft(5, participationNft.address, [1, 1]),
+            "TSP: lock nfts are duplicated"
+          );
+        });
+
+        it("should not lock participation nft if nft overlock", async () => {
+          for (let i = 1; i <= 4; i++) {
+            await participationNft.safeMint(OWNER, i);
+          }
+
+          await participationNft.setApprovalForAll(tsp.address, true);
+
+          await truffleAssert.reverts(
+            tsp.lockParticipationNft(5, participationNft.address, [1, 2, 3, 4]),
+            "TSP: nft overlock"
+          );
+        });
+
         it("should lock participation nft if all conditions are met", async () => {
           let purchaseView = (await tsp.getUserViews(OWNER, [5]))[0].purchaseView;
 
@@ -1089,16 +1303,20 @@ describe("TokenSaleProposal", () => {
           assert.deepEqual(purchaseView.lockedNftIds, []);
 
           await participationNft.safeMint(OWNER, 1);
-          await participationNft.approve(tsp.address, 1);
+          await participationNft.safeMint(OWNER, 3);
+          await participationNft.safeMint(OWNER, 5);
+          await participationNft.setApprovalForAll(tsp.address, true);
 
-          assert.equal((await participationNft.balanceOf(OWNER)).toFixed(), "1");
+          assert.equal((await participationNft.balanceOf(OWNER)).toFixed(), "3");
 
-          await tsp.lockParticipationNft(5, participationNft.address, [1]);
+          await tsp.lockParticipationNft(5, participationNft.address, [1, 3, 5]);
+
+          assert.equal((await participationNft.balanceOf(OWNER)).toFixed(), "0");
 
           purchaseView = (await tsp.getUserViews(OWNER, [5]))[0].purchaseView;
 
           assert.deepEqual(purchaseView.lockedNftAddresses, [participationNft.address]);
-          assert.deepEqual(purchaseView.lockedNftIds, [["1"]]);
+          assert.deepEqual(purchaseView.lockedNftIds, [["1", "3", "5"]]);
         });
       });
 
@@ -1108,6 +1326,86 @@ describe("TokenSaleProposal", () => {
             tsp.unlockParticipationTokens(10, participationToken.address, defaultTokenAmount),
             "TSP: tier does not exist"
           );
+        });
+
+        it("should not unlock participation tokens if unlock unavailable", async () => {
+          await setTime(+tiers[3].saleStartTime + 1);
+
+          await participationToken.mint(OWNER, defaultTokenAmount);
+          await participationToken.approve(tsp.address, defaultTokenAmount);
+
+          await tsp.lockParticipationTokens(4, participationToken.address, defaultTokenAmount);
+
+          await truffleAssert.reverts(
+            tsp.unlockParticipationTokens(4, participationToken.address, defaultTokenAmount),
+            "TSP: unlock unavailable"
+          );
+        });
+
+        it("should not unlock participation tokens if zero amount to unlock", async () => {
+          await setTime(+tiers[3].saleStartTime);
+
+          await participationToken.mint(OWNER, defaultTokenAmount);
+          await participationToken.approve(tsp.address, defaultTokenAmount);
+
+          await tsp.lockParticipationTokens(4, participationToken.address, defaultTokenAmount);
+
+          await setTime(+tiers[3].saleEndTime);
+
+          await truffleAssert.reverts(
+            tsp.unlockParticipationTokens(3, participationToken.address, 0),
+            "TSP: zero amount to unlock"
+          );
+        });
+
+        it("should not unlock participation tokens if unlock exceeds lock", async () => {
+          await setTime(+tiers[3].saleStartTime);
+
+          await participationToken.mint(OWNER, defaultTokenAmount);
+          await participationToken.approve(tsp.address, defaultTokenAmount);
+
+          await tsp.lockParticipationTokens(4, participationToken.address, defaultTokenAmount);
+
+          await setTime(+tiers[3].saleEndTime);
+
+          await truffleAssert.reverts(
+            tsp.unlockParticipationTokens(3, participationToken.address, defaultTokenAmount.plus(1)),
+            "TSP: unlock exceeds lock"
+          );
+        });
+
+        it("should unlock participation tokens if not enough locked", async () => {
+          await setTime(+tiers[3].saleStartTime + 1);
+
+          await participationToken.mint(OWNER, wei(2));
+          await participationToken.approve(tsp.address, wei(2));
+
+          await tsp.lockParticipationTokens(4, participationToken.address, wei(2));
+
+          assert.equal((await participationToken.balanceOf(OWNER)).toFixed(), "0");
+
+          let purchaseView = (await tsp.getUserViews(OWNER, [4]))[0].purchaseView;
+
+          assert.deepEqual(purchaseView.lockedTokenAddresses, [participationToken.address]);
+          assert.deepEqual(purchaseView.lockedTokenAmounts, [wei(2)]);
+
+          await tsp.unlockParticipationTokens(4, participationToken.address, wei(1));
+
+          assert.equal((await participationToken.balanceOf(OWNER)).toFixed(), wei(1));
+
+          purchaseView = (await tsp.getUserViews(OWNER, [4]))[0].purchaseView;
+
+          assert.deepEqual(purchaseView.lockedTokenAddresses, [participationToken.address]);
+          assert.deepEqual(purchaseView.lockedTokenAmounts, [wei(1)]);
+
+          await tsp.unlockParticipationTokens(4, participationToken.address, wei(1));
+
+          assert.equal((await participationToken.balanceOf(OWNER)).toFixed(), wei(2));
+
+          purchaseView = (await tsp.getUserViews(OWNER, [4]))[0].purchaseView;
+
+          assert.deepEqual(purchaseView.lockedTokenAddresses, []);
+          assert.deepEqual(purchaseView.lockedTokenAmounts, []);
         });
 
         it("should unlock participation tokens if all conditions are met (erc20)", async () => {
@@ -1176,13 +1474,81 @@ describe("TokenSaleProposal", () => {
           );
         });
 
+        it("should not unlock participation nft if unlock unavailable", async () => {
+          await setTime(+tiers[4].saleStartTime);
+
+          await participationNft.safeMint(OWNER, 1);
+          await participationNft.safeMint(OWNER, 2);
+          await participationNft.safeMint(OWNER, 3);
+          await participationNft.setApprovalForAll(tsp.address, true);
+
+          await tsp.lockParticipationNft(5, participationNft.address, [1, 2, 3]);
+
+          await truffleAssert.reverts(
+            tsp.unlockParticipationNft(5, participationNft.address, [1]),
+            "TSP: unlock unavailable"
+          );
+        });
+
+        it("should not unlock participation nft if nft is not locked", async () => {
+          await setTime(+tiers[4].saleStartTime);
+
+          await participationNft.safeMint(OWNER, 1);
+          await participationNft.safeMint(OWNER, 2);
+          await participationNft.setApprovalForAll(tsp.address, true);
+
+          await tsp.lockParticipationNft(5, participationNft.address, [1]);
+
+          await truffleAssert.reverts(
+            tsp.unlockParticipationNft(5, participationNft.address, [2]),
+            "TSP: nft is not locked"
+          );
+        });
+
+        it("should unlock participation nft if not enough locked", async () => {
+          await setTime(+tiers[4].saleStartTime);
+
+          await participationNft.safeMint(OWNER, 1);
+          await participationNft.safeMint(OWNER, 3);
+          await participationNft.setApprovalForAll(tsp.address, true);
+
+          await tsp.lockParticipationNft(5, participationNft.address, [1, 3]);
+
+          assert.equal((await participationNft.balanceOf(OWNER)).toFixed(), "0");
+
+          let purchaseView = (await tsp.getUserViews(OWNER, [5]))[0].purchaseView;
+
+          assert.deepEqual(purchaseView.lockedNftAddresses, [participationNft.address]);
+          assert.deepEqual(purchaseView.lockedNftIds, [["1", "3"]]);
+
+          await tsp.unlockParticipationNft(5, participationNft.address, [1]);
+
+          assert.equal((await participationNft.balanceOf(OWNER)).toFixed(), "1");
+
+          purchaseView = (await tsp.getUserViews(OWNER, [5]))[0].purchaseView;
+
+          assert.deepEqual(purchaseView.lockedNftAddresses, [participationNft.address]);
+          assert.deepEqual(purchaseView.lockedNftIds, [["3"]]);
+
+          await tsp.unlockParticipationNft(5, participationNft.address, [3]);
+
+          assert.equal((await participationNft.balanceOf(OWNER)).toFixed(), "2");
+
+          purchaseView = (await tsp.getUserViews(OWNER, [5]))[0].purchaseView;
+
+          assert.deepEqual(purchaseView.lockedNftAddresses, []);
+          assert.deepEqual(purchaseView.lockedNftIds, []);
+        });
+
         it("should unlock participation nft if all conditions are met", async () => {
           await setTime(+tiers[4].saleStartTime);
 
           await participationNft.safeMint(OWNER, 1);
-          await participationNft.approve(tsp.address, 1);
+          await participationNft.safeMint(OWNER, 3);
+          await participationNft.safeMint(OWNER, 5);
+          await participationNft.setApprovalForAll(tsp.address, true);
 
-          await tsp.lockParticipationNft(5, participationNft.address, [1]);
+          await tsp.lockParticipationNft(5, participationNft.address, [1, 3, 5]);
 
           await setTime(+tiers[4].saleEndTime);
 
@@ -1191,11 +1557,11 @@ describe("TokenSaleProposal", () => {
           let purchaseView = (await tsp.getUserViews(OWNER, [5]))[0].purchaseView;
 
           assert.deepEqual(purchaseView.lockedNftAddresses, [participationNft.address]);
-          assert.deepEqual(purchaseView.lockedNftIds, [["1"]]);
+          assert.deepEqual(purchaseView.lockedNftIds, [["1", "3", "5"]]);
 
-          await tsp.unlockParticipationNft(5, participationNft.address, [1]);
+          await tsp.unlockParticipationNft(5, participationNft.address, [1, 3, 5]);
 
-          assert.equal((await participationNft.balanceOf(OWNER)).toFixed(), "1");
+          assert.equal((await participationNft.balanceOf(OWNER)).toFixed(), "3");
 
           purchaseView = (await tsp.getUserViews(OWNER, [5]))[0].purchaseView;
 
@@ -1415,10 +1781,19 @@ describe("TokenSaleProposal", () => {
           await setTime(+tiers[4].saleStartTime);
 
           await participationNft.safeMint(OWNER, 1);
-          await participationNft.approve(tsp.address, 1);
+          await participationNft.safeMint(OWNER, 3);
+          await participationNft.safeMint(OWNER, 5);
+          await participationNft.setApprovalForAll(tsp.address, true);
           await purchaseToken1.approve(tsp.address, wei(100));
 
-          await lockParticipationNftAndBuy(5, participationNft.address, [1], purchaseToken1.address, wei(100), OWNER);
+          await lockParticipationNftAndBuy(
+            5,
+            participationNft.address,
+            [1, 3, 5],
+            purchaseToken1.address,
+            wei(100),
+            OWNER
+          );
           assert.equal((await tsp.getSaleTokenAmount(OWNER, 5, purchaseToken1.address, wei(100))).toFixed(), wei(400));
 
           const purchaseView = {
@@ -1430,7 +1805,7 @@ describe("TokenSaleProposal", () => {
             lockedTokenAddresses: [],
             lockedTokenAmounts: [],
             lockedNftAddresses: [participationNft.address],
-            lockedNftIds: [["1"]],
+            lockedNftIds: [["1", "3", "5"]],
             purchaseTokenAddresses: [purchaseToken1.address],
             purchaseTokenAmounts: [wei(100)],
           };
@@ -1554,10 +1929,19 @@ describe("TokenSaleProposal", () => {
             await setTime(+tiers[4].saleStartTime);
 
             await participationNft.safeMint(OWNER, 1);
-            await participationNft.approve(tsp.address, 1);
+            await participationNft.safeMint(OWNER, 3);
+            await participationNft.safeMint(OWNER, 5);
+            await participationNft.setApprovalForAll(tsp.address, true);
             await purchaseToken1.approve(tsp.address, wei(100));
 
-            await lockParticipationNftAndBuy(5, participationNft.address, [1], purchaseToken1.address, wei(100), OWNER);
+            await lockParticipationNftAndBuy(
+              5,
+              participationNft.address,
+              [1, 3, 5],
+              purchaseToken1.address,
+              wei(100),
+              OWNER
+            );
             assert.equal(
               (await tsp.getSaleTokenAmount(OWNER, 5, purchaseToken1.address, wei(100))).toFixed(),
               wei(400)
@@ -1572,7 +1956,7 @@ describe("TokenSaleProposal", () => {
               lockedTokenAddresses: [],
               lockedTokenAmounts: [],
               lockedNftAddresses: [participationNft.address],
-              lockedNftIds: [["1"]],
+              lockedNftIds: [["1", "3", "5"]],
               purchaseTokenAddresses: [purchaseToken1.address],
               purchaseTokenAmounts: [wei(100)],
             };

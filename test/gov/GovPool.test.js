@@ -3967,6 +3967,33 @@ describe("GovPool", () => {
         assert.equal((await rewardToken.balanceOf(delegator1)).toFixed(), delegator1Rewards.toFixed());
       });
 
+      it("should claim rewards properly if try mint", async () => {
+        await setNftMultiplierAddress(ZERO_ADDR);
+        await changeInternalSettings(false);
+
+        await govPool.createProposal("", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
+
+        await govPool.deposit(govPool.address, wei("100"), []);
+
+        await govPool.delegate(SECOND, wei("200000"), [], { from: delegator1 });
+        await govPool.delegate(SECOND, wei("400000"), [], { from: delegator2 });
+
+        await executeProposal(
+          [[govPool.address, 0, getBytesGovVote(4, wei("100"), [], true)]],
+          [[govPool.address, 0, getBytesGovVote(4, wei("100"), [], false)]],
+          false
+        );
+
+        await rewardToken.burn(govPool.address, await rewardToken.balanceOf(govPool.address));
+        await rewardToken.mint(govPool.address, wei(1));
+
+        await rewardToken.toggleMint();
+
+        await govPool.claimMicropoolRewards([5], SECOND, { from: delegator1 });
+
+        assert.equal((await rewardToken.balanceOf(delegator1)).toFixed(), wei(1));
+      });
+
       it("should have zero rewards if vote against and empty data against", async () => {
         await changeInternalSettings(false);
 
