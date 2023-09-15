@@ -1490,6 +1490,20 @@ describe("TokenSaleProposal", () => {
           );
         });
 
+        it("should not unlock participation nft if zero nft ids to unlock", async () => {
+          await setTime(+tiers[4].saleStartTime);
+
+          await participationNft.safeMint(OWNER, 1);
+          await participationNft.approve(tsp.address, 1);
+
+          await tsp.lockParticipationNft(5, participationNft.address, [1]);
+
+          await truffleAssert.reverts(
+            tsp.unlockParticipationNft(5, participationNft.address, []),
+            "TSP: zero nft ids to unlock"
+          );
+        });
+
         it("should not unlock participation nft if nft is not locked", async () => {
           await setTime(+tiers[4].saleStartTime);
 

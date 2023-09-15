@@ -1610,7 +1610,7 @@ describe("GovUserKeeper", () => {
         await userKeeper.updateNftPowers([1, 2, 3, 4, 5, 6, 7, 9]);
         await userKeeper.createNftPowerSnapshot();
 
-        const power2 = (await userKeeper.votingPower([OWNER], [VoteType.PersonalVote], true))[0];
+        let power2 = (await userKeeper.votingPower([OWNER], [VoteType.PersonalVote], true))[0];
 
         assert.equal(
           toBN(power2.power).toFixed(),
@@ -1633,6 +1633,13 @@ describe("GovUserKeeper", () => {
             "4080201612903225806451",
             "4080201612903225806451",
           ]
+        );
+
+        power2 = (await userKeeper.votingPower([OWNER], [VoteType.PersonalVote], false))[0];
+
+        assert.deepEqual(
+          power2.perNftPower.map((e) => toBN(e).toFixed()),
+          []
         );
 
         await setTime(startTime + 1999);
