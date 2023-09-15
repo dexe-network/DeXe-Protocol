@@ -44,10 +44,10 @@ library GovUserKeeperView {
             }
 
             if (nftAddressExists) {
-                uint256[] memory nftIds;
-                uint256 length;
-
-                (nftIds, length) = userKeeper.nftExactBalance(users[i], voteTypes[i]);
+                (uint256[] memory nftIds, uint256 length) = userKeeper.nftExactBalance(
+                    users[i],
+                    voteTypes[i]
+                );
                 (power.nftPower, power.perNftPower) = nftVotingPower(nftIds, perNftPowerArray);
 
                 assembly {
@@ -82,20 +82,17 @@ library GovUserKeeperView {
         votingPowers = votingPower(users, voteTypes, perNftPowerArray);
 
         for (uint256 i = 0; i < votingPowers.length; i++) {
-            IGovUserKeeper.VotingPowerView memory votingPower = votingPowers[i];
+            IGovUserKeeper.VotingPowerView memory power = votingPowers[i];
             address user = users[i];
 
-            votingPower.power = votePower.transformVotes(user, votingPower.power);
-            votingPower.rawPower = votePower.transformVotes(user, votingPower.rawPower);
-            votingPower.nftPower = votePower.transformVotes(user, votingPower.nftPower);
-            votingPower.rawNftPower = votePower.transformVotes(user, votingPower.rawNftPower);
-            votingPower.ownedBalance = votePower.transformVotes(user, votingPower.ownedBalance);
+            power.power = votePower.transformVotes(user, power.power);
+            power.rawPower = votePower.transformVotes(user, power.rawPower);
+            power.nftPower = votePower.transformVotes(user, power.nftPower);
+            power.rawNftPower = votePower.transformVotes(user, power.rawNftPower);
+            power.ownedBalance = votePower.transformVotes(user, power.ownedBalance);
 
-            for (uint256 j = 0; j < votingPower.perNftPower.length; j++) {
-                votingPower.perNftPower[j] = votePower.transformVotes(
-                    user,
-                    votingPower.perNftPower[j]
-                );
+            for (uint256 j = 0; j < power.perNftPower.length; j++) {
+                power.perNftPower[j] = votePower.transformVotes(user, power.perNftPower[j]);
             }
         }
     }

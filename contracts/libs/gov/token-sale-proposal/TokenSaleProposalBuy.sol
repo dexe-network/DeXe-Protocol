@@ -139,6 +139,7 @@ library TokenSaleProposalBuy {
         if (participationInfo.requiredDaoVotes > 0) {
             (, address govUserKeeper, , , ) = IGovPool(tokenSaleProposal.govAddress())
                 .getHelperContracts();
+
             _canParticipate =
                 _canParticipate &&
                 IGovUserKeeper(govUserKeeper)
@@ -236,18 +237,19 @@ library TokenSaleProposalBuy {
             .purchaseInfo
             .lockedTokens;
 
-        bool ok = true;
         uint256 length = requiredTokenLock.length();
 
-        for (uint256 i = 0; i < length && ok; i++) {
+        for (uint256 i = 0; i < length; i++) {
             (address requiredToken, uint256 requiredAmount) = requiredTokenLock.at(i);
 
             (, uint256 lockedAmount) = lockedTokens.tryGet(requiredToken);
 
-            ok = ok && (lockedAmount == requiredAmount);
+            if (lockedAmount < requiredAmount) {
+                return false;
+            }
         }
 
-        return ok;
+        return true;
     }
 
     function _checkUserLockedNfts(
@@ -262,16 +264,17 @@ library TokenSaleProposalBuy {
             .purchaseInfo
             .lockedNfts;
 
-        bool ok = true;
         uint256 length = requiredNftLock.length();
 
-        for (uint256 i = 0; i < length && ok; i++) {
+        for (uint256 i = 0; i < length; i++) {
             (address requiredNft, uint256 requiredAmount) = requiredNftLock.at(i);
 
-            ok = ok && (lockedNfts[requiredNft].length() == requiredAmount);
+            if (lockedNfts[requiredNft].length() < requiredAmount) {
+                return false;
+            }
         }
 
-        return ok;
+        return true;
     }
 
     function _asSingletonArray(

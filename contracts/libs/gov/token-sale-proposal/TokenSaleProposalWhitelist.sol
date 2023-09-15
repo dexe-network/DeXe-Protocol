@@ -67,7 +67,7 @@ library TokenSaleProposalWhitelist {
         purchaseInfo.lockedNftAddresses.add(nftToLock);
 
         for (uint256 i = 0; i < nftIdsToLock.length; i++) {
-            require(lockedNfts.add(nftIdsToLock[i]), "lock nfts are duplicated");
+            require(lockedNfts.add(nftIdsToLock[i]), "TSP: lock nfts are duplicated");
         }
 
         (, uint256 requiredAmount) = tier.participationInfo.requiredNftLock.tryGet(nftToLock);
@@ -127,7 +127,7 @@ library TokenSaleProposalWhitelist {
         require(nftIdsToUnlock.length > 0, "TSP: zero nft ids to unlock");
 
         for (uint256 i = 0; i < nftIdsToUnlock.length; i++) {
-            require(lockedNfts.remove(nftIdsToUnlock[i]), "nft is not locked");
+            require(lockedNfts.remove(nftIdsToUnlock[i]), "TSP: nft is not locked");
         }
 
         if (lockedNfts.length() == 0) {
