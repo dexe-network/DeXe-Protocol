@@ -13,7 +13,10 @@ contract DexeERC721Multiplier is IDexeERC721Multiplier, AbstractERC721Multiplier
     using MathHelper for uint256;
     using Math for uint256;
 
+    uint256 public constant MULTIPLIER_SLASHING_PERCENTAGE = PERCENTAGE_100 / 10; // 10%
+
     mapping(address => uint256) internal _averageBalances; // user => average balance
+    mapping(uint256 => uint256) internal _multiplierSlashing; // token => slashing percentage
 
     event AverageBalanceChanged(address user, uint256 averageBalance);
 
@@ -58,7 +61,8 @@ contract DexeERC721Multiplier is IDexeERC721Multiplier, AbstractERC721Multiplier
         address whose,
         uint256 rewards
     ) public view returns (uint256 multiplier, uint256 timeLeft) {
-        (multiplier, timeLeft) = _getCurrentMultiplier(whose);
+        uint256 tokenId;
+        (tokenId, multiplier, timeLeft) = _getCurrentMultiplier(whose);
 
         uint256 averageBalance = _averageBalances[whose];
 
@@ -66,12 +70,24 @@ contract DexeERC721Multiplier is IDexeERC721Multiplier, AbstractERC721Multiplier
             return (multiplier, timeLeft);
         }
 
-        uint256 coeff = rewards.ratio(PRECISION, averageBalance).ratio(PRECISION, multiplier);
+        multiplier = multiplier.percentage(PERCENTAGE_100 - _multiplierSlashing[tokenId]);
 
-        if (coeff > PRECISION) {
-            multiplier = multiplier.ratio(PRECISION, coeff);
+        uint256 coefficient = rewards.ratio(PRECISION, averageBalance).ratio(
+            PRECISION,
+            multiplier
+        );
+
+        if (coefficient > PRECISION) {
+            multiplier = multiplier.ratio(PRECISION, coefficient);
         }
 
         multiplier = multiplier.max(PRECISION) - PRECISION;
+    }
+
+    function _afterTokenUnlock(uint256 tokenId) internal override {
+        super._afterTokenUnlock(tokenId);
+
+        _multiplierSlashing[tokenId] = (_multiplierSlashing[tokenId] +
+            MULTIPLIER_SLASHING_PERCENTAGE).min(PERCENTAGE_100);
     }
 }

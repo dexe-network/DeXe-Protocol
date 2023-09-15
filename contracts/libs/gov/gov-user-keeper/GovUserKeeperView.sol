@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
 
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
+import "../../../interfaces/gov/voting/IVotePower.sol";
 
 import "../../math/MathHelper.sol";
 
@@ -24,7 +25,7 @@ library GovUserKeeperView {
         address[] calldata users,
         IGovPool.VoteType[] calldata voteTypes,
         bool perNftPowerArray
-    ) external view returns (IGovUserKeeper.VotingPowerView[] memory votingPowers) {
+    ) public view returns (IGovUserKeeper.VotingPowerView[] memory votingPowers) {
         GovUserKeeper userKeeper = GovUserKeeper(address(this));
         votingPowers = new IGovUserKeeper.VotingPowerView[](users.length);
 
@@ -43,10 +44,10 @@ library GovUserKeeperView {
             }
 
             if (nftAddressExists) {
-                uint256[] memory nftIds;
-                uint256 length;
-
-                (nftIds, length) = userKeeper.nftExactBalance(users[i], voteTypes[i]);
+                (uint256[] memory nftIds, uint256 length) = userKeeper.nftExactBalance(
+                    users[i],
+                    voteTypes[i]
+                );
                 (power.nftPower, power.perNftPower) = nftVotingPower(nftIds, perNftPowerArray);
 
                 assembly {
@@ -64,6 +65,34 @@ library GovUserKeeperView {
 
                 power.power += power.nftPower;
                 power.rawPower += power.rawNftPower;
+            }
+        }
+    }
+
+    function transformedVotingPower(
+        address[] calldata users,
+        IGovPool.VoteType[] calldata voteTypes,
+        bool perNftPowerArray
+    ) external view returns (IGovUserKeeper.VotingPowerView[] memory votingPowers) {
+        address govPool = GovUserKeeper(address(this)).owner();
+
+        (, , , , address votePowerAddress) = IGovPool(govPool).getHelperContracts();
+        IVotePower votePower = IVotePower(votePowerAddress);
+
+        votingPowers = votingPower(users, voteTypes, perNftPowerArray);
+
+        for (uint256 i = 0; i < votingPowers.length; i++) {
+            IGovUserKeeper.VotingPowerView memory power = votingPowers[i];
+            address user = users[i];
+
+            power.power = votePower.transformVotes(user, power.power);
+            power.rawPower = votePower.transformVotes(user, power.rawPower);
+            power.nftPower = votePower.transformVotes(user, power.nftPower);
+            power.rawNftPower = votePower.transformVotes(user, power.rawNftPower);
+            power.ownedBalance = votePower.transformVotes(user, power.ownedBalance);
+
+            for (uint256 j = 0; j < power.perNftPower.length; j++) {
+                power.perNftPower[j] = votePower.transformVotes(user, power.perNftPower[j]);
             }
         }
     }

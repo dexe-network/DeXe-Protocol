@@ -25,7 +25,7 @@ struct TierInitParams {
     uint256 minAllocationPerUser;
     uint256 maxAllocationPerUser;
     VestingSettings vestingSettings;
-    ParticipationDetails participationDetails;
+    ParticipationDetails[] participationDetails;
 }
 ```
 
@@ -40,7 +40,7 @@ struct TierInitParams {
 - ***minAllocationPerUser*** - minimal allocation of tokens per one user
 - ***maxAllocationPerUser*** - maximal allocation of tokens per one user
 - ***vestingSettings*** - settings for managing tokens vesting (unlocking). While tokens are locked investors won`t be able to withdraw them.
-- ***participationDetails*** - participation requirement parameters
+- ***participationDetails*** - the list of participation requirement parameters
 
 ```solidity
 struct TierMetadata {
@@ -78,7 +78,6 @@ struct ParticipationDetails {
 
 ```solidity
 enum ParticipationType {
-    NoWhitelist,
     DAOVotes,
     Whitelist,
     BABT,
@@ -87,7 +86,6 @@ enum ParticipationType {
 }
 ```
 
-- ***NoWhitelist*** - indicates that the proposal doesn't have the whitelist
 - ***DAOVotes*** - indicates that the user must have the required voting power
 - ***Whitelist*** - indicates that the user must be included in the whitelist of the tier
 - ***BABT*** - indicates that the user must own the BABT token
@@ -137,10 +135,16 @@ Function ***`lockParticipationTokens()`*** is used to lock the specified amount 
 ❗ The following function is used only for tiers with the `TokenLock` participation requirement type.
 
 ```solidity
-function lockParticipationTokens(uint256 tierId) external payable;
+function lockParticipationTokens(
+    uint256 tierId,
+    address tokenToLock,
+    uint256 amountToLock
+) external payable;
 ```
 
 - ***tierId*** - the id of the tier to lock the tokens for
+- ***tokenToLock*** - the address of the token to be locked
+- ***amountToLock*** - the number of tokens to be locked
 
 #
 
@@ -149,11 +153,16 @@ Function ***`lockParticipationNft()`*** is used to lock the specified nft to par
 ❗ The following function is used only for tiers with the `NftLock` participation requirement type.
 
 ```solidity
-function lockParticipationNft(uint256 tierId, uint256 tokenId) external;
+function lockParticipationNft(
+    uint256 tierId,
+    address nftToLock,
+    uint256[] calldata nftIdsToLock
+) external;
 ```
 
 - ***tierId*** - the id of the tier to lock the nft for
-- ***tokenId*** - the id of the nft to lock
+- ***nftToLock** - the address of nft to be locked
+- ***nftIdsToLock*** - the list of nft ids to be locked
 
 #
 
@@ -162,22 +171,34 @@ Function ***`unlockParticipationTokens()`*** is used to unlock participation tok
 ❗ The following function is used only for tiers with the `TokenLock` participation requirement type.
 
 ```solidity
-function unlockParticipationTokens(uint256 tierId) external;
+function unlockParticipationTokens(
+    uint256 tierId,
+    address tokenToUnlock,
+    uint256 amountToUnlock
+) external;
 ```
 
 - ***tierId*** - the id of the tier to unlock the tokens for
+- ***tokenToUnlock*** - the address of the token to be unlocked
+- ***amountToUnlock*** - the number of tokens to be unlocked
 
 #
 
 Function ***`unlockParticipationNft()`*** is used to unlock the participation nft.
 
-❗ The following function is used only for tiers with the `TokenLock` participation requirement type.
+❗ The following function is used only for tiers with the `NftLock` participation requirement type.
 
 ```solidity
-function unlockParticipationNft(uint256 tierId) external;
+function unlockParticipationNft(
+    uint256 tierId,
+    address nftToUnlock,
+    uint256[] calldata nftIdsToUnlock
+) external;
 ```
 
 - ***tierId*** - the id of the tier to unlock the nft for
+- ***nftToUnlock*** - the address of nft to be unlocked
+- ***nftIdsToUnlock*** - the list of nft ids to be unlocked
 
 #
 

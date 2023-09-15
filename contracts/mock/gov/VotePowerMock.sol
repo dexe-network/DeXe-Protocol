@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -21,7 +21,7 @@ contract VotePowerMock is IVotePower, OwnableUpgradeable {
     function transformVotes(
         address,
         uint256 votes
-    ) external view override returns (uint256 resultingVotes) {
+    ) external pure override returns (uint256 resultingVotes) {
         return votes * votes;
     }
 

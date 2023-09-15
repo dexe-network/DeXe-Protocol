@@ -44,6 +44,8 @@ abstract contract AbstractERC721Multiplier is
         _latestLockedTokenIds[msg.sender] = tokenId;
         _lockedInBlocks[tokenId] = block.timestamp;
 
+        _afterTokenLock(tokenId);
+
         emit Locked(tokenId, msg.sender, true);
     }
 
@@ -59,6 +61,8 @@ abstract contract AbstractERC721Multiplier is
         );
 
         delete _latestLockedTokenIds[msg.sender];
+
+        _afterTokenUnlock(tokenId);
 
         emit Locked(tokenId, msg.sender, false);
     }
@@ -104,6 +108,10 @@ abstract contract AbstractERC721Multiplier is
         emit Changed(tokenId, multiplier, duration);
     }
 
+    function _afterTokenLock(uint256 tokenId) internal virtual {}
+
+    function _afterTokenUnlock(uint256 tokenId) internal virtual {}
+
     function _beforeTokenTransfer(
         address from,
         address to,
@@ -123,20 +131,24 @@ abstract contract AbstractERC721Multiplier is
 
     function _getCurrentMultiplier(
         address whose
-    ) internal view returns (uint256 multiplier, uint256 timeLeft) {
+    ) internal view returns (uint256 tokenId, uint256 multiplier, uint256 timeLeft) {
         uint256 latestLockedTokenId = _latestLockedTokenIds[whose];
 
         if (!isLocked(latestLockedTokenId)) {
-            return (0, 0);
+            return (0, 0, 0);
         }
 
         IAbstractERC721Multiplier.NftInfo memory info = _tokens[latestLockedTokenId];
 
         if (info.mintedAt + info.duration < block.timestamp) {
-            return (0, 0);
+            return (0, 0, 0);
         }
 
-        return (info.multiplier, info.mintedAt + info.duration - block.timestamp);
+        return (
+            latestLockedTokenId,
+            info.multiplier,
+            info.mintedAt + info.duration - block.timestamp
+        );
     }
 
     function _onlyTokenOwner(uint256 tokenId) internal view {

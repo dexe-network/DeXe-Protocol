@@ -266,6 +266,50 @@ describe("DexeERC721Multiplier", () => {
           assert.equal(info.timeLeft.toFixed(), "1");
         });
 
+        it("should apply slashing properly", async () => {
+          await nft.transferOwnership(govPool.address);
+
+          const amount = "5000";
+
+          const beforeUnlock = toBN(TOKENS[2].multiplier)
+            .times(PRECISION)
+            .idiv(
+              toBN(amount)
+                .times(PRECISION)
+                .times(PRECISION)
+                .idiv(toBN(TOKENS[2].multiplier).times(TOKENS[2].averageBalance))
+            )
+            .minus(PRECISION)
+            .plus(1)
+            .toFixed();
+
+          await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
+
+          let info = await nft.getCurrentMultiplier(SECOND, amount);
+          assert.equal(info.multiplier.toFixed(), beforeUnlock);
+
+          await nft.unlock({ from: TOKENS[2].owner });
+          await nft.lock(TOKENS[2].id, { from: TOKENS[2].owner });
+
+          TOKENS[2].multiplier = toBN(TOKENS[2].multiplier).multipliedBy(9).idiv(10);
+
+          const afterUnlock = toBN(TOKENS[2].multiplier)
+            .times(PRECISION)
+            .idiv(
+              toBN(amount)
+                .times(PRECISION)
+                .times(PRECISION)
+                .idiv(toBN(TOKENS[2].multiplier).times(TOKENS[2].averageBalance))
+            )
+            .minus(PRECISION)
+            .toFixed();
+
+          info = await nft.getCurrentMultiplier(SECOND, amount);
+          assert.equal(info.multiplier.toFixed(), afterUnlock);
+
+          assert.isTrue(toBN(beforeUnlock).gt(afterUnlock));
+        });
+
         it("should return zeros if nft expired", async () => {
           await nft.transferOwnership(govPool.address);
 

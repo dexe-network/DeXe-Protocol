@@ -22,7 +22,7 @@ contract ERC721Multiplier is AbstractERC721Multiplier {
         address whose,
         uint256 rewards
     ) external view override returns (uint256) {
-        (uint256 multiplier, ) = _getCurrentMultiplier(whose);
+        (, uint256 multiplier, ) = _getCurrentMultiplier(whose);
 
         return rewards.ratio(multiplier, PRECISION);
     }
@@ -30,6 +30,6 @@ contract ERC721Multiplier is AbstractERC721Multiplier {
     function getCurrentMultiplier(
         address whose
     ) external view returns (uint256 multiplier, uint256 timeLeft) {
-        return _getCurrentMultiplier(whose);
+        (, multiplier, timeLeft) = _getCurrentMultiplier(whose);
     }
 }

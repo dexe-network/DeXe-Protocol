@@ -43,12 +43,11 @@ const ProposalType = {
 };
 
 const ParticipationType = {
-  NoWhitelist: "0",
-  DAOVotes: "1",
-  Whitelist: "2",
-  BABT: "3",
-  TokenLock: "4",
-  NftLock: "5",
+  DAOVotes: "0",
+  Whitelist: "1",
+  BABT: "2",
+  TokenLock: "3",
+  NftLock: "4",
 };
 
 const VotePowerType = {

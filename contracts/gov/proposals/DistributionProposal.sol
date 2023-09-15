@@ -106,20 +106,20 @@ contract DistributionProposal is IDistributionProposal, IProposalValidator, Init
         address voter
     ) public view override returns (uint256) {
         (
-            uint256 totalVotesFor,
-            uint256 totalVotesAgainst,
-            uint256 voterVotes,
+            uint256 coreRawVotesFor,
+            uint256 coreRawVotesAgainst,
+            uint256 personalRawTotalVoted,
             bool isVoteFor
         ) = IGovPool(govAddress).getTotalVotes(proposalId, voter, IGovPool.VoteType.PersonalVote);
 
-        if (totalVotesFor == 0 || !isVoteFor) {
+        if (coreRawVotesFor == 0 || !isVoteFor) {
             return 0;
         }
 
         return
             proposals[proposalId].rewardAmount.ratio(
-                voterVotes,
-                totalVotesFor + totalVotesAgainst
+                personalRawTotalVoted,
+                coreRawVotesFor + coreRawVotesAgainst
             );
     }
 }

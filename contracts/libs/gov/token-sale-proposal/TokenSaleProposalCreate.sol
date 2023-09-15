@@ -15,92 +15,56 @@ import "../../../core/Globals.sol";
 library TokenSaleProposalCreate {
     using DecimalsConverter for *;
     using Math for uint256;
+    using EnumerableMap for EnumerableMap.AddressToUintMap;
 
     function createTier(
         mapping(uint256 => ITokenSaleProposal.Tier) storage tiers,
         uint256 newTierId,
-        ITokenSaleProposal.TierInitParams memory tierInitParams
+        ITokenSaleProposal.TierInitParams memory _tierInitParams
     ) external {
-        require(tierInitParams.saleTokenAddress != address(0), "TSP: sale token cannot be zero");
-        require(
-            tierInitParams.saleTokenAddress != ETHEREUM_ADDRESS,
-            "TSP: cannot sale native currency"
-        );
-        require(tierInitParams.totalTokenProvided != 0, "TSP: sale token is not provided");
-        require(
-            tierInitParams.saleStartTime <= tierInitParams.saleEndTime,
-            "TSP: saleEndTime is less than saleStartTime"
-        );
-        require(
-            tierInitParams.minAllocationPerUser <= tierInitParams.maxAllocationPerUser,
-            "TSP: wrong allocation"
-        );
-        require(
-            _validateVestingSettings(tierInitParams.vestingSettings),
-            "TSP: vesting settings validation failed"
-        );
-        require(
-            _validateParticipationDetails(tierInitParams.participationDetails),
-            "TSP: participation details validation failed"
-        );
-        require(
-            tierInitParams.purchaseTokenAddresses.length != 0,
-            "TSP: purchase tokens are not provided"
-        );
-        require(
-            tierInitParams.purchaseTokenAddresses.length == tierInitParams.exchangeRates.length,
-            "TSP: tokens and rates lengths mismatch"
-        );
+        _validateTierInitParams(_tierInitParams);
 
-        uint256 saleTokenDecimals = tierInitParams.saleTokenAddress.decimals();
-        uint256 totalTokenProvided = tierInitParams.totalTokenProvided;
+        uint256 saleTokenDecimals = _tierInitParams.saleTokenAddress.decimals();
+        uint256 totalTokenProvided = _tierInitParams.totalTokenProvided;
 
-        tierInitParams.minAllocationPerUser = tierInitParams.minAllocationPerUser.to18(
+        _tierInitParams.minAllocationPerUser = _tierInitParams.minAllocationPerUser.to18(
             saleTokenDecimals
         );
-        tierInitParams.maxAllocationPerUser = tierInitParams.maxAllocationPerUser.to18(
+        _tierInitParams.maxAllocationPerUser = _tierInitParams.maxAllocationPerUser.to18(
             saleTokenDecimals
         );
-        tierInitParams.totalTokenProvided = totalTokenProvided.to18(saleTokenDecimals);
-
-        if (
-            tierInitParams.participationDetails.participationType ==
-            ITokenSaleProposal.ParticipationType.TokenLock
-        ) {
-            (address token, uint256 amount) = abi.decode(
-                tierInitParams.participationDetails.data,
-                (address, uint256)
-            );
-            tierInitParams.participationDetails.data = abi.encode(
-                token,
-                token == ETHEREUM_ADDRESS ? amount : amount.to18(token.decimals())
-            );
-        }
+        _tierInitParams.totalTokenProvided = totalTokenProvided.to18(saleTokenDecimals);
 
         ITokenSaleProposal.Tier storage tier = tiers[newTierId];
 
-        for (uint256 i = 0; i < tierInitParams.purchaseTokenAddresses.length; i++) {
-            require(tierInitParams.exchangeRates[i] != 0, "TSP: rate cannot be zero");
-            require(
-                tierInitParams.purchaseTokenAddresses[i] != address(0),
-                "TSP: purchase token cannot be zero"
-            );
-            require(
-                tier.rates[tierInitParams.purchaseTokenAddresses[i]] == 0,
-                "TSP: purchase tokens are duplicated"
-            );
+        _setParticipationInfo(tier, _tierInitParams);
+        _setRates(tier, _tierInitParams);
 
-            tier.rates[tierInitParams.purchaseTokenAddresses[i]] = tierInitParams.exchangeRates[i];
-        }
-
-        uint64 vestingStartTime = tierInitParams.vestingSettings.vestingDuration == 0
+        uint64 vestingStartTime = _tierInitParams.vestingSettings.vestingDuration == 0
             ? 0
-            : tierInitParams.saleEndTime + tierInitParams.vestingSettings.cliffPeriod;
-        tier.tierInitParams = tierInitParams;
+            : _tierInitParams.saleEndTime + _tierInitParams.vestingSettings.cliffPeriod;
         tier.tierInfo.vestingTierInfo = ITokenSaleProposal.VestingTierInfo({
             vestingStartTime: vestingStartTime,
-            vestingEndTime: vestingStartTime + tierInitParams.vestingSettings.vestingDuration
+            vestingEndTime: vestingStartTime + _tierInitParams.vestingSettings.vestingDuration
         });
+
+        ITokenSaleProposal.TierInitParams storage tierInitParams = tier.tierInitParams;
+
+        tierInitParams.metadata = _tierInitParams.metadata;
+        tierInitParams.totalTokenProvided = _tierInitParams.totalTokenProvided;
+        tierInitParams.saleStartTime = _tierInitParams.saleStartTime;
+        tierInitParams.saleEndTime = _tierInitParams.saleEndTime;
+        tierInitParams.claimLockDuration = _tierInitParams.claimLockDuration;
+        tierInitParams.saleTokenAddress = _tierInitParams.saleTokenAddress;
+        tierInitParams.purchaseTokenAddresses = _tierInitParams.purchaseTokenAddresses;
+        tierInitParams.exchangeRates = _tierInitParams.exchangeRates;
+        tierInitParams.minAllocationPerUser = _tierInitParams.minAllocationPerUser;
+        tierInitParams.maxAllocationPerUser = _tierInitParams.maxAllocationPerUser;
+        tierInitParams.vestingSettings = _tierInitParams.vestingSettings;
+
+        for (uint256 i = 0; i < _tierInitParams.participationDetails.length; i++) {
+            tierInitParams.participationDetails.push(_tierInitParams.participationDetails[i]);
+        }
 
         /// @dev return value is not checked intentionally
         tierInitParams.saleTokenAddress.call(
@@ -134,6 +98,136 @@ library TokenSaleProposalCreate {
         }
     }
 
+    function _setParticipationInfo(
+        ITokenSaleProposal.Tier storage tier,
+        ITokenSaleProposal.TierInitParams memory tierInitParams
+    ) private {
+        ITokenSaleProposal.ParticipationInfo storage participationInfo = tier.participationInfo;
+
+        for (uint256 i = 0; i < tierInitParams.participationDetails.length; i++) {
+            ITokenSaleProposal.ParticipationDetails memory participationDetails = tierInitParams
+                .participationDetails[i];
+
+            if (
+                participationDetails.participationType ==
+                ITokenSaleProposal.ParticipationType.DAOVotes
+            ) {
+                require(participationDetails.data.length == 32, "TSP: invalid DAO votes data");
+
+                uint256 requiredDaoVotes = abi.decode(participationDetails.data, (uint256));
+
+                require(requiredDaoVotes > 0, "TSP: zero DAO votes");
+                require(
+                    participationInfo.requiredDaoVotes == 0,
+                    "TSP: multiple DAO votes requirements"
+                );
+
+                participationInfo.requiredDaoVotes = requiredDaoVotes;
+            } else if (
+                participationDetails.participationType ==
+                ITokenSaleProposal.ParticipationType.Whitelist
+            ) {
+                require(participationDetails.data.length == 0, "TSP: invalid whitelist data");
+                require(!participationInfo.isWhitelisted, "TSP: multiple whitelist requirements");
+
+                participationInfo.isWhitelisted = true;
+            } else if (
+                participationDetails.participationType == ITokenSaleProposal.ParticipationType.BABT
+            ) {
+                require(participationDetails.data.length == 0, "TSP: invalid BABT data");
+                require(!participationInfo.isBABTed, "TSP: multiple BABT requirements");
+
+                participationInfo.isBABTed = true;
+            } else if (
+                participationDetails.participationType ==
+                ITokenSaleProposal.ParticipationType.TokenLock
+            ) {
+                require(participationDetails.data.length == 64, "TSP: invalid token lock data");
+
+                (address token, uint256 amount) = abi.decode(
+                    participationDetails.data,
+                    (address, uint256)
+                );
+
+                uint256 to18Amount = token == ETHEREUM_ADDRESS
+                    ? amount
+                    : amount.to18(token.decimals());
+
+                participationDetails.data = abi.encode(token, to18Amount);
+
+                require(to18Amount > 0, "TSP: zero token lock amount");
+                require(
+                    participationInfo.requiredTokenLock.set(token, to18Amount),
+                    "TSP: multiple token lock requirements"
+                );
+            } else {
+                /// @dev ITokenSaleProposal.ParticipationType.NftLock
+                require(participationDetails.data.length == 64, "TSP: invalid nft lock data");
+
+                (address nft, uint256 amount) = abi.decode(
+                    participationDetails.data,
+                    (address, uint256)
+                );
+
+                require(amount > 0, "TSP: zero nft lock amount");
+                require(
+                    participationInfo.requiredNftLock.set(nft, amount),
+                    "TSP: multiple nft lock requirements"
+                );
+            }
+        }
+    }
+
+    function _setRates(
+        ITokenSaleProposal.Tier storage tier,
+        ITokenSaleProposal.TierInitParams memory tierInitParams
+    ) private {
+        for (uint256 i = 0; i < tierInitParams.purchaseTokenAddresses.length; i++) {
+            require(tierInitParams.exchangeRates[i] != 0, "TSP: rate cannot be zero");
+            require(
+                tierInitParams.purchaseTokenAddresses[i] != address(0),
+                "TSP: purchase token cannot be zero"
+            );
+            require(
+                tier.rates[tierInitParams.purchaseTokenAddresses[i]] == 0,
+                "TSP: purchase tokens are duplicated"
+            );
+
+            tier.rates[tierInitParams.purchaseTokenAddresses[i]] = tierInitParams.exchangeRates[i];
+        }
+    }
+
+    function _validateTierInitParams(
+        ITokenSaleProposal.TierInitParams memory tierInitParams
+    ) private pure {
+        require(tierInitParams.saleTokenAddress != address(0), "TSP: sale token cannot be zero");
+        require(
+            tierInitParams.saleTokenAddress != ETHEREUM_ADDRESS,
+            "TSP: cannot sale native currency"
+        );
+        require(tierInitParams.totalTokenProvided != 0, "TSP: sale token is not provided");
+        require(
+            tierInitParams.saleStartTime <= tierInitParams.saleEndTime,
+            "TSP: saleEndTime is less than saleStartTime"
+        );
+        require(
+            tierInitParams.minAllocationPerUser <= tierInitParams.maxAllocationPerUser,
+            "TSP: wrong allocation"
+        );
+        require(
+            _validateVestingSettings(tierInitParams.vestingSettings),
+            "TSP: vesting settings validation failed"
+        );
+        require(
+            tierInitParams.purchaseTokenAddresses.length != 0,
+            "TSP: purchase tokens are not provided"
+        );
+        require(
+            tierInitParams.purchaseTokenAddresses.length == tierInitParams.exchangeRates.length,
+            "TSP: tokens and rates lengths mismatch"
+        );
+    }
+
     function _validateVestingSettings(
         ITokenSaleProposal.VestingSettings memory vestingSettings
     ) private pure returns (bool) {
@@ -152,36 +246,5 @@ library TokenSaleProposalCreate {
             vestingSettings.unlockStep != 0 &&
             vestingSettings.vestingPercentage <= PERCENTAGE_100 &&
             vestingSettings.vestingDuration >= vestingSettings.unlockStep;
-    }
-
-    function _validateParticipationDetails(
-        ITokenSaleProposal.ParticipationDetails memory participationDetails
-    ) private pure returns (bool) {
-        if (
-            participationDetails.participationType ==
-            ITokenSaleProposal.ParticipationType.NoWhitelist
-        ) {
-            return participationDetails.data.length == 0;
-        } else if (
-            participationDetails.participationType == ITokenSaleProposal.ParticipationType.DAOVotes
-        ) {
-            return participationDetails.data.length == 32;
-        } else if (
-            participationDetails.participationType ==
-            ITokenSaleProposal.ParticipationType.Whitelist
-        ) {
-            return participationDetails.data.length == 0;
-        } else if (
-            participationDetails.participationType == ITokenSaleProposal.ParticipationType.BABT
-        ) {
-            return participationDetails.data.length == 0;
-        } else if (
-            participationDetails.participationType ==
-            ITokenSaleProposal.ParticipationType.TokenLock
-        ) {
-            return participationDetails.data.length == 64;
-        } else {
-            return participationDetails.data.length == 32;
-        }
     }
 }

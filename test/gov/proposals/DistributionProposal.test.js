@@ -464,6 +464,29 @@ describe("DistributionProposal", () => {
         assert.equal(await dp.getPotentialReward(1, OWNER), 0);
       });
 
+      it("should not claim if insufficient funds", async () => {
+        await govPool.createProposal(
+          "example.com",
+          [
+            [token.address, 0, getBytesApprove(dp.address, wei("100000"))],
+            [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
+          ],
+          [],
+          { from: SECOND }
+        );
+
+        await govPool.vote(1, true, 0, [1, 2, 3, 4, 5], { from: SECOND });
+        await govPool.vote(1, true, 0, [6, 7, 8, 9], { from: THIRD });
+
+        await setTime(startTime + 10000);
+
+        await govPool.execute(1);
+
+        await token.burn(dp.address, wei("100000"));
+
+        await truffleAssert.reverts(dp.claim(SECOND, [1]), "Gov: insufficient funds");
+      });
+
       it("should correctly claim", async () => {
         await govPool.createProposal(
           "example.com",

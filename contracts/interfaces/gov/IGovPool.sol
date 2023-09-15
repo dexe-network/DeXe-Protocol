@@ -197,14 +197,6 @@ interface IGovPool {
         mapping(uint256 => bool) isClaimed;
     }
 
-    /// @notice The struct that holds information about the micropool (only for internal needs)
-    /// @param delegatorInfos matching delegator addresses with their infos
-    /// @param pendingRewards matching proposal ids with rewards to be distributed among delegators
-    struct MicropoolInfo {
-        mapping(address => DelegatorInfo) delegatorInfos;
-        mapping(uint256 => uint256) pendingRewards;
-    }
-
     /// @notice The struct that holds reward properties (only for internal needs)
     /// @param areVotingRewardsSet matching proposals ids with flags indicating whether voting rewards have been set during the personal or micropool claim
     /// @param staticRewards matching proposal ids to their static rewards
@@ -214,26 +206,45 @@ interface IGovPool {
     struct PendingRewards {
         mapping(uint256 => bool) areVotingRewardsSet;
         mapping(uint256 => uint256) staticRewards;
-        mapping(uint256 => uint256) votingRewards;
+        mapping(uint256 => VotingRewards) votingRewards;
         mapping(address => uint256) offchainRewards;
         EnumerableSet.AddressSet offchainTokens;
     }
 
-    /// TODO: docs
+    /// @notice The struct that holds the user info (only for internal needs)
+    /// @param voteInfos matching proposal ids to their infos
+    /// @param pendingRewards user's pending rewards
+    /// @param delegatorInfos matching delegators to their infos
+    /// @param votedInProposals the list of active proposals user voted in
+    /// @param restrictedProposals the list of proposals user is restricted to vote in
     struct UserInfo {
-        mapping(uint256 => VoteInfo) voteInfos; // proposalId => info
+        mapping(uint256 => VoteInfo) voteInfos;
         PendingRewards pendingRewards;
-        MicropoolInfo micropoolInfo;
+        mapping(address => DelegatorInfo) delegatorInfos;
         EnumerableSet.UintSet votedInProposals;
         EnumerableSet.UintSet restrictedProposals;
     }
 
     /// @notice The struct that is used in view functions of contract as a return argument
-    /// @param onchainRewards the list of on-chain rewards
+    /// @param personal rewards for the personal voting
+    /// @param micropool rewards for the micropool voting
+    /// @param treasury rewards for the treasury voting
+    struct VotingRewards {
+        uint256 personal;
+        uint256 micropool;
+        uint256 treasury;
+    }
+
+    /// @notice The struct that is used in view functions of contract as a return argument
+    /// @param onchainTokens the list of on-chain token addresses
+    /// @param staticRewards the list of static rewards
+    /// @param votingRewards the list of voting rewards
     /// @param offchainRewards the list of off-chain rewards
     /// @param offchainTokens the list of off-chain token addresses
     struct PendingRewardsView {
-        uint256[] onchainRewards;
+        address[] onchainTokens;
+        uint256[] staticRewards;
+        VotingRewards[] votingRewards;
         uint256[] offchainRewards;
         address[] offchainTokens;
     }
@@ -466,10 +477,11 @@ interface IGovPool {
     /// @return the number of active proposals
     function getUserActiveProposalsCount(address user) external view returns (uint256);
 
-    /// @notice The function for getting total votes in the proposal by one voter
+    /// @notice The function for getting total raw votes in the proposal by one voter
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
     /// @param voteType the type of vote
+    /// @return `Arguments`: core raw votes for, core raw votes against, user typed raw votes, is vote for indicator
     function getTotalVotes(
         uint256 proposalId,
         address voter,

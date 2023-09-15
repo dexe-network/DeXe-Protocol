@@ -41,7 +41,11 @@ contract TokenSaleProposal is
 
     mapping(uint256 => Tier) internal _tiers;
 
-    event TierCreated(uint256 tierId, address saleToken, ParticipationType participationType);
+    event TierCreated(
+        uint256 tierId,
+        address saleToken,
+        ParticipationDetails[] participationDetails
+    );
     event Bought(uint256 tierId, address buyer);
     event Whitelisted(uint256 tierId, address user);
 
@@ -83,7 +87,7 @@ contract TokenSaleProposal is
             emit TierCreated(
                 newTierId,
                 tierInitParams[i].saleTokenAddress,
-                tierInitParams[i].participationDetails.participationType
+                tierInitParams[i].participationDetails
             );
         }
     }
@@ -124,20 +128,36 @@ contract TokenSaleProposal is
         emit Bought(tierId, msg.sender);
     }
 
-    function lockParticipationTokens(uint256 tierId) external payable override {
-        _getActiveTier(tierId).lockParticipationTokens();
+    function lockParticipationTokens(
+        uint256 tierId,
+        address tokenToLock,
+        uint256 amountToLock
+    ) external payable override {
+        _getActiveTier(tierId).lockParticipationTokens(tokenToLock, amountToLock);
     }
 
-    function lockParticipationNft(uint256 tierId, uint256 tokenId) external override {
-        _getActiveTier(tierId).lockParticipationNft(tokenId);
+    function lockParticipationNft(
+        uint256 tierId,
+        address nftToLock,
+        uint256[] calldata nftIdsToLock
+    ) external override {
+        _getActiveTier(tierId).lockParticipationNft(nftToLock, nftIdsToLock);
     }
 
-    function unlockParticipationTokens(uint256 tierId) external override {
-        _getTier(tierId).unlockParticipationTokens();
+    function unlockParticipationTokens(
+        uint256 tierId,
+        address tokenToUnlock,
+        uint256 amountToUnlock
+    ) external override {
+        _getTier(tierId).unlockParticipationTokens(tokenToUnlock, amountToUnlock);
     }
 
-    function unlockParticipationNft(uint256 tierId) external override {
-        _getTier(tierId).unlockParticipationNft();
+    function unlockParticipationNft(
+        uint256 tierId,
+        address nftToUnlock,
+        uint256[] calldata nftIdsToUnlock
+    ) external override {
+        _getTier(tierId).unlockParticipationNft(nftToUnlock, nftIdsToUnlock);
     }
 
     function mint(address user, uint256 tierId) external onlyThis {

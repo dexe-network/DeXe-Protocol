@@ -9,14 +9,12 @@ import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
  */
 interface ITokenSaleProposal {
     /// @notice The enum that represents the type of requirements to participate in the tier
-    /// @param NoWhitelist indicates that the proposal doesn't have the whitelist
     /// @param DAOVotes indicates that the user must have the required voting power
     /// @param Whitelist indicates that the user must be included in the whitelist of the tier
     /// @param BABT indicates that the user must own the BABT token
     /// @param TokenLock indicates that the user must lock a specific amount of tokens in the tier
     /// @param NftLock indicates that the user must lock an nft in the tier
     enum ParticipationType {
-        NoWhitelist,
         DAOVotes,
         Whitelist,
         BABT,
@@ -64,7 +62,7 @@ interface ITokenSaleProposal {
     /// @param minAllocationPerUser minimal allocation of tokens per one user
     /// @param maxAllocationPerUser maximal allocation of tokens per one user
     /// @param vestingSettings settings for managing tokens vesting (unlocking). While tokens are locked investors won`t be able to withdraw them
-    /// @param participationDetails participation requirement parameters
+    /// @param participationDetails the list of participation requirement parameters
     struct TierInitParams {
         TierMetadata metadata;
         uint256 totalTokenProvided;
@@ -77,7 +75,7 @@ interface ITokenSaleProposal {
         uint256 minAllocationPerUser;
         uint256 maxAllocationPerUser;
         VestingSettings vestingSettings;
-        ParticipationDetails participationDetails;
+        ParticipationDetails[] participationDetails;
     }
 
     /// @notice Vesting tier-related parameters
@@ -104,14 +102,16 @@ interface ITokenSaleProposal {
     /// @param spentAmounts matching purchase token addresses with spent amounts
     /// @param claimTotalAmount the total amount to be claimed
     /// @param isClaimed the boolean indicating whether the purchase has been claimed or not
-    /// @param lockedAmount the locked participation token amount
-    /// @param lockedId the locked participation token id
+    /// @param lockedTokens matching user locked tokens to locked amounts
+    /// @param lockedNftAddresses the list of nft addresses locked by the user
+    /// @param lockedNfts the list of nft ids locked by the user
     struct PurchaseInfo {
         EnumerableMap.AddressToUintMap spentAmounts;
         uint256 claimTotalAmount;
         bool isClaimed;
-        uint256 lockedAmount;
-        uint256 lockedId;
+        EnumerableMap.AddressToUintMap lockedTokens;
+        EnumerableSet.AddressSet lockedNftAddresses;
+        mapping(address => EnumerableSet.UintSet) lockedNfts;
     }
 
     /// @notice Purchase parameters. This struct is used in view functions as part of a return argument
@@ -120,8 +120,10 @@ interface ITokenSaleProposal {
     /// @param claimUnlockTime the time the user can claim its non-vesting tokens
     /// @param claimTotalAmount the total amount of tokens to be claimed
     /// @param boughtTotalAmount the total amount of tokens user bought including vesting and non-vesting tokens
-    /// @param lockedAmount the locked participation token amount
-    /// @param lockedId the locked participation token id
+    /// @param lockedTokenAddresses the list of locked token addresses
+    /// @param lockedTokenAmounts the list of locked token amounts
+    /// @param lockedNftAddresses the list of locked nft addresses
+    /// @param lockedNftIds the list of locked nft ids
     /// @param purchaseTokenAddresses the list of purchase token addresses
     /// @param purchaseTokenAmounts the list of purchase token amounts
     struct PurchaseView {
@@ -130,8 +132,10 @@ interface ITokenSaleProposal {
         uint64 claimUnlockTime;
         uint256 claimTotalAmount;
         uint256 boughtTotalAmount;
-        uint256 lockedAmount;
-        uint256 lockedId;
+        address[] lockedTokenAddresses;
+        uint256[] lockedTokenAmounts;
+        address[] lockedNftAddresses;
+        uint256[][] lockedNftIds;
         address[] purchaseTokenAddresses;
         uint256[] purchaseTokenAmounts;
     }
@@ -164,6 +168,20 @@ interface ITokenSaleProposal {
         uint256 lockedAmount;
     }
 
+    /// @notice Participation parameters. Users should meet all the requirements in order to participate in the tier
+    /// @param isWhitelisted the boolean indicating whether the tier requires whitelist
+    /// @param isBABTed the boolean indicating whether the tier requires BABT token
+    /// @param requiredDaoVotes the required amount of DAO votes
+    /// @param requiredTokenLock matching token address to required lock amounts
+    /// @param requiredNftLock matching nft address to required lock amounts
+    struct ParticipationInfo {
+        bool isWhitelisted;
+        bool isBABTed;
+        uint256 requiredDaoVotes;
+        EnumerableMap.AddressToUintMap requiredTokenLock;
+        EnumerableMap.AddressToUintMap requiredNftLock;
+    }
+
     /// @notice User parameters
     /// @param purchaseInfo the information about the user purchase
     /// @param vestingUserInfo the information about the user vesting
@@ -185,11 +203,13 @@ interface ITokenSaleProposal {
     /// @notice Tier parameters
     /// @param tierInitParams the initial tier parameters
     /// @param tierInfo the information about the tier
+    /// @param participationInfo the information about participation requirements
     /// @param rates the mapping of token addresses to their exchange rates
     /// @param users the mapping of user addresses to their infos
     struct Tier {
         TierInitParams tierInitParams;
         TierInfo tierInfo;
+        ParticipationInfo participationInfo;
         mapping(address => uint256) rates;
         mapping(address => UserInfo) users;
     }
@@ -248,20 +268,43 @@ interface ITokenSaleProposal {
 
     /// @notice This function is used to lock the specified amount of tokens to participate in the given tier
     /// @param tierId the id of the tier to lock the tokens for
-    function lockParticipationTokens(uint256 tierId) external payable;
+    /// @param tokenToLock the address of the token to be locked
+    /// @param amountToLock the number of tokens to be locked
+    function lockParticipationTokens(
+        uint256 tierId,
+        address tokenToLock,
+        uint256 amountToLock
+    ) external payable;
 
     /// @notice This function is used to lock the specified nft to participate in the given tier
     /// @param tierId the id of the tier to lock the nft for
-    /// @param tokenId the id of the nft to lock
-    function lockParticipationNft(uint256 tierId, uint256 tokenId) external;
+    /// @param nftToLock the address of nft to be locked
+    /// @param nftIdsToLock the list of nft ids to be locked
+    function lockParticipationNft(
+        uint256 tierId,
+        address nftToLock,
+        uint256[] calldata nftIdsToLock
+    ) external;
 
     /// @notice This function is used to unlock participation tokens
     /// @param tierId the id of the tier to unlock the tokens for
-    function unlockParticipationTokens(uint256 tierId) external;
+    /// @param tokenToUnlock the address of the token to be unlocked
+    /// @param amountToUnlock the number of tokens to be unlocked
+    function unlockParticipationTokens(
+        uint256 tierId,
+        address tokenToUnlock,
+        uint256 amountToUnlock
+    ) external;
 
     /// @notice This function is used to unlock the participation nft
     /// @param tierId the id of the tier to unlock the nft for
-    function unlockParticipationNft(uint256 tierId) external;
+    /// @param nftToUnlock the address of nft to be unlocked
+    /// @param nftIdsToUnlock the list of nft ids to be unlocked
+    function unlockParticipationNft(
+        uint256 tierId,
+        address nftToUnlock,
+        uint256[] calldata nftIdsToUnlock
+    ) external;
 
     /// @notice This function is used to get amount of `TokenSaleProposal` tokens that can be purchased
     /// @param user the address of the user that purchases tokens

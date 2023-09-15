@@ -18,6 +18,7 @@ library GovPoolVote {
 
     event VoteChanged(uint256 proposalId, address voter, bool isVoteFor, uint256 totalVoted);
     event QuorumReached(uint256 proposalId, uint256 timestamp);
+    event QuorumUnreached(uint256 proposalId);
 
     function vote(
         mapping(uint256 => IGovPool.Proposal) storage proposals,
@@ -140,19 +141,6 @@ library GovPoolVote {
         _updateGlobalState(core, userInfos, proposalId, msg.sender, voteInfo.isVoteFor);
     }
 
-    function getVoteShare(
-        IGovPool.VoteInfo storage voteInfo,
-        IGovPool.VoteType voteType
-    ) external view returns (uint256) {
-        uint256 totalRawVoted = voteInfo.totalRawVoted;
-
-        if (totalRawVoted == 0) {
-            return 0;
-        }
-
-        return voteInfo.totalVoted.ratio(voteInfo.rawVotes[voteType].totalVoted, totalRawVoted);
-    }
-
     function _voteDelegated(
         IGovPool.ProposalCore storage core,
         IGovPool.RawVote storage rawVote,
@@ -224,6 +212,20 @@ library GovPoolVote {
             _globalCancel(core, voteInfo, activeVotes, proposalId, isVoteFor);
         }
 
+        if (_quorumReached(core)) {
+            uint64 quorumTimestamp = core.settings.earlyCompletion
+                ? uint64(block.timestamp)
+                : core.voteEnd;
+
+            core.executeAfter = core.settings.executionDelay + quorumTimestamp;
+
+            emit QuorumReached(proposalId, uint256(quorumTimestamp));
+        } else if (core.executeAfter != 0) {
+            core.executeAfter = 0;
+
+            emit QuorumUnreached(proposalId);
+        }
+
         emit VoteChanged(proposalId, voter, isVoteFor, voteInfo.totalVoted);
     }
 
@@ -255,16 +257,6 @@ library GovPoolVote {
         } else {
             core.rawVotesAgainst = core.rawVotesAgainst - voteInfo.totalRawVoted + totalRawVoted;
             core.votesAgainst = core.votesAgainst - voteInfo.totalVoted + totalVoted;
-        }
-
-        if (_quorumReached(core)) {
-            uint64 quorumTimestamp = core.settings.earlyCompletion
-                ? uint64(block.timestamp)
-                : core.voteEnd;
-
-            core.executeAfter = core.settings.executionDelay + quorumTimestamp;
-
-            emit QuorumReached(proposalId, uint256(quorumTimestamp));
         }
 
         voteInfo.isVoteFor = isVoteFor;

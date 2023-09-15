@@ -6,6 +6,7 @@ const Reverter = require("../../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
+const AttackerMock = artifacts.require("ERC721MultiplierAttackerMock");
 const GovPoolMock = artifacts.require("GovPoolMock");
 
 ERC721Multiplier.numberFormat = "BigNumber";
@@ -19,6 +20,8 @@ describe("ERC721Multiplier", () => {
   let nft;
 
   let govPool;
+
+  let attacker;
 
   const toMultiplier = (value) => PRECISION.times(value);
 
@@ -35,6 +38,8 @@ describe("ERC721Multiplier", () => {
     nft = await ERC721Multiplier.new();
 
     govPool = await GovPoolMock.new();
+
+    attacker = await AttackerMock.new();
 
     await reverter.snapshot();
   });
@@ -87,6 +92,12 @@ describe("ERC721Multiplier", () => {
           duration: "7050",
           owner: THIRD,
         },
+        {
+          id: "5",
+          multiplier: toMultiplier("2").toFixed(),
+          duration: "7050",
+          owner: attacker.address,
+        },
       ];
     });
 
@@ -119,7 +130,7 @@ describe("ERC721Multiplier", () => {
           });
         }
 
-        assert.equal(await nft.totalSupply(), "4");
+        assert.equal(await nft.totalSupply(), "5");
         assert.equal(await nft.balanceOf(SECOND), "2");
         assert.equal(await nft.balanceOf(THIRD), "2");
         assert.equal(await nft.tokenOfOwnerByIndex(SECOND, "0"), "1");
@@ -160,7 +171,7 @@ describe("ERC721Multiplier", () => {
         });
 
         it("should not change if the token doesn't exist", async () => {
-          await truffleAssert.reverts(nft.changeToken(5, 0, 0), "ERC721: invalid token ID");
+          await truffleAssert.reverts(nft.changeToken(6, 0, 0), "ERC721: invalid token ID");
         });
 
         it("should change properly", async () => {
@@ -287,6 +298,12 @@ describe("ERC721Multiplier", () => {
           await nft.unlock({ from: first.owner });
 
           await truffleAssert.reverts(nft.unlock({ from: first.owner }), "ERC721: invalid token ID");
+        });
+
+        it("should not unlock properly if zero lock time", async () => {
+          const { id } = TOKENS[4];
+
+          await truffleAssert.reverts(attacker.attack(nft.address, id), "ERC721Multiplier: Zero lock time");
         });
 
         it("should unlock properly if all conditions are met", async () => {
