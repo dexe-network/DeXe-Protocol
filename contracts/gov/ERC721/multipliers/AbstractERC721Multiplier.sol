@@ -44,6 +44,8 @@ abstract contract AbstractERC721Multiplier is
         _latestLockedTokenIds[msg.sender] = tokenId;
         _lockedInBlocks[tokenId] = block.timestamp;
 
+        _afterTokenLock(tokenId);
+
         emit Locked(tokenId, msg.sender, true);
     }
 
@@ -105,6 +107,8 @@ abstract contract AbstractERC721Multiplier is
 
         emit Changed(tokenId, multiplier, duration);
     }
+
+    function _afterTokenLock(uint256 tokenId) internal virtual {}
 
     function _afterTokenUnlock(uint256 tokenId) internal virtual {}
 
