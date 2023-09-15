@@ -3255,7 +3255,9 @@ describe("GovPool", () => {
 
         let rewards = await govPool.getPendingRewards(OWNER, [1]);
 
-        assert.deepEqual(rewards.onchainRewards, ["0"]);
+        assert.deepEqual(rewards.onchainTokens, [ZERO_ADDR]);
+        assert.deepEqual(rewards.staticRewards, ["0"]);
+        assert.deepEqual(rewards.votingRewards[0].personal, "0");
         assert.deepEqual(rewards.offchainTokens, []);
         assert.deepEqual(rewards.offchainRewards, []);
 
@@ -3268,11 +3270,13 @@ describe("GovPool", () => {
 
         rewards = await govPool.getPendingRewards(OWNER, [1]);
 
-        let ownerReward = toBN(wei(1000)).plus(wei(25));
-        assert.equal(rewards.onchainRewards[0], ownerReward.toFixed());
+        assert.deepEqual(rewards.onchainTokens, [rewardToken.address]);
+        assert.deepEqual(rewards.staticRewards, [wei(25)]);
+        assert.deepEqual(rewards.votingRewards[0].personal, wei(1000));
 
         await govPool.claimRewards([1]);
 
+        const ownerReward = toBN(wei(1000)).plus(wei(25));
         assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), ownerReward.toFixed());
       });
 
@@ -3302,7 +3306,9 @@ describe("GovPool", () => {
 
         let rewards = await govPool.getPendingRewards(OWNER, [3]);
 
-        assert.deepEqual(rewards.onchainRewards, ["0"]);
+        assert.deepEqual(rewards.onchainTokens, [ZERO_ADDR]);
+        assert.deepEqual(rewards.staticRewards, ["0"]);
+        assert.deepEqual(rewards.votingRewards[0].personal, "0");
         assert.deepEqual(rewards.offchainTokens, []);
         assert.deepEqual(rewards.offchainRewards, []);
 
@@ -3315,11 +3321,13 @@ describe("GovPool", () => {
 
         rewards = await govPool.getPendingRewards(OWNER, [3]);
 
-        const ownerReward = toBN(wei(25));
-        assert.equal(rewards.onchainRewards[0], ownerReward.toFixed());
+        assert.deepEqual(rewards.onchainTokens, [rewardToken.address]);
+        assert.deepEqual(rewards.staticRewards, [wei(25)]);
+        assert.deepEqual(rewards.votingRewards[0].personal, "0");
 
         await govPool.claimRewards([3]);
 
+        const ownerReward = toBN(wei(25));
         assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), ownerReward.toFixed());
       });
 
@@ -3383,12 +3391,7 @@ describe("GovPool", () => {
 
         await govPool.execute(1);
 
-        await govPool.createProposal(
-          "example.com",
-
-          [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]],
-          []
-        );
+        await govPool.createProposal("example.com", [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]], []);
         await govPool.vote(2, true, wei("1"), []);
 
         assert.equal(await web3.eth.getBalance(treasury), "0");
@@ -3401,7 +3404,10 @@ describe("GovPool", () => {
 
         let rewards = await govPool.getPendingRewards(OWNER, [1, 2]);
 
-        assert.deepEqual(rewards.onchainRewards, [wei("25"), wei("16")]);
+        assert.deepEqual(rewards.onchainTokens, [rewardToken.address, ETHER_ADDR]);
+        assert.deepEqual(rewards.staticRewards, [wei("25"), wei("15")]);
+        assert.deepEqual(rewards.votingRewards[0].personal, "0");
+        assert.deepEqual(rewards.votingRewards[1].personal, wei("1"));
         assert.deepEqual(rewards.offchainTokens, []);
         assert.deepEqual(rewards.offchainRewards, []);
 
@@ -3629,16 +3635,28 @@ describe("GovPool", () => {
         const percentages = await coreProperties.getVoteRewardsPercentages();
 
         const personalShare = userRewards.multipliedBy(personalRawVote).idiv(totalRawVote);
-        const micropoolShare = userRewards.multipliedBy(micropoolRawVote).idiv(totalRawVote);
+        let micropoolShare = userRewards.multipliedBy(micropoolRawVote).idiv(totalRawVote);
         const treasuryShare = userRewards
           .multipliedBy(treasuryRawVote)
           .idiv(totalRawVote)
           .multipliedBy(percentages[1])
           .idiv(PERCENTAGE_100);
 
-        const delegatorRewards = micropoolShare.minus(micropoolShare.multipliedBy(percentages[0]).idiv(PERCENTAGE_100));
+        const delegatorsRewards = micropoolShare.minus(
+          micropoolShare.multipliedBy(percentages[0]).idiv(PERCENTAGE_100)
+        );
 
-        return [personalShare.plus(micropoolShare.minus(delegatorRewards)).plus(treasuryShare), delegatorRewards];
+        micropoolShare = micropoolShare.minus(delegatorsRewards);
+
+        const votingRewards = personalShare.plus(micropoolShare).plus(treasuryShare);
+
+        return {
+          voting: votingRewards,
+          personal: personalShare,
+          micropool: micropoolShare,
+          treasury: treasuryShare,
+          delegators: delegatorsRewards,
+        };
       }
 
       beforeEach(async () => {
@@ -3701,7 +3719,7 @@ describe("GovPool", () => {
 
         assert.equal(core.votesFor, toBN(wei("1500000")).plus(powerPerNft.multipliedBy(4)).pow(2).toFixed());
 
-        const [personalRewards, delegatorRewards] = await getVotingRewards(
+        const expectedRewards = await getVotingRewards(
           toBN(wei("1500000")).plus(powerPerNft.multipliedBy(4)),
           toBN(wei("1500000")).plus(powerPerNft.multipliedBy(4)).pow(2),
           toBN(wei("1500000")).plus(powerPerNft.multipliedBy(4)).pow(2),
@@ -3710,19 +3728,30 @@ describe("GovPool", () => {
           wei("100000")
         );
 
-        assert.equal((await govPool.getPendingRewards(SECOND, [4])).onchainRewards[0], personalRewards.toFixed());
+        let actualRewards = await govPool.getPendingRewards(SECOND, [4]);
+
+        assert.deepEqual(actualRewards.onchainTokens, [rewardToken.address]);
+        assert.equal(actualRewards.votingRewards[0].personal, expectedRewards.personal.toFixed());
+        assert.equal(actualRewards.votingRewards[0].micropool, expectedRewards.micropool.toFixed());
+        assert.equal(actualRewards.votingRewards[0].treasury, expectedRewards.treasury.toFixed());
 
         await govPool.claimRewards([4], { from: SECOND });
 
-        assert.equal((await rewardToken.balanceOf(SECOND)).toFixed(), personalRewards.toFixed());
-        assert.equal((await govPool.getPendingRewards(SECOND, [4])).onchainRewards[0], "0");
+        assert.equal((await rewardToken.balanceOf(SECOND)).toFixed(), expectedRewards.voting.toFixed());
+
+        actualRewards = await govPool.getPendingRewards(SECOND, [4]);
+
+        assert.deepEqual(actualRewards.onchainTokens, [rewardToken.address]);
+        assert.equal(actualRewards.votingRewards[0].personal, "0");
+        assert.equal(actualRewards.votingRewards[0].micropool, "0");
+        assert.equal(actualRewards.votingRewards[0].treasury, "0");
 
         let delegatorRewardsView = await govPool.getDelegatorRewards([4], delegator1, SECOND);
 
-        const delegator1Rewards = delegatorRewards
+        const delegator1Rewards = expectedRewards.delegators
           .multipliedBy(toBN(wei("100000")).plus(powerPerNft))
           .idiv(toBN(wei("400000")).plus(powerPerNft.multipliedBy(4)));
-        const delegator2Rewards = delegatorRewards
+        const delegator2Rewards = expectedRewards.delegators
           .multipliedBy(toBN(wei("300000")).plus(powerPerNft.multipliedBy(3)))
           .idiv(toBN(wei("400000")).plus(powerPerNft.multipliedBy(4)));
 
@@ -3757,7 +3786,8 @@ describe("GovPool", () => {
 
         assert.equal((await rewardToken.balanceOf(delegator1)).toFixed(), delegator1Rewards.toFixed());
         assert.equal((await rewardToken.balanceOf(delegator2)).toFixed(), delegator2Rewards.toFixed());
-        assert.equal((await govPool.getPendingRewards(SECOND, [4])).onchainRewards[0], "0");
+
+        assert.equal((await govPool.getPendingRewards(SECOND, [4])).votingRewards[0].personal, "0");
 
         assert.isTrue((await govPool.getDelegatorRewards([4], delegator1, SECOND)).isClaimed[0]);
 
@@ -3814,7 +3844,7 @@ describe("GovPool", () => {
 
         assert.equal(await govPool.getProposalState(3), ProposalState.ExecutedFor);
 
-        const [personalRewards, delegatorRewards] = await getVotingRewards(
+        const expectedRewards = await getVotingRewards(
           toBN(wei("1300000")).plus(powerPerNft.multipliedBy(5)),
           toBN(wei("1300000")).plus(powerPerNft.multipliedBy(5)).pow(2),
           toBN(wei("1300000")).plus(powerPerNft.multipliedBy(5)).pow(2),
@@ -3823,10 +3853,10 @@ describe("GovPool", () => {
           "0"
         );
 
-        const delegator1Rewards = delegatorRewards
+        const delegator1Rewards = expectedRewards.delegators
           .multipliedBy(toBN(wei("100000")).plus(powerPerNft.multipliedBy(2)))
           .idiv(toBN(wei("300000")).plus(powerPerNft.multipliedBy(5)));
-        const delegator2Rewards = delegatorRewards
+        const delegator2Rewards = expectedRewards.delegators
           .multipliedBy(toBN(wei("200000")).plus(powerPerNft.multipliedBy(3)))
           .idiv(toBN(wei("300000")).plus(powerPerNft.multipliedBy(5)));
 
@@ -3837,15 +3867,30 @@ describe("GovPool", () => {
         assert.deepEqual(delegatorRewardsView.isClaimed, [false]);
         assert.deepEqual(delegatorRewardsView.expectedRewards, [delegator2Rewards.toFixed()]);
 
-        assert.equal((await govPool.getPendingRewards(SECOND, [3])).onchainRewards[0], personalRewards.toFixed());
+        let actualRewards = await govPool.getPendingRewards(SECOND, [3]);
+
+        assert.deepEqual(actualRewards.onchainTokens, [rewardToken.address]);
+        assert.equal(actualRewards.votingRewards[0].personal, expectedRewards.personal.toFixed());
+        assert.equal(actualRewards.votingRewards[0].micropool, expectedRewards.micropool.toFixed());
+        assert.equal(actualRewards.votingRewards[0].treasury, expectedRewards.treasury.toFixed());
 
         await govPool.claimMicropoolRewards([3], SECOND, { from: delegator2 });
 
-        assert.equal((await govPool.getPendingRewards(SECOND, [3])).onchainRewards[0], personalRewards.toFixed());
+        actualRewards = await govPool.getPendingRewards(SECOND, [3]);
+
+        assert.deepEqual(actualRewards.onchainTokens, [rewardToken.address]);
+        assert.equal(actualRewards.votingRewards[0].personal, expectedRewards.personal.toFixed());
+        assert.equal(actualRewards.votingRewards[0].micropool, expectedRewards.micropool.toFixed());
+        assert.equal(actualRewards.votingRewards[0].treasury, expectedRewards.treasury.toFixed());
 
         await govPool.claimRewards([3], { from: SECOND });
 
-        assert.equal((await govPool.getPendingRewards(SECOND, [3])).onchainRewards[0], "0");
+        actualRewards = await govPool.getPendingRewards(SECOND, [3]);
+
+        assert.deepEqual(actualRewards.onchainTokens, [rewardToken.address]);
+        assert.equal(actualRewards.votingRewards[0].personal, "0");
+        assert.equal(actualRewards.votingRewards[0].micropool, "0");
+        assert.equal(actualRewards.votingRewards[0].treasury, "0");
 
         delegatorRewardsView = await govPool.getDelegatorRewards([3], delegator1, SECOND);
 
@@ -3860,8 +3905,13 @@ describe("GovPool", () => {
         );
         await govPool.claimMicropoolRewards([3], SECOND, { from: delegator1 });
 
-        assert.equal((await govPool.getPendingRewards(SECOND, [3])).onchainRewards[0], "0");
-        assert.equal((await rewardToken.balanceOf(SECOND)).toFixed(), personalRewards.toFixed());
+        actualRewards = await govPool.getPendingRewards(SECOND, [3]);
+
+        assert.deepEqual(delegatorRewardsView.rewardTokens, [rewardToken.address]);
+        assert.equal(actualRewards.votingRewards[0].personal, "0");
+        assert.equal(actualRewards.votingRewards[0].micropool, "0");
+        assert.equal(actualRewards.votingRewards[0].treasury, "0");
+        assert.equal((await rewardToken.balanceOf(SECOND)).toFixed(), expectedRewards.voting.toFixed());
         assert.equal((await rewardToken.balanceOf(delegator1)).toFixed(), delegator1Rewards.toFixed());
         assert.equal((await rewardToken.balanceOf(delegator2)).toFixed(), delegator2Rewards.toFixed());
       });
@@ -3883,7 +3933,7 @@ describe("GovPool", () => {
           false
         );
 
-        const [personalRewards, delegatorRewards] = await getVotingRewards(
+        const expectedRewards = await getVotingRewards(
           wei("1600000"),
           toBN(wei("1600000")).pow(2),
           toBN(wei("1600000")).pow(2),
@@ -3892,7 +3942,7 @@ describe("GovPool", () => {
           "0"
         );
 
-        const delegator1Rewards = delegatorRewards.multipliedBy(wei("200000")).idiv(wei("600000"));
+        const delegator1Rewards = expectedRewards.delegators.multipliedBy(wei("200000")).idiv(wei("600000"));
 
         let delegatorRewardsView = await govPool.getDelegatorRewards([5], delegator1, SECOND);
 
@@ -3901,14 +3951,19 @@ describe("GovPool", () => {
         assert.deepEqual(delegatorRewardsView.isClaimed, [false]);
         assert.deepEqual(delegatorRewardsView.expectedRewards, [delegator1Rewards.toFixed()]);
 
-        assert.equal((await govPool.getPendingRewards(SECOND, [5])).onchainRewards[0], personalRewards.toFixed());
+        let actualRewards = await govPool.getPendingRewards(SECOND, [5]);
+
+        assert.deepEqual(actualRewards.onchainTokens, [rewardToken.address]);
+        assert.equal(actualRewards.votingRewards[0].personal, expectedRewards.personal.toFixed());
+        assert.equal(actualRewards.votingRewards[0].micropool, expectedRewards.micropool.toFixed());
+        assert.equal(actualRewards.votingRewards[0].treasury, expectedRewards.treasury.toFixed());
 
         await govPool.claimMicropoolRewards([5], SECOND, { from: delegator1 });
         await govPool.claimRewards([5], { from: SECOND });
 
         await truffleAssert.reverts(govPool.claimRewards([5], { from: SECOND }), "Gov: zero rewards");
 
-        assert.equal((await rewardToken.balanceOf(SECOND)).toFixed(), personalRewards.toFixed());
+        assert.equal((await rewardToken.balanceOf(SECOND)).toFixed(), expectedRewards.voting.toFixed());
         assert.equal((await rewardToken.balanceOf(delegator1)).toFixed(), delegator1Rewards.toFixed());
       });
 
@@ -3933,7 +3988,12 @@ describe("GovPool", () => {
         assert.deepEqual(delegatorRewardsView.isClaimed, [false]);
         assert.deepEqual(delegatorRewardsView.expectedRewards, ["0"]);
 
-        assert.equal((await govPool.getPendingRewards(SECOND, [4])).onchainRewards[0], "0");
+        const actualRewards = await govPool.getPendingRewards(SECOND, [4]);
+
+        assert.deepEqual(actualRewards.onchainTokens, [ZERO_ADDR]);
+        assert.equal(actualRewards.votingRewards[0].personal, "0");
+        assert.equal(actualRewards.votingRewards[0].micropool, "0");
+        assert.equal(actualRewards.votingRewards[0].treasury, "0");
       });
     });
 
@@ -4367,7 +4427,9 @@ describe("GovPool", () => {
 
       const rewards = await govPool.getPendingRewards(OWNER, []);
 
-      assert.deepEqual(rewards.onchainRewards, []);
+      assert.deepEqual(rewards.onchainTokens, []);
+      assert.deepEqual(rewards.votingRewards, []);
+      assert.deepEqual(rewards.staticRewards, []);
       assert.deepEqual(rewards.offchainTokens, [rewardToken.address]);
       assert.deepEqual(
         rewards.offchainRewards.map((e) => toBN(e).toFixed()),

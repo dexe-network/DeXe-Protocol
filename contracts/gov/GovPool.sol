@@ -515,7 +515,7 @@ contract GovPool is
         if (rewardType == RewardType.Vote) {
             _userInfos.updateVotingRewards(_proposals, proposalId, user);
         } else if (rewardType == RewardType.SaveOffchainResults) {
-            _userInfos.updateOffchainRewards(proposalId, user);
+            _userInfos.updateOffchainRewards(user);
         } else {
             _userInfos.updateStaticRewards(_proposals, proposalId, user, rewardType);
         }

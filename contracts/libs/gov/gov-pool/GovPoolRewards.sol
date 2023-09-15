@@ -16,12 +16,12 @@ library GovPoolRewards {
     using TokenBalance for address;
     using MathHelper for uint256;
 
-    event RewardClaimed(
+    event RewardClaimed(uint256 proposalId, address sender, address token, uint256 rewards);
+    event VotingRewardClaimed(
         uint256 proposalId,
-        bool isStatic,
         address sender,
         address token,
-        uint256 amount
+        IGovPool.VotingRewards rewards
     );
 
     function updateStaticRewards(
@@ -48,7 +48,6 @@ library GovPoolRewards {
 
     function updateOffchainRewards(
         mapping(address => IGovPool.UserInfo) storage userInfos,
-        uint256 proposalId,
         address user
     ) external {
         (address govSettings, , , , ) = IGovPool(address(this)).getHelperContracts();
@@ -80,13 +79,18 @@ library GovPoolRewards {
             return;
         }
 
-        (uint256 votingRewards, ) = _getVotingRewards(core, userInfos, proposalId, user);
+        (IGovPool.VotingRewards memory votingRewards, ) = _getVotingRewards(
+            core,
+            userInfos,
+            proposalId,
+            user
+        );
 
-        if (votingRewards == 0) {
+        if (votingRewards.personal + votingRewards.micropool + votingRewards.treasury == 0) {
             return;
         }
 
-        userRewards.votingRewards[proposalId] += votingRewards;
+        userRewards.votingRewards[proposalId] = votingRewards;
         userRewards.areVotingRewardsSet[proposalId] = true;
     }
 
@@ -103,7 +107,7 @@ library GovPoolRewards {
             require(core.executed, "Gov: proposal is not executed");
 
             uint256 staticRewards = userRewards.staticRewards[proposalId];
-            uint256 votingRewards = userRewards.votingRewards[proposalId];
+            IGovPool.VotingRewards memory votingRewards = userRewards.votingRewards[proposalId];
 
             delete userRewards.staticRewards[proposalId];
             delete userRewards.votingRewards[proposalId];
@@ -111,13 +115,15 @@ library GovPoolRewards {
             address rewardToken = core.settings.rewardsInfo.rewardToken;
 
             _sendRewards(
-                proposalId,
                 core.settings.rewardsInfo.rewardToken,
-                staticRewards + votingRewards
+                staticRewards +
+                    votingRewards.personal +
+                    votingRewards.micropool +
+                    votingRewards.treasury
             );
 
-            emit RewardClaimed(proposalId, true, msg.sender, rewardToken, staticRewards);
-            emit RewardClaimed(proposalId, false, msg.sender, rewardToken, votingRewards);
+            emit RewardClaimed(proposalId, msg.sender, rewardToken, staticRewards);
+            emit VotingRewardClaimed(proposalId, msg.sender, rewardToken, votingRewards);
         } else {
             EnumerableSet.AddressSet storage offchainTokens = userRewards.offchainTokens;
             mapping(address => uint256) storage offchainRewards = userRewards.offchainRewards;
@@ -131,9 +137,9 @@ library GovPoolRewards {
                 delete offchainRewards[rewardToken];
                 offchainTokens.remove(rewardToken);
 
-                _sendRewards(0, rewardToken, rewards);
+                _sendRewards(rewardToken, rewards);
 
-                emit RewardClaimed(0, false, msg.sender, rewardToken, rewards);
+                emit RewardClaimed(0, msg.sender, rewardToken, rewards);
             }
         }
     }
@@ -148,7 +154,9 @@ library GovPoolRewards {
 
         uint256 tokensLength = userRewards.offchainTokens.length();
 
-        rewards.onchainRewards = new uint256[](proposalIds.length);
+        rewards.onchainTokens = new address[](proposalIds.length);
+        rewards.staticRewards = new uint256[](proposalIds.length);
+        rewards.votingRewards = new IGovPool.VotingRewards[](proposalIds.length);
         rewards.offchainRewards = new uint256[](tokensLength);
         rewards.offchainTokens = new address[](tokensLength);
 
@@ -161,14 +169,18 @@ library GovPoolRewards {
                 continue;
             }
 
-            rewards.onchainRewards[i] = userRewards.staticRewards[proposalId];
+            rewards.onchainTokens[i] = core.settings.rewardsInfo.rewardToken;
+            rewards.staticRewards[i] = userRewards.staticRewards[proposalId];
 
             if (!userRewards.areVotingRewardsSet[proposalId]) {
-                (uint256 votingRewards, ) = _getVotingRewards(core, userInfos, proposalId, user);
-
-                rewards.onchainRewards[i] += votingRewards;
+                (rewards.votingRewards[i], ) = _getVotingRewards(
+                    core,
+                    userInfos,
+                    proposalId,
+                    user
+                );
             } else {
-                rewards.onchainRewards[i] += userRewards.votingRewards[proposalId];
+                rewards.votingRewards[i] = userRewards.votingRewards[proposalId];
             }
         }
 
@@ -180,7 +192,7 @@ library GovPoolRewards {
         }
     }
 
-    function _sendRewards(uint256 proposalId, address rewardToken, uint256 rewards) internal {
+    function _sendRewards(address rewardToken, uint256 rewards) internal {
         require(rewardToken != address(0), "Gov: rewards are off");
         require(rewards != 0, "Gov: zero rewards");
 
@@ -202,7 +214,11 @@ library GovPoolRewards {
         mapping(address => IGovPool.UserInfo) storage userInfos,
         uint256 proposalId,
         address user
-    ) internal view returns (uint256 votingRewards, uint256 delegatorRewards) {
+    )
+        internal
+        view
+        returns (IGovPool.VotingRewards memory votingRewards, uint256 delegatorsRewards)
+    {
         IGovPool.VoteInfo storage voteInfo = userInfos[user].voteInfos[proposalId];
 
         IGovPool.ProposalState executedState = voteInfo.isVoteFor
@@ -213,7 +229,7 @@ library GovPoolRewards {
             IGovPool(address(this)).getProposalState(proposalId) != executedState ||
             voteInfo.totalRawVoted == 0
         ) {
-            return (0, 0);
+            return (votingRewards, 0);
         }
 
         return _splitVotingRewards(voteInfo, user, _getInitialVotingRewards(core, voteInfo));
@@ -238,7 +254,11 @@ library GovPoolRewards {
         IGovPool.VoteInfo storage voteInfo,
         address user,
         uint256 totalRewards
-    ) internal view returns (uint256 votingRewards, uint256 delegatorRewards) {
+    )
+        internal
+        view
+        returns (IGovPool.VotingRewards memory votingRewards, uint256 delegatorsRewards)
+    {
         mapping(IGovPool.VoteType => IGovPool.RawVote) storage rawVotes = voteInfo.rawVotes;
 
         uint256 personalRewards = rawVotes[IGovPool.VoteType.PersonalVote].totalVoted;
@@ -250,16 +270,18 @@ library GovPoolRewards {
             IGovPool(address(this)).coreProperties()
         ).getVoteRewardsPercentages();
 
-        personalRewards = _getMultipliedRewards(
+        votingRewards.personal = _getMultipliedRewards(
             user,
             totalRewards.ratio(personalRewards, totalRawVoted)
         );
-        micropoolRewards = totalRewards.ratio(micropoolRewards, totalRawVoted);
-        treasuryRewards = totalRewards.ratio(treasuryRewards, totalRawVoted).percentage(
+        votingRewards.micropool = totalRewards.ratio(micropoolRewards, totalRawVoted);
+        votingRewards.treasury = totalRewards.ratio(treasuryRewards, totalRawVoted).percentage(
             treasuryPercentage
         );
 
-        delegatorRewards = micropoolRewards - micropoolRewards.percentage(micropoolPercentage);
-        votingRewards = personalRewards + micropoolRewards + treasuryRewards - delegatorRewards;
+        delegatorsRewards =
+            votingRewards.micropool -
+            votingRewards.micropool.percentage(micropoolPercentage);
+        votingRewards.micropool -= delegatorsRewards;
     }
 }

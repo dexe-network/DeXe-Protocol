@@ -206,7 +206,7 @@ interface IGovPool {
     struct PendingRewards {
         mapping(uint256 => bool) areVotingRewardsSet;
         mapping(uint256 => uint256) staticRewards;
-        mapping(uint256 => uint256) votingRewards;
+        mapping(uint256 => VotingRewards) votingRewards;
         mapping(address => uint256) offchainRewards;
         EnumerableSet.AddressSet offchainTokens;
     }
@@ -226,11 +226,25 @@ interface IGovPool {
     }
 
     /// @notice The struct that is used in view functions of contract as a return argument
-    /// @param onchainRewards the list of on-chain rewards
+    /// @param personal rewards for the personal voting
+    /// @param micropool rewards for the micropool voting
+    /// @param treasury rewards for the treasury voting
+    struct VotingRewards {
+        uint256 personal;
+        uint256 micropool;
+        uint256 treasury;
+    }
+
+    /// @notice The struct that is used in view functions of contract as a return argument
+    /// @param onchainTokens the list of on-chain token addresses
+    /// @param staticRewards the list of static rewards
+    /// @param votingRewards the list of voting rewards
     /// @param offchainRewards the list of off-chain rewards
     /// @param offchainTokens the list of off-chain token addresses
     struct PendingRewardsView {
-        uint256[] onchainRewards;
+        address[] onchainTokens;
+        uint256[] staticRewards;
+        VotingRewards[] votingRewards;
         uint256[] offchainRewards;
         address[] offchainTokens;
     }
