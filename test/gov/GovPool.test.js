@@ -4029,6 +4029,12 @@ describe("GovPool", () => {
         await setTime(10000000);
       });
 
+      async function createAndMint() {
+        let creditToken = await ERC20Mock.new("Mock", "Mock", 18);
+        await creditToken.mint(govPool.address, wei("10000"));
+        return creditToken;
+      }
+
       describe("setCreditInfo()", () => {
         let GOVPOOL;
 
@@ -4060,17 +4066,24 @@ describe("GovPool", () => {
         });
 
         it("sets new token correct", async () => {
-          await govPool.setCreditInfo([SECOND], ["50000"], { from: GOVPOOL });
-          assert.deepEqual(await govPool.getCreditInfo(), [[SECOND, "50000", "50000"]]);
+          let creditToken = (await createAndMint()).address;
+          await govPool.setCreditInfo([creditToken], ["50000"], { from: GOVPOOL });
+          assert.deepEqual(await govPool.getCreditInfo(), [[creditToken, "50000", "50000"]]);
+        });
+
+        it("correctly treated decimals", async () => {
+          let creditToken = (await ERC20Mock.new("Mock", "Mock", 9)).address;
+          await govPool.setCreditInfo([creditToken], ["50000"], { from: GOVPOOL });
+          assert.deepEqual(await govPool.getCreditInfo(), [[creditToken, "50000000000000", "50000000000000"]]);
         });
 
         it("batch set", async () => {
           const TOKENS = [
-            [SECOND, "2000", "2000"],
-            [THIRD, "3000", "3000"],
-            [FOURTH, "4000", "4000"],
-            [FIFTH, "5000", "5000"],
-            [SIXTH, "6000", "6000"],
+            [(await createAndMint()).address, "2000", "2000"],
+            [(await createAndMint()).address, "3000", "3000"],
+            [(await createAndMint()).address, "4000", "4000"],
+            [(await createAndMint()).address, "5000", "5000"],
+            [(await createAndMint()).address, "6000", "6000"],
           ];
 
           for (let i = 0; i < 2; i++) {

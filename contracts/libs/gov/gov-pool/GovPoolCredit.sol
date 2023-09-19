@@ -5,12 +5,17 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "@solarity/solidity-lib/libs/arrays/ArrayHelper.sol";
+import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 
 import "../../../interfaces/gov/IGovPool.sol";
+
+import "../../../libs/utils/TokenBalance.sol";
 
 library GovPoolCredit {
     using SafeERC20 for IERC20;
     using ArrayHelper for uint256[];
+    using DecimalsConverter for *;
+    using TokenBalance for *;
 
     function setCreditInfo(
         IGovPool.CreditInfo storage creditInfo,
@@ -34,7 +39,9 @@ library GovPoolCredit {
             address currentToken = tokens[i];
             require(currentToken != address(0), "GPC: Token address could not be zero");
 
-            creditInfo.tokenInfo[currentToken].monthLimit = amounts[i];
+            creditInfo.tokenInfo[currentToken].monthLimit = amounts[i].to18(
+                currentToken.decimals()
+            );
         }
     }
 
@@ -53,7 +60,7 @@ library GovPoolCredit {
             info[i] = IGovPool.CreditInfoView({
                 token: currentToken,
                 monthLimit: monthLimit,
-                currentWithdrawLimit: _getCreditBalanceForToken(creditInfo, currentToken)
+                currentWithdrawLimit: _getLeftMonthCredit(creditInfo, currentToken)
             });
         }
     }
@@ -69,24 +76,25 @@ library GovPoolCredit {
 
         for (uint256 i = 0; i < tokensLength; i++) {
             address currentToken = tokens[i];
-            uint256 currentAmount = amounts[i];
-            uint256 tokenCredit = _getCreditBalanceForToken(creditInfo, currentToken);
+            uint256 currentAmount = amounts[i].to18(currentToken.decimals());
+            uint256 tokenCredit = _getLeftMonthCredit(creditInfo, currentToken);
 
             require(
                 currentAmount <= tokenCredit,
                 "GPC: Current credit permission < amount to withdraw"
             );
 
-            IERC20(currentToken).safeTransfer(destination, currentAmount);
+            currentToken.sendFunds(destination, currentAmount, TokenBalance.TransferType.Revert);
 
-            creditInfo.tokenInfo[currentToken].timestamps.push(block.timestamp);
-            uint256[] storage history = creditInfo.tokenInfo[currentToken].cumulativeAmounts;
+            IGovPool.TokenCreditInfo storage tokenCreditInfo = creditInfo.tokenInfo[currentToken];
+            tokenCreditInfo.timestamps.push(block.timestamp);
+            uint256[] storage history = tokenCreditInfo.cumulativeAmounts;
 
             history.push(currentAmount + (history.length == 0 ? 0 : history[history.length - 1]));
         }
     }
 
-    function _getCreditBalanceForToken(
+    function _getLeftMonthCredit(
         IGovPool.CreditInfo storage creditInfo,
         address token
     ) internal view returns (uint256) {
