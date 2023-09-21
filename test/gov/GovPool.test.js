@@ -95,7 +95,7 @@ ERC20.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
-describe.only("GovPool", () => {
+describe("GovPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -3876,7 +3876,7 @@ describe.only("GovPool", () => {
         assert.equal(actualRewards.votingRewards[0].micropool, expectedRewards.micropool.toFixed());
         assert.equal(actualRewards.votingRewards[0].treasury, expectedRewards.treasury.toFixed());
 
-        await govPool.claimMicropoolRewards([3], delegator2, SECOND, { from: delegator2 });
+        await govPool.claimMicropoolRewards([3], delegator2, SECOND, { from: SECOND });
 
         actualRewards = await govPool.getPendingRewards(SECOND, [3]);
 
@@ -3885,7 +3885,7 @@ describe.only("GovPool", () => {
         assert.equal(actualRewards.votingRewards[0].micropool, expectedRewards.micropool.toFixed());
         assert.equal(actualRewards.votingRewards[0].treasury, expectedRewards.treasury.toFixed());
 
-        await govPool.claimRewards([3], SECOND, { from: SECOND });
+        await govPool.claimRewards([3], SECOND, { from: THIRD });
 
         actualRewards = await govPool.getPendingRewards(SECOND, [3]);
 
@@ -3905,7 +3905,7 @@ describe.only("GovPool", () => {
           govPool.claimMicropoolRewards([3], delegator2, SECOND, { from: delegator2 }),
           "Gov: no micropool rewards"
         );
-        await govPool.claimMicropoolRewards([3], delegator1, SECOND, { from: delegator1 });
+        await govPool.claimMicropoolRewards([3], delegator1, SECOND, { from: THIRD });
 
         actualRewards = await govPool.getPendingRewards(SECOND, [3]);
 

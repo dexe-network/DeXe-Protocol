@@ -116,6 +116,7 @@ library GovPoolRewards {
             address rewardToken = core.settings.rewardsInfo.rewardToken;
 
             _sendRewards(
+                user,
                 core.settings.rewardsInfo.rewardToken,
                 staticRewards +
                     votingRewards.personal +
@@ -138,7 +139,7 @@ library GovPoolRewards {
                 delete offchainRewards[rewardToken];
                 offchainTokens.remove(rewardToken);
 
-                _sendRewards(rewardToken, rewards);
+                _sendRewards(user, rewardToken, rewards);
 
                 emit RewardClaimed(0, user, rewardToken, rewards);
             }
@@ -193,11 +194,11 @@ library GovPoolRewards {
         }
     }
 
-    function _sendRewards(address rewardToken, uint256 rewards) internal {
+    function _sendRewards(address receiver, address rewardToken, uint256 rewards) internal {
         require(rewardToken != address(0), "Gov: rewards are off");
         require(rewards != 0, "Gov: zero rewards");
 
-        rewardToken.sendFunds(msg.sender, rewards, TokenBalance.TransferType.Mint);
+        rewardToken.sendFunds(receiver, rewards, TokenBalance.TransferType.Mint);
     }
 
     function _getMultipliedRewards(address user, uint256 amount) internal view returns (uint256) {
