@@ -62,25 +62,26 @@ library GovPoolMicropool {
         mapping(address => IGovPool.UserInfo) storage userInfos,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
         uint256 proposalId,
+        address delegator,
         address delegatee
     ) external {
         uint256 reward = _getExpectedRewards(
             userInfos,
             proposals,
             proposalId,
-            msg.sender,
+            delegator,
             delegatee
         );
 
         require(reward != 0, "Gov: no micropool rewards");
 
-        userInfos[delegatee].delegatorInfos[msg.sender].isClaimed[proposalId] = true;
+        userInfos[delegatee].delegatorInfos[delegator].isClaimed[proposalId] = true;
 
         address rewardToken = proposals[proposalId].core.settings.rewardsInfo.rewardToken;
 
-        rewardToken.sendFunds(msg.sender, reward, TokenBalance.TransferType.TryMint);
+        rewardToken.sendFunds(delegator, reward, TokenBalance.TransferType.TryMint);
 
-        emit DelegatorRewardsClaimed(proposalId, msg.sender, delegatee, rewardToken, reward);
+        emit DelegatorRewardsClaimed(proposalId, delegator, delegatee, rewardToken, reward);
     }
 
     function getDelegatorRewards(

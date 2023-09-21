@@ -402,12 +402,18 @@ interface IGovPool {
 
     /// @notice The function for claiming rewards from executed proposals
     /// @param proposalIds the array of proposal ids
-    function claimRewards(uint256[] calldata proposalIds) external;
+    /// @param user the address of the user
+    function claimRewards(uint256[] calldata proposalIds, address user) external;
 
     /// @notice The function for claiming micropool rewards from executed proposals
     /// @param proposalIds the array of proposal ids
+    /// @param delegator the address of the delegator
     /// @param delegatee the address of the delegatee
-    function claimMicropoolRewards(uint256[] calldata proposalIds, address delegatee) external;
+    function claimMicropoolRewards(
+        uint256[] calldata proposalIds,
+        address delegator,
+        address delegatee
+    ) external;
 
     /// @notice The function to change vote power contract
     /// @param votePower new contract for the voting power formula
