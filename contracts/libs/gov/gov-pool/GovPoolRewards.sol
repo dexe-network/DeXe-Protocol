@@ -97,9 +97,10 @@ library GovPoolRewards {
     function claimReward(
         mapping(address => IGovPool.UserInfo) storage userInfos,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
-        uint256 proposalId
+        uint256 proposalId,
+        address user
     ) external {
-        IGovPool.PendingRewards storage userRewards = userInfos[msg.sender].pendingRewards;
+        IGovPool.PendingRewards storage userRewards = userInfos[user].pendingRewards;
 
         if (proposalId != 0) {
             IGovPool.ProposalCore storage core = proposals[proposalId].core;
@@ -122,8 +123,8 @@ library GovPoolRewards {
                     votingRewards.treasury
             );
 
-            emit RewardClaimed(proposalId, msg.sender, rewardToken, staticRewards);
-            emit VotingRewardClaimed(proposalId, msg.sender, rewardToken, votingRewards);
+            emit RewardClaimed(proposalId, user, rewardToken, staticRewards);
+            emit VotingRewardClaimed(proposalId, user, rewardToken, votingRewards);
         } else {
             EnumerableSet.AddressSet storage offchainTokens = userRewards.offchainTokens;
             mapping(address => uint256) storage offchainRewards = userRewards.offchainRewards;
@@ -139,7 +140,7 @@ library GovPoolRewards {
 
                 _sendRewards(rewardToken, rewards);
 
-                emit RewardClaimed(0, msg.sender, rewardToken, rewards);
+                emit RewardClaimed(0, user, rewardToken, rewards);
             }
         }
     }

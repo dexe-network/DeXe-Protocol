@@ -739,7 +739,7 @@ const getBytesGovExecute = (proposalId) => {
   );
 };
 
-const getBytesGovClaimRewards = (proposalIds) => {
+const getBytesGovClaimRewards = (proposalIds, user) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       inputs: [
@@ -748,13 +748,18 @@ const getBytesGovClaimRewards = (proposalIds) => {
           name: "proposalIds",
           type: "uint256[]",
         },
+        {
+          internalType: "address",
+          name: "user",
+          type: "address",
+        },
       ],
       name: "claimRewards",
       outputs: [],
       stateMutability: "nonpayable",
       type: "function",
     },
-    [proposalIds]
+    [proposalIds, user]
   );
 };
 
