@@ -53,8 +53,7 @@ interface IGovValidators {
     /// @param proposalType the `ProposalType` enum
     /// @param core the struct that holds information about core properties of the proposal
     /// @param descriptionURL the string with link to IPFS doc with proposal description
-    /// @param newValues the array of new values. Usage varies by proposal type
-    /// @param userAddresses the array of user addresses
+    /// @param data the data to be executed
     struct InternalProposal {
         ProposalType proposalType;
         ProposalCore core;

@@ -74,8 +74,6 @@ interface IGovUserKeeper {
     /// @param delegatedNfts the array of delegated nfts, bounded by index with perNftPower
     /// @param nftPower the total power of delegated nfts
     /// @param perNftPower the array of nft power, bounded by index with delegatedNfts
-    /// @param requestedTokens the amount of requested tokens
-    /// @param requestedNfts the array of requested nfts
     struct DelegationInfoView {
         address delegatee;
         uint256 delegatedTokens;

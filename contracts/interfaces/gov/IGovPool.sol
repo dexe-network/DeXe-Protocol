@@ -259,8 +259,8 @@ interface IGovPool {
 
     /// @notice The struct is used to hold info about limits and withdrawals history
     /// @param monthLimit the monthly withdraw limit for the token
-    /// @param amounts the list of amounts withdrawn
-    /// @param amounts the list of timestamps of withdraws
+    /// @param cumulativeAmounts the list of amounts withdrawn
+    /// @param timestamps the list of timestamps of withdraws
     struct TokenCreditInfo {
         uint256 monthLimit;
         uint256[] cumulativeAmounts;
