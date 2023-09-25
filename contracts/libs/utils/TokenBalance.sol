@@ -17,7 +17,6 @@ library TokenBalance {
 
     enum TransferType {
         Revert,
-        Mint,
         TryMint
     }
 
@@ -42,10 +41,6 @@ library TokenBalance {
                 }
 
                 try IERC20Gov(token).mint(address(this), amount - balance) {} catch {
-                    if (transferType == TransferType.Mint) {
-                        revert("Gov: cannot mint");
-                    }
-
                     amount = balance;
                 }
             }

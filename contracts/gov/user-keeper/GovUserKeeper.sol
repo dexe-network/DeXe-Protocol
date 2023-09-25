@@ -367,18 +367,14 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     ) external override onlyOwner {
         UserInfo storage voterInfo = _usersInfo[voter];
 
-        voterInfo.lockedInProposals[proposalId] += amount;
+        voterInfo.lockedInProposals[proposalId] = amount;
         voterInfo.maxTokensLocked = voterInfo.maxTokensLocked.max(
             voterInfo.lockedInProposals[proposalId]
         );
     }
 
-    function unlockTokens(
-        uint256 proposalId,
-        address voter,
-        uint256 amount
-    ) external override onlyOwner {
-        _usersInfo[voter].lockedInProposals[proposalId] -= amount;
+    function unlockTokens(uint256 proposalId, address voter) external override onlyOwner {
+        delete _usersInfo[voter].lockedInProposals[proposalId];
     }
 
     function lockNfts(

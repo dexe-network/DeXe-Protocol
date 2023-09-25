@@ -3579,40 +3579,6 @@ describe("GovPool", () => {
         assert.equal((await newToken.balanceOf(treasury)).toFixed(), wei("0"));
         assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("16"));
       });
-
-      it("should not revert when mint failed, but during transfer", async () => {
-        let newToken = await ERC20.new("NT", "NT");
-
-        NEW_SETTINGS.rewardsInfo.rewardToken = newToken.address;
-
-        const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
-
-        await govPool.createProposal("example.com", [[settings.address, 0, bytes]], []);
-        await govPool.vote(1, true, wei("100000000000000000000"), [], { from: SECOND });
-
-        await govPool.moveProposalToValidators(1);
-        await validators.voteExternalProposal(1, wei("1000000000000"), true, { from: SECOND });
-
-        await govPool.execute(1);
-
-        await govPool.createProposal(
-          "example.com",
-
-          [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]],
-          []
-        );
-        await govPool.vote(2, true, wei("1"), []);
-
-        assert.equal((await newToken.balanceOf(treasury)).toFixed(), "0");
-        assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("0"));
-
-        await govPool.execute(2);
-
-        await truffleAssert.reverts(govPool.claimRewards([2], OWNER), "Gov: cannot mint");
-
-        assert.equal((await newToken.balanceOf(treasury)).toFixed(), "0");
-        assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("0"));
-      });
     });
 
     describe("powered rewards & micropool & treasury", () => {

@@ -198,7 +198,7 @@ library GovPoolRewards {
         require(rewardToken != address(0), "Gov: rewards are off");
         require(rewards != 0, "Gov: zero rewards");
 
-        rewardToken.sendFunds(receiver, rewards, TokenBalance.TransferType.Mint);
+        rewardToken.sendFunds(receiver, rewards, TokenBalance.TransferType.TryMint);
     }
 
     function _getMultipliedRewards(address user, uint256 amount) internal view returns (uint256) {
