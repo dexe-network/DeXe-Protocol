@@ -114,7 +114,7 @@ library GovPoolView {
     }
 
     function _getValidatorsExternalProposalState(
-        uint proposalId,
+        uint256 proposalId,
         address validators,
         IGovPool.ProposalCore storage core
     ) internal view returns (IGovPool.ProposalState) {
