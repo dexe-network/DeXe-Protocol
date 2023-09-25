@@ -1362,37 +1362,55 @@ describe("GovUserKeeper", () => {
         const votePowerMock = await VotePowerMock.new();
         await govPoolMock.setVotePowerContract(votePowerMock.address);
 
-        assert.equal(
-          toBN((await userKeeper.votingPower([OWNER], [VoteType.DelegatedVote], false))[0].power).toFixed(),
-          "0"
-        );
-
-        await token.mint(OWNER, wei("10000"));
+        await token.mint(OWNER, wei("1000"));
         await token.approve(userKeeper.address, wei("1000"));
+        await userKeeper.depositTokens(OWNER, OWNER, wei("1000"));
 
         for (let i = 1; i < 10; i++) {
           await nft.safeMint(OWNER, i);
           await nft.approve(userKeeper.address, i);
         }
 
+        await userKeeper.delegateTokens(OWNER, THIRD, wei("1000"));
+        await userKeeper.delegateTokensTreasury(THIRD, wei("100"));
+
         await userKeeper.transferOwnership(govPoolMock.address);
 
+        let transformedVotingPower = await userKeeper.transformedVotingPower(THIRD, wei("1"), [1, 2, 3]);
+
         assert.equal(
-          (await userKeeper.transformedVotingPower(SECOND, wei("1"), [1, 2, 3])).toFixed(),
+          transformedVotingPower.personalPower.toFixed(),
           toBN(wei("1"))
             .plus(toBN(wei("33000")).multipliedBy(3).idiv(9))
             .pow(2)
             .toFixed()
         );
         assert.equal(
-          (await userKeeper.transformedVotingPower(SECOND, 0, [1, 2, 3])).toFixed(),
+          transformedVotingPower.fullPower.toFixed(),
+          toBN(wei("1101"))
+            .plus(toBN(wei("33000")).multipliedBy(3).idiv(9))
+            .pow(2)
+            .toFixed()
+        );
+
+        transformedVotingPower = await userKeeper.transformedVotingPower(THIRD, 0, [1, 2, 3]);
+
+        assert.equal(
+          transformedVotingPower.personalPower.toFixed(),
           toBN(wei("33000")).multipliedBy(3).idiv(9).pow(2).toFixed()
         );
         assert.equal(
-          (await userKeeper.transformedVotingPower(SECOND, wei("1"), [])).toFixed(),
-          toBN(wei("1")).pow(2).toFixed()
+          transformedVotingPower.fullPower.toFixed(),
+          toBN(wei("1100"))
+            .plus(toBN(wei("33000")).multipliedBy(3).idiv(9))
+            .pow(2)
+            .toFixed()
         );
-        assert.equal((await userKeeper.transformedVotingPower(SECOND, 0, [])).toFixed(), "0");
+
+        transformedVotingPower = await userKeeper.transformedVotingPower(THIRD, 0, []);
+
+        assert.equal(transformedVotingPower.personalPower.toFixed(), "0");
+        assert.equal(transformedVotingPower.fullPower.toFixed(), toBN(wei("1100")).pow(2).toFixed());
       });
     });
 

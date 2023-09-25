@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 
@@ -14,6 +15,7 @@ import "../../interfaces/gov/ERC20/IERC20Gov.sol";
 library TokenBalance {
     using DecimalsConverter for *;
     using SafeERC20 for IERC20;
+    using Math for uint256;
 
     enum TransferType {
         Revert,
@@ -26,20 +28,21 @@ library TokenBalance {
         uint256 amount,
         TransferType transferType
     ) internal {
+        uint256 balance = thisBalance(token);
+
+        require(
+            balance >= amount || transferType == TransferType.TryMint,
+            "Gov: insufficient funds"
+        );
+
         if (token == ETHEREUM_ADDRESS) {
-            (bool status, ) = payable(receiver).call{value: amount}("");
+            (bool status, ) = payable(receiver).call{value: amount.min(balance)}("");
 
             require(status, "Gov: failed to send eth");
         } else {
             amount = amount.from18(ERC20(token).decimals());
 
-            uint256 balance = IERC20(token).balanceOf(address(this));
-
             if (balance < amount) {
-                if (transferType == TransferType.Revert) {
-                    revert("Gov: insufficient funds");
-                }
-
                 try IERC20Gov(token).mint(address(this), amount - balance) {} catch {
                     amount = balance;
                 }

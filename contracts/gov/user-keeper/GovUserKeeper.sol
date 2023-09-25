@@ -616,7 +616,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address voter,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external view override returns (uint256 transformedVotingPower) {
+    ) external view override returns (uint256 personalPower, uint256 fullPower) {
         return voter.transformedVotingPower(amount, nftIds);
     }
 

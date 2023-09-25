@@ -303,12 +303,13 @@ interface IGovUserKeeper {
     /// @param voter the address of the voter
     /// @param amount the amount of tokens
     /// @param nftIds the array of nft ids
-    /// @return transformedVotingPower the voting power after the formula
+    /// @return personalPower the personal voting power after the formula
+    /// @return fullPower the personal plus delegated voting power after the formula
     function transformedVotingPower(
         address voter,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external view returns (uint256 transformedVotingPower);
+    ) external view returns (uint256 personalPower, uint256 fullPower);
 
     /// @notice The function for getting power of nfts by ids
     /// @param nftIds the array of nft ids
