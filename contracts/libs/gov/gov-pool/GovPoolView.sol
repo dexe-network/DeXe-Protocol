@@ -99,30 +99,7 @@ library GovPoolView {
                 }
 
                 if (core.settings.validatorsVote) {
-                    IGovValidators.ProposalState status = IGovValidators(validators)
-                        .getProposalState(proposalId, false);
-
-                    if (status == IGovValidators.ProposalState.Undefined) {
-                        if (IGovValidators(validators).validatorsCount() != 0) {
-                            return IGovPool.ProposalState.WaitingForVotingTransfer;
-                        }
-
-                        return _proposalStateBasedOnVoteResultsAndLock(core);
-                    }
-
-                    if (status == IGovValidators.ProposalState.Locked) {
-                        return IGovPool.ProposalState.Locked;
-                    }
-
-                    if (status == IGovValidators.ProposalState.Succeeded) {
-                        return _proposalStateBasedOnVoteResults(core);
-                    }
-
-                    if (status == IGovValidators.ProposalState.Defeated) {
-                        return IGovPool.ProposalState.Defeated;
-                    }
-
-                    return IGovPool.ProposalState.ValidatorVoting;
+                    return _getValidatorsExternalProposalState(proposalId, validators, core);
                 }
 
                 return _proposalStateBasedOnVoteResultsAndLock(core);
@@ -134,6 +111,39 @@ library GovPoolView {
         }
 
         return IGovPool.ProposalState.Voting;
+    }
+
+    function _getValidatorsExternalProposalState(
+        uint256 proposalId,
+        address validators,
+        IGovPool.ProposalCore storage core
+    ) internal view returns (IGovPool.ProposalState) {
+        IGovValidators.ProposalState status = IGovValidators(validators).getProposalState(
+            proposalId,
+            false
+        );
+
+        if (status == IGovValidators.ProposalState.Undefined) {
+            if (IGovValidators(validators).validatorsCount() != 0) {
+                return IGovPool.ProposalState.WaitingForVotingTransfer;
+            }
+
+            return _proposalStateBasedOnVoteResultsAndLock(core);
+        }
+
+        if (status == IGovValidators.ProposalState.Locked) {
+            return IGovPool.ProposalState.Locked;
+        }
+
+        if (status == IGovValidators.ProposalState.Succeeded) {
+            return _proposalStateBasedOnVoteResults(core);
+        }
+
+        if (status == IGovValidators.ProposalState.Defeated) {
+            return IGovPool.ProposalState.Defeated;
+        }
+
+        return IGovPool.ProposalState.ValidatorVoting;
     }
 
     function _getUnlockedNfts(
