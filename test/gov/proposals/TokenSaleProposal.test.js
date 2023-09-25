@@ -1686,6 +1686,10 @@ describe("TokenSaleProposal", () => {
           await setTime(+tiers[1].saleStartTime);
 
           await token.mint(THIRD, defaultDaoVotes.plus(1));
+          await token.approve(userKeeper.address, defaultDaoVotes.plus(1), { from: THIRD });
+
+          await govPool.deposit(THIRD, defaultDaoVotes.plus(1), [], { from: THIRD });
+
           await purchaseToken2.mint(THIRD, wei(20));
           await purchaseToken2.approve(tsp.address, wei(20), { from: THIRD });
 
@@ -1845,6 +1849,10 @@ describe("TokenSaleProposal", () => {
             await setTime(+tiers[1].saleStartTime);
 
             await token.mint(THIRD, defaultDaoVotes.plus(1));
+            await token.approve(userKeeper.address, defaultDaoVotes.plus(1), { from: THIRD });
+
+            await govPool.deposit(THIRD, defaultDaoVotes.plus(1), [], { from: THIRD });
+
             await purchaseToken2.mint(THIRD, wei(20));
             await purchaseToken2.approve(tsp.address, wei(20), { from: THIRD });
 
