@@ -1391,46 +1391,24 @@ describe("GovUserKeeper", () => {
           await nft.approve(userKeeper.address, i);
         }
 
-        await userKeeper.depositTokens(OWNER, OWNER, wei("1000"));
-        await userKeeper.depositNfts(OWNER, OWNER, [1, 3, 5]);
-
         await userKeeper.transferOwnership(govPoolMock.address);
 
-        const power = (await userKeeper.transformedVotingPower([OWNER], [VoteType.PersonalVote], true))[0];
-        const singleNFTPower = toBN(wei("33000")).idiv(9).pow(2).toFixed();
-
-        assert.equal(toBN(power.power).toFixed(), toBN(wei("43000")).pow(2).toFixed());
-        assert.equal(toBN(power.rawPower).toFixed(), toBN(wei("12000")).pow(2).toFixed());
-        assert.equal(toBN(power.nftPower).toFixed(), toBN(wei("33000")).pow(2).toFixed());
-        assert.equal(toBN(power.rawNftPower).toFixed(), toBN(wei("11000")).pow(2).toFixed());
-        assert.equal(toBN(power.ownedBalance).toFixed(), toBN(wei("9000")).pow(2).toFixed());
-        assert.equal(toBN(power.ownedLength).toFixed(), "6");
-
-        assert.deepEqual(
-          power.perNftPower.map((e) => toBN(e).toFixed()),
-          [
-            singleNFTPower,
-            singleNFTPower,
-            singleNFTPower,
-            singleNFTPower,
-            singleNFTPower,
-            singleNFTPower,
-            singleNFTPower,
-            singleNFTPower,
-            singleNFTPower,
-          ]
+        assert.equal(
+          (await userKeeper.transformedVotingPower(SECOND, wei("1"), [1, 2, 3])).toFixed(),
+          toBN(wei("1"))
+            .plus(toBN(wei("33000")).multipliedBy(3).idiv(9))
+            .pow(2)
+            .toFixed()
         );
-
-        const balanceOwner = await userKeeper.nftBalance(OWNER, VoteType.PersonalVote);
-        const exactBalanceOwner = await userKeeper.nftExactBalance(OWNER, VoteType.PersonalVote);
-
-        assert.equal(balanceOwner.totalBalance, "9");
-        assert.equal(balanceOwner.ownedBalance, "6");
-        assert.deepEqual(
-          exactBalanceOwner.nfts.map((e) => e.toFixed()),
-          ["1", "3", "5", "9", "2", "8", "4", "7", "6"]
+        assert.equal(
+          (await userKeeper.transformedVotingPower(SECOND, 0, [1, 2, 3])).toFixed(),
+          toBN(wei("33000")).multipliedBy(3).idiv(9).pow(2).toFixed()
         );
-        assert.equal(exactBalanceOwner.ownedLength, "6");
+        assert.equal(
+          (await userKeeper.transformedVotingPower(SECOND, wei("1"), [])).toFixed(),
+          toBN(wei("1")).pow(2).toFixed()
+        );
+        assert.equal((await userKeeper.transformedVotingPower(SECOND, 0, [])).toFixed(), "0");
       });
     });
 

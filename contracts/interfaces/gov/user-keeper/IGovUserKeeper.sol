@@ -300,16 +300,16 @@ interface IGovUserKeeper {
         bool perNftPowerArray
     ) external view returns (VotingPowerView[] memory votingPowers);
 
-    /// @notice The function for getting voting power of users after the formula
-    /// @param users the array of users addresses
-    /// @param voteTypes the array of vote types
-    /// @param perNftPowerArray should the nft powers array be calculated
-    /// @return votingPowers the array of VotingPowerView structs after the formula
+    /// @notice The function for getting voting power after the formula
+    /// @param voter the address of the voter
+    /// @param amount the amount of tokens
+    /// @param nftIds the array of nft ids
+    /// @return transformedVotingPower the voting power after the formula
     function transformedVotingPower(
-        address[] calldata users,
-        IGovPool.VoteType[] calldata voteTypes,
-        bool perNftPowerArray
-    ) external view returns (VotingPowerView[] memory votingPowers);
+        address voter,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external view returns (uint256 transformedVotingPower);
 
     /// @notice The function for getting power of nfts by ids
     /// @param nftIds the array of nft ids

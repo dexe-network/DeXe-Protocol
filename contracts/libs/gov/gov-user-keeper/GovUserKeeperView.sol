@@ -25,7 +25,7 @@ library GovUserKeeperView {
         address[] calldata users,
         IGovPool.VoteType[] calldata voteTypes,
         bool perNftPowerArray
-    ) public view returns (IGovUserKeeper.VotingPowerView[] memory votingPowers) {
+    ) external view returns (IGovUserKeeper.VotingPowerView[] memory votingPowers) {
         GovUserKeeper userKeeper = GovUserKeeper(address(this));
         votingPowers = new IGovUserKeeper.VotingPowerView[](users.length);
 
@@ -70,31 +70,17 @@ library GovUserKeeperView {
     }
 
     function transformedVotingPower(
-        address[] calldata users,
-        IGovPool.VoteType[] calldata voteTypes,
-        bool perNftPowerArray
-    ) external view returns (IGovUserKeeper.VotingPowerView[] memory votingPowers) {
+        address voter,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external view returns (uint256 transformedVotingPower) {
         address govPool = GovUserKeeper(address(this)).owner();
 
-        (, , , , address votePowerAddress) = IGovPool(govPool).getHelperContracts();
-        IVotePower votePower = IVotePower(votePowerAddress);
+        (, , , , address votePower) = IGovPool(govPool).getHelperContracts();
 
-        votingPowers = votingPower(users, voteTypes, perNftPowerArray);
+        (uint256 nftPower, ) = nftVotingPower(nftIds, false);
 
-        for (uint256 i = 0; i < votingPowers.length; i++) {
-            IGovUserKeeper.VotingPowerView memory power = votingPowers[i];
-            address user = users[i];
-
-            power.power = votePower.transformVotes(user, power.power);
-            power.rawPower = votePower.transformVotes(user, power.rawPower);
-            power.nftPower = votePower.transformVotes(user, power.nftPower);
-            power.rawNftPower = votePower.transformVotes(user, power.rawNftPower);
-            power.ownedBalance = votePower.transformVotes(user, power.ownedBalance);
-
-            for (uint256 j = 0; j < power.perNftPower.length; j++) {
-                power.perNftPower[j] = votePower.transformVotes(user, power.perNftPower[j]);
-            }
-        }
+        return IVotePower(votePower).transformVotes(voter, amount + nftPower);
     }
 
     function nftVotingPower(

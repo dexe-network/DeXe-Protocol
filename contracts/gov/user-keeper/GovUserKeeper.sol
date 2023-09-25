@@ -617,11 +617,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function transformedVotingPower(
-        address[] calldata users,
-        IGovPool.VoteType[] calldata voteTypes,
-        bool perNftPowerArray
-    ) external view override returns (VotingPowerView[] memory votingPowers) {
-        return users.transformedVotingPower(voteTypes, perNftPowerArray);
+        address voter,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external view override returns (uint256 transformedVotingPower) {
+        return voter.transformedVotingPower(amount, nftIds);
     }
 
     function nftVotingPower(
