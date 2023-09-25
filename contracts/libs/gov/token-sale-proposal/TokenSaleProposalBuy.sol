@@ -147,7 +147,7 @@ library TokenSaleProposalBuy {
                     user.asSingletonArray(),
                     _asSingletonArray(IGovPool.VoteType.DelegatedVote),
                     false
-                )[0].power >
+                )[0].rawPower >
                 participationInfo.requiredDaoVotes;
         }
 
