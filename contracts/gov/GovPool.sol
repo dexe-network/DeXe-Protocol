@@ -301,18 +301,22 @@ contract GovPool is
         emit DelegatedTreasury(delegatee, amount, nftIds, false);
     }
 
-    function claimRewards(uint256[] calldata proposalIds) external override onlyBABTHolder {
+    function claimRewards(
+        uint256[] calldata proposalIds,
+        address user
+    ) external override onlyBABTHolder {
         for (uint256 i; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
 
-            _updateRewards(proposalId, msg.sender, RewardType.Vote);
+            _updateRewards(proposalId, user, RewardType.Vote);
 
-            _userInfos.claimReward(_proposals, proposalId);
+            _userInfos.claimReward(_proposals, proposalId, user);
         }
     }
 
     function claimMicropoolRewards(
         uint256[] calldata proposalIds,
+        address delegator,
         address delegatee
     ) external override onlyBABTHolder {
         for (uint256 i; i < proposalIds.length; i++) {
@@ -320,7 +324,7 @@ contract GovPool is
 
             _updateRewards(proposalId, delegatee, RewardType.Vote);
 
-            _userInfos.claim(_proposals, proposalId, delegatee);
+            _userInfos.claim(_proposals, proposalId, delegator, delegatee);
         }
     }
 

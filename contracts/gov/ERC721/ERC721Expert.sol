@@ -34,16 +34,18 @@ contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgr
         emit Issued(owner(), to, tokenId, BurnAuth.OwnerOnly);
     }
 
-    function burn(uint256 tokenId) external onlyOwner {
-        require(_exists(tokenId), "ERC721Expert: Cannot burn non-existent badge");
+    function burn(address from) external onlyOwner {
+        uint256 tokenId = _attachments[from];
 
-        delete _attachments[ownerOf(tokenId)];
+        require(tokenId != 0, "ERC721Expert: Cannot burn non-existent badge");
+
+        delete _attachments[from];
         delete _tags[tokenId];
 
         _burn(tokenId);
     }
 
-    // tags is memory for storage compatibility
+    // @dev Tags are memory for storage compatibility
     function setTags(uint256 tokenId, string[] memory tags) external onlyOwner {
         require(_exists(tokenId), "ERC721Expert: Cannot set tags to non-existent badge");
         require(tags.length <= MAX_TAG_LENGTH, "ERC721Expert: Too much tags");
