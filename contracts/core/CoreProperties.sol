@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -11,13 +11,10 @@ import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "../libs/utils/AddressSetHelper.sol";
-
 import "./Globals.sol";
 
 contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependant {
     using EnumerableSet for EnumerableSet.AddressSet;
-    using AddressSetHelper for EnumerableSet.AddressSet;
     using Paginator for EnumerableSet.AddressSet;
     using Math for uint256;
 

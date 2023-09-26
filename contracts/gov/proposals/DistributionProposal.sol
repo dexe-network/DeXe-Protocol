@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -62,9 +62,13 @@ contract DistributionProposal is IDistributionProposal, IProposalValidator, Init
         if (token == ETHEREUM_ADDRESS) {
             proposal.rewardAmount = amount;
         } else {
-            IERC20Metadata(token).safeTransferFrom(msg.sender, address(this), amount);
+            IERC20Metadata(token).safeTransferFrom(
+                msg.sender,
+                address(this),
+                amount.from18(token.decimals())
+            );
 
-            proposal.rewardAmount = amount.to18(token.decimals());
+            proposal.rewardAmount = amount;
         }
     }
 

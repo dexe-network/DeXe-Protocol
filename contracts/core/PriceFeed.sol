@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
 import "@solarity/solidity-lib/libs/arrays/ArrayHelper.sol";
+import "@solarity/solidity-lib/libs/arrays/SetHelper.sol";
 import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
@@ -18,16 +19,15 @@ import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
 import "../libs/price-feed/UniswapV2PathFinder.sol";
-import "../libs/utils/AddressSetHelper.sol";
 
 import "../core/Globals.sol";
 
 contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     using EnumerableSet for EnumerableSet.AddressSet;
-    using AddressSetHelper for EnumerableSet.AddressSet;
     using DecimalsConverter for *;
     using SafeERC20 for IERC20;
     using ArrayHelper for address[];
+    using SetHelper for EnumerableSet.AddressSet;
     using UniswapV2PathFinder for EnumerableSet.AddressSet;
 
     IUniswapV2Factory public uniswapFactory;

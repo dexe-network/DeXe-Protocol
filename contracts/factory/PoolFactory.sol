@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -208,12 +208,12 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.name
         );
         ERC721Expert(govPoolDeps.expertNftAddress).__ERC721Expert_init(
-            parameters.name.concatStrings(EXPERT_NAME_POSTFIX),
-            parameters.name.concatStrings(EXPERT_SYMBOL_POSTFIX)
+            string.concat(parameters.name, EXPERT_NAME_POSTFIX),
+            string.concat(parameters.name, EXPERT_SYMBOL_POSTFIX)
         );
         ERC721Multiplier(govPoolDeps.nftMultiplierAddress).__ERC721Multiplier_init(
-            parameters.name.concatStrings(NFT_MULTIPLIER_NAME_POSTFIX),
-            parameters.name.concatStrings(NFT_MULTIPLIER_SYMBOL_POSTFIX)
+            string.concat(parameters.name, NFT_MULTIPLIER_NAME_POSTFIX),
+            string.concat(parameters.name, NFT_MULTIPLIER_SYMBOL_POSTFIX)
         );
 
         if (parameters.votePowerParams.voteType != VotePowerType.CUSTOM_VOTES) {

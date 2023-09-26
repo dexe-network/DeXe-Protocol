@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 /**
  * DAO pools could issue their own ERC20 token and sell it to investors with custom sale logic
