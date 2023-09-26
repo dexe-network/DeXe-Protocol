@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
 
@@ -21,7 +21,7 @@ interface IERC721Expert is IERC721Upgradeable {
 
     function mint(address to, string calldata uri_) external returns (uint256 tokenId);
 
-    function burn(uint256 tokenId) external;
+    function burn(address from) external;
 
     function setTokenURI(uint256 tokenId, string calldata uri_) external;
 

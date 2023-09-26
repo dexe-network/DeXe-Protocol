@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -124,7 +124,7 @@ library GovPoolVote {
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         if (personalRawVote.tokensVoted != 0) {
-            userKeeper.unlockTokens(proposalId, msg.sender, personalRawVote.tokensVoted);
+            userKeeper.unlockTokens(proposalId, msg.sender);
         }
 
         if (personalRawVote.nftsVoted.length() != 0) {

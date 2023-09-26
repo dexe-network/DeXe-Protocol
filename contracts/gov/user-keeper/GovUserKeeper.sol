@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -367,18 +367,14 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     ) external override onlyOwner {
         UserInfo storage voterInfo = _usersInfo[voter];
 
-        voterInfo.lockedInProposals[proposalId] += amount;
+        voterInfo.lockedInProposals[proposalId] = amount;
         voterInfo.maxTokensLocked = voterInfo.maxTokensLocked.max(
             voterInfo.lockedInProposals[proposalId]
         );
     }
 
-    function unlockTokens(
-        uint256 proposalId,
-        address voter,
-        uint256 amount
-    ) external override onlyOwner {
-        _usersInfo[voter].lockedInProposals[proposalId] -= amount;
+    function unlockTokens(uint256 proposalId, address voter) external override onlyOwner {
+        delete _usersInfo[voter].lockedInProposals[proposalId];
     }
 
     function lockNfts(
@@ -617,11 +613,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function transformedVotingPower(
-        address[] calldata users,
-        IGovPool.VoteType[] calldata voteTypes,
-        bool perNftPowerArray
-    ) external view override returns (VotingPowerView[] memory votingPowers) {
-        return users.transformedVotingPower(voteTypes, perNftPowerArray);
+        address voter,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external view override returns (uint256 personalPower, uint256 fullPower) {
+        return voter.transformedVotingPower(amount, nftIds);
     }
 
     function nftVotingPower(

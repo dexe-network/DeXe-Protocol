@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
@@ -40,7 +40,7 @@ library GovPoolUnlock {
             maxUnlocked = maxUnlocked.max(lockedInProposal);
 
             if (lockedInProposal != 0) {
-                userKeeper.unlockTokens(proposalId, user, lockedInProposal);
+                userKeeper.unlockTokens(proposalId, user);
             }
 
             if (personalRawVote.nftsVoted.length() != 0) {

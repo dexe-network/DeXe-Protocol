@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
@@ -23,17 +23,6 @@ library TokenSaleProposalCreate {
         ITokenSaleProposal.TierInitParams memory _tierInitParams
     ) external {
         _validateTierInitParams(_tierInitParams);
-
-        uint256 saleTokenDecimals = _tierInitParams.saleTokenAddress.decimals();
-        uint256 totalTokenProvided = _tierInitParams.totalTokenProvided;
-
-        _tierInitParams.minAllocationPerUser = _tierInitParams.minAllocationPerUser.to18(
-            saleTokenDecimals
-        );
-        _tierInitParams.maxAllocationPerUser = _tierInitParams.maxAllocationPerUser.to18(
-            saleTokenDecimals
-        );
-        _tierInitParams.totalTokenProvided = totalTokenProvided.to18(saleTokenDecimals);
 
         ITokenSaleProposal.Tier storage tier = tiers[newTierId];
 
@@ -72,7 +61,9 @@ library TokenSaleProposalCreate {
                 IERC20.transferFrom.selector,
                 msg.sender,
                 address(this),
-                totalTokenProvided
+                _tierInitParams.totalTokenProvided.from18(
+                    _tierInitParams.saleTokenAddress.decimals()
+                )
             )
         );
     }
@@ -149,15 +140,9 @@ library TokenSaleProposalCreate {
                     (address, uint256)
                 );
 
-                uint256 to18Amount = token == ETHEREUM_ADDRESS
-                    ? amount
-                    : amount.to18(token.decimals());
-
-                participationDetails.data = abi.encode(token, to18Amount);
-
-                require(to18Amount > 0, "TSP: zero token lock amount");
+                require(amount > 0, "TSP: zero token lock amount");
                 require(
-                    participationInfo.requiredTokenLock.set(token, to18Amount),
+                    participationInfo.requiredTokenLock.set(token, amount),
                     "TSP: multiple token lock requirements"
                 );
             } else {

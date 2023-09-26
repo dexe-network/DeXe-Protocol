@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
@@ -28,6 +28,6 @@ library GovPoolCommission {
             commissionAmount.percentage(commissionPercentage)
         );
 
-        rewardToken.sendFunds(commissionReceiver, commission, TokenBalance.TransferType.Mint);
+        rewardToken.sendFunds(commissionReceiver, commission, TokenBalance.TransferType.TryMint);
     }
 }

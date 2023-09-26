@@ -1,16 +1,21 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "@solarity/solidity-lib/libs/arrays/ArrayHelper.sol";
+import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 
 import "../../../interfaces/gov/IGovPool.sol";
+
+import "../../../libs/utils/TokenBalance.sol";
 
 library GovPoolCredit {
     using SafeERC20 for IERC20;
     using ArrayHelper for uint256[];
+    using DecimalsConverter for *;
+    using TokenBalance for address;
 
     function setCreditInfo(
         IGovPool.CreditInfo storage creditInfo,
@@ -38,26 +43,6 @@ library GovPoolCredit {
         }
     }
 
-    function getCreditInfo(
-        IGovPool.CreditInfo storage creditInfo
-    ) external view returns (IGovPool.CreditInfoView[] memory info) {
-        uint256 infoLength = creditInfo.tokenList.length;
-        info = new IGovPool.CreditInfoView[](infoLength);
-
-        mapping(address => IGovPool.TokenCreditInfo) storage tokenInfo = creditInfo.tokenInfo;
-
-        for (uint256 i = 0; i < infoLength; i++) {
-            address currentToken = creditInfo.tokenList[i];
-            uint256 monthLimit = tokenInfo[currentToken].monthLimit;
-
-            info[i] = IGovPool.CreditInfoView({
-                token: currentToken,
-                monthLimit: monthLimit,
-                currentWithdrawLimit: _getCreditBalanceForToken(creditInfo, currentToken)
-            });
-        }
-    }
-
     function transferCreditAmount(
         IGovPool.CreditInfo storage creditInfo,
         address[] calldata tokens,
@@ -77,12 +62,32 @@ library GovPoolCredit {
                 "GPC: Current credit permission < amount to withdraw"
             );
 
-            IERC20(currentToken).safeTransfer(destination, currentAmount);
+            currentToken.sendFunds(destination, currentAmount);
 
             creditInfo.tokenInfo[currentToken].timestamps.push(block.timestamp);
             uint256[] storage history = creditInfo.tokenInfo[currentToken].cumulativeAmounts;
 
             history.push(currentAmount + (history.length == 0 ? 0 : history[history.length - 1]));
+        }
+    }
+
+    function getCreditInfo(
+        IGovPool.CreditInfo storage creditInfo
+    ) external view returns (IGovPool.CreditInfoView[] memory info) {
+        uint256 infoLength = creditInfo.tokenList.length;
+        info = new IGovPool.CreditInfoView[](infoLength);
+
+        mapping(address => IGovPool.TokenCreditInfo) storage tokenInfo = creditInfo.tokenInfo;
+
+        for (uint256 i = 0; i < infoLength; i++) {
+            address currentToken = creditInfo.tokenList[i];
+            uint256 monthLimit = tokenInfo[currentToken].monthLimit;
+
+            info[i] = IGovPool.CreditInfoView({
+                token: currentToken,
+                monthLimit: monthLimit,
+                currentWithdrawLimit: _getCreditBalanceForToken(creditInfo, currentToken)
+            });
         }
     }
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
@@ -179,8 +179,7 @@ interface IGovUserKeeper {
     /// @notice The function for unlocking tokens in proposal
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
-    /// @param amount the amount of tokens to unlock
-    function unlockTokens(uint256 proposalId, address voter, uint256 amount) external;
+    function unlockTokens(uint256 proposalId, address voter) external;
 
     /// @notice The function for locking nfts
     /// @param voter the address of voter
@@ -298,16 +297,17 @@ interface IGovUserKeeper {
         bool perNftPowerArray
     ) external view returns (VotingPowerView[] memory votingPowers);
 
-    /// @notice The function for getting voting power of users after the formula
-    /// @param users the array of users addresses
-    /// @param voteTypes the array of vote types
-    /// @param perNftPowerArray should the nft powers array be calculated
-    /// @return votingPowers the array of VotingPowerView structs after the formula
+    /// @notice The function for getting voting power after the formula
+    /// @param voter the address of the voter
+    /// @param amount the amount of tokens
+    /// @param nftIds the array of nft ids
+    /// @return personalPower the personal voting power after the formula
+    /// @return fullPower the personal plus delegated voting power after the formula
     function transformedVotingPower(
-        address[] calldata users,
-        IGovPool.VoteType[] calldata voteTypes,
-        bool perNftPowerArray
-    ) external view returns (VotingPowerView[] memory votingPowers);
+        address voter,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external view returns (uint256 personalPower, uint256 fullPower);
 
     /// @notice The function for getting power of nfts by ids
     /// @param nftIds the array of nft ids

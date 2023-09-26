@@ -84,7 +84,7 @@ describe("ERC721Expert", () => {
     }
 
     async function burn(token, burner) {
-      await nft.burn(token.id, { from: burner });
+      await nft.burn(token.owner, { from: burner });
     }
 
     async function setTags(token, tags, setter) {
@@ -119,7 +119,7 @@ describe("ERC721Expert", () => {
         assert.isTrue(await nft.supportsInterface("0x80ac58cd"));
         assert.isTrue(await nft.supportsInterface("0x5b5e139f"));
         assert.isTrue(await nft.supportsInterface("0x0489b56f"));
-        assert.isTrue(await nft.supportsInterface("0x966376c5"));
+        assert.isTrue(await nft.supportsInterface("0x5d5ad1e9"));
       });
     });
 
