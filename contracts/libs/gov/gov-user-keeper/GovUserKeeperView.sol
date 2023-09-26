@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
+import "@solarity/solidity-lib/libs/utils/TypeCaster.sol";
 
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../interfaces/gov/voting/IVotePower.sol";
@@ -20,10 +21,11 @@ library GovUserKeeperView {
     using Vector for Vector.UintVector;
     using MathHelper for uint256;
     using Math for uint256;
+    using TypeCaster for *;
 
     function votingPower(
-        address[] calldata users,
-        IGovPool.VoteType[] calldata voteTypes,
+        address[] memory users,
+        IGovPool.VoteType[] memory voteTypes,
         bool perNftPowerArray
     ) public view returns (IGovUserKeeper.VotingPowerView[] memory votingPowers) {
         GovUserKeeper userKeeper = GovUserKeeper(address(this));
@@ -40,6 +42,7 @@ library GovUserKeeperView {
                     users[i],
                     voteTypes[i]
                 );
+
                 power.rawPower = power.power - power.ownedBalance;
             }
 
@@ -70,31 +73,32 @@ library GovUserKeeperView {
     }
 
     function transformedVotingPower(
-        address[] calldata users,
-        IGovPool.VoteType[] calldata voteTypes,
-        bool perNftPowerArray
-    ) external view returns (IGovUserKeeper.VotingPowerView[] memory votingPowers) {
+        address voter,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external view returns (uint256 personalPower, uint256 fullPower) {
         address govPool = GovUserKeeper(address(this)).owner();
 
         (, , , , address votePowerAddress) = IGovPool(govPool).getHelperContracts();
         IVotePower votePower = IVotePower(votePowerAddress);
 
-        votingPowers = votingPower(users, voteTypes, perNftPowerArray);
+        (uint256 nftPower, ) = nftVotingPower(nftIds, false);
 
-        for (uint256 i = 0; i < votingPowers.length; i++) {
-            IGovUserKeeper.VotingPowerView memory power = votingPowers[i];
-            address user = users[i];
+        IGovPool.VoteType[] memory voteTypes = new IGovPool.VoteType[](2);
+        voteTypes[0] = IGovPool.VoteType.MicropoolVote;
+        voteTypes[1] = IGovPool.VoteType.TreasuryVote;
 
-            power.power = votePower.transformVotes(user, power.power);
-            power.rawPower = votePower.transformVotes(user, power.rawPower);
-            power.nftPower = votePower.transformVotes(user, power.nftPower);
-            power.rawNftPower = votePower.transformVotes(user, power.rawNftPower);
-            power.ownedBalance = votePower.transformVotes(user, power.ownedBalance);
+        IGovUserKeeper.VotingPowerView[] memory votingPowers = votingPower(
+            [voter, voter].asDynamic(),
+            voteTypes,
+            false
+        );
 
-            for (uint256 j = 0; j < power.perNftPower.length; j++) {
-                power.perNftPower[j] = votePower.transformVotes(user, power.perNftPower[j]);
-            }
-        }
+        personalPower = amount + nftPower;
+        fullPower = personalPower + votingPowers[0].rawPower + votingPowers[1].rawPower;
+
+        personalPower = votePower.transformVotes(voter, personalPower);
+        fullPower = votePower.transformVotes(voter, fullPower);
     }
 
     function nftVotingPower(

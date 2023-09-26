@@ -40,7 +40,7 @@ library GovPoolUnlock {
             maxUnlocked = maxUnlocked.max(lockedInProposal);
 
             if (lockedInProposal != 0) {
-                userKeeper.unlockTokens(proposalId, user, lockedInProposal);
+                userKeeper.unlockTokens(proposalId, user);
             }
 
             if (personalRawVote.nftsVoted.length() != 0) {

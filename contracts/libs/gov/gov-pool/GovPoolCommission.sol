@@ -28,6 +28,6 @@ library GovPoolCommission {
             commissionAmount.percentage(commissionPercentage)
         );
 
-        rewardToken.sendFunds(commissionReceiver, commission, TokenBalance.TransferType.Mint);
+        rewardToken.sendFunds(commissionReceiver, commission, TokenBalance.TransferType.TryMint);
     }
 }

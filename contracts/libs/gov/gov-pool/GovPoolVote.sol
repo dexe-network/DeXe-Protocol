@@ -124,7 +124,7 @@ library GovPoolVote {
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         if (personalRawVote.tokensVoted != 0) {
-            userKeeper.unlockTokens(proposalId, msg.sender, personalRawVote.tokensVoted);
+            userKeeper.unlockTokens(proposalId, msg.sender);
         }
 
         if (personalRawVote.nftsVoted.length() != 0) {

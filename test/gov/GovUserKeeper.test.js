@@ -194,7 +194,7 @@ describe("GovUserKeeper", () => {
         );
 
         await truffleAssert.reverts(
-          userKeeper.unlockTokens(1, OWNER, "0", { from: SECOND }),
+          userKeeper.unlockTokens(1, OWNER, { from: SECOND }),
           "Ownable: caller is not the owner"
         );
 
@@ -672,8 +672,7 @@ describe("GovUserKeeper", () => {
       });
 
       it("should lock tokens from to addresses", async () => {
-        await userKeeper.lockTokens(1, SECOND, wei("10"));
-        await userKeeper.lockTokens(1, SECOND, wei("5"));
+        await userKeeper.lockTokens(1, SECOND, wei("15"));
         await userKeeper.lockTokens(1, THIRD, wei("30"));
 
         const withdrawableSecond = await userKeeper.getWithdrawableAssets(SECOND, [1], []);
@@ -689,22 +688,10 @@ describe("GovUserKeeper", () => {
         let withdrawable = await userKeeper.getWithdrawableAssets(SECOND, [1], []);
         assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("490"));
 
-        await userKeeper.unlockTokens(1, SECOND, wei("10"));
+        await userKeeper.unlockTokens(1, SECOND);
 
         withdrawable = await userKeeper.getWithdrawableAssets(SECOND, [1], []);
         assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("500"));
-      });
-
-      it("should unlock part of tokens", async () => {
-        await userKeeper.lockTokens(1, SECOND, wei("10"));
-
-        let withdrawable = await userKeeper.getWithdrawableAssets(SECOND, [1], []);
-        assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("490"));
-
-        await userKeeper.unlockTokens(1, SECOND, wei("9"));
-
-        withdrawable = await userKeeper.getWithdrawableAssets(SECOND, [1], []);
-        assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("499"));
       });
     });
 
@@ -715,8 +702,7 @@ describe("GovUserKeeper", () => {
       });
 
       it("should return max locked amount", async () => {
-        await userKeeper.lockTokens(1, SECOND, wei("10"));
-        await userKeeper.lockTokens(1, SECOND, wei("5"));
+        await userKeeper.lockTokens(1, SECOND, wei("15"));
         await userKeeper.lockTokens(1, THIRD, wei("30"));
 
         assert.equal((await userKeeper.maxLockedAmount(SECOND)).toFixed(), wei("15"));
@@ -728,15 +714,13 @@ describe("GovUserKeeper", () => {
       });
 
       it("should return max locked amount from different proposals", async () => {
-        await userKeeper.lockTokens(1, SECOND, wei("10"));
-        await userKeeper.lockTokens(1, SECOND, wei("5"));
+        await userKeeper.lockTokens(1, SECOND, wei("15"));
+
+        assert.equal((await userKeeper.maxLockedAmount(SECOND)).toFixed(), wei("15"));
+
         await userKeeper.lockTokens(2, SECOND, wei("50"));
 
         assert.equal((await userKeeper.maxLockedAmount(SECOND)).toFixed(), wei("50"));
-
-        await userKeeper.lockTokens(1, SECOND, wei("50"));
-
-        assert.equal((await userKeeper.maxLockedAmount(SECOND)).toFixed(), wei("65"));
       });
     });
 
@@ -783,7 +767,7 @@ describe("GovUserKeeper", () => {
 
         await truffleAssert.reverts(userKeeper.withdrawTokens(THIRD, THIRD, wei("600")), "GovUK: can't withdraw this");
 
-        await userKeeper.unlockTokens(1, THIRD, VoteType.PersonalVote);
+        await userKeeper.unlockTokens(1, THIRD);
         await userKeeper.updateMaxTokenLockedAmount([], THIRD);
         await userKeeper.withdrawTokens(THIRD, THIRD, wei("600"));
 
@@ -807,9 +791,9 @@ describe("GovUserKeeper", () => {
         const withdrawable = await userKeeper.getWithdrawableAssets(THIRD, [], []);
         assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("900"));
 
-        await userKeeper.unlockTokens(1, THIRD, VoteType.PersonalVote);
-        await userKeeper.unlockTokens(2, THIRD, VoteType.PersonalVote);
-        await userKeeper.unlockTokens(3, THIRD, VoteType.PersonalVote);
+        await userKeeper.unlockTokens(1, THIRD);
+        await userKeeper.unlockTokens(2, THIRD);
+        await userKeeper.unlockTokens(3, THIRD);
         await userKeeper.updateMaxTokenLockedAmount([], THIRD);
 
         await userKeeper.withdrawTokens(THIRD, THIRD, wei("900"));
@@ -825,8 +809,8 @@ describe("GovUserKeeper", () => {
         let withdrawable = await userKeeper.getWithdrawableAssets(THIRD, [2], []);
         assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("600"));
 
-        await userKeeper.unlockTokens(1, THIRD, VoteType.PersonalVote);
-        await userKeeper.unlockTokens(3, THIRD, VoteType.PersonalVote);
+        await userKeeper.unlockTokens(1, THIRD);
+        await userKeeper.unlockTokens(3, THIRD);
         await userKeeper.updateMaxTokenLockedAmount([2], THIRD);
 
         await truffleAssert.passes(userKeeper.updateMaxTokenLockedAmount([2], THIRD), "pass");
@@ -838,7 +822,7 @@ describe("GovUserKeeper", () => {
         withdrawable = await userKeeper.getWithdrawableAssets(THIRD, [], []);
         assert.equal(withdrawable.withdrawableTokens.toFixed(), wei("300"));
 
-        await userKeeper.unlockTokens(2, THIRD, VoteType.PersonalVote);
+        await userKeeper.unlockTokens(2, THIRD);
         await userKeeper.updateMaxTokenLockedAmount([], THIRD);
 
         await userKeeper.withdrawTokens(THIRD, THIRD, wei("300"));
@@ -1378,59 +1362,55 @@ describe("GovUserKeeper", () => {
         const votePowerMock = await VotePowerMock.new();
         await govPoolMock.setVotePowerContract(votePowerMock.address);
 
-        assert.equal(
-          toBN((await userKeeper.votingPower([OWNER], [VoteType.DelegatedVote], false))[0].power).toFixed(),
-          "0"
-        );
-
-        await token.mint(OWNER, wei("10000"));
+        await token.mint(OWNER, wei("1000"));
         await token.approve(userKeeper.address, wei("1000"));
+        await userKeeper.depositTokens(OWNER, OWNER, wei("1000"));
 
         for (let i = 1; i < 10; i++) {
           await nft.safeMint(OWNER, i);
           await nft.approve(userKeeper.address, i);
         }
 
-        await userKeeper.depositTokens(OWNER, OWNER, wei("1000"));
-        await userKeeper.depositNfts(OWNER, OWNER, [1, 3, 5]);
+        await userKeeper.delegateTokens(OWNER, THIRD, wei("1000"));
+        await userKeeper.delegateTokensTreasury(THIRD, wei("100"));
 
         await userKeeper.transferOwnership(govPoolMock.address);
 
-        const power = (await userKeeper.transformedVotingPower([OWNER], [VoteType.PersonalVote], true))[0];
-        const singleNFTPower = toBN(wei("33000")).idiv(9).pow(2).toFixed();
+        let transformedVotingPower = await userKeeper.transformedVotingPower(THIRD, wei("1"), [1, 2, 3]);
 
-        assert.equal(toBN(power.power).toFixed(), toBN(wei("43000")).pow(2).toFixed());
-        assert.equal(toBN(power.rawPower).toFixed(), toBN(wei("12000")).pow(2).toFixed());
-        assert.equal(toBN(power.nftPower).toFixed(), toBN(wei("33000")).pow(2).toFixed());
-        assert.equal(toBN(power.rawNftPower).toFixed(), toBN(wei("11000")).pow(2).toFixed());
-        assert.equal(toBN(power.ownedBalance).toFixed(), toBN(wei("9000")).pow(2).toFixed());
-        assert.equal(toBN(power.ownedLength).toFixed(), "6");
-
-        assert.deepEqual(
-          power.perNftPower.map((e) => toBN(e).toFixed()),
-          [
-            singleNFTPower,
-            singleNFTPower,
-            singleNFTPower,
-            singleNFTPower,
-            singleNFTPower,
-            singleNFTPower,
-            singleNFTPower,
-            singleNFTPower,
-            singleNFTPower,
-          ]
+        assert.equal(
+          transformedVotingPower.personalPower.toFixed(),
+          toBN(wei("1"))
+            .plus(toBN(wei("33000")).multipliedBy(3).idiv(9))
+            .pow(2)
+            .toFixed()
+        );
+        assert.equal(
+          transformedVotingPower.fullPower.toFixed(),
+          toBN(wei("1101"))
+            .plus(toBN(wei("33000")).multipliedBy(3).idiv(9))
+            .pow(2)
+            .toFixed()
         );
 
-        const balanceOwner = await userKeeper.nftBalance(OWNER, VoteType.PersonalVote);
-        const exactBalanceOwner = await userKeeper.nftExactBalance(OWNER, VoteType.PersonalVote);
+        transformedVotingPower = await userKeeper.transformedVotingPower(THIRD, 0, [1, 2, 3]);
 
-        assert.equal(balanceOwner.totalBalance, "9");
-        assert.equal(balanceOwner.ownedBalance, "6");
-        assert.deepEqual(
-          exactBalanceOwner.nfts.map((e) => e.toFixed()),
-          ["1", "3", "5", "9", "2", "8", "4", "7", "6"]
+        assert.equal(
+          transformedVotingPower.personalPower.toFixed(),
+          toBN(wei("33000")).multipliedBy(3).idiv(9).pow(2).toFixed()
         );
-        assert.equal(exactBalanceOwner.ownedLength, "6");
+        assert.equal(
+          transformedVotingPower.fullPower.toFixed(),
+          toBN(wei("1100"))
+            .plus(toBN(wei("33000")).multipliedBy(3).idiv(9))
+            .pow(2)
+            .toFixed()
+        );
+
+        transformedVotingPower = await userKeeper.transformedVotingPower(THIRD, 0, []);
+
+        assert.equal(transformedVotingPower.personalPower.toFixed(), "0");
+        assert.equal(transformedVotingPower.fullPower.toFixed(), toBN(wei("1100")).pow(2).toFixed());
       });
     });
 
