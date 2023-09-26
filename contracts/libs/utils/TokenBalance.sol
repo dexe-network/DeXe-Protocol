@@ -28,7 +28,7 @@ library TokenBalance {
         uint256 amount,
         TransferType transferType
     ) internal {
-        uint256 balance = thisBalance(token);
+        uint256 balance = normThisBalance(token);
 
         require(
             balance >= amount || transferType == TransferType.TryMint,
@@ -40,15 +40,17 @@ library TokenBalance {
 
             require(status, "Gov: failed to send eth");
         } else {
-            amount = amount.from18(ERC20(token).decimals());
+            uint256 decimals = ERC20(token).decimals();
 
             if (balance < amount) {
-                try IERC20Gov(token).mint(address(this), amount - balance) {} catch {
+                try
+                    IERC20Gov(token).mint(address(this), (amount - balance).from18(decimals))
+                {} catch {
                     amount = balance;
                 }
             }
 
-            IERC20(token).safeTransfer(receiver, amount);
+            IERC20(token).safeTransfer(receiver, amount.from18(decimals));
         }
     }
 
