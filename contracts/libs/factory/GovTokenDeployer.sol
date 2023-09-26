@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/Create2.sol";
 
@@ -23,13 +23,5 @@ library GovTokenDeployer {
         bytes32 bytecodeHash = keccak256(type(ERC20Gov).creationCode);
 
         return Create2.computeAddress(salt, bytecodeHash);
-    }
-
-    function concatStrings(
-        string calldata a,
-        string memory b
-    ) internal pure returns (string memory) {
-        // TODO: rewrite when compiler version will be updated
-        return string(abi.encodePacked(a, b));
     }
 }

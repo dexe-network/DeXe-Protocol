@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 /**
  * This is the PoolRegistry contract, a tuned ContractsRegistry contract. Its purpose is the management of

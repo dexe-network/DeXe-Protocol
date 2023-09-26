@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 /**
  * This is the contract that stores user profile settings + his privacy policy agreement EIP712 signature

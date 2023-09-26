@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 import "../gov/settings/IGovSettings.sol";
 import "../gov/validators/IGovValidators.sol";
