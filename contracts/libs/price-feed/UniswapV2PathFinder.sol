@@ -58,7 +58,7 @@ library UniswapV2PathFinder {
         address[] calldata providedPath
     ) internal view returns (IPriceFeed.FoundPath memory foundPath) {
         if (amount == 0) {
-            return IPriceFeed.FoundPath(new address[](0), new uint256[](0), false);
+            return foundPath;
         }
 
         address[] memory path2 = new address[](2);
@@ -95,7 +95,6 @@ library UniswapV2PathFinder {
                 if (foundPath.path.length == 0 || compare(amounts, foundPath.amounts)) {
                     foundPath.amounts = amounts;
                     foundPath.path = providedPath;
-                    foundPath.withProvidedPath = true;
                 }
             } catch {}
         }
