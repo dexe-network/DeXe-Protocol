@@ -2,9 +2,9 @@
 
 rm -rf generated-markups
 
-npm run generate-docs
+npm run generate-markups
 
-echo "markups have been generated. Moving..."
+echo "Markups have been generated. Moving..."
 
 mkdir -p docs
 rsync -av --delete generated-markups/contracts/interfaces/ docs
