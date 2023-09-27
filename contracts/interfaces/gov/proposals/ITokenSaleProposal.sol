@@ -192,8 +192,8 @@ interface ITokenSaleProposal {
 
     /// @notice User parameters. This struct is used in view functions as a return argument
     /// @param canParticipate the boolean indicating whether the user is whitelisted in the corresponding tier
-    /// @param purchaseInfo the information about the user purchase
-    /// @param vestingUserInfo the information about the user vesting
+    /// @param purchaseView the information about the user purchase
+    /// @param vestingUserView the information about the user vesting
     struct UserView {
         bool canParticipate;
         PurchaseView purchaseView;

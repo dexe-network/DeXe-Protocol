@@ -79,7 +79,7 @@ module.exports = {
     pathToMigrations: "./deploy/",
   },
   markup: {
-    onlyFiles: ["./contracts/"],
+    onlyFiles: ["./contracts/interfaces"],
   },
   gobind: {
     onlyFiles: ["./contracts/"],

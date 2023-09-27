@@ -9,10 +9,9 @@ interface ICoreProperties {
     /// @notice The struct that stores vital platform's parameters that may be modified by the OWNER
     /// The struct that stores GovPool parameters
     /// @param govVotesLimit the maximum number of simultaneous votes of the voter
-    /// @param govCommission the protocol's commission percentage
     /// @param tokenSaleProposalCommissionPercentage the commission percentage for the token sale proposal
-    /// @param micropoolRewardsPercentage the percentage of the rewards for the micropool voters
-    /// @param treasuryRewardsPercentage the percentage of the rewards for the treasury voters
+    /// @param micropoolVoteRewardsPercentage the percentage of the rewards for the micropool voters
+    /// @param treasuryVoteRewardsPercentage the percentage of the rewards for the treasury voters
     struct CoreParameters {
         uint128 govVotesLimit;
         uint128 govCommissionPercentage;
