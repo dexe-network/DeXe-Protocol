@@ -127,20 +127,20 @@ Initial tier parameters
 
 Parameters:
 
-| Name                   | Type                                             | Description                                                                                                         |
-| :--------------------- | :----------------------------------------------- | :------------------------------------------------------------------------------------------------------------------ |
-| metadata               | struct ITokenSaleProposal.TierMetadata           | metadata of the tier (see TierMetadata)                                                                             |
-| totalTokenProvided     | uint256                                          | total supply of tokens provided for the tier                                                                        |
-| saleStartTime          | uint64                                           | start time of token sales                                                                                           |
-| saleEndTime            | uint64                                           | end time of token sales                                                                                             |
-| claimLockDuration      | uint64                                           | the period of time between the end of the token sale and the non-vesting tokens claiming                            |
-| saleTokenAddress       | address                                          | address of the token being sold                                                                                     |
-| purchaseTokenAddresses | address[]                                        | tokens, that can be used for purchasing token of the proposal                                                       |
-| exchangeRates          | uint256[]                                        | exchange rates of other tokens to the token of TokenSaleProposal                                                    |
-| minAllocationPerUser   | uint256                                          | minimal allocation of tokens per one user                                                                           |
-| maxAllocationPerUser   | uint256                                          | maximal allocation of tokens per one user                                                                           |
-| vestingSettings        | struct ITokenSaleProposal.VestingSettings        | settings for managing tokens vesting (unlocking). While tokens are locked investors won`t be able to withdraw them  |
-| participationDetails   | struct ITokenSaleProposal.ParticipationDetails[] | the list of participation requirement parameters                                                                    |
+| Name                   | Type                                             | Description                                                                                                                                                           |
+| :--------------------- | :----------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| metadata               | struct ITokenSaleProposal.TierMetadata           | metadata of the tier (see TierMetadata)                                                                                                                               |
+| totalTokenProvided     | uint256                                          | total supply of tokens provided for the tier                                                                                                                          |
+| saleStartTime          | uint64                                           | start time of token sales                                                                                                                                             |
+| saleEndTime            | uint64                                           | end time of token sales                                                                                                                                               |
+| claimLockDuration      | uint64                                           | the period of time between the end of the token sale and the non-vesting tokens claiming                                                                              |
+| saleTokenAddress       | address                                          | address of the token being sold                                                                                                                                       |
+| purchaseTokenAddresses | address[]                                        | tokens, that can be used for purchasing token of the proposal                                                                                                         |
+| exchangeRates          | uint256[]                                        | exchange rates of other tokens to the token of TokenSaleProposal. Must disregard tokens decimals. If you want to sell 1 BTC for 1 ETH, exchangeRate has to be 10**25  |
+| minAllocationPerUser   | uint256                                          | minimal allocation of tokens per one user                                                                                                                             |
+| maxAllocationPerUser   | uint256                                          | maximal allocation of tokens per one user                                                                                                                             |
+| vestingSettings        | struct ITokenSaleProposal.VestingSettings        | settings for managing tokens vesting (unlocking). While tokens are locked investors won`t be able to withdraw them                                                    |
+| participationDetails   | struct ITokenSaleProposal.ParticipationDetails[] | the list of participation requirement parameters                                                                                                                      |
 
 ### VestingTierInfo
 

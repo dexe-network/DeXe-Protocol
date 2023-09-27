@@ -58,7 +58,8 @@ interface ITokenSaleProposal {
     /// @param claimLockDuration the period of time between the end of the token sale and the non-vesting tokens claiming
     /// @param saleTokenAddress address of the token being sold
     /// @param purchaseTokenAddresses tokens, that can be used for purchasing token of the proposal
-    /// @param exchangeRates exchange rates of other tokens to the token of TokenSaleProposal
+    /// @param exchangeRates exchange rates of other tokens to the token of TokenSaleProposal. Must disregard tokens decimals.
+    /// If you want to sell 1 BTC for 1 ETH, exchangeRate has to be 10**25
     /// @param minAllocationPerUser minimal allocation of tokens per one user
     /// @param maxAllocationPerUser maximal allocation of tokens per one user
     /// @param vestingSettings settings for managing tokens vesting (unlocking). While tokens are locked investors won`t be able to withdraw them
