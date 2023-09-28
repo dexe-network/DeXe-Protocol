@@ -15,6 +15,7 @@ import "../../../interfaces/gov/ERC721/IERC721Expert.sol";
 
 import "../../utils/DataHelper.sol";
 
+import "../../../gov/user-keeper/GovUserKeeper.sol";
 import "../../../gov/GovPool.sol";
 
 library GovPoolCreate {
@@ -401,7 +402,15 @@ library GovPoolCreate {
         IGovPool.ProposalAction calldata actionFor,
         IGovPool.ProposalAction calldata actionAgainst,
         address metaUserKeeper
-    ) internal pure {
+    ) internal view {
+        address metaToken = GovUserKeeper(metaUserKeeper).tokenAddress();
+        address metaNft = GovUserKeeper(metaUserKeeper).nftAddress();
+
+        require(
+            actionFor.executor == metaToken || actionFor.executor == metaNft,
+            "Gov: invalid executor"
+        );
+
         (address spenderFor, uint256 amountFor) = _decodeApproveFunction(actionFor);
         (address spenderAgainst, uint256 amountAgainst) = _decodeApproveFunction(actionAgainst);
 
@@ -416,7 +425,11 @@ library GovPoolCreate {
         IGovPool.ProposalAction calldata actionFor,
         IGovPool.ProposalAction calldata actionAgainst,
         address metaUserKeeper
-    ) internal pure {
+    ) internal view {
+        address metaNft = GovUserKeeper(metaUserKeeper).nftAddress();
+
+        require(actionFor.executor == metaNft, "Gov: invalid executor");
+
         (address operatorFor, bool approvedFor) = _decodeSetApprovalForAllFunction(actionFor);
         (address operatorAgainst, bool approvedAgainst) = _decodeSetApprovalForAllFunction(
             actionAgainst

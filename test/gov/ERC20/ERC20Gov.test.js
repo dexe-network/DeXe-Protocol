@@ -251,13 +251,13 @@ describe("ERC20Gov", () => {
       it("should not revert if account is already blacklisted", async () => {
         await erc20Gov.blacklist([SECOND], true, { from: GOV_ADDRESS });
 
-        assert.isOk(await erc20Gov.blacklist([SECOND], true, { from: GOV_ADDRESS }));
+        await truffleAssert.passes(erc20Gov.blacklist([SECOND], true, { from: GOV_ADDRESS }));
 
         assert.equal(await erc20Gov.totalBlacklistAccounts(), 1);
       });
 
       it("should not revert if account is not blacklisted", async () => {
-        assert.isOk(erc20Gov.blacklist([SECOND], false, { from: GOV_ADDRESS }));
+        await truffleAssert.passes(erc20Gov.blacklist([SECOND], false, { from: GOV_ADDRESS }));
       });
 
       it("should not mint if the account is blacklisted", async () => {
