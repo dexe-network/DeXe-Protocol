@@ -35,9 +35,10 @@ library TokenSaleProposalBuy {
         ITokenSaleProposal.PurchaseInfo storage purchaseInfo = userInfo.purchaseInfo;
         ITokenSaleProposal.TierInitParams storage tierInitParams = tier.tierInitParams;
 
-        if (tokenToBuyWith == ETHEREUM_ADDRESS) {
-            amount = msg.value;
-        }
+        require(
+            tokenToBuyWith != ETHEREUM_ADDRESS || amount == msg.value,
+            "TSP: wrong native amount"
+        );
 
         uint256 saleTokenAmount = getSaleTokenAmount(
             tier,
@@ -99,6 +100,7 @@ library TokenSaleProposalBuy {
         uint256 amount
     ) public view returns (uint256) {
         ITokenSaleProposal.TierInitParams memory tierInitParams = tier.tierInitParams;
+        ITokenSaleProposal.UserInfo storage userInfo = tier.users[msg.sender];
 
         require(amount > 0, "TSP: zero amount");
         require(canParticipate(tier, tierId, user), "TSP: cannot participate");
@@ -110,12 +112,15 @@ library TokenSaleProposalBuy {
 
         uint256 exchangeRate = tier.rates[tokenToBuyWith];
         uint256 saleTokenAmount = amount.ratio(exchangeRate, PRECISION);
+        uint256 userBoughtAmount = saleTokenAmount +
+            userInfo.purchaseInfo.claimTotalAmount +
+            userInfo.vestingUserInfo.vestingTotalAmount;
 
         require(saleTokenAmount != 0, "TSP: incorrect token");
         require(
             tierInitParams.maxAllocationPerUser == 0 ||
-                (tierInitParams.minAllocationPerUser <= saleTokenAmount &&
-                    saleTokenAmount <= tierInitParams.maxAllocationPerUser),
+                (tierInitParams.minAllocationPerUser <= userBoughtAmount &&
+                    userBoughtAmount <= tierInitParams.maxAllocationPerUser),
             "TSP: wrong allocation"
         );
         require(

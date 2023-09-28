@@ -49,7 +49,7 @@ ERC721Expert.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 
-describe.only("DistributionProposal", () => {
+describe("DistributionProposal", () => {
   let OWNER;
   let SECOND;
   let THIRD;
