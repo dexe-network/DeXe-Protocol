@@ -24,10 +24,10 @@ library GovPoolCommission {
             return;
         }
 
-        uint256 commission = rewardToken.normThisBalance().min(
-            commissionAmount.percentage(commissionPercentage)
+        rewardToken.sendFunds(
+            commissionReceiver,
+            commissionAmount.percentage(commissionPercentage),
+            TokenBalance.TransferType.TryMint
         );
-
-        rewardToken.sendFunds(commissionReceiver, commission, TokenBalance.TransferType.TryMint);
     }
 }
