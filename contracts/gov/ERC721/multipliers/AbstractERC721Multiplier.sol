@@ -4,6 +4,8 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
+import "@solarity/solidity-lib/utils/BlockGuard.sol";
+
 import "../../../interfaces/gov/IGovPool.sol";
 import "../../../interfaces/gov/ERC721/multipliers/IAbstractERC721Multiplier.sol";
 
@@ -12,13 +14,15 @@ import "../../../core/Globals.sol";
 abstract contract AbstractERC721Multiplier is
     IAbstractERC721Multiplier,
     ERC721EnumerableUpgradeable,
-    OwnableUpgradeable
+    OwnableUpgradeable,
+    BlockGuard
 {
+    string public constant LOCK_UNLOCK_RESOURCE = "LOCK_UNLOCK";
+
     string public baseURI;
 
     mapping(uint256 => IAbstractERC721Multiplier.NftInfo) internal _tokens;
     mapping(address => uint256) internal _latestLockedTokenIds;
-    mapping(uint256 => uint256) internal _lockedInBlocks;
 
     event Minted(uint256 tokenId, address to, uint256 multiplier, uint256 duration);
     event Locked(uint256 tokenId, address sender, bool isLocked);
@@ -33,7 +37,7 @@ abstract contract AbstractERC721Multiplier is
         __ERC721_init(name, symbol);
     }
 
-    function lock(uint256 tokenId) external {
+    function lock(uint256 tokenId) external checkLockBlock(LOCK_UNLOCK_RESOURCE, msg.sender) {
         _onlyTokenOwner(tokenId);
 
         require(
@@ -42,19 +46,17 @@ abstract contract AbstractERC721Multiplier is
         );
 
         _latestLockedTokenIds[msg.sender] = tokenId;
-        _lockedInBlocks[tokenId] = block.timestamp;
 
         _afterTokenLock(tokenId);
 
         emit Locked(tokenId, msg.sender, true);
     }
 
-    function unlock() external {
+    function unlock() external checkBlock(LOCK_UNLOCK_RESOURCE, msg.sender) {
         uint256 tokenId = _latestLockedTokenIds[msg.sender];
 
         _onlyTokenOwner(tokenId);
 
-        require(_lockedInBlocks[tokenId] != block.timestamp, "ERC721Multiplier: Zero lock time");
         require(
             IGovPool(owner()).getUserActiveProposalsCount(msg.sender) == 0,
             "ERC721Multiplier: Cannot unlock with active proposals"

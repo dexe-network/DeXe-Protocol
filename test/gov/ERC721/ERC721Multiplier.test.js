@@ -6,7 +6,7 @@ const Reverter = require("../../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
-const AttackerMock = artifacts.require("ERC721MultiplierAttackerMock");
+const ERC721MultiplierAttackerMock = artifacts.require("ERC721MultiplierAttackerMock");
 const GovPoolMock = artifacts.require("GovPoolMock");
 
 ERC721Multiplier.numberFormat = "BigNumber";
@@ -39,7 +39,7 @@ describe("ERC721Multiplier", () => {
 
     govPool = await GovPoolMock.new();
 
-    attacker = await AttackerMock.new();
+    attacker = await ERC721MultiplierAttackerMock.new();
 
     await reverter.snapshot();
   });
@@ -303,7 +303,8 @@ describe("ERC721Multiplier", () => {
         it("should not unlock properly if zero lock time", async () => {
           const { id } = TOKENS[4];
 
-          await truffleAssert.reverts(attacker.attack(nft.address, id), "ERC721Multiplier: Zero lock time");
+          await truffleAssert.reverts(attacker.attackLockLock(nft.address, id), "BlockGuard: locked");
+          await truffleAssert.reverts(attacker.attackLockUnlock(nft.address, id), "BlockGuard: locked");
         });
 
         it("should unlock properly if all conditions are met", async () => {
