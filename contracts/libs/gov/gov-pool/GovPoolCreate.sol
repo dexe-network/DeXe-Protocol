@@ -258,17 +258,14 @@ library GovPoolCreate {
             return false;
         }
 
-        return _handleDataForExistingSettingsProposal(govSettings, actions);
+        return _handleDataForExistingSettingsProposal(govSettings, settingsId, actions);
     }
 
     function _handleDataForExistingSettingsProposal(
         IGovSettings govSettings,
+        uint256 lastSettings,
         IGovPool.ProposalAction[] calldata actions
     ) internal view returns (bool) {
-        uint256 lastSettings = govSettings.executorToSettings(
-            actions[actions.length - 1].executor
-        );
-
         for (uint256 i; i < actions.length - 1; i++) {
             bytes4 selector = actions[i].data.getSelector();
 
