@@ -28,7 +28,7 @@
   "license": "MIT",
   "homepage": "https://github.com/dexe-network/investment-contracts",
   "dependencies": {
-    "@solarity/solidity-lib": "2.5.5",
+    "@solarity/solidity-lib": "2.5.7",
     "@openzeppelin/contracts": "4.9.2",
     "@openzeppelin/contracts-upgradeable": "4.9.2",
     "@uniswap/v2-periphery": "1.1.0-beta.0",
