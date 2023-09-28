@@ -15,6 +15,7 @@ import "../../../interfaces/gov/ERC721/IERC721Expert.sol";
 
 import "../../utils/DataHelper.sol";
 
+import "../../../gov/user-keeper/GovUserKeeper.sol";
 import "../../../gov/GovPool.sol";
 
 library GovPoolCreate {
@@ -140,7 +141,7 @@ library GovPoolCreate {
         bool forceDefaultSettings = _handleDataForProposal(settingsId, govSettings, actionsFor);
 
         if (actionsAgainst.length != 0) {
-            _validateDataCorrespondence(actionsFor, actionsAgainst);
+            _validateMetaGovernance(actionsFor, actionsAgainst);
         }
 
         if (forceDefaultSettings) {
@@ -257,17 +258,14 @@ library GovPoolCreate {
             return false;
         }
 
-        return _handleDataForExistingSettingsProposal(govSettings, actions);
+        return _handleDataForExistingSettingsProposal(govSettings, settingsId, actions);
     }
 
     function _handleDataForExistingSettingsProposal(
         IGovSettings govSettings,
+        uint256 lastSettings,
         IGovPool.ProposalAction[] calldata actions
     ) internal view returns (bool) {
-        uint256 lastSettings = govSettings.executorToSettings(
-            actions[actions.length - 1].executor
-        );
-
         for (uint256 i; i < actions.length - 1; i++) {
             bytes4 selector = actions[i].data.getSelector();
 
@@ -284,35 +282,161 @@ library GovPoolCreate {
         return false;
     }
 
-    function _validateDataCorrespondence(
+    function _validateMetaGovernance(
         IGovPool.ProposalAction[] calldata actionsFor,
         IGovPool.ProposalAction[] calldata actionsAgainst
     ) internal view {
         require(actionsFor.length == actionsAgainst.length, "Gov: invalid actions length");
 
-        (, , , address poolRegistryAddress, ) = IGovPool(address(this)).getHelperContracts();
-        IPoolRegistry poolRegistry = IPoolRegistry(poolRegistryAddress);
+        address metaGovPool = _validateVote(
+            actionsFor[actionsFor.length - 1],
+            actionsAgainst[actionsAgainst.length - 1]
+        );
 
-        for (uint256 i; i < actionsFor.length; i++) {
-            IGovPool.ProposalAction calldata actionFor = actionsFor[i];
-            IGovPool.ProposalAction calldata actionAgainst = actionsAgainst[i];
-
-            address executor = actionFor.executor;
-            require(executor == actionAgainst.executor, "Gov: invalid executor");
-            require(poolRegistry.isGovPool(executor), "Gov: invalid executor");
-
-            bytes4 selector = actionFor.data.getSelector();
-            require(selector == actionAgainst.data.getSelector(), "Gov: invalid selector");
-            require(selector == IGovPool.vote.selector, "Gov: invalid selector");
-
-            (uint256 proposalIdFor, bool isVoteForOnFor) = _decodeVoteFunction(actionFor);
-            (uint256 proposalIdAgainst, bool isVoteForOnAgainst) = _decodeVoteFunction(
-                actionAgainst
-            );
-            require(proposalIdFor == proposalIdAgainst, "Gov: invalid proposal id");
-
-            require(isVoteForOnFor && !isVoteForOnAgainst, "Gov: invalid vote");
+        for (uint256 i; i < actionsFor.length - 1; i++) {
+            _validateApproveOrDeposit(actionsFor[i], actionsAgainst[i], metaGovPool);
         }
+    }
+
+    function _validateVote(
+        IGovPool.ProposalAction calldata actionFor,
+        IGovPool.ProposalAction calldata actionAgainst
+    ) internal view returns (address metaGovPool) {
+        (, , , address poolRegistryAddress, ) = IGovPool(address(this)).getHelperContracts();
+
+        metaGovPool = actionFor.executor;
+
+        require(metaGovPool == actionAgainst.executor, "Gov: invalid executor");
+        require(
+            IPoolRegistry(poolRegistryAddress).isGovPool(metaGovPool),
+            "Gov: invalid executor"
+        );
+
+        bytes4 selector = actionFor.data.getSelector();
+
+        require(
+            selector == IGovPool.vote.selector && selector == actionAgainst.data.getSelector(),
+            "Gov: invalid selector"
+        );
+
+        (
+            uint256 proposalIdFor,
+            bool isVoteForFor,
+            uint256 voteAmountFor,
+            uint256[] memory voteNftsFor
+        ) = _decodeVoteFunction(actionFor);
+        (
+            uint256 proposalIdAgainst,
+            bool isVoteForAgainst,
+            uint256 voteAmountAgainst,
+            uint256[] memory voteNftsAgainst
+        ) = _decodeVoteFunction(actionAgainst);
+
+        require(proposalIdFor == proposalIdAgainst, "Gov: invalid proposal id");
+        require(isVoteForFor && !isVoteForAgainst, "Gov: invalid vote");
+        require(voteAmountFor == voteAmountAgainst, "Gov: invalid vote amount");
+        require(voteNftsFor.length == voteNftsAgainst.length, "Gov: invalid nfts length");
+
+        for (uint256 i = 0; i < voteNftsFor.length; i++) {
+            require(voteNftsFor[i] == voteNftsAgainst[i], "Gov: invalid nft vote");
+        }
+    }
+
+    function _validateApproveOrDeposit(
+        IGovPool.ProposalAction calldata actionFor,
+        IGovPool.ProposalAction calldata actionAgainst,
+        address metaGovPool
+    ) internal view {
+        (, address metaUserKeeper, , , ) = IGovPool(metaGovPool).getHelperContracts();
+
+        require(actionFor.executor == actionAgainst.executor, "Gov: invalid executor");
+
+        bytes4 selector = actionFor.data.getSelector();
+
+        require(selector == actionAgainst.data.getSelector(), "Gov: invalid selector");
+
+        if (selector == IERC20.approve.selector) {
+            _validateApprove(actionFor, actionAgainst, metaUserKeeper);
+        } else if (selector == IERC721.setApprovalForAll.selector) {
+            _validateSetApprovalForAll(actionFor, actionAgainst, metaUserKeeper);
+        } else if (selector == IGovPool.deposit.selector) {
+            _validateDeposit(actionFor, actionAgainst, metaGovPool);
+        } else {
+            revert("Gov: selector not supported");
+        }
+    }
+
+    function _validateDeposit(
+        IGovPool.ProposalAction calldata actionFor,
+        IGovPool.ProposalAction calldata actionAgainst,
+        address metaGovPool
+    ) internal view {
+        (
+            address receiverFor,
+            uint256 amountFor,
+            uint256[] memory nftIdsFor
+        ) = _decodeDepositFunction(actionFor);
+        (
+            address receiverAgainst,
+            uint256 amountAgainst,
+            uint256[] memory nftIdsAgainst
+        ) = _decodeDepositFunction(actionAgainst);
+
+        require(actionFor.executor == metaGovPool, "Gov: invalid executor");
+        require(
+            receiverFor == address(this) && receiverFor == receiverAgainst,
+            "Gov: invalid receiver"
+        );
+        require(amountFor == amountAgainst, "Gov: invalid amount");
+        require(nftIdsFor.length == nftIdsAgainst.length, "Gov: invalid nfts length");
+
+        for (uint256 i = 0; i < nftIdsFor.length; i++) {
+            require(nftIdsFor[i] == nftIdsAgainst[i], "Gov: invalid nft deposit");
+        }
+    }
+
+    function _validateApprove(
+        IGovPool.ProposalAction calldata actionFor,
+        IGovPool.ProposalAction calldata actionAgainst,
+        address metaUserKeeper
+    ) internal view {
+        address metaToken = GovUserKeeper(metaUserKeeper).tokenAddress();
+        address metaNft = GovUserKeeper(metaUserKeeper).nftAddress();
+
+        require(
+            actionFor.executor == metaToken || actionFor.executor == metaNft,
+            "Gov: invalid executor"
+        );
+
+        (address spenderFor, uint256 amountFor) = _decodeApproveFunction(actionFor);
+        (address spenderAgainst, uint256 amountAgainst) = _decodeApproveFunction(actionAgainst);
+
+        require(
+            spenderFor == metaUserKeeper && spenderFor == spenderAgainst,
+            "Gov: invalid spender"
+        );
+        require(amountFor == amountAgainst, "Gov: invalid amount");
+    }
+
+    function _validateSetApprovalForAll(
+        IGovPool.ProposalAction calldata actionFor,
+        IGovPool.ProposalAction calldata actionAgainst,
+        address metaUserKeeper
+    ) internal view {
+        address metaNft = GovUserKeeper(metaUserKeeper).nftAddress();
+
+        require(actionFor.executor == metaNft, "Gov: invalid executor");
+
+        (address operatorFor, bool approvedFor) = _decodeSetApprovalForAllFunction(actionFor);
+        (address operatorAgainst, bool approvedAgainst) = _decodeSetApprovalForAllFunction(
+            actionAgainst
+        );
+
+        require(
+            operatorFor == metaUserKeeper && operatorFor == operatorAgainst,
+            "Gov: invalid operator"
+        );
+        require(approvedFor == approvedAgainst, "Gov: invalid approve");
     }
 
     function _handleDataForValidatorBalanceProposal(
@@ -332,7 +456,37 @@ library GovPoolCreate {
 
     function _decodeVoteFunction(
         IGovPool.ProposalAction calldata action
-    ) internal pure returns (uint256 proposalId, bool isVoteFor) {
-        (proposalId, isVoteFor) = abi.decode(action.data[4:68], (uint256, bool));
+    )
+        internal
+        pure
+        returns (
+            uint256 proposalId,
+            bool isVoteFor,
+            uint256 voteAmount,
+            uint256[] memory voteNftIds
+        )
+    {
+        (proposalId, isVoteFor, voteAmount, voteNftIds) = abi.decode(
+            action.data[4:],
+            (uint256, bool, uint256, uint256[])
+        );
+    }
+
+    function _decodeDepositFunction(
+        IGovPool.ProposalAction calldata action
+    ) internal pure returns (address receiver, uint256 amount, uint256[] memory nftIds) {
+        (receiver, amount, nftIds) = abi.decode(action.data[4:], (address, uint256, uint256[]));
+    }
+
+    function _decodeApproveFunction(
+        IGovPool.ProposalAction calldata action
+    ) internal pure returns (address spender, uint256 amount) {
+        (spender, amount) = abi.decode(action.data[4:], (address, uint256));
+    }
+
+    function _decodeSetApprovalForAllFunction(
+        IGovPool.ProposalAction calldata action
+    ) internal pure returns (address operator, bool approved) {
+        (operator, approved) = abi.decode(action.data[4:], (address, bool));
     }
 }

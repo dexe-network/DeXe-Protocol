@@ -10,6 +10,7 @@ const {
   getBytesSetERC20Address,
   getBytesSetERC721Address,
   getBytesDistributionProposal,
+  getBytesTransfer,
   getBytesApprove,
   getBytesApproveAll,
   getBytesSetNftMultiplierAddress,
@@ -833,7 +834,7 @@ describe("GovPool", () => {
         );
       });
 
-      describe("with action against", () => {
+      describe("meta governance", () => {
         beforeEach(async () => {
           await token.mint(SECOND, wei("100000000000000000000"));
 
@@ -844,140 +845,508 @@ describe("GovPool", () => {
           await changeInternalSettings(true);
         });
 
-        it("should not create proposal due to different length", async () => {
-          await truffleAssert.reverts(
-            govPool.createProposal(
-              "",
-              [
-                [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
-                [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
-              ],
-              [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)]],
-              { from: SECOND }
-            ),
-            "Gov: invalid actions length"
-          );
+        describe("meta create", () => {
+          it("should not create proposal due to different length", async () => {
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)]],
+                { from: SECOND }
+              ),
+              "Gov: invalid actions length"
+            );
 
-          await truffleAssert.reverts(
-            govPool.createProposal(
-              "",
-              [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)]],
-              [
-                [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
-                [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
-              ],
-              { from: SECOND }
-            ),
-            "Gov: invalid actions length"
-          );
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)]],
+                [
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid actions length"
+            );
+          });
         });
 
-        it("should not create proposal due invalid executor", async () => {
-          await truffleAssert.reverts(
-            govPool.createProposal(
-              "",
-              [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)]],
-              [[SECOND, 0, getBytesGovVote(1, wei("1"), [], false)]],
-              { from: SECOND }
-            ),
-            "Gov: invalid executor"
-          );
+        describe("vote", () => {
+          it("should not create proposal due invalid executor", async () => {
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)]],
+                [[SECOND, 0, getBytesGovVote(1, wei("1"), [], false)]],
+                { from: SECOND }
+              ),
+              "Gov: invalid executor"
+            );
 
-          await truffleAssert.reverts(
-            govPool.createProposal(
-              "",
-              [[SECOND, 0, getBytesGovVote(1, wei("1"), [], true)]],
-              [[SECOND, 0, getBytesGovVote(1, wei("1"), [], false)]],
-              { from: SECOND }
-            ),
-            "Gov: invalid executor"
-          );
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [[SECOND, 0, getBytesGovVote(1, wei("1"), [], true)]],
+                [[SECOND, 0, getBytesGovVote(1, wei("1"), [], false)]],
+                { from: SECOND }
+              ),
+              "Gov: invalid executor"
+            );
+          });
+
+          it("should not create proposal due to invalid selector", async () => {
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [[govPool.address, 0, getBytesGovExecute(1)]],
+                [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)]],
+                { from: SECOND }
+              ),
+              "Gov: invalid selector"
+            );
+
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [[govPool.address, 0, getBytesGovExecute(1)]],
+                [[govPool.address, 0, getBytesGovExecute(1)]],
+                { from: SECOND }
+              ),
+              "Gov: invalid selector"
+            );
+          });
+
+          it("should not create proposal due to different proposalId", async () => {
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)]],
+                [[govPool.address, 0, getBytesGovVote(2, wei("1"), [], false)]],
+                { from: SECOND }
+              ),
+              "Gov: invalid proposal id"
+            );
+          });
+
+          it("should not create proposal due to invalid vote", async () => {
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)]],
+                [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)]],
+                { from: SECOND }
+              ),
+              "Gov: invalid vote"
+            );
+
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)]],
+                [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)]],
+                { from: SECOND }
+              ),
+              "Gov: invalid vote"
+            );
+
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)]],
+                [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)]],
+                { from: SECOND }
+              ),
+              "Gov: invalid vote"
+            );
+
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [[govPool.address, 0, getBytesGovVote(1, wei("10"), [], true)]],
+                [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)]],
+                { from: SECOND }
+              ),
+              "Gov: invalid vote amount"
+            );
+
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [[govPool.address, 0, getBytesGovVote(1, wei("1"), [1], true)]],
+                [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)]],
+                { from: SECOND }
+              ),
+              "Gov: invalid nfts length"
+            );
+
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [[govPool.address, 0, getBytesGovVote(1, wei("1"), [1], true)]],
+                [[govPool.address, 0, getBytesGovVote(1, wei("1"), [2], false)]],
+                { from: SECOND }
+              ),
+              "Gov: invalid nft vote"
+            );
+          });
         });
 
-        it("should not create proposal due to invalid selector", async () => {
-          await truffleAssert.reverts(
-            govPool.createProposal(
-              "",
-              [[govPool.address, 0, getBytesGovExecute(1)]],
-              [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)]],
-              { from: SECOND }
-            ),
-            "Gov: invalid selector"
-          );
+        describe("full meta", () => {
+          it("should not create proposal with approve and deposit only", async () => {
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [[token.address, 0, getBytesApprove(userKeeper.address, wei("1"))]],
+                [[token.address, 0, getBytesApprove(userKeeper.address, wei("1"))]],
+                { from: SECOND }
+              ),
+              "Gov: invalid executor"
+            );
 
-          await truffleAssert.reverts(
-            govPool.createProposal(
-              "",
-              [[govPool.address, 0, getBytesGovExecute(1)]],
-              [[govPool.address, 0, getBytesGovExecute(1)]],
-              { from: SECOND }
-            ),
-            "Gov: invalid selector"
-          );
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [[govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [])]],
+                [[govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [])]],
+                { from: SECOND }
+              ),
+              "Gov: invalid selector"
+            );
+          });
+
+          it("should not create proposal with wrong executor before vote", async () => {
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [govPool.address, 0, getBytesApprove(userKeeper.address, wei("1"))],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [token.address, 0, getBytesTransfer(userKeeper.address, wei("1"))],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid executor"
+            );
+
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [token.address, 0, getBytesApprove(userKeeper.address, wei("1"))],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [token.address, 0, getBytesTransfer(userKeeper.address, wei("1"))],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid selector"
+            );
+
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [token.address, 0, getBytesTransfer(userKeeper.address, wei("1"))],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [token.address, 0, getBytesTransfer(userKeeper.address, wei("1"))],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: selector not supported"
+            );
+          });
+
+          it("should create fullfat meta proposal", async () => {
+            await truffleAssert.passes(
+              govPool.createProposal(
+                "",
+                [
+                  [token.address, 0, getBytesApprove(userKeeper.address, wei("1"))],
+                  [nft.address, 0, getBytesApprove(userKeeper.address, 1)],
+                  [nft.address, 0, getBytesApproveAll(userKeeper.address, true)],
+                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [1])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [1], true)],
+                ],
+                [
+                  [token.address, 0, getBytesApprove(userKeeper.address, wei("1"))],
+                  [nft.address, 0, getBytesApprove(userKeeper.address, 1)],
+                  [nft.address, 0, getBytesApproveAll(userKeeper.address, true)],
+                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [1])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [1], false)],
+                ],
+                { from: SECOND }
+              )
+            );
+          });
         });
 
-        it("should create proposal with appropriate selectors", async () => {
-          await dexeExpertNft.mint(SECOND, "");
+        describe("approve", () => {
+          it("should not create proposal with wrong executor", async () => {
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [govPool.address, 0, getBytesApprove(userKeeper.address, wei("1"))],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [govPool.address, 0, getBytesApprove(userKeeper.address, wei("1"))],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid executor"
+            );
+          });
 
-          assert.isOk(
-            await govPool.createProposal(
-              "",
-              [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)]],
-              [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)]],
-              { from: SECOND }
-            )
-          );
+          it("should not create proposal with wrong spender", async () => {
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [token.address, 0, getBytesApprove(token.address, wei("1"))],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [token.address, 0, getBytesApprove(userKeeper.address, wei("1"))],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid spender"
+            );
+
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [token.address, 0, getBytesApprove(userKeeper.address, wei("1"))],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [token.address, 0, getBytesApprove(token.address, wei("1"))],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid spender"
+            );
+          });
+
+          it("should not create proposal with wrong approval amount", async () => {
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [token.address, 0, getBytesApprove(userKeeper.address, wei("1"))],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [token.address, 0, getBytesApprove(userKeeper.address, wei("10"))],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid amount"
+            );
+          });
         });
 
-        it("should not create proposal due to different proposalId", async () => {
-          await truffleAssert.reverts(
-            govPool.createProposal(
-              "",
-              [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)]],
-              [[govPool.address, 0, getBytesGovVote(2, wei("1"), [], false)]],
-              { from: SECOND }
-            ),
-            "Gov: invalid proposal id"
-          );
+        describe("setApprovalForAll", () => {
+          it("should not create proposal with wrong executor", async () => {
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [govPool.address, 0, getBytesApproveAll(userKeeper.address, true)],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [govPool.address, 0, getBytesApproveAll(userKeeper.address, true)],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid executor"
+            );
+          });
+
+          it("should not create proposal with wrong operator", async () => {
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [nft.address, 0, getBytesApproveAll(nft.address, true)],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [nft.address, 0, getBytesApproveAll(userKeeper.address, true)],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid operator"
+            );
+
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [nft.address, 0, getBytesApproveAll(userKeeper.address, true)],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [nft.address, 0, getBytesApproveAll(nft.address, true)],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid operator"
+            );
+          });
+
+          it("should not create with wrong approval", async () => {
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [nft.address, 0, getBytesApproveAll(userKeeper.address, true)],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [nft.address, 0, getBytesApproveAll(userKeeper.address, false)],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid approve"
+            );
+          });
         });
 
-        it("should not create proposal due to invalid vote", async () => {
-          await truffleAssert.reverts(
-            govPool.createProposal(
-              "",
-              [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)]],
-              [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)]],
-              { from: SECOND }
-            ),
-            "Gov: invalid vote"
-          );
+        describe("deposit", () => {
+          it("should not create proposal with wrong executor", async () => {
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [token.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [token.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid executor"
+            );
+          });
 
-          await truffleAssert.reverts(
-            govPool.createProposal(
-              "",
-              [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)]],
-              [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)]],
-              { from: SECOND }
-            ),
-            "Gov: invalid vote"
-          );
+          it("should not create proposal with wrong receiver", async () => {
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [govPool.address, 0, getBytesGovDeposit(token.address, wei("1"), [])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid receiver"
+            );
 
-          await truffleAssert.reverts(
-            govPool.createProposal(
-              "",
-              [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)]],
-              [[govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)]],
-              { from: SECOND }
-            ),
-            "Gov: invalid vote"
-          );
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [govPool.address, 0, getBytesGovDeposit(token.address, wei("1"), [])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid receiver"
+            );
+          });
+
+          it("should not create proposal with invalid deposit", async () => {
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("10"), [])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid amount"
+            );
+
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [1])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid nfts length"
+            );
+
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
+                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [1])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [2])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid nft deposit"
+            );
+          });
         });
       });
 
       it("should create proposal if user is Expert even due to low voting power", async () => {
         await dexeExpertNft.mint(SECOND, "");
 
-        assert.isOk(await govPool.createProposal("", [[SECOND, 0, getBytesApprove(SECOND, 1)]], [], { from: SECOND }));
+        await truffleAssert.passes(
+          govPool.createProposal("", [[SECOND, 0, getBytesApprove(SECOND, 1)]], [], { from: SECOND })
+        );
       });
 
       describe("validators", () => {
@@ -2610,7 +2979,6 @@ describe("GovPool", () => {
 
         await govPool.createProposal(
           "example.com",
-
           [
             [token.address, wei("1"), bytesApprove],
             [executorTransfer.address, wei("1"), bytesExecute],
@@ -2625,7 +2993,6 @@ describe("GovPool", () => {
 
         await govPool.createProposal(
           "example.com",
-
           [
             [token.address, "0", bytesApprove],
             [executorTransfer.address, wei("1"), bytesExecute],
