@@ -60,6 +60,8 @@ contract DistributionProposal is IDistributionProposal, IProposalValidator, Init
         proposal.rewardAddress = token;
 
         if (token == ETHEREUM_ADDRESS) {
+            require(amount == msg.value, "DP: wrong native amount");
+
             proposal.rewardAmount = amount;
         } else {
             IERC20Metadata(token).safeTransferFrom(

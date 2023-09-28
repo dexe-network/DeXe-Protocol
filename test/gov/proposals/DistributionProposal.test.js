@@ -441,6 +441,20 @@ describe("DistributionProposal", () => {
 
         await truffleAssert.reverts(dp.execute(1, token.address, "0", { from: govPool.address }), "DP: zero amount");
       });
+
+      it("should revert if not enough ether", async () => {
+        await govPool.createProposal(
+          "example.com",
+          [[dp.address, 0, getBytesDistributionProposal(2, ETHER_ADDR, wei("1"))]],
+          []
+        );
+
+        await govPool.vote(2, true, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+        await setTime(startTime + 20000);
+
+        await truffleAssert.reverts(govPool.execute(2), "DP: wrong native amount");
+      });
     });
 
     describe("claim()", () => {
@@ -611,23 +625,6 @@ describe("DistributionProposal", () => {
           10
         );
         assert.equal(await dp.getPotentialReward(1, THIRD), 0);
-      });
-
-      it("should not claim if not enough ether", async () => {
-        await govPool.createProposal(
-          "example.com",
-          [[dp.address, 0, getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))]],
-          [],
-          { from: SECOND }
-        );
-
-        await govPool.vote(1, true, 0, [1, 2, 3, 4, 5], { from: SECOND });
-        await govPool.vote(1, true, 0, [6, 7, 8, 9], { from: THIRD });
-
-        await setTime(startTime + 10000);
-        await govPool.execute(1);
-
-        await truffleAssert.reverts(dp.claim(SECOND, [1]));
       });
 
       it("should revert if already claimed", async () => {
