@@ -148,24 +148,31 @@ describe("GovValidators", () => {
       it("should revert on transfer", async () => {
         await truffleAssert.reverts(
           validatorsToken.transfer(THIRD, "10", { from: SECOND }),
-          "ValidatorsToken: caller is not the validator"
+          "ValidatorsToken: non-transferrable"
+        );
+      });
+
+      it("should revert on approve", async () => {
+        await truffleAssert.reverts(
+          validatorsToken.approve(THIRD, "10", { from: SECOND }),
+          "ValidatorsToken: non-approvable"
         );
       });
 
       it("only owner should call these functions", async () => {
         await truffleAssert.reverts(
           validatorsToken.mint(SECOND, "10", { from: SECOND }),
-          "ValidatorsToken: caller is not the validator"
+          "ValidatorsToken: caller is not the validators contract"
         );
 
         await truffleAssert.reverts(
           validatorsToken.burn(SECOND, "10", { from: SECOND }),
-          "ValidatorsToken: caller is not the validator"
+          "ValidatorsToken: caller is not the validators contract"
         );
 
         await truffleAssert.reverts(
           validatorsToken.snapshot({ from: SECOND }),
-          "ValidatorsToken: caller is not the validator"
+          "ValidatorsToken: caller is not the validators contract"
         );
       });
     });

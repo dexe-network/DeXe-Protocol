@@ -6,38 +6,41 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Snapshot.sol";
 import "../../interfaces/gov/validators/IGovValidatorsToken.sol";
 
 contract GovValidatorsToken is IGovValidatorsToken, ERC20Snapshot {
-    address public immutable validator;
+    address public immutable validatorsContract;
 
-    modifier onlyValidator() {
-        _onlyValidator();
+    modifier onlyValidatorsContract() {
+        _onlyValidatorsContract();
         _;
     }
 
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {
-        validator = msg.sender;
+        validatorsContract = msg.sender;
     }
 
-    function mint(address account, uint256 amount) external override {
+    function mint(address account, uint256 amount) external override onlyValidatorsContract {
         _mint(account, amount);
     }
 
-    function burn(address account, uint256 amount) external override {
+    function burn(address account, uint256 amount) external override onlyValidatorsContract {
         _burn(account, amount);
     }
 
-    function snapshot() external override onlyValidator returns (uint256) {
+    function snapshot() external override onlyValidatorsContract returns (uint256) {
         return _snapshot();
     }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override onlyValidator {
-        super._beforeTokenTransfer(from, to, amount);
+    function _onlyValidatorsContract() internal view {
+        require(
+            validatorsContract == msg.sender,
+            "ValidatorsToken: caller is not the validators contract"
+        );
     }
 
-    function _onlyValidator() internal view {
-        require(validator == msg.sender, "ValidatorsToken: caller is not the validator");
+    function _transfer(address, address, uint256) internal pure override {
+        revert("ValidatorsToken: non-transferrable");
+    }
+
+    function _approve(address, address, uint256) internal pure override {
+        revert("ValidatorsToken: non-approvable");
     }
 }
