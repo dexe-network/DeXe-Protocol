@@ -20,6 +20,7 @@ import "../gov/validators/GovValidators.sol";
 
 import "../core/CoreProperties.sol";
 import {PoolRegistry} from "./PoolRegistry.sol";
+import "./proxy/PoolBeaconProxy.sol";
 
 import "../libs/factory/GovTokenDeployer.sol";
 
@@ -261,5 +262,44 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         string memory poolName
     ) private pure returns (bytes32) {
         return keccak256(abi.encodePacked(deployer, poolName));
+    }
+
+    function _deploy(
+        address poolRegistry,
+        string memory poolType
+    ) internal override returns (address) {
+        return
+            address(
+                new PoolBeaconProxy(PoolRegistry(poolRegistry).getProxyBeacon(poolType), bytes(""))
+            );
+    }
+
+    function _deploy2(
+        address poolRegistry,
+        string memory poolType,
+        bytes32 salt
+    ) internal override returns (address) {
+        return
+            address(
+                new PoolBeaconProxy{salt: salt}(
+                    PoolRegistry(poolRegistry).getProxyBeacon(poolType),
+                    bytes("")
+                )
+            );
+    }
+
+    function _predictPoolAddress(
+        address poolRegistry,
+        string memory poolType,
+        bytes32 salt
+    ) internal view override returns (address) {
+        bytes32 bytecodeHash = keccak256(
+            abi.encodePacked(
+                type(PoolBeaconProxy).creationCode,
+                abi.encode(PoolRegistry(poolRegistry).getProxyBeacon(poolType), bytes(""))
+            )
+        );
+
+        return Create2.computeAddress(salt, bytecodeHash);
     }
 }

@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import "@solarity/solidity-lib/contracts-registry/presets/OwnableContractsRegistry.sol";
 
+import "@spherex-dexe/contracts/ProtectedProxies/ProtectedTransparentUpgradeableProxy.sol";
+
 import "../interfaces/core/IContractsRegistry.sol";
 
 contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPSUpgradeable {
@@ -72,6 +74,14 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
 
     function getDexeExpertNftContract() external view override returns (address) {
         return getContract(DEXE_EXPERT_NFT_NAME);
+    }
+
+    function _deployProxy(
+        address contractAddress_,
+        address admin_,
+        bytes memory data_
+    ) internal override returns (address) {
+        return address(new ProtectedTransparentUpgradeableProxy(contractAddress_, admin_, data_));
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
