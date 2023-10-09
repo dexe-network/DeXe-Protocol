@@ -41,21 +41,9 @@ library GovPoolMicropool {
             msg.sender
         ];
 
-        uint256[] storage delegationTimes = delegatorInfo.delegationTimes;
-        uint256[] storage tokenAmounts = delegatorInfo.tokenAmounts;
-        uint256[][] storage nftIds = delegatorInfo.nftIds;
-
-        uint256 length = delegationTimes.length;
-
-        if (length > 0 && delegationTimes[length - 1] == block.timestamp) {
-            delegationTimes.pop();
-            tokenAmounts.pop();
-            nftIds.pop();
-        }
-
-        delegationTimes.push(block.timestamp);
-        tokenAmounts.push(currentTokenAmount);
-        nftIds.push(currentNftIds);
+        delegatorInfo.delegationTimes.push(block.timestamp);
+        delegatorInfo.tokenAmounts.push(currentTokenAmount);
+        delegatorInfo.nftIds.push(currentNftIds);
     }
 
     function claim(
