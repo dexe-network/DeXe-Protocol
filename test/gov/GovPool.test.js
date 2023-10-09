@@ -4234,28 +4234,22 @@ describe("GovPool", () => {
         await executeValidatorProposal([[settings.address, 0, getBytesEditSettings([0], [DEFAULT_SETTINGS])]]);
 
         await govPool.delegate(SECOND, wei("100000"), [100, 101], { from: delegator1 });
-        await govPool.multicall(
-          [getBytesGovDelegate(SECOND, wei("50000"), [200]), getBytesGovDelegate(SECOND, wei("50000"), [])],
-          { from: delegator2 }
-        );
+        await govPool.delegate(SECOND, wei("50000"), [200], { from: delegator2 });
+        await govPool.delegate(SECOND, wei("50000"), [], { from: delegator2 });
 
         await succeedProposal([[token.address, 0, getBytesApprove(SECOND, 1)]]);
 
         assert.equal(await govPool.getProposalState(3), ProposalState.Voting);
 
-        await govPool.multicall(
-          [getBytesGovDelegate(SECOND, wei("50000"), [202]), getBytesGovDelegate(SECOND, wei("50000"), [201])],
-          { from: delegator2 }
-        );
+        await govPool.delegate(SECOND, wei("50000"), [201], { from: delegator2 });
+        await govPool.delegate(SECOND, wei("50000"), [202], { from: delegator2 });
 
         await setTime((await getCurrentBlockTime()) + 10000);
 
         assert.equal(await govPool.getProposalState(3), ProposalState.SucceededFor);
 
-        await govPool.multicall(
-          [getBytesGovDelegate(SECOND, wei("50000"), [203]), getBytesGovDelegate(SECOND, wei("50000"), [])],
-          { from: delegator2 }
-        );
+        await govPool.delegate(SECOND, wei("50000"), [203], { from: delegator2 });
+        await govPool.delegate(SECOND, wei("50000"), [], { from: delegator2 });
 
         let delegatorRewardsView = await govPool.getDelegatorRewards([3], delegator2, SECOND);
 
