@@ -27,6 +27,7 @@ const {
   getBytesUndelegateTreasury,
   getBytesGovDelegate,
   getBytesChangeVotePower,
+  getBytesGovWithdraw,
 } = require("../utils/gov-pool-utils");
 const {
   getBytesChangeInternalBalances,
@@ -67,6 +68,7 @@ const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC20 = artifacts.require("ERC20");
 const BABTMock = artifacts.require("BABTMock");
 const ExecutorTransferMock = artifacts.require("ExecutorTransferMock");
+const GovPoolAttackerMock = artifacts.require("GovPoolAttackerMock");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
@@ -125,6 +127,8 @@ describe("GovPool", () => {
   let dp;
   let votePower;
   let govPool;
+
+  let attacker;
 
   const reverter = new Reverter();
 
@@ -224,6 +228,7 @@ describe("GovPool", () => {
     babt = await BABTMock.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721EnumMock.new("Mock", "Mock");
+    attacker = await GovPoolAttackerMock.new();
 
     nftPower = await ERC721Power.new();
     await nftPower.__ERC721Power_init(
@@ -659,6 +664,25 @@ describe("GovPool", () => {
 
         await govPool.deposit(OWNER, wei("1000"), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
         await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
+      });
+
+      it("should unlock when Locked status", async () => {
+        let DEFAULT_SETTINGS = POOL_PARAMETERS.settingsParams.proposalSettings[0];
+        DEFAULT_SETTINGS.executionDelay = "1000";
+
+        await executeValidatorProposal([[settings.address, 0, getBytesEditSettings([0], [DEFAULT_SETTINGS])]]);
+
+        await succeedValidatorProposal([[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
+
+        await setTime((await getCurrentBlockTime()) + 5);
+
+        assert.equal((await govPool.getProposalState(2)).toFixed(), ProposalState.Locked);
+        assert.equal((await govPool.getUserActiveProposalsCount(SECOND)).toFixed(), "1");
+
+        await govPool.unlock(SECOND);
+
+        assert.equal((await govPool.getProposalState(2)).toFixed(), ProposalState.Locked);
+        assert.equal((await govPool.getUserActiveProposalsCount(SECOND)).toFixed(), "0");
       });
 
       it("should unlock all", async () => {
@@ -1559,6 +1583,62 @@ describe("GovPool", () => {
         await coreProperties.setGovVotesLimit(0);
 
         await truffleAssert.reverts(govPool.vote(1, true, wei("100"), []), "Gov: vote limit reached");
+      });
+
+      it("should not vote if delegate-vote-undelegate flashloan", async () => {
+        await changeInternalSettings(false);
+
+        await govPool.createProposal(
+          "example.com",
+          [[govPool.address, 0, getBytesGovVote(2, wei("100"), [], true)]],
+          [[govPool.address, 0, getBytesGovVote(2, wei("100"), [], false)]]
+        );
+
+        await govPool.withdraw(attacker.address, wei("100000000000000000000"), [], { from: SECOND });
+
+        await truffleAssert.reverts(
+          attacker.attackDelegateUndelegate(govPool.address, token.address, 2),
+          "BlockGuard: locked"
+        );
+      });
+
+      it("should not vote if delegate-vote-undelegate treasury flashloan", async () => {
+        await executeValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(SECOND, "URI")]]);
+
+        await token.transfer(govPool.address, wei("1"));
+
+        await impersonate(govPool.address);
+
+        await truffleAssert.reverts(
+          govPool.multicall(
+            [getBytesDelegateTreasury(SECOND, wei("1"), []), getBytesUndelegateTreasury(SECOND, wei("1"), [])],
+            { from: govPool.address }
+          ),
+          "BlockGuard: locked"
+        );
+      });
+
+      it("should not allow double delegate", async () => {
+        await truffleAssert.reverts(
+          govPool.multicall([getBytesGovDelegate(SECOND, wei("1"), []), getBytesGovDelegate(SECOND, wei("1"), [])]),
+          "BlockGuard: locked"
+        );
+      });
+
+      it("should not allow double delegate treasury", async () => {
+        await executeValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(SECOND, "URI")]]);
+
+        await token.transfer(govPool.address, wei("2"));
+
+        await impersonate(govPool.address);
+
+        await truffleAssert.reverts(
+          govPool.multicall(
+            [getBytesDelegateTreasury(SECOND, wei("1"), []), getBytesDelegateTreasury(SECOND, wei("1"), [])],
+            { from: govPool.address }
+          ),
+          "BlockGuard: locked"
+        );
       });
 
       it("should vote for if all conditions are met", async () => {
@@ -2779,6 +2859,20 @@ describe("GovPool", () => {
 
       it("should not undelegate zero tokens", async () => {
         await truffleAssert.reverts(govPool.undelegate(OWNER, 0, []), "Gov: empty undelegation");
+      });
+
+      it("should not allow deposit-withdraw flashloan", async () => {
+        await truffleAssert.reverts(
+          govPool.multicall([getBytesGovDeposit(OWNER, wei("1"), []), getBytesGovWithdraw(OWNER, wei("1"), [])]),
+          "BlockGuard: locked"
+        );
+      });
+
+      it("should not allow double deposit", async () => {
+        await truffleAssert.reverts(
+          govPool.multicall([getBytesGovDeposit(OWNER, wei("1"), []), getBytesGovDeposit(OWNER, wei("1"), [])]),
+          "BlockGuard: locked"
+        );
       });
     });
 
