@@ -63,6 +63,7 @@ library GovPoolUnlock {
             state != IGovPool.ProposalState.ExecutedAgainst &&
             state != IGovPool.ProposalState.SucceededFor &&
             state != IGovPool.ProposalState.SucceededAgainst &&
-            state != IGovPool.ProposalState.Defeated;
+            state != IGovPool.ProposalState.Defeated &&
+            state != IGovPool.ProposalState.Locked;
     }
 }

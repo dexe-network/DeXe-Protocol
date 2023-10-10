@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgra
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 
 import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
+import "@solarity/solidity-lib/utils/BlockGuard.sol";
 
 import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
@@ -38,7 +39,8 @@ contract GovPool is
     AbstractDependant,
     ERC721HolderUpgradeable,
     ERC1155HolderUpgradeable,
-    Multicall
+    Multicall,
+    BlockGuard
 {
     using MathHelper for uint256;
     using Math for uint256;
@@ -83,6 +85,10 @@ contract GovPool is
 
     mapping(uint256 => Proposal) internal _proposals; // proposalId => info
     mapping(address => UserInfo) internal _userInfos; // user => info
+
+    string private constant DEPOSIT_WITHDRAW = "DEPOSIT_WITHDRAW";
+    string private constant DELEGATE_UNDELEGATE = "DELEGATE_UNDELEGATE";
+    string private constant DELEGATE_UNDELEGATE_TREASURY = "DELEGATE_UNDELEGATE_TREASURY";
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
     event DelegatedTreasury(address to, uint256 amount, uint256[] nfts, bool isDelegate);
@@ -148,17 +154,15 @@ contract GovPool is
         _proposals.execute(proposalId);
     }
 
-    function deposit(
-        address receiver,
-        uint256 amount,
-        uint256[] calldata nftIds
-    ) external override onlyBABTHolder {
+    function deposit(uint256 amount, uint256[] calldata nftIds) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty deposit");
 
-        _govUserKeeper.depositTokens.exec(receiver, amount);
-        _govUserKeeper.depositNfts.exec(receiver, nftIds);
+        _lockBlock(DEPOSIT_WITHDRAW, msg.sender);
 
-        emit Deposited(amount, nftIds, receiver);
+        _govUserKeeper.depositTokens.exec(msg.sender, amount);
+        _govUserKeeper.depositNfts.exec(msg.sender, nftIds);
+
+        emit Deposited(amount, nftIds, msg.sender);
     }
 
     function createProposal(
@@ -203,6 +207,8 @@ contract GovPool is
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty withdrawal");
 
+        _checkBlock(DEPOSIT_WITHDRAW, msg.sender);
+
         _unlock(msg.sender);
 
         _govUserKeeper.withdrawTokens.exec(receiver, amount);
@@ -218,6 +224,8 @@ contract GovPool is
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
         require(msg.sender != delegatee, "Gov: delegator's equal delegatee");
+
+        _lockBlock(DELEGATE_UNDELEGATE, msg.sender);
 
         _unlock(msg.sender);
         _unlock(delegatee);
@@ -239,6 +247,8 @@ contract GovPool is
     ) external override onlyThis {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
         require(getExpertStatus(delegatee), "Gov: delegatee is not an expert");
+
+        _lockBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender);
 
         _unlock(delegatee);
 
@@ -272,6 +282,8 @@ contract GovPool is
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty undelegation");
 
+        _checkBlock(DELEGATE_UNDELEGATE, msg.sender);
+
         _unlock(delegatee);
 
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
@@ -290,6 +302,8 @@ contract GovPool is
         uint256[] calldata nftIds
     ) external override onlyThis {
         require(amount > 0 || nftIds.length > 0, "Gov: empty undelegation");
+
+        _checkBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender);
 
         _unlock(msg.sender);
 
