@@ -20,7 +20,7 @@ contract GovPoolAttackerMock {
         (, address userKeeperAddress, , , ) = govPool.getHelperContracts();
         votingToken.approve(userKeeperAddress, votingPower);
 
-        govPool.deposit(address(this), votingPower, new uint256[](0));
+        govPool.deposit(votingPower, new uint256[](0));
 
         require(
             votingToken.balanceOf(address(this)) == 0,

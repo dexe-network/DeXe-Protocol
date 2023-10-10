@@ -797,15 +797,10 @@ const getBytesGovVote = (proposalId, voteAmount, voteNftIds, isVoteFor = true) =
   );
 };
 
-const getBytesGovDeposit = (receiver, amount, nftIds) => {
+const getBytesGovDeposit = (amount, nftIds) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       inputs: [
-        {
-          internalType: "address",
-          name: "receiver",
-          type: "address",
-        },
         {
           internalType: "uint256",
           name: "amount",
@@ -822,7 +817,7 @@ const getBytesGovDeposit = (receiver, amount, nftIds) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [receiver, amount, nftIds]
+    [amount, nftIds]
   );
 };
 

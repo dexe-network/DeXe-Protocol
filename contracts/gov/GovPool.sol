@@ -154,19 +154,15 @@ contract GovPool is
         _proposals.execute(proposalId);
     }
 
-    function deposit(
-        address receiver,
-        uint256 amount,
-        uint256[] calldata nftIds
-    ) external override onlyBABTHolder {
+    function deposit(uint256 amount, uint256[] calldata nftIds) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty deposit");
 
         _lockBlock(DEPOSIT_WITHDRAW, msg.sender);
 
-        _govUserKeeper.depositTokens.exec(receiver, amount);
-        _govUserKeeper.depositNfts.exec(receiver, nftIds);
+        _govUserKeeper.depositTokens.exec(msg.sender, amount);
+        _govUserKeeper.depositNfts.exec(msg.sender, nftIds);
 
-        emit Deposited(amount, nftIds, receiver);
+        emit Deposited(amount, nftIds, msg.sender);
     }
 
     function createProposal(
