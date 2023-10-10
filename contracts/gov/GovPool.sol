@@ -158,8 +158,10 @@ contract GovPool is
         address receiver,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external override onlyBABTHolder checkLockBlock(DEPOSIT_WITHDRAW, msg.sender) {
+    ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty deposit");
+
+        _lockBlock(DEPOSIT_WITHDRAW, msg.sender);
 
         _govUserKeeper.depositTokens.exec(receiver, amount);
         _govUserKeeper.depositNfts.exec(receiver, nftIds);
@@ -206,8 +208,10 @@ contract GovPool is
         address receiver,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external override onlyBABTHolder checkBlock(DEPOSIT_WITHDRAW, msg.sender) {
+    ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty withdrawal");
+
+        _checkBlock(DEPOSIT_WITHDRAW, msg.sender);
 
         _unlock(msg.sender);
 
@@ -221,9 +225,11 @@ contract GovPool is
         address delegatee,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external override onlyBABTHolder checkLockBlock(DELEGATE_UNDELEGATE, msg.sender) {
+    ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
         require(msg.sender != delegatee, "Gov: delegator's equal delegatee");
+
+        _lockBlock(DELEGATE_UNDELEGATE, msg.sender);
 
         _unlock(msg.sender);
         _unlock(delegatee);
@@ -242,9 +248,11 @@ contract GovPool is
         address delegatee,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external override onlyThis checkLockBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender) {
+    ) external override onlyThis {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
         require(getExpertStatus(delegatee), "Gov: delegatee is not an expert");
+
+        _lockBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender);
 
         _unlock(delegatee);
 
@@ -275,8 +283,10 @@ contract GovPool is
         address delegatee,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external override onlyBABTHolder checkBlock(DELEGATE_UNDELEGATE, msg.sender) {
+    ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty undelegation");
+
+        _checkBlock(DELEGATE_UNDELEGATE, msg.sender);
 
         _unlock(delegatee);
 
@@ -294,8 +304,10 @@ contract GovPool is
         address delegatee,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external override onlyThis checkBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender) {
+    ) external override onlyThis {
         require(amount > 0 || nftIds.length > 0, "Gov: empty undelegation");
+
+        _checkBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender);
 
         _unlock(msg.sender);
 

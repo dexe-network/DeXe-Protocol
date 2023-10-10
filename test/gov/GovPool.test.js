@@ -1618,29 +1618,6 @@ describe("GovPool", () => {
         );
       });
 
-      it("should not allow double delegate", async () => {
-        await truffleAssert.reverts(
-          govPool.multicall([getBytesGovDelegate(SECOND, wei("1"), []), getBytesGovDelegate(SECOND, wei("1"), [])]),
-          "BlockGuard: locked"
-        );
-      });
-
-      it("should not allow double delegate treasury", async () => {
-        await executeValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(SECOND, "URI")]]);
-
-        await token.transfer(govPool.address, wei("2"));
-
-        await impersonate(govPool.address);
-
-        await truffleAssert.reverts(
-          govPool.multicall(
-            [getBytesDelegateTreasury(SECOND, wei("1"), []), getBytesDelegateTreasury(SECOND, wei("1"), [])],
-            { from: govPool.address }
-          ),
-          "BlockGuard: locked"
-        );
-      });
-
       it("should vote for if all conditions are met", async () => {
         await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
 
@@ -2864,13 +2841,6 @@ describe("GovPool", () => {
       it("should not allow deposit-withdraw flashloan", async () => {
         await truffleAssert.reverts(
           govPool.multicall([getBytesGovDeposit(OWNER, wei("1"), []), getBytesGovWithdraw(OWNER, wei("1"), [])]),
-          "BlockGuard: locked"
-        );
-      });
-
-      it("should not allow double deposit", async () => {
-        await truffleAssert.reverts(
-          govPool.multicall([getBytesGovDeposit(OWNER, wei("1"), []), getBytesGovDeposit(OWNER, wei("1"), [])]),
           "BlockGuard: locked"
         );
       });
@@ -4234,22 +4204,28 @@ describe("GovPool", () => {
         await executeValidatorProposal([[settings.address, 0, getBytesEditSettings([0], [DEFAULT_SETTINGS])]]);
 
         await govPool.delegate(SECOND, wei("100000"), [100, 101], { from: delegator1 });
-        await govPool.delegate(SECOND, wei("50000"), [200], { from: delegator2 });
-        await govPool.delegate(SECOND, wei("50000"), [], { from: delegator2 });
+        await govPool.multicall(
+          [getBytesGovDelegate(SECOND, wei("50000"), [200]), getBytesGovDelegate(SECOND, wei("50000"), [])],
+          { from: delegator2 }
+        );
 
         await succeedProposal([[token.address, 0, getBytesApprove(SECOND, 1)]]);
 
         assert.equal(await govPool.getProposalState(3), ProposalState.Voting);
 
-        await govPool.delegate(SECOND, wei("50000"), [201], { from: delegator2 });
-        await govPool.delegate(SECOND, wei("50000"), [202], { from: delegator2 });
+        await govPool.multicall(
+          [getBytesGovDelegate(SECOND, wei("50000"), [202]), getBytesGovDelegate(SECOND, wei("50000"), [201])],
+          { from: delegator2 }
+        );
 
         await setTime((await getCurrentBlockTime()) + 10000);
 
         assert.equal(await govPool.getProposalState(3), ProposalState.SucceededFor);
 
-        await govPool.delegate(SECOND, wei("50000"), [203], { from: delegator2 });
-        await govPool.delegate(SECOND, wei("50000"), [], { from: delegator2 });
+        await govPool.multicall(
+          [getBytesGovDelegate(SECOND, wei("50000"), [203]), getBytesGovDelegate(SECOND, wei("50000"), [])],
+          { from: delegator2 }
+        );
 
         let delegatorRewardsView = await govPool.getDelegatorRewards([3], delegator2, SECOND);
 
