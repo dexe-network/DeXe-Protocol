@@ -797,7 +797,31 @@ const getBytesGovVote = (proposalId, voteAmount, voteNftIds, isVoteFor = true) =
   );
 };
 
-const getBytesGovDeposit = (receiver, amount, nftIds) => {
+const getBytesGovDeposit = (amount, nftIds) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "uint256",
+          name: "amount",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256[]",
+          name: "nftIds",
+          type: "uint256[]",
+        },
+      ],
+      name: "deposit",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [amount, nftIds]
+  );
+};
+
+const getBytesGovWithdraw = (receiver, amount, nftIds) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       inputs: [
@@ -817,7 +841,7 @@ const getBytesGovDeposit = (receiver, amount, nftIds) => {
           type: "uint256[]",
         },
       ],
-      name: "deposit",
+      name: "withdraw",
       outputs: [],
       stateMutability: "nonpayable",
       type: "function",
@@ -847,6 +871,35 @@ const getBytesGovDelegate = (delegatee, amount, nftIds) => {
         },
       ],
       name: "delegate",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [delegatee, amount, nftIds]
+  );
+};
+
+const getBytesGovUndelegate = (delegatee, amount, nftIds) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "delegatee",
+          type: "address",
+        },
+        {
+          internalType: "uint256",
+          name: "amount",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256[]",
+          name: "nftIds",
+          type: "uint256[]",
+        },
+      ],
+      name: "undelegate",
       outputs: [],
       stateMutability: "nonpayable",
       type: "function",
@@ -1042,7 +1095,9 @@ module.exports = {
   getBytesGovClaimRewards,
   getBytesGovVote,
   getBytesGovDeposit,
+  getBytesGovWithdraw,
   getBytesGovDelegate,
+  getBytesGovUndelegate,
   getBytesKeeperWithdrawTokens,
   getBytesSetCreditInfo,
   getBytesChangeVoteModifiers,

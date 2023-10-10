@@ -652,14 +652,10 @@ Parameters:
 | :--------- | :------ | :---------------------------------------------------- |
 | proposalId | uint256 | the id of the proposal to cancel all votes from which |
 
-### deposit (0x2a24ee6b)
+### deposit (0xde3ab781)
 
 ```solidity
-function deposit(
-    address receiver,
-    uint256 amount,
-    uint256[] calldata nftIds
-) external
+function deposit(uint256 amount, uint256[] calldata nftIds) external
 ```
 
 The function for depositing tokens to the pool
@@ -667,11 +663,10 @@ The function for depositing tokens to the pool
 
 Parameters:
 
-| Name     | Type      | Description                          |
-| :------- | :-------- | :----------------------------------- |
-| receiver | address   | the address of the deposit receiver  |
-| amount   | uint256   | the erc20 deposit amount             |
-| nftIds   | uint256[] | the array of nft ids to deposit      |
+| Name   | Type      | Description                     |
+| :----- | :-------- | :------------------------------ |
+| amount | uint256   | the erc20 deposit amount        |
+| nftIds | uint256[] | the array of nft ids to deposit |
 
 ### withdraw (0xfb8c5ef0)
 

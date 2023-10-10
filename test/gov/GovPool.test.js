@@ -27,6 +27,7 @@ const {
   getBytesUndelegateTreasury,
   getBytesGovDelegate,
   getBytesChangeVotePower,
+  getBytesGovWithdraw,
 } = require("../utils/gov-pool-utils");
 const {
   getBytesChangeInternalBalances,
@@ -67,6 +68,7 @@ const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC20 = artifacts.require("ERC20");
 const BABTMock = artifacts.require("BABTMock");
 const ExecutorTransferMock = artifacts.require("ExecutorTransferMock");
+const GovPoolAttackerMock = artifacts.require("GovPoolAttackerMock");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
@@ -126,6 +128,8 @@ describe("GovPool", () => {
   let votePower;
   let govPool;
 
+  let attacker;
+
   const reverter = new Reverter();
 
   const getProposalByIndex = async (index) => (await govPool.getProposals(index - 1, 1))[0].proposal;
@@ -141,7 +145,7 @@ describe("GovPool", () => {
   ) {
     await govPool.multicall(
       [
-        getBytesGovDeposit(from, depositAmount, depositNftIds),
+        getBytesGovDeposit(depositAmount, depositNftIds),
         getBytesGovVote(proposalId, voteAmount, voteNftIds, isVoteFor),
       ],
       { from: from }
@@ -224,6 +228,7 @@ describe("GovPool", () => {
     babt = await BABTMock.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721EnumMock.new("Mock", "Mock");
+    attacker = await GovPoolAttackerMock.new();
 
     nftPower = await ERC721Power.new();
     await nftPower.__ERC721Power_init(
@@ -619,7 +624,7 @@ describe("GovPool", () => {
 
     describe("deposit()", () => {
       it("should not deposit zero tokens", async () => {
-        await truffleAssert.reverts(govPool.deposit(OWNER, 0, []), "Gov: empty deposit");
+        await truffleAssert.reverts(govPool.deposit(0, []), "Gov: empty deposit");
       });
 
       it("should deposit tokens", async () => {
@@ -635,7 +640,7 @@ describe("GovPool", () => {
         assert.equal((await userKeeper.nftBalance(OWNER, VoteType.PersonalVote)).totalBalance.toFixed(), "10");
         assert.equal((await userKeeper.nftBalance(OWNER, VoteType.PersonalVote)).ownedBalance.toFixed(), "10");
 
-        await govPool.deposit(OWNER, wei("100"), [1, 2, 3]);
+        await govPool.deposit(wei("100"), [1, 2, 3]);
 
         assert.equal(
           (await userKeeper.tokenBalance(OWNER, VoteType.PersonalVote)).totalBalance.toFixed(),
@@ -657,8 +662,27 @@ describe("GovPool", () => {
 
         await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
 
-        await govPool.deposit(OWNER, wei("1000"), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
-        await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
+        await govPool.deposit(wei("1000"), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        await govPool.deposit(wei("100000000000000000000"), [], { from: SECOND });
+      });
+
+      it("should unlock when Locked status", async () => {
+        let DEFAULT_SETTINGS = POOL_PARAMETERS.settingsParams.proposalSettings[0];
+        DEFAULT_SETTINGS.executionDelay = "1000";
+
+        await executeValidatorProposal([[settings.address, 0, getBytesEditSettings([0], [DEFAULT_SETTINGS])]]);
+
+        await succeedValidatorProposal([[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
+
+        await setTime((await getCurrentBlockTime()) + 5);
+
+        assert.equal((await govPool.getProposalState(2)).toFixed(), ProposalState.Locked);
+        assert.equal((await govPool.getUserActiveProposalsCount(SECOND)).toFixed(), "1");
+
+        await govPool.unlock(SECOND);
+
+        assert.equal((await govPool.getProposalState(2)).toFixed(), ProposalState.Locked);
+        assert.equal((await govPool.getUserActiveProposalsCount(SECOND)).toFixed(), "0");
       });
 
       it("should unlock all", async () => {
@@ -699,7 +723,12 @@ describe("GovPool", () => {
         await govPool.createProposal("", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
         await govPool.createProposal("", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
 
-        await govPool.deposit(govPool.address, wei("100"), []);
+        await token.mint(govPool.address, wei("100"));
+
+        await impersonate(govPool.address);
+
+        await token.approve(userKeeper.address, wei("100"), { from: govPool.address });
+        await govPool.deposit(wei("100"), [], { from: govPool.address });
 
         await govPool.createProposal(
           "",
@@ -765,7 +794,7 @@ describe("GovPool", () => {
 
     describe("createProposal()", () => {
       beforeEach("", async () => {
-        await govPool.deposit(OWNER, 1, [1]);
+        await govPool.deposit(1, [1]);
       });
 
       it("should not create proposal with empty actions", async () => {
@@ -840,7 +869,7 @@ describe("GovPool", () => {
 
           await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
 
-          await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
+          await govPool.deposit(wei("100000000000000000000"), [], { from: SECOND });
 
           await changeInternalSettings(true);
         });
@@ -1010,8 +1039,8 @@ describe("GovPool", () => {
             await truffleAssert.reverts(
               govPool.createProposal(
                 "",
-                [[govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [])]],
-                [[govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [])]],
+                [[govPool.address, 0, getBytesGovDeposit(wei("1"), [])]],
+                [[govPool.address, 0, getBytesGovDeposit(wei("1"), [])]],
                 { from: SECOND }
               ),
               "Gov: invalid selector"
@@ -1076,14 +1105,14 @@ describe("GovPool", () => {
                   [token.address, 0, getBytesApprove(userKeeper.address, wei("1"))],
                   [nft.address, 0, getBytesApprove(userKeeper.address, 1)],
                   [nft.address, 0, getBytesApproveAll(userKeeper.address, true)],
-                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [1])],
+                  [govPool.address, 0, getBytesGovDeposit(wei("1"), [1])],
                   [govPool.address, 0, getBytesGovVote(1, wei("1"), [1], true)],
                 ],
                 [
                   [token.address, 0, getBytesApprove(userKeeper.address, wei("1"))],
                   [nft.address, 0, getBytesApprove(userKeeper.address, 1)],
                   [nft.address, 0, getBytesApproveAll(userKeeper.address, true)],
-                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [1])],
+                  [govPool.address, 0, getBytesGovDeposit(wei("1"), [1])],
                   [govPool.address, 0, getBytesGovVote(1, wei("1"), [1], false)],
                 ],
                 { from: SECOND }
@@ -1242,11 +1271,11 @@ describe("GovPool", () => {
               govPool.createProposal(
                 "",
                 [
-                  [token.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [])],
+                  [token.address, 0, getBytesGovDeposit(wei("1"), [])],
                   [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
                 ],
                 [
-                  [token.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [])],
+                  [token.address, 0, getBytesGovDeposit(wei("1"), [])],
                   [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
                 ],
                 { from: SECOND }
@@ -1255,50 +1284,16 @@ describe("GovPool", () => {
             );
           });
 
-          it("should not create proposal with wrong receiver", async () => {
-            await truffleAssert.reverts(
-              govPool.createProposal(
-                "",
-                [
-                  [govPool.address, 0, getBytesGovDeposit(token.address, wei("1"), [])],
-                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
-                ],
-                [
-                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [])],
-                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
-                ],
-                { from: SECOND }
-              ),
-              "Gov: invalid receiver"
-            );
-
-            await truffleAssert.reverts(
-              govPool.createProposal(
-                "",
-                [
-                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [])],
-                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
-                ],
-                [
-                  [govPool.address, 0, getBytesGovDeposit(token.address, wei("1"), [])],
-                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
-                ],
-                { from: SECOND }
-              ),
-              "Gov: invalid receiver"
-            );
-          });
-
           it("should not create proposal with invalid deposit", async () => {
             await truffleAssert.reverts(
               govPool.createProposal(
                 "",
                 [
-                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [])],
+                  [govPool.address, 0, getBytesGovDeposit(wei("1"), [])],
                   [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
                 ],
                 [
-                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("10"), [])],
+                  [govPool.address, 0, getBytesGovDeposit(wei("10"), [])],
                   [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
                 ],
                 { from: SECOND }
@@ -1310,11 +1305,11 @@ describe("GovPool", () => {
               govPool.createProposal(
                 "",
                 [
-                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [1])],
+                  [govPool.address, 0, getBytesGovDeposit(wei("1"), [1])],
                   [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
                 ],
                 [
-                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [])],
+                  [govPool.address, 0, getBytesGovDeposit(wei("1"), [])],
                   [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
                 ],
                 { from: SECOND }
@@ -1326,11 +1321,11 @@ describe("GovPool", () => {
               govPool.createProposal(
                 "",
                 [
-                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [1])],
+                  [govPool.address, 0, getBytesGovDeposit(wei("1"), [1])],
                   [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
                 ],
                 [
-                  [govPool.address, 0, getBytesGovDeposit(govPool.address, wei("1"), [2])],
+                  [govPool.address, 0, getBytesGovDeposit(wei("1"), [2])],
                   [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
                 ],
                 { from: SECOND }
@@ -1500,8 +1495,8 @@ describe("GovPool", () => {
 
         await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
 
-        await govPool.deposit(OWNER, wei("1000"), [1, 2, 3, 4]);
-        await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
+        await govPool.deposit(wei("1000"), [1, 2, 3, 4]);
+        await govPool.deposit(wei("100000000000000000000"), [], { from: SECOND });
       });
 
       it("should not vote if vote unavailable", async () => {
@@ -1559,6 +1554,39 @@ describe("GovPool", () => {
         await coreProperties.setGovVotesLimit(0);
 
         await truffleAssert.reverts(govPool.vote(1, true, wei("100"), []), "Gov: vote limit reached");
+      });
+
+      it("should not vote if delegate-vote-undelegate flashloan", async () => {
+        await changeInternalSettings(false);
+
+        await govPool.createProposal(
+          "example.com",
+          [[govPool.address, 0, getBytesGovVote(2, wei("100"), [], true)]],
+          [[govPool.address, 0, getBytesGovVote(2, wei("100"), [], false)]]
+        );
+
+        await govPool.withdraw(attacker.address, wei("100000000000000000000"), [], { from: SECOND });
+
+        await truffleAssert.reverts(
+          attacker.attackDelegateUndelegate(govPool.address, token.address, 2),
+          "BlockGuard: locked"
+        );
+      });
+
+      it("should not vote if delegate-vote-undelegate treasury flashloan", async () => {
+        await executeValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(SECOND, "URI")]]);
+
+        await token.transfer(govPool.address, wei("1"));
+
+        await impersonate(govPool.address);
+
+        await truffleAssert.reverts(
+          govPool.multicall(
+            [getBytesDelegateTreasury(SECOND, wei("1"), []), getBytesUndelegateTreasury(SECOND, wei("1"), [])],
+            { from: govPool.address }
+          ),
+          "BlockGuard: locked"
+        );
       });
 
       it("should vote for if all conditions are met", async () => {
@@ -1631,7 +1659,7 @@ describe("GovPool", () => {
           await nft.safeMint(SECOND, 1);
           await nft.approve(userKeeper.address, 1, { from: SECOND });
 
-          await govPool.deposit(SECOND, 0, [1], { from: SECOND });
+          await govPool.deposit(0, [1], { from: SECOND });
 
           await govPool.vote(2, true, 0, [1], { from: SECOND });
 
@@ -1647,7 +1675,7 @@ describe("GovPool", () => {
           await nft.safeMint(OWNER, 1);
           await nft.approve(userKeeper.address, 1);
 
-          await govPool.deposit(OWNER, 0, [1]);
+          await govPool.deposit(0, [1]);
 
           await govPool.delegate(SECOND, 0, [1]);
 
@@ -1703,8 +1731,8 @@ describe("GovPool", () => {
 
           perNftPower = toBN(wei("33000")).idiv(16);
 
-          await govPool.deposit(delegator1, wei("6000000000000000000"), [100, 101], { from: delegator1 });
-          await govPool.deposit(delegator2, wei("6000000000000000000"), [200, 201, 202, 203], { from: delegator2 });
+          await govPool.deposit(wei("6000000000000000000"), [100, 101], { from: delegator1 });
+          await govPool.deposit(wei("6000000000000000000"), [200, 201, 202, 203], { from: delegator2 });
         });
 
         it("should voteMicropool if all conditions are met", async () => {
@@ -1978,8 +2006,8 @@ describe("GovPool", () => {
 
         await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
 
-        await govPool.deposit(OWNER, wei("1000"), [1, 2, 3, 4]);
-        await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
+        await govPool.deposit(wei("1000"), [1, 2, 3, 4]);
+        await govPool.deposit(wei("100000000000000000000"), [], { from: SECOND });
       });
 
       it("should not cancel if not active", async () => {
@@ -2229,7 +2257,7 @@ describe("GovPool", () => {
 
         await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
 
-        await govPool.deposit(SECOND, 0, [100, 101], { from: SECOND });
+        await govPool.deposit(0, [100, 101], { from: SECOND });
 
         await govPool.delegate(THIRD, wei("50000000000000000000"), [100], { from: SECOND });
 
@@ -2267,8 +2295,8 @@ describe("GovPool", () => {
 
         await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
 
-        await govPool.deposit(OWNER, wei("1000"), [1, 2, 3, 4]);
-        await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
+        await govPool.deposit(wei("1000"), [1, 2, 3, 4]);
+        await govPool.deposit(wei("100000000000000000000"), [], { from: SECOND });
       });
 
       it("should return Undefined when proposal doesn't exist", async () => {
@@ -2280,7 +2308,12 @@ describe("GovPool", () => {
 
         await govPool.createProposal("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
 
-        await govPool.deposit(govPool.address, wei("100"), []);
+        await token.mint(govPool.address, wei("100"));
+
+        await impersonate(govPool.address);
+
+        await token.approve(userKeeper.address, wei("100"), { from: govPool.address });
+        await govPool.deposit(wei("100"), [], { from: govPool.address });
 
         await executeProposal(
           [[govPool.address, 0, getBytesGovVote(2, wei("100"), [], true)]],
@@ -2296,7 +2329,12 @@ describe("GovPool", () => {
 
         await govPool.createProposal("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
 
-        await govPool.deposit(govPool.address, wei("100"), []);
+        await token.mint(govPool.address, wei("100"));
+
+        await impersonate(govPool.address);
+
+        await token.approve(userKeeper.address, wei("100"), { from: govPool.address });
+        await govPool.deposit(wei("100"), [], { from: govPool.address });
 
         await executeProposal(
           [[govPool.address, 0, getBytesGovVote(2, wei("100"), [], true)]],
@@ -2312,7 +2350,12 @@ describe("GovPool", () => {
 
         await govPool.createProposal("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
 
-        await govPool.deposit(govPool.address, wei("100"), []);
+        await token.mint(govPool.address, wei("100"));
+
+        await impersonate(govPool.address);
+
+        await token.approve(userKeeper.address, wei("100"), { from: govPool.address });
+        await govPool.deposit(wei("100"), [], { from: govPool.address });
 
         await executeValidatorProposal(
           [[govPool.address, 0, getBytesGovVote(2, wei("100"), [], true)]],
@@ -2328,7 +2371,12 @@ describe("GovPool", () => {
 
         await govPool.createProposal("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
 
-        await govPool.deposit(govPool.address, wei("100"), []);
+        await token.mint(govPool.address, wei("100"));
+
+        await impersonate(govPool.address);
+
+        await token.approve(userKeeper.address, wei("100"), { from: govPool.address });
+        await govPool.deposit(wei("100"), [], { from: govPool.address });
 
         await executeValidatorProposal(
           [[govPool.address, 0, getBytesGovVote(2, wei("100"), [], true)]],
@@ -2648,8 +2696,8 @@ describe("GovPool", () => {
 
         await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
 
-        await govPool.deposit(OWNER, wei("1000"), [1, 2, 3, 4]);
-        await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
+        await govPool.deposit(wei("1000"), [1, 2, 3, 4]);
+        await govPool.deposit(wei("100000000000000000000"), [], { from: SECOND });
 
         await changeInternalSettings(true);
 
@@ -2698,7 +2746,7 @@ describe("GovPool", () => {
 
     describe("deposit, vote, withdraw", () => {
       it("should deposit, vote and withdraw tokens", async () => {
-        await govPool.deposit(OWNER, wei("1000"), [1, 2, 3, 4]);
+        await govPool.deposit(wei("1000"), [1, 2, 3, 4]);
 
         await govPool.createProposal("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
 
@@ -2731,7 +2779,7 @@ describe("GovPool", () => {
       });
 
       it("should deposit, vote, unlock", async () => {
-        await govPool.deposit(OWNER, wei("1000"), [1, 2, 3, 4]);
+        await govPool.deposit(wei("1000"), [1, 2, 3, 4]);
 
         await govPool.createProposal("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
         await govPool.createProposal("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
@@ -2779,6 +2827,13 @@ describe("GovPool", () => {
 
       it("should not undelegate zero tokens", async () => {
         await truffleAssert.reverts(govPool.undelegate(OWNER, 0, []), "Gov: empty undelegation");
+      });
+
+      it("should not allow deposit-withdraw flashloan", async () => {
+        await truffleAssert.reverts(
+          govPool.multicall([getBytesGovDeposit(wei("1"), []), getBytesGovWithdraw(OWNER, wei("1"), [])]),
+          "BlockGuard: locked"
+        );
       });
     });
 
@@ -2828,8 +2883,8 @@ describe("GovPool", () => {
 
         await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
 
-        await govPool.deposit(OWNER, wei("1000"), []);
-        await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
+        await govPool.deposit(wei("1000"), []);
+        await govPool.deposit(wei("100000000000000000000"), [], { from: SECOND });
       });
 
       it("should add new settings", async () => {
@@ -3370,12 +3425,12 @@ describe("GovPool", () => {
 
               await token.mint(VICTIM, wei("111222"));
               await token.approve(userKeeper.address, wei("111222"), { from: VICTIM });
-              await govPool.deposit(VICTIM, wei("111222"), [], { from: VICTIM });
+              await govPool.deposit(wei("111222"), [], { from: VICTIM });
 
               await token.mint(DELEGATOR, wei("100000000000000000000"));
               await token.approve(userKeeper.address, wei("100000000000000000000"), { from: DELEGATOR });
 
-              await govPool.deposit(DELEGATOR, wei("100000000000000000000"), [], { from: DELEGATOR });
+              await govPool.deposit(wei("100000000000000000000"), [], { from: DELEGATOR });
               await govPool.delegate(SECOND, wei("100000000000000000000"), [], { from: DELEGATOR });
             });
 
@@ -3497,7 +3552,7 @@ describe("GovPool", () => {
             },
           ];
 
-          await govPool.deposit(OWNER, wei("1000"), []);
+          await govPool.deposit(wei("1000"), []);
 
           for (const proposalView of proposalViews) {
             const { descriptionURL, actionsOnFor, actionsOnAgainst } = proposalView.proposal;
@@ -3546,7 +3601,7 @@ describe("GovPool", () => {
       });
 
       it("should correctly return count of active proposals", async () => {
-        await govPool.deposit(OWNER, wei("1000"), []);
+        await govPool.deposit(wei("1000"), []);
 
         await govPool.createProposal("example.com", [[SECOND, "0", getBytesApprove(SECOND, 1)]], []);
         await govPool.createProposal(
@@ -3605,8 +3660,8 @@ describe("GovPool", () => {
 
         await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
 
-        await govPool.deposit(OWNER, wei("1000"), []);
-        await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
+        await govPool.deposit(wei("1000"), []);
+        await govPool.deposit(wei("100000000000000000000"), [], { from: SECOND });
       });
 
       it("should claim reward on For", async () => {
@@ -3659,7 +3714,12 @@ describe("GovPool", () => {
 
         await govPool.createProposal("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
 
-        await govPool.deposit(govPool.address, wei("100"), []);
+        await token.mint(govPool.address, wei("100"));
+
+        await impersonate(govPool.address);
+
+        await token.approve(userKeeper.address, wei("100"), { from: govPool.address });
+        await govPool.deposit(wei("100"), [], { from: govPool.address });
 
         await govPool.createProposal(
           "example.com",
@@ -3830,7 +3890,7 @@ describe("GovPool", () => {
         await token.mint(coreProperties.address, wei("100000000000000000000"));
         await token.approve(userKeeper.address, wei("100000000000000000000"), { from: coreProperties.address });
 
-        await govPool.deposit(coreProperties.address, wei("100000000000000000000"), [], {
+        await govPool.deposit(wei("100000000000000000000"), [], {
           from: coreProperties.address,
         });
 
@@ -4000,8 +4060,8 @@ describe("GovPool", () => {
 
         await token.approve(userKeeper.address, wei("1000000"), { from: SECOND });
 
-        await govPool.deposit(OWNER, wei("1000"), []);
-        await govPool.deposit(SECOND, wei("1000000"), [], { from: SECOND });
+        await govPool.deposit(wei("1000"), []);
+        await govPool.deposit(wei("1000000"), [], { from: SECOND });
 
         const squareVotePower = await VotePowerMock.new();
         await executeValidatorProposal([[govPool.address, 0, getBytesChangeVotePower(squareVotePower.address)]]);
@@ -4030,9 +4090,9 @@ describe("GovPool", () => {
         await token.approve(userKeeper.address, wei("400000"), { from: delegator2 });
         await token.approve(userKeeper.address, wei("200000"), { from: delegator3 });
 
-        await govPool.deposit(delegator1, wei("200000"), [100, 101], { from: delegator1 });
-        await govPool.deposit(delegator2, wei("400000"), [200, 201, 202, 203], { from: delegator2 });
-        await govPool.deposit(delegator3, wei("200000"), [], { from: delegator3 });
+        await govPool.deposit(wei("200000"), [100, 101], { from: delegator1 });
+        await govPool.deposit(wei("400000"), [200, 201, 202, 203], { from: delegator2 });
+        await govPool.deposit(wei("200000"), [], { from: delegator3 });
       });
 
       it("should claim rewards properly if all conditions are met", async () => {
@@ -4257,7 +4317,12 @@ describe("GovPool", () => {
 
         await govPool.createProposal("", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
 
-        await govPool.deposit(govPool.address, wei("100"), []);
+        await token.mint(govPool.address, wei("100"));
+
+        await impersonate(govPool.address);
+
+        await token.approve(userKeeper.address, wei("100"), { from: govPool.address });
+        await govPool.deposit(wei("100"), [], { from: govPool.address });
 
         await govPool.delegate(SECOND, wei("200000"), [], { from: delegator1 });
         await govPool.delegate(SECOND, wei("400000"), [], { from: delegator2 });
@@ -4308,7 +4373,12 @@ describe("GovPool", () => {
 
         await govPool.createProposal("", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
 
-        await govPool.deposit(govPool.address, wei("100"), []);
+        await token.mint(govPool.address, wei("100"));
+
+        await impersonate(govPool.address);
+
+        await token.approve(userKeeper.address, wei("100"), { from: govPool.address });
+        await govPool.deposit(wei("100"), [], { from: govPool.address });
 
         await govPool.delegate(SECOND, wei("200000"), [], { from: delegator1 });
         await govPool.delegate(SECOND, wei("400000"), [], { from: delegator2 });
@@ -4334,7 +4404,12 @@ describe("GovPool", () => {
 
         await govPool.createProposal("", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
 
-        await govPool.deposit(govPool.address, wei("100"), []);
+        await token.mint(govPool.address, wei("100"));
+
+        await impersonate(govPool.address);
+
+        await token.approve(userKeeper.address, wei("100"), { from: govPool.address });
+        await govPool.deposit(wei("100"), [], { from: govPool.address });
 
         await govPool.delegate(SECOND, wei("200000"), [], { from: delegator1 });
         await govPool.delegate(SECOND, wei("400000"), [], { from: delegator2 });
@@ -4630,8 +4705,8 @@ describe("GovPool", () => {
 
           await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
 
-          await govPool.deposit(OWNER, wei("1000"), []);
-          await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
+          await govPool.deposit(wei("1000"), []);
+          await govPool.deposit(wei("100000000000000000000"), [], { from: SECOND });
 
           await govPool.createProposal(
             "example.com",
@@ -4868,7 +4943,7 @@ describe("GovPool", () => {
       await token.mint(SECOND, wei("100000000000000000000"));
       await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
 
-      await govPool.deposit(SECOND, wei("3"), [], { from: SECOND });
+      await govPool.deposit(wei("3"), [], { from: SECOND });
     });
 
     it("should bypass the onlyBABT restriction if the caller is a pool", async () => {
@@ -4880,10 +4955,10 @@ describe("GovPool", () => {
       assert.equal((await userKeeper.tokenBalance(THIRD, VoteType.PersonalVote)).totalBalance.toFixed(), "0");
       assert.equal((await babt.balanceOf(govPool.address)).toFixed(), "0");
 
-      await govPool.deposit(THIRD, wei("1000000"), [], { from: govPool.address });
+      await govPool.deposit(wei("1000000"), [], { from: govPool.address });
 
       assert.equal(
-        (await userKeeper.tokenBalance(THIRD, VoteType.PersonalVote)).totalBalance.toFixed(),
+        (await userKeeper.tokenBalance(govPool.address, VoteType.PersonalVote)).totalBalance.toFixed(),
         wei("1000000")
       );
     });
@@ -4912,7 +4987,7 @@ describe("GovPool", () => {
       });
 
       it("deposit()", async () => {
-        await truffleAssert.reverts(govPool.deposit(SECOND, wei("1000"), []), REVERT_STRING);
+        await truffleAssert.reverts(govPool.deposit(wei("1000"), []), REVERT_STRING);
       });
 
       it("withdraw()", async () => {

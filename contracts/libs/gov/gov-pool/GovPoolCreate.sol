@@ -371,22 +371,12 @@ library GovPoolCreate {
         IGovPool.ProposalAction calldata actionAgainst,
         address metaGovPool
     ) internal view {
-        (
-            address receiverFor,
-            uint256 amountFor,
-            uint256[] memory nftIdsFor
-        ) = _decodeDepositFunction(actionFor);
-        (
-            address receiverAgainst,
-            uint256 amountAgainst,
-            uint256[] memory nftIdsAgainst
-        ) = _decodeDepositFunction(actionAgainst);
+        (uint256 amountFor, uint256[] memory nftIdsFor) = _decodeDepositFunction(actionFor);
+        (uint256 amountAgainst, uint256[] memory nftIdsAgainst) = _decodeDepositFunction(
+            actionAgainst
+        );
 
         require(actionFor.executor == metaGovPool, "Gov: invalid executor");
-        require(
-            receiverFor == address(this) && receiverFor == receiverAgainst,
-            "Gov: invalid receiver"
-        );
         require(amountFor == amountAgainst, "Gov: invalid amount");
         require(nftIdsFor.length == nftIdsAgainst.length, "Gov: invalid nfts length");
 
@@ -474,8 +464,8 @@ library GovPoolCreate {
 
     function _decodeDepositFunction(
         IGovPool.ProposalAction calldata action
-    ) internal pure returns (address receiver, uint256 amount, uint256[] memory nftIds) {
-        (receiver, amount, nftIds) = abi.decode(action.data[4:], (address, uint256, uint256[]));
+    ) internal pure returns (uint256 amount, uint256[] memory nftIds) {
+        (amount, nftIds) = abi.decode(action.data[4:], (uint256, uint256[]));
     }
 
     function _decodeApproveFunction(

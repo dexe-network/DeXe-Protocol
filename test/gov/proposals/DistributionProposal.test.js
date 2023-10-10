@@ -387,7 +387,7 @@ describe("DistributionProposal", () => {
 
         await token.mint(govPool.address, wei("100"));
 
-        await govPool.deposit(OWNER, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        await govPool.deposit(0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
         await setTime(startTime + 999);
 
@@ -465,8 +465,15 @@ describe("DistributionProposal", () => {
       beforeEach("setup", async () => {
         startTime = await getCurrentBlockTime();
 
-        await govPool.deposit(SECOND, 0, [1, 2, 3, 4, 5]);
-        await govPool.deposit(THIRD, 0, [6, 7, 8, 9]);
+        for (let i = 1; i <= 9; i++) {
+          await nft.transferFrom(OWNER, i <= 5 ? SECOND : THIRD, i);
+        }
+
+        await nft.setApprovalForAll(userKeeper.address, true, { from: SECOND });
+        await nft.setApprovalForAll(userKeeper.address, true, { from: THIRD });
+
+        await govPool.deposit(0, [1, 2, 3, 4, 5], { from: SECOND });
+        await govPool.deposit(0, [6, 7, 8, 9], { from: THIRD });
 
         await setTime(startTime + 999);
 

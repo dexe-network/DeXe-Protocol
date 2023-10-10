@@ -278,8 +278,8 @@ describe("TokenSaleProposal", () => {
     await token.mint(SECOND, wei("100000000000000000000"));
     await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
 
-    await govPool.deposit(OWNER, wei("1000"), []);
-    await govPool.deposit(SECOND, wei("100000000000000000000"), [], { from: SECOND });
+    await govPool.deposit(wei("1000"), []);
+    await govPool.deposit(wei("100000000000000000000"), [], { from: SECOND });
   }
 
   describe("proposals", () => {
@@ -1688,7 +1688,7 @@ describe("TokenSaleProposal", () => {
           await token.mint(THIRD, defaultDaoVotes.plus(1));
           await token.approve(userKeeper.address, defaultDaoVotes.plus(1), { from: THIRD });
 
-          await govPool.deposit(THIRD, defaultDaoVotes.plus(1), [], { from: THIRD });
+          await govPool.deposit(defaultDaoVotes.plus(1), [], { from: THIRD });
 
           await purchaseToken2.mint(THIRD, wei(20));
           await purchaseToken2.approve(tsp.address, wei(20), { from: THIRD });
@@ -1851,7 +1851,7 @@ describe("TokenSaleProposal", () => {
             await token.mint(THIRD, defaultDaoVotes.plus(1));
             await token.approve(userKeeper.address, defaultDaoVotes.plus(1), { from: THIRD });
 
-            await govPool.deposit(THIRD, defaultDaoVotes.plus(1), [], { from: THIRD });
+            await govPool.deposit(defaultDaoVotes.plus(1), [], { from: THIRD });
 
             await purchaseToken2.mint(THIRD, wei(20));
             await purchaseToken2.approve(tsp.address, wei(20), { from: THIRD });

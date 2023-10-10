@@ -349,10 +349,9 @@ interface IGovPool {
     function cancelVote(uint256 proposalId) external;
 
     /// @notice The function for depositing tokens to the pool
-    /// @param receiver the address of the deposit receiver
     /// @param amount the erc20 deposit amount
     /// @param nftIds the array of nft ids to deposit
-    function deposit(address receiver, uint256 amount, uint256[] calldata nftIds) external;
+    function deposit(uint256 amount, uint256[] calldata nftIds) external;
 
     /// @notice The function for withdrawing deposited tokens
     /// @param receiver the withdrawal receiver address
