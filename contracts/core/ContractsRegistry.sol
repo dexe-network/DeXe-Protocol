@@ -5,8 +5,6 @@ import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import "@solarity/solidity-lib/contracts-registry/presets/OwnableContractsRegistry.sol";
 
-import "@spherex-dexe/contracts/ProtectedProxies/ProtectedTransparentUpgradeableProxy.sol";
-
 import "../interfaces/core/IContractsRegistry.sol";
 
 contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPSUpgradeable {

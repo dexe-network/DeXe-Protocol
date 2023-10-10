@@ -25,6 +25,7 @@ import "./proxy/PoolBeaconProxy.sol";
 import "../libs/factory/GovTokenDeployer.sol";
 
 import "../core/Globals.sol";
+import "../proxies/ProtectedBeaconProxy.sol";
 
 contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     using GovTokenDeployer for *;
@@ -295,8 +296,13 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     ) internal view override returns (address) {
         bytes32 bytecodeHash = keccak256(
             abi.encodePacked(
-                type(PoolBeaconProxy).creationCode,
-                abi.encode(PoolRegistry(poolRegistry).getProxyBeacon(poolType), bytes(""))
+                type(ProtectedBeaconProxy).creationCode,
+                abi.encode(
+                    sphereXAdmin,
+                    sphereXOperator,
+                    PoolRegistry(poolRegistry).getProxyBeacon(poolType),
+                    bytes("")
+                )
             )
         );
 
