@@ -161,10 +161,12 @@ library GovPoolCreate {
     ) internal {
         for (uint256 i; i < actions.length; i++) {
             IGovPool.ProposalAction calldata action = actions[i];
+            bytes4 selector = action.data.getSelector();
 
             if (
                 action.executor == address(this) &&
-                action.data.getSelector() == IGovPool.undelegateTreasury.selector
+                (selector == IGovPool.delegateTreasury.selector ||
+                    selector == IGovPool.undelegateTreasury.selector)
             ) {
                 address user = abi.decode(action.data[4:36], (address));
                 userInfos[user].restrictedProposals.add(proposalId);
@@ -370,7 +372,7 @@ library GovPoolCreate {
         IGovPool.ProposalAction calldata actionFor,
         IGovPool.ProposalAction calldata actionAgainst,
         address metaGovPool
-    ) internal view {
+    ) internal pure {
         (uint256 amountFor, uint256[] memory nftIdsFor) = _decodeDepositFunction(actionFor);
         (uint256 amountAgainst, uint256[] memory nftIdsAgainst) = _decodeDepositFunction(
             actionAgainst
