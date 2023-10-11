@@ -17,11 +17,11 @@ abstract contract AbstractERC721Multiplier is
     OwnableUpgradeable,
     BlockGuard
 {
-    string public constant LOCK_UNLOCK_RESOURCE = "LOCK_UNLOCK";
+    string public constant LOCK_UNLOCK = "LOCK_UNLOCK";
 
     string public baseURI;
 
-    mapping(uint256 => IAbstractERC721Multiplier.NftInfo) internal _tokens;
+    mapping(uint256 => NftInfo) internal _tokens;
     mapping(address => uint256) internal _latestLockedTokenIds;
 
     event Minted(uint256 tokenId, address to, uint256 multiplier, uint256 duration);
@@ -37,7 +37,9 @@ abstract contract AbstractERC721Multiplier is
         __ERC721_init(name, symbol);
     }
 
-    function lock(uint256 tokenId) external checkLockBlock(LOCK_UNLOCK_RESOURCE, msg.sender) {
+    function lock(uint256 tokenId) external {
+        _lockBlock(LOCK_UNLOCK, msg.sender);
+
         _onlyTokenOwner(tokenId);
 
         require(
@@ -52,7 +54,9 @@ abstract contract AbstractERC721Multiplier is
         emit Locked(tokenId, msg.sender, true);
     }
 
-    function unlock() external checkBlock(LOCK_UNLOCK_RESOURCE, msg.sender) {
+    function unlock() external {
+        _checkBlock(LOCK_UNLOCK, msg.sender);
+
         uint256 tokenId = _latestLockedTokenIds[msg.sender];
 
         _onlyTokenOwner(tokenId);
@@ -90,7 +94,7 @@ abstract contract AbstractERC721Multiplier is
 
         _mint(to, currentTokenId);
 
-        _tokens[currentTokenId] = IAbstractERC721Multiplier.NftInfo({
+        _tokens[currentTokenId] = NftInfo({
             multiplier: multiplier,
             duration: duration,
             mintedAt: uint64(block.timestamp)
@@ -102,7 +106,7 @@ abstract contract AbstractERC721Multiplier is
     function _changeToken(uint256 tokenId, uint256 multiplier, uint64 duration) internal {
         _requireMinted(tokenId);
 
-        IAbstractERC721Multiplier.NftInfo storage token = _tokens[tokenId];
+        NftInfo storage token = _tokens[tokenId];
 
         token.multiplier = multiplier;
         token.duration = duration;
@@ -140,7 +144,7 @@ abstract contract AbstractERC721Multiplier is
             return (0, 0, 0);
         }
 
-        IAbstractERC721Multiplier.NftInfo memory info = _tokens[latestLockedTokenId];
+        NftInfo memory info = _tokens[latestLockedTokenId];
 
         if (info.mintedAt + info.duration < block.timestamp) {
             return (0, 0, 0);
