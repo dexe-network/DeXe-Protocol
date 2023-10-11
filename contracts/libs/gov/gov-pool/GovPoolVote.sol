@@ -46,8 +46,6 @@ library GovPoolVote {
 
         mapping(IGovPool.VoteType => IGovPool.RawVote) storage rawVotes = voteInfo.rawVotes;
 
-        bool bannedTreasury = userInfo.bannedTreasuryProposals.contains(proposalId);
-
         if (amount != 0 || nftIds.length != 0) {
             (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
             IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
@@ -71,7 +69,7 @@ library GovPoolVote {
                 IGovPool.VoteType.MicropoolVote
             );
 
-            if (!bannedTreasury) {
+            if (!userInfo.bannedTreasuryProposals.contains(proposalId)) {
                 _voteDelegated(
                     core,
                     rawVotes[IGovPool.VoteType.TreasuryVote],
