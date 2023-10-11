@@ -216,13 +216,13 @@ interface IGovPool {
     /// @param pendingRewards user's pending rewards
     /// @param delegatorInfos matching delegators to their infos
     /// @param votedInProposals the list of active proposals user voted in
-    /// @param restrictedProposals the list of proposals user is restricted to vote in
+    /// @param bannedTreasuryProposals the list of proposals user is restricted to vote with treasury in
     struct UserInfo {
         mapping(uint256 => VoteInfo) voteInfos;
         PendingRewards pendingRewards;
         mapping(address => DelegatorInfo) delegatorInfos;
         EnumerableSet.UintSet votedInProposals;
-        EnumerableSet.UintSet restrictedProposals;
+        EnumerableSet.UintSet bannedTreasuryProposals;
     }
 
     /// @notice The struct that is used in view functions of contract as a return argument

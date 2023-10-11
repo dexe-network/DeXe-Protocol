@@ -25,6 +25,16 @@ contract VotePowerMock is IVotePower, OwnableUpgradeable {
         return votes * votes;
     }
 
+    function transformVotes(
+        address,
+        uint256 votes,
+        uint256,
+        uint256,
+        uint256
+    ) external pure override returns (uint256 resultingVotes) {
+        return votes * votes;
+    }
+
     function getVotesRatio(address) external pure override returns (uint256 votesRatio) {
         return PRECISION;
     }

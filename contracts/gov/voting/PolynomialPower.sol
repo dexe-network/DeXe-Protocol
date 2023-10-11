@@ -10,6 +10,7 @@ import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/voting/IVotePower.sol";
 
 import "../../libs/math/MathHelper.sol";
+import "../../libs/utils/TypeHelper.sol";
 
 import "../../core/Globals.sol";
 
@@ -17,6 +18,7 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
     using MathHelper for uint256;
     using MathHelper for int256;
     using TypeCaster for *;
+    using TypeHelper for *;
 
     int256 private constant HOLDER_A = 1041 * (10 ** 22);
     int256 private constant HOLDER_B = -7211 * (10 ** 19);
@@ -56,58 +58,55 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
         address voter,
         uint256 votes
     ) external view override returns (uint256) {
-        (uint256 treasuryRatio, uint256 totalSupply) = _calculateParameters(voter);
+        return _transformVotes(voter, votes, getVotesRatio(voter), _getTotalSupply());
+    }
 
-        if (!IGovPool(owner()).getExpertStatus(voter)) {
-            return _forHolders(votes, totalSupply);
-        }
-
+    function transformVotes(
+        address voter,
+        uint256 votes,
+        uint256 personalPower,
+        uint256 micropoolPower,
+        uint256 treasuryPower
+    ) external view override returns (uint256) {
         return
-            _forExperts(votes, totalSupply, false).ratio(PRECISION - treasuryRatio, PRECISION) +
-            _forExperts(votes, totalSupply, true).ratio(treasuryRatio, PRECISION);
+            _transformVotes(
+                voter,
+                votes,
+                _getVotesRatio(personalPower, micropoolPower, treasuryPower),
+                _getTotalSupply()
+            );
     }
 
     function getVoteCoefficients() external view returns (uint256, uint256, uint256) {
         return (_coefficient1, _coefficient2, _coefficient3);
     }
 
-    function getVotesRatio(address voter) external view override returns (uint256 votesRatio) {
-        (votesRatio, ) = _calculateParameters(voter);
+    function getVotesRatio(address voter) public view override returns (uint256 votesRatio) {
+        (, address userKeeper, , , ) = IGovPool(payable(owner())).getHelperContracts();
+
+        IGovUserKeeper.VotingPowerView[] memory votingPowers = IGovUserKeeper(userKeeper)
+            .votingPower(
+                [voter, voter, voter].asDynamic(),
+                [
+                    IGovPool.VoteType.PersonalVote,
+                    IGovPool.VoteType.MicropoolVote,
+                    IGovPool.VoteType.TreasuryVote
+                ].asDynamic(),
+                false
+            );
+
+        return
+            _getVotesRatio(
+                votingPowers[0].rawPower,
+                votingPowers[1].rawPower,
+                votingPowers[2].rawPower
+            );
     }
 
-    function _calculateParameters(
-        address voter
-    ) internal view returns (uint256 treasuryRatio, uint256 totalSupply) {
-        uint256 fullPower;
-        uint256 treasuryPower;
+    function _getTotalSupply() internal view returns (uint256) {
+        (, address userKeeper, , , ) = IGovPool(payable(owner())).getHelperContracts();
 
-        (totalSupply, fullPower, treasuryPower) = _getPower(voter);
-
-        treasuryRatio = fullPower == 0 ? 0 : treasuryPower.ratio(PRECISION, fullPower);
-    }
-
-    function _getPower(
-        address user
-    ) internal view returns (uint256 totalPower, uint256 fullPower, uint256 treasuryPower) {
-        (, address userKeeperAddress, , , ) = IGovPool(payable(owner())).getHelperContracts();
-        IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
-
-        IGovPool.VoteType[] memory voteTypes = new IGovPool.VoteType[](3);
-
-        voteTypes[0] = IGovPool.VoteType.PersonalVote;
-        voteTypes[1] = IGovPool.VoteType.MicropoolVote;
-        voteTypes[2] = IGovPool.VoteType.TreasuryVote;
-
-        IGovUserKeeper.VotingPowerView[] memory votingPowers = userKeeper.votingPower(
-            [user, user, user].asDynamic(),
-            voteTypes,
-            false
-        );
-
-        treasuryPower = votingPowers[2].rawPower;
-        fullPower = votingPowers[0].rawPower + votingPowers[1].rawPower + treasuryPower;
-
-        totalPower = userKeeper.getTotalVoteWeight();
+        return IGovUserKeeper(userKeeper).getTotalVoteWeight();
     }
 
     function _forHolders(uint256 votes, uint256 totalSupply) internal view returns (uint256) {
@@ -171,6 +170,32 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
                 isDao ? _coefficient1 : _coefficient2,
                 PRECISION
             );
+    }
+
+    function _transformVotes(
+        address voter,
+        uint256 votes,
+        uint256 totalSupply,
+        uint256 treasuryRatio
+    ) internal view returns (uint256) {
+        if (!IGovPool(owner()).getExpertStatus(voter)) {
+            return _forHolders(votes, totalSupply);
+        }
+
+        return
+            _forExperts(votes, totalSupply, false).ratio(PRECISION - treasuryRatio, PRECISION) +
+            _forExperts(votes, totalSupply, true).ratio(treasuryRatio, PRECISION);
+    }
+
+    function _getVotesRatio(
+        uint256 personalPower,
+        uint256 micropoolPower,
+        uint256 treasuryPower
+    ) internal pure returns (uint256) {
+        return
+            treasuryPower == 0
+                ? 0
+                : PRECISION.ratio(treasuryPower, personalPower + micropoolPower + treasuryPower);
     }
 
     function _calculatePolynomial(

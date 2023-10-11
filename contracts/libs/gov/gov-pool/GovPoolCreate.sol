@@ -4,6 +4,8 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
+import "@solarity/solidity-lib/libs/utils/TypeCaster.sol";
+
 import "../../../interfaces/factory/IPoolRegistry.sol";
 
 import "../../../interfaces/gov/IGovPool.sol";
@@ -18,9 +20,15 @@ import "../../utils/DataHelper.sol";
 import "../../../gov/user-keeper/GovUserKeeper.sol";
 import "../../../gov/GovPool.sol";
 
+import "../../../libs/utils/TypeHelper.sol";
+import "../../../libs/math/MathHelper.sol";
+
 library GovPoolCreate {
     using EnumerableSet for EnumerableSet.UintSet;
     using DataHelper for bytes;
+    using TypeCaster for *;
+    using TypeHelper for *;
+    using MathHelper for uint256;
 
     event ProposalCreated(
         uint256 proposalId,
@@ -49,7 +57,13 @@ library GovPoolCreate {
 
         uint256 proposalId = GovPool(payable(address(this))).latestProposalId();
 
-        _restrictInterestedUsersFromProposal(userInfos, actionsOnFor, proposalId);
+        uint256 bannedTreasury = _banTreasury(userInfos, actionsOnFor, proposalId);
+
+        if (bannedTreasury != 0) {
+            settings.quorum = uint128(
+                _calculateNewQuorum(uint256(settings.quorum), bannedTreasury)
+            );
+        }
 
         IGovPool.Proposal storage proposal = proposals[proposalId];
 
@@ -154,20 +168,45 @@ library GovPoolCreate {
         snapshotId = IGovUserKeeper(userKeeper).createNftPowerSnapshot();
     }
 
-    function _restrictInterestedUsersFromProposal(
+    function _banTreasury(
         mapping(address => IGovPool.UserInfo) storage userInfos,
         IGovPool.ProposalAction[] calldata actions,
         uint256 proposalId
-    ) internal {
+    ) internal returns (uint256 bannedTreasury) {
+        IGovPool govPool = IGovPool(address(this));
+
+        (, address userKeeperAddress, , , ) = govPool.getHelperContracts();
+        (, address expertNft, address dexeExpertNft, ) = govPool.getNftContracts();
+
+        IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
+
         for (uint256 i; i < actions.length; i++) {
             IGovPool.ProposalAction calldata action = actions[i];
+            bytes4 selector = action.data.getSelector();
+            address user;
 
             if (
-                action.executor == address(this) &&
-                action.data.getSelector() == IGovPool.undelegateTreasury.selector
+                (action.executor == expertNft || action.executor == dexeExpertNft) &&
+                selector == IERC721Expert.burn.selector
             ) {
-                address user = abi.decode(action.data[4:36], (address));
-                userInfos[user].restrictedProposals.add(proposalId);
+                user = abi.decode(action.data[4:], (address));
+            } else if (
+                action.executor == address(this) &&
+                (selector == IGovPool.delegateTreasury.selector ||
+                    selector == IGovPool.undelegateTreasury.selector)
+            ) {
+                user = abi.decode(action.data[4:36], (address));
+            } else {
+                continue;
+            }
+
+            if (userInfos[user].bannedTreasuryProposals.add(proposalId)) {
+                bannedTreasury += userKeeper
+                .votingPower(
+                    user.asSingletonArray(),
+                    IGovPool.VoteType.TreasuryVote.asSingletonArray(),
+                    false
+                )[0].rawPower;
             }
         }
     }
@@ -280,6 +319,20 @@ library GovPoolCreate {
         }
 
         return false;
+    }
+
+    function _calculateNewQuorum(
+        uint256 quorum,
+        uint256 bannedTreasury
+    ) internal view returns (uint256) {
+        require(quorum != bannedTreasury, "Gov: zero quorum");
+
+        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
+
+        uint256 totalVoteWeight = IGovUserKeeper(userKeeper).getTotalVoteWeight();
+        uint256 newTotalVoteWeight = (totalVoteWeight - bannedTreasury).percentage(quorum);
+
+        return PERCENTAGE_100.ratio(newTotalVoteWeight, totalVoteWeight);
     }
 
     function _validateMetaGovernance(

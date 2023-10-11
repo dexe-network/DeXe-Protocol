@@ -5,16 +5,22 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+import "@solarity/solidity-lib/libs/utils/TypeCaster.sol";
+
 import "../../../interfaces/gov/IGovPool.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../interfaces/gov/voting/IVotePower.sol";
 
 import "../../math/MathHelper.sol";
 
+import "../../utils/TypeHelper.sol";
+
 library GovPoolVote {
     using EnumerableSet for EnumerableSet.UintSet;
     using Math for uint256;
     using MathHelper for uint256;
+    using TypeCaster for *;
+    using TypeHelper for *;
 
     event VoteChanged(uint256 proposalId, address voter, bool isVoteFor, uint256 totalVoted);
     event QuorumReached(uint256 proposalId, uint256 timestamp);
@@ -29,7 +35,8 @@ library GovPoolVote {
         bool isVoteFor
     ) external {
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
-        IGovPool.VoteInfo storage voteInfo = userInfos[msg.sender].voteInfos[proposalId];
+        IGovPool.UserInfo storage userInfo = userInfos[msg.sender];
+        IGovPool.VoteInfo storage voteInfo = userInfo.voteInfos[proposalId];
 
         IGovPool.VoteType voteType = core.settings.delegatedVotingAllowed
             ? IGovPool.VoteType.DelegatedVote
@@ -38,6 +45,8 @@ library GovPoolVote {
         _canVote(userInfos, proposalId, amount, voteType);
 
         mapping(IGovPool.VoteType => IGovPool.RawVote) storage rawVotes = voteInfo.rawVotes;
+
+        bool bannedTreasury = userInfo.bannedTreasuryProposals.contains(proposalId);
 
         if (amount != 0 || nftIds.length != 0) {
             (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
@@ -61,12 +70,15 @@ library GovPoolVote {
                 msg.sender,
                 IGovPool.VoteType.MicropoolVote
             );
-            _voteDelegated(
-                core,
-                rawVotes[IGovPool.VoteType.TreasuryVote],
-                msg.sender,
-                IGovPool.VoteType.TreasuryVote
-            );
+
+            if (!bannedTreasury) {
+                _voteDelegated(
+                    core,
+                    rawVotes[IGovPool.VoteType.TreasuryVote],
+                    msg.sender,
+                    IGovPool.VoteType.TreasuryVote
+                );
+            }
         }
 
         _updateGlobalState(core, userInfos, proposalId, msg.sender, isVoteFor);
@@ -83,7 +95,9 @@ library GovPoolVote {
         address voter,
         IGovPool.VoteType voteType
     ) external {
-        uint256[] memory proposalIds = userInfos[voter].votedInProposals.values();
+        IGovPool.UserInfo storage userInfo = userInfos[voter];
+
+        uint256[] memory proposalIds = userInfo.votedInProposals.values();
 
         for (uint256 i = 0; i < proposalIds.length; i++) {
             uint256 proposalId = proposalIds[i];
@@ -93,7 +107,7 @@ library GovPoolVote {
             }
 
             IGovPool.ProposalCore storage core = proposals[proposalId].core;
-            IGovPool.VoteInfo storage voteInfo = userInfos[voter].voteInfos[proposalId];
+            IGovPool.VoteInfo storage voteInfo = userInfo.voteInfos[proposalId];
             IGovPool.RawVote storage rawVote = voteInfo.rawVotes[voteType];
 
             if (core.settings.delegatedVotingAllowed) {
@@ -203,11 +217,21 @@ library GovPoolVote {
         address voter,
         bool isVoteFor
     ) internal {
-        IGovPool.VoteInfo storage voteInfo = userInfos[voter].voteInfos[proposalId];
-        EnumerableSet.UintSet storage activeVotes = userInfos[voter].votedInProposals;
+        IGovPool.UserInfo storage userInfo = userInfos[voter];
+
+        IGovPool.VoteInfo storage voteInfo = userInfo.voteInfos[proposalId];
+        EnumerableSet.UintSet storage activeVotes = userInfo.votedInProposals;
 
         if (_isVoted(voteInfo)) {
-            _globalVote(core, voteInfo, activeVotes, proposalId, voter, isVoteFor);
+            _globalVote(
+                core,
+                voteInfo,
+                activeVotes,
+                userInfo.bannedTreasuryProposals,
+                proposalId,
+                voter,
+                isVoteFor
+            );
         } else {
             _globalCancel(core, voteInfo, activeVotes, proposalId, isVoteFor);
         }
@@ -233,6 +257,7 @@ library GovPoolVote {
         IGovPool.ProposalCore storage core,
         IGovPool.VoteInfo storage voteInfo,
         EnumerableSet.UintSet storage activeVotes,
+        EnumerableSet.UintSet storage bannedTreasuryProposals,
         uint256 proposalId,
         address voter,
         bool isVoteFor
@@ -249,7 +274,12 @@ library GovPoolVote {
         uint256 totalRawVoted = rawVotes[IGovPool.VoteType.PersonalVote].totalVoted +
             rawVotes[IGovPool.VoteType.MicropoolVote].totalVoted +
             rawVotes[IGovPool.VoteType.TreasuryVote].totalVoted;
-        uint256 totalVoted = _calculateVotes(voter, totalRawVoted);
+        uint256 totalVoted = _calculateVotes(
+            bannedTreasuryProposals,
+            proposalId,
+            voter,
+            totalRawVoted
+        );
 
         if (isVoteFor) {
             core.rawVotesFor = core.rawVotesFor - voteInfo.totalRawVoted + totalRawVoted;
@@ -303,10 +333,6 @@ library GovPoolVote {
         IGovPool.UserInfo storage userInfo = userInfos[msg.sender];
 
         require(_isVotingState(proposalId), "Gov: vote unavailable");
-        require(
-            !userInfo.restrictedProposals.contains(proposalId),
-            "Gov: user restricted from voting in this proposal"
-        );
         require(!_isVoted(userInfo.voteInfos[proposalId]), "Gov: need cancel");
         require(amount <= tokenBalance - ownedBalance, "Gov: wrong vote amount");
     }
@@ -338,11 +364,34 @@ library GovPoolVote {
             ) >= core.settings.quorum;
     }
 
-    function _calculateVotes(address voter, uint256 voteAmount) internal view returns (uint256) {
-        (, , , , address votePowerAddress) = IGovPool(address(this)).getHelperContracts();
-        IVotePower votePower = IVotePower(votePowerAddress);
+    function _calculateVotes(
+        EnumerableSet.UintSet storage bannedTreasuryProposals,
+        uint256 proposalId,
+        address voter,
+        uint256 voteAmount
+    ) internal view returns (uint256) {
+        (, address userKeeper, , , address votePower) = IGovPool(address(this))
+            .getHelperContracts();
 
-        return votePower.transformVotes(voter, voteAmount);
+        IGovUserKeeper.VotingPowerView[] memory votingPowers = IGovUserKeeper(userKeeper)
+            .votingPower(
+                [voter, voter, voter].asDynamic(),
+                [
+                    IGovPool.VoteType.PersonalVote,
+                    IGovPool.VoteType.MicropoolVote,
+                    IGovPool.VoteType.TreasuryVote
+                ].asDynamic(),
+                false
+            );
+
+        return
+            IVotePower(votePower).transformVotes(
+                voter,
+                voteAmount,
+                votingPowers[0].rawPower,
+                votingPowers[1].rawPower,
+                bannedTreasuryProposals.contains(proposalId) ? 0 : votingPowers[2].rawPower
+            );
     }
 
     function _isVotingState(uint256 proposalId) internal view returns (bool) {

@@ -16,11 +16,13 @@ import "../../../core/CoreProperties.sol";
 import "../../../gov/proposals/TokenSaleProposal.sol";
 
 import "../../../libs/math/MathHelper.sol";
+import "../../../libs/utils/TypeHelper.sol";
 
 library TokenSaleProposalBuy {
     using MathHelper for uint256;
     using DecimalsConverter for *;
     using TypeCaster for *;
+    using TypeHelper for *;
     using SafeERC20 for IERC20;
     using EnumerableSet for *;
     using EnumerableMap for EnumerableMap.AddressToUintMap;
@@ -150,7 +152,7 @@ library TokenSaleProposalBuy {
                 IGovUserKeeper(govUserKeeper)
                 .votingPower(
                     user.asSingletonArray(),
-                    _asSingletonArray(IGovPool.VoteType.DelegatedVote),
+                    IGovPool.VoteType.DelegatedVote.asSingletonArray(),
                     false
                 )[0].rawPower >
                 participationInfo.requiredDaoVotes;
@@ -280,12 +282,5 @@ library TokenSaleProposalBuy {
         }
 
         return true;
-    }
-
-    function _asSingletonArray(
-        IGovPool.VoteType element
-    ) private pure returns (IGovPool.VoteType[] memory arr) {
-        arr = new IGovPool.VoteType[](1);
-        arr[0] = element;
     }
 }
