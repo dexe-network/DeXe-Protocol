@@ -64,19 +64,21 @@ library GovPoolVote {
         if (voteType != IGovPool.VoteType.DelegatedVote) {
             _voteDelegated(
                 core,
+                userInfos,
                 rawVotes[IGovPool.VoteType.MicropoolVote],
+                proposalId,
                 msg.sender,
                 IGovPool.VoteType.MicropoolVote
             );
 
-            if (!userInfo.bannedTreasuryProposals.contains(proposalId)) {
-                _voteDelegated(
-                    core,
-                    rawVotes[IGovPool.VoteType.TreasuryVote],
-                    msg.sender,
-                    IGovPool.VoteType.TreasuryVote
-                );
-            }
+            _voteDelegated(
+                core,
+                userInfos,
+                rawVotes[IGovPool.VoteType.TreasuryVote],
+                proposalId,
+                msg.sender,
+                IGovPool.VoteType.TreasuryVote
+            );
         }
 
         _updateGlobalState(core, userInfos, proposalId, msg.sender, isVoteFor);
@@ -113,7 +115,7 @@ library GovPoolVote {
             }
 
             _cancel(rawVote);
-            _voteDelegated(core, rawVote, voter, voteType);
+            _voteDelegated(core, userInfos, rawVote, proposalId, voter, voteType);
 
             _updateGlobalState(core, userInfos, proposalId, voter, voteInfo.isVoteFor);
         }
@@ -155,10 +157,19 @@ library GovPoolVote {
 
     function _voteDelegated(
         IGovPool.ProposalCore storage core,
+        mapping(address => IGovPool.UserInfo) storage userInfos,
         IGovPool.RawVote storage rawVote,
+        uint256 proposalId,
         address voter,
         IGovPool.VoteType voteType
     ) internal {
+        if (
+            voteType == IGovPool.VoteType.TreasuryVote &&
+            userInfos[voter].bannedTreasuryProposals.contains(proposalId)
+        ) {
+            return;
+        }
+
         (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
