@@ -111,12 +111,14 @@ library TokenSaleProposalBuy {
         );
 
         uint256 exchangeRate = tier.rates[tokenToBuyWith];
-        uint256 saleTokenAmount = amount.ratio(exchangeRate, PRECISION);
+
+        require(exchangeRate != 0, "TSP: incorrect token");
+
+        uint256 saleTokenAmount = amount.ratio(PRECISION, exchangeRate);
         uint256 userBoughtAmount = saleTokenAmount +
             userInfo.purchaseInfo.claimTotalAmount +
             userInfo.vestingUserInfo.vestingTotalAmount;
 
-        require(saleTokenAmount != 0, "TSP: incorrect token");
         require(
             tierInitParams.maxAllocationPerUser == 0 ||
                 (tierInitParams.minAllocationPerUser <= userBoughtAmount &&

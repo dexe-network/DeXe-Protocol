@@ -66,7 +66,7 @@ GovSettings.numberFormat = "BigNumber";
 GovValidators.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 
-describe("TokenSaleProposal", () => {
+describe.only("TokenSaleProposal", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -541,7 +541,7 @@ describe("TokenSaleProposal", () => {
           claimLockDuration: "10",
           saleTokenAddress: erc20Gov.address,
           purchaseTokenAddresses: [purchaseToken1.address, ETHER_ADDR],
-          exchangeRates: [PRECISION.times(3).toFixed(), PRECISION.times(100).toFixed()],
+          exchangeRates: [PRECISION.idiv(3).toFixed(), PRECISION.idiv(100).toFixed()],
           minAllocationPerUser: wei(20),
           maxAllocationPerUser: wei(600),
           vestingSettings: {
@@ -568,7 +568,7 @@ describe("TokenSaleProposal", () => {
           claimLockDuration: "0",
           saleTokenAddress: saleToken.address,
           purchaseTokenAddresses: [purchaseToken1.address, purchaseToken2.address],
-          exchangeRates: [PRECISION.times(4).toFixed(), PRECISION.idiv(4).toFixed()],
+          exchangeRates: [PRECISION.idiv(4).toFixed(), PRECISION.times(4).toFixed()],
           minAllocationPerUser: "0",
           maxAllocationPerUser: "0",
           vestingSettings: {
@@ -595,7 +595,7 @@ describe("TokenSaleProposal", () => {
           claimLockDuration: "0",
           saleTokenAddress: saleToken.address,
           purchaseTokenAddresses: [purchaseToken1.address, purchaseToken2.address],
-          exchangeRates: [PRECISION.times(4).toFixed(), PRECISION.idiv(4).toFixed()],
+          exchangeRates: [PRECISION.idiv(4).toFixed(), PRECISION.times(4).toFixed()],
           minAllocationPerUser: "0",
           maxAllocationPerUser: "0",
           vestingSettings: {
@@ -622,7 +622,7 @@ describe("TokenSaleProposal", () => {
           claimLockDuration: "0",
           saleTokenAddress: saleToken.address,
           purchaseTokenAddresses: [purchaseToken1.address, purchaseToken2.address],
-          exchangeRates: [PRECISION.times(4).toFixed(), PRECISION.idiv(4).toFixed()],
+          exchangeRates: [PRECISION.idiv(4).toFixed(), PRECISION.times(4).toFixed()],
           minAllocationPerUser: "0",
           maxAllocationPerUser: "0",
           vestingSettings: {
@@ -652,7 +652,7 @@ describe("TokenSaleProposal", () => {
           claimLockDuration: "0",
           saleTokenAddress: saleToken.address,
           purchaseTokenAddresses: [purchaseToken1.address, purchaseToken2.address],
-          exchangeRates: [PRECISION.times(4).toFixed(), PRECISION.idiv(4).toFixed()],
+          exchangeRates: [PRECISION.idiv(4).toFixed(), PRECISION.times(4).toFixed()],
           minAllocationPerUser: "0",
           maxAllocationPerUser: "0",
           vestingSettings: {
@@ -679,7 +679,7 @@ describe("TokenSaleProposal", () => {
           claimLockDuration: "0",
           saleTokenAddress: saleToken.address,
           purchaseTokenAddresses: [purchaseToken1.address, purchaseToken2.address],
-          exchangeRates: [PRECISION.times(4).toFixed(), PRECISION.idiv(4).toFixed()],
+          exchangeRates: [PRECISION.idiv(4).toFixed(), PRECISION.times(4).toFixed()],
           minAllocationPerUser: "0",
           maxAllocationPerUser: "0",
           vestingSettings: {
@@ -701,7 +701,7 @@ describe("TokenSaleProposal", () => {
           claimLockDuration: "0",
           saleTokenAddress: saleToken.address,
           purchaseTokenAddresses: [purchaseToken1.address, purchaseToken2.address],
-          exchangeRates: [PRECISION.times(4).toFixed(), PRECISION.idiv(4).toFixed()],
+          exchangeRates: [PRECISION.idiv(4).toFixed(), PRECISION.times(4).toFixed()],
           minAllocationPerUser: "0",
           maxAllocationPerUser: "0",
           vestingSettings: {
