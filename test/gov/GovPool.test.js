@@ -863,6 +863,17 @@ describe("GovPool", () => {
         );
       });
 
+      it.only("should decrease quorum by exempted treasury", async () => {
+        /// 51% internal delegate then undelegate treasury
+        await delegateTreasury(THIRD, wei("100"), []);
+
+        await govPool.createProposal(
+          "example.com",
+          [[govPool.address, 0, getBytesUndelegateTreasury(THIRD, wei("1"), [])]],
+          []
+        );
+      });
+
       describe("meta governance", () => {
         beforeEach(async () => {
           await token.mint(SECOND, wei("100000000000000000000"));

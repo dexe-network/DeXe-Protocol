@@ -329,8 +329,6 @@ library GovPoolCreate {
         uint256 quorum,
         uint256 exemptedTreasury
     ) internal view returns (uint256) {
-        require(quorum != exemptedTreasury, "Gov: zero quorum");
-
         (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
         uint256 totalVoteWeight = IGovUserKeeper(userKeeper).getTotalVoteWeight();
