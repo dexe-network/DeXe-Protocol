@@ -377,7 +377,7 @@ struct UserInfo {
 	IGovPool.PendingRewards pendingRewards;
 	mapping(address => IGovPool.DelegatorInfo) delegatorInfos;
 	EnumerableSet.UintSet votedInProposals;
-	EnumerableSet.UintSet bannedTreasuryProposals;
+	EnumerableSet.UintSet treasuryExemptProposals;
 }
 ```
 
@@ -386,13 +386,13 @@ The struct that holds the user info (only for internal needs)
 
 Parameters:
 
-| Name                    | Type                                              | Description                                                       |
-| :---------------------- | :------------------------------------------------ | :---------------------------------------------------------------- |
-| voteInfos               | mapping(uint256 => struct IGovPool.VoteInfo)      | matching proposal ids to their infos                              |
-| pendingRewards          | struct IGovPool.PendingRewards                    | user's pending rewards                                            |
-| delegatorInfos          | mapping(address => struct IGovPool.DelegatorInfo) | matching delegators to their infos                                |
-| votedInProposals        | struct EnumerableSet.UintSet                      | the list of active proposals user voted in                        |
-| bannedTreasuryProposals | struct EnumerableSet.UintSet                      | the list of proposals user is restricted to vote with treasury in |
+| Name                    | Type                                              | Description                                            |
+| :---------------------- | :------------------------------------------------ | :----------------------------------------------------- |
+| voteInfos               | mapping(uint256 => struct IGovPool.VoteInfo)      | matching proposal ids to their infos                   |
+| pendingRewards          | struct IGovPool.PendingRewards                    | user's pending rewards                                 |
+| delegatorInfos          | mapping(address => struct IGovPool.DelegatorInfo) | matching delegators to their infos                     |
+| votedInProposals        | struct EnumerableSet.UintSet                      | the list of active proposals user voted in             |
+| treasuryExemptProposals | struct EnumerableSet.UintSet                      | the list of proposals user's treasury is exempted from |
 
 ### VotingRewards
 

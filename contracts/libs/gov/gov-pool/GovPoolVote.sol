@@ -165,7 +165,7 @@ library GovPoolVote {
     ) internal {
         if (
             voteType == IGovPool.VoteType.TreasuryVote &&
-            userInfos[voter].bannedTreasuryProposals.contains(proposalId)
+            userInfos[voter].treasuryExemptProposals.contains(proposalId)
         ) {
             return;
         }
@@ -236,7 +236,7 @@ library GovPoolVote {
                 core,
                 voteInfo,
                 activeVotes,
-                userInfo.bannedTreasuryProposals,
+                userInfo.treasuryExemptProposals,
                 proposalId,
                 voter,
                 isVoteFor
@@ -266,7 +266,7 @@ library GovPoolVote {
         IGovPool.ProposalCore storage core,
         IGovPool.VoteInfo storage voteInfo,
         EnumerableSet.UintSet storage activeVotes,
-        EnumerableSet.UintSet storage bannedTreasuryProposals,
+        EnumerableSet.UintSet storage treasuryExemptProposals,
         uint256 proposalId,
         address voter,
         bool isVoteFor
@@ -284,7 +284,7 @@ library GovPoolVote {
             rawVotes[IGovPool.VoteType.MicropoolVote].totalVoted +
             rawVotes[IGovPool.VoteType.TreasuryVote].totalVoted;
         uint256 totalVoted = _calculateVotes(
-            bannedTreasuryProposals,
+            treasuryExemptProposals,
             proposalId,
             voter,
             totalRawVoted
@@ -374,7 +374,7 @@ library GovPoolVote {
     }
 
     function _calculateVotes(
-        EnumerableSet.UintSet storage bannedTreasuryProposals,
+        EnumerableSet.UintSet storage treasuryExemptProposals,
         uint256 proposalId,
         address voter,
         uint256 voteAmount
@@ -399,7 +399,7 @@ library GovPoolVote {
                 voteAmount,
                 votingPowers[0].rawPower,
                 votingPowers[1].rawPower,
-                bannedTreasuryProposals.contains(proposalId) ? 0 : votingPowers[2].rawPower
+                treasuryExemptProposals.contains(proposalId) ? 0 : votingPowers[2].rawPower
             );
     }
 

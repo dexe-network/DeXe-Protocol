@@ -57,11 +57,15 @@ library GovPoolCreate {
 
         uint256 proposalId = GovPool(payable(address(this))).latestProposalId();
 
-        uint256 bannedTreasury = _banTreasury(userInfos, actionsOnFor, proposalId);
+        uint256 exemptedTreasury = _exemptUserTreasuryFromVoting(
+            userInfos,
+            actionsOnFor,
+            proposalId
+        );
 
-        if (bannedTreasury != 0) {
+        if (exemptedTreasury != 0) {
             settings.quorum = uint128(
-                _calculateNewQuorum(uint256(settings.quorum), bannedTreasury)
+                _calculateNewQuorum(uint256(settings.quorum), exemptedTreasury)
             );
         }
 
@@ -168,11 +172,11 @@ library GovPoolCreate {
         snapshotId = IGovUserKeeper(userKeeper).createNftPowerSnapshot();
     }
 
-    function _banTreasury(
+    function _exemptUserTreasuryFromVoting(
         mapping(address => IGovPool.UserInfo) storage userInfos,
         IGovPool.ProposalAction[] calldata actions,
         uint256 proposalId
-    ) internal returns (uint256 bannedTreasury) {
+    ) internal returns (uint256 exemptedTreasury) {
         IGovPool govPool = IGovPool(address(this));
 
         (, address userKeeperAddress, , , ) = govPool.getHelperContracts();
@@ -200,8 +204,8 @@ library GovPoolCreate {
                 continue;
             }
 
-            if (userInfos[user].bannedTreasuryProposals.add(proposalId)) {
-                bannedTreasury += userKeeper
+            if (userInfos[user].treasuryExemptProposals.add(proposalId)) {
+                exemptedTreasury += userKeeper
                 .votingPower(
                     user.asSingletonArray(),
                     IGovPool.VoteType.TreasuryVote.asSingletonArray(),
@@ -323,14 +327,14 @@ library GovPoolCreate {
 
     function _calculateNewQuorum(
         uint256 quorum,
-        uint256 bannedTreasury
+        uint256 exemptedTreasury
     ) internal view returns (uint256) {
-        require(quorum != bannedTreasury, "Gov: zero quorum");
+        require(quorum != exemptedTreasury, "Gov: zero quorum");
 
         (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
         uint256 totalVoteWeight = IGovUserKeeper(userKeeper).getTotalVoteWeight();
-        uint256 newTotalVoteWeight = (totalVoteWeight - bannedTreasury).percentage(quorum);
+        uint256 newTotalVoteWeight = (totalVoteWeight - exemptedTreasury).percentage(quorum);
 
         return PERCENTAGE_100.ratio(newTotalVoteWeight, totalVoteWeight);
     }
