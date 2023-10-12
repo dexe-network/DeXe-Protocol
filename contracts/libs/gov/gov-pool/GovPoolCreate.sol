@@ -67,6 +67,8 @@ library GovPoolCreate {
             settings.quorum = uint128(
                 _calculateNewQuorum(uint256(settings.quorum), exemptedTreasury)
             );
+
+            assert(settings.quorum > 0);
         }
 
         IGovPool.Proposal storage proposal = proposals[proposalId];
