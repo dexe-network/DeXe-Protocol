@@ -1958,7 +1958,28 @@ describe("GovPool", () => {
               .toFixed()
           );
 
+          await govPool.createProposal("example.com", [[dexeExpertNft.address, 0, getBytesBurnExpertNft(SECOND)]], []);
+
+          await govPool.vote(4, true, wei("68000000000000000000"), [], { from: SECOND });
+
+          assert.equal(
+            (await govPool.getUserVotes(4, SECOND, VoteType.PersonalVote)).totalRawVoted,
+            wei("68000000000000000000")
+          );
+          assert.equal((await govPool.getUserVotes(4, SECOND, VoteType.TreasuryVote)).totalRawVoted, "0");
+
           await delegateTreasury(SECOND, wei("1000000000000000000"), [101]);
+
+          assert.equal(
+            (await govPool.getUserVotes(4, SECOND, VoteType.PersonalVote)).totalRawVoted,
+            wei("68000000000000000000")
+          );
+          assert.equal((await govPool.getUserVotes(4, SECOND, VoteType.TreasuryVote)).totalRawVoted, "0");
+
+          await govPool.cancelVote(4, { from: SECOND });
+
+          assert.equal((await govPool.getUserVotes(4, SECOND, VoteType.PersonalVote)).totalRawVoted, "0");
+          assert.equal((await govPool.getUserVotes(4, SECOND, VoteType.TreasuryVote)).totalRawVoted, "0");
 
           assert.equal(
             (await govPool.getUserVotes(3, SECOND, VoteType.TreasuryVote)).totalRawVoted,
