@@ -58,7 +58,7 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
         address voter,
         uint256 votes
     ) external view override returns (uint256) {
-        return _transformVotes(voter, votes, getVotesRatio(voter), _getTotalSupply());
+        return _transformVotes(voter, votes, _getTotalSupply(), getVotesRatio(voter));
     }
 
     function transformVotes(
@@ -72,8 +72,8 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
             _transformVotes(
                 voter,
                 votes,
-                _getVotesRatio(personalPower, micropoolPower, treasuryPower),
-                _getTotalSupply()
+                _getTotalSupply(),
+                _getVotesRatio(personalPower, micropoolPower, treasuryPower)
             );
     }
 

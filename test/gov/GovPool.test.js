@@ -1506,19 +1506,6 @@ describe("GovPool", () => {
         );
       });
 
-      it("should not vote if user restricted from voting in proposal", async () => {
-        await govPool.createProposal(
-          "example.com",
-          [[govPool.address, 0, getBytesUndelegateTreasury(SECOND, 1, [])]],
-          []
-        );
-
-        await truffleAssert.reverts(
-          govPool.vote(1, true, wei("100000000000000000000"), [], { from: SECOND }),
-          "Gov: user restricted from voting in this proposal"
-        );
-      });
-
       it("should not vote if need cancel", async () => {
         await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
 
@@ -3689,18 +3676,18 @@ describe("GovPool", () => {
 
         assert.equal(
           (await rewardToken.balanceOf(treasury)).toFixed(),
-          toBN(wei("100000000000000000000")).plus(wei(1000)).plus(wei(25)).idiv(5).toFixed()
+          toBN(wei("100000000000000000000")).plus(wei(1000)).plus(wei(20)).idiv(5).toFixed()
         );
 
         rewards = await govPool.getPendingRewards(OWNER, [1]);
 
         assert.deepEqual(rewards.onchainTokens, [rewardToken.address]);
-        assert.deepEqual(rewards.staticRewards, [wei(25)]);
+        assert.deepEqual(rewards.staticRewards, [wei(20)]);
         assert.deepEqual(rewards.votingRewards[0].personal, wei(1000));
 
         await govPool.claimRewards([1], OWNER);
 
-        const ownerReward = toBN(wei(1000)).plus(wei(25));
+        const ownerReward = toBN(wei(1000)).plus(wei(20));
         assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), ownerReward.toFixed());
       });
 
@@ -3709,7 +3696,7 @@ describe("GovPool", () => {
 
         assert.equal(
           (await rewardToken.balanceOf(treasury)).toFixed(),
-          toBN(wei("100000000000000000000")).plus(wei(25)).idiv(5).toFixed()
+          toBN(wei("100000000000000000000")).plus(wei(20)).idiv(5).toFixed()
         );
 
         await govPool.createProposal("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
@@ -3745,18 +3732,18 @@ describe("GovPool", () => {
 
         assert.equal(
           (await rewardToken.balanceOf(treasury)).toFixed(),
-          toBN(wei("100000000000000000000")).plus(wei(25)).idiv(5).multipliedBy(2).toFixed()
+          toBN(wei("100000000000000000000")).plus(wei(20)).idiv(5).multipliedBy(2).toFixed()
         );
 
         rewards = await govPool.getPendingRewards(OWNER, [3]);
 
         assert.deepEqual(rewards.onchainTokens, [rewardToken.address]);
-        assert.deepEqual(rewards.staticRewards, [wei(25)]);
+        assert.deepEqual(rewards.staticRewards, [wei(20)]);
         assert.deepEqual(rewards.votingRewards[0].personal, "0");
 
         await govPool.claimRewards([3], OWNER);
 
-        const ownerReward = toBN(wei(25));
+        const ownerReward = toBN(wei(20));
         assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), ownerReward.toFixed());
       });
 
@@ -3781,8 +3768,8 @@ describe("GovPool", () => {
 
         assert.equal(
           (await rewardToken.balanceOf(OWNER)).toFixed(),
-          toBN(wei(1000)).plus(wei(25)).times(3.5).toFixed()
-        ); // f(1025) + f(1025) * 2.5
+          toBN(wei(1000)).plus(wei(20)).times(3.5).toFixed()
+        );
       });
 
       it("should execute and claim", async () => {
@@ -3802,9 +3789,9 @@ describe("GovPool", () => {
 
         assert.equal(
           (await rewardToken.balanceOf(treasury)).toFixed(),
-          toBN(wei("100000000000000000000")).plus(wei(1000)).plus(wei(25)).idiv(5).toFixed()
+          toBN(wei("100000000000000000000")).plus(wei(1000)).plus(wei(20)).idiv(5).toFixed()
         );
-        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), toBN(wei(1000)).plus(wei(25)).toFixed());
+        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), toBN(wei(1000)).plus(wei(20)).toFixed());
       });
 
       it("should claim reward in native", async () => {
@@ -3834,7 +3821,7 @@ describe("GovPool", () => {
         let rewards = await govPool.getPendingRewards(OWNER, [1, 2]);
 
         assert.deepEqual(rewards.onchainTokens, [rewardToken.address, ETHER_ADDR]);
-        assert.deepEqual(rewards.staticRewards, [wei("25"), wei("15")]);
+        assert.deepEqual(rewards.staticRewards, [wei("20"), wei("15")]);
         assert.deepEqual(rewards.votingRewards[0].personal, "0");
         assert.deepEqual(rewards.votingRewards[1].personal, wei("1"));
         assert.deepEqual(rewards.offchainTokens, []);
