@@ -28,6 +28,7 @@ const {
   getBytesGovDelegate,
   getBytesChangeVotePower,
   getBytesGovWithdraw,
+  getBytesBurnExpertNft,
 } = require("../utils/gov-pool-utils");
 const {
   getBytesChangeInternalBalances,
@@ -863,17 +864,6 @@ describe("GovPool", () => {
         );
       });
 
-      it.only("should decrease quorum by exempted treasury", async () => {
-        /// 51% internal delegate then undelegate treasury
-        await delegateTreasury(THIRD, wei("100"), []);
-
-        await govPool.createProposal(
-          "example.com",
-          [[govPool.address, 0, getBytesUndelegateTreasury(THIRD, wei("1"), [])]],
-          []
-        );
-      });
-
       describe("meta governance", () => {
         beforeEach(async () => {
           await token.mint(SECOND, wei("100000000000000000000"));
@@ -1344,6 +1334,88 @@ describe("GovPool", () => {
               "Gov: invalid nft deposit"
             );
           });
+        });
+      });
+
+      describe("exempted treasury", () => {
+        const calculateNewQuorum = async (quorum, exemptedTreasury) => {
+          const totalVoteWeight = await userKeeper.getTotalVoteWeight();
+
+          const newTotalVoteWeight = totalVoteWeight.minus(exemptedTreasury).multipliedBy(quorum).idiv(PERCENTAGE_100);
+
+          return PERCENTAGE_100.multipliedBy(newTotalVoteWeight).idiv(totalVoteWeight);
+        };
+
+        beforeEach(async () => {
+          await token.mint(SECOND, wei("100000000000000000000"));
+
+          await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
+
+          await govPool.deposit(wei("100000000000000000000"), [], { from: SECOND });
+        });
+
+        it("should decrease quorum by exempted treasury", async () => {
+          await delegateTreasury(THIRD, wei("10000000000000000000"), []);
+          await delegateTreasury(FOURTH, wei("10000000000000000000"), []);
+
+          const defaultQuorum = toBN(POOL_PARAMETERS.settingsParams.proposalSettings[0].quorum);
+          const internalQuorum = toBN(POOL_PARAMETERS.settingsParams.proposalSettings[1].quorum);
+
+          await govPool.createProposal("", [[govPool.address, 0, getBytesDelegateTreasury(THIRD, wei("1"), [])]], []);
+
+          assert.equal(
+            (await getProposalByIndex(5)).core.settings.quorum,
+            (await calculateNewQuorum(internalQuorum, wei("10000000000000000000"))).toFixed()
+          );
+
+          await govPool.createProposal("", [[govPool.address, 0, getBytesUndelegateTreasury(THIRD, wei("1"), [])]], []);
+
+          assert.equal(
+            (await getProposalByIndex(6)).core.settings.quorum,
+            (await calculateNewQuorum(internalQuorum, wei("10000000000000000000"))).toFixed()
+          );
+
+          await govPool.createProposal("", [[expertNft.address, 0, getBytesBurnExpertNft(FOURTH)]], []);
+
+          assert.equal(
+            (await getProposalByIndex(7)).core.settings.quorum,
+            (await calculateNewQuorum(defaultQuorum, wei("10000000000000000000"))).toFixed()
+          );
+
+          await govPool.createProposal("", [[dexeExpertNft.address, 0, getBytesBurnExpertNft(FOURTH)]], []);
+
+          assert.equal(
+            (await getProposalByIndex(8)).core.settings.quorum,
+            (await calculateNewQuorum(defaultQuorum, wei("10000000000000000000"))).toFixed()
+          );
+
+          await govPool.createProposal(
+            "",
+            [
+              [govPool.address, 0, getBytesDelegateTreasury(THIRD, wei("1"), [])],
+              [govPool.address, 0, getBytesDelegateTreasury(FOURTH, wei("1"), [])],
+            ],
+            []
+          );
+
+          assert.equal(
+            (await getProposalByIndex(9)).core.settings.quorum,
+            (await calculateNewQuorum(internalQuorum, wei("20000000000000000000"))).toFixed()
+          );
+
+          await govPool.createProposal(
+            "",
+            [
+              [govPool.address, 0, getBytesDelegateTreasury(THIRD, wei("1"), [])],
+              [govPool.address, 0, getBytesDelegateTreasury(THIRD, wei("1"), [])],
+            ],
+            []
+          );
+
+          assert.equal(
+            (await getProposalByIndex(10)).core.settings.quorum,
+            (await calculateNewQuorum(internalQuorum, wei("10000000000000000000"))).toFixed()
+          );
         });
       });
 
