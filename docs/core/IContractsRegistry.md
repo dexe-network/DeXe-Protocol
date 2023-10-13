@@ -16,6 +16,21 @@ the other contracts used by the protocol. Its purpose is to keep track of the pr
 contracts, provide upgradeability mechanism and dependency injection mechanism.
 ## Functions info
 
+### setSphereXEngine (0x44a63d1b)
+
+```solidity
+function setSphereXEngine(address sphereXEngine) external
+```
+
+The function to set the SphereX engine to all the contracts handled by the registry
+
+
+Parameters:
+
+| Name          | Type    | Description                       |
+| :------------ | :------ | :-------------------------------- |
+| sphereXEngine | address | the address of the SphereX engine |
+
 ### getUserRegistryContract (0x435403b4)
 
 ```solidity

@@ -10,7 +10,7 @@ import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 import "../interfaces/factory/IPoolRegistry.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "../proxies/PoolBeacon.sol";
+import "../proxy/PoolBeacon.sol";
 
 contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -38,6 +38,11 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         _;
     }
 
+    modifier onlyDexeGov() {
+        _onlyDexeGov();
+        _;
+    }
+
     function setDependencies(address contractsRegistry, bytes memory data) public override {
         super.setDependencies(contractsRegistry, data);
 
@@ -54,17 +59,36 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         _addProxyPool(name, poolAddress);
     }
 
+    function setSphereXEngine(address sphereXEngine) external onlyDexeGov {
+        _setSpherexEngine(GOV_POOL_NAME, sphereXEngine);
+        _setSpherexEngine(SETTINGS_NAME, sphereXEngine);
+        _setSpherexEngine(VALIDATORS_NAME, sphereXEngine);
+        _setSpherexEngine(USER_KEEPER_NAME, sphereXEngine);
+        _setSpherexEngine(DISTRIBUTION_PROPOSAL_NAME, sphereXEngine);
+        _setSpherexEngine(TOKEN_SALE_PROPOSAL_NAME, sphereXEngine);
+        _setSpherexEngine(EXPERT_NFT_NAME, sphereXEngine);
+        _setSpherexEngine(NFT_MULTIPLIER_NAME, sphereXEngine);
+        _setSpherexEngine(LINEAR_POWER_NAME, sphereXEngine);
+        _setSpherexEngine(POLYNOMIAL_POWER_NAME, sphereXEngine);
+    }
+
     function isGovPool(address potentialPool) external view override returns (bool) {
         return isPool(GOV_POOL_NAME, potentialPool);
+    }
+
+    function _setSpherexEngine(string memory poolName, address sphereXEngine) internal {
+        PoolBeacon(getProxyBeacon(poolName)).changeSphereXEngine(sphereXEngine);
     }
 
     function _onlyPoolFactory() internal view {
         require(_poolFactory == msg.sender, "PoolRegistry: Caller is not a factory");
     }
 
-    function _deployProxyBeacon() internal override returns (address) {
-        address dexeGovAddress = _dexeGovAddress;
+    function _onlyDexeGov() internal view {
+        require(_dexeGovAddress == msg.sender, "PoolRegistry: Caller is not a DEXE gov");
+    }
 
-        return address(new PoolBeacon(dexeGovAddress, dexeGovAddress, address(0), address(0)));
+    function _deployProxyBeacon(address implementation) internal override returns (address) {
+        return address(new PoolBeacon(_dexeGovAddress, address(this), address(0), implementation));
     }
 }

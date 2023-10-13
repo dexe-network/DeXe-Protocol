@@ -7,7 +7,7 @@ import "@solarity/solidity-lib/contracts-registry/presets/OwnableContractsRegist
 
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "../proxies/ProtectedTransparentProxy.sol";
+import "../proxy/ProtectedTransparentProxy.sol";
 
 contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPSUpgradeable {
     string public constant USER_REGISTRY_NAME = "USER_REGISTRY";
@@ -27,6 +27,11 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
     string public constant TREASURY_NAME = "TREASURY";
 
     string public constant CORE_PROPERTIES_NAME = "CORE_PROPERTIES";
+
+    modifier onlyDexeGov() {
+        _onlyDexeGov();
+        _;
+    }
 
     function getUserRegistryContract() external view override returns (address) {
         return getContract(USER_REGISTRY_NAME);
@@ -76,6 +81,21 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
         return getContract(DEXE_EXPERT_NFT_NAME);
     }
 
+    function setSphereXEngine(address sphereXEngine) external onlyDexeGov {
+        _setSphereXEngine(USER_REGISTRY_NAME, sphereXEngine);
+        _setSphereXEngine(POOL_FACTORY_NAME, sphereXEngine);
+        _setSphereXEngine(POOL_REGISTRY_NAME, sphereXEngine);
+        _setSphereXEngine(DEXE_EXPERT_NFT_NAME, sphereXEngine);
+        _setSphereXEngine(PRICE_FEED_NAME, sphereXEngine);
+        _setSphereXEngine(CORE_PROPERTIES_NAME, sphereXEngine);
+    }
+
+    function _setSphereXEngine(string memory contractName, address sphereXEngine) internal {
+        ProtectedTransparentProxy(payable(getContract(contractName))).changeSphereXEngine(
+            sphereXEngine
+        );
+    }
+
     function _deployProxy(
         address contractAddress,
         address admin,
@@ -87,13 +107,20 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
             address(
                 new ProtectedTransparentProxy(
                     dexeGovAddress,
-                    dexeGovAddress,
+                    address(this),
                     address(0),
                     contractAddress,
                     admin,
                     data
                 )
             );
+    }
+
+    function _onlyDexeGov() internal view {
+        require(
+            getTreasuryContract() == msg.sender,
+            "ContractsRegistry: Caller is not a DEXE gov"
+        );
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
