@@ -10,6 +10,8 @@ import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 import "../interfaces/factory/IPoolRegistry.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
+import "../proxies/PoolBeacon.sol";
+
 contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     using EnumerableSet for EnumerableSet.AddressSet;
     using Paginator for EnumerableSet.AddressSet;
@@ -29,6 +31,7 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     string public constant POLYNOMIAL_POWER_NAME = "POLYNOMIAL_POWER";
 
     address internal _poolFactory;
+    address internal _dexeGovAddress;
 
     modifier onlyPoolFactory() {
         _onlyPoolFactory();
@@ -38,7 +41,10 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     function setDependencies(address contractsRegistry, bytes memory data) public override {
         super.setDependencies(contractsRegistry, data);
 
-        _poolFactory = IContractsRegistry(contractsRegistry).getPoolFactoryContract();
+        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
+
+        _poolFactory = registry.getPoolFactoryContract();
+        _dexeGovAddress = registry.getTreasuryContract();
     }
 
     function addProxyPool(
@@ -54,5 +60,11 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
 
     function _onlyPoolFactory() internal view {
         require(_poolFactory == msg.sender, "PoolRegistry: Caller is not a factory");
+    }
+
+    function _deployProxyBeacon() internal override returns (address) {
+        address dexeGovAddress = _dexeGovAddress;
+
+        return address(new PoolBeacon(dexeGovAddress, dexeGovAddress, address(0), address(0)));
     }
 }

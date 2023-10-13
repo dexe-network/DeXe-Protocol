@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "@solarity/solidity-lib/contracts-registry/pools/pool-factory/AbstractPoolFactory.sol";
 
+import "@spherex-xyz/contracts/src/ProtectedProxies/ProtectedBeaconProxy.sol";
+
 import "../interfaces/factory/IPoolFactory.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ISBT721.sol";
@@ -247,6 +249,51 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
     function _injectDependencies(address proxy) internal {
         _injectDependencies(address(_poolRegistry), proxy);
+    }
+
+    function _deploy(
+        address poolRegistry,
+        string memory poolType
+    ) internal override returns (address) {
+        return
+            address(
+                new ProtectedBeaconProxy(
+                    AbstractPoolContractsRegistry(poolRegistry).getProxyBeacon(poolType),
+                    bytes("")
+                )
+            );
+    }
+
+    function _deploy2(
+        address poolRegistry,
+        string memory poolType,
+        bytes32 salt
+    ) internal override returns (address) {
+        return
+            address(
+                new ProtectedBeaconProxy{salt: salt}(
+                    AbstractPoolContractsRegistry(poolRegistry).getProxyBeacon(poolType),
+                    bytes("")
+                )
+            );
+    }
+
+    function _predictPoolAddress(
+        address poolRegistry,
+        string memory poolType,
+        bytes32 salt
+    ) internal view override returns (address) {
+        bytes32 bytecodeHash = keccak256(
+            abi.encodePacked(
+                type(ProtectedBeaconProxy).creationCode,
+                abi.encode(
+                    AbstractPoolContractsRegistry(poolRegistry).getProxyBeacon(poolType),
+                    bytes("")
+                )
+            )
+        );
+
+        return Create2.computeAddress(salt, bytecodeHash);
     }
 
     function _predictPoolAddress(

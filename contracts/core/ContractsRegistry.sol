@@ -7,6 +7,8 @@ import "@solarity/solidity-lib/contracts-registry/presets/OwnableContractsRegist
 
 import "../interfaces/core/IContractsRegistry.sol";
 
+import "../proxies/ProtectedTransparentProxy.sol";
+
 contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPSUpgradeable {
     string public constant USER_REGISTRY_NAME = "USER_REGISTRY";
 
@@ -58,7 +60,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
         return getContract(UNISWAP_V2_FACTORY_NAME);
     }
 
-    function getTreasuryContract() external view override returns (address) {
+    function getTreasuryContract() public view override returns (address) {
         return getContract(TREASURY_NAME);
     }
 
@@ -72,6 +74,26 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
 
     function getDexeExpertNftContract() external view override returns (address) {
         return getContract(DEXE_EXPERT_NFT_NAME);
+    }
+
+    function _deployProxy(
+        address contractAddress,
+        address admin,
+        bytes memory data
+    ) internal override returns (address) {
+        address dexeGovAddress = getTreasuryContract();
+
+        return
+            address(
+                new ProtectedTransparentProxy(
+                    dexeGovAddress,
+                    dexeGovAddress,
+                    address(0),
+                    contractAddress,
+                    admin,
+                    data
+                )
+            );
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
