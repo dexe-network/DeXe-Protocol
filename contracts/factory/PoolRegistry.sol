@@ -38,11 +38,6 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         _;
     }
 
-    modifier onlyDexeGov() {
-        _onlyDexeGov();
-        _;
-    }
-
     function setDependencies(address contractsRegistry, bytes memory data) public override {
         super.setDependencies(contractsRegistry, data);
 
@@ -59,7 +54,7 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         _addProxyPool(name, poolAddress);
     }
 
-    function setSphereXEngine(address sphereXEngine) external onlyDexeGov {
+    function setSphereXEngine(address sphereXEngine) external onlyOwner {
         _setSpherexEngine(GOV_POOL_NAME, sphereXEngine);
         _setSpherexEngine(SETTINGS_NAME, sphereXEngine);
         _setSpherexEngine(VALIDATORS_NAME, sphereXEngine);
@@ -82,10 +77,6 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
 
     function _onlyPoolFactory() internal view {
         require(_poolFactory == msg.sender, "PoolRegistry: Caller is not a factory");
-    }
-
-    function _onlyDexeGov() internal view {
-        require(_dexeGovAddress == msg.sender, "PoolRegistry: Caller is not a DEXE gov");
     }
 
     function _deployProxyBeacon(address implementation) internal override returns (address) {

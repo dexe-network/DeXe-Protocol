@@ -28,11 +28,6 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
 
     string public constant CORE_PROPERTIES_NAME = "CORE_PROPERTIES";
 
-    modifier onlyDexeGov() {
-        _onlyDexeGov();
-        _;
-    }
-
     function getUserRegistryContract() external view override returns (address) {
         return getContract(USER_REGISTRY_NAME);
     }
@@ -81,7 +76,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
         return getContract(DEXE_EXPERT_NFT_NAME);
     }
 
-    function setSphereXEngine(address sphereXEngine) external onlyDexeGov {
+    function setSphereXEngine(address sphereXEngine) external onlyOwner {
         _setSphereXEngine(USER_REGISTRY_NAME, sphereXEngine);
         _setSphereXEngine(POOL_FACTORY_NAME, sphereXEngine);
         _setSphereXEngine(POOL_REGISTRY_NAME, sphereXEngine);
@@ -114,13 +109,6 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
                     data
                 )
             );
-    }
-
-    function _onlyDexeGov() internal view {
-        require(
-            getTreasuryContract() == msg.sender,
-            "ContractsRegistry: Caller is not a DEXE gov"
-        );
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
