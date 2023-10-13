@@ -31,7 +31,6 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     string public constant POLYNOMIAL_POWER_NAME = "POLYNOMIAL_POWER";
 
     address internal _poolFactory;
-    address internal _dexeGovAddress;
 
     modifier onlyPoolFactory() {
         _onlyPoolFactory();
@@ -41,10 +40,7 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     function setDependencies(address contractsRegistry, bytes memory data) public override {
         super.setDependencies(contractsRegistry, data);
 
-        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
-
-        _poolFactory = registry.getPoolFactoryContract();
-        _dexeGovAddress = registry.getTreasuryContract();
+        _poolFactory = IContractsRegistry(contractsRegistry).getPoolFactoryContract();
     }
 
     function addProxyPool(
@@ -80,6 +76,7 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     }
 
     function _deployProxyBeacon(address implementation) internal override returns (address) {
-        return address(new PoolBeacon(_dexeGovAddress, address(this), address(0), implementation));
+        /// FIXME: owner() is not set
+        return address(new PoolBeacon(owner(), address(this), address(0), implementation));
     }
 }

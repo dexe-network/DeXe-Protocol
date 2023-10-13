@@ -96,12 +96,12 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
         address admin,
         bytes memory data
     ) internal override returns (address) {
-        address dexeGovAddress = getTreasuryContract();
+        /// FIXME: owner() is not set
 
         return
             address(
                 new ProtectedTransparentProxy(
-                    dexeGovAddress,
+                    owner(),
                     address(this),
                     address(0),
                     contractAddress,
