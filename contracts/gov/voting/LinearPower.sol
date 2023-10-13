@@ -20,6 +20,16 @@ contract LinearPower is IVotePower, OwnableUpgradeable {
         return votes;
     }
 
+    function transformVotes(
+        address,
+        uint256 votes,
+        uint256,
+        uint256,
+        uint256
+    ) external pure override returns (uint256 resultingVotes) {
+        return votes;
+    }
+
     function getVotesRatio(address) external pure override returns (uint256 votesRatio) {
         return PRECISION;
     }

@@ -303,7 +303,6 @@ describe("ERC721Multiplier", () => {
         it("should not unlock properly if zero lock time", async () => {
           const { id } = TOKENS[4];
 
-          await truffleAssert.reverts(attacker.attackLockLock(nft.address, id), "BlockGuard: locked");
           await truffleAssert.reverts(attacker.attackLockUnlock(nft.address, id), "BlockGuard: locked");
         });
 

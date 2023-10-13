@@ -11,6 +11,7 @@ import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../interfaces/gov/voting/IVotePower.sol";
 
 import "../../math/MathHelper.sol";
+import "../../utils/TypeHelper.sol";
 
 import "../../../gov/ERC721/ERC721Power.sol";
 import "../../../gov/user-keeper/GovUserKeeper.sol";
@@ -22,6 +23,7 @@ library GovUserKeeperView {
     using MathHelper for uint256;
     using Math for uint256;
     using TypeCaster for *;
+    using TypeHelper for *;
 
     function votingPower(
         address[] memory users,
@@ -84,13 +86,9 @@ library GovUserKeeperView {
 
         (uint256 nftPower, ) = nftVotingPower(nftIds, false);
 
-        IGovPool.VoteType[] memory voteTypes = new IGovPool.VoteType[](2);
-        voteTypes[0] = IGovPool.VoteType.MicropoolVote;
-        voteTypes[1] = IGovPool.VoteType.TreasuryVote;
-
         IGovUserKeeper.VotingPowerView[] memory votingPowers = votingPower(
             [voter, voter].asDynamic(),
-            voteTypes,
+            [IGovPool.VoteType.MicropoolVote, IGovPool.VoteType.TreasuryVote].asDynamic(),
             false
         );
 

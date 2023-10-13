@@ -28,6 +28,7 @@ const {
   getBytesGovDelegate,
   getBytesChangeVotePower,
   getBytesGovWithdraw,
+  getBytesBurnExpertNft,
 } = require("../utils/gov-pool-utils");
 const {
   getBytesChangeInternalBalances,
@@ -1336,6 +1337,88 @@ describe("GovPool", () => {
         });
       });
 
+      describe("exempted treasury", () => {
+        const calculateNewQuorum = async (quorum, exemptedTreasury) => {
+          const totalVoteWeight = await userKeeper.getTotalVoteWeight();
+
+          const newTotalVoteWeight = totalVoteWeight.minus(exemptedTreasury).multipliedBy(quorum).idiv(PERCENTAGE_100);
+
+          return PERCENTAGE_100.multipliedBy(newTotalVoteWeight).idiv(totalVoteWeight);
+        };
+
+        beforeEach(async () => {
+          await token.mint(SECOND, wei("100000000000000000000"));
+
+          await token.approve(userKeeper.address, wei("100000000000000000000"), { from: SECOND });
+
+          await govPool.deposit(wei("100000000000000000000"), [], { from: SECOND });
+        });
+
+        it("should decrease quorum by exempted treasury", async () => {
+          await delegateTreasury(THIRD, wei("10000000000000000000"), []);
+          await delegateTreasury(FOURTH, wei("10000000000000000000"), []);
+
+          const defaultQuorum = toBN(POOL_PARAMETERS.settingsParams.proposalSettings[0].quorum);
+          const internalQuorum = toBN(POOL_PARAMETERS.settingsParams.proposalSettings[1].quorum);
+
+          await govPool.createProposal("", [[govPool.address, 0, getBytesDelegateTreasury(THIRD, wei("1"), [])]], []);
+
+          assert.equal(
+            (await getProposalByIndex(5)).core.settings.quorum,
+            (await calculateNewQuorum(internalQuorum, wei("10000000000000000000"))).toFixed()
+          );
+
+          await govPool.createProposal("", [[govPool.address, 0, getBytesUndelegateTreasury(THIRD, wei("1"), [])]], []);
+
+          assert.equal(
+            (await getProposalByIndex(6)).core.settings.quorum,
+            (await calculateNewQuorum(internalQuorum, wei("10000000000000000000"))).toFixed()
+          );
+
+          await govPool.createProposal("", [[expertNft.address, 0, getBytesBurnExpertNft(FOURTH)]], []);
+
+          assert.equal(
+            (await getProposalByIndex(7)).core.settings.quorum,
+            (await calculateNewQuorum(defaultQuorum, wei("10000000000000000000"))).toFixed()
+          );
+
+          await govPool.createProposal("", [[dexeExpertNft.address, 0, getBytesBurnExpertNft(FOURTH)]], []);
+
+          assert.equal(
+            (await getProposalByIndex(8)).core.settings.quorum,
+            (await calculateNewQuorum(defaultQuorum, wei("10000000000000000000"))).toFixed()
+          );
+
+          await govPool.createProposal(
+            "",
+            [
+              [govPool.address, 0, getBytesDelegateTreasury(THIRD, wei("1"), [])],
+              [govPool.address, 0, getBytesDelegateTreasury(FOURTH, wei("1"), [])],
+            ],
+            []
+          );
+
+          assert.equal(
+            (await getProposalByIndex(9)).core.settings.quorum,
+            (await calculateNewQuorum(internalQuorum, wei("20000000000000000000"))).toFixed()
+          );
+
+          await govPool.createProposal(
+            "",
+            [
+              [govPool.address, 0, getBytesDelegateTreasury(THIRD, wei("1"), [])],
+              [govPool.address, 0, getBytesDelegateTreasury(THIRD, wei("1"), [])],
+            ],
+            []
+          );
+
+          assert.equal(
+            (await getProposalByIndex(10)).core.settings.quorum,
+            (await calculateNewQuorum(internalQuorum, wei("10000000000000000000"))).toFixed()
+          );
+        });
+      });
+
       it("should create proposal if user is Expert even due to low voting power", async () => {
         await dexeExpertNft.mint(SECOND, "");
 
@@ -1503,19 +1586,6 @@ describe("GovPool", () => {
         await truffleAssert.reverts(
           govPool.vote(1, true, wei("100000000000000000000"), [], { from: SECOND }),
           "Gov: vote unavailable"
-        );
-      });
-
-      it("should not vote if user restricted from voting in proposal", async () => {
-        await govPool.createProposal(
-          "example.com",
-          [[govPool.address, 0, getBytesUndelegateTreasury(SECOND, 1, [])]],
-          []
-        );
-
-        await truffleAssert.reverts(
-          govPool.vote(1, true, wei("100000000000000000000"), [], { from: SECOND }),
-          "Gov: user restricted from voting in this proposal"
         );
       });
 
@@ -1888,7 +1958,28 @@ describe("GovPool", () => {
               .toFixed()
           );
 
+          await govPool.createProposal("example.com", [[dexeExpertNft.address, 0, getBytesBurnExpertNft(SECOND)]], []);
+
+          await govPool.vote(4, true, wei("68000000000000000000"), [], { from: SECOND });
+
+          assert.equal(
+            (await govPool.getUserVotes(4, SECOND, VoteType.PersonalVote)).totalRawVoted,
+            wei("68000000000000000000")
+          );
+          assert.equal((await govPool.getUserVotes(4, SECOND, VoteType.TreasuryVote)).totalRawVoted, "0");
+
           await delegateTreasury(SECOND, wei("1000000000000000000"), [101]);
+
+          assert.equal(
+            (await govPool.getUserVotes(4, SECOND, VoteType.PersonalVote)).totalRawVoted,
+            wei("68000000000000000000")
+          );
+          assert.equal((await govPool.getUserVotes(4, SECOND, VoteType.TreasuryVote)).totalRawVoted, "0");
+
+          await govPool.cancelVote(4, { from: SECOND });
+
+          assert.equal((await govPool.getUserVotes(4, SECOND, VoteType.PersonalVote)).totalRawVoted, "0");
+          assert.equal((await govPool.getUserVotes(4, SECOND, VoteType.TreasuryVote)).totalRawVoted, "0");
 
           assert.equal(
             (await govPool.getUserVotes(3, SECOND, VoteType.TreasuryVote)).totalRawVoted,
@@ -3689,18 +3780,18 @@ describe("GovPool", () => {
 
         assert.equal(
           (await rewardToken.balanceOf(treasury)).toFixed(),
-          toBN(wei("100000000000000000000")).plus(wei(1000)).plus(wei(25)).idiv(5).toFixed()
+          toBN(wei("100000000000000000000")).plus(wei(1000)).plus(wei(20)).idiv(5).toFixed()
         );
 
         rewards = await govPool.getPendingRewards(OWNER, [1]);
 
         assert.deepEqual(rewards.onchainTokens, [rewardToken.address]);
-        assert.deepEqual(rewards.staticRewards, [wei(25)]);
+        assert.deepEqual(rewards.staticRewards, [wei(20)]);
         assert.deepEqual(rewards.votingRewards[0].personal, wei(1000));
 
         await govPool.claimRewards([1], OWNER);
 
-        const ownerReward = toBN(wei(1000)).plus(wei(25));
+        const ownerReward = toBN(wei(1000)).plus(wei(20));
         assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), ownerReward.toFixed());
       });
 
@@ -3709,7 +3800,7 @@ describe("GovPool", () => {
 
         assert.equal(
           (await rewardToken.balanceOf(treasury)).toFixed(),
-          toBN(wei("100000000000000000000")).plus(wei(25)).idiv(5).toFixed()
+          toBN(wei("100000000000000000000")).plus(wei(20)).idiv(5).toFixed()
         );
 
         await govPool.createProposal("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
@@ -3745,18 +3836,18 @@ describe("GovPool", () => {
 
         assert.equal(
           (await rewardToken.balanceOf(treasury)).toFixed(),
-          toBN(wei("100000000000000000000")).plus(wei(25)).idiv(5).multipliedBy(2).toFixed()
+          toBN(wei("100000000000000000000")).plus(wei(20)).idiv(5).multipliedBy(2).toFixed()
         );
 
         rewards = await govPool.getPendingRewards(OWNER, [3]);
 
         assert.deepEqual(rewards.onchainTokens, [rewardToken.address]);
-        assert.deepEqual(rewards.staticRewards, [wei(25)]);
+        assert.deepEqual(rewards.staticRewards, [wei(20)]);
         assert.deepEqual(rewards.votingRewards[0].personal, "0");
 
         await govPool.claimRewards([3], OWNER);
 
-        const ownerReward = toBN(wei(25));
+        const ownerReward = toBN(wei(20));
         assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), ownerReward.toFixed());
       });
 
@@ -3781,8 +3872,8 @@ describe("GovPool", () => {
 
         assert.equal(
           (await rewardToken.balanceOf(OWNER)).toFixed(),
-          toBN(wei(1000)).plus(wei(25)).times(3.5).toFixed()
-        ); // f(1025) + f(1025) * 2.5
+          toBN(wei(1000)).plus(wei(20)).times(3.5).toFixed()
+        );
       });
 
       it("should execute and claim", async () => {
@@ -3802,9 +3893,9 @@ describe("GovPool", () => {
 
         assert.equal(
           (await rewardToken.balanceOf(treasury)).toFixed(),
-          toBN(wei("100000000000000000000")).plus(wei(1000)).plus(wei(25)).idiv(5).toFixed()
+          toBN(wei("100000000000000000000")).plus(wei(1000)).plus(wei(20)).idiv(5).toFixed()
         );
-        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), toBN(wei(1000)).plus(wei(25)).toFixed());
+        assert.equal((await rewardToken.balanceOf(OWNER)).toFixed(), toBN(wei(1000)).plus(wei(20)).toFixed());
       });
 
       it("should claim reward in native", async () => {
@@ -3834,7 +3925,7 @@ describe("GovPool", () => {
         let rewards = await govPool.getPendingRewards(OWNER, [1, 2]);
 
         assert.deepEqual(rewards.onchainTokens, [rewardToken.address, ETHER_ADDR]);
-        assert.deepEqual(rewards.staticRewards, [wei("25"), wei("15")]);
+        assert.deepEqual(rewards.staticRewards, [wei("20"), wei("15")]);
         assert.deepEqual(rewards.votingRewards[0].personal, "0");
         assert.deepEqual(rewards.votingRewards[1].personal, wei("1"));
         assert.deepEqual(rewards.offchainTokens, []);

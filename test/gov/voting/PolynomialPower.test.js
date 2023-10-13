@@ -121,6 +121,10 @@ describe("PolynomialPower", () => {
     const estimated = await forExpert(v, true);
 
     assert.equal(result.idiv(DECIMAL).toFixed(), estimated.idiv(DECIMAL).toFixed());
+    assert.equal(
+      result.toFixed(),
+      (await power.methods["transformVotes(address,uint256,uint256,uint256,uint256)"](SECOND, v, 0, 0, 1000)).toFixed()
+    );
   }
 
   async function compareExpertsDao50Percent(votes) {
@@ -132,6 +136,10 @@ describe("PolynomialPower", () => {
     const estimated = dao.plus(notDao).div(2);
 
     assert.equal(result.idiv(DECIMAL).toFixed(), estimated.idiv(DECIMAL).toFixed());
+    assert.equal(
+      result.toFixed(),
+      (await power.methods["transformVotes(address,uint256,uint256,uint256,uint256)"](SECOND, v, 0, 500, 500)).toFixed()
+    );
   }
 
   before("setup", async () => {
