@@ -281,9 +281,10 @@ library GovPoolRewards {
             treasuryPercentage
         );
 
-        delegatorsRewards =
-            votingRewards.micropool -
-            votingRewards.micropool.percentage(micropoolPercentage);
+        delegatorsRewards = votingRewards.micropool.percentage(
+            PERCENTAGE_100 - micropoolPercentage
+        );
+
         votingRewards.micropool -= delegatorsRewards;
     }
 }
