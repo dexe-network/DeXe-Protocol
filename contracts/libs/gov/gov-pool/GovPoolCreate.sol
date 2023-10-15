@@ -423,25 +423,6 @@ library GovPoolCreate {
         }
     }
 
-    function _validateDeposit(
-        IGovPool.ProposalAction calldata actionFor,
-        IGovPool.ProposalAction calldata actionAgainst,
-        address metaGovPool
-    ) internal view {
-        (uint256 amountFor, uint256[] memory nftIdsFor) = _decodeDepositFunction(actionFor);
-        (uint256 amountAgainst, uint256[] memory nftIdsAgainst) = _decodeDepositFunction(
-            actionAgainst
-        );
-
-        require(actionFor.executor == metaGovPool, "Gov: invalid executor");
-        require(amountFor == amountAgainst, "Gov: invalid amount");
-        require(nftIdsFor.length == nftIdsAgainst.length, "Gov: invalid nfts length");
-
-        for (uint256 i = 0; i < nftIdsFor.length; i++) {
-            require(nftIdsFor[i] == nftIdsAgainst[i], "Gov: invalid nft deposit");
-        }
-    }
-
     function _validateApprove(
         IGovPool.ProposalAction calldata actionFor,
         IGovPool.ProposalAction calldata actionAgainst,
@@ -484,6 +465,25 @@ library GovPoolCreate {
             "Gov: invalid operator"
         );
         require(approvedFor == approvedAgainst, "Gov: invalid approve");
+    }
+
+    function _validateDeposit(
+        IGovPool.ProposalAction calldata actionFor,
+        IGovPool.ProposalAction calldata actionAgainst,
+        address metaGovPool
+    ) internal pure {
+        (uint256 amountFor, uint256[] memory nftIdsFor) = _decodeDepositFunction(actionFor);
+        (uint256 amountAgainst, uint256[] memory nftIdsAgainst) = _decodeDepositFunction(
+            actionAgainst
+        );
+
+        require(actionFor.executor == metaGovPool, "Gov: invalid executor");
+        require(amountFor == amountAgainst, "Gov: invalid amount");
+        require(nftIdsFor.length == nftIdsAgainst.length, "Gov: invalid nfts length");
+
+        for (uint256 i = 0; i < nftIdsFor.length; i++) {
+            require(nftIdsFor[i] == nftIdsAgainst[i], "Gov: invalid nft deposit");
+        }
     }
 
     function _handleDataForValidatorBalanceProposal(
