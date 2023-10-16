@@ -1,11 +1,9 @@
-const { accounts } = require("../scripts/utils/utils");
 const Proxy = artifacts.require("ERC1967Proxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
 const SphereXProtectedBase = artifacts.require("ProtectedTransparentProxy");
 const GovPool = artifacts.require("GovPool");
 const GovPoolMigration = artifacts.require("GovPoolMigration");
-const PoolBeacon = artifacts.require("PoolBeacon");
 
 module.exports = async (deployer, logger) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
@@ -32,13 +30,6 @@ module.exports = async (deployer, logger) => {
   ];
 
   logger.logContracts(...proxies);
-
-  console.log(await accounts(0));
-
-  const pool = await poolRegistry.getProxyBeacon(await poolRegistry.GOV_POOL_NAME());
-
-  console.log(await (await SphereXProtectedBase.at(pool)).sphereXAdmin());
-  console.log(await (await SphereXProtectedBase.at(poolRegistry.address)).sphereXAdmin());
 
   for (const [contractName, proxy] of proxies) {
     logger.logTransaction(
