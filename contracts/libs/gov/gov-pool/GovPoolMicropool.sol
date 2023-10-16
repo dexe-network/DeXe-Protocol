@@ -142,14 +142,18 @@ library GovPoolMicropool {
             return 0;
         }
 
+        uint256[] storage timestamps = delegatorInfo.delegationTimes;
+
         uint256 quorumReachedTime = core.executeAfter - core.settings.executionDelay;
-        uint256 index = delegatorInfo.delegationTimes.lowerBound(quorumReachedTime);
+        uint256 index = timestamps.lowerBound(quorumReachedTime);
 
         if (index == 0) {
             return 0;
         }
 
-        --index;
+        if (index == timestamps.length || timestamps[index] != quorumReachedTime) {
+            --index;
+        }
 
         uint256 delegationAmount = delegatorInfo.tokenAmounts[index] +
             IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(

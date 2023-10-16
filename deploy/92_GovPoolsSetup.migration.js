@@ -88,26 +88,25 @@ async function linkGovValidators(deployer) {
   await deployer.link(GovValidatorsExecuteLib, GovValidators);
 }
 
-async function link(deployer) {
-  await linkGovUserKeeper(deployer);
-  await linkGovPool(deployer);
-  await linkTokenSaleProposal(deployer);
-  await linkGovValidators(deployer);
-}
-
 module.exports = async (deployer, logger) => {
   const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
 
   const poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
 
-  await link(deployer);
-
+  await linkGovPool(deployer);
   const govPool = await deployer.deploy(GovPool);
-  const govSettings = await deployer.deploy(GovSettings);
+
+  await linkGovValidators(deployer);
   const govValidators = await deployer.deploy(GovValidators);
+
+  await linkGovUserKeeper(deployer);
   const govUserKeeper = await deployer.deploy(GovUserKeeper);
-  const distributionProposal = await deployer.deploy(DistributionProposal);
+
+  await linkTokenSaleProposal(deployer);
   const tokenSaleProposal = await deployer.deploy(TokenSaleProposal);
+
+  const distributionProposal = await deployer.deploy(DistributionProposal);
+  const govSettings = await deployer.deploy(GovSettings);
   const expertNft = await deployer.deploy(ERC721Expert);
   const nftMultiplier = await deployer.deploy(ERC721Multiplier);
   const linearPower = await deployer.deploy(LinearPower);
