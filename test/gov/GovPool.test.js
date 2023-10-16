@@ -556,9 +556,13 @@ describe("GovPool", () => {
   describe("Fullfat GovPool", () => {
     let POOL_PARAMETERS;
 
-    async function changeInternalSettings(validatorsVote) {
+    async function changeInternalSettings(validatorsVote, minVotingPower) {
       let GOV_POOL_SETTINGS = JSON.parse(JSON.stringify(POOL_PARAMETERS.settingsParams.proposalSettings[1]));
       GOV_POOL_SETTINGS.validatorsVote = validatorsVote;
+
+      if (minVotingPower != null) {
+        GOV_POOL_SETTINGS.minVotesForVoting = minVotingPower;
+      }
 
       await executeValidatorProposal(
         [
@@ -3990,15 +3994,9 @@ describe("GovPool", () => {
           "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", // balance
         ]);
 
-        await govPool.createProposal(
-          "example.com",
-
-          [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]],
-          [],
-          {
-            from: coreProperties.address,
-          }
-        );
+        await govPool.createProposal("example.com", [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]], [], {
+          from: coreProperties.address,
+        });
 
         await govPool.vote(2, true, wei("100000000000000000000"), [], { from: coreProperties.address });
 
@@ -4281,6 +4279,29 @@ describe("GovPool", () => {
           govPool.claimMicropoolRewards([4], delegator1, SECOND, { from: delegator1 }),
           "Gov: no micropool rewards"
         );
+      });
+
+      it("should claim latest rewards", async () => {
+        await changeInternalSettings(false, 1);
+
+        await govPool.createProposal("example.com", [[govPool.address, 0, getBytesEditUrl("NEW_URL")]], []);
+        await govPool.vote(3, true, 1, [], { from: SECOND });
+
+        assert.equal((await govPool.getProposalState(3)).toNumber(), ProposalState.Voting);
+
+        await govPool.delegate(SECOND, 1, [], { from: delegator2 });
+
+        assert.equal((await govPool.getProposalState(3)).toNumber(), ProposalState.Voting);
+
+        await govPool.delegate(SECOND, wei("300000"), [], { from: delegator2 });
+
+        assert.equal((await govPool.getProposalState(3)).toNumber(), ProposalState.Locked);
+
+        await govPool.execute(3);
+
+        let delegatorRewardsView = await govPool.getDelegatorRewards([3], delegator2, SECOND);
+
+        assert.equal(delegatorRewardsView.expectedRewards, wei("240000"));
       });
 
       it("should claim rewards properly if multicall delegation and delegator claim first", async () => {
