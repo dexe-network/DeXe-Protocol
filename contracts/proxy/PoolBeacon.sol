@@ -16,10 +16,6 @@ contract PoolBeacon is ISphereXBeacon, SphereXProxyBase, ProxyBeacon {
     function protectedImplementation(
         bytes4 selector
     ) external view returns (address, address, bool) {
-        return (
-            PoolBeacon(address(this)).implementation(),
-            sphereXEngine(),
-            isProtectedFuncSig(selector)
-        );
+        return (implementation(), sphereXEngine(), isProtectedFuncSig(selector));
     }
 }
