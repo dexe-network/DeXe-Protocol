@@ -15,5 +15,6 @@
     "USDT": "0x7ef95a0fee0dd31b22626fa2e10ee6a223f8a684",
     "BABT": "0x8ca8a45c53e40bb42b8f5806fc3de00490d789f6",
     "WBNB": "0xae13d989dac2f0debff460ac112a837c89baa7cd"
-  }
+  },
+  "dexeTokenOwners": ["0x0000000000000000000000000000000000000001"]
 }
