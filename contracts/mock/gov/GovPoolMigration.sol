@@ -3,8 +3,6 @@ pragma solidity ^0.8.20;
 
 import "@spherex-xyz/contracts/src/SphereXProtectedBase.sol";
 
-import "../../gov/GovPool.sol";
-
 contract GovPoolMigration {
     address internal immutable DEPLOYER;
 
