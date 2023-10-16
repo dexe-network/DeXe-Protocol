@@ -75,7 +75,7 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         require(_poolFactory == msg.sender, "PoolRegistry: Caller is not a factory");
     }
 
-    function _deployProxyBeacon(address implementation) internal override returns (address) {
+    function _deployProxyBeacon(address) internal override returns (address) {
         return address(new PoolBeacon(msg.sender, address(this), address(0)));
     }
 }
