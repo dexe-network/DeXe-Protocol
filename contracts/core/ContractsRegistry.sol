@@ -60,7 +60,7 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
         return getContract(UNISWAP_V2_FACTORY_NAME);
     }
 
-    function getTreasuryContract() public view override returns (address) {
+    function getTreasuryContract() external view override returns (address) {
         return getContract(TREASURY_NAME);
     }
 
