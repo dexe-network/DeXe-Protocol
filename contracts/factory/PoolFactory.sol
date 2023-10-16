@@ -5,8 +5,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "@solarity/solidity-lib/contracts-registry/pools/pool-factory/AbstractPoolFactory.sol";
 
-import "@spherex-xyz/contracts/src/ProtectedProxies/ProtectedBeaconProxy.sol";
-
 import "../interfaces/factory/IPoolFactory.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ISBT721.sol";
@@ -22,6 +20,8 @@ import "../gov/validators/GovValidators.sol";
 
 import "../core/CoreProperties.sol";
 import {PoolRegistry} from "./PoolRegistry.sol";
+
+import "../proxy/ProtectedPublicBeaconProxy.sol";
 
 import "../libs/factory/GovTokenDeployer.sol";
 
@@ -257,7 +257,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     ) internal override returns (address) {
         return
             address(
-                new ProtectedBeaconProxy(
+                new ProtectedPublicBeaconProxy(
                     AbstractPoolContractsRegistry(poolRegistry).getProxyBeacon(poolType),
                     bytes("")
                 )
@@ -271,7 +271,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     ) internal override returns (address) {
         return
             address(
-                new ProtectedBeaconProxy{salt: salt}(
+                new ProtectedPublicBeaconProxy{salt: salt}(
                     AbstractPoolContractsRegistry(poolRegistry).getProxyBeacon(poolType),
                     bytes("")
                 )
@@ -285,7 +285,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     ) internal view override returns (address) {
         bytes32 bytecodeHash = keccak256(
             abi.encodePacked(
-                type(ProtectedBeaconProxy).creationCode,
+                type(ProtectedPublicBeaconProxy).creationCode,
                 abi.encode(
                     AbstractPoolContractsRegistry(poolRegistry).getProxyBeacon(poolType),
                     bytes("")
