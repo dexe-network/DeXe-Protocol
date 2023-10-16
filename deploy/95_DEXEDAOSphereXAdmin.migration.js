@@ -31,6 +31,14 @@ module.exports = async (deployer, logger) => {
 
   logger.logContracts(...proxies);
 
+  const govPoolImplementation = await poolRegistry.getImplementation(await poolRegistry.GOV_POOL_NAME());
+  const govPoolMigration = (await deployer.deploy(GovPoolMigration)).address;
+
+  logger.logTransaction(
+    await poolRegistry.setNewImplementations([await poolRegistry.GOV_POOL_NAME()], [govPoolMigration]),
+    "Setting a default GovPool implementation"
+  );
+
   for (const [contractName, proxy] of proxies) {
     logger.logTransaction(
       await (await SphereXProtectedBase.at(proxy)).transferSphereXAdminRole(deployer.dexeDaoAddress),
@@ -44,10 +52,7 @@ module.exports = async (deployer, logger) => {
   );
 
   logger.logTransaction(
-    await poolRegistry.setNewImplementations(
-      [await poolRegistry.GOV_POOL_NAME()],
-      [(await GovPool.deployed()).address]
-    ),
+    await poolRegistry.setNewImplementations([await poolRegistry.GOV_POOL_NAME()], [govPoolImplementation]),
     "Setting a default GovPool implementation"
   );
 };

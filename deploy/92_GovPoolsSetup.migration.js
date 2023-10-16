@@ -24,7 +24,6 @@ const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
 const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
 
 const GovPool = artifacts.require("GovPool");
-const GovPoolMigration = artifacts.require("GovPoolMigration");
 const GovSettings = artifacts.require("GovSettings");
 const GovValidators = artifacts.require("GovValidators");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
@@ -45,16 +44,6 @@ async function linkGovPool(deployer) {
   await deployer.deploy(GovPoolViewLib);
   await deployer.deploy(GovPoolOffchainLib);
   await deployer.deploy(GovPoolCreditLib);
-
-  await deployer.link(GovPoolCreateLib, GovPoolMigration);
-  await deployer.link(GovPoolExecuteLib, GovPoolMigration);
-  await deployer.link(GovPoolMicropoolLib, GovPoolMigration);
-  await deployer.link(GovPoolRewardsLib, GovPoolMigration);
-  await deployer.link(GovPoolUnlockLib, GovPoolMigration);
-  await deployer.link(GovPoolVoteLib, GovPoolMigration);
-  await deployer.link(GovPoolViewLib, GovPoolMigration);
-  await deployer.link(GovPoolOffchainLib, GovPoolMigration);
-  await deployer.link(GovPoolCreditLib, GovPoolMigration);
 
   await deployer.link(GovPoolCreateLib, GovPool);
   await deployer.link(GovPoolExecuteLib, GovPool);
@@ -113,9 +102,7 @@ module.exports = async (deployer, logger) => {
 
   await link(deployer);
 
-  await deployer.deploy(GovPool);
-
-  const govPool = await deployer.deploy(GovPoolMigration);
+  const govPool = await deployer.deploy(GovPool);
   const govSettings = await deployer.deploy(GovSettings);
   const govValidators = await deployer.deploy(GovValidators);
   const govUserKeeper = await deployer.deploy(GovUserKeeper);

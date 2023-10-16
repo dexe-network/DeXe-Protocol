@@ -5,7 +5,7 @@ import "@spherex-xyz/contracts/src/SphereXProtectedBase.sol";
 
 import "../../gov/GovPool.sol";
 
-contract GovPoolMigration is GovPool {
+contract GovPoolMigration {
     address internal immutable DEPLOYER;
 
     constructor() {
