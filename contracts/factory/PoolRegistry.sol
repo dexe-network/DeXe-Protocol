@@ -10,6 +10,8 @@ import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 import "../interfaces/factory/IPoolRegistry.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
+import "../proxy/PoolBeacon.sol";
+
 contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     using EnumerableSet for EnumerableSet.AddressSet;
     using Paginator for EnumerableSet.AddressSet;
@@ -48,11 +50,32 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         _addProxyPool(name, poolAddress);
     }
 
+    function setSphereXEngine(address sphereXEngine) external onlyOwner {
+        _setSphereXEngine(GOV_POOL_NAME, sphereXEngine);
+        _setSphereXEngine(SETTINGS_NAME, sphereXEngine);
+        _setSphereXEngine(VALIDATORS_NAME, sphereXEngine);
+        _setSphereXEngine(USER_KEEPER_NAME, sphereXEngine);
+        _setSphereXEngine(DISTRIBUTION_PROPOSAL_NAME, sphereXEngine);
+        _setSphereXEngine(TOKEN_SALE_PROPOSAL_NAME, sphereXEngine);
+        _setSphereXEngine(EXPERT_NFT_NAME, sphereXEngine);
+        _setSphereXEngine(NFT_MULTIPLIER_NAME, sphereXEngine);
+        _setSphereXEngine(LINEAR_POWER_NAME, sphereXEngine);
+        _setSphereXEngine(POLYNOMIAL_POWER_NAME, sphereXEngine);
+    }
+
     function isGovPool(address potentialPool) external view override returns (bool) {
         return isPool(GOV_POOL_NAME, potentialPool);
     }
 
+    function _setSphereXEngine(string memory poolName, address sphereXEngine) internal {
+        PoolBeacon(getProxyBeacon(poolName)).changeSphereXEngine(sphereXEngine);
+    }
+
     function _onlyPoolFactory() internal view {
         require(_poolFactory == msg.sender, "PoolRegistry: Caller is not a factory");
+    }
+
+    function _deployProxyBeacon() internal override returns (address) {
+        return address(new PoolBeacon(msg.sender, address(this), address(0)));
     }
 }

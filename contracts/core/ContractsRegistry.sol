@@ -7,6 +7,8 @@ import "@solarity/solidity-lib/contracts-registry/presets/OwnableContractsRegist
 
 import "../interfaces/core/IContractsRegistry.sol";
 
+import "../proxy/ProtectedTransparentProxy.sol";
+
 contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPSUpgradeable {
     string public constant USER_REGISTRY_NAME = "USER_REGISTRY";
 
@@ -72,6 +74,39 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
 
     function getDexeExpertNftContract() external view override returns (address) {
         return getContract(DEXE_EXPERT_NFT_NAME);
+    }
+
+    function setSphereXEngine(address sphereXEngine) external onlyOwner {
+        _setSphereXEngine(USER_REGISTRY_NAME, sphereXEngine);
+        _setSphereXEngine(POOL_FACTORY_NAME, sphereXEngine);
+        _setSphereXEngine(POOL_REGISTRY_NAME, sphereXEngine);
+        _setSphereXEngine(DEXE_EXPERT_NFT_NAME, sphereXEngine);
+        _setSphereXEngine(PRICE_FEED_NAME, sphereXEngine);
+        _setSphereXEngine(CORE_PROPERTIES_NAME, sphereXEngine);
+    }
+
+    function _setSphereXEngine(string memory contractName, address sphereXEngine) internal {
+        ProtectedTransparentProxy(payable(getContract(contractName))).changeSphereXEngine(
+            sphereXEngine
+        );
+    }
+
+    function _deployProxy(
+        address contractAddress,
+        address admin,
+        bytes memory data
+    ) internal override returns (address) {
+        return
+            address(
+                new ProtectedTransparentProxy(
+                    msg.sender,
+                    address(this),
+                    address(0),
+                    contractAddress,
+                    admin,
+                    data
+                )
+            );
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}

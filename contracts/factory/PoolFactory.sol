@@ -21,6 +21,8 @@ import "../gov/validators/GovValidators.sol";
 import "../core/CoreProperties.sol";
 import {PoolRegistry} from "./PoolRegistry.sol";
 
+import "../proxy/ProtectedPublicBeaconProxy.sol";
+
 import "../libs/factory/GovTokenDeployer.sol";
 
 import "../core/Globals.sol";
@@ -247,6 +249,51 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
     function _injectDependencies(address proxy) internal {
         _injectDependencies(address(_poolRegistry), proxy);
+    }
+
+    function _deploy(
+        address poolRegistry,
+        string memory poolType
+    ) internal override returns (address) {
+        return
+            address(
+                new ProtectedPublicBeaconProxy(
+                    AbstractPoolContractsRegistry(poolRegistry).getProxyBeacon(poolType),
+                    bytes("")
+                )
+            );
+    }
+
+    function _deploy2(
+        address poolRegistry,
+        string memory poolType,
+        bytes32 salt
+    ) internal override returns (address) {
+        return
+            address(
+                new ProtectedPublicBeaconProxy{salt: salt}(
+                    AbstractPoolContractsRegistry(poolRegistry).getProxyBeacon(poolType),
+                    bytes("")
+                )
+            );
+    }
+
+    function _predictPoolAddress(
+        address poolRegistry,
+        string memory poolType,
+        bytes32 salt
+    ) internal view override returns (address) {
+        bytes32 bytecodeHash = keccak256(
+            abi.encodePacked(
+                type(ProtectedPublicBeaconProxy).creationCode,
+                abi.encode(
+                    AbstractPoolContractsRegistry(poolRegistry).getProxyBeacon(poolType),
+                    bytes("")
+                )
+            )
+        );
+
+        return Create2.computeAddress(salt, bytecodeHash);
     }
 
     function _predictPoolAddress(
