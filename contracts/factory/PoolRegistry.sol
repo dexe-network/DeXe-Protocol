@@ -51,23 +51,23 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     }
 
     function setSphereXEngine(address sphereXEngine) external onlyOwner {
-        _setSpherexEngine(GOV_POOL_NAME, sphereXEngine);
-        _setSpherexEngine(SETTINGS_NAME, sphereXEngine);
-        _setSpherexEngine(VALIDATORS_NAME, sphereXEngine);
-        _setSpherexEngine(USER_KEEPER_NAME, sphereXEngine);
-        _setSpherexEngine(DISTRIBUTION_PROPOSAL_NAME, sphereXEngine);
-        _setSpherexEngine(TOKEN_SALE_PROPOSAL_NAME, sphereXEngine);
-        _setSpherexEngine(EXPERT_NFT_NAME, sphereXEngine);
-        _setSpherexEngine(NFT_MULTIPLIER_NAME, sphereXEngine);
-        _setSpherexEngine(LINEAR_POWER_NAME, sphereXEngine);
-        _setSpherexEngine(POLYNOMIAL_POWER_NAME, sphereXEngine);
+        _setSphereXEngine(GOV_POOL_NAME, sphereXEngine);
+        _setSphereXEngine(SETTINGS_NAME, sphereXEngine);
+        _setSphereXEngine(VALIDATORS_NAME, sphereXEngine);
+        _setSphereXEngine(USER_KEEPER_NAME, sphereXEngine);
+        _setSphereXEngine(DISTRIBUTION_PROPOSAL_NAME, sphereXEngine);
+        _setSphereXEngine(TOKEN_SALE_PROPOSAL_NAME, sphereXEngine);
+        _setSphereXEngine(EXPERT_NFT_NAME, sphereXEngine);
+        _setSphereXEngine(NFT_MULTIPLIER_NAME, sphereXEngine);
+        _setSphereXEngine(LINEAR_POWER_NAME, sphereXEngine);
+        _setSphereXEngine(POLYNOMIAL_POWER_NAME, sphereXEngine);
     }
 
     function isGovPool(address potentialPool) external view override returns (bool) {
         return isPool(GOV_POOL_NAME, potentialPool);
     }
 
-    function _setSpherexEngine(string memory poolName, address sphereXEngine) internal {
+    function _setSphereXEngine(string memory poolName, address sphereXEngine) internal {
         PoolBeacon(getProxyBeacon(poolName)).changeSphereXEngine(sphereXEngine);
     }
 
@@ -76,7 +76,6 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     }
 
     function _deployProxyBeacon(address implementation) internal override returns (address) {
-        /// FIXME: owner() is not set
-        return address(new PoolBeacon(owner(), address(this), address(0), implementation));
+        return address(new PoolBeacon(msg.sender, address(this), address(0)));
     }
 }

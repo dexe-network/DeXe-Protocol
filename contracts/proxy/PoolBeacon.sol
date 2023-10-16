@@ -1,17 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@spherex-xyz/contracts/src/ProtectedProxies/SphereXUpgradeableBeacon.sol";
+import "@spherex-xyz/contracts/src/SphereXProxyStorage.sol";
+import "@spherex-xyz/contracts/src/ProtectedProxies/ISphereXBeacon.sol";
 
-contract PoolBeacon is SphereXUpgradeableBeacon {
+import "@solarity/solidity-lib/contracts-registry/pools/proxy/ProxyBeacon.sol";
+
+contract PoolBeacon is ISphereXBeacon, SphereXProxyBase, ProxyBeacon {
     constructor(
         address sphereXAdmin,
         address sphereXOperator,
-        address sphereXEngine,
-        address implementation
-    ) SphereXUpgradeableBeacon(implementation, sphereXAdmin, sphereXOperator, sphereXEngine) {}
+        address sphereXEngine
+    ) SphereXProxyBase(sphereXAdmin, sphereXOperator, sphereXEngine) {}
 
-    function upgrade(address newImplementation) external {
-        upgradeTo(newImplementation);
+    function protectedImplementation(
+        bytes4 selector
+    ) external view returns (address, address, bool) {
+        return (
+            PoolBeacon(address(this)).implementation(),
+            sphereXEngine(),
+            isProtectedFuncSig(selector)
+        );
     }
 }

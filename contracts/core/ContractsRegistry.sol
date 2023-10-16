@@ -96,12 +96,10 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
         address admin,
         bytes memory data
     ) internal override returns (address) {
-        /// FIXME: owner() is not set
-
         return
             address(
                 new ProtectedTransparentProxy(
-                    owner(),
+                    msg.sender,
                     address(this),
                     address(0),
                     contractAddress,
