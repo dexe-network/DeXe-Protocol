@@ -262,7 +262,8 @@ describe("GovPool", () => {
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
     const _poolFactory = await PoolFactory.new();
-    dexeExpertNft = await ERC721Expert.new();
+    const _dexeExpertNft = await ERC721Expert.new();
+
     babt = await BABTMock.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721EnumMock.new("Mock", "Mock");
@@ -287,7 +288,7 @@ describe("GovPool", () => {
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), _poolRegistry.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.POOL_FACTORY_NAME(), _poolFactory.address);
-    await contractsRegistry.addProxyContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), dexeExpertNft.address);
+    await contractsRegistry.addProxyContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), _dexeExpertNft.address);
 
     /// just a mock address
     await contractsRegistry.addProxyContract(await contractsRegistry.USER_REGISTRY_NAME(), contractsRegistry.address);
@@ -300,6 +301,7 @@ describe("GovPool", () => {
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
     poolFactory = await PoolFactory.at(await contractsRegistry.getPoolFactoryContract());
+    dexeExpertNft = await ERC721Expert.at(await contractsRegistry.getDexeExpertNftContract());
 
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
     await poolRegistry.__OwnablePoolContractsRegistry_init();
