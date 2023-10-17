@@ -341,6 +341,16 @@ describe("ERC721Power", () => {
         assert.equal(infos.currentCollateral.toFixed(), "0");
         assert.equal((await nft.totalPower()).toFixed(), toPercent("90").times(2).plus(toPercent("80.991")).toFixed());
       });
+
+      it("should not recalculate non-existing NFT power", async () => {
+        let power = await nft.getNftPower(1337);
+
+        await setTime(startTime + 900);
+        await nft.recalculateNftPower(1337);
+
+        assert.equal(toBN(power).toFixed(), "0");
+        assert.equal(toBN(power).toFixed(), toBN(await nft.getNftPower(1337)).toFixed());
+      });
     });
 
     describe("addCollateral()", () => {
