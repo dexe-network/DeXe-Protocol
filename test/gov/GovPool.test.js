@@ -42,7 +42,6 @@ const {
   ValidatorsProposalState,
   ProposalType,
   VoteType,
-  VotePowerType,
 } = require("../utils/constants");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
@@ -51,14 +50,11 @@ const { impersonate } = require("../helpers/impersonator");
 const { assert } = require("chai");
 const ethSigUtil = require("@metamask/eth-sig-util");
 const { web3 } = require("hardhat");
-const { getBytesLinearPowerInit } = require("../utils/gov-vote-power-utils");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
-const PoolFactory = artifacts.require("PoolFactory");
 const CoreProperties = artifacts.require("CoreProperties");
 const GovPool = artifacts.require("GovPool");
-const TokenSaleProposal = artifacts.require("TokenSaleProposalMock");
 const DistributionProposal = artifacts.require("DistributionProposal");
 const GovValidators = artifacts.require("GovValidators");
 const GovSettings = artifacts.require("GovSettings");
@@ -73,10 +69,6 @@ const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC20 = artifacts.require("ERC20");
 const BABTMock = artifacts.require("BABTMock");
 const ExecutorTransferMock = artifacts.require("ExecutorTransferMock");
-const ProtectedTransparentProxy = artifacts.require("ProtectedTransparentProxy");
-const PoolBeacon = artifacts.require("PoolBeacon");
-const ProtectedPublicBeaconProxy = artifacts.require("ProtectedPublicBeaconProxy");
-const SphereXEngineMock = artifacts.require("SphereXEngineMock");
 const GovPoolAttackerMock = artifacts.require("GovPoolAttackerMock");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
@@ -91,19 +83,10 @@ const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
 const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
 const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
 const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
-const GovTokenDeployer = artifacts.require("GovTokenDeployer");
-const TokenSaleProposalCreateLib = artifacts.require("TokenSaleProposalCreate");
-const TokenSaleProposalBuyLib = artifacts.require("TokenSaleProposalBuy");
-const TokenSaleProposalVestingLib = artifacts.require("TokenSaleProposalVesting");
-const TokenSaleProposalWhitelistLib = artifacts.require("TokenSaleProposalWhitelist");
-const TokenSaleProposalClaimLib = artifacts.require("TokenSaleProposalClaim");
-const TokenSaleProposalRecoverLib = artifacts.require("TokenSaleProposalRecover");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
-PoolFactory.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
-TokenSaleProposal.numberFormat = "BigNumber";
 DistributionProposal.numberFormat = "BigNumber";
 GovPool.numberFormat = "BigNumber";
 GovValidators.numberFormat = "BigNumber";
@@ -123,12 +106,12 @@ describe("GovPool", () => {
   let FOURTH;
   let FIFTH;
   let SIXTH;
+  let FACTORY;
   let NOTHING;
 
   let contractsRegistry;
   let coreProperties;
   let poolRegistry;
-  let poolFactory;
 
   let token;
   let nft;
@@ -145,8 +128,6 @@ describe("GovPool", () => {
   let dp;
   let votePower;
   let govPool;
-
-  let sphereXEngine;
 
   let attacker;
 
@@ -206,6 +187,7 @@ describe("GovPool", () => {
     FOURTH = await accounts(3);
     FIFTH = await accounts(4);
     SIXTH = await accounts(5);
+    FACTORY = await accounts(6);
     NOTHING = await accounts(9);
 
     const govUserKeeperViewLib = await GovUserKeeperViewLib.new();
@@ -240,34 +222,13 @@ describe("GovPool", () => {
     await GovValidators.link(govValidatorsVoteLib);
     await GovValidators.link(govValidatorsExecuteLib);
 
-    const govTokenDeployer = await GovTokenDeployer.new();
-
-    await PoolFactory.link(govTokenDeployer);
-
-    const tspCreateLib = await TokenSaleProposalCreateLib.new();
-    const tspBuyLib = await TokenSaleProposalBuyLib.new();
-    const tspVestingLib = await TokenSaleProposalVestingLib.new();
-    const tspWhitelistLib = await TokenSaleProposalWhitelistLib.new();
-    const tspClaimLib = await TokenSaleProposalClaimLib.new();
-    const tspRecoverLib = await TokenSaleProposalRecoverLib.new();
-
-    await TokenSaleProposal.link(tspCreateLib);
-    await TokenSaleProposal.link(tspBuyLib);
-    await TokenSaleProposal.link(tspVestingLib);
-    await TokenSaleProposal.link(tspWhitelistLib);
-    await TokenSaleProposal.link(tspClaimLib);
-    await TokenSaleProposal.link(tspRecoverLib);
-
     contractsRegistry = await ContractsRegistry.new();
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
-    const _poolFactory = await PoolFactory.new();
-    const _dexeExpertNft = await ERC721Expert.new();
-
+    dexeExpertNft = await ERC721Expert.new();
     babt = await BABTMock.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721EnumMock.new("Mock", "Mock");
-    sphereXEngine = await SphereXEngineMock.new();
     attacker = await GovPoolAttackerMock.new();
 
     nftPower = await ERC721Power.new();
@@ -287,21 +248,16 @@ describe("GovPool", () => {
 
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), _poolRegistry.address);
-    await contractsRegistry.addProxyContract(await contractsRegistry.POOL_FACTORY_NAME(), _poolFactory.address);
-    await contractsRegistry.addProxyContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), _dexeExpertNft.address);
 
-    /// just a mock address
-    await contractsRegistry.addProxyContract(await contractsRegistry.USER_REGISTRY_NAME(), contractsRegistry.address);
-    await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), contractsRegistry.address);
+    await contractsRegistry.addContract(await contractsRegistry.POOL_FACTORY_NAME(), FACTORY);
 
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), ETHER_ADDR);
 
+    await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), dexeExpertNft.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
 
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
-    poolFactory = await PoolFactory.at(await contractsRegistry.getPoolFactoryContract());
-    dexeExpertNft = await ERC721Expert.at(await contractsRegistry.getDexeExpertNftContract());
 
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
     await poolRegistry.__OwnablePoolContractsRegistry_init();
@@ -309,7 +265,6 @@ describe("GovPool", () => {
 
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
-    await contractsRegistry.injectDependencies(await contractsRegistry.POOL_FACTORY_NAME());
 
     await reverter.snapshot();
   });
@@ -317,55 +272,84 @@ describe("GovPool", () => {
   afterEach(reverter.revert);
 
   async function deployPool(poolParams) {
+    const NAME = await poolRegistry.GOV_POOL_NAME();
+
     const settings = await GovSettings.new();
     const validators = await GovValidators.new();
     const userKeeper = await GovUserKeeper.new();
-    const tsp = await TokenSaleProposal.new();
     const dp = await DistributionProposal.new();
     const expertNft = await ERC721Expert.new();
     const votePower = await LinearPower.new();
     const govPool = await GovPool.new();
     const nftMultiplier = await ERC721Multiplier.new();
 
-    await poolRegistry.setNewImplementations(
+    await settings.__GovSettings_init(
+      govPool.address,
+      validators.address,
+      userKeeper.address,
+      poolParams.settingsParams.proposalSettings,
+      [...poolParams.settingsParams.additionalProposalExecutors, dp.address]
+    );
+
+    await validators.__GovValidators_init(
+      poolParams.validatorsParams.name,
+      poolParams.validatorsParams.symbol,
       [
-        await poolRegistry.GOV_POOL_NAME(),
-        await poolRegistry.SETTINGS_NAME(),
-        await poolRegistry.VALIDATORS_NAME(),
-        await poolRegistry.USER_KEEPER_NAME(),
-        await poolRegistry.DISTRIBUTION_PROPOSAL_NAME(),
-        await poolRegistry.TOKEN_SALE_PROPOSAL_NAME(),
-        await poolRegistry.EXPERT_NFT_NAME(),
-        await poolRegistry.NFT_MULTIPLIER_NAME(),
-        await poolRegistry.LINEAR_POWER_NAME(),
-        await poolRegistry.POLYNOMIAL_POWER_NAME(),
+        poolParams.validatorsParams.proposalSettings.duration,
+        poolParams.validatorsParams.proposalSettings.executionDelay,
+        poolParams.validatorsParams.proposalSettings.quorum,
       ],
+      poolParams.validatorsParams.validators,
+      poolParams.validatorsParams.balances
+    );
+    await userKeeper.__GovUserKeeper_init(
+      poolParams.userKeeperParams.tokenAddress,
+      poolParams.userKeeperParams.nftAddress,
+      poolParams.userKeeperParams.totalPowerInTokens,
+      poolParams.userKeeperParams.nftsTotalSupply
+    );
+
+    await nftMultiplier.__ERC721Multiplier_init("Mock Multiplier Nft", "MCKMULNFT");
+    await dp.__DistributionProposal_init(govPool.address);
+    await expertNft.__ERC721Expert_init("Mock Expert Nft", "MCKEXPNFT");
+    await votePower.__LinearPower_init();
+    await govPool.__GovPool_init(
       [
-        govPool.address,
         settings.address,
-        validators.address,
         userKeeper.address,
-        dp.address,
-        tsp.address,
+        validators.address,
         expertNft.address,
         nftMultiplier.address,
         votePower.address,
-        votePower.address,
-      ]
+      ],
+      OWNER,
+      poolParams.onlyBABTHolders,
+      poolParams.deployerBABTid,
+      poolParams.descriptionURL,
+      poolParams.name
     );
 
-    const tx = await poolFactory.deployGovPool(poolParams);
-    const args = tx.receipt.logs[0].args;
+    await settings.transferOwnership(govPool.address);
+    await validators.transferOwnership(govPool.address);
+    await userKeeper.transferOwnership(govPool.address);
+    await expertNft.transferOwnership(govPool.address);
+    await votePower.transferOwnership(govPool.address);
+
+    await poolRegistry.addProxyPool(NAME, govPool.address, {
+      from: FACTORY,
+    });
+
+    await poolRegistry.injectDependenciesToExistingPools(NAME, 0, 10);
 
     return {
-      settings: await GovSettings.at(args.govPoolDeps.settingsAddress),
-      validators: await GovValidators.at(args.govPoolDeps.validatorsAddress),
-      userKeeper: await GovUserKeeper.at(args.govPoolDeps.userKeeperAddress),
-      distributionProposal: await DistributionProposal.at(args.distributionProposal),
-      expertNft: await ERC721Expert.at(args.govPoolDeps.expertNftAddress),
-      votePower: await VotePowerMock.at(args.govPoolDeps.votePowerAddress),
-      govPool: await GovPool.at(args.govPool),
-      nftMultiplier: await ERC721Multiplier.at(args.govPoolDeps.nftMultiplierAddress),
+      settings: settings,
+      validators: validators,
+      userKeeper: userKeeper,
+      distributionProposal: dp,
+      expertNft: expertNft,
+      votePower: votePower,
+      govPool: govPool,
+      nftMultiplier: nftMultiplier,
     };
   }
 
@@ -430,6 +414,25 @@ describe("GovPool", () => {
             },
             executorDescription: "validators",
           },
+          {
+            earlyCompletion: false,
+            delegatedVotingAllowed: true,
+            validatorsVote: true,
+            duration: 600,
+            durationValidators: 800,
+            quorum: PRECISION.times("71").toFixed(),
+            quorumValidators: PRECISION.times("100").toFixed(),
+            minVotesForVoting: wei("20"),
+            minVotesForCreating: wei("3"),
+            executionDelay: 0,
+            rewardsInfo: {
+              rewardToken: rewardToken.address,
+              creationReward: wei("10"),
+              executionReward: wei("5"),
+              voteRewardsCoefficient: PRECISION.toFixed(),
+            },
+            executorDescription: "DP",
+          },
         ],
         additionalProposalExecutors: [],
       },
@@ -450,26 +453,9 @@ describe("GovPool", () => {
         totalPowerInTokens: wei("33000"),
         nftsTotalSupply: 33,
       },
-      tokenSaleParams: {
-        tiersParams: [],
-        whitelistParams: [],
-        tokenParams: {
-          name: "",
-          symbol: "",
-          users: [],
-          saleAmount: 0,
-          cap: 0,
-          mintedTotal: 0,
-          amounts: [],
-        },
-      },
-      votePowerParams: {
-        voteType: VotePowerType.LINEAR_VOTES,
-        initData: getBytesLinearPowerInit(),
-        presetAddress: ZERO_ADDR,
-      },
       verifier: OWNER,
       onlyBABTHolders: false,
+      deployerBABTid: 1,
       descriptionURL: "example.com",
       name: "Pool name",
     };
@@ -581,7 +567,7 @@ describe("GovPool", () => {
       await executeValidatorProposal(
         [
           [settings.address, 0, getBytesAddSettings([GOV_POOL_SETTINGS])],
-          [settings.address, 0, getBytesChangeExecutors([govPool.address, settings.address], [3, 3])],
+          [settings.address, 0, getBytesChangeExecutors([govPool.address, settings.address], [4, 4])],
         ],
         []
       );
@@ -628,7 +614,7 @@ describe("GovPool", () => {
             ],
             OWNER,
             POOL_PARAMETERS.onlyBABTHolders,
-            1,
+            POOL_PARAMETERS.deployerBABTid,
             POOL_PARAMETERS.descriptionURL,
             POOL_PARAMETERS.name
           ),
@@ -1536,7 +1522,7 @@ describe("GovPool", () => {
 
             [
               [settings.address, 0, getBytesAddSettings([NEW_SETTINGS])],
-              [settings.address, 0, getBytesChangeExecutors([THIRD], [3])],
+              [settings.address, 0, getBytesChangeExecutors([THIRD], [4])],
             ],
             []
           );
@@ -3019,7 +3005,7 @@ describe("GovPool", () => {
 
         assert.equal((await govPool.getWithdrawableAssets(OWNER)).tokens.toFixed(), wei("1000"));
 
-        const addedSettings = await settings.settings(3);
+        const addedSettings = await settings.settings(4);
 
         assert.isTrue(addedSettings.earlyCompletion);
         assert.isFalse(addedSettings.delegatedVotingAllowed);
@@ -3112,7 +3098,7 @@ describe("GovPool", () => {
         const executorTransfer = await ExecutorTransferMock.new(govPool.address, token.address);
 
         const addSettingsBytes = getBytesAddSettings([NEW_SETTINGS]);
-        const changeExecutorBytes = getBytesChangeExecutors([executorTransfer.address], [3]);
+        const changeExecutorBytes = getBytesChangeExecutors([executorTransfer.address], [4]);
 
         assert.equal(await govPool.getProposalState(1), ProposalState.Undefined);
 
@@ -3136,7 +3122,7 @@ describe("GovPool", () => {
 
         assert.equal(await govPool.getProposalState(1), ProposalState.ExecutedFor);
         assert.equal((await validators.getProposalState(1, false)).toFixed(), ValidatorsProposalState.Executed);
-        assert.equal(toBN(await settings.executorToSettings(executorTransfer.address)).toFixed(), "3");
+        assert.equal(toBN(await settings.executorToSettings(executorTransfer.address)).toFixed(), "4");
 
         const bytesExecute = getBytesExecute();
         const bytesApprove = getBytesApprove(executorTransfer.address, wei("99"));
@@ -3516,7 +3502,7 @@ describe("GovPool", () => {
 
               await govPool.execute(1);
 
-              const changeExecutorBytes = getBytesChangeExecutors([userKeeper.address], [3]);
+              const changeExecutorBytes = getBytesChangeExecutors([userKeeper.address], [4]);
 
               await govPool.createProposal("example.com", [[settings.address, 0, changeExecutorBytes]], []);
               await govPool.vote(2, true, wei("1000"), []);
@@ -3872,9 +3858,8 @@ describe("GovPool", () => {
       it("should claim reward properly if nft multiplier has been set", async () => {
         await setNftMultiplierAddress(nftMultiplier.address);
 
-        await impersonate(govPool.address);
-        await nftMultiplier.mint(OWNER, PRECISION.times("2.5"), 1000, { from: govPool.address });
-
+        await nftMultiplier.mint(OWNER, PRECISION.times("2.5"), 1000);
+        await nftMultiplier.transferOwnership(govPool.address);
         await nftMultiplier.lock(1);
 
         const bytes = getBytesAddSettings([NEW_SETTINGS]);
@@ -4936,112 +4921,6 @@ describe("GovPool", () => {
           assert.deepEqual(await govPool.getCreditInfo(), [[CREDIT_TOKEN.address, wei("1000"), wei("223")]]);
 
           assert.equal(await validators.getProposalState(1, true), ValidatorsProposalState.Executed);
-        });
-      });
-    });
-
-    describe("SphereX", () => {
-      let depositSelector;
-      let setGovVotesLimitSelector;
-
-      let transparentProxy;
-      let poolBeaconProxy;
-      let publicBeaconProxy;
-
-      beforeEach(async () => {
-        await impersonate(poolRegistry.address);
-        await impersonate(contractsRegistry.address);
-
-        depositSelector = web3.eth.abi.encodeFunctionSignature("deposit(uint256,uint256[])");
-        setGovVotesLimitSelector = web3.eth.abi.encodeFunctionSignature("setGovVotesLimit(uint128)");
-
-        transparentProxy = await ProtectedTransparentProxy.at(coreProperties.address);
-        poolBeaconProxy = await PoolBeacon.at(await poolRegistry.getProxyBeacon(await poolRegistry.GOV_POOL_NAME()));
-        publicBeaconProxy = await ProtectedPublicBeaconProxy.at(govPool.address);
-      });
-
-      describe("transparent proxy", () => {
-        it("should protect when sphereXEngine and selector are on", async () => {
-          await contractsRegistry.setSphereXEngine(sphereXEngine.address);
-          await transparentProxy.addProtectedFuncSigs([setGovVotesLimitSelector], { from: contractsRegistry.address });
-
-          await truffleAssert.passes(coreProperties.setGovVotesLimit(1));
-
-          await sphereXEngine.toggleRevert();
-
-          await truffleAssert.reverts(coreProperties.setGovVotesLimit(1), "SphereXEngineMock: malicious tx");
-        });
-
-        it("should not protect when selector is off", async () => {
-          await contractsRegistry.setSphereXEngine(sphereXEngine.address);
-
-          await sphereXEngine.toggleRevert();
-
-          await truffleAssert.passes(coreProperties.setGovVotesLimit(1));
-        });
-
-        it("should not protect when sphereXEngine is off", async () => {
-          await contractsRegistry.setSphereXEngine(sphereXEngine.address);
-          await contractsRegistry.setSphereXEngine(ZERO_ADDR);
-          await transparentProxy.addProtectedFuncSigs([setGovVotesLimitSelector], { from: contractsRegistry.address });
-
-          await sphereXEngine.toggleRevert();
-
-          await truffleAssert.passes(coreProperties.setGovVotesLimit(1));
-        });
-
-        it("should not set engine if not an operator", async () => {
-          await truffleAssert.reverts(
-            contractsRegistry.setSphereXEngine(sphereXEngine.address, { from: SECOND }),
-            "Ownable: caller is not the owner"
-          );
-        });
-      });
-
-      describe("beacon proxy", () => {
-        it("should protect when sphereXEngine and selector are on", async () => {
-          await poolRegistry.setSphereXEngine(sphereXEngine.address);
-          await poolBeaconProxy.addProtectedFuncSigs([depositSelector], { from: poolRegistry.address });
-
-          await truffleAssert.passes(govPool.deposit(1, []));
-
-          await sphereXEngine.toggleRevert();
-
-          await truffleAssert.reverts(govPool.deposit(1, []), "SphereXEngineMock: malicious tx");
-        });
-
-        it("should not protect when selector is off", async () => {
-          await poolRegistry.setSphereXEngine(sphereXEngine.address);
-
-          await sphereXEngine.toggleRevert();
-
-          await truffleAssert.passes(govPool.deposit(1, []));
-        });
-
-        it("should not protect when sphereXEngine is off", async () => {
-          await poolRegistry.setSphereXEngine(sphereXEngine.address);
-          await poolRegistry.setSphereXEngine(ZERO_ADDR);
-          await poolBeaconProxy.addProtectedFuncSigs([depositSelector], { from: poolRegistry.address });
-
-          await sphereXEngine.toggleRevert();
-
-          await truffleAssert.passes(govPool.deposit(1, []));
-        });
-
-        it("should not set engine if not an operator", async () => {
-          await truffleAssert.reverts(
-            poolRegistry.setSphereXEngine(sphereXEngine.address, { from: SECOND }),
-            "Ownable: caller is not the owner"
-          );
-        });
-      });
-
-      describe("public beacon proxy", () => {
-        it("should return correct implementation", async () => {
-          assert.equal(
-            await publicBeaconProxy.implementation(),
-            await poolRegistry.getImplementation(await poolRegistry.GOV_POOL_NAME())
-          );
         });
       });
     });
