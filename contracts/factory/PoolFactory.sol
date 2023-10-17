@@ -204,7 +204,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         GovPool(payable(poolProxy)).__GovPool_init(
             govPoolDeps,
             parameters.verifier,
-            parameters.onlyBABHolders,
+            parameters.onlyBABTHolders,
             babtId,
             parameters.descriptionURL,
             parameters.name
