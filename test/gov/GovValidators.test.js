@@ -11,7 +11,6 @@ const {
   getBytesChangeValidatorSettings,
   getBytesMonthlyWithdraw,
 } = require("../utils/gov-validators-utils");
-const { web3 } = require("hardhat");
 
 const GovValidators = artifacts.require("GovValidators");
 const GovValidatorsToken = artifacts.require("GovValidatorsToken");

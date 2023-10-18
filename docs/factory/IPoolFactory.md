@@ -157,7 +157,7 @@ struct GovPoolDeployParams {
 	IPoolFactory.TokenSaleProposalDeployParams tokenSaleParams;
 	IPoolFactory.VotePowerDeployParams votePowerParams;
 	address verifier;
-	bool onlyBABHolders;
+	bool onlyBABTHolders;
 	string descriptionURL;
 	string name;
 }
@@ -176,7 +176,7 @@ Parameters:
 | tokenSaleParams  | struct IPoolFactory.TokenSaleProposalDeployParams | the token sale proposal parameters                                   |
 | votePowerParams  | struct IPoolFactory.VotePowerDeployParams         | vote power parameters                                                |
 | verifier         | address                                           | the address of the verifier                                          |
-| onlyBABHolders   | bool                                              | if true, only KYCed users will be allowed to interact with the pool  |
+| onlyBABTHolders  | bool                                              | if true, only KYCed users will be allowed to interact with the pool  |
 | descriptionURL   | string                                            | the description of the pool                                          |
 | name             | string                                            | the name of the pool                                                 |
 

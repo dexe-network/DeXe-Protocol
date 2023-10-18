@@ -83,7 +83,7 @@ interface IPoolFactory {
     /// @param tokenSaleParams the token sale proposal parameters
     /// @param votePowerParams vote power parameters
     /// @param verifier the address of the verifier
-    /// @param onlyBABHolders if true, only KYCed users will be allowed to interact with the pool
+    /// @param onlyBABTHolders if true, only KYCed users will be allowed to interact with the pool
     /// @param descriptionURL the description of the pool
     /// @param name the name of the pool
     struct GovPoolDeployParams {
@@ -93,7 +93,7 @@ interface IPoolFactory {
         TokenSaleProposalDeployParams tokenSaleParams;
         VotePowerDeployParams votePowerParams;
         address verifier;
-        bool onlyBABHolders;
+        bool onlyBABTHolders;
         string descriptionURL;
         string name;
     }
