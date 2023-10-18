@@ -141,7 +141,7 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
     }
 
     function recalculateNftPower(uint256 tokenId) public override returns (uint256 newPower) {
-        if (!_exists(tokenId) || block.timestamp <= powerCalcStartTimestamp) {
+        if (!_exists(tokenId) || block.timestamp < powerCalcStartTimestamp) {
             return 0;
         }
 
@@ -169,7 +169,7 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
     }
 
     function getNftPower(uint256 tokenId) public view override returns (uint256) {
-        if (!_exists(tokenId) || block.timestamp <= powerCalcStartTimestamp) {
+        if (!_exists(tokenId) || block.timestamp < powerCalcStartTimestamp) {
             return 0;
         }
 
