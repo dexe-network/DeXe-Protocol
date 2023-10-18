@@ -3,7 +3,6 @@ const { toBN, accounts } = require("../../scripts/utils/utils");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { ZERO_ADDR } = require("../../scripts/utils/constants");
-const { web3 } = require("hardhat");
 const { impersonate } = require("../helpers/impersonator");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");

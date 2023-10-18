@@ -49,7 +49,6 @@ const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
 const { impersonate } = require("../helpers/impersonator");
 const { assert } = require("chai");
 const ethSigUtil = require("@metamask/eth-sig-util");
-const { web3 } = require("hardhat");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
