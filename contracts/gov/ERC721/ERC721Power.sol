@@ -261,8 +261,4 @@ contract ERC721Power is
             "ERC721Power: power calculation already begun"
         );
     }
-
-    function _baseURI() internal pure override returns (string memory) {
-        return "";
-    }
 }

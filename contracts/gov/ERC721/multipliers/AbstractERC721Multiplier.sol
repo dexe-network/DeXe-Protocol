@@ -180,9 +180,5 @@ abstract contract AbstractERC721Multiplier is
         require(ownerOf(tokenId) == msg.sender, "ERC721Multiplier: not the nft owner");
     }
 
-    function _baseURI() internal pure override returns (string memory) {
-        return "";
-    }
-
     uint256[47] private _gap;
 }
