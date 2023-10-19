@@ -19,11 +19,7 @@ interface IERC721Expert is IERC721Upgradeable {
     );
     event TagsAdded(uint256 indexed tokenId, string[] tags);
 
-    function mint(address to, string calldata uri_) external returns (uint256 tokenId);
-
     function burn(address from) external;
-
-    function setTokenURI(uint256 tokenId, string calldata uri_) external;
 
     function isExpert(address expert) external view returns (bool);
 

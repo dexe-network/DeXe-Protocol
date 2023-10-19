@@ -7,7 +7,7 @@ const { ZERO_ADDR, PERCENTAGE_100 } = require("../../../scripts/utils/constants"
 const Reverter = require("../../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
-const ERC721Power = artifacts.require("ERC721Power");
+const ERC721Power = artifacts.require("ERC721PowerMock");
 const ERC20Mock = artifacts.require("ERC20Mock");
 
 ERC721Power.numberFormat = "BigNumber";
@@ -60,6 +60,12 @@ describe("ERC721Power", () => {
   });
 
   afterEach(reverter.revert);
+
+  describe("coverage", () => {
+    it("should not burn random token", async () => {
+      await truffleAssert.reverts(nft.burn(1337));
+    });
+  });
 
   describe("initialize", () => {
     it("should revert if the token address is zero", async () => {
@@ -131,9 +137,9 @@ describe("ERC721Power", () => {
           "Ownable: caller is not the owner"
         );
 
-        await truffleAssert.reverts(nft.safeMint(OWNER, 1, { from: SECOND }), "Ownable: caller is not the owner");
+        await truffleAssert.reverts(nft.mint(OWNER, 1, "URI", { from: SECOND }), "Ownable: caller is not the owner");
 
-        await truffleAssert.reverts(nft.setBaseUri("", { from: SECOND }), "Ownable: caller is not the owner");
+        await truffleAssert.reverts(nft.setTokenURI(1, "", { from: SECOND }), "Ownable: caller is not the owner");
       });
     });
 
@@ -162,9 +168,9 @@ describe("ERC721Power", () => {
 
       describe("after nfts minting", () => {
         beforeEach(async () => {
-          await nft.safeMint(SECOND, 1);
-          await nft.safeMint(SECOND, 2);
-          await nft.safeMint(THIRD, 3);
+          await nft.mint(SECOND, 1, "URI1");
+          await nft.mint(SECOND, 2, "URI2");
+          await nft.mint(THIRD, 3, "URI3");
         });
 
         it("should return proper total power", async () => {
@@ -264,7 +270,7 @@ describe("ERC721Power", () => {
       });
     });
 
-    describe("safeMint()", () => {
+    describe("mint()", () => {
       beforeEach(async () => {
         await deployNft(startTime + 1000, "1", "1", "1");
       });
@@ -276,30 +282,33 @@ describe("ERC721Power", () => {
 
         assert.equal(await nft.totalPower(), "0");
 
-        await nft.safeMint(SECOND, 1);
+        await nft.mint(SECOND, 1, "URI1");
 
         assert.equal(await nft.totalSupply(), "1");
         assert.equal(await nft.ownerOf("1"), SECOND);
         assert.equal(await nft.totalPower(), "1");
+        assert.equal(await nft.tokenURI(1), "URI1");
       });
 
       it("should revert when calculation already begun", async () => {
         await setTime(startTime + 999);
-        await truffleAssert.reverts(nft.safeMint(SECOND, 1), "ERC721Power: power calculation already begun");
+
+        await truffleAssert.reverts(nft.mint(SECOND, 1, "URI"), "ERC721Power: power calculation already begun");
       });
     });
 
-    describe("setBaseUri()", () => {
+    describe("setTokenURI()", () => {
       beforeEach(async () => {
         await deployNft(startTime + 1000, "1", "1", "1");
-        await nft.safeMint(SECOND, 1);
+        await nft.mint(SECOND, 1, "URI1");
       });
 
       it("should correctly set base uri", async () => {
-        await nft.setBaseUri("placeholder");
+        assert.equal(await nft.tokenURI(1), "URI1");
 
-        assert.equal(await nft.tokenURI(1), "placeholder1");
-        assert.equal(await nft.baseURI(), "placeholder");
+        await nft.setTokenURI(1, "placeholder");
+
+        assert.equal(await nft.tokenURI(1), "placeholder");
       });
     });
 
@@ -307,9 +316,9 @@ describe("ERC721Power", () => {
       beforeEach(async () => {
         await deployNft(startTime + 1000, toPercent("90"), toPercent("0.01"), "540");
 
-        await nft.safeMint(SECOND, 1);
-        await nft.safeMint(SECOND, 2);
-        await nft.safeMint(THIRD, 3);
+        await nft.mint(SECOND, 1, "URI1");
+        await nft.mint(SECOND, 2, "URI2");
+        await nft.mint(THIRD, 3, "URI3");
       });
 
       it("should correctly recalculate nft power", async () => {
@@ -356,7 +365,7 @@ describe("ERC721Power", () => {
     describe("addCollateral()", () => {
       beforeEach(async () => {
         await deployNft(startTime + 1000, toPercent("110"), toPercent("0.01"), wei("500"));
-        await nft.safeMint(SECOND, "1");
+        await nft.mint(SECOND, 1, "URI");
       });
 
       it("should add collateral", async () => {
@@ -408,7 +417,7 @@ describe("ERC721Power", () => {
       beforeEach(async () => {
         await deployNft(startTime + 1000, toPercent("110"), toPercent("0.01"), wei("500"));
 
-        await nft.safeMint(SECOND, 1);
+        await nft.mint(SECOND, 1, "URI");
       });
 
       it("should remove collateral", async () => {

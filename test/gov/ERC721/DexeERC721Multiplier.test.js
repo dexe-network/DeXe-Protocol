@@ -49,7 +49,6 @@ describe("DexeERC721Multiplier", () => {
     it("should initialize properly if all conditions are met", async () => {
       assert.equal(await nft.name(), NFT_NAME);
       assert.equal(await nft.symbol(), NFT_SYMBOL);
-      assert.equal(await nft.baseURI(), "");
     });
 
     it("should not initialize twice", async () => {
@@ -68,6 +67,7 @@ describe("DexeERC721Multiplier", () => {
           multiplier: toMultiplier("1337").toFixed(),
           duration: "1000",
           averageBalance: "1000",
+          uri: "URI1",
           owner: SECOND,
         },
         {
@@ -75,6 +75,7 @@ describe("DexeERC721Multiplier", () => {
           multiplier: toMultiplier("20").toFixed(),
           duration: "500",
           averageBalance: "2000",
+          uri: "URI2",
           owner: THIRD,
         },
         {
@@ -82,6 +83,7 @@ describe("DexeERC721Multiplier", () => {
           multiplier: toMultiplier("1.5").toFixed(),
           duration: "200",
           averageBalance: "3000",
+          uri: "URI3",
           owner: SECOND,
         },
         {
@@ -89,6 +91,7 @@ describe("DexeERC721Multiplier", () => {
           multiplier: toMultiplier("5.125").toFixed(),
           duration: "7050",
           averageBalance: "4000",
+          uri: "URI4",
           owner: THIRD,
         },
       ];
@@ -104,7 +107,7 @@ describe("DexeERC721Multiplier", () => {
     describe("mint()", () => {
       it("should mint properly", async () => {
         for (const token of TOKENS) {
-          const tx = await nft.mint(token.owner, token.multiplier, token.duration, token.averageBalance);
+          const tx = await nft.mint(token.owner, token.multiplier, token.duration, token.averageBalance, token.uri);
 
           truffleAssert.eventEmitted(tx, "Minted", (e) => {
             return (
@@ -131,7 +134,9 @@ describe("DexeERC721Multiplier", () => {
 
       it("shouldn't mint if not the owner", async () => {
         await truffleAssert.reverts(
-          nft.mint(OWNER, TOKENS[0].multiplier, TOKENS[0].duration, TOKENS[0].averageBalance, { from: SECOND }),
+          nft.mint(OWNER, TOKENS[0].multiplier, TOKENS[0].duration, TOKENS[0].averageBalance, TOKENS[0].uri, {
+            from: SECOND,
+          }),
           "Ownable: caller is not the owner"
         );
       });
@@ -140,7 +145,7 @@ describe("DexeERC721Multiplier", () => {
     describe("if minted", () => {
       beforeEach(async () => {
         for (const token of TOKENS) {
-          await nft.mint(token.owner, token.multiplier, token.duration, token.averageBalance);
+          await nft.mint(token.owner, token.multiplier, token.duration, token.averageBalance, token.uri);
 
           token.mintedAt = await getCurrentBlockTime();
         }
@@ -335,7 +340,7 @@ describe("DexeERC721Multiplier", () => {
         });
 
         it("should return zero if nft multiplier is zero", async () => {
-          await nft.mint(SECOND, 0, 100, 1);
+          await nft.mint(SECOND, 0, 100, 1, "");
 
           await nft.transferOwnership(govPool.address);
 
@@ -346,7 +351,7 @@ describe("DexeERC721Multiplier", () => {
         });
 
         it("should return common multiplier if averageBalance is zero", async () => {
-          await nft.mint(SECOND, toMultiplier(2), 100, 0);
+          await nft.mint(SECOND, toMultiplier(2), 100, 0, "");
 
           await nft.transferOwnership(govPool.address);
 
@@ -357,7 +362,7 @@ describe("DexeERC721Multiplier", () => {
         });
 
         it("should return `common multiplier - 1` if CurrentVoteBalance <= AverageBalance * multiplier", async () => {
-          await nft.mint(SECOND, toMultiplier(2), 10, 1);
+          await nft.mint(SECOND, toMultiplier(2), 10, 1, "");
 
           await nft.transferOwnership(govPool.address);
 

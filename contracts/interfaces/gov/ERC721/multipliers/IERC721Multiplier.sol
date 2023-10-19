@@ -4,12 +4,6 @@ pragma solidity ^0.8.20;
 import "./IAbstractERC721Multiplier.sol";
 
 interface IERC721Multiplier is IAbstractERC721Multiplier {
-    /// @notice This function is used to mint an nft to the user's address
-    /// @param to the address to which an nft should be minted
-    /// @param multiplier the basic rewards multiplier
-    /// @param duration the time for which an nft can be locked
-    function mint(address to, uint256 multiplier, uint64 duration) external;
-
     /// @notice This function is used to change the basic rewards multiplier and the time for which the current nft will be locked
     /// @param tokenId the id of the nft to be changed
     /// @param multiplier the basic rewards multiplier

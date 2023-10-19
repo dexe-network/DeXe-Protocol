@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "@solarity/solidity-lib/utils/BlockGuard.sol";
@@ -14,12 +15,11 @@ import "../../../core/Globals.sol";
 abstract contract AbstractERC721Multiplier is
     IAbstractERC721Multiplier,
     ERC721EnumerableUpgradeable,
+    ERC721URIStorageUpgradeable,
     OwnableUpgradeable,
     BlockGuard
 {
     string public constant LOCK_UNLOCK = "LOCK_UNLOCK";
-
-    string public baseURI;
 
     mapping(uint256 => NftInfo) internal _tokens;
     mapping(address => uint256) internal _latestLockedTokenIds;
@@ -73,13 +73,29 @@ abstract contract AbstractERC721Multiplier is
         emit Locked(tokenId, msg.sender, false);
     }
 
-    function setBaseUri(string calldata uri) external onlyOwner {
-        baseURI = uri;
+    function setTokenURI(uint256 tokenId, string calldata uri_) external onlyOwner {
+        _setTokenURI(tokenId, uri_);
+    }
+
+    function tokenURI(
+        uint256 tokenId
+    )
+        public
+        view
+        override(ERC721URIStorageUpgradeable, ERC721Upgradeable)
+        returns (string memory)
+    {
+        return ERC721URIStorageUpgradeable.tokenURI(tokenId);
     }
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view override(ERC721EnumerableUpgradeable, IERC165Upgradeable) returns (bool) {
+    )
+        public
+        view
+        override(ERC721URIStorageUpgradeable, ERC721EnumerableUpgradeable, IERC165Upgradeable)
+        returns (bool)
+    {
         return
             interfaceId == type(IAbstractERC721Multiplier).interfaceId ||
             super.supportsInterface(interfaceId);
@@ -89,10 +105,11 @@ abstract contract AbstractERC721Multiplier is
         return tokenId != 0 && _latestLockedTokenIds[ownerOf(tokenId)] == tokenId;
     }
 
-    function _mint(address to, uint256 multiplier, uint64 duration) internal {
+    function _mint(address to, uint256 multiplier, uint64 duration, string memory uri_) internal {
         uint256 currentTokenId = totalSupply() + 1;
 
         _mint(to, currentTokenId);
+        _setTokenURI(currentTokenId, uri_);
 
         _tokens[currentTokenId] = NftInfo({
             multiplier: multiplier,
@@ -123,7 +140,7 @@ abstract contract AbstractERC721Multiplier is
         address to,
         uint256 tokenId,
         uint256 batchSize
-    ) internal override {
+    ) internal override(ERC721EnumerableUpgradeable, ERC721Upgradeable) {
         if (from != address(0)) {
             require(!isLocked(tokenId), "ERC721Multiplier: Cannot transfer locked token");
         }
@@ -131,8 +148,10 @@ abstract contract AbstractERC721Multiplier is
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 
-    function _baseURI() internal view override returns (string memory) {
-        return baseURI;
+    function _burn(
+        uint256 tokenId
+    ) internal override(ERC721URIStorageUpgradeable, ERC721Upgradeable) {
+        ERC721URIStorageUpgradeable._burn(tokenId);
     }
 
     function _getCurrentMultiplier(
@@ -159,6 +178,10 @@ abstract contract AbstractERC721Multiplier is
 
     function _onlyTokenOwner(uint256 tokenId) internal view {
         require(ownerOf(tokenId) == msg.sender, "ERC721Multiplier: not the nft owner");
+    }
+
+    function _baseURI() internal pure override returns (string memory) {
+        return "";
     }
 
     uint256[47] private _gap;

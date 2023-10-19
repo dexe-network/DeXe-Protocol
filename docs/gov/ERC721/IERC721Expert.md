@@ -44,27 +44,10 @@ event TagsAdded(uint256 indexed tokenId, string[] tags)
 
 ## Functions info
 
-### mint (0xd0def521)
-
-```solidity
-function mint(
-    address to,
-    string calldata uri_
-) external returns (uint256 tokenId)
-```
-
-
 ### burn (0x89afcb44)
 
 ```solidity
 function burn(address from) external
-```
-
-
-### setTokenURI (0x162094c4)
-
-```solidity
-function setTokenURI(uint256 tokenId, string calldata uri_) external
 ```
 
 

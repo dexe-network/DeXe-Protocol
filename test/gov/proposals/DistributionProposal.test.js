@@ -218,7 +218,7 @@ describe("DistributionProposal", () => {
     await token.approve(userKeeper.address, wei("10000000000"));
 
     for (let i = 1; i < 10; i++) {
-      await nft.safeMint(OWNER, i);
+      await nft.mint(OWNER, i);
       await nft.approve(userKeeper.address, i);
     }
   }

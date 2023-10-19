@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
@@ -16,7 +17,12 @@ import "../../libs/utils/TokenBalance.sol";
 
 import "../../core/Globals.sol";
 
-contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgradeable {
+contract ERC721Power is
+    IERC721Power,
+    ERC721EnumerableUpgradeable,
+    ERC721URIStorageUpgradeable,
+    OwnableUpgradeable
+{
     using SafeERC20 for IERC20;
     using Math for uint256;
     using MathHelper for uint256;
@@ -24,7 +30,6 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
     using TokenBalance for address;
 
     uint64 public powerCalcStartTimestamp;
-    string public baseURI;
 
     mapping(uint256 => NftInfo) public nftInfos; // tokenId => info
 
@@ -93,14 +98,19 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
         nftInfos[tokenId].requiredCollateral = amount;
     }
 
-    function safeMint(address to, uint256 tokenId) external onlyOwner onlyBeforePowerCalc {
-        _safeMint(to, tokenId, "");
+    function mint(
+        address to,
+        uint256 tokenId,
+        string calldata uri_
+    ) external onlyOwner onlyBeforePowerCalc {
+        _mint(to, tokenId);
+        _setTokenURI(tokenId, uri_);
 
         totalPower += getMaxPowerForNft(tokenId);
     }
 
-    function setBaseUri(string calldata uri) external onlyOwner {
-        baseURI = uri;
+    function setTokenURI(uint256 tokenId, string calldata uri_) external onlyOwner {
+        _setTokenURI(tokenId, uri_);
     }
 
     function addCollateral(uint256 amount, uint256 tokenId) external override {
@@ -205,21 +215,33 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
         return currentPower;
     }
 
+    function tokenURI(
+        uint256 tokenId
+    )
+        public
+        view
+        override(ERC721URIStorageUpgradeable, ERC721Upgradeable)
+        returns (string memory)
+    {
+        return ERC721URIStorageUpgradeable.tokenURI(tokenId);
+    }
+
     function supportsInterface(
         bytes4 interfaceId
     )
         public
         view
-        virtual
-        override(IERC165Upgradeable, ERC721EnumerableUpgradeable)
+        override(ERC721URIStorageUpgradeable, ERC721EnumerableUpgradeable, IERC165Upgradeable)
         returns (bool)
     {
         return
             interfaceId == type(IERC721Power).interfaceId || super.supportsInterface(interfaceId);
     }
 
-    function _baseURI() internal view override returns (string memory) {
-        return baseURI;
+    function _burn(
+        uint256 tokenId
+    ) internal override(ERC721URIStorageUpgradeable, ERC721Upgradeable) {
+        ERC721URIStorageUpgradeable._burn(tokenId);
     }
 
     function _beforeTokenTransfer(
@@ -227,7 +249,7 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
         address to,
         uint256 tokenId,
         uint256 batchSize
-    ) internal override {
+    ) internal override(ERC721EnumerableUpgradeable, ERC721Upgradeable) {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
 
         recalculateNftPower(tokenId);
@@ -238,5 +260,9 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
             block.timestamp < powerCalcStartTimestamp,
             "ERC721Power: power calculation already begun"
         );
+    }
+
+    function _baseURI() internal pure override returns (string memory) {
+        return "";
     }
 }
