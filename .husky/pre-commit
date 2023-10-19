@@ -1,4 +1,4 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-npm run lint-fix && npm run generate-docs && git add -u
+npm run lint-fix && git add -u

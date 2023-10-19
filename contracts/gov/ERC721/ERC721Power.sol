@@ -141,7 +141,7 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
     }
 
     function recalculateNftPower(uint256 tokenId) public override returns (uint256 newPower) {
-        if (!_exists(tokenId) || block.timestamp < powerCalcStartTimestamp) {
+        if (!_isActiveNft(tokenId)) {
             return 0;
         }
 
@@ -156,7 +156,24 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
         nftInfo.currentPower = newPower;
     }
 
+    function getMinPowerForNft(uint256 tokenId) external view returns (uint256) {
+        if (!_isActiveNft(tokenId)) {
+            return 0;
+        }
+
+        uint256 maxNftPower = getMaxPowerForNft(tokenId);
+
+        return
+            maxNftPower
+                .ratio(nftInfos[tokenId].currentCollateral, getRequiredCollateralForNft(tokenId))
+                .min(maxNftPower);
+    }
+
     function getMaxPowerForNft(uint256 tokenId) public view override returns (uint256) {
+        if (!_isActiveNft(tokenId)) {
+            return 0;
+        }
+
         uint256 maxPowerForNft = nftInfos[tokenId].maxPower;
 
         return maxPowerForNft == 0 ? maxPower : maxPowerForNft;
@@ -169,7 +186,7 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
     }
 
     function getNftPower(uint256 tokenId) public view override returns (uint256) {
-        if (!_exists(tokenId) || block.timestamp < powerCalcStartTimestamp) {
+        if (!_isActiveNft(tokenId)) {
             return 0;
         }
 
@@ -218,10 +235,6 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
             interfaceId == type(IERC721Power).interfaceId || super.supportsInterface(interfaceId);
     }
 
-    function _baseURI() internal view override returns (string memory) {
-        return baseURI;
-    }
-
     function _beforeTokenTransfer(
         address from,
         address to,
@@ -231,6 +244,14 @@ contract ERC721Power is IERC721Power, ERC721EnumerableUpgradeable, OwnableUpgrad
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
 
         recalculateNftPower(tokenId);
+    }
+
+    function _isActiveNft(uint256 tokenId) internal view returns (bool) {
+        return _exists(tokenId) && block.timestamp >= powerCalcStartTimestamp;
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return baseURI;
     }
 
     function _onlyBeforePowerCalc() internal view {

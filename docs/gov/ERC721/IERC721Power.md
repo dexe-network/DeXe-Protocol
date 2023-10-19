@@ -110,6 +110,28 @@ Return values:
 | :--- | :------ | :------------ |
 | [0]  | uint256 | new Nft power |
 
+### getMinPowerForNft (0xb60b71c0)
+
+```solidity
+function getMinPowerForNft(uint256 tokenId) external view returns (uint256)
+```
+
+Return min possible power (coefficient) for nft
+
+
+Parameters:
+
+| Name    | Type    | Description |
+| :------ | :------ | :---------- |
+| tokenId | uint256 | Nft number  |
+
+
+Return values:
+
+| Name | Type    | Description       |
+| :--- | :------ | :---------------- |
+| [0]  | uint256 | min power for Nft |
+
 ### getMaxPowerForNft (0x4fc685f7)
 
 ```solidity

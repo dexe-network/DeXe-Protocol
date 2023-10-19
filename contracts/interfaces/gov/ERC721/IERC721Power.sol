@@ -40,6 +40,11 @@ interface IERC721Power is IERC721EnumerableUpgradeable {
     /// @return new Nft power
     function recalculateNftPower(uint256 tokenId) external returns (uint256);
 
+    /// @notice Return min possible power (coefficient) for nft
+    /// @param tokenId Nft number
+    /// @return min power for Nft
+    function getMinPowerForNft(uint256 tokenId) external view returns (uint256);
+
     /// @notice Return max possible power (coefficient) for nft
     /// @param tokenId Nft number
     /// @return max power for Nft
