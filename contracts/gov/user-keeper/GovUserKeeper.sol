@@ -46,6 +46,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     mapping(address => BalanceInfo) internal _treasuryPoolsInfo; // user => balance info
 
     mapping(uint256 => uint256) internal _nftLockedNums; // tokenId => locked num
+    mapping(uint256 => uint256) internal _nftMinPower; // tokenId => nft min power
 
     mapping(uint256 => uint256) public nftSnapshot; // snapshot id => totalNftsPower
 
