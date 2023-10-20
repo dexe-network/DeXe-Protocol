@@ -57,21 +57,23 @@ contract DistributionProposal is IDistributionProposal, IProposalValidator, Init
         require(token != address(0), "DP: zero address");
         require(amount > 0, "DP: zero amount");
 
-        proposal.rewardAddress = token;
+        uint256 actualAmount = _getActualRewardAmount(proposalId, amount);
 
         if (token == ETHEREUM_ADDRESS) {
             require(amount == msg.value, "DP: wrong native amount");
 
-            proposal.rewardAmount = amount;
+            (bool ok, ) = payable(msg.sender).call{value: amount - actualAmount}("");
+            require(ok, "DP: failed to send back eth");
         } else {
             IERC20Metadata(token).safeTransferFrom(
                 msg.sender,
                 address(this),
-                amount.from18(token.decimals())
+                actualAmount.from18(token.decimals())
             );
-
-            proposal.rewardAmount = amount;
         }
+
+        proposal.rewardAddress = token;
+        proposal.rewardAmount = actualAmount;
     }
 
     function claim(address voter, uint256[] calldata proposalIds) external override {
@@ -111,21 +113,24 @@ contract DistributionProposal is IDistributionProposal, IProposalValidator, Init
         uint256 proposalId,
         address voter
     ) public view override returns (uint256) {
-        (
-            uint256 coreRawVotesFor,
-            uint256 coreRawVotesAgainst,
-            uint256 personalRawTotalVoted,
-            bool isVoteFor
-        ) = IGovPool(govAddress).getTotalVotes(proposalId, voter, IGovPool.VoteType.PersonalVote);
+        (uint256 coreRawVotesFor, , uint256 personalRawTotalVoted, bool isVoteFor) = IGovPool(
+            govAddress
+        ).getTotalVotes(proposalId, voter, IGovPool.VoteType.PersonalVote);
 
         if (coreRawVotesFor == 0 || !isVoteFor) {
             return 0;
         }
 
-        return
-            proposals[proposalId].rewardAmount.ratio(
-                personalRawTotalVoted,
-                coreRawVotesFor + coreRawVotesAgainst
-            );
+        return proposals[proposalId].rewardAmount.ratio(personalRawTotalVoted, coreRawVotesFor);
+    }
+
+    function _getActualRewardAmount(
+        uint256 proposalId,
+        uint256 reward
+    ) internal view returns (uint256) {
+        (uint256 coreRawVotesFor, uint256 coreRawVotesAgainst, , ) = IGovPool(govAddress)
+            .getTotalVotes(proposalId, address(0), IGovPool.VoteType.PersonalVote);
+
+        return (reward * coreRawVotesFor) / (coreRawVotesFor + coreRawVotesAgainst);
     }
 }

@@ -4003,7 +4003,7 @@ describe("GovPool", () => {
 
         await truffleAssert.reverts(
           govPool.claimRewards([2], coreProperties.address, { from: coreProperties.address }),
-          "Gov: failed to send eth"
+          "Failed to send eth"
         );
       });
 

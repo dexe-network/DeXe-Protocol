@@ -30,15 +30,12 @@ library TokenBalance {
     ) internal {
         uint256 balance = normThisBalance(token);
 
-        require(
-            balance >= amount || transferType == TransferType.TryMint,
-            "Gov: insufficient funds"
-        );
+        require(balance >= amount || transferType == TransferType.TryMint, "Insufficient funds");
 
         if (token == ETHEREUM_ADDRESS) {
             (bool status, ) = payable(receiver).call{value: amount.min(balance)}("");
 
-            require(status, "Gov: failed to send eth");
+            require(status, "Failed to send eth");
         } else {
             uint256 decimals = ERC20(token).decimals();
 
