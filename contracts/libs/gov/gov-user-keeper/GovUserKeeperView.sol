@@ -168,9 +168,13 @@ library GovUserKeeperView {
             IGovUserKeeper.DelegationInfoView memory delegation = delegationsInfo[i];
             address delegatee = userInfo.delegatees.at(i);
 
+            IGovUserKeeper.BalanceInfo storage delegatedBalance = userInfo.delegatedBalances[
+                delegatee
+            ];
+
             delegation.delegatee = delegatee;
-            delegation.delegatedTokens = userInfo.delegatedTokens[delegatee];
-            delegation.delegatedNfts = userInfo.delegatedNfts[delegatee].values();
+            delegation.delegatedTokens = delegatedBalance.tokens;
+            delegation.delegatedNfts = delegatedBalance.nfts.values();
 
             (delegation.nftPower, delegation.perNftPower) = nftVotingPower(
                 delegation.delegatedNfts,
@@ -187,7 +191,9 @@ library GovUserKeeperView {
         IGovUserKeeper.UserInfo storage userInfo,
         mapping(uint256 => uint256) storage nftLockedNums
     ) external view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts) {
-        IGovUserKeeper.BalanceInfo storage balanceInfo = userInfo.balanceInfo;
+        IGovUserKeeper.BalanceInfo storage balanceInfo = userInfo.balances[
+            IGovPool.VoteType.PersonalVote
+        ];
 
         uint256 newLockedAmount;
 
@@ -195,13 +201,13 @@ library GovUserKeeperView {
             newLockedAmount = newLockedAmount.max(userInfo.lockedInProposals[lockedProposals[i]]);
         }
 
-        withdrawableTokens = balanceInfo.tokenBalance.max(newLockedAmount) - newLockedAmount;
+        withdrawableTokens = balanceInfo.tokens.max(newLockedAmount) - newLockedAmount;
 
         Vector.UintVector memory nfts = Vector.newUint();
-        uint256 nftsLength = balanceInfo.nftBalance.length();
+        uint256 nftsLength = balanceInfo.nfts.length();
 
         for (uint256 i; i < nftsLength; i++) {
-            uint256 nftId = balanceInfo.nftBalance.at(i);
+            uint256 nftId = balanceInfo.nfts.at(i);
             uint256 nftLockAmount = nftLockedNums[nftId];
 
             if (nftLockAmount != 0) {

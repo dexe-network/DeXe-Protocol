@@ -11,30 +11,26 @@ import "../../../interfaces/gov/IGovPool.sol";
  */
 interface IGovUserKeeper {
     /// @notice The struct holds information about user deposited tokens
-    /// @param tokenBalance the amount of deposited tokens
-    /// @param nftsPower the cached power of nfts
-    /// @param nftBalance the array of deposited nfts
+    /// @param tokens the amount of deposited tokens
+    /// @param nfts the array of deposited nfts
     struct BalanceInfo {
-        uint256 tokenBalance;
-        uint256 nftPower;
-        EnumerableSet.UintSet nftBalance; // array of NFTs
+        uint256 tokens;
+        EnumerableSet.UintSet nfts;
     }
 
     /// @notice The struct holds information about user balances
-    /// @param balanceInfo the BalanceInfo struct
-    /// @param delegatedTokens the mapping of delegated tokens (delegatee address => delegated amount)
-    /// @param allDelegatedTokens the total amount of delegated tokens
-    /// @param delegatedNfts the mapping of delegated nfts (delegatee address => array of delegated nft ids)
-    /// @param allDelegatedNfts the list of all delegated nfts
+    /// @param balances matching vote types with balance infos
+    /// @param nftsPowers matching vote types with cached nfts powers
+    /// @param delegatedBalances matching delegatees with balances infos
+    /// @param allDelegatedBalance the balance info of all delegated assets
     /// @param delegatees the array of delegatees
     /// @param maxTokensLocked the upper bound of currently locked tokens
     /// @param lockedInProposals the amount of deposited tokens locked in proposals
     struct UserInfo {
-        BalanceInfo balanceInfo;
-        mapping(address => uint256) delegatedTokens;
-        uint256 allDelegatedTokens;
-        mapping(address => EnumerableSet.UintSet) delegatedNfts;
-        EnumerableSet.UintSet allDelegatedNfts;
+        mapping(IGovPool.VoteType => BalanceInfo) balances;
+        mapping(IGovPool.VoteType => uint256) nftsPowers;
+        mapping(address => BalanceInfo) delegatedBalances;
+        BalanceInfo allDelegatedBalance;
         EnumerableSet.AddressSet delegatees;
         uint256 maxTokensLocked;
         mapping(uint256 => uint256) lockedInProposals;
