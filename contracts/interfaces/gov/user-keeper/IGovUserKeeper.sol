@@ -12,9 +12,11 @@ import "../../../interfaces/gov/IGovPool.sol";
 interface IGovUserKeeper {
     /// @notice The struct holds information about user deposited tokens
     /// @param tokenBalance the amount of deposited tokens
+    /// @param nftsPower the cached power of nfts
     /// @param nftBalance the array of deposited nfts
     struct BalanceInfo {
         uint256 tokenBalance;
+        uint256 nftPower;
         EnumerableSet.UintSet nftBalance; // array of NFTs
     }
 
