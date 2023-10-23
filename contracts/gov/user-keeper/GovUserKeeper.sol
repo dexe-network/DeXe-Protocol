@@ -512,7 +512,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             return (0, 0);
         }
 
-        totalBalance = _getBalanceInfoStorage(voter, voteType).tokens;
+        totalBalance = _usersInfo[voter].balances[voteType].tokens;
 
         if (
             voteType != IGovPool.VoteType.PersonalVote &&
@@ -537,7 +537,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             return (0, 0);
         }
 
-        totalBalance = _getBalanceInfoStorage(voter, voteType).nfts.length();
+        totalBalance = _usersInfo[voter].balances[voteType].nfts.length();
 
         if (
             voteType != IGovPool.VoteType.PersonalVote &&
@@ -563,7 +563,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
 
         Vector.UintVector memory nftsVector = Vector.newUint(
-            _getBalanceInfoStorage(voter, voteType).nfts.values()
+            _usersInfo[voter].balances[voteType].nfts.values()
         );
 
         if (
@@ -761,13 +761,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         nftAddress = _nftAddress;
 
         emit SetERC721(_nftAddress);
-    }
-
-    function _getBalanceInfoStorage(
-        address voter,
-        IGovPool.VoteType voteType
-    ) internal view returns (BalanceInfo storage) {
-        return _usersInfo[voter].balances[voteType];
     }
 
     function _withSupportedToken() internal view {
