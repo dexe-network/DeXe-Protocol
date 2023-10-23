@@ -276,10 +276,6 @@ contract ERC721Power is
         return _exists(tokenId) && block.timestamp >= powerCalcStartTimestamp;
     }
 
-    function _baseURI() internal view override returns (string memory) {
-        return baseURI;
-    }
-
     function _onlyBeforePowerCalc() internal view {
         require(
             block.timestamp < powerCalcStartTimestamp,
