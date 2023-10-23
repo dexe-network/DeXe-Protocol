@@ -24,9 +24,10 @@ contract DexeERC721Multiplier is IDexeERC721Multiplier, AbstractERC721Multiplier
         address to,
         uint256 multiplier,
         uint64 duration,
-        uint256 averageBalance
+        uint256 averageBalance,
+        string calldata uri_
     ) external onlyOwner {
-        _mint(to, multiplier, duration);
+        _mint(to, multiplier, duration, uri_);
 
         _averageBalances[to] = averageBalance;
 

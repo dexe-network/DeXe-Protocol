@@ -14,23 +14,6 @@ interface IERC721Multiplier is IAbstractERC721Multiplier
 
 ## Functions info
 
-### mint (0x8b3d35ae)
-
-```solidity
-function mint(address to, uint256 multiplier, uint64 duration) external
-```
-
-This function is used to mint an nft to the user's address
-
-
-Parameters:
-
-| Name       | Type    | Description                                   |
-| :--------- | :------ | :-------------------------------------------- |
-| to         | address | the address to which an nft should be minted  |
-| multiplier | uint256 | the basic rewards multiplier                  |
-| duration   | uint64  | the time for which an nft can be locked       |
-
 ### changeToken (0x4ccc2757)
 
 ```solidity

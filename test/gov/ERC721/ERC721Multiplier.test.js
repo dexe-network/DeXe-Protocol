@@ -5,7 +5,7 @@ const { PRECISION } = require("../../../scripts/utils/constants");
 const Reverter = require("../../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
-const ERC721Multiplier = artifacts.require("ERC721Multiplier");
+const ERC721Multiplier = artifacts.require("ERC721MultiplierMock");
 const ERC721MultiplierAttackerMock = artifacts.require("ERC721MultiplierAttackerMock");
 const GovPoolMock = artifacts.require("GovPoolMock");
 
@@ -50,11 +50,16 @@ describe("ERC721Multiplier", () => {
     await nft.__ERC721Multiplier_init(NFT_NAME, NFT_SYMBOL);
   });
 
+  describe("coverage", () => {
+    it("should not burn random token", async () => {
+      await truffleAssert.reverts(nft.burn(1337));
+    });
+  });
+
   describe("initializer", async () => {
     it("should initialize properly if all conditions are met", async () => {
       assert.equal(await nft.name(), NFT_NAME);
       assert.equal(await nft.symbol(), NFT_SYMBOL);
-      assert.equal(await nft.baseURI(), "");
     });
 
     it("should not initialize twice", async () => {
@@ -72,30 +77,35 @@ describe("ERC721Multiplier", () => {
           id: "1",
           multiplier: toMultiplier("1337").toFixed(),
           duration: "1000",
+          uri: "URI1",
           owner: SECOND,
         },
         {
           id: "2",
           multiplier: toMultiplier("20").toFixed(),
           duration: "500",
+          uri: "URI2",
           owner: THIRD,
         },
         {
           id: "3",
           multiplier: toMultiplier("1.5").toFixed(),
           duration: "200",
+          uri: "URI3",
           owner: SECOND,
         },
         {
           id: "4",
           multiplier: toMultiplier("5.125").toFixed(),
           duration: "7050",
+          uri: "URI4",
           owner: THIRD,
         },
         {
           id: "5",
           multiplier: toMultiplier("2").toFixed(),
           duration: "7050",
+          uri: "URI5",
           owner: attacker.address,
         },
       ];
@@ -111,14 +121,14 @@ describe("ERC721Multiplier", () => {
     describe("mint()", () => {
       it("shouldn't mint if not the owner", async () => {
         await truffleAssert.reverts(
-          nft.mint(OWNER, TOKENS[0].multiplier, TOKENS[0].duration, { from: SECOND }),
+          nft.mint(OWNER, TOKENS[0].multiplier, TOKENS[0].duration, TOKENS[0].uri, { from: SECOND }),
           "Ownable: caller is not the owner"
         );
       });
 
       it("should mint properly", async () => {
         for (const token of TOKENS) {
-          const tx = await nft.mint(token.owner, token.multiplier, token.duration);
+          const tx = await nft.mint(token.owner, token.multiplier, token.duration, token.uri);
 
           truffleAssert.eventEmitted(tx, "Minted", (e) => {
             return (
@@ -131,6 +141,7 @@ describe("ERC721Multiplier", () => {
         }
 
         assert.equal(await nft.totalSupply(), "5");
+        assert.equal(await nft.tokenURI(1), "URI1");
         assert.equal(await nft.balanceOf(SECOND), "2");
         assert.equal(await nft.balanceOf(THIRD), "2");
         assert.equal(await nft.tokenOfOwnerByIndex(SECOND, "0"), "1");
@@ -143,25 +154,26 @@ describe("ERC721Multiplier", () => {
     describe("if minted", () => {
       beforeEach(async () => {
         for (const token of TOKENS) {
-          await nft.mint(token.owner, token.multiplier, token.duration);
+          await nft.mint(token.owner, token.multiplier, token.duration, token.uri);
 
           token.mintedAt = await getCurrentBlockTime();
         }
       });
 
-      describe("setBaseUri()", () => {
+      describe("setTokenURI()", () => {
         it("should not set if not the owner", async () => {
           await truffleAssert.reverts(
-            nft.setBaseUri("placeholder", { from: SECOND }),
+            nft.setTokenURI(1, "placeholder", { from: SECOND }),
             "Ownable: caller is not the owner"
           );
         });
 
         it("should set base uri properly", async () => {
-          await nft.setBaseUri("placeholder");
+          assert.equal(await nft.tokenURI(1), "URI1");
 
-          assert.equal(await nft.baseURI(), "placeholder");
-          assert.equal(await nft.tokenURI(4), "placeholder4");
+          await nft.setTokenURI(1, "placeholder");
+
+          assert.equal(await nft.tokenURI(1), "placeholder");
         });
       });
 

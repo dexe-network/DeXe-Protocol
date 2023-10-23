@@ -94,10 +94,6 @@ contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgr
             super.supportsInterface(interfaceId);
     }
 
-    function _baseURI() internal pure override returns (string memory) {
-        return "";
-    }
-
     function _transfer(address, address, uint256) internal pure override {
         revert("ERC721Expert: Expert badge cannot be transferred");
     }

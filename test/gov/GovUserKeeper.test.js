@@ -91,7 +91,7 @@ describe("GovUserKeeper", () => {
       await token.approve(userKeeper.address, wei("1000"));
 
       for (let i = 1; i < 10; i++) {
-        await nft.safeMint(OWNER, i);
+        await nft.mint(OWNER, i);
         await nft.approve(userKeeper.address, i);
       }
     });
@@ -1311,7 +1311,7 @@ describe("GovUserKeeper", () => {
         await token.approve(userKeeper.address, wei("1000"));
 
         for (let i = 1; i < 10; i++) {
-          await nft.safeMint(OWNER, i);
+          await nft.mint(OWNER, i);
           await nft.approve(userKeeper.address, i);
         }
 
@@ -1367,7 +1367,7 @@ describe("GovUserKeeper", () => {
         await userKeeper.depositTokens(OWNER, OWNER, wei("1000"));
 
         for (let i = 1; i < 10; i++) {
-          await nft.safeMint(OWNER, i);
+          await nft.mint(OWNER, i);
           await nft.approve(userKeeper.address, i);
         }
 
@@ -1417,7 +1417,7 @@ describe("GovUserKeeper", () => {
     describe("snapshot", () => {
       beforeEach("setup", async () => {
         for (let i = 1; i <= 9; i++) {
-          await nft.safeMint(OWNER, i);
+          await nft.mint(OWNER, i);
           await nft.approve(userKeeper.address, i);
         }
       });
@@ -1491,7 +1491,7 @@ describe("GovUserKeeper", () => {
         await token.approve(userKeeper.address, wei("400"));
 
         for (let i = 1; i <= 3; i++) {
-          await nft.safeMint(OWNER, i);
+          await nft.mint(OWNER, i);
           await nft.approve(userKeeper.address, i);
         }
 
@@ -1552,7 +1552,7 @@ describe("GovUserKeeper", () => {
           continue;
         }
 
-        await nft.safeMint(OWNER, i);
+        await nft.mint(OWNER, i, "");
         await nft.approve(userKeeper.address, i);
       }
 

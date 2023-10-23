@@ -465,7 +465,7 @@ describe("GovPool", () => {
     await token.approve(userKeeper.address, wei("10000000000"));
 
     for (let i = 1; i < 11; i++) {
-      await nft.safeMint(OWNER, i);
+      await nft.mint(OWNER, i);
       await nft.approve(userKeeper.address, i);
     }
 
@@ -484,7 +484,7 @@ describe("GovPool", () => {
     await token.mint(govPool.address, amount);
 
     for (let i of nftIds) {
-      await nft.safeMint(govPool.address, i);
+      await nft.mint(govPool.address, i);
     }
 
     await executeValidatorProposal([[govPool.address, 0, getBytesDelegateTreasury(delegatee, amount, nftIds)]]);
@@ -1729,7 +1729,7 @@ describe("GovPool", () => {
         it("should vote with zero personal power", async () => {
           await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
 
-          await nft.safeMint(SECOND, 1);
+          await nft.mint(SECOND, 1);
           await nft.approve(userKeeper.address, 1, { from: SECOND });
 
           await govPool.deposit(0, [1], { from: SECOND });
@@ -1745,7 +1745,7 @@ describe("GovPool", () => {
         it("should vote with zero micropool power", async () => {
           await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
 
-          await nft.safeMint(OWNER, 1);
+          await nft.mint(OWNER, 1);
           await nft.approve(userKeeper.address, 1);
 
           await govPool.deposit(0, [1]);
@@ -1793,12 +1793,12 @@ describe("GovPool", () => {
           await token.approve(userKeeper.address, wei("6000000000000000000"), { from: delegator2 });
 
           for (let i = 100; i < 102; i++) {
-            await nft.safeMint(delegator1, i);
+            await nft.mint(delegator1, i);
             await nft.approve(userKeeper.address, i, { from: delegator1 });
           }
 
           for (let i = 200; i < 204; i++) {
-            await nft.safeMint(delegator2, i);
+            await nft.mint(delegator2, i);
             await nft.approve(userKeeper.address, i, { from: delegator2 });
           }
 
@@ -2345,8 +2345,8 @@ describe("GovPool", () => {
 
         await executeValidatorProposal([[settings.address, 0, getBytesEditSettings([0], [DEFAULT_SETTINGS])]]);
 
-        await nft.safeMint(SECOND, 100);
-        await nft.safeMint(SECOND, 101);
+        await nft.mint(SECOND, 100);
+        await nft.mint(SECOND, 101);
         await nft.setApprovalForAll(userKeeper.address, true, { from: SECOND });
 
         await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
@@ -3857,7 +3857,7 @@ describe("GovPool", () => {
       it("should claim reward properly if nft multiplier has been set", async () => {
         await setNftMultiplierAddress(nftMultiplier.address);
 
-        await nftMultiplier.mint(OWNER, PRECISION.times("2.5"), 1000);
+        await nftMultiplier.mint(OWNER, PRECISION.times("2.5"), 1000, "");
         await nftMultiplier.transferOwnership(govPool.address);
         await nftMultiplier.lock(1);
 
@@ -4003,7 +4003,7 @@ describe("GovPool", () => {
 
         await truffleAssert.reverts(
           govPool.claimRewards([2], coreProperties.address, { from: coreProperties.address }),
-          "Gov: failed to send eth"
+          "Failed to send eth"
         );
       });
 
@@ -4163,12 +4163,12 @@ describe("GovPool", () => {
         await token.mint(delegator3, wei("200000"));
 
         for (let i = 100; i < 102; i++) {
-          await nft.safeMint(delegator1, i);
+          await nft.mint(delegator1, i);
           await nft.approve(userKeeper.address, i, { from: delegator1 });
         }
 
         for (let i = 200; i < 204; i++) {
-          await nft.safeMint(delegator2, i);
+          await nft.mint(delegator2, i);
           await nft.approve(userKeeper.address, i, { from: delegator2 });
         }
 

@@ -18,6 +18,7 @@ describe("ERC721Expert", () => {
 
   const NAME = "NFTExpertMock";
   const SYMBOL = "NFTEM";
+  let TOKENS;
 
   const reverter = new Reverter();
 
@@ -114,12 +115,12 @@ describe("ERC721Expert", () => {
     }
 
     describe("interfaceId()", () => {
-      it("should support ERC165, ERC721, ERC721Metadata, ERC5484 interfaces", async () => {
+      it("should support ERC165, ERC721, ERC721Metadata, ERC721Expert, ERC5484 interfaces", async () => {
         assert.isTrue(await nft.supportsInterface("0x01ffc9a7"));
         assert.isTrue(await nft.supportsInterface("0x80ac58cd"));
         assert.isTrue(await nft.supportsInterface("0x5b5e139f"));
+        assert.isTrue(await nft.supportsInterface("0x9ba4b00c"));
         assert.isTrue(await nft.supportsInterface("0x0489b56f"));
-        assert.isTrue(await nft.supportsInterface("0x5d5ad1e9"));
       });
     });
 

@@ -1274,7 +1274,7 @@ describe("TokenSaleProposal", () => {
         });
 
         it("should not lock participation nft if lock nfts are duplicated", async () => {
-          await participationNft.safeMint(OWNER, 1);
+          await participationNft.mint(OWNER, 1);
           await participationNft.approve(tsp.address, 1);
 
           await truffleAssert.reverts(
@@ -1285,7 +1285,7 @@ describe("TokenSaleProposal", () => {
 
         it("should not lock participation nft if nft overlock", async () => {
           for (let i = 1; i <= 4; i++) {
-            await participationNft.safeMint(OWNER, i);
+            await participationNft.mint(OWNER, i);
           }
 
           await participationNft.setApprovalForAll(tsp.address, true);
@@ -1302,9 +1302,9 @@ describe("TokenSaleProposal", () => {
           assert.deepEqual(purchaseView.lockedNftAddresses, []);
           assert.deepEqual(purchaseView.lockedNftIds, []);
 
-          await participationNft.safeMint(OWNER, 1);
-          await participationNft.safeMint(OWNER, 3);
-          await participationNft.safeMint(OWNER, 5);
+          await participationNft.mint(OWNER, 1);
+          await participationNft.mint(OWNER, 3);
+          await participationNft.mint(OWNER, 5);
           await participationNft.setApprovalForAll(tsp.address, true);
 
           assert.equal((await participationNft.balanceOf(OWNER)).toFixed(), "3");
@@ -1477,9 +1477,9 @@ describe("TokenSaleProposal", () => {
         it("should not unlock participation nft if unlock unavailable", async () => {
           await setTime(+tiers[4].saleStartTime);
 
-          await participationNft.safeMint(OWNER, 1);
-          await participationNft.safeMint(OWNER, 2);
-          await participationNft.safeMint(OWNER, 3);
+          await participationNft.mint(OWNER, 1);
+          await participationNft.mint(OWNER, 2);
+          await participationNft.mint(OWNER, 3);
           await participationNft.setApprovalForAll(tsp.address, true);
 
           await tsp.lockParticipationNft(5, participationNft.address, [1, 2, 3]);
@@ -1493,7 +1493,7 @@ describe("TokenSaleProposal", () => {
         it("should not unlock participation nft if zero nft ids to unlock", async () => {
           await setTime(+tiers[4].saleStartTime);
 
-          await participationNft.safeMint(OWNER, 1);
+          await participationNft.mint(OWNER, 1);
           await participationNft.approve(tsp.address, 1);
 
           await tsp.lockParticipationNft(5, participationNft.address, [1]);
@@ -1507,8 +1507,8 @@ describe("TokenSaleProposal", () => {
         it("should not unlock participation nft if nft is not locked", async () => {
           await setTime(+tiers[4].saleStartTime);
 
-          await participationNft.safeMint(OWNER, 1);
-          await participationNft.safeMint(OWNER, 2);
+          await participationNft.mint(OWNER, 1);
+          await participationNft.mint(OWNER, 2);
           await participationNft.setApprovalForAll(tsp.address, true);
 
           await tsp.lockParticipationNft(5, participationNft.address, [1]);
@@ -1522,8 +1522,8 @@ describe("TokenSaleProposal", () => {
         it("should unlock participation nft if not enough locked", async () => {
           await setTime(+tiers[4].saleStartTime);
 
-          await participationNft.safeMint(OWNER, 1);
-          await participationNft.safeMint(OWNER, 3);
+          await participationNft.mint(OWNER, 1);
+          await participationNft.mint(OWNER, 3);
           await participationNft.setApprovalForAll(tsp.address, true);
 
           await tsp.lockParticipationNft(5, participationNft.address, [1, 3]);
@@ -1557,9 +1557,9 @@ describe("TokenSaleProposal", () => {
         it("should unlock participation nft if all conditions are met", async () => {
           await setTime(+tiers[4].saleStartTime);
 
-          await participationNft.safeMint(OWNER, 1);
-          await participationNft.safeMint(OWNER, 3);
-          await participationNft.safeMint(OWNER, 5);
+          await participationNft.mint(OWNER, 1);
+          await participationNft.mint(OWNER, 3);
+          await participationNft.mint(OWNER, 5);
           await participationNft.setApprovalForAll(tsp.address, true);
 
           await tsp.lockParticipationNft(5, participationNft.address, [1, 3, 5]);
@@ -1798,9 +1798,9 @@ describe("TokenSaleProposal", () => {
         it("should buy if all conditions are met (nftLock)", async () => {
           await setTime(+tiers[4].saleStartTime);
 
-          await participationNft.safeMint(OWNER, 1);
-          await participationNft.safeMint(OWNER, 3);
-          await participationNft.safeMint(OWNER, 5);
+          await participationNft.mint(OWNER, 1);
+          await participationNft.mint(OWNER, 3);
+          await participationNft.mint(OWNER, 5);
           await participationNft.setApprovalForAll(tsp.address, true);
           await purchaseToken1.approve(tsp.address, wei(100));
 
@@ -1950,9 +1950,9 @@ describe("TokenSaleProposal", () => {
           it("should buy if all conditions are met (nftLock)", async () => {
             await setTime(+tiers[4].saleStartTime);
 
-            await participationNft.safeMint(OWNER, 1);
-            await participationNft.safeMint(OWNER, 3);
-            await participationNft.safeMint(OWNER, 5);
+            await participationNft.mint(OWNER, 1);
+            await participationNft.mint(OWNER, 3);
+            await participationNft.mint(OWNER, 5);
             await participationNft.setApprovalForAll(tsp.address, true);
             await purchaseToken1.approve(tsp.address, wei(100));
 

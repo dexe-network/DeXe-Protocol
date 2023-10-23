@@ -12,7 +12,7 @@ const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
 const CoreProperties = artifacts.require("CoreProperties");
 const GovPool = artifacts.require("GovPool");
-const DistributionProposal = artifacts.require("DistributionProposal");
+const DistributionProposal = artifacts.require("DistributionProposalMock");
 const GovSettings = artifacts.require("GovSettings");
 const GovValidators = artifacts.require("GovValidators");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
@@ -218,7 +218,7 @@ describe("DistributionProposal", () => {
     await token.approve(userKeeper.address, wei("10000000000"));
 
     for (let i = 1; i < 10; i++) {
-      await nft.safeMint(OWNER, i);
+      await nft.mint(OWNER, i);
       await nft.approve(userKeeper.address, i);
     }
   }
@@ -382,78 +382,156 @@ describe("DistributionProposal", () => {
     describe("execute()", () => {
       let startTime;
 
-      beforeEach(async () => {
-        startTime = await getCurrentBlockTime();
+      describe("refund execute()", () => {
+        beforeEach(async () => {
+          await token.mint(govPool.address, wei("100"));
+          await web3.eth.sendTransaction({ to: govPool.address, value: wei("1"), from: OWNER });
 
-        await token.mint(govPool.address, wei("100"));
+          await nft.transferFrom(OWNER, SECOND, 9);
 
-        await govPool.deposit(0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+          await nft.setApprovalForAll(userKeeper.address, true);
+          await nft.setApprovalForAll(userKeeper.address, true, { from: SECOND });
 
-        await setTime(startTime + 999);
+          await govPool.deposit(0, [1, 2, 3, 4, 5, 6, 7, 8]);
+          await govPool.deposit(0, [9], { from: SECOND });
+        });
 
-        await govPool.createProposal(
-          "example.com",
-          [
-            [token.address, 0, getBytesApprove(dp.address, wei("100"))],
-            [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100"))],
-          ],
-          []
-        );
+        it("should refund ERC20", async () => {
+          startTime = await getCurrentBlockTime();
 
-        await govPool.vote(1, true, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+          await setTime(startTime + 999);
 
-        await setTime(startTime + 10000);
+          await govPool.createProposal(
+            "example.com",
+            [
+              [token.address, 0, getBytesApprove(dp.address, wei("100"))],
+              [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100"))],
+            ],
+            []
+          );
+
+          await govPool.vote(1, false, 0, [9], { from: SECOND });
+          await govPool.vote(1, true, 0, [1, 2, 3, 4, 5, 6, 7, 8]);
+
+          await setTime(startTime + 10000);
+
+          await govPool.execute(1);
+
+          assert.equal(toBN(await token.balanceOf(govPool.address)).toFixed(), "11111111111111111112");
+          assert.equal(toBN(await dp.getPotentialReward(1, OWNER)).toFixed(), "88888888888888888888");
+        });
+
+        it("should refund ether", async () => {
+          startTime = await getCurrentBlockTime();
+
+          await setTime(startTime + 999);
+
+          await govPool.createProposal(
+            "example.com",
+            [[dp.address, wei("1"), getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))]],
+            []
+          );
+
+          await govPool.vote(1, false, 0, [9], { from: SECOND });
+          await govPool.vote(1, true, 0, [1, 2, 3, 4, 5, 6, 7, 8]);
+
+          await setTime(startTime + 10000);
+
+          await govPool.execute(1);
+
+          assert.equal(await web3.eth.getBalance(govPool.address), "111111111111111112");
+          assert.equal(toBN(await dp.getPotentialReward(1, OWNER)).toFixed(), "888888888888888888");
+        });
+
+        it("should not refund ether", async () => {
+          await web3.eth.sendTransaction({ to: dp.address, value: wei("1"), from: OWNER });
+
+          await dp.setGovPool(dp.address);
+          await dp.setRevertReceive(true);
+
+          await impersonate(dp.address);
+
+          await truffleAssert.reverts(
+            dp.execute(1, ETHER_ADDR, wei("1"), { value: wei("1"), from: dp.address }),
+            "DP: failed to send back eth"
+          );
+        });
       });
 
-      it("should correctly execute", async () => {
-        await govPool.execute(1);
+      describe("execute()", () => {
+        beforeEach(async () => {
+          startTime = await getCurrentBlockTime();
 
-        assert.equal((await dp.proposals(1)).rewardAddress, token.address);
-        assert.equal((await dp.proposals(1)).rewardAmount, wei("100"));
-      });
+          await token.mint(govPool.address, wei("100"));
 
-      it("should revert if not a Gov contract", async () => {
-        await truffleAssert.reverts(dp.execute(1, token.address, wei("100")), "DP: not a Gov contract");
-      });
+          await govPool.deposit(0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
-      it("should revert when try execute existed proposal", async () => {
-        await impersonate(govPool.address);
+          await setTime(startTime + 999);
 
-        await govPool.execute(1);
+          await govPool.createProposal(
+            "example.com",
+            [
+              [token.address, 0, getBytesApprove(dp.address, wei("100"))],
+              [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100"))],
+            ],
+            []
+          );
 
-        await truffleAssert.reverts(
-          dp.execute(1, token.address, wei("100"), { from: govPool.address }),
-          "DP: proposal already exists"
-        );
-      });
+          await govPool.vote(1, true, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
-      it("should revert when address is zero", async () => {
-        await impersonate(govPool.address);
+          await setTime(startTime + 10000);
+        });
 
-        await truffleAssert.reverts(
-          dp.execute(1, ZERO_ADDR, wei("100"), { from: govPool.address }),
-          "DP: zero address"
-        );
-      });
+        it("should correctly execute", async () => {
+          await govPool.execute(1);
 
-      it("should revert when amount is zero", async () => {
-        await impersonate(govPool.address);
+          assert.equal((await dp.proposals(1)).rewardAddress, token.address);
+          assert.equal((await dp.proposals(1)).rewardAmount, wei("100"));
+        });
 
-        await truffleAssert.reverts(dp.execute(1, token.address, "0", { from: govPool.address }), "DP: zero amount");
-      });
+        it("should revert if not a Gov contract", async () => {
+          await truffleAssert.reverts(dp.execute(1, token.address, wei("100")), "DP: not a Gov contract");
+        });
 
-      it("should revert if not enough ether", async () => {
-        await govPool.createProposal(
-          "example.com",
-          [[dp.address, 0, getBytesDistributionProposal(2, ETHER_ADDR, wei("1"))]],
-          []
-        );
+        it("should revert when try execute existed proposal", async () => {
+          await impersonate(govPool.address);
 
-        await govPool.vote(2, true, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+          await govPool.execute(1);
 
-        await setTime(startTime + 20000);
+          await truffleAssert.reverts(
+            dp.execute(1, token.address, wei("100"), { from: govPool.address }),
+            "DP: proposal already exists"
+          );
+        });
 
-        await truffleAssert.reverts(govPool.execute(2), "DP: wrong native amount");
+        it("should revert when address is zero", async () => {
+          await impersonate(govPool.address);
+
+          await truffleAssert.reverts(
+            dp.execute(1, ZERO_ADDR, wei("100"), { from: govPool.address }),
+            "DP: zero address"
+          );
+        });
+
+        it("should revert when amount is zero", async () => {
+          await impersonate(govPool.address);
+
+          await truffleAssert.reverts(dp.execute(1, token.address, "0", { from: govPool.address }), "DP: zero amount");
+        });
+
+        it("should revert if not enough ether", async () => {
+          await govPool.createProposal(
+            "example.com",
+            [[dp.address, 0, getBytesDistributionProposal(2, ETHER_ADDR, wei("1"))]],
+            []
+          );
+
+          await govPool.vote(2, true, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+          await setTime(startTime + 20000);
+
+          await truffleAssert.reverts(govPool.execute(2), "DP: wrong native amount");
+        });
       });
     });
 
@@ -505,7 +583,7 @@ describe("DistributionProposal", () => {
 
         await token.burn(dp.address, wei("100000"));
 
-        await truffleAssert.reverts(dp.claim(SECOND, [1]), "Gov: insufficient funds");
+        await truffleAssert.reverts(dp.claim(SECOND, [1]), "Insufficient funds");
       });
 
       it("should correctly claim", async () => {
