@@ -35,15 +35,13 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     using Vector for Vector.UintVector;
 
     address public tokenAddress;
+    /// FIXME: rm
     address public nftAddress;
-
     NFTInfo internal _nftInfo;
 
     uint256 internal _latestPowerSnapshotId;
 
     mapping(address => UserInfo) internal _usersInfo; // user => info
-    mapping(address => BalanceInfo) internal _micropoolsInfo; // user = micropool address => balance info
-    mapping(address => BalanceInfo) internal _treasuryPoolsInfo; // user => balance info
 
     mapping(uint256 => uint256) internal _nftLockedNums; // tokenId => locked num
     mapping(uint256 => uint256) internal _nftMinPower; // tokenId => nft min power
@@ -197,8 +195,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             .balances[IGovPool.VoteType.PersonalVote]
             .nfts;
 
-        IERC721Power nft = IERC721Power(nftAddress);
-        bool isSupportPower = _nftInfo.isSupportPower;
+        NFTInfo memory nftInfo = _nftInfo;
+
+        IERC721Power nft = IERC721Power(nftInfo.nftAddress);
 
         for (uint256 i; i < nftIds.length; i++) {
             uint256 nftId = nftIds[i];
@@ -207,7 +206,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
             receiverNftBalance.add(nftId);
 
-            if (isSupportPower) {
+            if (nftInfo.isSupportPower) {
                 _nftMinPower[nftId] = nft.getMinPowerForNft(nftId);
             }
         }
@@ -222,8 +221,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             .balances[IGovPool.VoteType.PersonalVote]
             .nfts;
 
-        IERC721 nft = IERC721(nftAddress);
-        bool isSupportPower = _nftInfo.isSupportPower;
+        NFTInfo memory nftInfo = _nftInfo;
+        IERC721 nft = IERC721(nftInfo.nftAddress);
 
         for (uint256 i; i < nftIds.length; i++) {
             uint256 nftId = nftIds[i];
@@ -237,7 +236,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
             nft.safeTransferFrom(address(this), receiver, nftId);
 
-            if (isSupportPower) {
+            if (nftInfo.isSupportPower) {
                 delete _nftMinPower[nftId];
             }
         }
@@ -361,7 +360,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             .balances[IGovPool.VoteType.TreasuryVote]
             .nfts;
 
-        IERC721 nft = IERC721(nftAddress);
+        IERC721 nft = IERC721(_nftInfo.nftAddress);
         uint256 nftPower;
 
         for (uint256 i; i < nftIds.length; i++) {
@@ -378,7 +377,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function createNftPowerSnapshot() external override onlyOwner returns (uint256) {
-        IERC721Power nftContract = IERC721Power(nftAddress);
+        NFTInfo memory nftInfo = _nftInfo;
+        IERC721Power nftContract = IERC721Power(nftInfo.nftAddress);
 
         if (address(nftContract) == address(0)) {
             return 0;
@@ -387,12 +387,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 currentPowerSnapshotId = ++_latestPowerSnapshotId;
         uint256 power;
 
-        if (_nftInfo.isSupportPower) {
+        if (nftInfo.isSupportPower) {
             power = nftContract.totalPower();
-        } else if (_nftInfo.totalSupply == 0) {
+        } else if (nftInfo.totalSupply == 0) {
             power = nftContract.totalSupply();
         } else {
-            power = _nftInfo.totalSupply;
+            power = nftInfo.totalSupply;
         }
 
         nftSnapshot[currentPowerSnapshotId] = power;
@@ -473,11 +473,13 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function updateNftPowers(uint256[] calldata nftIds) external override onlyOwner {
-        if (!_nftInfo.isSupportPower) {
+        NFTInfo memory nftInfo = _nftInfo;
+
+        if (!nftInfo.isSupportPower) {
             return;
         }
 
-        ERC721Power nftContract = ERC721Power(nftAddress);
+        ERC721Power nftContract = ERC721Power(nftInfo.nftAddress);
 
         for (uint256 i = 0; i < nftIds.length; i++) {
             nftContract.recalculateNftPower(nftIds[i]);
@@ -533,6 +535,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address voter,
         IGovPool.VoteType voteType
     ) external view override returns (uint256 totalBalance, uint256 ownedBalance) {
+        address nftAddress = _nftInfo.nftAddress;
+
         if (nftAddress == address(0)) {
             return (0, 0);
         }
@@ -558,6 +562,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address voter,
         IGovPool.VoteType voteType
     ) public view override returns (uint256[] memory nfts, uint256 ownedLength) {
+        address nftAddress = _nftInfo.nftAddress;
+
         if (nftAddress == address(0)) {
             return (nfts, 0);
         }
@@ -596,11 +602,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     function getNftsPowerInTokensBySnapshot(
         uint256[] memory nftIds,
-        uint256 snapshotId
+        uint256 snapshotId,
+        IGovPool.VoteType voteType
     ) public view override returns (uint256) {
         uint256 totalNftsPower = nftSnapshot[snapshotId];
 
-        ERC721Power nftContract = ERC721Power(nftAddress);
+        ERC721Power nftContract = ERC721Power(_nftInfo.nftAddress);
 
         if (address(nftContract) == address(0) || totalNftsPower == 0) {
             return 0;
@@ -660,9 +667,21 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         nftIds.crop(nftIds.length - owned);
 
-        uint256 nftPower = getNftsPowerInTokensBySnapshot(nftIds, snapshotId) +
-            getNftsPowerInTokensBySnapshot(nftIdsMicropool, snapshotId) +
-            getNftsPowerInTokensBySnapshot(nftIdsTreasury, snapshotId);
+        uint256 nftPower = getNftsPowerInTokensBySnapshot(
+            nftIds,
+            snapshotId,
+            IGovPool.VoteType.PersonalVote
+        ) +
+            getNftsPowerInTokensBySnapshot(
+                nftIdsMicropool,
+                snapshotId,
+                IGovPool.VoteType.MicropoolVote
+            ) +
+            getNftsPowerInTokensBySnapshot(
+                nftIdsTreasury,
+                snapshotId,
+                IGovPool.VoteType.TreasuryVote
+            );
 
         return tokens + nftPower >= requiredVotes;
     }
@@ -688,6 +707,21 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         bool perNftPowerArray
     ) public view override returns (uint256 nftPower, uint256[] memory perNftPower) {
         return nftIds.nftVotingPower(perNftPowerArray);
+    }
+
+    function nftInitialPower(
+        uint256[] memory nftIds,
+        IGovPool.VoteType voteType,
+        bool perNftPowerArray
+    ) external view override returns (uint256 nftPower, uint256[] memory perNftPower) {
+        return _nftInfo.nftInitialPower(_nftMinPower, nftIds, voteType, perNftPowerArray);
+    }
+
+    function nftInitialPower(
+        address user,
+        IGovPool.VoteType voteType
+    ) external view override returns (uint256 nftPower) {
+        return _nftInfo.nftInitialPower(_usersInfo, user, voteType);
     }
 
     function delegations(

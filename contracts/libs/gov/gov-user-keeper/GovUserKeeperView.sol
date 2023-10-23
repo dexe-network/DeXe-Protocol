@@ -154,6 +154,66 @@ library GovUserKeeperView {
         }
     }
 
+    function nftInitialPower(
+        IGovUserKeeper.NFTInfo memory nftInfo,
+        mapping(uint256 => uint256) storage nftMinPower,
+        uint256[] memory nftIds,
+        IGovPool.VoteType voteType,
+        bool perNftPowerArray
+    ) external view returns (uint256 nftPower, uint256[] memory perNftPower) {
+        if (nftInfo.nftAddress == address(0)) {
+            return (nftPower, perNftPower);
+        }
+
+        ERC721Power nftContract = ERC721Power(nftInfo.nftAddress);
+
+        if (perNftPowerArray) {
+            perNftPower = new uint256[](nftIds.length);
+        }
+
+        for (uint256 i = 0; i < nftIds.length; ++i) {
+            uint256 currentNftPower;
+
+            if (!nftInfo.isSupportPower) {
+                currentNftPower = 1;
+            } else if (
+                voteType == IGovPool.VoteType.PersonalVote ||
+                voteType == IGovPool.VoteType.DelegatedVote
+            ) {
+                currentNftPower = nftContract.getNftPower(nftIds[i]);
+            } else {
+                currentNftPower = nftMinPower[nftIds[i]];
+            }
+
+            nftPower += currentNftPower;
+
+            if (perNftPowerArray) {
+                perNftPower[i] = currentNftPower;
+            }
+        }
+    }
+
+    function nftInitialPower(
+        IGovUserKeeper.NFTInfo memory nftInfo,
+        mapping(address => IGovUserKeeper.UserInfo) storage usersInfo,
+        address user,
+        IGovPool.VoteType voteType
+    ) external view returns (uint256 nftPower) {
+        if (
+            nftInfo.nftAddress == address(0) ||
+            voteType == IGovPool.VoteType.PersonalVote ||
+            voteType == IGovPool.VoteType.DelegatedVote
+        ) {
+            return 0;
+        }
+
+        if (nftInfo.isSupportPower) {
+            return usersInfo[user].nftsPowers[voteType];
+        }
+
+        return usersInfo[user].balances[voteType].nfts.length();
+    }
+
     function delegations(
         IGovUserKeeper.UserInfo storage userInfo,
         bool perNftPowerArray
