@@ -610,14 +610,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 totalPowerInTokens = _nftInfo.totalPowerInTokens;
         uint256 nftsPower;
 
-        if (
-            voteType == IGovPool.VoteType.PersonalVote ||
-            voteType == IGovPool.VoteType.DelegatedVote
-        ) {
-            nftsPower = nftInitialPower(voter, voteType);
-        } else {
-            (nftsPower, ) = nftInitialPower(nftIds, voteType, false);
-        }
+        (nftsPower, ) = nftInitialPower(nftIds, voteType, voter, false);
 
         /// @dev In the case of the custom ERC721Power, the power function can increase
         return totalPowerInTokens.ratio(nftsPower, totalNftsPower).min(totalPowerInTokens);
@@ -679,7 +672,14 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         bool perNftPowerArray
     ) external view override returns (VotingPowerView[] memory votingPowers) {
         return
-            _nftMinPower.votingPower(tokenAddress, _nftInfo, users, voteTypes, perNftPowerArray);
+            _usersInfo.votingPower(
+                _nftMinPower,
+                tokenAddress,
+                _nftInfo,
+                users,
+                voteTypes,
+                perNftPowerArray
+            );
     }
 
     function transformedVotingPower(
@@ -687,30 +687,49 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 amount,
         uint256[] calldata nftIds
     ) external view override returns (uint256 personalPower, uint256 fullPower) {
-        return _nftMinPower.transformedVotingPower(tokenAddress, _nftInfo, voter, amount, nftIds);
+        return
+            _usersInfo.transformedVotingPower(
+                _nftMinPower,
+                tokenAddress,
+                _nftInfo,
+                voter,
+                amount,
+                nftIds
+            );
     }
 
     function nftVotingPower(
         uint256[] memory nftIds,
         IGovPool.VoteType voteType,
+        address voter,
         bool perNftPowerArray
     ) public view override returns (uint256 nftPower, uint256[] memory perNftPower) {
-        return _nftMinPower.nftVotingPower(_nftInfo, nftIds, voteType, perNftPowerArray);
+        return
+            _usersInfo.nftVotingPower(
+                _nftMinPower,
+                _nftInfo,
+                nftIds,
+                voteType,
+                voter,
+                perNftPowerArray
+            );
     }
 
     function nftInitialPower(
         uint256[] memory nftIds,
         IGovPool.VoteType voteType,
+        address voter,
         bool perNftPowerArray
     ) public view override returns (uint256 nftPower, uint256[] memory perNftPower) {
-        return _nftMinPower.nftInitialPower(_nftInfo, nftIds, voteType, perNftPowerArray);
-    }
-
-    function nftInitialPower(
-        address user,
-        IGovPool.VoteType voteType
-    ) public view override returns (uint256 nftPower) {
-        return _usersInfo.nftInitialPower(_nftInfo, user, voteType);
+        return
+            _usersInfo.nftInitialPower(
+                _nftMinPower,
+                _nftInfo,
+                nftIds,
+                voteType,
+                voter,
+                perNftPowerArray
+            );
     }
 
     function delegations(

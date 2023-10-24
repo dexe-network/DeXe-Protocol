@@ -322,29 +322,23 @@ interface IGovUserKeeper {
     function nftVotingPower(
         uint256[] memory nftIds,
         IGovPool.VoteType voteType,
+        address voter,
         bool perNftPowerArray
     ) external view returns (uint256 nftPower, uint256[] memory perNftPower);
 
     /// @notice The function for getting initial power of nfts by ids
     /// @param nftIds the array of nft ids
     /// @param voteType the type of vote
+    /// @param voter the address of user
     /// @param perNftPowerArray should the nft raw powers array be returned
     /// @return nftPower the total initial power of nfts
     /// @return perNftPower the array of nft initial powers, bounded with nftIds by index
     function nftInitialPower(
         uint256[] memory nftIds,
         IGovPool.VoteType voteType,
+        address voter,
         bool perNftPowerArray
     ) external view returns (uint256 nftPower, uint256[] memory perNftPower);
-
-    /// @notice The function for getting initial power of nfts by ids
-    /// @param user the address of user
-    /// @param voteType the type of vote
-    /// @return nftPower the total initial power of nfts
-    function nftInitialPower(
-        address user,
-        IGovPool.VoteType voteType
-    ) external view returns (uint256 nftPower);
 
     /// @notice The function for getting information about user's delegations
     /// @param user the address of user

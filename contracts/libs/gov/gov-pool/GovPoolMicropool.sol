@@ -155,13 +155,13 @@ library GovPoolMicropool {
             --index;
         }
 
-        /// FIXME: fix
         uint256 delegationAmount = delegatorInfo.tokenAmounts[index];
-        //            IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(
-        //                delegatorInfo.nftIds[index],
-        //                core.nftPowerSnapshotId,
-        //                IGovPool.VoteType.PersonalVote
-        //            );
+        IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(
+            delegatorInfo.nftIds[index],
+            core.nftPowerSnapshotId,
+            address(0),
+            IGovPool.VoteType.PersonalVote
+        );
 
         return delegatorsRewards.ratio(delegationAmount, micropoolRawVote.totalVoted);
     }
