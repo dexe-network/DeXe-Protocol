@@ -217,10 +217,6 @@ interface IGovUserKeeper {
     /// @return `tokenAddress` the erc20 address
     function tokenAddress() external view returns (address);
 
-    /// @notice The function for getting erc721 address
-    /// @return `nftAddress` the erc721 address
-    function nftAddress() external view returns (address);
-
     /// @notice The function for getting information about nft contract
     /// @return `NFTInfo` struct
     function getNftInfo() external view returns (NFTInfo memory);

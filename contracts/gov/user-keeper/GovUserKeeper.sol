@@ -35,8 +35,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     using Vector for Vector.UintVector;
 
     address public tokenAddress;
-    /// FIXME: rm
-    address public nftAddress;
     NFTInfo internal _nftInfo;
 
     uint256 internal _latestPowerSnapshotId;
@@ -784,7 +782,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 totalPowerInTokens,
         uint256 nftsTotalSupply
     ) internal {
-        require(nftAddress == address(0), "GovUK: current token address isn't zero");
+        require(_nftInfo.nftAddress == address(0), "GovUK: current token address isn't zero");
         require(_nftAddress != address(0), "GovUK: new token address is zero");
         require(totalPowerInTokens > 0, "GovUK: the equivalent is zero");
 
@@ -820,6 +818,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function _withSupportedNft() internal view {
-        require(nftAddress != address(0), "GovUK: nft is not supported");
+        require(_nftInfo.nftAddress != address(0), "GovUK: nft is not supported");
     }
 }

@@ -429,7 +429,7 @@ library GovPoolCreate {
         address metaUserKeeper
     ) internal view {
         address metaToken = GovUserKeeper(metaUserKeeper).tokenAddress();
-        address metaNft = GovUserKeeper(metaUserKeeper).nftAddress();
+        address metaNft = GovUserKeeper(metaUserKeeper).getNftInfo().nftAddress;
 
         require(
             actionFor.executor == metaToken || actionFor.executor == metaNft,
@@ -451,7 +451,7 @@ library GovPoolCreate {
         IGovPool.ProposalAction calldata actionAgainst,
         address metaUserKeeper
     ) internal view {
-        address metaNft = GovUserKeeper(metaUserKeeper).nftAddress();
+        address metaNft = GovUserKeeper(metaUserKeeper).getNftInfo().nftAddress;
 
         require(actionFor.executor == metaNft, "Gov: invalid executor");
 
