@@ -22,6 +22,7 @@ interface IGovUserKeeper {
     /// @param balances matching vote types with balance infos
     /// @param nftsPowers matching vote types with cached nfts powers
     /// @param delegatedBalances matching delegatees with balances infos
+    /// @param delegatedNftPowers matching delegatees with delegated nft powers
     /// @param allDelegatedBalance the balance info of all delegated assets
     /// @param delegatees the array of delegatees
     /// @param maxTokensLocked the upper bound of currently locked tokens
@@ -30,6 +31,7 @@ interface IGovUserKeeper {
         mapping(IGovPool.VoteType => BalanceInfo) balances;
         mapping(IGovPool.VoteType => uint256) nftsPowers;
         mapping(address => BalanceInfo) delegatedBalances;
+        mapping(address => uint256) delegatedNftPowers;
         BalanceInfo allDelegatedBalance;
         EnumerableSet.AddressSet delegatees;
         uint256 maxTokensLocked;
@@ -358,13 +360,12 @@ interface IGovUserKeeper {
         uint256[] calldata unlockedNfts
     ) external view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts);
 
-    /// @notice The function for getting the total delegated amount by the delegator and the delegatee
+    /// @notice The function for getting the total delegated power by the delegator and the delegatee
     /// @param delegator the address of the delegator
     /// @param delegatee the address of the delegatee
-    /// @return tokenAmount the amount of delegated tokens
-    /// @return nftIds the list of delegated nft ids
-    function getDelegatedAssets(
+    /// @return delegatedPower the total delegated power
+    function getDelegatedAssetsPower(
         address delegator,
         address delegatee
-    ) external view returns (uint256 tokenAmount, uint256[] memory nftIds);
+    ) external view returns (uint256 delegatedPower);
 }

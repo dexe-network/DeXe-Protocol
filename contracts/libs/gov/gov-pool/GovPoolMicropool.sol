@@ -34,28 +34,24 @@ library GovPoolMicropool {
     ) external {
         (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
-        (uint256 currentTokenAmount, uint256[] memory currentNftIds) = IGovUserKeeper(userKeeper)
-            .getDelegatedAssets(msg.sender, delegatee);
-
         IGovPool.DelegatorInfo storage delegatorInfo = userInfos[delegatee].delegatorInfos[
             msg.sender
         ];
 
         uint256[] storage delegationTimes = delegatorInfo.delegationTimes;
-        uint256[] storage tokenAmounts = delegatorInfo.tokenAmounts;
-        uint256[][] storage nftIds = delegatorInfo.nftIds;
+        uint256[] storage delegationPowers = delegatorInfo.delegationPowers;
 
         uint256 length = delegationTimes.length;
 
         if (length > 0 && delegationTimes[length - 1] == block.timestamp) {
             delegationTimes.pop();
-            tokenAmounts.pop();
-            nftIds.pop();
+            delegationPowers.pop();
         }
 
         delegationTimes.push(block.timestamp);
-        tokenAmounts.push(currentTokenAmount);
-        nftIds.push(currentNftIds);
+        delegationPowers.push(
+            IGovUserKeeper(userKeeper).getDelegatedAssetsPower(msg.sender, delegatee)
+        );
     }
 
     function claim(
@@ -155,14 +151,10 @@ library GovPoolMicropool {
             --index;
         }
 
-        uint256 delegationAmount = delegatorInfo.tokenAmounts[index] +
-            IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(
-                delegatorInfo.nftIds[index],
-                core.nftPowerSnapshotId,
-                address(0),
-                IGovPool.VoteType.MicropoolVote
+        return
+            delegatorsRewards.ratio(
+                delegatorInfo.delegationPowers[index],
+                micropoolRawVote.totalVoted
             );
-
-        return delegatorsRewards.ratio(delegationAmount, micropoolRawVote.totalVoted);
     }
 }

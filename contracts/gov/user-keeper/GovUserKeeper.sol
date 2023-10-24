@@ -282,6 +282,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         delegatorInfo.delegatees.add(delegatee);
 
+        delegatorInfo.delegatedNftPowers[delegatee] += nftPower;
         delegateeInfo.nftsPowers[IGovPool.VoteType.MicropoolVote] += nftPower;
     }
 
@@ -344,6 +345,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             nftPower += _nftMinPower[nftId];
         }
 
+        delegatorInfo.delegatedNftPowers[delegatee] -= nftPower;
         delegateeInfo.nftsPowers[IGovPool.VoteType.MicropoolVote] -= nftPower;
 
         _cleanDelegatee(delegatorInfo, delegatee);
@@ -672,8 +674,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         return
             _usersInfo.votingPower(
                 _nftMinPower,
-                tokenAddress,
                 _nftInfo,
+                tokenAddress,
                 users,
                 voteTypes,
                 perNftPowerArray
@@ -688,8 +690,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         return
             _usersInfo.transformedVotingPower(
                 _nftMinPower,
-                tokenAddress,
                 _nftInfo,
+                tokenAddress,
                 voter,
                 amount,
                 nftIds
@@ -751,13 +753,15 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             lockedProposals.getWithdrawableAssets(unlockedNfts, _usersInfo[voter], _nftLockedNums);
     }
 
-    function getDelegatedAssets(
+    function getDelegatedAssetsPower(
         address delegator,
         address delegatee
-    ) external view override returns (uint256 tokenAmount, uint256[] memory nftIds) {
-        BalanceInfo storage delegatedBalance = _usersInfo[delegator].delegatedBalances[delegatee];
+    ) external view override returns (uint256 delegatedPower) {
+        UserInfo storage delegatorInfo = _usersInfo[delegator];
 
-        return (delegatedBalance.tokens, delegatedBalance.nfts.values());
+        return
+            delegatorInfo.delegatedBalances[delegatee].tokens +
+            delegatorInfo.delegatedNftPowers[delegatee];
     }
 
     function _cleanDelegatee(UserInfo storage delegatorInfo, address delegatee) internal {
