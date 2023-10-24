@@ -313,11 +313,13 @@ interface IGovUserKeeper {
 
     /// @notice The function for getting power of nfts by ids
     /// @param nftIds the array of nft ids
+    /// @param voteType the type of vote
     /// @param perNftPowerArray should the nft powers array be calculated
     /// @return nftPower the total power of nfts
     /// @return perNftPower the array of nft powers, bounded with nftIds by index
     function nftVotingPower(
         uint256[] memory nftIds,
+        IGovPool.VoteType voteType,
         bool perNftPowerArray
     ) external view returns (uint256 nftPower, uint256[] memory perNftPower);
 

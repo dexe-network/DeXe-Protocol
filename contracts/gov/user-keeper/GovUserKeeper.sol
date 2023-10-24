@@ -691,7 +691,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         IGovPool.VoteType[] calldata voteTypes,
         bool perNftPowerArray
     ) external view override returns (VotingPowerView[] memory votingPowers) {
-        return users.votingPower(voteTypes, perNftPowerArray);
+        return
+            _nftMinPower.votingPower(tokenAddress, _nftInfo, users, voteTypes, perNftPowerArray);
     }
 
     function transformedVotingPower(
@@ -699,14 +700,15 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 amount,
         uint256[] calldata nftIds
     ) external view override returns (uint256 personalPower, uint256 fullPower) {
-        return voter.transformedVotingPower(amount, nftIds);
+        return _nftMinPower.transformedVotingPower(tokenAddress, _nftInfo, voter, amount, nftIds);
     }
 
     function nftVotingPower(
         uint256[] memory nftIds,
+        IGovPool.VoteType voteType,
         bool perNftPowerArray
     ) public view override returns (uint256 nftPower, uint256[] memory perNftPower) {
-        return nftIds.nftVotingPower(perNftPowerArray);
+        return _nftMinPower.nftVotingPower(_nftInfo, nftIds, voteType, perNftPowerArray);
     }
 
     function nftInitialPower(
@@ -714,21 +716,21 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         IGovPool.VoteType voteType,
         bool perNftPowerArray
     ) external view override returns (uint256 nftPower, uint256[] memory perNftPower) {
-        return _nftInfo.nftInitialPower(_nftMinPower, nftIds, voteType, perNftPowerArray);
+        return _nftMinPower.nftInitialPower(_nftInfo, nftIds, voteType, perNftPowerArray);
     }
 
     function nftInitialPower(
         address user,
         IGovPool.VoteType voteType
     ) external view override returns (uint256 nftPower) {
-        return _nftInfo.nftInitialPower(_usersInfo, user, voteType);
+        return _usersInfo.nftInitialPower(_nftInfo, user, voteType);
     }
 
     function delegations(
         address user,
         bool perNftPowerArray
     ) external view override returns (uint256 power, DelegationInfoView[] memory delegationsInfo) {
-        return _usersInfo[user].delegations(perNftPowerArray);
+        return _usersInfo.delegations(_nftMinPower, _nftInfo, user, perNftPowerArray);
     }
 
     function getWithdrawableAssets(
@@ -792,7 +794,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             _nftInfo.totalSupply = uint128(nftsTotalSupply);
         }
 
-        nftAddress = _nftAddress;
+        _nftInfo.nftAddress = _nftAddress;
 
         emit SetERC721(_nftAddress);
     }
