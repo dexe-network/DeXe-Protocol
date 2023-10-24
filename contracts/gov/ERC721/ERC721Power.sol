@@ -166,7 +166,7 @@ contract ERC721Power is
         nftInfo.currentPower = newPower;
     }
 
-    function getMinPowerForNft(uint256 tokenId) external view returns (uint256) {
+    function getMinPowerForNft(uint256 tokenId) public view returns (uint256) {
         if (!_isActiveNft(tokenId)) {
             return 0;
         }
@@ -204,8 +204,7 @@ contract ERC721Power is
 
         // Calculate the minimum possible power based on the collateral of the nft
         uint256 maxNftPower = getMaxPowerForNft(tokenId);
-        uint256 minNftPower = maxNftPower.ratio(collateral, getRequiredCollateralForNft(tokenId));
-        minNftPower = maxNftPower.min(minNftPower);
+        uint256 minNftPower = getMinPowerForNft(tokenId);
 
         // Get last update and current power. Or set them to default if it is first iteration
         uint64 lastUpdate = nftInfos[tokenId].lastUpdate;
