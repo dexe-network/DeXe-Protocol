@@ -263,11 +263,13 @@ interface IGovUserKeeper {
     /// @notice The function for getting nft power from snapshot
     /// @param nftIds the array of nft ids to get the power of
     /// @param snapshotId the id of snapshot
+    /// @param voter the address of voter
     /// @param voteType the type of vote
     /// @return the power of nfts
     function getNftsPowerInTokensBySnapshot(
         uint256[] memory nftIds,
         uint256 snapshotId,
+        address voter,
         IGovPool.VoteType voteType
     ) external view returns (uint256);
 

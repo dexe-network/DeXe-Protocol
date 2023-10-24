@@ -201,13 +201,12 @@ library GovPoolVote {
         (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
         /// FIXME: fix
-        rawVote.totalVoted =
-            amount +
-            IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(
-                nftIds,
-                core.nftPowerSnapshotId,
-                IGovPool.VoteType.PersonalVote
-            );
+        rawVote.totalVoted = amount;
+        //            IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(
+        //                nftIds,
+        //                core.nftPowerSnapshotId,
+        //                IGovPool.VoteType.PersonalVote
+        //            );
     }
 
     function _cancel(IGovPool.RawVote storage rawVote) internal {
