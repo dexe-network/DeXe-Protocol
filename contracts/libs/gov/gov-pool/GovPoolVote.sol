@@ -58,7 +58,14 @@ library GovPoolVote {
                 userKeeper.lockNfts(msg.sender, voteType, nftIds);
             }
 
-            _vote(core, rawVotes[IGovPool.VoteType.PersonalVote], amount, nftIds);
+            _vote(
+                core,
+                rawVotes[IGovPool.VoteType.PersonalVote],
+                amount,
+                nftIds,
+                address(0),
+                voteType
+            );
         }
 
         if (voteType != IGovPool.VoteType.DelegatedVote) {
@@ -170,20 +177,20 @@ library GovPoolVote {
             return;
         }
 
-        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
-        IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
+        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
-        (uint256 amount, ) = userKeeper.tokenBalance(voter, voteType);
-        (uint256[] memory nftIds, ) = userKeeper.nftExactBalance(voter, voteType);
+        (uint256 amount, ) = IGovUserKeeper(userKeeper).tokenBalance(voter, voteType);
 
-        _vote(core, rawVote, amount, nftIds);
+        _vote(core, rawVote, amount, new uint256[](0), voter, voteType);
     }
 
     function _vote(
         IGovPool.ProposalCore storage core,
         IGovPool.RawVote storage rawVote,
         uint256 amount,
-        uint256[] memory nftIds
+        uint256[] memory nftIds,
+        address voter,
+        IGovPool.VoteType voteType
     ) internal {
         rawVote.tokensVoted = amount;
 
@@ -200,13 +207,14 @@ library GovPoolVote {
 
         (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
-        /// FIXME: fix
-        rawVote.totalVoted = amount;
-        //            IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(
-        //                nftIds,
-        //                core.nftPowerSnapshotId,
-        //                IGovPool.VoteType.PersonalVote
-        //            );
+        rawVote.totalVoted =
+            amount +
+            IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(
+                nftIds,
+                core.nftPowerSnapshotId,
+                voter,
+                voteType
+            );
     }
 
     function _cancel(IGovPool.RawVote storage rawVote) internal {
@@ -383,6 +391,7 @@ library GovPoolVote {
         (, address userKeeper, , , address votePower) = IGovPool(address(this))
             .getHelperContracts();
 
+        /// FIXME: nft array
         IGovUserKeeper.VotingPowerView[] memory votingPowers = IGovUserKeeper(userKeeper)
             .votingPower(
                 [voter, voter, voter].asDynamic(),
