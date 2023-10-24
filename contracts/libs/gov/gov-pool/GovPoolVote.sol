@@ -388,10 +388,27 @@ library GovPoolVote {
         address voter,
         uint256 voteAmount
     ) internal view returns (uint256) {
-        (, address userKeeper, , , address votePower) = IGovPool(address(this))
+        (, address userKeeperAddress, , , address votePower) = IGovPool(address(this))
             .getHelperContracts();
 
-        /// FIXME: nft array
+        IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
+
+        (uint256[] memory nftIds, uint256 length) = userKeeper.nftExactBalance(
+            voter,
+            IGovPool.VoteType.PersonalVote
+        );
+
+        (power.nftPower, power.perNftPower) = nftVotingPower(
+            usersInfo,
+            nftMinPower,
+            nftInfo,
+            nftIds,
+            voteTypes[i],
+            address(0),
+            perNftPowerArray
+        );
+
+        /// FIXME: check
         IGovUserKeeper.VotingPowerView[] memory votingPowers = IGovUserKeeper(userKeeper)
             .votingPower(
                 [voter, voter, voter].asDynamic(),

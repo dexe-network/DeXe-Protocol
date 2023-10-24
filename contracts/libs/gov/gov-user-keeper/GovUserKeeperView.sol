@@ -53,17 +53,20 @@ library GovUserKeeperView {
             }
 
             if (nftAddressExists) {
-                (uint256[] memory nftIds, uint256 length) = userKeeper.nftExactBalance(
-                    users[i],
-                    voteTypes[i]
-                );
+                uint256[] memory nftIds;
+                uint256 length;
+
+                if (perNftPowerArray) {
+                    (nftIds, length) = userKeeper.nftExactBalance(users[i], voteTypes[i]);
+                }
+
                 (power.nftPower, power.perNftPower) = nftVotingPower(
                     usersInfo,
                     nftMinPower,
                     nftInfo,
                     nftIds,
                     voteTypes[i],
-                    address(0),
+                    perNftPowerArray ? address(0) : users[i],
                     perNftPowerArray
                 );
 
@@ -77,7 +80,7 @@ library GovUserKeeperView {
                     nftInfo,
                     nftIds,
                     voteTypes[i],
-                    address(0),
+                    perNftPowerArray ? address(0) : users[i],
                     perNftPowerArray
                 );
 

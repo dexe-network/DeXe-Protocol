@@ -155,13 +155,13 @@ library GovPoolMicropool {
             --index;
         }
 
-        uint256 delegationAmount = delegatorInfo.tokenAmounts[index];
-        IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(
-            delegatorInfo.nftIds[index],
-            core.nftPowerSnapshotId,
-            address(0),
-            IGovPool.VoteType.PersonalVote
-        );
+        uint256 delegationAmount = delegatorInfo.tokenAmounts[index] +
+            IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(
+                delegatorInfo.nftIds[index],
+                core.nftPowerSnapshotId,
+                address(0),
+                IGovPool.VoteType.MicropoolVote
+            );
 
         return delegatorsRewards.ratio(delegationAmount, micropoolRawVote.totalVoted);
     }
