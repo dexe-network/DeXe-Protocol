@@ -151,10 +151,11 @@ library GovPoolMicropool {
             --index;
         }
 
+        uint256 totalVoted = micropoolRawVote.totalVoted;
+
         return
-            delegatorsRewards.ratio(
-                delegatorInfo.delegationPowers[index],
-                micropoolRawVote.totalVoted
+            delegatorsRewards.ratio(delegatorInfo.delegationPowers[index], totalVoted).min(
+                totalVoted
             );
     }
 }
