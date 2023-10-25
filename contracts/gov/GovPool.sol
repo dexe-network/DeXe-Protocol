@@ -233,6 +233,7 @@ contract GovPool is
         _unlock(delegatee);
 
         _updateNftPowers(nftIds);
+
         _govUserKeeper.delegateTokens.exec(delegatee, amount);
         _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
 
@@ -271,6 +272,7 @@ contract GovPool is
             }
 
             _updateNftPowers(nftIds);
+
             _govUserKeeper.delegateNftsTreasury(delegatee, nftIds);
         }
 
@@ -291,6 +293,7 @@ contract GovPool is
         _unlock(delegatee);
 
         _updateNftPowers(nftIds);
+
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
         _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
 
@@ -313,6 +316,7 @@ contract GovPool is
         _unlock(msg.sender);
 
         _updateNftPowers(nftIds);
+
         _govUserKeeper.undelegateTokensTreasury.exec(delegatee, amount);
         _govUserKeeper.undelegateNftsTreasury.exec(delegatee, nftIds);
 
