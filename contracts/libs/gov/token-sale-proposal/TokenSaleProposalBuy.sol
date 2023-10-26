@@ -32,7 +32,7 @@ library TokenSaleProposalBuy {
         uint256 tierId,
         address tokenToBuyWith,
         uint256 amount
-    ) external {
+    ) external returns (uint256 saleTokenAmount) {
         ITokenSaleProposal.UserInfo storage userInfo = tier.users[msg.sender];
         ITokenSaleProposal.PurchaseInfo storage purchaseInfo = userInfo.purchaseInfo;
         ITokenSaleProposal.TierInitParams storage tierInitParams = tier.tierInitParams;
@@ -42,13 +42,8 @@ library TokenSaleProposalBuy {
             "TSP: wrong native amount"
         );
 
-        uint256 saleTokenAmount = getSaleTokenAmount(
-            tier,
-            msg.sender,
-            tierId,
-            tokenToBuyWith,
-            amount
-        );
+        saleTokenAmount = getSaleTokenAmount(tier, msg.sender, tierId, tokenToBuyWith, amount);
+
         uint256 vestingCurrentAmount = saleTokenAmount.percentage(
             tierInitParams.vestingSettings.vestingPercentage
         );
