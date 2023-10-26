@@ -43,11 +43,13 @@ interface IGovUserKeeper {
     /// @param isSupportPower boolean flag, if true then nft contract supports power
     /// @param individualPower the voting power an nft
     /// @param totalSupply the total supply of nfts that are not enumerable
+    /// @param nftMinPower matching nft ids to their minimal powers
     struct NFTInfo {
         address nftAddress;
         bool isSupportPower;
         uint256 individualPower;
         uint256 totalSupply;
+        mapping(uint256 => uint256) nftMinPower;
     }
 
     /// @notice The struct that is used in view functions of contract as a return argument
@@ -215,9 +217,18 @@ interface IGovUserKeeper {
     /// @return `tokenAddress` the erc20 address
     function tokenAddress() external view returns (address);
 
-    /// @notice The function for getting information about nft contract
-    /// @return `NFTInfo` struct
-    function getNftInfo() external view returns (NFTInfo memory);
+    /// @notice The function for getting erc721 address
+    /// @return `nftAddress` the erc721 address
+    function nftAddress() external view returns (address);
+
+    /// @notice The function for getting nft info
+    /// @return isSupportPower boolean flag, if true then nft contract supports power
+    /// @return individualPower the voting power an nft
+    /// @return totalSupply the total supply of nfts that are not enumerable
+    function getNftInfo()
+        external
+        view
+        returns (bool isSupportPower, uint256 individualPower, uint256 totalSupply);
 
     /// @notice The function for getting max locked amount of a user
     /// @param voter the address of voter

@@ -279,7 +279,7 @@ contract GovPool is
         }
 
         if (nftIds.length != 0) {
-            IERC721 nft = IERC721(_govUserKeeper.getNftInfo().nftAddress);
+            IERC721 nft = IERC721(_govUserKeeper.nftAddress());
 
             for (uint256 i; i < nftIds.length; i++) {
                 nft.safeTransferFrom(address(this), address(_govUserKeeper), nftIds[i]);
