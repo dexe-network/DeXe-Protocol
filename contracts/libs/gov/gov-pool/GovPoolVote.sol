@@ -209,12 +209,7 @@ library GovPoolVote {
 
         rawVote.totalVoted =
             amount +
-            IGovUserKeeper(userKeeper).getNftsPowerInTokensBySnapshot(
-                nftIds,
-                core.nftPowerSnapshotId,
-                voter,
-                voteType
-            );
+            IGovUserKeeper(userKeeper).getTotalNftsPower(nftIds, voter, voteType);
     }
 
     function _cancel(IGovPool.RawVote storage rawVote) internal {
@@ -378,7 +373,7 @@ library GovPoolVote {
         return
             PERCENTAGE_100.ratio(
                 core.votesFor + core.votesAgainst,
-                IGovUserKeeper(userKeeperAddress).getTotalVoteWeight()
+                IGovUserKeeper(userKeeperAddress).getTotalPower()
             ) >= core.settings.quorum;
     }
 
@@ -391,7 +386,6 @@ library GovPoolVote {
         (, address userKeeper, , , address votePower) = IGovPool(address(this))
             .getHelperContracts();
 
-        /// FIXME: check
         IGovUserKeeper.VotingPowerView[] memory votingPowers = IGovUserKeeper(userKeeper)
             .votingPower(
                 [voter, voter, voter].asDynamic(),

@@ -88,7 +88,7 @@ Parameters:
 struct UserKeeperDeployParams {
 	address tokenAddress;
 	address nftAddress;
-	uint256 totalPowerInTokens;
+	uint256 individualPower;
 	uint256 nftsTotalSupply;
 }
 ```
@@ -98,12 +98,12 @@ Parameters of the user keeper
 
 Parameters:
 
-| Name               | Type    | Description                            |
-| :----------------- | :------ | :------------------------------------- |
-| tokenAddress       | address | address of the tokens used for voting  |
-| nftAddress         | address | address of the NFT used for voting     |
-| totalPowerInTokens | uint256 | the token equivalent of all NFTs       |
-| nftsTotalSupply    | uint256 | the NFT collection size                |
+| Name            | Type    | Description                            |
+| :-------------- | :------ | :------------------------------------- |
+| tokenAddress    | address | address of the tokens used for voting  |
+| nftAddress      | address | address of the NFT used for voting     |
+| individualPower | uint256 | the voting power of an NFT             |
+| nftsTotalSupply | uint256 | the NFT collection size                |
 
 ### TokenSaleProposalDeployParams
 

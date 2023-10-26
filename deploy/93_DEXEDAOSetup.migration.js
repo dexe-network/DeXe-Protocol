@@ -86,7 +86,7 @@ let POOL_PARAMETERS = {
   userKeeperParams: {
     tokenAddress: config.tokens.DEXE,
     nftAddress: ZERO_ADDR,
-    totalPowerInTokens: 0,
+    individualPower: 0,
     nftsTotalSupply: 0,
   },
   tokenSaleParams: {
