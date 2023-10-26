@@ -324,8 +324,7 @@ Parameters:
 ```solidity
 struct DelegatorInfo {
 	uint256[] delegationTimes;
-	uint256[][] nftIds;
-	uint256[] tokenAmounts;
+	uint256[] delegationPowers;
 	mapping(uint256 => bool) isClaimed;
 }
 ```
@@ -335,12 +334,11 @@ The struct that holds information about the delegator (only for internal needs)
 
 Parameters:
 
-| Name            | Type                     | Description                                                                    |
-| :-------------- | :----------------------- | :----------------------------------------------------------------------------- |
-| delegationTimes | uint256[]                | the list of timestamps when delegated amount was changed                       |
-| nftIds          | uint256[][]              | lists of delegated nfts in corresponding timestamps                            |
-| tokenAmounts    | uint256[]                | the list of delegated token amounts in corresponding timestamps                |
-| isClaimed       | mapping(uint256 => bool) | matching proposals ids with flags indicating whether rewards have been claimed |
+| Name             | Type                     | Description                                                                    |
+| :--------------- | :----------------------- | :----------------------------------------------------------------------------- |
+| delegationTimes  | uint256[]                | the list of timestamps when delegated amount was changed                       |
+| delegationPowers | uint256[]                | the list of delegated assets powers                                            |
+| isClaimed        | mapping(uint256 => bool) | matching proposals ids with flags indicating whether rewards have been claimed |
 
 ### PendingRewards
 
