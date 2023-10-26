@@ -57,7 +57,7 @@ const GovPool = artifacts.require("GovPool");
 const DistributionProposal = artifacts.require("DistributionProposal");
 const GovValidators = artifacts.require("GovValidators");
 const GovSettings = artifacts.require("GovSettings");
-const GovUserKeeper = artifacts.require("GovUserKeeper");
+const GovUserKeeper = artifacts.require("GovUserKeeperMock");
 const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const LinearPower = artifacts.require("LinearPower");
@@ -98,7 +98,7 @@ ERC20.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
-describe.only("GovPool", () => {
+describe("GovPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -865,6 +865,15 @@ describe.only("GovPool", () => {
           govPool.createProposal("", [[SECOND, 0, getBytesApprove(SECOND, 1)]], [], { from: SECOND }),
           "Gov: low creating power"
         );
+      });
+
+      it("should create proposal and vote", async () => {
+        await govPool.createProposalAndVote("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], [], 1, [1]);
+
+        const votes = await govPool.getUserVotes(1, OWNER, VoteType.PersonalVote);
+
+        assert.isTrue(votes.isVoteFor);
+        assert.equal(toBN(votes.totalVoted).toFixed(), toBN(wei("1000")).plus(1).toFixed());
       });
 
       describe("meta governance", () => {
@@ -1724,6 +1733,52 @@ describe.only("GovPool", () => {
           for (let i = 1; i < 11; i++) {
             await nft.burn(i);
           }
+        });
+
+        it("should not vote if personal zero power nft voted", async () => {
+          await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
+
+          await nft.mint(SECOND, 1);
+          await nft.approve(userKeeper.address, 1, { from: SECOND });
+
+          await govPool.deposit(0, [1], { from: SECOND });
+
+          await userKeeper.setIndividualNftPower(0);
+
+          await govPool.vote(2, true, 0, [1], { from: SECOND });
+
+          await truffleAssert.reverts(govPool.vote(2, true, 0, [1], { from: SECOND }), "Gov: need cancel");
+        });
+
+        it("should not vote if delegated zero power nft voted", async () => {
+          await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
+
+          await nft.mint(OWNER, 1);
+          await nft.approve(userKeeper.address, 1);
+
+          await govPool.deposit(0, [1]);
+
+          await govPool.delegate(SECOND, 0, [1]);
+
+          await userKeeper.setIndividualNftPower(0);
+
+          await govPool.vote(2, true, 0, [], { from: SECOND });
+
+          await truffleAssert.reverts(govPool.vote(2, true, 0, [], { from: SECOND }), "Gov: need cancel");
+        });
+
+        it("should not vote if treasury delegated zero power nft voted", async () => {
+          await executeValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(SECOND, "URI")]]);
+
+          await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
+
+          await delegateTreasury(SECOND, 0, [1]);
+
+          await userKeeper.setIndividualNftPower(0);
+
+          await govPool.vote(3, true, 0, [], { from: SECOND });
+
+          await truffleAssert.reverts(govPool.vote(3, true, 0, [], { from: SECOND }), "Gov: need cancel");
         });
 
         it("should vote with zero micropool and treasury power", async () => {
@@ -5093,6 +5148,13 @@ describe.only("GovPool", () => {
       it("createProposal()", async () => {
         await truffleAssert.reverts(
           govPool.createProposal("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []),
+          REVERT_STRING
+        );
+      });
+
+      it("createProposalAndVote()", async () => {
+        await truffleAssert.reverts(
+          govPool.createProposalAndVote("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], [], 0, []),
           REVERT_STRING
         );
       });

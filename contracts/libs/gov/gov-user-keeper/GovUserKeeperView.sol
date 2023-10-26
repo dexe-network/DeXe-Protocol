@@ -104,12 +104,12 @@ library GovUserKeeperView {
         bool perNftPowerArray
     ) public view returns (uint256 nftPower, uint256[] memory perNftPower) {
         GovUserKeeper userKeeper = GovUserKeeper(address(this));
+        ERC721Power nftContract = ERC721Power(userKeeper.nftAddress());
 
-        if (userKeeper.nftAddress() == address(0)) {
+        if (address(nftContract) == address(0)) {
             return (nftPower, perNftPower);
         }
 
-        ERC721Power nftContract = ERC721Power(userKeeper.nftAddress());
         IGovUserKeeper.NFTInfo memory nftInfo = userKeeper.getNftInfo();
 
         if (perNftPowerArray) {

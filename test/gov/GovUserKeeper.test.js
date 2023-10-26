@@ -1148,11 +1148,11 @@ describe("GovUserKeeper", () => {
       );
     });
 
-    it("should get total vote weight if tokenAddress is zero", async () => {
+    it("should get total power if tokenAddress is zero", async () => {
       assert.equal((await userKeeper.getTotalPower()).toFixed(), wei("33000"));
     });
 
-    it("should get total vote weight", async () => {
+    it("should get total power", async () => {
       await userKeeper.setERC20Address(token.address);
 
       assert.equal((await userKeeper.getTotalPower()).toFixed(), wei("33000"));
@@ -1517,6 +1517,24 @@ describe("GovUserKeeper", () => {
         assert.deepEqual(
           power.perNftPower.map((e) => toBN(e).toFixed()),
           ["0", "0", "0", "0", "0", "0", "0"]
+        );
+      });
+    });
+
+    describe("nft power", () => {
+      it("should get total power with power NFT", async () => {
+        assert.equal((await userKeeper.getTotalPower()).toFixed(), wei("80900"));
+      });
+
+      it("should get nft voting power", async () => {
+        const nftPower = await userKeeper.nftVotingPower([1, 2, 3], true);
+        const nftPower2 = await userKeeper.nftVotingPower([1, 2, 3], false);
+
+        assert.equal(toBN(nftPower.nftPower).toFixed(), "0");
+        assert.equal(toBN(nftPower.nftPower).toFixed(), toBN(nftPower2.nftPower).toFixed());
+        assert.deepEqual(
+          nftPower.perNftPower.map((e) => toBN(e).toFixed()),
+          ["0", "0", "0"]
         );
       });
     });
