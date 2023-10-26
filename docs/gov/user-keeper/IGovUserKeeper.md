@@ -669,30 +669,6 @@ Return values:
 | nfts        | uint256[] | the array of owned nft ids                                |
 | ownedLength | uint256   | the number of nfts that are not deposited to the contract |
 
-### getTotalNftsPower (0x95b52ce0)
-
-```solidity
-function getTotalNftsPower(
-    uint256[] memory nftIds
-) external view returns (uint256 nftsPower)
-```
-
-The function for getting nft powers
-
-
-Parameters:
-
-| Name   | Type      | Description                               |
-| :----- | :-------- | :---------------------------------------- |
-| nftIds | uint256[] | the array of nft ids to get the power of  |
-
-
-Return values:
-
-| Name      | Type    | Description       |
-| :-------- | :------ | :---------------- |
-| nftsPower | uint256 | the power of nfts |
-
 ### getTotalPower (0x53976a26)
 
 ```solidity

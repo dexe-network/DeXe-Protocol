@@ -229,7 +229,7 @@ describe("TokenSaleProposal", () => {
     await userKeeper.__GovUserKeeper_init(
       poolParams.userKeeperParams.tokenAddress,
       poolParams.userKeeperParams.nftAddress,
-      poolParams.userKeeperParams.totalPowerInTokens,
+      poolParams.userKeeperParams.individualPower,
       poolParams.userKeeperParams.nftsTotalSupply
     );
 
@@ -489,7 +489,7 @@ describe("TokenSaleProposal", () => {
         userKeeperParams: {
           tokenAddress: token.address,
           nftAddress: ZERO_ADDR,
-          totalPowerInTokens: wei("33000"),
+          individualPower: wei("1000"),
           nftsTotalSupply: 33,
         },
         regularVoteModifier: wei("1.3", 25),

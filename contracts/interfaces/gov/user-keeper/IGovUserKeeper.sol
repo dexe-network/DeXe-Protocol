@@ -256,11 +256,6 @@ interface IGovUserKeeper {
         IGovPool.VoteType voteType
     ) external view returns (uint256[] memory nfts, uint256 ownedLength);
 
-    /// @notice The function for getting nft powers
-    /// @param nftIds the array of nft ids to get the power of
-    /// @return nftsPower the power of nfts
-    function getTotalNftsPower(uint256[] memory nftIds) external view returns (uint256 nftsPower);
-
     /// @notice The function for getting total voting power of the contract
     /// @return `total` power
     function getTotalPower() external view returns (uint256);

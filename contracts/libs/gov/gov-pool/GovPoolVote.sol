@@ -58,12 +58,11 @@ library GovPoolVote {
                 userKeeper.lockNfts(msg.sender, voteType, nftIds);
             }
 
-            _vote(core, rawVotes[IGovPool.VoteType.PersonalVote], amount, nftIds);
+            _vote(rawVotes[IGovPool.VoteType.PersonalVote], amount, nftIds);
         }
 
         if (voteType != IGovPool.VoteType.DelegatedVote) {
             _voteDelegated(
-                core,
                 userInfos,
                 rawVotes[IGovPool.VoteType.MicropoolVote],
                 proposalId,
@@ -72,7 +71,6 @@ library GovPoolVote {
             );
 
             _voteDelegated(
-                core,
                 userInfos,
                 rawVotes[IGovPool.VoteType.TreasuryVote],
                 proposalId,
@@ -115,7 +113,7 @@ library GovPoolVote {
             }
 
             _cancel(rawVote);
-            _voteDelegated(core, userInfos, rawVote, proposalId, voter, voteType);
+            _voteDelegated(userInfos, rawVote, proposalId, voter, voteType);
 
             _updateGlobalState(core, userInfos, proposalId, voter, voteInfo.isVoteFor);
         }
@@ -156,7 +154,6 @@ library GovPoolVote {
     }
 
     function _voteDelegated(
-        IGovPool.ProposalCore storage core,
         mapping(address => IGovPool.UserInfo) storage userInfos,
         IGovPool.RawVote storage rawVote,
         uint256 proposalId,
@@ -176,11 +173,10 @@ library GovPoolVote {
         (uint256 amount, ) = userKeeper.tokenBalance(voter, voteType);
         (uint256[] memory nftIds, ) = userKeeper.nftExactBalance(voter, voteType);
 
-        _vote(core, rawVote, amount, nftIds);
+        _vote(rawVote, amount, nftIds);
     }
 
     function _vote(
-        IGovPool.ProposalCore storage core,
         IGovPool.RawVote storage rawVote,
         uint256 amount,
         uint256[] memory nftIds
@@ -200,7 +196,9 @@ library GovPoolVote {
 
         (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
-        rawVote.totalVoted = amount + IGovUserKeeper(userKeeper).getTotalNftsPower(nftIds);
+        (uint256 nftPower, ) = IGovUserKeeper(userKeeper).nftVotingPower(nftIds, false);
+
+        rawVote.totalVoted = amount + nftPower;
     }
 
     function _cancel(IGovPool.RawVote storage rawVote) internal {

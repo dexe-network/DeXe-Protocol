@@ -21,8 +21,8 @@ describe("PolynomialPower", () => {
   async function forHolders(votes) {
     const v = toBN(votes);
 
-    let totalSupply = toBN(await govPool.getTotalVoteWeight());
-    let [k1, k2, k3] = Object.entries(await power.getVoteCoefficients()).map((x) => toBN(x[1]).div(PRECISION));
+    let totalSupply = toBN(await govPool.getTotalPower());
+    let [, , k3] = Object.entries(await power.getVoteCoefficients()).map((x) => toBN(x[1]).div(PRECISION));
     let threshold = totalSupply.times(7).div(100).minus(7);
 
     if (v.comparedTo(threshold) === -1) {
@@ -48,8 +48,8 @@ describe("PolynomialPower", () => {
   async function forExpert(votes, isDao) {
     const v = toBN(votes);
 
-    let totalSupply = toBN(await govPool.getTotalVoteWeight());
-    let [k1, k2, k3] = Object.entries(await power.getVoteCoefficients()).map((x) => toBN(x[1]).div(PRECISION));
+    let totalSupply = toBN(await govPool.getTotalPower());
+    let [k1, k2] = Object.entries(await power.getVoteCoefficients()).map((x) => toBN(x[1]).div(PRECISION));
     let k;
 
     if (isDao) {
