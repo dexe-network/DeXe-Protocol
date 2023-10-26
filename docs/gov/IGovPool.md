@@ -597,6 +597,31 @@ Parameters:
 | actionsOnFor     | struct IGovPool.ProposalAction[] | the array of structs with information about actions on for step     |
 | actionsOnAgainst | struct IGovPool.ProposalAction[] | the array of structs with information about actions on against step |
 
+### createProposalAndVote (0xee0e5215)
+
+```solidity
+function createProposalAndVote(
+    string calldata descriptionURL,
+    IGovPool.ProposalAction[] calldata actionsOnFor,
+    IGovPool.ProposalAction[] calldata actionsOnAgainst,
+    uint256 voteAmount,
+    uint256[] calldata voteNftIds
+) external
+```
+
+Create and vote for on the proposal
+
+
+Parameters:
+
+| Name             | Type                             | Description                                                          |
+| :--------------- | :------------------------------- | :------------------------------------------------------------------- |
+| descriptionURL   | string                           | IPFS url to the proposal's description                               |
+| actionsOnFor     | struct IGovPool.ProposalAction[] | the array of structs with information about actions on for step      |
+| actionsOnAgainst | struct IGovPool.ProposalAction[] | the array of structs with information about actions on against step  |
+| voteAmount       | uint256                          | the erc20 vote amount                                                |
+| voteNftIds       | uint256[]                        | the nft ids that will be used in voting                              |
+
 ### moveProposalToValidators (0x2db47bdd)
 
 ```solidity

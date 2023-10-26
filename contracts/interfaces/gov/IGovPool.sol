@@ -313,9 +313,6 @@ interface IGovPool {
         returns (address nftMultiplier, address expertNft, address dexeExpertNft, address babt);
 
     /// @notice Create proposal
-    /// @notice For internal proposal, last executor should be `GovSetting` contract
-    /// @notice For typed proposal, last executor should be typed contract
-    /// @notice For external proposal, any configuration of addresses and bytes
     /// @param descriptionURL IPFS url to the proposal's description
     /// @param actionsOnFor the array of structs with information about actions on for step
     /// @param actionsOnAgainst the array of structs with information about actions on against step
@@ -323,6 +320,20 @@ interface IGovPool {
         string calldata descriptionURL,
         ProposalAction[] calldata actionsOnFor,
         ProposalAction[] calldata actionsOnAgainst
+    ) external;
+
+    /// @notice Create and vote for on the proposal
+    /// @param descriptionURL IPFS url to the proposal's description
+    /// @param actionsOnFor the array of structs with information about actions on for step
+    /// @param actionsOnAgainst the array of structs with information about actions on against step
+    /// @param voteAmount the erc20 vote amount
+    /// @param voteNftIds the nft ids that will be used in voting
+    function createProposalAndVote(
+        string calldata descriptionURL,
+        ProposalAction[] calldata actionsOnFor,
+        ProposalAction[] calldata actionsOnAgainst,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds
     ) external;
 
     /// @notice Move proposal from internal voting to `Validators` contract
