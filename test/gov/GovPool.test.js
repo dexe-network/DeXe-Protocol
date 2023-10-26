@@ -57,7 +57,7 @@ const GovPool = artifacts.require("GovPool");
 const DistributionProposal = artifacts.require("DistributionProposal");
 const GovValidators = artifacts.require("GovValidators");
 const GovSettings = artifacts.require("GovSettings");
-const GovUserKeeper = artifacts.require("GovUserKeeper");
+const GovUserKeeper = artifacts.require("GovUserKeeperMock");
 const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const LinearPower = artifacts.require("LinearPower");
@@ -304,7 +304,7 @@ describe("GovPool", () => {
     await userKeeper.__GovUserKeeper_init(
       poolParams.userKeeperParams.tokenAddress,
       poolParams.userKeeperParams.nftAddress,
-      poolParams.userKeeperParams.totalPowerInTokens,
+      poolParams.userKeeperParams.individualPower,
       poolParams.userKeeperParams.nftsTotalSupply
     );
 
@@ -449,7 +449,7 @@ describe("GovPool", () => {
       userKeeperParams: {
         tokenAddress: token.address,
         nftAddress: nftAddress,
-        totalPowerInTokens: wei("33000"),
+        individualPower: wei("1000"),
         nftsTotalSupply: 33,
       },
       verifier: OWNER,
@@ -835,7 +835,7 @@ describe("GovPool", () => {
         assert.equal(proposal.descriptionURL, "example.com");
         assert.deepEqual(proposal.actionsOnFor[0].data, getBytesApprove(SECOND, 1));
         assert.deepEqual(proposal.actionsOnAgainst, []);
-        assert.equal((await govPool.getProposalRequiredQuorum(1)).toFixed(), wei("71000023430"));
+        assert.equal((await govPool.getProposalRequiredQuorum(1)).toFixed(), wei("71000007100"));
 
         await govPool.createProposal("example2.com", [[THIRD, 0, getBytesApprove(SECOND, 2)]], []);
         proposal = await getProposalByIndex(2);
@@ -855,7 +855,7 @@ describe("GovPool", () => {
         assert.equal(proposal.descriptionURL, "example2.com");
         assert.deepEqual(proposal.actionsOnFor[0].data, getBytesApprove(SECOND, 2));
         assert.deepEqual(proposal.actionsOnAgainst, []);
-        assert.equal((await govPool.getProposalRequiredQuorum(2)).toFixed(), wei("71000023430"));
+        assert.equal((await govPool.getProposalRequiredQuorum(2)).toFixed(), wei("71000007100"));
 
         assert.equal((await govPool.getProposalRequiredQuorum(3)).toFixed(), "0");
       });
@@ -865,6 +865,15 @@ describe("GovPool", () => {
           govPool.createProposal("", [[SECOND, 0, getBytesApprove(SECOND, 1)]], [], { from: SECOND }),
           "Gov: low creating power"
         );
+      });
+
+      it("should create proposal and vote", async () => {
+        await govPool.createProposalAndVote("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], [], 1, [1]);
+
+        const votes = await govPool.getUserVotes(1, OWNER, VoteType.PersonalVote);
+
+        assert.isTrue(votes.isVoteFor);
+        assert.equal(toBN(votes.totalVoted).toFixed(), toBN(wei("1000")).plus(1).toFixed());
       });
 
       describe("meta governance", () => {
@@ -1342,11 +1351,11 @@ describe("GovPool", () => {
 
       describe("exempted treasury", () => {
         const calculateNewQuorum = async (quorum, exemptedTreasury) => {
-          const totalVoteWeight = await userKeeper.getTotalVoteWeight();
+          const totalPower = await userKeeper.getTotalPower();
 
-          const newTotalVoteWeight = totalVoteWeight.minus(exemptedTreasury).multipliedBy(quorum).idiv(PERCENTAGE_100);
+          const newTotalPower = totalPower.minus(exemptedTreasury).multipliedBy(quorum).idiv(PERCENTAGE_100);
 
-          return PERCENTAGE_100.multipliedBy(newTotalVoteWeight).idiv(totalVoteWeight);
+          return PERCENTAGE_100.multipliedBy(newTotalPower).idiv(totalPower);
         };
 
         beforeEach(async () => {
@@ -1695,9 +1704,9 @@ describe("GovPool", () => {
 
         const totalVotes = await govPool.getTotalVotes(1, OWNER, VoteType.PersonalVote);
 
-        assert.equal(totalVotes[0].toFixed(), wei("6600"));
+        assert.equal(totalVotes[0].toFixed(), wei("2000"));
         assert.equal(totalVotes[1].toFixed(), "0");
-        assert.equal(totalVotes[2].toFixed(), wei("6600"));
+        assert.equal(totalVotes[2].toFixed(), wei("2000"));
         assert.isTrue(totalVotes[3]);
       });
 
@@ -1709,8 +1718,8 @@ describe("GovPool", () => {
         const totalVotes = await govPool.getTotalVotes(1, OWNER, VoteType.PersonalVote);
 
         assert.equal(totalVotes[0].toFixed(), "0");
-        assert.equal(totalVotes[1].toFixed(), wei("6600"));
-        assert.equal(totalVotes[2].toFixed(), wei("6600"));
+        assert.equal(totalVotes[1].toFixed(), wei("2000"));
+        assert.equal(totalVotes[2].toFixed(), wei("2000"));
         assert.isFalse(totalVotes[3]);
       });
 
@@ -1726,7 +1735,53 @@ describe("GovPool", () => {
           }
         });
 
-        it("should vote with zero personal power", async () => {
+        it("should not vote if personal zero power nft voted", async () => {
+          await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
+
+          await nft.mint(SECOND, 1);
+          await nft.approve(userKeeper.address, 1, { from: SECOND });
+
+          await govPool.deposit(0, [1], { from: SECOND });
+
+          await userKeeper.setIndividualNftPower(0);
+
+          await govPool.vote(2, true, 0, [1], { from: SECOND });
+
+          await truffleAssert.reverts(govPool.vote(2, true, 0, [1], { from: SECOND }), "Gov: need cancel");
+        });
+
+        it("should not vote if delegated zero power nft voted", async () => {
+          await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
+
+          await nft.mint(OWNER, 1);
+          await nft.approve(userKeeper.address, 1);
+
+          await govPool.deposit(0, [1]);
+
+          await govPool.delegate(SECOND, 0, [1]);
+
+          await userKeeper.setIndividualNftPower(0);
+
+          await govPool.vote(2, true, 0, [], { from: SECOND });
+
+          await truffleAssert.reverts(govPool.vote(2, true, 0, [], { from: SECOND }), "Gov: need cancel");
+        });
+
+        it("should not vote if treasury delegated zero power nft voted", async () => {
+          await executeValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(SECOND, "URI")]]);
+
+          await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
+
+          await delegateTreasury(SECOND, 0, [1]);
+
+          await userKeeper.setIndividualNftPower(0);
+
+          await govPool.vote(3, true, 0, [], { from: SECOND });
+
+          await truffleAssert.reverts(govPool.vote(3, true, 0, [], { from: SECOND }), "Gov: need cancel");
+        });
+
+        it("should vote with zero micropool and treasury power", async () => {
           await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
 
           await nft.mint(SECOND, 1);
@@ -1736,13 +1791,18 @@ describe("GovPool", () => {
 
           await govPool.vote(2, true, 0, [1], { from: SECOND });
 
-          let vote = await govPool.getUserVotes(2, SECOND, VoteType.PersonalVote);
+          let vote = await govPool.getUserVotes(2, SECOND, VoteType.MicropoolVote);
 
           assert.isTrue(vote.isVoteFor);
-          assert.equal(vote.totalRawVoted, "0");
+          assert.equal(vote.totalRawVoted, 0);
+
+          vote = await govPool.getUserVotes(2, SECOND, VoteType.TreasuryVote);
+
+          assert.isTrue(vote.isVoteFor);
+          assert.equal(vote.totalRawVoted, 0);
         });
 
-        it("should vote with zero micropool power", async () => {
+        it("should vote with zero personal and treasury power", async () => {
           await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
 
           await nft.mint(OWNER, 1);
@@ -1754,13 +1814,18 @@ describe("GovPool", () => {
 
           await govPool.vote(2, true, 0, [], { from: SECOND });
 
-          let vote = await govPool.getUserVotes(2, SECOND, VoteType.MicropoolVote);
+          let vote = await govPool.getUserVotes(2, SECOND, VoteType.PersonalVote);
+
+          assert.isTrue(vote.isVoteFor);
+          assert.equal(vote.totalRawVoted, "0");
+
+          vote = await govPool.getUserVotes(2, SECOND, VoteType.TreasuryVote);
 
           assert.isTrue(vote.isVoteFor);
           assert.equal(vote.totalRawVoted, "0");
         });
 
-        it("should vote with zero micropool power", async () => {
+        it("should vote with zero personal and micropool power", async () => {
           await executeValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(SECOND, "URI")]]);
 
           await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
@@ -1769,7 +1834,12 @@ describe("GovPool", () => {
 
           await govPool.vote(3, true, 0, [], { from: SECOND });
 
-          let vote = await govPool.getUserVotes(3, SECOND, VoteType.TreasuryVote);
+          let vote = await govPool.getUserVotes(3, SECOND, VoteType.PersonalVote);
+
+          assert.isTrue(vote.isVoteFor);
+          assert.equal(vote.totalRawVoted, "0");
+
+          vote = await govPool.getUserVotes(3, SECOND, VoteType.MicropoolVote);
 
           assert.isTrue(vote.isVoteFor);
           assert.equal(vote.totalRawVoted, "0");
@@ -1802,7 +1872,7 @@ describe("GovPool", () => {
             await nft.approve(userKeeper.address, i, { from: delegator2 });
           }
 
-          perNftPower = toBN(wei("33000")).idiv(16);
+          perNftPower = toBN(wei("1000"));
 
           await govPool.deposit(wei("6000000000000000000"), [100, 101], { from: delegator1 });
           await govPool.deposit(wei("6000000000000000000"), [200, 201, 202, 203], { from: delegator2 });
@@ -1951,13 +2021,13 @@ describe("GovPool", () => {
           assert.equal(
             (await govPool.getUserVotes(3, SECOND, VoteType.TreasuryVote)).totalRawVoted,
             toBN(wei("1000000000000000000"))
-              .plus(toBN(wei("33000")).idiv(11))
+              .plus(toBN(wei("1000")))
               .toFixed()
           );
           assert.equal(
             (await govPool.getTotalVotes(3, SECOND, VoteType.TreasuryVote))[0].toFixed(),
             toBN(wei("69000000000000000000"))
-              .plus(toBN(wei("33000")).idiv(11))
+              .plus(toBN(wei("1000")))
               .toFixed()
           );
 
@@ -1987,13 +2057,13 @@ describe("GovPool", () => {
           assert.equal(
             (await govPool.getUserVotes(3, SECOND, VoteType.TreasuryVote)).totalRawVoted,
             toBN(wei("2000000000000000000"))
-              .plus(toBN(wei("33000")).idiv(11).multipliedBy(2))
+              .plus(toBN(wei("1000")).multipliedBy(2))
               .toFixed()
           );
           assert.equal(
             (await govPool.getTotalVotes(3, SECOND, VoteType.TreasuryVote))[0].toFixed(),
             toBN(wei("70000000000000000000"))
-              .plus(toBN(wei("33000")).idiv(11).multipliedBy(2))
+              .plus(toBN(wei("1000")).multipliedBy(2))
               .toFixed()
           );
 
@@ -2002,13 +2072,13 @@ describe("GovPool", () => {
           assert.equal(
             (await govPool.getUserVotes(3, SECOND, VoteType.TreasuryVote)).totalRawVoted,
             toBN(wei("12000000000000000000"))
-              .plus(toBN(wei("33000")).idiv(11).multipliedBy(4))
+              .plus(toBN(wei("1000")).multipliedBy(4))
               .toFixed()
           );
           assert.equal(
             (await govPool.getTotalVotes(3, SECOND, VoteType.TreasuryVote))[0].toFixed(),
             toBN(wei("80000000000000000000"))
-              .plus(toBN(wei("33000")).idiv(11).multipliedBy(4))
+              .plus(toBN(wei("1000")).multipliedBy(4))
               .toFixed()
           );
 
@@ -2151,13 +2221,13 @@ describe("GovPool", () => {
         assert.equal(
           vote.totalRawVoted,
           toBN(wei("100"))
-            .plus(toBN(wei("33000")).idiv(10).multipliedBy(2))
+            .plus(toBN(wei("1000")).multipliedBy(2))
             .toFixed()
         );
         assert.equal(
           (await govPool.getTotalVotes(1, SECOND, VoteType.MicropoolVote))[0].toFixed(),
           toBN(wei("100"))
-            .plus(toBN(wei("33000")).idiv(10).multipliedBy(2))
+            .plus(toBN(wei("1000")).multipliedBy(2))
             .toFixed()
         );
 
@@ -2183,13 +2253,13 @@ describe("GovPool", () => {
         assert.equal(
           vote.totalRawVoted,
           toBN(wei("100"))
-            .plus(toBN(wei("33000")).idiv(12).multipliedBy(2))
+            .plus(toBN(wei("1000")).multipliedBy(2))
             .toFixed()
         );
         assert.equal(
           (await govPool.getTotalVotes(3, SECOND, VoteType.TreasuryVote))[0].toFixed(),
           toBN(wei("200"))
-            .plus(toBN(wei("33000")).idiv(12).multipliedBy(2))
+            .plus(toBN(wei("1000")).multipliedBy(2))
             .toFixed()
         );
 
@@ -2210,10 +2280,10 @@ describe("GovPool", () => {
         let vote = await govPool.getUserVotes(1, OWNER, VoteType.PersonalVote);
 
         assert.isFalse(vote.isVoteFor);
-        assert.equal(vote.totalRawVoted, toBN(wei("33000")).idiv(10).multipliedBy(4).toFixed());
+        assert.equal(vote.totalRawVoted, toBN(wei("1000")).multipliedBy(4).toFixed());
         assert.equal(
           (await govPool.getTotalVotes(1, OWNER, VoteType.PersonalVote))[1].toFixed(),
-          toBN(wei("33000")).idiv(10).multipliedBy(4).toFixed()
+          toBN(wei("1000")).multipliedBy(4).toFixed()
         );
 
         await govPool.cancelVote(1);
@@ -2238,13 +2308,13 @@ describe("GovPool", () => {
         assert.equal(
           vote.totalRawVoted,
           toBN(wei("100"))
-            .plus(toBN(wei("33000")).idiv(10).multipliedBy(2))
+            .plus(toBN(wei("1000")).multipliedBy(2))
             .toFixed()
         );
         assert.equal(
           (await govPool.getTotalVotes(1, SECOND, VoteType.PersonalVote))[1].toFixed(),
           toBN(wei("200"))
-            .plus(toBN(wei("33000")).idiv(10).multipliedBy(2))
+            .plus(toBN(wei("1000")).multipliedBy(2))
             .toFixed()
         );
 
@@ -2270,13 +2340,13 @@ describe("GovPool", () => {
         assert.equal(
           vote.totalRawVoted,
           toBN(wei("100"))
-            .plus(toBN(wei("33000")).idiv(12).multipliedBy(2))
+            .plus(toBN(wei("1000")).multipliedBy(2))
             .toFixed()
         );
         assert.equal(
           (await govPool.getTotalVotes(3, SECOND, VoteType.TreasuryVote))[1].toFixed(),
           toBN(wei("100"))
-            .plus(toBN(wei("33000")).idiv(12).multipliedBy(2))
+            .plus(toBN(wei("1000")).multipliedBy(2))
             .toFixed()
         );
 
@@ -2363,13 +2433,13 @@ describe("GovPool", () => {
         assert.equal(
           vote.totalRawVoted,
           toBN(wei("100000000000000000000"))
-            .plus(toBN(wei("33000")).idiv(12).multipliedBy(2))
+            .plus(toBN(wei("1000")).multipliedBy(2))
             .toFixed()
         );
         assert.equal(
           (await govPool.getTotalVotes(2, SECOND, VoteType.PersonalVote))[0].toFixed(),
           toBN(wei("100000000000000000000"))
-            .plus(toBN(wei("33000")).idiv(12).multipliedBy(2))
+            .plus(toBN(wei("1000")).multipliedBy(2))
             .toFixed()
         );
 
@@ -4172,7 +4242,7 @@ describe("GovPool", () => {
           await nft.approve(userKeeper.address, i, { from: delegator2 });
         }
 
-        powerPerNft = toBN(wei("33000")).idiv(16);
+        powerPerNft = toBN(wei("1000"));
 
         await token.approve(userKeeper.address, wei("200000"), { from: delegator1 });
         await token.approve(userKeeper.address, wei("400000"), { from: delegator2 });
@@ -5078,6 +5148,13 @@ describe("GovPool", () => {
       it("createProposal()", async () => {
         await truffleAssert.reverts(
           govPool.createProposal("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []),
+          REVERT_STRING
+        );
+      });
+
+      it("createProposalAndVote()", async () => {
+        await truffleAssert.reverts(
+          govPool.createProposalAndVote("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], [], 0, []),
           REVERT_STRING
         );
       });

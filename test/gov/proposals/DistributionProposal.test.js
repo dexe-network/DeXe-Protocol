@@ -177,7 +177,7 @@ describe("DistributionProposal", () => {
     await userKeeper.__GovUserKeeper_init(
       poolParams.userKeeperParams.tokenAddress,
       poolParams.userKeeperParams.nftAddress,
-      poolParams.userKeeperParams.totalPowerInTokens,
+      poolParams.userKeeperParams.individualPower,
       poolParams.userKeeperParams.nftsTotalSupply
     );
 
@@ -331,7 +331,7 @@ describe("DistributionProposal", () => {
         userKeeperParams: {
           tokenAddress: ZERO_ADDR,
           nftAddress: nft.address,
-          totalPowerInTokens: wei("33000"),
+          individualPower: wei("1000"),
           nftsTotalSupply: 33,
         },
         regularVoteModifier: wei("1", 25),
@@ -609,8 +609,8 @@ describe("DistributionProposal", () => {
         await dp.claim(THIRD, [1]);
 
         assert.isTrue(await dp.isClaimed(1, SECOND));
-        assert.equal((await token.balanceOf(SECOND)).toFixed(), "55555555555555555555556");
-        assert.equal((await token.balanceOf(THIRD)).toFixed(), "44444444444444444444443");
+        assert.equal((await token.balanceOf(SECOND)).toFixed(), "55555555555555555555555");
+        assert.equal((await token.balanceOf(THIRD)).toFixed(), "44444444444444444444444");
       });
 
       it("should correctly claim ether", async () => {
