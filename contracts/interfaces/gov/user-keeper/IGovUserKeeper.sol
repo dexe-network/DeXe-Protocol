@@ -41,12 +41,12 @@ interface IGovUserKeeper {
     /// @notice The struct holds information about nft contract
     /// @param nftAddress the address of the nft
     /// @param isSupportPower boolean flag, if true then nft contract supports power
-    /// @param totalPowerInTokens the voting power of all nfts
+    /// @param individualPower the voting power an nft
     /// @param totalSupply the total supply of nfts that are not enumerable
     struct NFTInfo {
         address nftAddress;
         bool isSupportPower;
-        uint256 totalPowerInTokens;
+        uint256 individualPower;
         uint256 totalSupply;
     }
 
@@ -160,10 +160,6 @@ interface IGovUserKeeper {
     /// @param nftIds the array of undelegated nft ids
     function undelegateNftsTreasury(address delegatee, uint256[] calldata nftIds) external;
 
-    /// @notice The function for creation nft power snapshot
-    /// @return `id` of power snapshot
-    function createNftPowerSnapshot() external returns (uint256);
-
     /// @notice The function for recalculating max token locked amount of a user
     /// @param lockedProposals the array of proposal ids for recalculation
     /// @param voter the address of voter
@@ -207,11 +203,11 @@ interface IGovUserKeeper {
 
     /// @notice The function for setting erc721 address
     /// @param _nftAddress the erc721 address
-    /// @param totalPowerInTokens the total voting power of nfts
+    /// @param individualPower the voting power of an nft
     /// @param nftsTotalSupply the total supply of nft contract
     function setERC721Address(
         address _nftAddress,
-        uint256 totalPowerInTokens,
+        uint256 individualPower,
         uint256 nftsTotalSupply
     ) external;
 
@@ -258,34 +254,33 @@ interface IGovUserKeeper {
         IGovPool.VoteType voteType
     ) external view returns (uint256[] memory nfts, uint256 ownedLength);
 
-    /// @notice The function for getting nft power from snapshot
-    /// @param nftIds the array of nft ids to get the power of
-    /// @param snapshotId the id of snapshot
-    /// @param voter the address of voter
+    /// @notice The function for getting total power of nfts by ids
+    /// @param nftIds the array of nft ids
     /// @param voteType the type of vote
-    /// @return the power of nfts
-    function getNftsPowerInTokensBySnapshot(
+    /// @param voter the address of user
+    /// @param perNftPowerArray should the nft raw powers array be returned
+    /// @return nftPower the total total power of nfts
+    /// @return perNftPower the array of nft powers, bounded with nftIds by index
+    function getTotalNftsPower(
         uint256[] memory nftIds,
-        uint256 snapshotId,
+        IGovPool.VoteType voteType,
         address voter,
-        IGovPool.VoteType voteType
-    ) external view returns (uint256);
+        bool perNftPowerArray
+    ) external view returns (uint256 nftPower, uint256[] memory perNftPower);
 
     /// @notice The function for getting total voting power of the contract
-    /// @return `total` power
-    function getTotalVoteWeight() external view returns (uint256);
+    /// @return power total power
+    function getTotalPower() external view returns (uint256 power);
 
     /// @notice The function to define if voter is able to create a proposal. Includes micropool balance
     /// @param voter the address of voter
     /// @param voteType the type of vote
     /// @param requiredVotes the required voting power
-    /// @param snapshotId the id of snapshot
     /// @return `true` - can participate, `false` - can't participate
     function canCreate(
         address voter,
         IGovPool.VoteType voteType,
-        uint256 requiredVotes,
-        uint256 snapshotId
+        uint256 requiredVotes
     ) external view returns (bool);
 
     /// @notice The function for getting voting power of users
@@ -310,33 +305,6 @@ interface IGovUserKeeper {
         uint256 amount,
         uint256[] calldata nftIds
     ) external view returns (uint256 personalPower, uint256 fullPower);
-
-    /// @notice The function for getting power of nfts by ids
-    /// @param nftIds the array of nft ids
-    /// @param voteType the type of vote
-    /// @param perNftPowerArray should the nft powers array be calculated
-    /// @return nftPower the total power of nfts
-    /// @return perNftPower the array of nft powers, bounded with nftIds by index
-    function nftVotingPower(
-        uint256[] memory nftIds,
-        IGovPool.VoteType voteType,
-        address voter,
-        bool perNftPowerArray
-    ) external view returns (uint256 nftPower, uint256[] memory perNftPower);
-
-    /// @notice The function for getting initial power of nfts by ids
-    /// @param nftIds the array of nft ids
-    /// @param voteType the type of vote
-    /// @param voter the address of user
-    /// @param perNftPowerArray should the nft raw powers array be returned
-    /// @return nftPower the total initial power of nfts
-    /// @return perNftPower the array of nft initial powers, bounded with nftIds by index
-    function nftInitialPower(
-        uint256[] memory nftIds,
-        IGovPool.VoteType voteType,
-        address voter,
-        bool perNftPowerArray
-    ) external view returns (uint256 nftPower, uint256[] memory perNftPower);
 
     /// @notice The function for getting information about user's delegations
     /// @param user the address of user

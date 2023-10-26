@@ -207,9 +207,14 @@ library GovPoolVote {
 
         (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
-        rawVote.totalVoted =
-            amount +
-            IGovUserKeeper(userKeeper).getTotalNftsPower(nftIds, voter, voteType);
+        (uint256 nftsPower, ) = IGovUserKeeper(userKeeper).getTotalNftsPower(
+            nftIds,
+            voteType,
+            voter,
+            false
+        );
+
+        rawVote.totalVoted = amount + nftsPower;
     }
 
     function _cancel(IGovPool.RawVote storage rawVote) internal {
