@@ -442,7 +442,7 @@ contract GovPool is
             return 0;
         }
 
-        return _govUserKeeper.getTotalVoteWeight().ratio(core.settings.quorum, PERCENTAGE_100);
+        return _govUserKeeper.getTotalPower().ratio(core.settings.quorum, PERCENTAGE_100);
     }
 
     function getTotalVotes(

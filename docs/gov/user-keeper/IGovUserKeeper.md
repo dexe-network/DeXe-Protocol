@@ -70,7 +70,7 @@ Parameters:
 ```solidity
 struct NFTInfo {
 	bool isSupportPower;
-	uint256 totalPowerInTokens;
+	uint256 individualPower;
 	uint256 totalSupply;
 }
 ```
@@ -80,11 +80,11 @@ The struct holds information about nft contract
 
 Parameters:
 
-| Name               | Type    | Description                                             |
-| :----------------- | :------ | :------------------------------------------------------ |
-| isSupportPower     | bool    | boolean flag, if true then nft contract supports power  |
-| totalPowerInTokens | uint256 | the voting power of all nfts                            |
-| totalSupply        | uint256 | the total supply of nfts that are not enumerable        |
+| Name            | Type    | Description                                             |
+| :-------------- | :------ | :------------------------------------------------------ |
+| isSupportPower  | bool    | boolean flag, if true then nft contract supports power  |
+| individualPower | uint256 | the voting power an nft                                 |
+| totalSupply     | uint256 | the total supply of nfts that are not enumerable        |
 
 ### VotingPowerView
 
@@ -382,21 +382,6 @@ Parameters:
 | delegatee | address   | the address of delegatee         |
 | nftIds    | uint256[] | the array of undelegated nft ids |
 
-### createNftPowerSnapshot (0x624fd5a2)
-
-```solidity
-function createNftPowerSnapshot() external returns (uint256)
-```
-
-The function for creation nft power snapshot
-
-
-Return values:
-
-| Name | Type    | Description            |
-| :--- | :------ | :--------------------- |
-| [0]  | uint256 | `id` of power snapshot |
-
 ### updateMaxTokenLockedAmount (0x5f884296)
 
 ```solidity
@@ -520,7 +505,7 @@ Parameters:
 ```solidity
 function setERC721Address(
     address _nftAddress,
-    uint256 totalPowerInTokens,
+    uint256 individualPower,
     uint256 nftsTotalSupply
 ) external
 ```
@@ -530,11 +515,11 @@ The function for setting erc721 address
 
 Parameters:
 
-| Name               | Type    | Description                      |
-| :----------------- | :------ | :------------------------------- |
-| _nftAddress        | address | the erc721 address               |
-| totalPowerInTokens | uint256 | the total voting power of nfts   |
-| nftsTotalSupply    | uint256 | the total supply of nft contract |
+| Name            | Type    | Description                      |
+| :-------------- | :------ | :------------------------------- |
+| _nftAddress     | address | the erc721 address               |
+| individualPower | uint256 | the voting power of an nft       |
+| nftsTotalSupply | uint256 | the total supply of nft contract |
 
 ### tokenAddress (0x9d76ea58)
 
@@ -684,36 +669,34 @@ Return values:
 | nfts        | uint256[] | the array of owned nft ids                                |
 | ownedLength | uint256   | the number of nfts that are not deposited to the contract |
 
-### getNftsPowerInTokensBySnapshot (0x8fd229bc)
+### getTotalNftsPower (0x95b52ce0)
 
 ```solidity
-function getNftsPowerInTokensBySnapshot(
-    uint256[] memory nftIds,
-    uint256 snapshotId
-) external view returns (uint256)
+function getTotalNftsPower(
+    uint256[] memory nftIds
+) external view returns (uint256 nftsPower)
 ```
 
-The function for getting nft power from snapshot
+The function for getting nft powers
 
 
 Parameters:
 
-| Name       | Type      | Description                               |
-| :--------- | :-------- | :---------------------------------------- |
-| nftIds     | uint256[] | the array of nft ids to get the power of  |
-| snapshotId | uint256   | the id of snapshot                        |
+| Name   | Type      | Description                               |
+| :----- | :-------- | :---------------------------------------- |
+| nftIds | uint256[] | the array of nft ids to get the power of  |
 
 
 Return values:
 
-| Name | Type    | Description       |
-| :--- | :------ | :---------------- |
-| [0]  | uint256 | the power of nfts |
+| Name      | Type    | Description       |
+| :-------- | :------ | :---------------- |
+| nftsPower | uint256 | the power of nfts |
 
-### getTotalVoteWeight (0x002f26dd)
+### getTotalPower (0x53976a26)
 
 ```solidity
-function getTotalVoteWeight() external view returns (uint256)
+function getTotalPower() external view returns (uint256)
 ```
 
 The function for getting total voting power of the contract
@@ -725,14 +708,13 @@ Return values:
 | :--- | :------ | :------------ |
 | [0]  | uint256 | `total` power |
 
-### canCreate (0xc328371d)
+### canCreate (0x6f123e76)
 
 ```solidity
 function canCreate(
     address voter,
     IGovPool.VoteType voteType,
-    uint256 requiredVotes,
-    uint256 snapshotId
+    uint256 requiredVotes
 ) external view returns (bool)
 ```
 
@@ -746,7 +728,6 @@ Parameters:
 | voter         | address                | the address of voter       |
 | voteType      | enum IGovPool.VoteType | the type of vote           |
 | requiredVotes | uint256                | the required voting power  |
-| snapshotId    | uint256                | the id of snapshot         |
 
 
 Return values:

@@ -191,7 +191,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         GovUserKeeper(govPoolDeps.userKeeperAddress).__GovUserKeeper_init(
             parameters.userKeeperParams.tokenAddress,
             parameters.userKeeperParams.nftAddress,
-            parameters.userKeeperParams.totalPowerInTokens,
+            parameters.userKeeperParams.individualPower,
             parameters.userKeeperParams.nftsTotalSupply
         );
         GovSettings(govPoolDeps.settingsAddress).__GovSettings_init(

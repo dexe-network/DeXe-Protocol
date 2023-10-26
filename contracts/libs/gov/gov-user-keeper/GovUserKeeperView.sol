@@ -117,38 +117,23 @@ library GovUserKeeperView {
         }
 
         if (!nftInfo.isSupportPower) {
-            uint256 totalSupply = nftInfo.totalSupply == 0
-                ? nftContract.totalSupply()
-                : nftInfo.totalSupply;
+            uint256 individualPower = nftInfo.individualPower;
 
-            if (totalSupply > 0) {
-                uint256 totalPower = nftInfo.totalPowerInTokens;
+            nftPower = nftIds.length * nftInfo.individualPower;
 
-                if (perNftPowerArray) {
-                    for (uint256 i; i < nftIds.length; i++) {
-                        perNftPower[i] = totalPower / totalSupply;
-                    }
+            if (perNftPowerArray) {
+                for (uint256 i; i < nftIds.length; i++) {
+                    perNftPower[i] = individualPower;
                 }
-
-                nftPower = nftIds.length.ratio(totalPower, totalSupply);
             }
         } else {
-            uint256 totalNftsPower = nftContract.totalPower();
+            for (uint256 i; i < nftIds.length; i++) {
+                uint256 currentNftPower = nftContract.getNftPower(nftIds[i]);
 
-            if (totalNftsPower > 0) {
-                uint256 totalPowerInTokens = nftInfo.totalPowerInTokens;
+                nftPower += currentNftPower;
 
-                for (uint256 i; i < nftIds.length; i++) {
-                    uint256 currentNftPower = totalPowerInTokens.ratio(
-                        nftContract.getNftPower(nftIds[i]),
-                        totalNftsPower
-                    );
-
-                    nftPower += currentNftPower;
-
-                    if (perNftPowerArray) {
-                        perNftPower[i] = currentNftPower;
-                    }
+                if (perNftPowerArray) {
+                    perNftPower[i] = currentNftPower;
                 }
             }
         }
