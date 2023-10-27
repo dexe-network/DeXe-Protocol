@@ -49,13 +49,17 @@ library GovUserKeeperView {
             }
 
             if (nftInfo.nftAddress != address(0)) {
+                bool requiredCachedPower = !perNftPowerArray &&
+                    (voteTypes[i] == IGovPool.VoteType.MicropoolVote ||
+                        voteTypes[i] == IGovPool.VoteType.TreasuryVote);
+
                 uint256[] memory nftIds;
                 uint256 length;
 
-                if (perNftPowerArray) {
-                    (nftIds, length) = userKeeper.nftExactBalance(users[i], voteTypes[i]);
-                } else {
+                if (requiredCachedPower) {
                     (, length) = userKeeper.nftBalance(users[i], voteTypes[i]);
+                } else {
+                    (nftIds, length) = userKeeper.nftExactBalance(users[i], voteTypes[i]);
                 }
 
                 (power.nftPower, power.perNftPower) = getTotalNftsPower(
@@ -63,7 +67,7 @@ library GovUserKeeperView {
                     nftInfo,
                     nftIds,
                     voteTypes[i],
-                    perNftPowerArray ? address(0) : users[i],
+                    requiredCachedPower ? users[i] : address(0),
                     perNftPowerArray
                 );
 
@@ -78,7 +82,7 @@ library GovUserKeeperView {
                     nftInfo,
                     nftIds,
                     voteTypes[i],
-                    perNftPowerArray ? address(0) : users[i],
+                    requiredCachedPower ? users[i] : address(0),
                     perNftPowerArray
                 );
 
