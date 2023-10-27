@@ -13,7 +13,7 @@ import "../../../interfaces/gov/proposals/IProposalValidator.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../interfaces/gov/settings/IGovSettings.sol";
 import "../../../interfaces/gov/validators/IGovValidators.sol";
-import "../../../interfaces/gov/ERC721/IERC721Expert.sol";
+import "../../../interfaces/gov/ERC721/experts/IERC721Expert.sol";
 
 import "../../utils/DataHelper.sol";
 
@@ -135,16 +135,14 @@ library GovPoolCreate {
     function _validateProposal(
         IGovPool.ProposalAction[] calldata actionsFor,
         IGovPool.ProposalAction[] calldata actionsAgainst
-    ) internal returns (IGovSettings.ProposalSettings memory settings, uint256 settingsId) {
+    ) internal view returns (IGovSettings.ProposalSettings memory settings, uint256 settingsId) {
         require(actionsFor.length != 0, "Gov: invalid array length");
 
         address mainExecutor = actionsFor[actionsFor.length - 1].executor;
 
         _validateProposalCreation(mainExecutor, actionsFor);
 
-        (address govSettingsAddress, address userKeeper, , , ) = IGovPool(address(this))
-            .getHelperContracts();
-
+        (address govSettingsAddress, , , , ) = IGovPool(address(this)).getHelperContracts();
         IGovSettings govSettings = IGovSettings(govSettingsAddress);
 
         settingsId = govSettings.executorToSettings(mainExecutor);

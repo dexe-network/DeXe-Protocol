@@ -10,14 +10,14 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 
-import "../../interfaces/gov/ERC721/IERC721Power.sol";
+import "../../../interfaces/gov/ERC721/powers/IERC721Power.sol";
 
-import "../../libs/math/MathHelper.sol";
-import "../../libs/utils/TokenBalance.sol";
+import "../../../libs/math/MathHelper.sol";
+import "../../../libs/utils/TokenBalance.sol";
 
-import "../../core/Globals.sol";
+import "../../../core/Globals.sol";
 
-contract ERC721Power is
+abstract contract AbstractERC721Power is
     IERC721Power,
     ERC721EnumerableUpgradeable,
     ERC721URIStorageUpgradeable,
@@ -31,62 +31,62 @@ contract ERC721Power is
 
     uint64 public powerCalcStartTimestamp;
 
-    mapping(uint256 => NftInfo) public nftInfos; // tokenId => info
-
-    uint256 public reductionPercent;
-
     address public collateralToken;
-    uint256 public totalCollateral;
+    uint256 public reductionPercent;
+    uint256 public totalRawPower;
 
-    uint256 public maxPower;
-    uint256 public requiredCollateral;
+    uint256 public nftMaxRawPower;
+    uint256 public nftRequiredCollateral;
 
-    uint256 public totalPower;
+    mapping(uint256 => NftInfo) internal _nftInfos; // tokenId => info
 
     modifier onlyBeforePowerCalc() {
         _onlyBeforePowerCalc();
         _;
     }
 
-    function __ERC721Power_init(
-        string calldata name,
-        string calldata symbol,
+    function __AbstractERC721Power_init(
+        string memory name,
+        string memory symbol,
         uint64 startTimestamp,
         address _collateralToken,
-        uint256 _maxPower,
         uint256 _reductionPercent,
-        uint256 _requiredCollateral
-    ) external initializer {
+        uint256 _nftMaxRawPower,
+        uint256 _nftRequiredCollateral
+    ) internal onlyInitializing {
         __Ownable_init();
-        __ERC721Enumerable_init();
         __ERC721_init(name, symbol);
 
         require(_collateralToken != address(0), "ERC721Power: zero address");
-        require(_maxPower > 0, "ERC721Power: max power can't be zero");
+        require(_nftMaxRawPower > 0, "ERC721Power: max power can't be zero");
         require(_reductionPercent > 0, "ERC721Power: reduction percent can't be zero");
         require(_reductionPercent < PERCENTAGE_100, "ERC721Power: reduction can't be 100%");
-        require(_requiredCollateral > 0, "ERC721Power: required collateral amount can't be zero");
+        require(
+            _nftRequiredCollateral > 0,
+            "ERC721Power: required collateral amount can't be zero"
+        );
 
         powerCalcStartTimestamp = startTimestamp;
 
         collateralToken = _collateralToken;
-        maxPower = _maxPower;
         reductionPercent = _reductionPercent;
-        requiredCollateral = _requiredCollateral;
+
+        nftMaxRawPower = _nftMaxRawPower;
+        nftRequiredCollateral = _nftRequiredCollateral;
     }
 
-    function setNftMaxPower(
-        uint256 _maxPower,
+    function setNftMaxRawPower(
+        uint256 _nftMaxRawPower,
         uint256 tokenId
     ) external onlyOwner onlyBeforePowerCalc {
-        require(_maxPower > 0, "ERC721Power: max power can't be zero");
+        require(_nftMaxRawPower > 0, "ERC721Power: max power can't be zero");
 
         if (_exists(tokenId)) {
-            totalPower -= getMaxPowerForNft(tokenId);
-            totalPower += _maxPower;
+            totalRawPower -= _getRawNftMaxPower(tokenId);
+            totalRawPower += _nftMaxRawPower;
         }
 
-        nftInfos[tokenId].maxPower = _maxPower;
+        _nftInfos[tokenId].maxRawPower = _nftMaxRawPower;
     }
 
     function setNftRequiredCollateral(
@@ -95,7 +95,7 @@ contract ERC721Power is
     ) external onlyOwner onlyBeforePowerCalc {
         require(amount > 0, "ERC721Power: required collateral amount can't be zero");
 
-        nftInfos[tokenId].requiredCollateral = amount;
+        _nftInfos[tokenId].requiredCollateral = amount;
     }
 
     function mint(
@@ -106,113 +106,11 @@ contract ERC721Power is
         _mint(to, tokenId);
         _setTokenURI(tokenId, uri_);
 
-        totalPower += getMaxPowerForNft(tokenId);
+        totalRawPower += _getRawNftMaxPower(tokenId);
     }
 
     function setTokenURI(uint256 tokenId, string calldata uri_) external onlyOwner {
         _setTokenURI(tokenId, uri_);
-    }
-
-    function addCollateral(uint256 amount, uint256 tokenId) external override {
-        require(ownerOf(tokenId) == msg.sender, "ERC721Power: sender isn't an nft owner");
-        require(amount > 0, "ERC721Power: wrong collateral amount");
-
-        IERC20(collateralToken).safeTransferFrom(
-            msg.sender,
-            address(this),
-            amount.from18(collateralToken.decimals())
-        );
-
-        recalculateNftPower(tokenId);
-
-        nftInfos[tokenId].currentCollateral += amount;
-        totalCollateral += amount;
-    }
-
-    function removeCollateral(uint256 amount, uint256 tokenId) external override {
-        require(ownerOf(tokenId) == msg.sender, "ERC721Power: sender isn't an nft owner");
-
-        NftInfo storage nftInfo = nftInfos[tokenId];
-
-        require(
-            amount > 0 && amount <= nftInfo.currentCollateral,
-            "ERC721Power: wrong collateral amount"
-        );
-
-        recalculateNftPower(tokenId);
-
-        nftInfo.currentCollateral -= amount;
-        totalCollateral -= amount;
-
-        IERC20(collateralToken).safeTransfer(
-            msg.sender,
-            amount.from18(collateralToken.decimals())
-        );
-    }
-
-    function recalculateNftPower(uint256 tokenId) public override returns (uint256 newPower) {
-        if (!_exists(tokenId) || block.timestamp < powerCalcStartTimestamp) {
-            return 0;
-        }
-
-        newPower = getNftPower(tokenId);
-
-        NftInfo storage nftInfo = nftInfos[tokenId];
-
-        totalPower -= nftInfo.lastUpdate != 0 ? nftInfo.currentPower : getMaxPowerForNft(tokenId);
-        totalPower += newPower;
-
-        nftInfo.lastUpdate = uint64(block.timestamp);
-        nftInfo.currentPower = newPower;
-    }
-
-    function getMaxPowerForNft(uint256 tokenId) public view override returns (uint256) {
-        uint256 maxPowerForNft = nftInfos[tokenId].maxPower;
-
-        return maxPowerForNft == 0 ? maxPower : maxPowerForNft;
-    }
-
-    function getRequiredCollateralForNft(uint256 tokenId) public view override returns (uint256) {
-        uint256 requiredCollateralForNft = nftInfos[tokenId].requiredCollateral;
-
-        return requiredCollateralForNft == 0 ? requiredCollateral : requiredCollateralForNft;
-    }
-
-    function getNftPower(uint256 tokenId) public view override returns (uint256) {
-        if (!_exists(tokenId) || block.timestamp < powerCalcStartTimestamp) {
-            return 0;
-        }
-
-        uint256 collateral = nftInfos[tokenId].currentCollateral;
-
-        // Calculate the minimum possible power based on the collateral of the nft
-        uint256 maxNftPower = getMaxPowerForNft(tokenId);
-        uint256 minNftPower = maxNftPower.ratio(collateral, getRequiredCollateralForNft(tokenId));
-        minNftPower = maxNftPower.min(minNftPower);
-
-        // Get last update and current power. Or set them to default if it is first iteration
-        uint64 lastUpdate = nftInfos[tokenId].lastUpdate;
-        uint256 currentPower = nftInfos[tokenId].currentPower;
-
-        if (lastUpdate == 0) {
-            lastUpdate = powerCalcStartTimestamp;
-            currentPower = maxNftPower;
-        }
-
-        // Calculate reduction amount
-        uint256 powerReductionPercent = reductionPercent * (block.timestamp - lastUpdate);
-        uint256 powerReduction = currentPower.min(maxNftPower.percentage(powerReductionPercent));
-        uint256 newPotentialPower = currentPower - powerReduction;
-
-        if (minNftPower <= newPotentialPower) {
-            return newPotentialPower;
-        }
-
-        if (minNftPower <= currentPower) {
-            return minNftPower;
-        }
-
-        return currentPower;
     }
 
     function tokenURI(
@@ -252,7 +150,109 @@ contract ERC721Power is
     ) internal override(ERC721EnumerableUpgradeable, ERC721Upgradeable) {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
 
-        recalculateNftPower(tokenId);
+        _recalculateRawNftPower(tokenId);
+    }
+
+    function _addCollateral(uint256 amount, uint256 tokenId) internal {
+        require(ownerOf(tokenId) == msg.sender, "ERC721Power: sender isn't an nft owner");
+        require(amount > 0, "ERC721Power: wrong collateral amount");
+
+        IERC20(collateralToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount.from18(collateralToken.decimals())
+        );
+
+        _recalculateRawNftPower(tokenId);
+
+        _nftInfos[tokenId].currentCollateral += amount;
+    }
+
+    function _removeCollateral(uint256 amount, uint256 tokenId) internal {
+        require(ownerOf(tokenId) == msg.sender, "ERC721Power: sender isn't an nft owner");
+
+        NftInfo storage nftInfo = _nftInfos[tokenId];
+
+        require(
+            amount > 0 && amount <= nftInfo.currentCollateral,
+            "ERC721Power: wrong collateral amount"
+        );
+
+        _recalculateRawNftPower(tokenId);
+
+        nftInfo.currentCollateral -= amount;
+
+        IERC20(collateralToken).safeTransfer(
+            msg.sender,
+            amount.from18(collateralToken.decimals())
+        );
+    }
+
+    function _recalculateRawNftPower(uint256 tokenId) internal {
+        if (!_exists(tokenId) || block.timestamp < powerCalcStartTimestamp) {
+            return;
+        }
+
+        uint256 newPower = _getRawNftPower(tokenId);
+
+        NftInfo storage nftInfo = _nftInfos[tokenId];
+
+        totalRawPower -= nftInfo.lastUpdate != 0
+            ? nftInfo.currentRawPower
+            : _getRawNftMaxPower(tokenId);
+        totalRawPower += newPower;
+
+        nftInfo.lastUpdate = uint64(block.timestamp);
+        nftInfo.currentRawPower = newPower;
+    }
+
+    function _getRawNftPower(uint256 tokenId) internal view returns (uint256) {
+        if (!_exists(tokenId) || block.timestamp < powerCalcStartTimestamp) {
+            return 0;
+        }
+
+        uint256 collateral = _nftInfos[tokenId].currentCollateral;
+
+        // Calculate the minimum possible power based on the collateral of the nft
+        uint256 maxNftPower = _getRawNftMaxPower(tokenId);
+        uint256 minNftPower = maxNftPower.ratio(collateral, _getNftRequiredCollateral(tokenId));
+        minNftPower = maxNftPower.min(minNftPower);
+
+        // Get last update and current power. Or set them to default if it is first iteration
+        uint64 lastUpdate = _nftInfos[tokenId].lastUpdate;
+        uint256 currentPower = _nftInfos[tokenId].currentRawPower;
+
+        if (lastUpdate == 0) {
+            lastUpdate = powerCalcStartTimestamp;
+            currentPower = maxNftPower;
+        }
+
+        // Calculate reduction amount
+        uint256 powerReductionPercent = reductionPercent * (block.timestamp - lastUpdate);
+        uint256 powerReduction = currentPower.min(maxNftPower.percentage(powerReductionPercent));
+        uint256 newPotentialPower = currentPower - powerReduction;
+
+        if (minNftPower <= newPotentialPower) {
+            return newPotentialPower;
+        }
+
+        if (minNftPower <= currentPower) {
+            return minNftPower;
+        }
+
+        return currentPower;
+    }
+
+    function _getRawNftMaxPower(uint256 tokenId) internal view returns (uint256) {
+        uint256 localRawPower = _nftInfos[tokenId].maxRawPower;
+
+        return localRawPower == 0 ? nftMaxRawPower : localRawPower;
+    }
+
+    function _getNftRequiredCollateral(uint256 tokenId) internal view returns (uint256) {
+        uint256 requiredCollateralForNft = _nftInfos[tokenId].requiredCollateral;
+
+        return requiredCollateralForNft == 0 ? nftRequiredCollateral : requiredCollateralForNft;
     }
 
     function _onlyBeforePowerCalc() internal view {

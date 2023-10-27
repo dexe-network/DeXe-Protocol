@@ -13,7 +13,7 @@ import "../../../interfaces/gov/voting/IVotePower.sol";
 import "../../math/MathHelper.sol";
 import "../../utils/TypeHelper.sol";
 
-import "../../../gov/ERC721/ERC721Power.sol";
+import "../../../gov/ERC721/powers/AbstractERC721Power.sol";
 import "../../../gov/user-keeper/GovUserKeeper.sol";
 
 library GovUserKeeperView {
@@ -104,7 +104,7 @@ library GovUserKeeperView {
         bool perNftPowerArray
     ) public view returns (uint256 nftPower, uint256[] memory perNftPower) {
         GovUserKeeper userKeeper = GovUserKeeper(address(this));
-        ERC721Power nftContract = ERC721Power(userKeeper.nftAddress());
+        AbstractERC721Power nftContract = AbstractERC721Power(userKeeper.nftAddress());
 
         if (address(nftContract) == address(0)) {
             return (nftPower, perNftPower);

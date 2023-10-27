@@ -20,7 +20,7 @@ import "../../interfaces/gov/IGovPool.sol";
 import "../../libs/math/MathHelper.sol";
 import "../../libs/gov/gov-user-keeper/GovUserKeeperView.sol";
 
-import "../ERC721/ERC721Power.sol";
+import "../ERC721/powers/AbstractERC721Power.sol";
 
 contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgradeable {
     using SafeERC20 for IERC20;
@@ -387,11 +387,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             return;
         }
 
-        ERC721Power nftContract = ERC721Power(nftAddress);
-
-        for (uint256 i = 0; i < nftIds.length; i++) {
-            nftContract.recalculateNftPower(nftIds[i]);
-        }
+        AbstractERC721Power(nftAddress).recalculateNftPowers(nftIds);
     }
 
     function setERC20Address(address _tokenAddress) external override onlyOwner {
@@ -495,7 +491,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             return (nftsVector.toArray(), ownedLength);
         }
 
-        ERC721Power nftContract = ERC721Power(nftAddress);
+        AbstractERC721Power nftContract = AbstractERC721Power(nftAddress);
 
         for (uint256 i; i < ownedLength; i++) {
             nftsVector.push(nftContract.tokenOfOwnerByIndex(voter, i));

@@ -21,7 +21,7 @@ contract GovPoolMigration {
         }
     }
 
-    function _onlyDeployer() internal {
+    function _onlyDeployer() internal view {
         require(msg.sender == DEPLOYER, "Gov: caller is not a deployer");
     }
 }

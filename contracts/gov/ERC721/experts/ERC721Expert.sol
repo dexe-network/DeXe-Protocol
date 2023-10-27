@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
 
-import "../../interfaces/gov/ERC721/IERC721Expert.sol";
+import "../../../interfaces/gov/ERC721/experts/IERC721Expert.sol";
 
 contract ERC721Expert is IERC721Expert, ERC721URIStorageUpgradeable, OwnableUpgradeable {
     uint256 internal constant MAX_TAG_LENGTH = 3;
