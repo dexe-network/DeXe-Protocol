@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/utils/math/Math.sol";
+
 import "../../../libs/math/MathHelper.sol";
 
 import "./AbstractERC721Power.sol";
 
 contract ERC721EquivalentPower is AbstractERC721Power {
+    using Math for uint256;
     using MathHelper for uint256;
 
     uint256 internal _powerEquivalent;
@@ -52,11 +55,21 @@ contract ERC721EquivalentPower is AbstractERC721Power {
     }
 
     function getNftMaxPower(uint256 tokenId) public view override returns (uint256) {
-        return _powerEquivalent.ratio(_getRawNftMaxPower(tokenId), totalRawPower);
+        return
+            totalRawPower == 0
+                ? 0
+                : _powerEquivalent.ratio(_getRawNftMaxPower(tokenId), totalRawPower).min(
+                    _powerEquivalent
+                );
     }
 
     function getNftPower(uint256 tokenId) public view override returns (uint256) {
-        return _powerEquivalent.ratio(_getRawNftPower(tokenId), totalRawPower);
+        return
+            totalRawPower == 0
+                ? 0
+                : _powerEquivalent.ratio(_getRawNftPower(tokenId), totalRawPower).min(
+                    _powerEquivalent
+                );
     }
 
     function getNftRequiredCollateral(uint256 tokenId) external view override returns (uint256) {

@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/utils/math/Math.sol";
+
 import "./AbstractERC721Power.sol";
 
 contract ERC721RawPower is AbstractERC721Power {
+    using Math for uint256;
+
     function __ERC721RawPower_init(
         string calldata name,
         string calldata symbol,
@@ -43,11 +47,11 @@ contract ERC721RawPower is AbstractERC721Power {
     }
 
     function getNftMaxPower(uint256 tokenId) public view override returns (uint256) {
-        return _getRawNftMaxPower(tokenId);
+        return _getRawNftMaxPower(tokenId).min(totalRawPower);
     }
 
     function getNftPower(uint256 tokenId) public view override returns (uint256) {
-        return _getRawNftPower(tokenId);
+        return _getRawNftPower(tokenId).min(totalRawPower);
     }
 
     function getNftRequiredCollateral(uint256 tokenId) external view override returns (uint256) {
