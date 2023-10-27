@@ -9,16 +9,26 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/IERC721Enume
 interface IERC721Power is IERC721EnumerableUpgradeable {
     /// @notice This struct holds NFT Power parameters. These parameters are used to recalculate nft power
     /// @param lastUpdate the last time when the power was recalculated
-    /// @param currentPower the current nft power
-    /// @param currentCollateral the current nft collateral
-    /// @param maxPower the maximum nft power limit
+    /// @param maxRawPower the maximum raw nft power limit
+    /// @param currentRawPower the current raw nft power
     /// @param requiredCollateral the required collateral amount
+    /// @param currentCollateral the current nft collateral
     struct NftInfo {
         uint64 lastUpdate;
         uint256 maxRawPower;
         uint256 currentRawPower;
         uint256 requiredCollateral;
         uint256 currentCollateral;
+    }
+
+    /// @notice The struct to get info about the NFT
+    /// @param rawInfo the raw NFT info
+    /// @param maxPower real max nft power
+    /// @param currentPower real nft power
+    struct NftInfoView {
+        NftInfo rawInfo;
+        uint256 maxPower;
+        uint256 currentPower;
     }
 
     /// @notice Add collateral amount to certain nft

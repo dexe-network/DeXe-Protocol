@@ -113,6 +113,17 @@ abstract contract AbstractERC721Power is
         _setTokenURI(tokenId, uri_);
     }
 
+    function getNftMaxPower(uint256 tokenId) public view virtual returns (uint256);
+
+    function getNftPower(uint256 tokenId) public view virtual returns (uint256);
+
+    function getNftInfo(uint256 tokenId) external view virtual returns (NftInfoView memory info) {
+        info.rawInfo = _nftInfos[tokenId];
+
+        info.maxPower = getNftMaxPower(tokenId);
+        info.currentPower = getNftPower(tokenId);
+    }
+
     function tokenURI(
         uint256 tokenId
     )
