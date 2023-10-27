@@ -175,7 +175,7 @@ library GovUserKeeperView {
                 }
             }
 
-            return (nftIds.length, perNftPower);
+            return (nftIds.length * nftInfo.individualPower, perNftPower);
         }
 
         ERC721Power nftContract = ERC721Power(nftInfo.nftAddress);
