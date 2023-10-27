@@ -192,13 +192,6 @@ library GovPoolVote {
         address voter,
         IGovPool.VoteType voteType
     ) internal {
-        rawVote.tokensVoted = amount;
-
-        if (nftIds.length == 0) {
-            rawVote.totalVoted = amount;
-            return;
-        }
-
         EnumerableSet.UintSet storage nftsVoted = rawVote.nftsVoted;
 
         for (uint256 i; i < nftIds.length; i++) {

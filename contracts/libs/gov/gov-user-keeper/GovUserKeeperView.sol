@@ -161,7 +161,10 @@ library GovUserKeeperView {
             return
                 nftInfo.isSupportPower
                     ? (usersInfo[user].nftsPowers[voteType], perNftPower)
-                    : (usersInfo[user].balances[voteType].nfts.length(), perNftPower);
+                    : (
+                        usersInfo[user].balances[voteType].nfts.length() * nftInfo.individualPower,
+                        perNftPower
+                    );
         }
 
         if (perNftPowerArray) {
