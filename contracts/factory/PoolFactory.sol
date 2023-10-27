@@ -11,7 +11,7 @@ import "../interfaces/core/ISBT721.sol";
 
 import {DistributionProposal} from "../gov/proposals/DistributionProposal.sol";
 import {TokenSaleProposal} from "../gov/proposals/TokenSaleProposal.sol";
-import {ERC721Expert} from "../gov/ERC721/ERC721Expert.sol";
+import {ERC721Expert} from "../gov/ERC721/experts/ERC721Expert.sol";
 import {ERC721Multiplier} from "../gov/ERC721/multipliers/ERC721Multiplier.sol";
 import "../gov/GovPool.sol";
 import "../gov/user-keeper/GovUserKeeper.sol";
@@ -191,7 +191,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         GovUserKeeper(govPoolDeps.userKeeperAddress).__GovUserKeeper_init(
             parameters.userKeeperParams.tokenAddress,
             parameters.userKeeperParams.nftAddress,
-            parameters.userKeeperParams.totalPowerInTokens,
+            parameters.userKeeperParams.individualPower,
             parameters.userKeeperParams.nftsTotalSupply
         );
         GovSettings(govPoolDeps.settingsAddress).__GovSettings_init(

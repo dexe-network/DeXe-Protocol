@@ -14,7 +14,7 @@ import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
 import "../interfaces/gov/IGovPool.sol";
-import "../interfaces/gov/ERC721/IERC721Expert.sol";
+import "../interfaces/gov/ERC721/experts/IERC721Expert.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/ISBT721.sol";
@@ -170,11 +170,25 @@ contract GovPool is
         ProposalAction[] calldata actionsOnFor,
         ProposalAction[] calldata actionsOnAgainst
     ) external override onlyBABTHolder {
-        uint256 proposalId = ++latestProposalId;
-
-        _proposals.createProposal(_userInfos, _descriptionURL, actionsOnFor, actionsOnAgainst);
+        uint256 proposalId = _createProposal(_descriptionURL, actionsOnFor, actionsOnAgainst);
 
         _updateRewards(proposalId, msg.sender, RewardType.Create);
+    }
+
+    function createProposalAndVote(
+        string calldata _descriptionURL,
+        ProposalAction[] calldata actionsOnFor,
+        ProposalAction[] calldata actionsOnAgainst,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds
+    ) external override onlyBABTHolder {
+        uint256 proposalId = _createProposal(_descriptionURL, actionsOnFor, actionsOnAgainst);
+
+        _updateRewards(proposalId, msg.sender, RewardType.Create);
+
+        _unlock(msg.sender);
+
+        _vote(proposalId, voteAmount, voteNftIds, true);
     }
 
     function moveProposalToValidators(uint256 proposalId) external override onlyBABTHolder {
@@ -191,7 +205,7 @@ contract GovPool is
     ) external override onlyBABTHolder {
         _unlock(msg.sender);
 
-        _proposals.vote(_userInfos, proposalId, voteAmount, voteNftIds, isVoteFor);
+        _vote(proposalId, voteAmount, voteNftIds, isVoteFor);
     }
 
     function cancelVote(uint256 proposalId) external override onlyBABTHolder {
@@ -442,7 +456,7 @@ contract GovPool is
             return 0;
         }
 
-        return _govUserKeeper.getTotalVoteWeight().ratio(core.settings.quorum, PERCENTAGE_100);
+        return _govUserKeeper.getTotalPower().ratio(core.settings.quorum, PERCENTAGE_100);
     }
 
     function getTotalVotes(
@@ -523,6 +537,25 @@ contract GovPool is
 
     function getExpertStatus(address user) public view override returns (bool) {
         return _expertNft.isExpert(user) || _dexeExpertNft.isExpert(user);
+    }
+
+    function _createProposal(
+        string calldata _descriptionURL,
+        ProposalAction[] calldata actionsOnFor,
+        ProposalAction[] calldata actionsOnAgainst
+    ) internal returns (uint256 proposalId) {
+        proposalId = ++latestProposalId;
+
+        _proposals.createProposal(_userInfos, _descriptionURL, actionsOnFor, actionsOnAgainst);
+    }
+
+    function _vote(
+        uint256 proposalId,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds,
+        bool isVoteFor
+    ) internal {
+        _proposals.vote(_userInfos, proposalId, voteAmount, voteNftIds, isVoteFor);
     }
 
     function _revoteDelegated(address delegatee, VoteType voteType) internal {

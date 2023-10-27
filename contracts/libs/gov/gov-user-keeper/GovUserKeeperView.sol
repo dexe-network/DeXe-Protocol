@@ -13,7 +13,7 @@ import "../../../interfaces/gov/voting/IVotePower.sol";
 import "../../math/MathHelper.sol";
 import "../../utils/TypeHelper.sol";
 
-import "../../../gov/ERC721/ERC721Power.sol";
+import "../../../gov/ERC721/powers/AbstractERC721Power.sol";
 import "../../../gov/user-keeper/GovUserKeeper.sol";
 
 library GovUserKeeperView {
@@ -104,12 +104,12 @@ library GovUserKeeperView {
         bool perNftPowerArray
     ) public view returns (uint256 nftPower, uint256[] memory perNftPower) {
         GovUserKeeper userKeeper = GovUserKeeper(address(this));
+        AbstractERC721Power nftContract = AbstractERC721Power(userKeeper.nftAddress());
 
-        if (userKeeper.nftAddress() == address(0)) {
+        if (address(nftContract) == address(0)) {
             return (nftPower, perNftPower);
         }
 
-        ERC721Power nftContract = ERC721Power(userKeeper.nftAddress());
         IGovUserKeeper.NFTInfo memory nftInfo = userKeeper.getNftInfo();
 
         if (perNftPowerArray) {
@@ -117,38 +117,23 @@ library GovUserKeeperView {
         }
 
         if (!nftInfo.isSupportPower) {
-            uint256 totalSupply = nftInfo.totalSupply == 0
-                ? nftContract.totalSupply()
-                : nftInfo.totalSupply;
+            uint256 individualPower = nftInfo.individualPower;
 
-            if (totalSupply > 0) {
-                uint256 totalPower = nftInfo.totalPowerInTokens;
+            nftPower = nftIds.length * nftInfo.individualPower;
 
-                if (perNftPowerArray) {
-                    for (uint256 i; i < nftIds.length; i++) {
-                        perNftPower[i] = totalPower / totalSupply;
-                    }
+            if (perNftPowerArray) {
+                for (uint256 i; i < nftIds.length; i++) {
+                    perNftPower[i] = individualPower;
                 }
-
-                nftPower = nftIds.length.ratio(totalPower, totalSupply);
             }
         } else {
-            uint256 totalNftsPower = nftContract.totalPower();
+            for (uint256 i; i < nftIds.length; i++) {
+                uint256 currentNftPower = nftContract.getNftPower(nftIds[i]);
 
-            if (totalNftsPower > 0) {
-                uint256 totalPowerInTokens = nftInfo.totalPowerInTokens;
+                nftPower += currentNftPower;
 
-                for (uint256 i; i < nftIds.length; i++) {
-                    uint256 currentNftPower = totalPowerInTokens.ratio(
-                        nftContract.getNftPower(nftIds[i]),
-                        totalNftsPower
-                    );
-
-                    nftPower += currentNftPower;
-
-                    if (perNftPowerArray) {
-                        perNftPower[i] = currentNftPower;
-                    }
+                if (perNftPowerArray) {
+                    perNftPower[i] = currentNftPower;
                 }
             }
         }

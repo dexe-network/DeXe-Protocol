@@ -60,7 +60,7 @@ contract PolynomialTesterMock {
         }
     }
 
-    function getTotalVoteWeight() external view returns (uint256) {
+    function getTotalPower() external view returns (uint256) {
         return _totalVotes;
     }
 }

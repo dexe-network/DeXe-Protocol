@@ -46,7 +46,7 @@ contract TokenSaleProposal is
         address saleToken,
         ParticipationDetails[] participationDetails
     );
-    event Bought(uint256 tierId, address buyer);
+    event Bought(uint256 tierId, address with, uint256 received, uint256 given, address buyer);
     event Whitelisted(uint256 tierId, address user);
 
     modifier onlyGov() {
@@ -123,9 +123,9 @@ contract TokenSaleProposal is
     }
 
     function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable {
-        _getActiveTier(tierId).buy(tierId, tokenToBuyWith, amount);
+        uint256 bought = _getActiveTier(tierId).buy(tierId, tokenToBuyWith, amount);
 
-        emit Bought(tierId, msg.sender);
+        emit Bought(tierId, tokenToBuyWith, bought, amount, msg.sender);
     }
 
     function lockParticipationTokens(

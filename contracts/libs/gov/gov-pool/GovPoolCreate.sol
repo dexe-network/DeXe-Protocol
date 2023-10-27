@@ -13,7 +13,7 @@ import "../../../interfaces/gov/proposals/IProposalValidator.sol";
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../interfaces/gov/settings/IGovSettings.sol";
 import "../../../interfaces/gov/validators/IGovValidators.sol";
-import "../../../interfaces/gov/ERC721/IERC721Expert.sol";
+import "../../../interfaces/gov/ERC721/experts/IERC721Expert.sol";
 
 import "../../utils/DataHelper.sol";
 
@@ -49,11 +49,10 @@ library GovPoolCreate {
         IGovPool.ProposalAction[] calldata actionsOnFor,
         IGovPool.ProposalAction[] calldata actionsOnAgainst
     ) external {
-        (
-            IGovSettings.ProposalSettings memory settings,
-            uint256 settingsId,
-            uint256 snapshotId
-        ) = _validateProposal(actionsOnFor, actionsOnAgainst);
+        (IGovSettings.ProposalSettings memory settings, uint256 settingsId) = _validateProposal(
+            actionsOnFor,
+            actionsOnAgainst
+        );
 
         uint256 proposalId = GovPool(payable(address(this))).latestProposalId();
 
@@ -82,7 +81,6 @@ library GovPoolCreate {
             votesAgainst: 0,
             rawVotesFor: 0,
             rawVotesAgainst: 0,
-            nftPowerSnapshotId: snapshotId,
             givenRewards: 0
         });
         proposal.descriptionURL = _descriptionURL;
@@ -95,7 +93,7 @@ library GovPoolCreate {
             proposal.actionsOnAgainst.push(actionsOnAgainst[i]);
         }
 
-        _canCreate(settings, snapshotId);
+        _canCreate(settings);
 
         emit ProposalCreated(
             proposalId,
@@ -137,23 +135,14 @@ library GovPoolCreate {
     function _validateProposal(
         IGovPool.ProposalAction[] calldata actionsFor,
         IGovPool.ProposalAction[] calldata actionsAgainst
-    )
-        internal
-        returns (
-            IGovSettings.ProposalSettings memory settings,
-            uint256 settingsId,
-            uint256 snapshotId
-        )
-    {
+    ) internal view returns (IGovSettings.ProposalSettings memory settings, uint256 settingsId) {
         require(actionsFor.length != 0, "Gov: invalid array length");
 
         address mainExecutor = actionsFor[actionsFor.length - 1].executor;
 
         _validateProposalCreation(mainExecutor, actionsFor);
 
-        (address govSettingsAddress, address userKeeper, , , ) = IGovPool(address(this))
-            .getHelperContracts();
-
+        (address govSettingsAddress, , , , ) = IGovPool(address(this)).getHelperContracts();
         IGovSettings govSettings = IGovSettings(govSettingsAddress);
 
         settingsId = govSettings.executorToSettings(mainExecutor);
@@ -170,8 +159,6 @@ library GovPoolCreate {
         } else {
             settings = govSettings.getExecutorSettings(mainExecutor);
         }
-
-        snapshotId = IGovUserKeeper(userKeeper).createNftPowerSnapshot();
     }
 
     function _exemptUserTreasuryFromVoting(
@@ -228,10 +215,7 @@ library GovPoolCreate {
         require(!ok || data.length == 0 || abi.decode(data, (bool)), "Gov: validation failed");
     }
 
-    function _canCreate(
-        IGovSettings.ProposalSettings memory settings,
-        uint256 snapshotId
-    ) internal view {
+    function _canCreate(IGovSettings.ProposalSettings memory settings) internal view {
         IGovPool govPool = IGovPool(address(this));
 
         (, , address dexeExpertNft, ) = govPool.getNftContracts();
@@ -248,8 +232,7 @@ library GovPoolCreate {
                 settings.delegatedVotingAllowed
                     ? IGovPool.VoteType.DelegatedVote
                     : IGovPool.VoteType.PersonalVote,
-                settings.minVotesForCreating,
-                snapshotId
+                settings.minVotesForCreating
             ),
             "Gov: low creating power"
         );
@@ -333,7 +316,7 @@ library GovPoolCreate {
     ) internal view returns (uint256) {
         (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
-        uint256 totalVoteWeight = IGovUserKeeper(userKeeper).getTotalVoteWeight();
+        uint256 totalVoteWeight = IGovUserKeeper(userKeeper).getTotalPower();
         uint256 newTotalVoteWeight = (totalVoteWeight - exemptedTreasury).percentage(quorum);
 
         return PERCENTAGE_100.ratio(newTotalVoteWeight, totalVoteWeight);

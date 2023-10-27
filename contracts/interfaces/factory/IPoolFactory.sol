@@ -47,12 +47,12 @@ interface IPoolFactory {
     /// @notice Parameters of the user keeper
     /// @param tokenAddress address of the tokens used for voting
     /// @param nftAddress address of the NFT used for voting
-    /// @param totalPowerInTokens the token equivalent of all NFTs
+    /// @param individualPower the voting power of an NFT
     /// @param nftsTotalSupply the NFT collection size
     struct UserKeeperDeployParams {
         address tokenAddress;
         address nftAddress;
-        uint256 totalPowerInTokens;
+        uint256 individualPower;
         uint256 nftsTotalSupply;
     }
 

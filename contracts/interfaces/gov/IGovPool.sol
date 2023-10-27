@@ -86,7 +86,6 @@ interface IGovPool {
     /// @param votesAgainst the total number of votes against the proposal from all voters
     /// @param rawVotesFor the total number of votes for the proposal from all voters before the formula
     /// @param rawVotesAgainst the total number of votes against the proposal from all voters before the formula
-    /// @param nftPowerSnapshotId the id of nft power snapshot
     /// @param givenRewards the amount of rewards payable after the proposal execution
     struct ProposalCore {
         IGovSettings.ProposalSettings settings;
@@ -97,7 +96,6 @@ interface IGovPool {
         uint256 votesAgainst;
         uint256 rawVotesFor;
         uint256 rawVotesAgainst;
-        uint256 nftPowerSnapshotId;
         uint256 givenRewards;
     }
 
@@ -315,9 +313,6 @@ interface IGovPool {
         returns (address nftMultiplier, address expertNft, address dexeExpertNft, address babt);
 
     /// @notice Create proposal
-    /// @notice For internal proposal, last executor should be `GovSetting` contract
-    /// @notice For typed proposal, last executor should be typed contract
-    /// @notice For external proposal, any configuration of addresses and bytes
     /// @param descriptionURL IPFS url to the proposal's description
     /// @param actionsOnFor the array of structs with information about actions on for step
     /// @param actionsOnAgainst the array of structs with information about actions on against step
@@ -325,6 +320,20 @@ interface IGovPool {
         string calldata descriptionURL,
         ProposalAction[] calldata actionsOnFor,
         ProposalAction[] calldata actionsOnAgainst
+    ) external;
+
+    /// @notice Create and vote for on the proposal
+    /// @param descriptionURL IPFS url to the proposal's description
+    /// @param actionsOnFor the array of structs with information about actions on for step
+    /// @param actionsOnAgainst the array of structs with information about actions on against step
+    /// @param voteAmount the erc20 vote amount
+    /// @param voteNftIds the nft ids that will be used in voting
+    function createProposalAndVote(
+        string calldata descriptionURL,
+        ProposalAction[] calldata actionsOnFor,
+        ProposalAction[] calldata actionsOnAgainst,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds
     ) external;
 
     /// @notice Move proposal from internal voting to `Validators` contract

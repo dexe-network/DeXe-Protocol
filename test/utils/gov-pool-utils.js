@@ -178,7 +178,7 @@ const getBytesSetERC20Address = (address) => {
   );
 };
 
-const getBytesSetERC721Address = (address, totalPowerInTokens, nftsTotalSupply) => {
+const getBytesSetERC721Address = (address, individualPower, nftsTotalSupply) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       name: "setERC721Address",
@@ -189,7 +189,7 @@ const getBytesSetERC721Address = (address, totalPowerInTokens, nftsTotalSupply) 
           type: "address",
         },
         {
-          name: "totalPowerInTokens",
+          name: "individualPower",
           type: "uint256",
         },
         {
@@ -198,7 +198,7 @@ const getBytesSetERC721Address = (address, totalPowerInTokens, nftsTotalSupply) 
         },
       ],
     },
-    [address, totalPowerInTokens, nftsTotalSupply]
+    [address, individualPower, nftsTotalSupply]
   );
 };
 

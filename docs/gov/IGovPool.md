@@ -137,7 +137,6 @@ struct ProposalCore {
 	uint256 votesAgainst;
 	uint256 rawVotesFor;
 	uint256 rawVotesAgainst;
-	uint256 nftPowerSnapshotId;
 	uint256 givenRewards;
 }
 ```
@@ -147,18 +146,17 @@ The struct holds core properties of proposal
 
 Parameters:
 
-| Name               | Type                                 | Description                                                                        |
-| :----------------- | :----------------------------------- | :--------------------------------------------------------------------------------- |
-| settings           | struct IGovSettings.ProposalSettings | the struct that holds information about settings of the proposal                   |
-| voteEnd            | uint64                               | the timestamp of voting end for the proposal                                       |
-| executeAfter       | uint64                               | the timestamp of execution in seconds after voting end                             |
-| executed           | bool                                 | the boolean indicating whether the proposal has been executed                      |
-| votesFor           | uint256                              | the total number of votes for the proposal from all voters                         |
-| votesAgainst       | uint256                              | the total number of votes against the proposal from all voters                     |
-| rawVotesFor        | uint256                              | the total number of votes for the proposal from all voters before the formula      |
-| rawVotesAgainst    | uint256                              | the total number of votes against the proposal from all voters before the formula  |
-| nftPowerSnapshotId | uint256                              | the id of nft power snapshot                                                       |
-| givenRewards       | uint256                              | the amount of rewards payable after the proposal execution                         |
+| Name            | Type                                 | Description                                                                        |
+| :-------------- | :----------------------------------- | :--------------------------------------------------------------------------------- |
+| settings        | struct IGovSettings.ProposalSettings | the struct that holds information about settings of the proposal                   |
+| voteEnd         | uint64                               | the timestamp of voting end for the proposal                                       |
+| executeAfter    | uint64                               | the timestamp of execution in seconds after voting end                             |
+| executed        | bool                                 | the boolean indicating whether the proposal has been executed                      |
+| votesFor        | uint256                              | the total number of votes for the proposal from all voters                         |
+| votesAgainst    | uint256                              | the total number of votes against the proposal from all voters                     |
+| rawVotesFor     | uint256                              | the total number of votes for the proposal from all voters before the formula      |
+| rawVotesAgainst | uint256                              | the total number of votes against the proposal from all voters before the formula  |
+| givenRewards    | uint256                              | the amount of rewards payable after the proposal execution                         |
 
 ### ProposalAction
 
@@ -598,6 +596,31 @@ Parameters:
 | descriptionURL   | string                           | IPFS url to the proposal's description                              |
 | actionsOnFor     | struct IGovPool.ProposalAction[] | the array of structs with information about actions on for step     |
 | actionsOnAgainst | struct IGovPool.ProposalAction[] | the array of structs with information about actions on against step |
+
+### createProposalAndVote (0xee0e5215)
+
+```solidity
+function createProposalAndVote(
+    string calldata descriptionURL,
+    IGovPool.ProposalAction[] calldata actionsOnFor,
+    IGovPool.ProposalAction[] calldata actionsOnAgainst,
+    uint256 voteAmount,
+    uint256[] calldata voteNftIds
+) external
+```
+
+Create and vote for on the proposal
+
+
+Parameters:
+
+| Name             | Type                             | Description                                                          |
+| :--------------- | :------------------------------- | :------------------------------------------------------------------- |
+| descriptionURL   | string                           | IPFS url to the proposal's description                               |
+| actionsOnFor     | struct IGovPool.ProposalAction[] | the array of structs with information about actions on for step      |
+| actionsOnAgainst | struct IGovPool.ProposalAction[] | the array of structs with information about actions on against step  |
+| voteAmount       | uint256                          | the erc20 vote amount                                                |
+| voteNftIds       | uint256[]                        | the nft ids that will be used in voting                              |
 
 ### moveProposalToValidators (0x2db47bdd)
 

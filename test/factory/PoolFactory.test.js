@@ -308,7 +308,7 @@ describe("PoolFactory", () => {
         userKeeperParams: {
           tokenAddress: testERC20.address,
           nftAddress: testERC721.address,
-          totalPowerInTokens: wei("33000"),
+          individualPower: wei("1000"),
           nftsTotalSupply: 33,
         },
         tokenSaleParams: {
