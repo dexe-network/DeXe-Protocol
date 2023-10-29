@@ -13,26 +13,62 @@ interface IPriceFeed
 
 This is the price feed contract which is used to fetch the spot prices from the UniswapV2 protocol. There also is a pathfinder
 built into the contract to find the optimal* path between the pairs
+## Enums info
+
+### PoolType
+
+```solidity
+enum PoolType {
+	 None,
+	 UniswapV2,
+	 UniswapV3Fee500,
+	 UniswapV3Fee3000,
+	 UniswapV3Fee10000
+}
+```
+
+
 ## Structs info
+
+### SwapPath
+
+```solidity
+struct SwapPath {
+	address[] path;
+	IPriceFeed.PoolType[] poolTypes;
+}
+```
+
+A struct describing a swap path alongside with swap types
+
+
+Parameters:
+
+| Name      | Type                       | Description                             |
+| :-------- | :------------------------- | :-------------------------------------- |
+| path      | address[]                  | the swap path itself                    |
+| poolTypes | enum IPriceFeed.PoolType[] | the v2/v3 pool types alongside the path |
 
 ### FoundPath
 
 ```solidity
 struct FoundPath {
 	address[] path;
+	IPriceFeed.PoolType[] poolTypes;
 	uint256[] amounts;
 }
 ```
 
-A struct this is returned from the UniswapV2PathFinder library when an optimal* path is found
+A struct this is returned from the UniswapPathFinder library when an optimal* path is found
 
 
 Parameters:
 
-| Name    | Type      | Description                                       |
-| :------ | :-------- | :------------------------------------------------ |
-| path    | address[] | the optimal* path itself                          |
-| amounts | uint256[] | either the "amounts out" or "amounts in" required |
+| Name      | Type                       | Description                                       |
+| :-------- | :------------------------- | :------------------------------------------------ |
+| path      | address[]                  | the optimal* path itself                          |
+| poolTypes | enum IPriceFeed.PoolType[] | the optimal* v2/v3 pool types alongside the path  |
+| amounts   | uint256[]                  | either the "amounts out" or "amounts in" required |
 
 ## Functions info
 
@@ -73,7 +109,7 @@ function getPriceOut(
     address inToken,
     address outToken,
     uint256 amountIn
-) external view returns (uint256 amountOut, address[] memory path)
+) external returns (uint256 amountOut, IPriceFeed.SwapPath memory path)
 ```
 
 Shares the same functionality as "getExtendedPriceOut" function with an empty optionalPath.
@@ -91,10 +127,10 @@ Parameters:
 
 Return values:
 
-| Name      | Type      | Description                                                        |
-| :-------- | :-------- | :----------------------------------------------------------------- |
-| amountOut | uint256   | the received amount of outToken after the swap (with 18 decimals)  |
-| path      | address[] | the tokens path that will be used during the swap                  |
+| Name      | Type                       | Description                                                        |
+| :-------- | :------------------------- | :----------------------------------------------------------------- |
+| amountOut | uint256                    | the received amount of outToken after the swap (with 18 decimals)  |
+| path      | struct IPriceFeed.SwapPath | the tokens and pools path that will be used during the swap        |
 
 ### getPriceIn (0xd48c3202)
 
@@ -103,7 +139,7 @@ function getPriceIn(
     address inToken,
     address outToken,
     uint256 amountOut
-) external view returns (uint256 amountIn, address[] memory path)
+) external returns (uint256 amountIn, IPriceFeed.SwapPath memory path)
 ```
 
 Shares the same functionality as "getExtendedPriceIn" function with with an empty optionalPath.
@@ -121,10 +157,10 @@ Parameters:
 
 Return values:
 
-| Name     | Type      | Description                                                        |
-| :------- | :-------- | :----------------------------------------------------------------- |
-| amountIn | uint256   | required amount of inToken to execute the swap (with 18 decimals)  |
-| path     | address[] | the tokens path that will be used during the swap                  |
+| Name     | Type                       | Description                                                        |
+| :------- | :------------------------- | :----------------------------------------------------------------- |
+| amountIn | uint256                    | required amount of inToken to execute the swap (with 18 decimals)  |
+| path     | struct IPriceFeed.SwapPath | the tokens path that will be used during the swap                  |
 
 ### getNormalizedPriceOutUSD (0xb4c05b8c)
 
@@ -132,7 +168,7 @@ Return values:
 function getNormalizedPriceOutUSD(
     address inToken,
     uint256 amountIn
-) external view returns (uint256 amountOut, address[] memory path)
+) external returns (uint256 amountOut, IPriceFeed.SwapPath memory path)
 ```
 
 The same as "getPriceOut" with "outToken" being native USD token
@@ -148,10 +184,10 @@ Parameters:
 
 Return values:
 
-| Name      | Type      | Description                                                                 |
-| :-------- | :-------- | :-------------------------------------------------------------------------- |
-| amountOut | uint256   | the received amount of native USD tokens after the swap (with 18 decimals)  |
-| path      | address[] | the tokens path that will be used during the swap                           |
+| Name      | Type                       | Description                                                                 |
+| :-------- | :------------------------- | :-------------------------------------------------------------------------- |
+| amountOut | uint256                    | the received amount of native USD tokens after the swap (with 18 decimals)  |
+| path      | struct IPriceFeed.SwapPath | the tokens path that will be used during the swap                           |
 
 ### getNormalizedPriceInUSD (0x715c6baf)
 
@@ -159,7 +195,7 @@ Return values:
 function getNormalizedPriceInUSD(
     address inToken,
     uint256 amountOut
-) external view returns (uint256 amountIn, address[] memory path)
+) external returns (uint256 amountIn, IPriceFeed.SwapPath memory path)
 ```
 
 The same as "getPriceIn" with "outToken" being USD token
@@ -175,10 +211,10 @@ Parameters:
 
 Return values:
 
-| Name     | Type      | Description                                                            |
-| :------- | :-------- | :--------------------------------------------------------------------- |
-| amountIn | uint256   | the required amount of inToken to execute the swap (with 18 decimals)  |
-| path     | address[] | the tokens path that will be used during the swap                      |
+| Name     | Type                       | Description                                                            |
+| :------- | :------------------------- | :--------------------------------------------------------------------- |
+| amountIn | uint256                    | the required amount of inToken to execute the swap (with 18 decimals)  |
+| path     | struct IPriceFeed.SwapPath | the tokens path that will be used during the swap                      |
 
 ### getNormalizedPriceOutDEXE (0x291bcd52)
 
@@ -186,7 +222,7 @@ Return values:
 function getNormalizedPriceOutDEXE(
     address inToken,
     uint256 amountIn
-) external view returns (uint256 amountOut, address[] memory path)
+) external returns (uint256 amountOut, IPriceFeed.SwapPath memory path)
 ```
 
 The same as "getPriceOut" with "outToken" being DEXE token
@@ -202,10 +238,10 @@ Parameters:
 
 Return values:
 
-| Name      | Type      | Description                                                           |
-| :-------- | :-------- | :-------------------------------------------------------------------- |
-| amountOut | uint256   | the received amount of DEXE tokens after the swap (with 18 decimals)  |
-| path      | address[] | the tokens path that will be used during the swap                     |
+| Name      | Type                       | Description                                                           |
+| :-------- | :------------------------- | :-------------------------------------------------------------------- |
+| amountOut | uint256                    | the received amount of DEXE tokens after the swap (with 18 decimals)  |
+| path      | struct IPriceFeed.SwapPath | the tokens path that will be used during the swap                     |
 
 ### getNormalizedPriceInDEXE (0x9180f690)
 
@@ -213,7 +249,7 @@ Return values:
 function getNormalizedPriceInDEXE(
     address inToken,
     uint256 amountOut
-) external view returns (uint256 amountIn, address[] memory path)
+) external returns (uint256 amountIn, IPriceFeed.SwapPath memory path)
 ```
 
 The same as "getPriceIn" with "outToken" being DEXE token
@@ -229,10 +265,10 @@ Parameters:
 
 Return values:
 
-| Name     | Type      | Description                                                            |
-| :------- | :-------- | :--------------------------------------------------------------------- |
-| amountIn | uint256   | the required amount of inToken to execute the swap (with 18 decimals)  |
-| path     | address[] | the tokens path that will be used during the swap                      |
+| Name     | Type                       | Description                                                            |
+| :------- | :------------------------- | :--------------------------------------------------------------------- |
+| amountIn | uint256                    | the required amount of inToken to execute the swap (with 18 decimals)  |
+| path     | struct IPriceFeed.SwapPath | the tokens path that will be used during the swap                      |
 
 ### totalPathTokens (0x9f2f8ce1)
 
@@ -286,15 +322,15 @@ Return values:
 | :--- | :--- | :----------------------------------------------------------- |
 | [0]  | bool | true if the token is used by the pathfinder, false otherwise |
 
-### getExtendedPriceOut (0xdd10bb7a)
+### getExtendedPriceOut (0x054889da)
 
 ```solidity
 function getExtendedPriceOut(
     address inToken,
     address outToken,
     uint256 amountIn,
-    address[] memory optionalPath
-) external view returns (uint256 amountOut, address[] memory path)
+    IPriceFeed.SwapPath memory optionalPath
+) external returns (uint256 amountOut, IPriceFeed.SwapPath memory path)
 ```
 
 This function tries to find the optimal exchange rate (the price) between "inToken" and "outToken" using
@@ -304,30 +340,30 @@ outTokens is maximal
 
 Parameters:
 
-| Name         | Type      | Description                                                                         |
-| :----------- | :-------- | :---------------------------------------------------------------------------------- |
-| inToken      | address   | the token to exchange from                                                          |
-| outToken     | address   | the received token                                                                  |
-| amountIn     | uint256   | the amount of inToken to be exchanged (in inToken decimals)                         |
-| optionalPath | address[] | the optional path between inToken and outToken that will be used in the pathfinder  |
+| Name         | Type                       | Description                                                                         |
+| :----------- | :------------------------- | :---------------------------------------------------------------------------------- |
+| inToken      | address                    | the token to exchange from                                                          |
+| outToken     | address                    | the received token                                                                  |
+| amountIn     | uint256                    | the amount of inToken to be exchanged (in inToken decimals)                         |
+| optionalPath | struct IPriceFeed.SwapPath | the optional path between inToken and outToken that will be used in the pathfinder  |
 
 
 Return values:
 
-| Name      | Type      | Description                                               |
-| :-------- | :-------- | :-------------------------------------------------------- |
-| amountOut | uint256   | amount of outToken after the swap (in outToken decimals)  |
-| path      | address[] | the tokens path that will be used during the swap         |
+| Name      | Type                       | Description                                               |
+| :-------- | :------------------------- | :-------------------------------------------------------- |
+| amountOut | uint256                    | amount of outToken after the swap (in outToken decimals)  |
+| path      | struct IPriceFeed.SwapPath | the tokens path that will be used during the swap         |
 
-### getExtendedPriceIn (0xf862cfa7)
+### getExtendedPriceIn (0x76707b6b)
 
 ```solidity
 function getExtendedPriceIn(
     address inToken,
     address outToken,
     uint256 amountOut,
-    address[] memory optionalPath
-) external view returns (uint256 amountIn, address[] memory path)
+    IPriceFeed.SwapPath memory optionalPath
+) external returns (uint256 amountIn, IPriceFeed.SwapPath memory path)
 ```
 
 This function tries to find the optimal exchange rate (the price) between "inToken" and "outToken" using
@@ -337,30 +373,30 @@ inTokens is minimal
 
 Parameters:
 
-| Name         | Type      | Description                                                                         |
-| :----------- | :-------- | :---------------------------------------------------------------------------------- |
-| inToken      | address   | the token to exchange from                                                          |
-| outToken     | address   | the received token                                                                  |
-| amountOut    | uint256   | the amount of outToken to be received (in inToken decimals)                         |
-| optionalPath | address[] | the optional path between inToken and outToken that will be used in the pathfinder  |
+| Name         | Type                       | Description                                                                         |
+| :----------- | :------------------------- | :---------------------------------------------------------------------------------- |
+| inToken      | address                    | the token to exchange from                                                          |
+| outToken     | address                    | the received token                                                                  |
+| amountOut    | uint256                    | the amount of outToken to be received (in inToken decimals)                         |
+| optionalPath | struct IPriceFeed.SwapPath | the optional path between inToken and outToken that will be used in the pathfinder  |
 
 
 Return values:
 
-| Name     | Type      | Description                                                 |
-| :------- | :-------- | :---------------------------------------------------------- |
-| amountIn | uint256   | amount of inToken to execute a swap (in outToken decimals)  |
-| path     | address[] | the tokens path that will be used during the swap           |
+| Name     | Type                       | Description                                                 |
+| :------- | :------------------------- | :---------------------------------------------------------- |
+| amountIn | uint256                    | amount of inToken to execute a swap (in outToken decimals)  |
+| path     | struct IPriceFeed.SwapPath | the tokens path that will be used during the swap           |
 
-### getNormalizedExtendedPriceOut (0x93008762)
+### getNormalizedExtendedPriceOut (0x62d78340)
 
 ```solidity
 function getNormalizedExtendedPriceOut(
     address inToken,
     address outToken,
     uint256 amountIn,
-    address[] memory optionalPath
-) external view returns (uint256 amountOut, address[] memory path)
+    IPriceFeed.SwapPath memory optionalPath
+) external returns (uint256 amountOut, IPriceFeed.SwapPath memory path)
 ```
 
 Shares the same functionality as "getExtendedPriceOut" function.
@@ -369,30 +405,30 @@ It accepts and returns amounts with 18 decimals regardless of the inToken and ou
 
 Parameters:
 
-| Name         | Type      | Description                                                                         |
-| :----------- | :-------- | :---------------------------------------------------------------------------------- |
-| inToken      | address   | the token to exchange from                                                          |
-| outToken     | address   | the token to exchange to                                                            |
-| amountIn     | uint256   | the amount of inToken to be exchanged (with 18 decimals)                            |
-| optionalPath | address[] | the optional path between inToken and outToken that will be used in the pathfinder  |
+| Name         | Type                       | Description                                                                         |
+| :----------- | :------------------------- | :---------------------------------------------------------------------------------- |
+| inToken      | address                    | the token to exchange from                                                          |
+| outToken     | address                    | the token to exchange to                                                            |
+| amountIn     | uint256                    | the amount of inToken to be exchanged (with 18 decimals)                            |
+| optionalPath | struct IPriceFeed.SwapPath | the optional path between inToken and outToken that will be used in the pathfinder  |
 
 
 Return values:
 
-| Name      | Type      | Description                                                        |
-| :-------- | :-------- | :----------------------------------------------------------------- |
-| amountOut | uint256   | the received amount of outToken after the swap (with 18 decimals)  |
-| path      | address[] | the tokens path that will be used during the swap                  |
+| Name      | Type                       | Description                                                        |
+| :-------- | :------------------------- | :----------------------------------------------------------------- |
+| amountOut | uint256                    | the received amount of outToken after the swap (with 18 decimals)  |
+| path      | struct IPriceFeed.SwapPath | the tokens path that will be used during the swap                  |
 
-### getNormalizedExtendedPriceIn (0x09481569)
+### getNormalizedExtendedPriceIn (0x9ebb6389)
 
 ```solidity
 function getNormalizedExtendedPriceIn(
     address inToken,
     address outToken,
     uint256 amountOut,
-    address[] memory optionalPath
-) external view returns (uint256 amountIn, address[] memory path)
+    IPriceFeed.SwapPath memory optionalPath
+) external returns (uint256 amountIn, IPriceFeed.SwapPath memory path)
 ```
 
 Shares the same functionality as "getExtendedPriceIn" function.
@@ -401,20 +437,20 @@ It accepts and returns amounts with 18 decimals regardless of the inToken and ou
 
 Parameters:
 
-| Name         | Type      | Description                                                                         |
-| :----------- | :-------- | :---------------------------------------------------------------------------------- |
-| inToken      | address   | the token to exchange from                                                          |
-| outToken     | address   | the token to exchange to                                                            |
-| amountOut    | uint256   | the amount of outToken to be received (with 18 decimals)                            |
-| optionalPath | address[] | the optional path between inToken and outToken that will be used in the pathfinder  |
+| Name         | Type                       | Description                                                                         |
+| :----------- | :------------------------- | :---------------------------------------------------------------------------------- |
+| inToken      | address                    | the token to exchange from                                                          |
+| outToken     | address                    | the token to exchange to                                                            |
+| amountOut    | uint256                    | the amount of outToken to be received (with 18 decimals)                            |
+| optionalPath | struct IPriceFeed.SwapPath | the optional path between inToken and outToken that will be used in the pathfinder  |
 
 
 Return values:
 
-| Name     | Type      | Description                                                            |
-| :------- | :-------- | :--------------------------------------------------------------------- |
-| amountIn | uint256   | the required amount of inToken to execute the swap (with 18 decimals)  |
-| path     | address[] | the tokens path that will be used during the swap                      |
+| Name     | Type                       | Description                                                            |
+| :------- | :------------------------- | :--------------------------------------------------------------------- |
+| amountIn | uint256                    | the required amount of inToken to execute the swap (with 18 decimals)  |
+| path     | struct IPriceFeed.SwapPath | the tokens path that will be used during the swap                      |
 
 ### getNormalizedPriceOut (0xb6ccb44d)
 
@@ -423,7 +459,7 @@ function getNormalizedPriceOut(
     address inToken,
     address outToken,
     uint256 amountIn
-) external view returns (uint256 amountOut, address[] memory path)
+) external returns (uint256 amountOut, IPriceFeed.SwapPath memory path)
 ```
 
 Shares the same functionality as "getExtendedPriceOut" function with an empty optionalPath.
@@ -441,10 +477,10 @@ Parameters:
 
 Return values:
 
-| Name      | Type      | Description                                                        |
-| :-------- | :-------- | :----------------------------------------------------------------- |
-| amountOut | uint256   | the received amount of outToken after the swap (with 18 decimals)  |
-| path      | address[] | the tokens path that will be used during the swap                  |
+| Name      | Type                       | Description                                                        |
+| :-------- | :------------------------- | :----------------------------------------------------------------- |
+| amountOut | uint256                    | the received amount of outToken after the swap (with 18 decimals)  |
+| path      | struct IPriceFeed.SwapPath | the tokens path that will be used during the swap                  |
 
 ### getNormalizedPriceIn (0x2bcbc598)
 
@@ -453,7 +489,7 @@ function getNormalizedPriceIn(
     address inToken,
     address outToken,
     uint256 amountOut
-) external view returns (uint256 amountIn, address[] memory path)
+) external returns (uint256 amountIn, IPriceFeed.SwapPath memory path)
 ```
 
 Shares the same functionality as "getExtendedPriceIn" function with an empty optionalPath.
@@ -471,7 +507,7 @@ Parameters:
 
 Return values:
 
-| Name     | Type      | Description                                                        |
-| :------- | :-------- | :----------------------------------------------------------------- |
-| amountIn | uint256   | required amount of inToken to execute the swap (with 18 decimals)  |
-| path     | address[] | the tokens path that will be used during the swap                  |
+| Name     | Type                       | Description                                                        |
+| :------- | :------------------------- | :----------------------------------------------------------------- |
+| amountIn | uint256                    | required amount of inToken to execute the swap (with 18 decimals)  |
+| path     | struct IPriceFeed.SwapPath | the tokens path that will be used during the swap                  |

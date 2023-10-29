@@ -136,6 +136,21 @@ Return values:
 | :--- | :------ | :------------------------------------------------------------------------ |
 | [0]  | address | UniswapV2Router contract address. This can be any forked contract as well |
 
+### getUniswapV3QuoterContract (0x5c6a5405)
+
+```solidity
+function getUniswapV3QuoterContract() external view returns (address)
+```
+
+Used in dependency injection mechanism
+
+
+Return values:
+
+| Name | Type    | Description                                                               |
+| :--- | :------ | :------------------------------------------------------------------------ |
+| [0]  | address | UniswapV3Quoter contract address. This can be any forked contract as well |
+
 ### getUniswapV2FactoryContract (0x694712be)
 
 ```solidity

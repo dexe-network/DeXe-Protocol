@@ -13,6 +13,7 @@ const BABTMock = artifacts.require("BABTMock");
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeedMock = artifacts.require("PriceFeedMock");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
+const UniswapV3QuoterMock = artifacts.require("UniswapV3QuoterMock");
 const SphereXEngineMock = artifacts.require("SphereXEngineMock");
 const SphereXCalleeMock = artifacts.require("SphereXCalleeMock");
 const PoolBeacon = artifacts.require("PoolBeacon");
@@ -25,6 +26,7 @@ BABTMock.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
 PriceFeedMock.numberFormat = "BigNumber";
 UniswapV2RouterMock.numberFormat = "BigNumber";
+UniswapV3QuoterMock.numberFormat = "BigNumber";
 
 describe("PoolRegistry", () => {
   let OWNER;
@@ -56,6 +58,7 @@ describe("PoolRegistry", () => {
     const _coreProperties = await CoreProperties.new();
     const _priceFeed = await PriceFeedMock.new();
     const uniswapV2Router = await UniswapV2RouterMock.new();
+    const uniswapV3Quoter = await UniswapV3QuoterMock.new();
     sphereXEngine = await SphereXEngineMock.new();
     sphereXCallee = await SphereXCalleeMock.new();
 
@@ -69,6 +72,7 @@ describe("PoolRegistry", () => {
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), BABT.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
     await contractsRegistry.addContract(await contractsRegistry.POOL_FACTORY_NAME(), FACTORY);
+    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V3_QUOTER_NAME(), uniswapV3Quoter.address);
 
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), NOTHING);

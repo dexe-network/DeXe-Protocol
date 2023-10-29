@@ -6,11 +6,29 @@ pragma solidity ^0.8.20;
  * built into the contract to find the optimal* path between the pairs
  */
 interface IPriceFeed {
-    /// @notice A struct this is returned from the UniswapV2PathFinder library when an optimal* path is found
+    enum PoolType {
+        None,
+        UniswapV2,
+        UniswapV3Fee500,
+        UniswapV3Fee3000,
+        UniswapV3Fee10000
+    }
+
+    /// @notice A struct describing a swap path alongside with swap types
+    /// @param path the swap path itself
+    /// @param poolTypes the v2/v3 pool types alongside the path
+    struct SwapPath {
+        address[] path;
+        PoolType[] poolTypes;
+    }
+
+    /// @notice A struct this is returned from the UniswapPathFinder library when an optimal* path is found
     /// @param path the optimal* path itself
+    /// @param poolTypes the optimal* v2/v3 pool types alongside the path
     /// @param amounts either the "amounts out" or "amounts in" required
     struct FoundPath {
         address[] path;
+        PoolType[] poolTypes;
         uint256[] amounts;
     }
 
@@ -28,12 +46,12 @@ interface IPriceFeed {
     /// @param outToken the token to exchange to
     /// @param amountIn the amount of inToken to be exchanged (with 18 decimals)
     /// @return amountOut the received amount of outToken after the swap (with 18 decimals)
-    /// @return path the tokens path that will be used during the swap
+    /// @return path the tokens and pools path that will be used during the swap
     function getPriceOut(
         address inToken,
         address outToken,
         uint256 amountIn
-    ) external view returns (uint256 amountOut, address[] memory path);
+    ) external returns (uint256 amountOut, SwapPath memory path);
 
     /// @notice Shares the same functionality as "getExtendedPriceIn" function with with an empty optionalPath.
     /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
@@ -46,7 +64,7 @@ interface IPriceFeed {
         address inToken,
         address outToken,
         uint256 amountOut
-    ) external view returns (uint256 amountIn, address[] memory path);
+    ) external returns (uint256 amountIn, SwapPath memory path);
 
     /// @notice The same as "getPriceOut" with "outToken" being native USD token
     /// @param inToken the token to be exchanged from
@@ -56,7 +74,7 @@ interface IPriceFeed {
     function getNormalizedPriceOutUSD(
         address inToken,
         uint256 amountIn
-    ) external view returns (uint256 amountOut, address[] memory path);
+    ) external returns (uint256 amountOut, SwapPath memory path);
 
     /// @notice The same as "getPriceIn" with "outToken" being USD token
     /// @param inToken the token to get the price of
@@ -66,7 +84,7 @@ interface IPriceFeed {
     function getNormalizedPriceInUSD(
         address inToken,
         uint256 amountOut
-    ) external view returns (uint256 amountIn, address[] memory path);
+    ) external returns (uint256 amountIn, SwapPath memory path);
 
     /// @notice The same as "getPriceOut" with "outToken" being DEXE token
     /// @param inToken the token to be exchanged from
@@ -76,7 +94,7 @@ interface IPriceFeed {
     function getNormalizedPriceOutDEXE(
         address inToken,
         uint256 amountIn
-    ) external view returns (uint256 amountOut, address[] memory path);
+    ) external returns (uint256 amountOut, SwapPath memory path);
 
     /// @notice The same as "getPriceIn" with "outToken" being DEXE token
     /// @param inToken the token to get the price of
@@ -86,7 +104,7 @@ interface IPriceFeed {
     function getNormalizedPriceInDEXE(
         address inToken,
         uint256 amountOut
-    ) external view returns (uint256 amountIn, address[] memory path);
+    ) external returns (uint256 amountIn, SwapPath memory path);
 
     /// @notice The function that returns the total number of path tokens (tokens used in the pathfinder)
     /// @return the number of path tokens
@@ -114,8 +132,8 @@ interface IPriceFeed {
         address inToken,
         address outToken,
         uint256 amountIn,
-        address[] memory optionalPath
-    ) external view returns (uint256 amountOut, address[] memory path);
+        SwapPath memory optionalPath
+    ) external returns (uint256 amountOut, SwapPath memory path);
 
     /// @notice This function tries to find the optimal exchange rate (the price) between "inToken" and "outToken" using
     /// custom pathfinder and optional specified path. The optimality is reached when the amount of
@@ -130,8 +148,8 @@ interface IPriceFeed {
         address inToken,
         address outToken,
         uint256 amountOut,
-        address[] memory optionalPath
-    ) external view returns (uint256 amountIn, address[] memory path);
+        SwapPath memory optionalPath
+    ) external returns (uint256 amountIn, SwapPath memory path);
 
     /// @notice Shares the same functionality as "getExtendedPriceOut" function.
     /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
@@ -145,8 +163,8 @@ interface IPriceFeed {
         address inToken,
         address outToken,
         uint256 amountIn,
-        address[] memory optionalPath
-    ) external view returns (uint256 amountOut, address[] memory path);
+        SwapPath memory optionalPath
+    ) external returns (uint256 amountOut, SwapPath memory path);
 
     /// @notice Shares the same functionality as "getExtendedPriceIn" function.
     /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
@@ -160,8 +178,8 @@ interface IPriceFeed {
         address inToken,
         address outToken,
         uint256 amountOut,
-        address[] memory optionalPath
-    ) external view returns (uint256 amountIn, address[] memory path);
+        SwapPath memory optionalPath
+    ) external returns (uint256 amountIn, SwapPath memory path);
 
     /// @notice Shares the same functionality as "getExtendedPriceOut" function with an empty optionalPath.
     /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
@@ -174,7 +192,7 @@ interface IPriceFeed {
         address inToken,
         address outToken,
         uint256 amountIn
-    ) external view returns (uint256 amountOut, address[] memory path);
+    ) external returns (uint256 amountOut, SwapPath memory path);
 
     /// @notice Shares the same functionality as "getExtendedPriceIn" function with an empty optionalPath.
     /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
@@ -187,5 +205,5 @@ interface IPriceFeed {
         address inToken,
         address outToken,
         uint256 amountOut
-    ) external view returns (uint256 amountIn, address[] memory path);
+    ) external returns (uint256 amountIn, SwapPath memory path);
 }

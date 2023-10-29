@@ -9,12 +9,13 @@ import "@solarity/solidity-lib/libs/arrays/SetHelper.sol";
 import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "../libs/price-feed/UniswapV2PathFinder.sol";
+import "../libs/price-feed/UniswapPathFinder.sol";
 
 import "../core/Globals.sol";
 
@@ -22,10 +23,11 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     using EnumerableSet for EnumerableSet.AddressSet;
     using DecimalsConverter for *;
     using SetHelper for EnumerableSet.AddressSet;
-    using UniswapV2PathFinder for EnumerableSet.AddressSet;
+    using UniswapPathFinder for EnumerableSet.AddressSet;
 
     IUniswapV2Factory public uniswapFactory;
     IUniswapV2Router02 public uniswapV2Router;
+    IQuoter public uniswapV3Quoter;
     address internal _usdAddress;
     address internal _dexeAddress;
 
@@ -43,6 +45,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
 
         uniswapFactory = IUniswapV2Factory(registry.getUniswapV2FactoryContract());
         uniswapV2Router = IUniswapV2Router02(registry.getUniswapV2RouterContract());
+        uniswapV3Quoter = IQuoter(registry.getUniswapV3QuoterContract());
         _usdAddress = registry.getUSDContract();
         _dexeAddress = registry.getDEXEContract();
     }
@@ -59,43 +62,43 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address inToken,
         address outToken,
         uint256 amountIn
-    ) external view override returns (uint256 amountOut, address[] memory path) {
-        return getExtendedPriceOut(inToken, outToken, amountIn, new address[](0));
+    ) external override returns (uint256 amountOut, SwapPath memory path) {
+        return getExtendedPriceOut(inToken, outToken, amountIn, _getEmptySwapPath());
     }
 
     function getPriceIn(
         address inToken,
         address outToken,
         uint256 amountOut
-    ) external view override returns (uint256 amountIn, address[] memory path) {
-        return getExtendedPriceIn(inToken, outToken, amountOut, new address[](0));
+    ) external override returns (uint256 amountIn, SwapPath memory path) {
+        return getExtendedPriceIn(inToken, outToken, amountOut, _getEmptySwapPath());
     }
 
     function getNormalizedPriceOutUSD(
         address inToken,
         uint256 amountIn
-    ) external view override returns (uint256 amountOut, address[] memory path) {
+    ) external override returns (uint256 amountOut, SwapPath memory path) {
         return getNormalizedPriceOut(inToken, _usdAddress, amountIn);
     }
 
     function getNormalizedPriceInUSD(
         address inToken,
         uint256 amountOut
-    ) external view override returns (uint256 amountIn, address[] memory path) {
+    ) external override returns (uint256 amountIn, SwapPath memory path) {
         return getNormalizedPriceIn(inToken, _usdAddress, amountOut);
     }
 
     function getNormalizedPriceOutDEXE(
         address inToken,
         uint256 amountIn
-    ) external view override returns (uint256 amountOut, address[] memory path) {
+    ) external override returns (uint256 amountOut, SwapPath memory path) {
         return getNormalizedPriceOut(inToken, _dexeAddress, amountIn);
     }
 
     function getNormalizedPriceInDEXE(
         address inToken,
         uint256 amountOut
-    ) external view override returns (uint256 amountIn, address[] memory path) {
+    ) external override returns (uint256 amountIn, SwapPath memory path) {
         return getNormalizedPriceIn(inToken, _dexeAddress, amountOut);
     }
 
@@ -115,13 +118,13 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address inToken,
         address outToken,
         uint256 amountIn,
-        address[] memory optionalPath
-    ) public view virtual override returns (uint256 amountOut, address[] memory path) {
+        SwapPath memory optionalPath
+    ) public virtual override returns (uint256 amountOut, SwapPath memory path) {
         if (inToken == outToken) {
-            return (amountIn, new address[](0));
+            return (amountIn, _getEmptySwapPath());
         }
 
-        FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceOut(
+        FoundPath memory foundPath = _pathTokens.getUniswapPathWithPriceOut(
             inToken,
             outToken,
             amountIn,
@@ -130,21 +133,24 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
 
         return
             foundPath.amounts.length > 0
-                ? (foundPath.amounts[foundPath.amounts.length - 1], foundPath.path)
-                : (0, new address[](0));
+                ? (
+                    foundPath.amounts[foundPath.amounts.length - 1],
+                    SwapPath(foundPath.path, foundPath.poolTypes)
+                )
+                : (0, _getEmptySwapPath());
     }
 
     function getExtendedPriceIn(
         address inToken,
         address outToken,
         uint256 amountOut,
-        address[] memory optionalPath
-    ) public view virtual override returns (uint256 amountIn, address[] memory path) {
+        SwapPath memory optionalPath
+    ) public virtual override returns (uint256 amountIn, SwapPath memory path) {
         if (inToken == outToken) {
-            return (amountOut, new address[](0));
+            return (amountOut, _getEmptySwapPath());
         }
 
-        FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceIn(
+        FoundPath memory foundPath = _pathTokens.getUniswapPathWithPriceIn(
             inToken,
             outToken,
             amountOut,
@@ -153,16 +159,16 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
 
         return
             foundPath.amounts.length > 0
-                ? (foundPath.amounts[0], foundPath.path)
-                : (0, new address[](0));
+                ? (foundPath.amounts[0], SwapPath(foundPath.path, foundPath.poolTypes))
+                : (0, _getEmptySwapPath());
     }
 
     function getNormalizedExtendedPriceOut(
         address inToken,
         address outToken,
         uint256 amountIn,
-        address[] memory optionalPath
-    ) public view override returns (uint256 amountOut, address[] memory path) {
+        SwapPath memory optionalPath
+    ) public override returns (uint256 amountOut, SwapPath memory path) {
         (amountOut, path) = getExtendedPriceOut(
             inToken,
             outToken,
@@ -177,8 +183,8 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address inToken,
         address outToken,
         uint256 amountOut,
-        address[] memory optionalPath
-    ) public view override returns (uint256 amountIn, address[] memory path) {
+        SwapPath memory optionalPath
+    ) public override returns (uint256 amountIn, SwapPath memory path) {
         (amountIn, path) = getExtendedPriceIn(
             inToken,
             outToken,
@@ -193,15 +199,17 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         address inToken,
         address outToken,
         uint256 amountIn
-    ) public view override returns (uint256 amountOut, address[] memory path) {
-        return getNormalizedExtendedPriceOut(inToken, outToken, amountIn, new address[](0));
+    ) public override returns (uint256 amountOut, SwapPath memory path) {
+        return getNormalizedExtendedPriceOut(inToken, outToken, amountIn, _getEmptySwapPath());
     }
 
     function getNormalizedPriceIn(
         address inToken,
         address outToken,
         uint256 amountOut
-    ) public view override returns (uint256 amountIn, address[] memory path) {
-        return getNormalizedExtendedPriceIn(inToken, outToken, amountOut, new address[](0));
+    ) public override returns (uint256 amountIn, SwapPath memory path) {
+        return getNormalizedExtendedPriceIn(inToken, outToken, amountOut, _getEmptySwapPath());
     }
+
+    function _getEmptySwapPath() internal pure returns (SwapPath memory path) {}
 }

@@ -25,8 +25,9 @@ const GovSettings = artifacts.require("GovSettings");
 const GovValidators = artifacts.require("GovValidators");
 const DistributionProposal = artifacts.require("DistributionProposal");
 const TokenSaleProposal = artifacts.require("TokenSaleProposal");
-const UniswapV2PathFinderLib = artifacts.require("UniswapV2PathFinder");
+const UniswapPathFinderLib = artifacts.require("UniswapPathFinder");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
+const UniswapV3QuoterMock = artifacts.require("UniswapV3QuoterMock");
 const PoolFactory = artifacts.require("PoolFactory");
 const GovTokenDeployerLib = artifacts.require("GovTokenDeployer");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
@@ -61,6 +62,7 @@ GovUserKeeper.numberFormat = "BigNumber";
 GovSettings.numberFormat = "BigNumber";
 GovValidators.numberFormat = "BigNumber";
 UniswapV2RouterMock.numberFormat = "BigNumber";
+UniswapV3QuoterMock.numberFormat = "BigNumber";
 PoolFactory.numberFormat = "BigNumber";
 DistributionProposal.numberFormat = "BigNumber";
 TokenSaleProposal.numberFormat = "BigNumber";
@@ -135,9 +137,9 @@ describe("PoolFactory", () => {
     await GovValidators.link(govValidatorsVoteLib);
     await GovValidators.link(govValidatorsExecuteLib);
 
-    const uniswapV2PathFinderLib = await UniswapV2PathFinderLib.new();
+    const uniswapPathFinderLib = await UniswapPathFinderLib.new();
 
-    await PriceFeed.link(uniswapV2PathFinderLib);
+    await PriceFeed.link(uniswapPathFinderLib);
 
     testERC20 = await ERC20Mock.new("TestERC20", "TS", 18);
     testERC721 = await ERC721Mock.new("TestERC721", "TS");
@@ -152,6 +154,7 @@ describe("PoolFactory", () => {
     const _poolRegistry = await PoolRegistry.new();
     const _poolFactory = await PoolFactory.new();
     const uniswapV2Router = await UniswapV2RouterMock.new();
+    const uniswapV3Quoter = await UniswapV3QuoterMock.new();
 
     await contractsRegistry.__OwnableContractsRegistry_init();
 
@@ -166,6 +169,7 @@ describe("PoolFactory", () => {
     await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), _dexeExpertNft.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), uniswapV2Router.address);
+    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V3_QUOTER_NAME(), uniswapV3Quoter.address);
 
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
 

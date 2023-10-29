@@ -12,10 +12,10 @@ contract PriceFeedMock is PriceFeed {
         address inToken,
         address outToken,
         uint256 amountIn,
-        address[] memory
-    ) public view override returns (uint256, address[] memory) {
+        SwapPath memory
+    ) public override returns (uint256, SwapPath memory) {
         if (amountIn == 0) {
-            return (0, new address[](0));
+            return (0, _getEmptySwapPath());
         }
 
         address[] memory path = new address[](2);
@@ -25,17 +25,17 @@ contract PriceFeedMock is PriceFeed {
 
         uint256[] memory outs = uniswapV2Router.getAmountsOut(amountIn, path);
 
-        return (outs[outs.length - 1], path);
+        return (outs[outs.length - 1], _transformToSwapPath(path));
     }
 
     function getExtendedPriceIn(
         address inToken,
         address outToken,
         uint256 amountOut,
-        address[] memory
-    ) public view override returns (uint256, address[] memory) {
+        SwapPath memory
+    ) public override returns (uint256, SwapPath memory) {
         if (amountOut == 0) {
-            return (0, new address[](0));
+            return (0, _getEmptySwapPath());
         }
 
         address[] memory path = new address[](2);
@@ -45,6 +45,15 @@ contract PriceFeedMock is PriceFeed {
 
         uint256[] memory ins = uniswapV2Router.getAmountsIn(amountOut, path);
 
-        return (ins[0], path);
+        return (ins[0], _transformToSwapPath(path));
+    }
+
+    function _transformToSwapPath(
+        address[] memory path
+    ) internal returns (SwapPath memory fullPath) {
+        fullPath.path = path;
+        PoolType[] memory poolTypes = new PoolType[](1);
+        poolTypes[0] = PoolType.UniswapV2;
+        fullPath.poolTypes = poolTypes;
     }
 }

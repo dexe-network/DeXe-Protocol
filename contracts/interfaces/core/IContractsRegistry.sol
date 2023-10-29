@@ -40,6 +40,10 @@ interface IContractsRegistry {
     function getUniswapV2RouterContract() external view returns (address);
 
     /// @notice Used in dependency injection mechanism
+    /// @return UniswapV3Quoter contract address. This can be any forked contract as well
+    function getUniswapV3QuoterContract() external view returns (address);
+
+    /// @notice Used in dependency injection mechanism
     /// @return UniswapV2Factory contract address. This can be any forked contract as well
     function getUniswapV2FactoryContract() external view returns (address);
 

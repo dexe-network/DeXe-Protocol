@@ -5,15 +5,19 @@ const truffleAssert = require("truffle-assertions");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PriceFeed = artifacts.require("PriceFeed");
-const UniswapV2PathFinderLib = artifacts.require("UniswapV2PathFinder");
+const UniswapPathFinderLib = artifacts.require("UniswapPathFinder");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
+const UniswapV3QuoterMock = artifacts.require("UniswapV3QuoterMock");
 const ERC20Mock = artifacts.require("ERC20Mock");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PriceFeed.numberFormat = "BigNumber";
-UniswapV2PathFinderLib.numberFormat = "BigNumber";
+UniswapPathFinderLib.numberFormat = "BigNumber";
 UniswapV2RouterMock.numberFormat = "BigNumber";
+UniswapV3QuoterMock.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
+
+const SWAP_UNISWAP_V2 = "1";
 
 describe("PriceFeed", () => {
   let tokensToMint = toBN(1000000000);
@@ -33,15 +37,16 @@ describe("PriceFeed", () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
 
-    const uniswapV2PathFinderLib = await UniswapV2PathFinderLib.new();
+    const uniswapPathFinderLib = await UniswapPathFinderLib.new();
 
-    await PriceFeed.link(uniswapV2PathFinderLib);
+    await PriceFeed.link(uniswapPathFinderLib);
 
     const contractsRegistry = await ContractsRegistry.new();
     const _priceFeed = await PriceFeed.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     USD = await ERC20Mock.new("USD", "USD", 18);
     uniswapV2Router = await UniswapV2RouterMock.new();
+    uniswapV3Quoter = await UniswapV3QuoterMock.new();
 
     await contractsRegistry.__OwnableContractsRegistry_init();
 
@@ -51,6 +56,7 @@ describe("PriceFeed", () => {
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
     await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), uniswapV2Router.address);
+    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V3_QUOTER_NAME(), uniswapV3Quoter.address);
 
     priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
 
@@ -120,34 +126,40 @@ describe("PriceFeed", () => {
     it("should get zero price", async () => {
       await uniswapV2Router.enablePair(DEXE.address, USD.address);
 
-      const pricesInfo = await priceFeed.getExtendedPriceOut(DEXE.address, USD.address, 0, []);
+      const pricesInfo = await priceFeed.getExtendedPriceOut.call(DEXE.address, USD.address, 0, [[], []]);
 
       assert.equal(pricesInfo.amountOut.toFixed(), "0");
-      assert.deepEqual(pricesInfo.path, []);
+      assert.deepEqual(pricesInfo.path, [[], []]);
     });
 
     it("should get the same price", async () => {
-      const pricesInfo = await priceFeed.getExtendedPriceOut(DEXE.address, DEXE.address, wei("1"), []);
+      const pricesInfo = await priceFeed.getExtendedPriceOut.call(DEXE.address, DEXE.address, wei("1"), [[], []]);
 
       assert.equal(pricesInfo.amountOut.toFixed(), wei("1"));
-      assert.deepEqual(pricesInfo.path, []);
+      assert.deepEqual(pricesInfo.path, [[], []]);
     });
 
     it("should get correct direct price and path", async () => {
       await uniswapV2Router.enablePair(DEXE.address, USD.address);
 
-      const pricesInfo = await priceFeed.getExtendedPriceOut(DEXE.address, USD.address, wei("1000"), []);
-      const rawPricesInfo = await priceFeed.getPriceOut(DEXE.address, USD.address, wei("1000"));
-      const usdPricesInfo = await priceFeed.getNormalizedPriceOutUSD(DEXE.address, wei("1000"));
-      const dexePricesInfo = await priceFeed.getNormalizedPriceOutDEXE(USD.address, wei("250"));
-      const normPricesInfo = await priceFeed.getNormalizedExtendedPriceOut(DEXE.address, USD.address, wei("1000"), []);
+      const pricesInfo = await priceFeed.getExtendedPriceOut.call(DEXE.address, USD.address, wei("1000"), [[], []]);
+      const rawPricesInfo = await priceFeed.getPriceOut.call(DEXE.address, USD.address, wei("1000"));
+      const usdPricesInfo = await priceFeed.getNormalizedPriceOutUSD.call(DEXE.address, wei("1000"));
+      const dexePricesInfo = await priceFeed.getNormalizedPriceOutDEXE.call(USD.address, wei("250"));
+      const normPricesInfo = await priceFeed.getNormalizedExtendedPriceOut.call(
+        DEXE.address,
+        USD.address,
+        wei("1000"),
+        [[], []]
+      );
 
       assert.equal(pricesInfo.amountOut.toFixed(), normPricesInfo.amountOut.toFixed());
       assert.equal(pricesInfo.amountOut.toFixed(), rawPricesInfo.amountOut.toFixed());
       assert.equal(pricesInfo.amountOut.toFixed(), usdPricesInfo.amountOut.toFixed());
       assert.equal(pricesInfo.amountOut.toFixed(), dexePricesInfo.amountOut.toFixed());
       assert.equal(pricesInfo.amountOut.toFixed(), wei("500"));
-      assert.deepEqual(pricesInfo.path, [DEXE.address, USD.address]);
+      assert.deepEqual(pricesInfo.path.path, [DEXE.address, USD.address]);
+      assert.deepEqual(pricesInfo.path.poolTypes, [SWAP_UNISWAP_V2]);
     });
 
     it("should get correct price with one extra token path", async () => {
@@ -163,10 +175,11 @@ describe("PriceFeed", () => {
 
       await priceFeed.addPathTokens([MANA.address]);
 
-      const pricesInfo = await priceFeed.getExtendedPriceOut(DEXE.address, USD.address, wei("1000"), []);
+      const pricesInfo = await priceFeed.getExtendedPriceOut.call(DEXE.address, USD.address, wei("1000"), [[], []]);
 
       assert.equal(pricesInfo.amountOut.toFixed(), wei("500"));
-      assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, USD.address]);
+      assert.deepEqual(pricesInfo.path.path, [DEXE.address, MANA.address, USD.address]);
+      assert.deepEqual(pricesInfo.path.poolTypes, [SWAP_UNISWAP_V2, SWAP_UNISWAP_V2]);
     });
 
     it("should get the best price", async () => {
@@ -192,10 +205,11 @@ describe("PriceFeed", () => {
 
       await priceFeed.addPathTokens([MANA.address, WBTC.address]);
 
-      const pricesInfo = await priceFeed.getExtendedPriceOut(DEXE.address, USD.address, wei("2000"), []);
+      const pricesInfo = await priceFeed.getExtendedPriceOut.call(DEXE.address, USD.address, wei("2000"), [[], []]);
 
       assert.equal(pricesInfo.amountOut.toFixed(), wei("2000"));
-      assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, USD.address]);
+      assert.deepEqual(pricesInfo.path.path, [DEXE.address, MANA.address, USD.address]);
+      assert.deepEqual(pricesInfo.path.poolTypes, [SWAP_UNISWAP_V2, SWAP_UNISWAP_V2]);
     });
 
     it("should follow the provided path", async () => {
@@ -217,15 +231,16 @@ describe("PriceFeed", () => {
 
       await priceFeed.addPathTokens([MANA.address, WBTC.address]);
 
-      const pricesInfo = await priceFeed.getExtendedPriceOut(DEXE.address, USD.address, wei("500"), [
-        DEXE.address,
-        MANA.address,
-        WBTC.address,
-        USD.address,
-      ]);
+      const bestPath = [
+        [DEXE.address, MANA.address, WBTC.address, USD.address],
+        [SWAP_UNISWAP_V2, SWAP_UNISWAP_V2, SWAP_UNISWAP_V2],
+      ];
+
+      const pricesInfo = await priceFeed.getExtendedPriceOut.call(DEXE.address, USD.address, wei("500"), bestPath);
 
       assert.equal(pricesInfo.amountOut.toFixed(), wei("250"));
-      assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, WBTC.address, USD.address]);
+      assert.deepEqual(pricesInfo.path.path, bestPath[0]);
+      assert.deepEqual(pricesInfo.path.poolTypes, bestPath[1]);
     });
   });
 
@@ -244,34 +259,38 @@ describe("PriceFeed", () => {
     it("should get zero price", async () => {
       await uniswapV2Router.enablePair(DEXE.address, USD.address);
 
-      const pricesInfo = await priceFeed.getExtendedPriceIn(DEXE.address, USD.address, 0, []);
+      const pricesInfo = await priceFeed.getExtendedPriceIn.call(DEXE.address, USD.address, 0, [[], []]);
 
       assert.equal(pricesInfo.amountIn.toFixed(), "0");
-      assert.deepEqual(pricesInfo.path, []);
+      assert.deepEqual(pricesInfo.path, [[], []]);
     });
 
     it("should get the same price", async () => {
-      const pricesInfo = await priceFeed.getExtendedPriceIn(DEXE.address, DEXE.address, wei("1"), []);
+      const pricesInfo = await priceFeed.getExtendedPriceIn.call(DEXE.address, DEXE.address, wei("1"), [[], []]);
 
       assert.equal(pricesInfo.amountIn.toFixed(), wei("1"));
-      assert.deepEqual(pricesInfo.path, []);
+      assert.deepEqual(pricesInfo.path, [[], []]);
     });
 
     it("should get direct price and path", async () => {
       await uniswapV2Router.enablePair(DEXE.address, USD.address);
 
-      const pricesInfo = await priceFeed.getExtendedPriceIn(DEXE.address, USD.address, wei("500"), []);
-      const rawPricesInfo = await priceFeed.getPriceIn(DEXE.address, USD.address, wei("500"));
-      const usdPriceInfo = await priceFeed.getNormalizedPriceInUSD(DEXE.address, wei("500"));
-      const dexePriceInfo = await priceFeed.getNormalizedPriceInDEXE(USD.address, wei("2000"));
-      const normPricesInfo = await priceFeed.getNormalizedExtendedPriceIn(DEXE.address, USD.address, wei("500"), []);
+      const pricesInfo = await priceFeed.getExtendedPriceIn.call(DEXE.address, USD.address, wei("500"), [[], []]);
+      const rawPricesInfo = await priceFeed.getPriceIn.call(DEXE.address, USD.address, wei("500"));
+      const usdPriceInfo = await priceFeed.getNormalizedPriceInUSD.call(DEXE.address, wei("500"));
+      const dexePriceInfo = await priceFeed.getNormalizedPriceInDEXE.call(USD.address, wei("2000"));
+      const normPricesInfo = await priceFeed.getNormalizedExtendedPriceIn.call(DEXE.address, USD.address, wei("500"), [
+        [],
+        [],
+      ]);
 
       assert.equal(pricesInfo.amountIn.toFixed(), normPricesInfo.amountIn.toFixed());
       assert.equal(pricesInfo.amountIn.toFixed(), rawPricesInfo.amountIn.toFixed());
       assert.equal(pricesInfo.amountIn.toFixed(), usdPriceInfo.amountIn.toFixed());
       assert.equal(pricesInfo.amountIn.toFixed(), dexePriceInfo.amountIn.toFixed());
       assert.equal(pricesInfo.amountIn.toFixed(), wei("1000"));
-      assert.deepEqual(pricesInfo.path, [DEXE.address, USD.address]);
+      assert.deepEqual(pricesInfo.path.path, [DEXE.address, USD.address]);
+      assert.deepEqual(pricesInfo.path.poolTypes, [SWAP_UNISWAP_V2]);
     });
 
     it("should get correct price and path with one extra token", async () => {
@@ -287,10 +306,11 @@ describe("PriceFeed", () => {
 
       await priceFeed.addPathTokens([MANA.address]);
 
-      const pricesInfo = await priceFeed.getExtendedPriceIn(DEXE.address, USD.address, wei("500"), []);
+      const pricesInfo = await priceFeed.getExtendedPriceIn.call(DEXE.address, USD.address, wei("500"), [[], []]);
 
       assert.equal(pricesInfo.amountIn.toFixed(), wei("1000"));
-      assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, USD.address]);
+      assert.deepEqual(pricesInfo.path.path, [DEXE.address, MANA.address, USD.address]);
+      assert.deepEqual(pricesInfo.path.poolTypes, [SWAP_UNISWAP_V2, SWAP_UNISWAP_V2]);
     });
 
     it("should get the best price", async () => {
@@ -316,10 +336,11 @@ describe("PriceFeed", () => {
 
       await priceFeed.addPathTokens([WBTC.address, MANA.address]);
 
-      const pricesInfo = await priceFeed.getExtendedPriceIn(DEXE.address, USD.address, wei("2000"), []);
+      const pricesInfo = await priceFeed.getExtendedPriceIn.call(DEXE.address, USD.address, wei("2000"), [[], []]);
 
       assert.equal(pricesInfo.amountIn.toFixed(), wei("2000"));
-      assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, USD.address]);
+      assert.deepEqual(pricesInfo.path.path, [DEXE.address, MANA.address, USD.address]);
+      assert.deepEqual(pricesInfo.path.poolTypes, [SWAP_UNISWAP_V2, SWAP_UNISWAP_V2]);
     });
 
     it("should get the best price from provided path", async () => {
@@ -345,14 +366,16 @@ describe("PriceFeed", () => {
 
       await priceFeed.addPathTokens([WBTC.address]);
 
-      const pricesInfo = await priceFeed.getExtendedPriceIn(DEXE.address, USD.address, wei("2000"), [
-        DEXE.address,
-        MANA.address,
-        USD.address,
-      ]);
+      const bestPath = [
+        [DEXE.address, MANA.address, USD.address],
+        [SWAP_UNISWAP_V2, SWAP_UNISWAP_V2],
+      ];
+
+      const pricesInfo = await priceFeed.getExtendedPriceIn.call(DEXE.address, USD.address, wei("2000"), bestPath);
 
       assert.equal(pricesInfo.amountIn.toFixed(), wei("2000"));
-      assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, USD.address]);
+      assert.deepEqual(pricesInfo.path.path, bestPath[0]);
+      assert.deepEqual(pricesInfo.path.poolTypes, bestPath[1]);
     });
 
     it("should stick to the best price", async () => {
@@ -378,14 +401,14 @@ describe("PriceFeed", () => {
 
       await priceFeed.addPathTokens([MANA.address]);
 
-      const pricesInfo = await priceFeed.getExtendedPriceIn(DEXE.address, USD.address, wei("2000"), [
-        DEXE.address,
-        WBTC.address,
-        USD.address,
+      const pricesInfo = await priceFeed.getExtendedPriceIn.call(DEXE.address, USD.address, wei("2000"), [
+        [DEXE.address, WBTC.address, USD.address],
+        [SWAP_UNISWAP_V2, SWAP_UNISWAP_V2],
       ]);
 
       assert.equal(pricesInfo.amountIn.toFixed(), wei("2000"));
-      assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, USD.address]);
+      assert.deepEqual(pricesInfo.path.path, [DEXE.address, MANA.address, USD.address]);
+      assert.deepEqual(pricesInfo.path.poolTypes, [SWAP_UNISWAP_V2, SWAP_UNISWAP_V2]);
     });
   });
 });
