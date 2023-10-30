@@ -233,6 +233,7 @@ Parameters:
 struct RawVote {
 	uint256 tokensVoted;
 	uint256 totalVoted;
+	uint256 nftsAmount;
 	EnumerableSet.UintSet nftsVoted;
 }
 ```
@@ -246,6 +247,7 @@ Parameters:
 | :---------- | :--------------------------- | :-------------------------------------------------------------------------------- |
 | tokensVoted | uint256                      | the total erc20 amount voted from one user for the proposal before the formula    |
 | totalVoted  | uint256                      | the total power of typed votes from one user for the proposal before the formula  |
+| nftsAmount  | uint256                      | the amount of nfts participating in the vote                                      |
 | nftsVoted   | struct EnumerableSet.UintSet | the set of ids of nfts voted from one user for the proposal                       |
 
 ### VoteInfo

@@ -138,10 +138,12 @@ interface IGovPool {
     /// @notice The struct that holds information about the typed vote (only for internal needs)
     /// @param tokensVoted the total erc20 amount voted from one user for the proposal before the formula
     /// @param totalVoted the total power of typed votes from one user for the proposal before the formula
+    /// @param nftsAmount the amount of nfts participating in the vote
     /// @param nftsVoted the set of ids of nfts voted from one user for the proposal
     struct RawVote {
         uint256 tokensVoted;
         uint256 totalVoted;
+        uint256 nftsAmount;
         EnumerableSet.UintSet nftsVoted;
     }
 

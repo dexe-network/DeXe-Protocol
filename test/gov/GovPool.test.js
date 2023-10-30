@@ -1750,7 +1750,7 @@ describe.only("GovPool", () => {
           await truffleAssert.reverts(govPool.vote(2, true, 0, [1], { from: SECOND }), "Gov: need cancel");
         });
 
-        it.only("should not vote if delegated zero power nft voted", async () => {
+        it("should not vote if delegated zero power nft voted", async () => {
           await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
 
           await nft.mint(OWNER, 1);
@@ -1767,7 +1767,7 @@ describe.only("GovPool", () => {
           await truffleAssert.reverts(govPool.vote(2, true, 0, [], { from: SECOND }), "Gov: need cancel");
         });
 
-        it.only("should not vote if treasury delegated zero power nft voted", async () => {
+        it("should not vote if treasury delegated zero power nft voted", async () => {
           await executeValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(SECOND, "URI")]]);
 
           await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
