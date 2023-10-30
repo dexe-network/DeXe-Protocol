@@ -151,7 +151,7 @@ describe("ERC721RawPower", () => {
       });
 
       it("should support these interfaces", async () => {
-        assert.isTrue(await nft.supportsInterface("0x589dde78"));
+        assert.isTrue(await nft.supportsInterface("0x24b96d42"));
         assert.isTrue(await nft.supportsInterface("0x780e9d63"));
       });
     });
