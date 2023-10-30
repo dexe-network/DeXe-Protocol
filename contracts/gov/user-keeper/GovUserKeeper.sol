@@ -36,8 +36,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     address public tokenAddress;
     NFTInfo internal _nftInfo;
 
-    uint256 internal _latestPowerSnapshotId;
-
     mapping(address => UserInfo) internal _usersInfo; // user => info
 
     mapping(uint256 => uint256) internal _nftLockedNums; // tokenId => locked num
@@ -58,7 +56,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function __GovUserKeeper_init(
         address _tokenAddress,
         address _nftAddress,
-        uint256 totalPowerInTokens,
+        uint256 individualPower,
         uint256 nftsTotalSupply
     ) external initializer {
         __Ownable_init();
@@ -67,7 +65,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         require(_tokenAddress != address(0) || _nftAddress != address(0), "GovUK: zero addresses");
 
         if (_nftAddress != address(0)) {
-            _setERC721Address(_nftAddress, totalPowerInTokens, nftsTotalSupply);
+            _setERC721Address(_nftAddress, individualPower, nftsTotalSupply);
         }
 
         if (_tokenAddress != address(0)) {
@@ -477,10 +475,10 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     function setERC721Address(
         address _nftAddress,
-        uint256 totalPowerInTokens,
+        uint256 individualPower,
         uint256 nftsTotalSupply
     ) external override onlyOwner {
-        _setERC721Address(_nftAddress, totalPowerInTokens, nftsTotalSupply);
+        _setERC721Address(_nftAddress, individualPower, nftsTotalSupply);
     }
 
     function nftAddress() external view override returns (address) {
