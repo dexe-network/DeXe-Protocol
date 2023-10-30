@@ -8,6 +8,7 @@ const PriceFeed = artifacts.require("PriceFeed");
 const UniswapV2PathFinderLib = artifacts.require("UniswapV2PathFinder");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const SphereXEngineMock = artifacts.require("SphereXEngineMock");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PriceFeed.numberFormat = "BigNumber";
@@ -42,8 +43,11 @@ describe("PriceFeed", () => {
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     USD = await ERC20Mock.new("USD", "USD", 18);
     uniswapV2Router = await UniswapV2RouterMock.new();
+    const _sphereXEngine = await SphereXEngineMock.new();
 
     await contractsRegistry.__OwnableContractsRegistry_init();
+
+    await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
 
     await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), _priceFeed.address);
 

@@ -82,6 +82,7 @@ const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
 const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
 const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
 const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
+const SphereXEngineMock = artifacts.require("SphereXEngineMock");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -229,12 +230,14 @@ describe("GovPool", () => {
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721EnumMock.new("Mock", "Mock");
     attacker = await GovPoolAttackerMock.new();
-
+    const _sphereXEngine = await SphereXEngineMock.new();
     nftPower = await ERC721RawPower.new();
-
     rewardToken = await ERC20Mock.new("REWARD", "RWD", 18);
 
     await contractsRegistry.__OwnableContractsRegistry_init();
+
+    await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
+    await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
 
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), _poolRegistry.address);

@@ -7,6 +7,7 @@ const truffleAssert = require("truffle-assertions");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const CoreProperties = artifacts.require("CoreProperties");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const SphereXEngineMock = artifacts.require("SphereXEngineMock");
 
 ContractsRegistry.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
@@ -32,8 +33,11 @@ describe("CoreProperties", () => {
     const _coreProperties = await CoreProperties.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     USD = await ERC20Mock.new("USD", "USD", 18);
+    const _sphereXEngine = await SphereXEngineMock.new();
 
     await contractsRegistry.__OwnableContractsRegistry_init();
+
+    await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
 
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
 

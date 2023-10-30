@@ -51,6 +51,7 @@ const TokenSaleProposalRecoverLib = artifacts.require("TokenSaleProposalRecover"
 const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
 const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
 const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
+const SphereXEngineMock = artifacts.require("SphereXEngineMock");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -166,8 +167,12 @@ describe("TokenSaleProposal", () => {
     token = await ERC20Mock.new("Mock", "Mock", 18);
     participationToken = await ERC20Mock.new("PTMock", "PTMock", 18);
     participationNft = await ERC721Mock.new("PNFTMock", "PNFTMock");
+    const _sphereXEngine = await SphereXEngineMock.new();
 
     await contractsRegistry.__OwnableContractsRegistry_init();
+
+    await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
+    await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
 
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), _poolRegistry.address);
