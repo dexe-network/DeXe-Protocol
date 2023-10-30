@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@solarity/solidity-lib/contracts-registry/pools/pool-factory/AbstractPoolFactory.sol";
 import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
 
-import "@spherex-xyz/contracts/src/ISphereXEngine.sol";
+import "@spherex-xyz/engine-contracts/src/SphereXEngine.sol";
 
 import "../interfaces/factory/IPoolFactory.sol";
 import "../interfaces/core/IContractsRegistry.sol";

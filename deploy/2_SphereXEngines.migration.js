@@ -10,8 +10,8 @@ module.exports = async (deployer) => {
 
   const contractsRegistry = await deployer.deployed(ContractsRegistry, "proxy");
 
-  const sphereXEngine = await deployer.deploy(SphereXEngine, [0, DEPLOYER, config.spherex.operator]);
-  const poolSphereXEngine = await deployer.deploy(SphereXEngine, [0, DEPLOYER, config.spherex.operator]);
+  const sphereXEngine = await deployer.deploy(SphereXEngine, [0, DEPLOYER]);
+  const poolSphereXEngine = await deployer.deploy(SphereXEngine, [0, DEPLOYER]);
 
   await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), sphereXEngine.address);
   await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), poolSphereXEngine.address);

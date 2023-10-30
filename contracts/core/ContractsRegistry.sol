@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import "@solarity/solidity-lib/contracts-registry/presets/OwnableContractsRegistry.sol";
 
-import "@spherex-xyz/contracts/src/ISphereXEngine.sol";
+import "@spherex-xyz/engine-contracts/src/SphereXEngine.sol";
 
 import "../interfaces/core/IContractsRegistry.sol";
 
