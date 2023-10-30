@@ -98,7 +98,7 @@ ERC20.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
-describe.only("GovPool", () => {
+describe("GovPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -4253,7 +4253,7 @@ describe.only("GovPool", () => {
         await govPool.deposit(wei("200000"), [], { from: delegator3 });
       });
 
-      it.only("should claim rewards properly if all conditions are met", async () => {
+      it("should claim rewards properly if all conditions are met", async () => {
         await executeValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(SECOND, "URI")]]);
 
         await delegateTreasury(SECOND, wei("100000"), []);
@@ -4373,7 +4373,7 @@ describe.only("GovPool", () => {
         assert.equal(delegatorRewardsView.expectedRewards, wei("240000"));
       });
 
-      it.only("should claim rewards properly if multicall delegation and delegator claim first", async () => {
+      it("should claim rewards properly if multicall delegation and delegator claim first", async () => {
         let DEFAULT_SETTINGS = POOL_PARAMETERS.settingsParams.proposalSettings[0];
         DEFAULT_SETTINGS.validatorsVote = false;
         DEFAULT_SETTINGS.duration = 10000;
