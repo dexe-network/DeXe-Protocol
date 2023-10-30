@@ -80,6 +80,7 @@ describe("ERC721EquivalentPower", () => {
       await nft.recalculateNftPowers([1]);
 
       assert.equal(toBN(await nft.totalPower()).toFixed(), wei("100"));
+      assert.equal(toBN(await nft.getNftMinPower(1)).toFixed(), wei("100"));
       assert.equal(toBN(await nft.getNftMaxPower(1)).toFixed(), wei("100"));
       assert.equal(toBN(await nft.getNftPower(1)).toFixed(), wei("100"));
 
@@ -90,6 +91,7 @@ describe("ERC721EquivalentPower", () => {
       await nft.recalculateNftPowers([1]);
 
       assert.equal(toBN(await nft.totalPower()).toFixed(), wei("100"));
+      assert.equal(toBN(await nft.getNftMinPower(1)).toFixed(), "0");
       assert.equal(toBN(await nft.getNftMaxPower(1)).toFixed(), "0");
       assert.equal(toBN(await nft.getNftPower(1)).toFixed(), "0");
     });

@@ -58,7 +58,7 @@ library GovPoolVote {
                 userKeeper.lockNfts(msg.sender, voteType, nftIds);
             }
 
-            _vote(rawVotes[IGovPool.VoteType.PersonalVote], amount, nftIds);
+            _vote(rawVotes[IGovPool.VoteType.PersonalVote], amount, nftIds, address(0), voteType);
         }
 
         if (voteType != IGovPool.VoteType.DelegatedVote) {
@@ -167,43 +167,48 @@ library GovPoolVote {
             return;
         }
 
-        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
-        IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
+        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
 
-        (uint256 amount, ) = userKeeper.tokenBalance(voter, voteType);
-        (uint256[] memory nftIds, ) = userKeeper.nftExactBalance(voter, voteType);
+        (uint256 amount, ) = IGovUserKeeper(userKeeper).tokenBalance(voter, voteType);
 
-        _vote(rawVote, amount, nftIds);
+        _vote(rawVote, amount, new uint256[](0), voter, voteType);
     }
 
     function _vote(
         IGovPool.RawVote storage rawVote,
         uint256 amount,
-        uint256[] memory nftIds
+        uint256[] memory nftIds,
+        address voter,
+        IGovPool.VoteType voteType
     ) internal {
-        rawVote.tokensVoted = amount;
-
-        if (nftIds.length == 0) {
-            rawVote.totalVoted = amount;
-            return;
-        }
-
         EnumerableSet.UintSet storage nftsVoted = rawVote.nftsVoted;
 
         for (uint256 i; i < nftIds.length; i++) {
             require(nftsVoted.add(nftIds[i]), "Gov: NFT already voted");
         }
 
-        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
+        (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
+        IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
-        (uint256 nftPower, ) = IGovUserKeeper(userKeeper).nftVotingPower(nftIds, false);
+        (uint256 nftsPower, ) = userKeeper.getTotalNftsPower(nftIds, voteType, voter, false);
 
-        rawVote.totalVoted = amount + nftPower;
+        rawVote.tokensVoted = amount;
+        rawVote.totalVoted = amount + nftsPower;
+
+        if (
+            voteType == IGovPool.VoteType.PersonalVote ||
+            voteType == IGovPool.VoteType.DelegatedVote
+        ) {
+            rawVote.nftsAmount = nftIds.length;
+        } else {
+            (rawVote.nftsAmount, ) = userKeeper.nftBalance(voter, voteType);
+        }
     }
 
     function _cancel(IGovPool.RawVote storage rawVote) internal {
         rawVote.tokensVoted = 0;
         rawVote.totalVoted = 0;
+        rawVote.nftsAmount = 0;
 
         EnumerableSet.UintSet storage nftsVoted = rawVote.nftsVoted;
 
@@ -351,9 +356,9 @@ library GovPoolVote {
             personalRawVote.totalVoted != 0 ||
             micropoolRawVote.totalVoted != 0 ||
             treasuryRawVote.totalVoted != 0 ||
-            personalRawVote.nftsVoted.length() != 0 ||
-            micropoolRawVote.nftsVoted.length() != 0 ||
-            treasuryRawVote.nftsVoted.length() != 0;
+            personalRawVote.nftsAmount != 0 ||
+            micropoolRawVote.nftsAmount != 0 ||
+            treasuryRawVote.nftsAmount != 0;
     }
 
     function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {

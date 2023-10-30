@@ -115,12 +115,15 @@ abstract contract AbstractERC721Power is
 
     function getNftMaxPower(uint256 tokenId) public view virtual returns (uint256);
 
+    function getNftMinPower(uint256 tokenId) public view virtual returns (uint256);
+
     function getNftPower(uint256 tokenId) public view virtual returns (uint256);
 
     function getNftInfo(uint256 tokenId) external view virtual returns (NftInfoView memory info) {
         info.rawInfo = _nftInfos[tokenId];
 
         info.maxPower = getNftMaxPower(tokenId);
+        info.minPower = getNftMinPower(tokenId);
         info.currentPower = getNftPower(tokenId);
     }
 
@@ -200,7 +203,7 @@ abstract contract AbstractERC721Power is
     }
 
     function _recalculateRawNftPower(uint256 tokenId) internal {
-        if (!_exists(tokenId) || block.timestamp < powerCalcStartTimestamp) {
+        if (!_isActiveNft(tokenId)) {
             return;
         }
 
@@ -218,16 +221,13 @@ abstract contract AbstractERC721Power is
     }
 
     function _getRawNftPower(uint256 tokenId) internal view returns (uint256) {
-        if (!_exists(tokenId) || block.timestamp < powerCalcStartTimestamp) {
+        if (!_isActiveNft(tokenId)) {
             return 0;
         }
 
-        uint256 collateral = _nftInfos[tokenId].currentCollateral;
-
         // Calculate the minimum possible power based on the collateral of the nft
         uint256 maxNftPower = _getRawNftMaxPower(tokenId);
-        uint256 minNftPower = maxNftPower.ratio(collateral, _getNftRequiredCollateral(tokenId));
-        minNftPower = maxNftPower.min(minNftPower);
+        uint256 minNftPower = _getRawNftMinPower(tokenId);
 
         // Get last update and current power. Or set them to default if it is first iteration
         uint64 lastUpdate = _nftInfos[tokenId].lastUpdate;
@@ -260,10 +260,27 @@ abstract contract AbstractERC721Power is
         return localRawPower == 0 ? nftMaxRawPower : localRawPower;
     }
 
+    function _getRawNftMinPower(uint256 tokenId) internal view returns (uint256) {
+        if (!_isActiveNft(tokenId)) {
+            return 0;
+        }
+
+        uint256 maxNftPower = _getRawNftMaxPower(tokenId);
+
+        return
+            maxNftPower
+                .ratio(_nftInfos[tokenId].currentCollateral, _getNftRequiredCollateral(tokenId))
+                .min(maxNftPower);
+    }
+
     function _getNftRequiredCollateral(uint256 tokenId) internal view returns (uint256) {
         uint256 requiredCollateralForNft = _nftInfos[tokenId].requiredCollateral;
 
         return requiredCollateralForNft == 0 ? nftRequiredCollateral : requiredCollateralForNft;
+    }
+
+    function _isActiveNft(uint256 tokenId) internal view returns (bool) {
+        return _exists(tokenId) && block.timestamp >= powerCalcStartTimestamp;
     }
 
     function _onlyBeforePowerCalc() internal view {

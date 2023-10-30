@@ -11,41 +11,45 @@ import "../../../interfaces/gov/IGovPool.sol";
  */
 interface IGovUserKeeper {
     /// @notice The struct holds information about user deposited tokens
-    /// @param tokenBalance the amount of deposited tokens
-    /// @param nftBalance the array of deposited nfts
+    /// @param tokens the amount of deposited tokens
+    /// @param nfts the array of deposited nfts
     struct BalanceInfo {
-        uint256 tokenBalance;
-        EnumerableSet.UintSet nftBalance; // array of NFTs
+        uint256 tokens;
+        EnumerableSet.UintSet nfts;
     }
 
     /// @notice The struct holds information about user balances
-    /// @param balanceInfo the BalanceInfo struct
-    /// @param delegatedTokens the mapping of delegated tokens (delegatee address => delegated amount)
-    /// @param allDelegatedTokens the total amount of delegated tokens
-    /// @param delegatedNfts the mapping of delegated nfts (delegatee address => array of delegated nft ids)
-    /// @param allDelegatedNfts the list of all delegated nfts
+    /// @param balances matching vote types with balance infos
+    /// @param nftsPowers matching vote types with cached nfts powers
+    /// @param delegatedBalances matching delegatees with balances infos
+    /// @param delegatedNftPowers matching delegatees with delegated nft powers
+    /// @param allDelegatedBalance the balance info of all delegated assets
     /// @param delegatees the array of delegatees
     /// @param maxTokensLocked the upper bound of currently locked tokens
     /// @param lockedInProposals the amount of deposited tokens locked in proposals
     struct UserInfo {
-        BalanceInfo balanceInfo;
-        mapping(address => uint256) delegatedTokens;
-        uint256 allDelegatedTokens;
-        mapping(address => EnumerableSet.UintSet) delegatedNfts;
-        EnumerableSet.UintSet allDelegatedNfts;
+        mapping(IGovPool.VoteType => BalanceInfo) balances;
+        mapping(IGovPool.VoteType => uint256) nftsPowers;
+        mapping(address => BalanceInfo) delegatedBalances;
+        mapping(address => uint256) delegatedNftPowers;
+        BalanceInfo allDelegatedBalance;
         EnumerableSet.AddressSet delegatees;
         uint256 maxTokensLocked;
         mapping(uint256 => uint256) lockedInProposals;
     }
 
     /// @notice The struct holds information about nft contract
+    /// @param nftAddress the address of the nft
     /// @param isSupportPower boolean flag, if true then nft contract supports power
     /// @param individualPower the voting power an nft
     /// @param totalSupply the total supply of nfts that are not enumerable
+    /// @param nftMinPower matching nft ids to their minimal powers
     struct NFTInfo {
+        address nftAddress;
         bool isSupportPower;
         uint256 individualPower;
         uint256 totalSupply;
+        mapping(uint256 => uint256) nftMinPower;
     }
 
     /// @notice The struct that is used in view functions of contract as a return argument
@@ -217,9 +221,14 @@ interface IGovUserKeeper {
     /// @return `nftAddress` the erc721 address
     function nftAddress() external view returns (address);
 
-    /// @notice The function for getting information about nft contract
-    /// @return `NFTInfo` struct
-    function getNftInfo() external view returns (NFTInfo memory);
+    /// @notice The function for getting nft info
+    /// @return isSupportPower boolean flag, if true then nft contract supports power
+    /// @return individualPower the voting power an nft
+    /// @return totalSupply the total supply of nfts that are not enumerable
+    function getNftInfo()
+        external
+        view
+        returns (bool isSupportPower, uint256 individualPower, uint256 totalSupply);
 
     /// @notice The function for getting max locked amount of a user
     /// @param voter the address of voter
@@ -256,9 +265,23 @@ interface IGovUserKeeper {
         IGovPool.VoteType voteType
     ) external view returns (uint256[] memory nfts, uint256 ownedLength);
 
+    /// @notice The function for getting total power of nfts by ids
+    /// @param nftIds the array of nft ids
+    /// @param voteType the type of vote
+    /// @param voter the address of user
+    /// @param perNftPowerArray should the nft raw powers array be returned
+    /// @return nftPower the total total power of nfts
+    /// @return perNftPower the array of nft powers, bounded with nftIds by index
+    function getTotalNftsPower(
+        uint256[] memory nftIds,
+        IGovPool.VoteType voteType,
+        address voter,
+        bool perNftPowerArray
+    ) external view returns (uint256 nftPower, uint256[] memory perNftPower);
+
     /// @notice The function for getting total voting power of the contract
-    /// @return `total` power
-    function getTotalPower() external view returns (uint256);
+    /// @return power total power
+    function getTotalPower() external view returns (uint256 power);
 
     /// @notice The function to define if voter is able to create a proposal. Includes micropool balance
     /// @param voter the address of voter
@@ -294,16 +317,6 @@ interface IGovUserKeeper {
         uint256[] calldata nftIds
     ) external view returns (uint256 personalPower, uint256 fullPower);
 
-    /// @notice The function for getting power of nfts by ids
-    /// @param nftIds the array of nft ids
-    /// @param perNftPowerArray should the nft powers array be calculated
-    /// @return nftPower the total power of nfts
-    /// @return perNftPower the array of nft powers, bounded with nftIds by index
-    function nftVotingPower(
-        uint256[] memory nftIds,
-        bool perNftPowerArray
-    ) external view returns (uint256 nftPower, uint256[] memory perNftPower);
-
     /// @notice The function for getting information about user's delegations
     /// @param user the address of user
     /// @param perNftPowerArray should the nft powers array be calculated
@@ -326,13 +339,12 @@ interface IGovUserKeeper {
         uint256[] calldata unlockedNfts
     ) external view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts);
 
-    /// @notice The function for getting the total delegated amount by the delegator and the delegatee
+    /// @notice The function for getting the total delegated power by the delegator and the delegatee
     /// @param delegator the address of the delegator
     /// @param delegatee the address of the delegatee
-    /// @return tokenAmount the amount of delegated tokens
-    /// @return nftIds the list of delegated nft ids
-    function getDelegatedAssets(
+    /// @return delegatedPower the total delegated power
+    function getDelegatedAssetsPower(
         address delegator,
         address delegatee
-    ) external view returns (uint256 tokenAmount, uint256[] memory nftIds);
+    ) external view returns (uint256 delegatedPower);
 }

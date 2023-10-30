@@ -24,10 +24,12 @@ interface IERC721Power is IERC721EnumerableUpgradeable {
     /// @notice The struct to get info about the NFT
     /// @param rawInfo the raw NFT info
     /// @param maxPower real max nft power
+    /// @param minPower real min nft power
     /// @param currentPower real nft power
     struct NftInfoView {
         NftInfo rawInfo;
         uint256 maxPower;
+        uint256 minPower;
         uint256 currentPower;
     }
 
@@ -53,6 +55,11 @@ interface IERC721Power is IERC721EnumerableUpgradeable {
     /// @param tokenId Nft number
     /// @return max power for Nft
     function getNftMaxPower(uint256 tokenId) external view returns (uint256);
+
+    /// @notice Return min possible power (coefficient) for nft
+    /// @param tokenId Nft number
+    /// @return min power for Nft
+    function getNftMinPower(uint256 tokenId) external view returns (uint256);
 
     /// @notice The function to get current NFT power
     /// @param tokenId the Nft number

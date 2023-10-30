@@ -45,6 +45,7 @@ Parameters:
 struct NftInfoView {
 	IERC721Power.NftInfo rawInfo;
 	uint256 maxPower;
+	uint256 minPower;
 	uint256 currentPower;
 }
 ```
@@ -58,6 +59,7 @@ Parameters:
 | :----------- | :-------------------------- | :------------------ |
 | rawInfo      | struct IERC721Power.NftInfo | the raw NFT info    |
 | maxPower     | uint256                     | real max nft power  |
+| minPower     | uint256                     | real min nft power  |
 | currentPower | uint256                     | real nft power      |
 
 ## Functions info
@@ -145,6 +147,28 @@ Return values:
 | Name | Type    | Description       |
 | :--- | :------ | :---------------- |
 | [0]  | uint256 | max power for Nft |
+
+### getNftMinPower (0x7c24b33a)
+
+```solidity
+function getNftMinPower(uint256 tokenId) external view returns (uint256)
+```
+
+Return min possible power (coefficient) for nft
+
+
+Parameters:
+
+| Name    | Type    | Description |
+| :------ | :------ | :---------- |
+| tokenId | uint256 | Nft number  |
+
+
+Return values:
+
+| Name | Type    | Description       |
+| :--- | :------ | :---------------- |
+| [0]  | uint256 | min power for Nft |
 
 ### getNftPower (0x412e8a29)
 

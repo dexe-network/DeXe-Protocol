@@ -50,6 +50,10 @@ contract ERC721RawPower is AbstractERC721Power {
         return _getRawNftMaxPower(tokenId).min(totalRawPower);
     }
 
+    function getNftMinPower(uint256 tokenId) public view override returns (uint256) {
+        return _getRawNftMinPower(tokenId).min(totalRawPower);
+    }
+
     function getNftPower(uint256 tokenId) public view override returns (uint256) {
         return _getRawNftPower(tokenId).min(totalRawPower);
     }

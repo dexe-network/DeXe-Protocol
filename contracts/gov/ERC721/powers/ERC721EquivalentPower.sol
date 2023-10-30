@@ -58,6 +58,10 @@ contract ERC721EquivalentPower is AbstractERC721Power {
         return _getEquivalentPower(_getRawNftMaxPower(tokenId));
     }
 
+    function getNftMinPower(uint256 tokenId) public view override returns (uint256) {
+        return _getEquivalentPower(_getRawNftMinPower(tokenId));
+    }
+
     function getNftPower(uint256 tokenId) public view override returns (uint256) {
         return _getEquivalentPower(_getRawNftPower(tokenId));
     }

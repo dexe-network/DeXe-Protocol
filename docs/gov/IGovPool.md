@@ -233,6 +233,7 @@ Parameters:
 struct RawVote {
 	uint256 tokensVoted;
 	uint256 totalVoted;
+	uint256 nftsAmount;
 	EnumerableSet.UintSet nftsVoted;
 }
 ```
@@ -246,6 +247,7 @@ Parameters:
 | :---------- | :--------------------------- | :-------------------------------------------------------------------------------- |
 | tokensVoted | uint256                      | the total erc20 amount voted from one user for the proposal before the formula    |
 | totalVoted  | uint256                      | the total power of typed votes from one user for the proposal before the formula  |
+| nftsAmount  | uint256                      | the amount of nfts participating in the vote                                      |
 | nftsVoted   | struct EnumerableSet.UintSet | the set of ids of nfts voted from one user for the proposal                       |
 
 ### VoteInfo
@@ -324,8 +326,7 @@ Parameters:
 ```solidity
 struct DelegatorInfo {
 	uint256[] delegationTimes;
-	uint256[][] nftIds;
-	uint256[] tokenAmounts;
+	uint256[] delegationPowers;
 	mapping(uint256 => bool) isClaimed;
 }
 ```
@@ -335,12 +336,11 @@ The struct that holds information about the delegator (only for internal needs)
 
 Parameters:
 
-| Name            | Type                     | Description                                                                    |
-| :-------------- | :----------------------- | :----------------------------------------------------------------------------- |
-| delegationTimes | uint256[]                | the list of timestamps when delegated amount was changed                       |
-| nftIds          | uint256[][]              | lists of delegated nfts in corresponding timestamps                            |
-| tokenAmounts    | uint256[]                | the list of delegated token amounts in corresponding timestamps                |
-| isClaimed       | mapping(uint256 => bool) | matching proposals ids with flags indicating whether rewards have been claimed |
+| Name             | Type                     | Description                                                                    |
+| :--------------- | :----------------------- | :----------------------------------------------------------------------------- |
+| delegationTimes  | uint256[]                | the list of timestamps when delegated amount was changed                       |
+| delegationPowers | uint256[]                | the list of delegated assets powers                                            |
+| isClaimed        | mapping(uint256 => bool) | matching proposals ids with flags indicating whether rewards have been claimed |
 
 ### PendingRewards
 

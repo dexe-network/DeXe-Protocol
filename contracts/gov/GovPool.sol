@@ -244,6 +244,8 @@ contract GovPool is
         _unlock(msg.sender);
         _unlock(delegatee);
 
+        _updateNftPowers(nftIds);
+
         _govUserKeeper.delegateTokens.exec(delegatee, amount);
         _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
 
@@ -281,6 +283,8 @@ contract GovPool is
                 nft.safeTransferFrom(address(this), address(_govUserKeeper), nftIds[i]);
             }
 
+            _updateNftPowers(nftIds);
+
             _govUserKeeper.delegateNftsTreasury(delegatee, nftIds);
         }
 
@@ -299,6 +303,8 @@ contract GovPool is
         _checkBlock(DELEGATE_UNDELEGATE, msg.sender);
 
         _unlock(delegatee);
+
+        _updateNftPowers(nftIds);
 
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
         _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
@@ -320,6 +326,8 @@ contract GovPool is
         _checkBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender);
 
         _unlock(msg.sender);
+
+        _updateNftPowers(nftIds);
 
         _govUserKeeper.undelegateTokensTreasury.exec(delegatee, amount);
         _govUserKeeper.undelegateNftsTreasury.exec(delegatee, nftIds);
@@ -555,6 +563,8 @@ contract GovPool is
         uint256[] calldata voteNftIds,
         bool isVoteFor
     ) internal {
+        _updateNftPowers(voteNftIds);
+
         _proposals.vote(_userInfos, proposalId, voteAmount, voteNftIds, isVoteFor);
     }
 
@@ -570,6 +580,10 @@ contract GovPool is
         } else {
             _userInfos.updateStaticRewards(_proposals, proposalId, user, rewardType);
         }
+    }
+
+    function _updateNftPowers(uint256[] calldata nftIds) internal {
+        _govUserKeeper.updateNftPowers(nftIds);
     }
 
     function _unlock(address user) internal {

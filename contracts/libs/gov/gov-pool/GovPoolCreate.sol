@@ -17,7 +17,6 @@ import "../../../interfaces/gov/ERC721/experts/IERC721Expert.sol";
 
 import "../../utils/DataHelper.sol";
 
-import "../../../gov/user-keeper/GovUserKeeper.sol";
 import "../../../gov/GovPool.sol";
 
 import "../../../libs/utils/TypeHelper.sol";
@@ -411,8 +410,8 @@ library GovPoolCreate {
         IGovPool.ProposalAction calldata actionAgainst,
         address metaUserKeeper
     ) internal view {
-        address metaToken = GovUserKeeper(metaUserKeeper).tokenAddress();
-        address metaNft = GovUserKeeper(metaUserKeeper).nftAddress();
+        address metaToken = IGovUserKeeper(metaUserKeeper).tokenAddress();
+        address metaNft = IGovUserKeeper(metaUserKeeper).nftAddress();
 
         require(
             actionFor.executor == metaToken || actionFor.executor == metaNft,
@@ -434,7 +433,7 @@ library GovPoolCreate {
         IGovPool.ProposalAction calldata actionAgainst,
         address metaUserKeeper
     ) internal view {
-        address metaNft = GovUserKeeper(metaUserKeeper).nftAddress();
+        address metaNft = IGovUserKeeper(metaUserKeeper).nftAddress();
 
         require(actionFor.executor == metaNft, "Gov: invalid executor");
 

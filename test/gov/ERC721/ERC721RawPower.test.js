@@ -151,7 +151,7 @@ describe("ERC721RawPower", () => {
       });
 
       it("should support these interfaces", async () => {
-        assert.isTrue(await nft.supportsInterface("0x589dde78"));
+        assert.isTrue(await nft.supportsInterface("0x24b96d42"));
         assert.isTrue(await nft.supportsInterface("0x780e9d63"));
       });
     });
@@ -241,6 +241,23 @@ describe("ERC721RawPower", () => {
         await setTime(startTime + 999);
 
         await truffleAssert.reverts(nft.setNftMaxRawPower("10", "1"), "ERC721Power: power calculation already begun");
+      });
+    });
+
+    describe("getNftMinPower()", () => {
+      beforeEach(async () => {
+        await deployNft(startTime + 1000, "1", wei("100"), wei("500"));
+        await nft.mint(SECOND, 1, "URI");
+      });
+
+      it("should return correct min power", async () => {
+        assert.equal((await nft.getNftMinPower(1)).toFixed(), "0");
+
+        await nft.addCollateral(wei("250"), "1", { from: SECOND });
+
+        await setTime((await getCurrentBlockTime()) + 1000);
+
+        assert.equal((await nft.getNftMinPower(1)).toFixed(), wei("50"));
       });
     });
 
