@@ -225,8 +225,6 @@ abstract contract AbstractERC721Power is
             return 0;
         }
 
-        uint256 collateral = _nftInfos[tokenId].currentCollateral;
-
         // Calculate the minimum possible power based on the collateral of the nft
         uint256 maxNftPower = _getRawNftMaxPower(tokenId);
         uint256 minNftPower = _getRawNftMinPower(tokenId);
