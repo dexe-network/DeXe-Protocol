@@ -7,9 +7,9 @@ pragma solidity ^0.8.20;
  * contracts, provide upgradeability mechanism and dependency injection mechanism.
  */
 interface IContractsRegistry {
-    /// @notice The function to set the SphereX engine to all the contracts handled by the registry
-    /// @param sphereXEngine the address of the SphereX engine
-    function setSphereXEngine(address sphereXEngine) external;
+    /// @notice The function to toggle the SphereX engine for all the contracts handled by the registry
+    /// @param on whether to turn the engine on or off
+    function toggleSphereXEngine(bool on) external;
 
     /// @notice Used in dependency injection mechanism
     /// @return UserRegistry contract address
@@ -58,4 +58,12 @@ interface IContractsRegistry {
     /// @notice Used in dependency injection mechanism
     /// @return DexeExpertNft contract address
     function getDexeExpertNftContract() external view returns (address);
+
+    /// @notice Used in dependency injection mechanism
+    /// @return SphereX engine for DAOs
+    function getPoolSphereXEngineContract() external view returns (address);
+
+    /// @notice Used in dependency injection mechanism
+    /// @return SphereX engine for global entities
+    function getSphereXEngineContract() external view returns (address);
 }

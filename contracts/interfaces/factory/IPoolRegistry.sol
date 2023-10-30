@@ -12,9 +12,9 @@ interface IPoolRegistry {
     /// @param poolAddress the address of the pool to add
     function addProxyPool(string calldata name, address poolAddress) external;
 
-    /// @notice The function to set the SphereX engine to all the contracts handled by the registry
-    /// @param sphereXEngine the address of the SphereX engine
-    function setSphereXEngine(address sphereXEngine) external;
+    /// @notice The function to toggle the SphereX engine to all the contracts handled by the registry
+    /// @param on whether to turn the engine on or off
+    function toggleSphereXEngine(bool on) external;
 
     /// @notice The function to check if the given address is a valid GovPool
     /// @param potentialPool the address to inspect

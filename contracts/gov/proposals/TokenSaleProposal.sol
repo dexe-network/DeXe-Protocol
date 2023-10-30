@@ -46,7 +46,7 @@ contract TokenSaleProposal is
         address saleToken,
         ParticipationDetails[] participationDetails
     );
-    event Bought(uint256 tierId, address with, uint256 received, uint256 given, address buyer);
+    event Bought(uint256 tierId, address paidWith, uint256 received, uint256 given, address buyer);
     event Whitelisted(uint256 tierId, address user);
 
     modifier onlyGov() {
