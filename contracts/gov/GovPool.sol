@@ -205,8 +205,6 @@ contract GovPool is
     ) external override onlyBABTHolder {
         _unlock(msg.sender);
 
-        _updateNftPowers(voteNftIds);
-
         _vote(proposalId, voteAmount, voteNftIds, isVoteFor);
     }
 
@@ -565,6 +563,8 @@ contract GovPool is
         uint256[] calldata voteNftIds,
         bool isVoteFor
     ) internal {
+        _updateNftPowers(voteNftIds);
+
         _proposals.vote(_userInfos, proposalId, voteAmount, voteNftIds, isVoteFor);
     }
 
