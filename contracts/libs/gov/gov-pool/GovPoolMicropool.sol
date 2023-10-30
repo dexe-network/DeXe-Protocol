@@ -123,8 +123,6 @@ library GovPoolMicropool {
         address delegator,
         address delegatee
     ) private view returns (uint256) {
-        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
-
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
         IGovPool.UserInfo storage userInfo = userInfos[delegatee];
         IGovPool.RawVote storage micropoolRawVote = userInfo.voteInfos[proposalId].rawVotes[

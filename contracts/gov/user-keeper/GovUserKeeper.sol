@@ -523,9 +523,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address voter,
         IGovPool.VoteType voteType
     ) external view override returns (uint256 totalBalance, uint256 ownedBalance) {
-        address nftAddress = _nftInfo.nftAddress;
+        address nftAddress_ = _nftInfo.nftAddress;
 
-        if (nftAddress == address(0)) {
+        if (nftAddress_ == address(0)) {
             return (0, 0);
         }
 
@@ -542,7 +542,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             totalBalance += _usersInfo[voter].allDelegatedBalance.nfts.length();
         }
 
-        ownedBalance = IERC721Upgradeable(nftAddress).balanceOf(voter);
+        ownedBalance = IERC721Upgradeable(nftAddress_).balanceOf(voter);
         totalBalance += ownedBalance;
     }
 
@@ -550,9 +550,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address voter,
         IGovPool.VoteType voteType
     ) public view override returns (uint256[] memory nfts, uint256 ownedLength) {
-        address nftAddress = _nftInfo.nftAddress;
+        address nftAddress_ = _nftInfo.nftAddress;
 
-        if (nftAddress == address(0)) {
+        if (nftAddress_ == address(0)) {
             return (nfts, 0);
         }
 
@@ -571,7 +571,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             nftsVector.push(_usersInfo[voter].allDelegatedBalance.nfts.values());
         }
 
-        ownedLength = IERC721Upgradeable(nftAddress).balanceOf(voter);
+        ownedLength = IERC721Upgradeable(nftAddress_).balanceOf(voter);
 
         if (_nftInfo.totalSupply != 0) {
             nftsVector.push(new uint256[](ownedLength));
@@ -579,7 +579,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             return (nftsVector.toArray(), ownedLength);
         }
 
-        IERC721Power nftContract = IERC721Power(nftAddress);
+        IERC721Power nftContract = IERC721Power(nftAddress_);
 
         for (uint256 i; i < ownedLength; i++) {
             nftsVector.push(nftContract.tokenOfOwnerByIndex(voter, i));
