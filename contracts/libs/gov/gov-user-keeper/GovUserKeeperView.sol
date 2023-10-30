@@ -25,6 +25,42 @@ library GovUserKeeperView {
     using TypeCaster for *;
     using TypeHelper for *;
 
+    function transformedVotingPower(
+        mapping(address => IGovUserKeeper.UserInfo) storage usersInfo,
+        IGovUserKeeper.NFTInfo storage nftInfo,
+        address tokenAddress,
+        address voter,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external view returns (uint256 personalPower, uint256 fullPower) {
+        IGovUserKeeper.VotingPowerView[] memory votingPowers = votingPower(
+            usersInfo,
+            nftInfo,
+            tokenAddress,
+            [voter, voter].asDynamic(),
+            [IGovPool.VoteType.MicropoolVote, IGovPool.VoteType.TreasuryVote].asDynamic(),
+            false
+        );
+
+        (uint256 nftPower, ) = getTotalNftsPower(
+            usersInfo,
+            nftInfo,
+            nftIds,
+            IGovPool.VoteType.PersonalVote,
+            voter,
+            false
+        );
+
+        (, , , , address votePower) = IGovPool(GovUserKeeper(address(this)).owner())
+            .getHelperContracts();
+
+        personalPower = amount + nftPower;
+        fullPower = personalPower + votingPowers[0].rawPower + votingPowers[1].rawPower;
+
+        personalPower = IVotePower(votePower).transformVotes(voter, personalPower);
+        fullPower = IVotePower(votePower).transformVotes(voter, fullPower);
+    }
+
     function votingPower(
         mapping(address => IGovUserKeeper.UserInfo) storage usersInfo,
         IGovUserKeeper.NFTInfo storage nftInfo,
@@ -49,14 +85,10 @@ library GovUserKeeperView {
             }
 
             if (nftInfo.nftAddress != address(0)) {
-                bool requiredCachedPower = !perNftPowerArray &&
-                    (voteTypes[i] == IGovPool.VoteType.MicropoolVote ||
-                        voteTypes[i] == IGovPool.VoteType.TreasuryVote);
-
                 uint256[] memory nftIds;
                 uint256 length;
 
-                if (requiredCachedPower) {
+                if (!perNftPowerArray) {
                     (, length) = userKeeper.nftBalance(users[i], voteTypes[i]);
                 } else {
                     (nftIds, length) = userKeeper.nftExactBalance(users[i], voteTypes[i]);
@@ -67,7 +99,7 @@ library GovUserKeeperView {
                     nftInfo,
                     nftIds,
                     voteTypes[i],
-                    requiredCachedPower ? users[i] : address(0),
+                    users[i],
                     perNftPowerArray
                 );
 
@@ -82,7 +114,7 @@ library GovUserKeeperView {
                     nftInfo,
                     nftIds,
                     voteTypes[i],
-                    requiredCachedPower ? users[i] : address(0),
+                    users[i],
                     perNftPowerArray
                 );
 
@@ -101,42 +133,6 @@ library GovUserKeeperView {
         }
     }
 
-    function transformedVotingPower(
-        mapping(address => IGovUserKeeper.UserInfo) storage usersInfo,
-        IGovUserKeeper.NFTInfo storage nftInfo,
-        address tokenAddress,
-        address voter,
-        uint256 amount,
-        uint256[] calldata nftIds
-    ) external view returns (uint256 personalPower, uint256 fullPower) {
-        IGovUserKeeper.VotingPowerView[] memory votingPowers = votingPower(
-            usersInfo,
-            nftInfo,
-            tokenAddress,
-            [voter, voter].asDynamic(),
-            [IGovPool.VoteType.MicropoolVote, IGovPool.VoteType.TreasuryVote].asDynamic(),
-            false
-        );
-
-        (uint256 nftPower, ) = getTotalNftsPower(
-            usersInfo,
-            nftInfo,
-            nftIds,
-            IGovPool.VoteType.PersonalVote,
-            address(0),
-            false
-        );
-
-        (, , , , address votePower) = IGovPool(GovUserKeeper(address(this)).owner())
-            .getHelperContracts();
-
-        personalPower = amount + nftPower;
-        fullPower = personalPower + votingPowers[0].rawPower + votingPowers[1].rawPower;
-
-        personalPower = IVotePower(votePower).transformVotes(voter, personalPower);
-        fullPower = IVotePower(votePower).transformVotes(voter, fullPower);
-    }
-
     function getTotalNftsPower(
         mapping(address => IGovUserKeeper.UserInfo) storage usersInfo,
         IGovUserKeeper.NFTInfo storage nftInfo,
@@ -145,54 +141,61 @@ library GovUserKeeperView {
         address user,
         bool perNftPowerArray
     ) public view returns (uint256 nftPower, uint256[] memory perNftPower) {
-        bool isMinPower = voteType == IGovPool.VoteType.MicropoolVote ||
-            voteType == IGovPool.VoteType.TreasuryVote;
-
-        require(
-            user == address(0) || (isMinPower && nftIds.length == 0 && !perNftPowerArray),
-            "GovUK: invalid params"
-        );
-
         if (nftInfo.nftAddress == address(0)) {
             return (nftPower, perNftPower);
         }
 
         if (user != address(0)) {
-            return
-                nftInfo.isSupportPower
-                    ? (usersInfo[user].nftsPowers[voteType], perNftPower)
-                    : (
-                        usersInfo[user].balances[voteType].nfts.length() * nftInfo.individualPower,
-                        perNftPower
-                    );
-        }
+            if (
+                voteType == IGovPool.VoteType.MicropoolVote ||
+                voteType == IGovPool.VoteType.TreasuryVote
+            ) {
+                if (perNftPowerArray) {
+                    perNftPower = new uint256[](nftIds.length);
 
-        if (perNftPowerArray) {
-            perNftPower = new uint256[](nftIds.length);
-        }
+                    if (!nftInfo.isSupportPower) {
+                        for (uint256 i = 0; i < perNftPower.length; i++) {
+                            perNftPower[i] = nftInfo.individualPower;
+                        }
 
-        if (!nftInfo.isSupportPower) {
-            if (perNftPowerArray) {
-                for (uint256 i = 0; i < perNftPower.length; i++) {
-                    perNftPower[i] = nftInfo.individualPower;
+                        return (nftIds.length * nftInfo.individualPower, perNftPower);
+                    }
+
+                    for (uint256 i = 0; i < nftIds.length; ++i) {
+                        uint256 currentNftPower = nftInfo.nftMinPower[nftIds[i]];
+
+                        nftPower += currentNftPower;
+                        perNftPower[i] = currentNftPower;
+                    }
+
+                    return (nftPower, perNftPower);
+                } else {
+                    return
+                        nftInfo.isSupportPower
+                            ? (usersInfo[user].nftsPowers[voteType], perNftPower)
+                            : (
+                                usersInfo[user].balances[voteType].nfts.length() *
+                                    nftInfo.individualPower,
+                                perNftPower
+                            );
                 }
+            } else {
+                return
+                    _getActualNftPowers(
+                        IERC721Power(nftInfo.nftAddress).getNftPower,
+                        nftInfo,
+                        nftIds,
+                        perNftPowerArray
+                    );
             }
-
-            return (nftIds.length * nftInfo.individualPower, perNftPower);
-        }
-
-        IERC721Power nftContract = IERC721Power(nftInfo.nftAddress);
-
-        for (uint256 i = 0; i < nftIds.length; ++i) {
-            uint256 currentNftPower = isMinPower
-                ? nftInfo.nftMinPower[nftIds[i]]
-                : nftContract.getNftPower(nftIds[i]);
-
-            nftPower += currentNftPower;
-
-            if (perNftPowerArray) {
-                perNftPower[i] = currentNftPower;
-            }
+        } else {
+            return
+                _getActualNftPowers(
+                    IERC721Power(nftInfo.nftAddress).getNftMinPower,
+                    nftInfo,
+                    nftIds,
+                    perNftPowerArray
+                );
         }
     }
 
@@ -227,7 +230,7 @@ library GovUserKeeperView {
                 nftInfo,
                 delegation.delegatedNfts,
                 IGovPool.VoteType.MicropoolVote,
-                address(0),
+                delegatee,
                 perNftPowerArray
             );
 
@@ -274,5 +277,36 @@ library GovUserKeeperView {
         }
 
         withdrawableNfts = nfts.toArray();
+    }
+
+    function _getActualNftPowers(
+        function(uint256) external view returns (uint256) powerFunc,
+        IGovUserKeeper.NFTInfo storage nftInfo,
+        uint256[] memory nftIds,
+        bool perNftPowerArray
+    ) internal view returns (uint256 nftPower, uint256[] memory perNftPower) {
+        if (!nftInfo.isSupportPower) {
+            nftPower = nftIds.length * nftInfo.individualPower;
+        } else {
+            for (uint256 i = 0; i < nftIds.length; ++i) {
+                nftPower += powerFunc(nftIds[i]);
+            }
+        }
+
+        if (perNftPowerArray) {
+            perNftPower = new uint256[](nftIds.length);
+
+            if (!nftInfo.isSupportPower) {
+                for (uint256 i = 0; i < perNftPower.length; i++) {
+                    perNftPower[i] = nftInfo.individualPower;
+                }
+            } else {
+                for (uint256 i = 0; i < nftIds.length; ++i) {
+                    uint256 currentNftPower = powerFunc(nftIds[i]);
+
+                    perNftPower[i] = currentNftPower;
+                }
+            }
+        }
     }
 }
