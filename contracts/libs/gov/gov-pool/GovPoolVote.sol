@@ -58,19 +58,11 @@ library GovPoolVote {
                 userKeeper.lockNfts(msg.sender, voteType, nftIds);
             }
 
-            _vote(
-                core,
-                rawVotes[IGovPool.VoteType.PersonalVote],
-                amount,
-                nftIds,
-                address(0),
-                voteType
-            );
+            _vote(rawVotes[IGovPool.VoteType.PersonalVote], amount, nftIds, address(0), voteType);
         }
 
         if (voteType != IGovPool.VoteType.DelegatedVote) {
             _voteDelegated(
-                core,
                 userInfos,
                 rawVotes[IGovPool.VoteType.MicropoolVote],
                 proposalId,
@@ -79,7 +71,6 @@ library GovPoolVote {
             );
 
             _voteDelegated(
-                core,
                 userInfos,
                 rawVotes[IGovPool.VoteType.TreasuryVote],
                 proposalId,
@@ -122,7 +113,7 @@ library GovPoolVote {
             }
 
             _cancel(rawVote);
-            _voteDelegated(core, userInfos, rawVote, proposalId, voter, voteType);
+            _voteDelegated(userInfos, rawVote, proposalId, voter, voteType);
 
             _updateGlobalState(core, userInfos, proposalId, voter, voteInfo.isVoteFor);
         }
@@ -163,7 +154,6 @@ library GovPoolVote {
     }
 
     function _voteDelegated(
-        IGovPool.ProposalCore storage core,
         mapping(address => IGovPool.UserInfo) storage userInfos,
         IGovPool.RawVote storage rawVote,
         uint256 proposalId,
@@ -181,11 +171,10 @@ library GovPoolVote {
 
         (uint256 amount, ) = IGovUserKeeper(userKeeper).tokenBalance(voter, voteType);
 
-        _vote(core, rawVote, amount, new uint256[](0), voter, voteType);
+        _vote(rawVote, amount, new uint256[](0), voter, voteType);
     }
 
     function _vote(
-        IGovPool.ProposalCore storage core,
         IGovPool.RawVote storage rawVote,
         uint256 amount,
         uint256[] memory nftIds,
