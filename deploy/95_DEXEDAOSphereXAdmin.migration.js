@@ -1,14 +1,14 @@
-const Proxy = artifacts.require("ERC1967Proxy");
+const { Reporter } = require("@solarity/hardhat-migrate");
+
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
 const SphereXProtectedBase = artifacts.require("ProtectedTransparentProxy");
-const GovPool = artifacts.require("GovPool");
 const GovPoolMigration = artifacts.require("GovPoolMigration");
 
-module.exports = async (deployer, logger) => {
-  const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
+module.exports = async (deployer) => {
+  const contractsRegistry = await deployer.deployed(ContractsRegistry, "proxy");
 
-  const poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
+  const poolRegistry = await deployer.deployed(PoolRegistry, await contractsRegistry.getPoolRegistryContract());
 
   const proxies = [
     ["PoolRegistry", poolRegistry.address],
@@ -29,30 +29,20 @@ module.exports = async (deployer, logger) => {
     ["PolynomialPower", await poolRegistry.getProxyBeacon(await poolRegistry.POLYNOMIAL_POWER_NAME())],
   ];
 
-  logger.logContracts(...proxies);
+  Reporter.reportContracts(...proxies);
 
   const govPoolImplementation = await poolRegistry.getImplementation(await poolRegistry.GOV_POOL_NAME());
   const govPoolMigration = (await deployer.deploy(GovPoolMigration)).address;
 
-  logger.logTransaction(
-    await poolRegistry.setNewImplementations([await poolRegistry.GOV_POOL_NAME()], [govPoolMigration]),
-    "Setting a default GovPool implementation"
-  );
+  await poolRegistry.setNewImplementations([await poolRegistry.GOV_POOL_NAME()], [govPoolMigration]);
 
-  for (const [contractName, proxy] of proxies) {
-    logger.logTransaction(
-      await (await SphereXProtectedBase.at(proxy)).transferSphereXAdminRole(deployer.dexeDaoAddress),
-      `Transferring a SphereX admin role for the ${contractName} proxy`
-    );
+  for (const [, proxy] of proxies) {
+    await (await deployer.deployed(SphereXProtectedBase, proxy)).transferSphereXAdminRole(deployer.dexeDaoAddress);
   }
 
-  logger.logTransaction(
-    await (await GovPoolMigration.at(deployer.dexeDaoAddress)).acceptSphereXAdmins(proxies.map((e) => e[1])),
-    "Accepting SphereX admin roles"
-  );
+  await (
+    await deployer.deployed(GovPoolMigration, deployer.dexeDaoAddress)
+  ).acceptSphereXAdmins(proxies.map((e) => e[1]));
 
-  logger.logTransaction(
-    await poolRegistry.setNewImplementations([await poolRegistry.GOV_POOL_NAME()], [govPoolImplementation]),
-    "Setting a default GovPool implementation"
-  );
+  await poolRegistry.setNewImplementations([await poolRegistry.GOV_POOL_NAME()], [govPoolImplementation]);
 };
