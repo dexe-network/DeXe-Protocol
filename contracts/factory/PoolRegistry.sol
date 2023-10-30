@@ -52,7 +52,7 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         _addProxyPool(name, poolAddress);
     }
 
-    function toggleSphereXEngine(bool on) external override onlyOwner {
+    function toggleSphereXEngine(bool on) external onlyOwner {
         address sphereXEngine = on ? _poolSphereXEngine : address(0);
 
         _setSphereXEngine(GOV_POOL_NAME, sphereXEngine);
@@ -65,6 +65,20 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         _setSphereXEngine(NFT_MULTIPLIER_NAME, sphereXEngine);
         _setSphereXEngine(LINEAR_POWER_NAME, sphereXEngine);
         _setSphereXEngine(POLYNOMIAL_POWER_NAME, sphereXEngine);
+    }
+
+    function protectPoolFunctions(
+        string calldata poolName,
+        bytes4[] calldata selectors
+    ) external onlyOwner {
+        SphereXProxyBase(getProxyBeacon(poolName)).addProtectedFuncSigs(selectors);
+    }
+
+    function unprotectPoolFunctions(
+        string calldata poolName,
+        bytes4[] calldata selectors
+    ) external onlyOwner {
+        SphereXProxyBase(getProxyBeacon(poolName)).removeProtectedFuncSigs(selectors);
     }
 
     function isGovPool(address potentialPool) external view override returns (bool) {

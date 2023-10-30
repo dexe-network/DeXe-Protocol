@@ -16,21 +16,6 @@ the other contracts used by the protocol. Its purpose is to keep track of the pr
 contracts, provide upgradeability mechanism and dependency injection mechanism.
 ## Functions info
 
-### toggleSphereXEngine (0x419aa023)
-
-```solidity
-function toggleSphereXEngine(bool on) external
-```
-
-The function to toggle the SphereX engine for all the contracts handled by the registry
-
-
-Parameters:
-
-| Name | Type | Description                          |
-| :--- | :--- | :----------------------------------- |
-| on   | bool | whether to turn the engine on or off |
-
 ### getUserRegistryContract (0x435403b4)
 
 ```solidity

@@ -44,6 +44,20 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
         _setSphereXEngine(CORE_PROPERTIES_NAME, sphereXEngine);
     }
 
+    function protectContractFunctions(
+        string calldata contractName,
+        bytes4[] calldata selectors
+    ) external onlyOwner {
+        SphereXProxyBase(getContract(contractName)).addProtectedFuncSigs(selectors);
+    }
+
+    function unprotectContractFunctions(
+        string calldata contractName,
+        bytes4[] calldata selectors
+    ) external onlyOwner {
+        SphereXProxyBase(getContract(contractName)).removeProtectedFuncSigs(selectors);
+    }
+
     function getUserRegistryContract() external view override returns (address) {
         return getContract(USER_REGISTRY_NAME);
     }

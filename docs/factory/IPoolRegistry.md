@@ -32,21 +32,6 @@ Parameters:
 | name        | string  | the type of the pool           |
 | poolAddress | address | the address of the pool to add |
 
-### toggleSphereXEngine (0x419aa023)
-
-```solidity
-function toggleSphereXEngine(bool on) external
-```
-
-The function to toggle the SphereX engine to all the contracts handled by the registry
-
-
-Parameters:
-
-| Name | Type | Description                          |
-| :--- | :--- | :----------------------------------- |
-| on   | bool | whether to turn the engine on or off |
-
 ### isGovPool (0x9e475551)
 
 ```solidity

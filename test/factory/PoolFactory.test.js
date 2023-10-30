@@ -48,7 +48,7 @@ const TokenSaleProposalRecoverLib = artifacts.require("TokenSaleProposalRecover"
 const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
 const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
 const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
-const SphereXEngineMock = artifacts.require("SphereXEngineMock");
+const SphereXEngine = artifacts.require("SphereXEngine");
 
 ContractsRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
@@ -78,6 +78,7 @@ describe("PoolFactory", () => {
   let testERC20;
   let testERC721;
   let babt;
+  let sphereXEngine;
 
   const reverter = new Reverter();
 
@@ -153,12 +154,14 @@ describe("PoolFactory", () => {
     const _poolRegistry = await PoolRegistry.new();
     const _poolFactory = await PoolFactory.new();
     const uniswapV2Router = await UniswapV2RouterMock.new();
-    const _sphereXEngine = await SphereXEngineMock.new();
+    sphereXEngine = await SphereXEngine.new(0, OWNER);
 
     await contractsRegistry.__OwnableContractsRegistry_init();
 
-    await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
-    await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
+    await sphereXEngine.grantRole(await sphereXEngine.SENDER_ADDER_ROLE(), contractsRegistry.address);
+
+    await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), sphereXEngine.address);
+    await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), sphereXEngine.address);
 
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), _priceFeed.address);
@@ -179,12 +182,13 @@ describe("PoolFactory", () => {
     poolFactory = await PoolFactory.at(await contractsRegistry.getPoolFactoryContract());
     const priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
 
+    await sphereXEngine.grantRole(await sphereXEngine.SENDER_ADDER_ROLE(), poolFactory.address);
+
     await priceFeed.__PriceFeed_init();
     await poolRegistry.__OwnablePoolContractsRegistry_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
 
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_FACTORY_NAME());
-    await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
@@ -464,6 +468,24 @@ describe("PoolFactory", () => {
         const votePower = await PolynomialPower.at(helperContracts[4]);
 
         assert.equal(await votePower.transformVotes(ZERO_ADDR, 2), 2);
+      });
+
+      it("should revert with protection on and deploy with off", async () => {
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+        const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+
+        await sphereXEngine.configureRules("0x0000000000000001");
+        await poolRegistry.protectPoolFunctions(await poolRegistry.TOKEN_SALE_PROPOSAL_NAME(), ["0x69130451"]);
+        await poolRegistry.toggleSphereXEngine(true);
+
+        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
+
+        await truffleAssert.reverts(poolFactory.deployGovPool(POOL_PARAMETERS), "SphereX error: disallowed tx pattern");
+
+        await poolRegistry.unprotectPoolFunctions(await poolRegistry.TOKEN_SALE_PROPOSAL_NAME(), ["0x69130451"]);
+
+        await poolFactory.deployGovPool(POOL_PARAMETERS);
       });
 
       it("should deploy pool with empty token sale", async () => {
