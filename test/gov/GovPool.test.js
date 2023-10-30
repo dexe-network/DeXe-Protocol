@@ -1750,7 +1750,7 @@ describe.only("GovPool", () => {
           await truffleAssert.reverts(govPool.vote(2, true, 0, [1], { from: SECOND }), "Gov: need cancel");
         });
 
-        it("should not vote if delegated zero power nft voted", async () => {
+        it.only("should not vote if delegated zero power nft voted", async () => {
           await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
 
           await nft.mint(OWNER, 1);
@@ -1767,7 +1767,7 @@ describe.only("GovPool", () => {
           await truffleAssert.reverts(govPool.vote(2, true, 0, [], { from: SECOND }), "Gov: need cancel");
         });
 
-        it("should not vote if treasury delegated zero power nft voted", async () => {
+        it.only("should not vote if treasury delegated zero power nft voted", async () => {
           await executeValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(SECOND, "URI")]]);
 
           await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
@@ -4253,7 +4253,7 @@ describe.only("GovPool", () => {
         await govPool.deposit(wei("200000"), [], { from: delegator3 });
       });
 
-      it("should claim rewards properly if all conditions are met", async () => {
+      it.only("should claim rewards properly if all conditions are met", async () => {
         await executeValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(SECOND, "URI")]]);
 
         await delegateTreasury(SECOND, wei("100000"), []);
@@ -4373,7 +4373,7 @@ describe.only("GovPool", () => {
         assert.equal(delegatorRewardsView.expectedRewards, wei("240000"));
       });
 
-      it("should claim rewards properly if multicall delegation and delegator claim first", async () => {
+      it.only("should claim rewards properly if multicall delegation and delegator claim first", async () => {
         let DEFAULT_SETTINGS = POOL_PARAMETERS.settingsParams.proposalSettings[0];
         DEFAULT_SETTINGS.validatorsVote = false;
         DEFAULT_SETTINGS.duration = 10000;
