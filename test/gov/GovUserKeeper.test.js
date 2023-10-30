@@ -1452,6 +1452,8 @@ describe("GovUserKeeper", () => {
       it("should return delegated power properly", async () => {
         await token.approve(userKeeper.address, wei("400"));
 
+        await setTime(startTime + 201);
+
         await userKeeper.depositTokens(OWNER, OWNER, wei("400"));
         await userKeeper.depositNfts(OWNER, OWNER, [1, 2, 3, 4, 5, 6, 7, 9]);
 
@@ -1462,7 +1464,7 @@ describe("GovUserKeeper", () => {
 
         assert.deepEqual((await userKeeper.getDelegatedAssetsPower(OWNER, SECOND)).toFixed(), wei("10400"));
 
-        await setTime(startTime + 201);
+        await setTime(startTime + 1001);
 
         assert.deepEqual((await userKeeper.getDelegatedAssetsPower(OWNER, SECOND)).toFixed(), wei("10400"));
 

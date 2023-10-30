@@ -203,7 +203,7 @@ abstract contract AbstractERC721Power is
     }
 
     function _recalculateRawNftPower(uint256 tokenId) internal {
-        if (!_exists(tokenId) || block.timestamp < powerCalcStartTimestamp) {
+        if (!_isActiveNft(tokenId)) {
             return;
         }
 
@@ -221,7 +221,7 @@ abstract contract AbstractERC721Power is
     }
 
     function _getRawNftPower(uint256 tokenId) internal view returns (uint256) {
-        if (!_exists(tokenId) || block.timestamp < powerCalcStartTimestamp) {
+        if (!_isActiveNft(tokenId)) {
             return 0;
         }
 
@@ -263,6 +263,10 @@ abstract contract AbstractERC721Power is
     }
 
     function _getRawNftMinPower(uint256 tokenId) internal view returns (uint256) {
+        if (!_isActiveNft(tokenId)) {
+            return 0;
+        }
+
         uint256 maxNftPower = _getRawNftMaxPower(tokenId);
 
         return
@@ -275,6 +279,10 @@ abstract contract AbstractERC721Power is
         uint256 requiredCollateralForNft = _nftInfos[tokenId].requiredCollateral;
 
         return requiredCollateralForNft == 0 ? nftRequiredCollateral : requiredCollateralForNft;
+    }
+
+    function _isActiveNft(uint256 tokenId) internal view returns (bool) {
+        return _exists(tokenId) && block.timestamp >= powerCalcStartTimestamp;
     }
 
     function _onlyBeforePowerCalc() internal view {
