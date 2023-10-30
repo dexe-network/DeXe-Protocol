@@ -1171,6 +1171,16 @@ describe("GovUserKeeper", () => {
         "Ownable: caller is not the owner"
       );
     });
+
+    it("should return zero total nfts power", async () => {
+      const totalNftsPowers = await userKeeper.getTotalNftsPower([1, 2, 3], VoteType.PersonalVote, OWNER, true);
+
+      assert.equal(totalNftsPowers[0].toFixed(), "0");
+      assert.deepEqual(
+        totalNftsPowers[1].map((e) => e.toFixed()),
+        []
+      );
+    });
   });
 
   describe("enumerable nft", () => {
@@ -1491,11 +1501,13 @@ describe("GovUserKeeper", () => {
     });
 
     describe("getTotalNftsPower()", () => {
-      it("should return total nfts min power correctly if voter is zero", async () => {
+      beforeEach(async () => {
         await token.approve(nft.address, wei("250"));
         await nft.addCollateral(wei("250"), "7");
+      });
 
-        let totalNftsPowers = await userKeeper.getTotalNftsPower([7, 9], VoteType.MicropoolVote, ZERO_ADDR, true);
+      it("should return total nfts min power correctly if micropool", async () => {
+        let totalNftsPowers = await userKeeper.getTotalNftsPower([7, 9], VoteType.MicropoolVote, SECOND, true);
 
         assert.equal(totalNftsPowers[0].toFixed(), "0");
         assert.deepEqual(
@@ -1517,28 +1529,12 @@ describe("GovUserKeeper", () => {
 
         await userKeeper.delegateNfts(OWNER, SECOND, [7, 9]);
 
-        totalNftsPowers = await userKeeper.getTotalNftsPower([7, 9], VoteType.MicropoolVote, SECOND, false);
-
-        assert.equal(totalNftsPowers[0].toFixed(), wei("15000"));
-        assert.deepEqual(
-          totalNftsPowers[1].map((e) => e.toFixed()),
-          []
-        );
-
         totalNftsPowers = await userKeeper.getTotalNftsPower([7, 9], VoteType.MicropoolVote, SECOND, true);
 
         assert.equal(totalNftsPowers[0].toFixed(), wei("15000"));
         assert.deepEqual(
           totalNftsPowers[1].map((e) => e.toFixed()),
           [wei("5000"), wei("10000")]
-        );
-
-        totalNftsPowers = await userKeeper.getTotalNftsPower([7, 9], VoteType.MicropoolVote, SECOND, false);
-
-        assert.equal(totalNftsPowers[0].toFixed(), wei("15000"));
-        assert.deepEqual(
-          totalNftsPowers[1].map((e) => e.toFixed()),
-          []
         );
 
         await userKeeper.undelegateNfts(OWNER, SECOND, [7, 9]);
@@ -1550,8 +1546,33 @@ describe("GovUserKeeper", () => {
           totalNftsPowers[1].map((e) => e.toFixed()),
           ["0", "0"]
         );
+      });
 
-        await userKeeper.withdrawNfts(OWNER, OWNER, [7]);
+      it("should return total nfts min power correctly if treasury", async () => {
+        await nft.transferFrom(OWNER, userKeeper.address, "7");
+        await nft.transferFrom(OWNER, userKeeper.address, "9");
+
+        let totalNftsPowers = await userKeeper.getTotalNftsPower([7, 9], VoteType.TreasuryVote, SECOND, true);
+
+        assert.equal(totalNftsPowers[0].toFixed(), "0");
+        assert.deepEqual(
+          totalNftsPowers[1].map((e) => e.toFixed()),
+          ["0", "0"]
+        );
+
+        await setTime(startTime + 1001);
+
+        await userKeeper.delegateNftsTreasury(SECOND, [7, 9]);
+
+        totalNftsPowers = await userKeeper.getTotalNftsPower([7, 9], VoteType.MicropoolVote, SECOND, true);
+
+        assert.equal(totalNftsPowers[0].toFixed(), wei("15000"));
+        assert.deepEqual(
+          totalNftsPowers[1].map((e) => e.toFixed()),
+          [wei("5000"), wei("10000")]
+        );
+
+        await userKeeper.undelegateNftsTreasury(SECOND, [7, 9]);
 
         totalNftsPowers = await userKeeper.getTotalNftsPower([7, 9], VoteType.MicropoolVote, SECOND, true);
 
