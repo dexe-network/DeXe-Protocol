@@ -6,6 +6,7 @@ const truffleAssert = require("truffle-assertions");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const UserRegistry = artifacts.require("UserRegistry");
+const SphereXEngineMock = artifacts.require("SphereXEngineMock");
 
 ContractsRegistry.numberFormat = "BigNumber";
 UserRegistry.numberFormat = "BigNumber";
@@ -26,11 +27,13 @@ describe("UserRegistry", () => {
 
     const contractsRegistry = await ContractsRegistry.new();
     const _userRegistry = await UserRegistry.new();
+    const _sphereXEngine = await SphereXEngineMock.new();
 
     await contractsRegistry.__OwnableContractsRegistry_init();
 
     userRegistryName = await contractsRegistry.USER_REGISTRY_NAME();
 
+    await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
     await contractsRegistry.addProxyContract(userRegistryName, _userRegistry.address);
 
     userRegistry = await UserRegistry.at(await contractsRegistry.getUserRegistryContract());

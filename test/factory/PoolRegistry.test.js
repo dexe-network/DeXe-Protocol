@@ -60,6 +60,10 @@ describe("PoolRegistry", () => {
     sphereXCallee = await SphereXCalleeMock.new();
 
     await contractsRegistry.__OwnableContractsRegistry_init();
+
+    await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), sphereXEngine.address);
+    await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), sphereXEngine.address);
+
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), _priceFeed.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), _poolRegistry.address);
@@ -161,7 +165,7 @@ describe("PoolRegistry", () => {
     });
 
     it("should protect when sphereXEngine and selector are on", async () => {
-      await poolRegistry.setSphereXEngine(sphereXEngine.address);
+      await poolRegistry.toggleSphereXEngine(true);
       await poolBeaconProxy.addProtectedFuncSigs([protectedMethodSelector], { from: poolRegistry.address });
 
       await truffleAssert.passes(sphereXCalleeProxy.protectedMethod());
@@ -172,7 +176,7 @@ describe("PoolRegistry", () => {
     });
 
     it("should not protect when selector is off", async () => {
-      await poolRegistry.setSphereXEngine(sphereXEngine.address);
+      await poolRegistry.toggleSphereXEngine(true);
 
       await sphereXEngine.toggleRevert();
 
@@ -180,8 +184,9 @@ describe("PoolRegistry", () => {
     });
 
     it("should not protect when sphereXEngine is off", async () => {
-      await poolRegistry.setSphereXEngine(sphereXEngine.address);
-      await poolRegistry.setSphereXEngine(ZERO_ADDR);
+      await poolRegistry.toggleSphereXEngine(true);
+      await poolRegistry.toggleSphereXEngine(false);
+
       await poolBeaconProxy.addProtectedFuncSigs([protectedMethodSelector], { from: poolRegistry.address });
 
       await sphereXEngine.toggleRevert();
@@ -191,7 +196,7 @@ describe("PoolRegistry", () => {
 
     it("should not set engine if not an operator", async () => {
       await truffleAssert.reverts(
-        poolRegistry.setSphereXEngine(sphereXEngine.address, { from: SECOND }),
+        poolRegistry.toggleSphereXEngine(true, { from: SECOND }),
         "Ownable: caller is not the owner"
       );
     });

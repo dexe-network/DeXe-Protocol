@@ -1,11 +1,16 @@
 const { Reporter } = require("@solarity/hardhat-migrate");
 
+const { accounts } = require("../scripts/utils/utils");
+
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
 const SphereXProtectedBase = artifacts.require("ProtectedTransparentProxy");
+const SphereXEngine = artifacts.require("SphereXEngine");
 const GovPoolMigration = artifacts.require("GovPoolMigration");
 
 module.exports = async (deployer) => {
+  const DEPLOYER = await accounts(0);
+
   const contractsRegistry = await deployer.deployed(ContractsRegistry, "proxy");
 
   const poolRegistry = await deployer.deployed(PoolRegistry, await contractsRegistry.getPoolRegistryContract());
@@ -29,7 +34,13 @@ module.exports = async (deployer) => {
     ["PolynomialPower", await poolRegistry.getProxyBeacon(await poolRegistry.POLYNOMIAL_POWER_NAME())],
   ];
 
+  const engines = [
+    ["GlobalEngine", await contractsRegistry.getSphereXEngineContract()],
+    ["PoolEngine", await contractsRegistry.getPoolSphereXEngineContract()],
+  ];
+
   Reporter.reportContracts(...proxies);
+  Reporter.reportContracts(...engines);
 
   const govPoolImplementation = await poolRegistry.getImplementation(await poolRegistry.GOV_POOL_NAME());
   const govPoolMigration = (await deployer.deploy(GovPoolMigration)).address;
@@ -40,9 +51,19 @@ module.exports = async (deployer) => {
     await (await deployer.deployed(SphereXProtectedBase, proxy)).transferSphereXAdminRole(deployer.dexeDaoAddress);
   }
 
-  await (
-    await deployer.deployed(GovPoolMigration, deployer.dexeDaoAddress)
-  ).acceptSphereXAdmins(proxies.map((e) => e[1]));
+  for (const [, engine] of engines) {
+    const instance = await deployer.deployed(SphereXEngine, engine);
+
+    await instance.grantRole(await instance.OPERATOR_ROLE(), deployer.dexeDaoAddress);
+    await instance.renounceRole(await instance.OPERATOR_ROLE(), DEPLOYER);
+
+    await instance.beginDefaultAdminTransfer(deployer.dexeDaoAddress);
+  }
+
+  const migration = await deployer.deployed(GovPoolMigration, deployer.dexeDaoAddress);
+
+  await migration.acceptSphereXAdmins(proxies.map((e) => e[1]));
+  await migration.acceptSphereXEngines(engines.map((e) => e[1]));
 
   await poolRegistry.setNewImplementations([await poolRegistry.GOV_POOL_NAME()], [govPoolImplementation]);
 };
