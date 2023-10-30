@@ -4,6 +4,9 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "@solarity/solidity-lib/contracts-registry/pools/pool-factory/AbstractPoolFactory.sol";
+import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
+
+import "@spherex-xyz/engine-contracts/src/SphereXEngine.sol";
 
 import "../interfaces/factory/IPoolFactory.sol";
 import "../interfaces/core/IContractsRegistry.sol";
@@ -11,7 +14,7 @@ import "../interfaces/core/ISBT721.sol";
 
 import {DistributionProposal} from "../gov/proposals/DistributionProposal.sol";
 import {TokenSaleProposal} from "../gov/proposals/TokenSaleProposal.sol";
-import {ERC721Expert} from "../gov/ERC721/ERC721Expert.sol";
+import {ERC721Expert} from "../gov/ERC721/experts/ERC721Expert.sol";
 import {ERC721Multiplier} from "../gov/ERC721/multipliers/ERC721Multiplier.sol";
 import "../gov/GovPool.sol";
 import "../gov/user-keeper/GovUserKeeper.sol";
@@ -29,6 +32,7 @@ import "../core/Globals.sol";
 
 contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     using GovTokenDeployer for *;
+    using Vector for Vector.AddressVector;
 
     string internal constant EXPERT_NAME_POSTFIX = (" Expert Nft");
     string internal constant EXPERT_SYMBOL_POSTFIX = (" EXPNFT");
@@ -39,6 +43,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     PoolRegistry internal _poolRegistry;
     CoreProperties internal _coreProperties;
     ISBT721 internal _babt;
+    ISphereXEngine internal _poolSphereXEngine;
 
     mapping(bytes32 => bool) private _usedSalts;
 
@@ -60,11 +65,13 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _poolRegistry = PoolRegistry(registry.getPoolRegistryContract());
         _coreProperties = CoreProperties(registry.getCorePropertiesContract());
         _babt = ISBT721(registry.getBABTContract());
+        _poolSphereXEngine = ISphereXEngine(registry.getPoolSphereXEngineContract());
     }
 
     function deployGovPool(GovPoolDeployParams calldata parameters) external override {
         string memory poolType = _poolRegistry.GOV_POOL_NAME();
 
+        Vector.AddressVector memory vector = Vector.newAddress();
         GovPool.Dependencies memory govPoolDeps;
 
         govPoolDeps.validatorsAddress = payable(_deploy(_poolRegistry.VALIDATORS_NAME()));
@@ -82,21 +89,35 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.name
         );
 
+        vector.push(poolProxy);
+        vector.push(govPoolDeps.validatorsAddress);
+        vector.push(govPoolDeps.userKeeperAddress);
+        vector.push(govPoolDeps.settingsAddress);
+        vector.push(govPoolDeps.expertNftAddress);
+        vector.push(govPoolDeps.nftMultiplierAddress);
+
         if (parameters.votePowerParams.voteType == VotePowerType.LINEAR_VOTES) {
             govPoolDeps.votePowerAddress = _deploy2(
                 _poolRegistry.LINEAR_POWER_NAME(),
                 parameters.name
             );
+
+            vector.push(govPoolDeps.votePowerAddress);
         } else if (parameters.votePowerParams.voteType == VotePowerType.POLYNOMIAL_VOTES) {
             govPoolDeps.votePowerAddress = _deploy2(
                 _poolRegistry.POLYNOMIAL_POWER_NAME(),
                 parameters.name
             );
+
+            vector.push(govPoolDeps.votePowerAddress);
         } else {
             govPoolDeps.votePowerAddress = parameters.votePowerParams.presetAddress;
         }
 
         address tokenSaleProxy = _deployTokenSale(parameters, poolProxy);
+
+        vector.push(distributionAddress);
+        vector.push(tokenSaleProxy);
 
         emit DaoPoolDeployed(
             parameters.name,
@@ -107,6 +128,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.userKeeperParams.tokenAddress,
             msg.sender
         );
+
+        _addToEngine(vector);
 
         _updateSalt(parameters.name);
 
@@ -132,6 +155,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         _register(poolType, poolProxy);
         _injectDependencies(poolProxy);
+        _injectDependencies(tokenSaleProxy);
     }
 
     function predictGovAddresses(
@@ -161,12 +185,19 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address poolProxy
     ) internal returns (address tokenSaleProxy) {
         tokenSaleProxy = _deploy2(_poolRegistry.TOKEN_SALE_PROPOSAL_NAME(), parameters.name);
-        _injectDependencies(tokenSaleProxy);
 
         bytes32 govSalt = _calculateGovSalt(tx.origin, parameters.name);
 
         if (parameters.userKeeperParams.tokenAddress == govSalt.predictTokenAddress()) {
             poolProxy.deployToken(tokenSaleProxy, govSalt, parameters.tokenSaleParams.tokenParams);
+        }
+    }
+
+    function _addToEngine(Vector.AddressVector memory vector) internal {
+        ISphereXEngine engine = _poolSphereXEngine;
+
+        for (uint256 i = 0; i < vector.length(); i++) {
+            engine.addAllowedSenderOnChain(vector.at(i));
         }
     }
 

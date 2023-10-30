@@ -14,7 +14,7 @@ import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
 import "../interfaces/gov/IGovPool.sol";
-import "../interfaces/gov/ERC721/IERC721Expert.sol";
+import "../interfaces/gov/ERC721/experts/IERC721Expert.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/ISBT721.sol";

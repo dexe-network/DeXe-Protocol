@@ -1,15 +1,12 @@
+const { Reporter } = require("@solarity/hardhat-migrate");
+
 const { PRECISION } = require("../scripts/utils/constants");
 
-const Proxy = artifacts.require("ERC1967Proxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
-
 const UserRegistry = artifacts.require("UserRegistry");
-
 const CoreProperties = artifacts.require("CoreProperties");
 const PriceFeed = artifacts.require("PriceFeed");
-
 const DexeExpertNft = artifacts.require("ERC721Expert");
-
 const PoolFactory = artifacts.require("PoolFactory");
 const PoolRegistry = artifacts.require("PoolRegistry");
 
@@ -21,57 +18,40 @@ const DEFAULT_CORE_PROPERTIES = {
   treasuryVoteRewardsPercentage: PRECISION.times(1.618).toFixed(),
 };
 
-module.exports = async (deployer, logger) => {
-  const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
+module.exports = async (deployer) => {
+  const contractsRegistry = await deployer.deployed(ContractsRegistry, "proxy");
 
-  const userRegistry = await UserRegistry.at(await contractsRegistry.getUserRegistryContract());
+  const userRegistry = await deployer.deployed(UserRegistry, await contractsRegistry.getUserRegistryContract());
+  const coreProperties = await deployer.deployed(CoreProperties, await contractsRegistry.getCorePropertiesContract());
 
-  const coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
-  const priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
+  const priceFeed = await deployer.deployed(PriceFeed, await contractsRegistry.getPriceFeedContract());
 
-  const expertNft = await DexeExpertNft.at(await contractsRegistry.getDexeExpertNftContract());
+  const expertNft = await deployer.deployed(DexeExpertNft, await contractsRegistry.getDexeExpertNftContract());
 
-  const poolFactory = await PoolFactory.at(await contractsRegistry.getPoolFactoryContract());
-  const poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
-
-  ////////////////////////////////////////////////////////////
-
-  console.log();
-
-  logger.logTransaction(
-    await userRegistry.__UserRegistry_init(await contractsRegistry.USER_REGISTRY_NAME()),
-    "Init UserRegistry"
-  );
-
-  logger.logTransaction(await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES), "Init CoreProperties");
-  logger.logTransaction(await priceFeed.__PriceFeed_init(), "Init PriceFeed");
-
-  logger.logTransaction(await expertNft.__ERC721Expert_init("Dexe Expert Nft", "DEXEXPNFT"), "Init ERC721Expert");
-
-  logger.logTransaction(await poolRegistry.__OwnablePoolContractsRegistry_init(), "Init PoolRegistry");
+  const poolFactory = await deployer.deployed(PoolFactory, await contractsRegistry.getPoolFactoryContract());
+  const poolRegistry = await deployer.deployed(PoolRegistry, await contractsRegistry.getPoolRegistryContract());
 
   ////////////////////////////////////////////////////////////
 
-  console.log();
+  await userRegistry.__UserRegistry_init(await contractsRegistry.USER_REGISTRY_NAME());
+  await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
 
-  logger.logTransaction(
-    await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME()),
-    "Inject PriceFeed"
-  );
+  await priceFeed.__PriceFeed_init();
 
-  logger.logTransaction(
-    await contractsRegistry.injectDependencies(await contractsRegistry.POOL_FACTORY_NAME()),
-    "Inject PoolFactory"
-  );
+  await expertNft.__ERC721Expert_init("Dexe Expert Nft", "DEXEXPNFT");
 
-  logger.logTransaction(
-    await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME()),
-    "Inject PoolRegistry"
-  );
+  await poolRegistry.__OwnablePoolContractsRegistry_init();
 
   ////////////////////////////////////////////////////////////
 
-  logger.logContracts(
+  await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
+
+  await contractsRegistry.injectDependencies(await contractsRegistry.POOL_FACTORY_NAME());
+  await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
+
+  ////////////////////////////////////////////////////////////
+
+  Reporter.reportContracts(
     ["ContractsRegistry", contractsRegistry.address],
     ["UserRegistry", userRegistry.address],
     ["CoreProperties", coreProperties.address],

@@ -9,11 +9,11 @@ import "@solarity/solidity-lib/libs/utils/TypeCaster.sol";
 
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../interfaces/gov/voting/IVotePower.sol";
+import "../../../interfaces/gov/ERC721/powers/IERC721Power.sol";
 
 import "../../math/MathHelper.sol";
 import "../../utils/TypeHelper.sol";
 
-import "../../../gov/ERC721/ERC721Power.sol";
 import "../../../gov/user-keeper/GovUserKeeper.sol";
 
 library GovUserKeeperView {
@@ -181,7 +181,7 @@ library GovUserKeeperView {
             return (nftIds.length * nftInfo.individualPower, perNftPower);
         }
 
-        ERC721Power nftContract = ERC721Power(nftInfo.nftAddress);
+        IERC721Power nftContract = IERC721Power(nftInfo.nftAddress);
 
         for (uint256 i = 0; i < nftIds.length; ++i) {
             uint256 currentNftPower = isMinPower

@@ -1,12 +1,12 @@
+const { Reporter } = require("@solarity/hardhat-migrate");
+
 const config = require("./config/config.json");
 const { getBytesPolynomialPowerInit } = require("./config/utils.js");
 
 const { ZERO_ADDR, PRECISION } = require("../scripts/utils/constants");
 const { accounts, wei } = require("../scripts/utils/utils");
 
-const Proxy = artifacts.require("ERC1967Proxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
-
 const PoolFactory = artifacts.require("PoolFactory");
 
 let POOL_PARAMETERS = {
@@ -153,17 +153,15 @@ const TOKENSALE_SETTINGS = {
   executorDescription: "tokensale",
 };
 
-module.exports = async (deployer, logger) => {
-  const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
+module.exports = async (deployer) => {
+  const contractsRegistry = await deployer.deployed(ContractsRegistry, "proxy");
 
-  const poolFactory = await PoolFactory.at(await contractsRegistry.getPoolFactoryContract());
+  const poolFactory = await deployer.deployed(PoolFactory, await contractsRegistry.getPoolFactoryContract());
 
   const predictedGovAddresses = await poolFactory.predictGovAddresses(await accounts(0), POOL_PARAMETERS.name);
+  deployer.dexeDaoAddress = predictedGovAddresses.govPool;
 
-  logger.logTransaction(
-    await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), predictedGovAddresses.govPool),
-    "Add Treasury"
-  );
+  await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), deployer.dexeDaoAddress);
 
   POOL_PARAMETERS.settingsParams.proposalSettings.push(DP_SETTINGS);
   POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(predictedGovAddresses.distributionProposal);
@@ -171,13 +169,7 @@ module.exports = async (deployer, logger) => {
   POOL_PARAMETERS.settingsParams.proposalSettings.push(TOKENSALE_SETTINGS);
   POOL_PARAMETERS.settingsParams.additionalProposalExecutors.push(predictedGovAddresses.govTokenSale);
 
-  let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);
+  await poolFactory.deployGovPool(POOL_PARAMETERS);
 
-  const dexeDaoAddress = tx.receipt.logs[0].args.govPool;
-
-  deployer.dexeDaoAddress = dexeDaoAddress;
-
-  logger.logTransaction(tx, "Deployed DEXE DAO");
-
-  logger.logContracts(["DEXE DAO", dexeDaoAddress]);
+  Reporter.reportContracts(["DEXE DAO", deployer.dexeDaoAddress]);
 };

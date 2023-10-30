@@ -10,7 +10,7 @@ const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC721Mock = artifacts.require("ERC721Mock");
 const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
-const ERC721Power = artifacts.require("ERC721Power");
+const ERC721RawPower = artifacts.require("ERC721RawPower");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolMock = artifacts.require("GovPoolMock");
 const VotePowerMock = artifacts.require("VotePowerMock");
@@ -19,7 +19,7 @@ GovUserKeeper.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 ERC721Mock.numberFormat = "BigNumber";
 ERC721EnumMock.numberFormat = "BigNumber";
-ERC721Power.numberFormat = "BigNumber";
+ERC721RawPower.numberFormat = "BigNumber";
 
 describe("GovUserKeeper", () => {
   let OWNER;
@@ -1467,14 +1467,15 @@ describe("GovUserKeeper", () => {
     beforeEach("setup", async () => {
       startTime = await getCurrentBlockTime();
 
-      nft = await ERC721Power.new();
-      await nft.__ERC721Power_init(
+      nft = await ERC721RawPower.new();
+
+      await nft.__ERC721RawPower_init(
         "Power",
         "Power",
         startTime + 200,
         token.address,
-        wei("10000"),
         PRECISION.times(toBN("0.01")),
+        wei("10000"),
         wei("500")
       );
 

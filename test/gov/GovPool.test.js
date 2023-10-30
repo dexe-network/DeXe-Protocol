@@ -62,7 +62,7 @@ const ERC721EnumMock = artifacts.require("ERC721EnumerableMock");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const LinearPower = artifacts.require("LinearPower");
 const VotePowerMock = artifacts.require("VotePowerMock");
-const ERC721Power = artifacts.require("ERC721Power");
+const ERC721RawPower = artifacts.require("ERC721RawPower");
 const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC20 = artifacts.require("ERC20");
@@ -82,6 +82,7 @@ const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
 const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
 const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
 const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
+const SphereXEngineMock = artifacts.require("SphereXEngineMock");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -229,21 +230,14 @@ describe("GovPool", () => {
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721EnumMock.new("Mock", "Mock");
     attacker = await GovPoolAttackerMock.new();
-
-    nftPower = await ERC721Power.new();
-    await nftPower.__ERC721Power_init(
-      "NFTPowerMock",
-      "NFTPM",
-      (await getCurrentBlockTime()) + 200,
-      token.address,
-      toPercent("90"),
-      toPercent("0.01"),
-      "540"
-    );
-
+    const _sphereXEngine = await SphereXEngineMock.new();
+    nftPower = await ERC721RawPower.new();
     rewardToken = await ERC20Mock.new("REWARD", "RWD", 18);
 
     await contractsRegistry.__OwnableContractsRegistry_init();
+
+    await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
+    await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
 
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), _poolRegistry.address);
@@ -257,6 +251,16 @@ describe("GovPool", () => {
 
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
+
+    await nftPower.__ERC721RawPower_init(
+      "NFTPowerMock",
+      "NFTPM",
+      (await getCurrentBlockTime()) + 200,
+      token.address,
+      toPercent("0.01"),
+      toPercent("90"),
+      "540"
+    );
 
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
     await poolRegistry.__OwnablePoolContractsRegistry_init();

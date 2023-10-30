@@ -31,6 +31,7 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     string public constant POLYNOMIAL_POWER_NAME = "POLYNOMIAL_POWER";
 
     address internal _poolFactory;
+    address internal _poolSphereXEngine;
 
     modifier onlyPoolFactory() {
         _onlyPoolFactory();
@@ -41,6 +42,7 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         super.setDependencies(contractsRegistry, data);
 
         _poolFactory = IContractsRegistry(contractsRegistry).getPoolFactoryContract();
+        _poolSphereXEngine = IContractsRegistry(contractsRegistry).getPoolSphereXEngineContract();
     }
 
     function addProxyPool(
@@ -50,7 +52,9 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         _addProxyPool(name, poolAddress);
     }
 
-    function setSphereXEngine(address sphereXEngine) external onlyOwner {
+    function toggleSphereXEngine(bool on) external override onlyOwner {
+        address sphereXEngine = on ? _poolSphereXEngine : address(0);
+
         _setSphereXEngine(GOV_POOL_NAME, sphereXEngine);
         _setSphereXEngine(SETTINGS_NAME, sphereXEngine);
         _setSphereXEngine(VALIDATORS_NAME, sphereXEngine);

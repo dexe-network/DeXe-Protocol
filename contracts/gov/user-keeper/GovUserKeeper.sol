@@ -16,11 +16,10 @@ import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
 
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/IGovPool.sol";
+import "../../interfaces/gov/ERC721/powers/IERC721Power.sol";
 
 import "../../libs/math/MathHelper.sol";
 import "../../libs/gov/gov-user-keeper/GovUserKeeperView.sol";
-
-import "../ERC721/ERC721Power.sol";
 
 contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgradeable {
     using SafeERC20 for IERC20;
@@ -201,7 +200,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             receiverNftBalance.add(nftId);
 
             if (isSupportPower) {
-                _nftInfo.nftMinPower[nftId] = nft.getMinPowerForNft(nftId);
+                _nftInfo.nftMinPower[nftId] = nft.getNftMinPower(nftId);
             }
         }
     }
@@ -469,11 +468,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             return;
         }
 
-        ERC721Power nftContract = ERC721Power(_nftInfo.nftAddress);
-
-        for (uint256 i = 0; i < nftIds.length; i++) {
-            nftContract.recalculateNftPower(nftIds[i]);
-        }
+        IERC721Power(_nftInfo.nftAddress).recalculateNftPowers(nftIds);
     }
 
     function setERC20Address(address _tokenAddress) external override onlyOwner {
@@ -553,7 +548,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             totalBalance += _usersInfo[voter].allDelegatedBalance.nfts.length();
         }
 
-        ownedBalance = ERC721Upgradeable(nftAddress).balanceOf(voter);
+        ownedBalance = IERC721Upgradeable(nftAddress).balanceOf(voter);
         totalBalance += ownedBalance;
     }
 
@@ -582,7 +577,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             nftsVector.push(_usersInfo[voter].allDelegatedBalance.nfts.values());
         }
 
-        ownedLength = ERC721Upgradeable(nftAddress).balanceOf(voter);
+        ownedLength = IERC721Upgradeable(nftAddress).balanceOf(voter);
 
         if (_nftInfo.totalSupply != 0) {
             nftsVector.push(new uint256[](ownedLength));
@@ -590,7 +585,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             return (nftsVector.toArray(), ownedLength);
         }
 
-        ERC721Power nftContract = ERC721Power(nftAddress);
+        IERC721Power nftContract = IERC721Power(nftAddress);
 
         for (uint256 i; i < ownedLength; i++) {
             nftsVector.push(nftContract.tokenOfOwnerByIndex(voter, i));
