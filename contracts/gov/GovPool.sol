@@ -538,9 +538,10 @@ contract GovPool is
     }
 
     function getOffchainSignHash(
-        string calldata resultHash
+        string calldata resultHash,
+        address user
     ) external view override returns (bytes32) {
-        return resultHash.getSignHash();
+        return resultHash.getSignHash(user);
     }
 
     function getExpertStatus(address user) public view override returns (bool) {

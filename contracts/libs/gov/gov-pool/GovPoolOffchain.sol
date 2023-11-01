@@ -20,7 +20,7 @@ library GovPoolOffchain {
         string calldata resultsHash,
         bytes calldata signature
     ) external {
-        bytes32 signHash_ = getSignHash(resultsHash);
+        bytes32 signHash_ = getSignHash(resultsHash, msg.sender);
 
         require(!offChain.usedHashes[signHash_], "Gov: already used");
         require(
@@ -36,8 +36,8 @@ library GovPoolOffchain {
         emit OffchainResultsSaved(resultsHash, msg.sender);
     }
 
-    function getSignHash(string calldata resultsHash) public view returns (bytes32) {
-        return keccak256(abi.encodePacked(resultsHash, block.chainid, address(this)));
+    function getSignHash(string calldata resultsHash, address user) public view returns (bytes32) {
+        return keccak256(abi.encodePacked(resultsHash, user, block.chainid, address(this)));
     }
 
     function _payCommission() internal {

@@ -5022,7 +5022,7 @@ describe("GovPool", () => {
       const resultsHash = "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d";
       const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
 
-      let signHash = await govPool.getOffchainSignHash(resultsHash);
+      let signHash = await govPool.getOffchainSignHash(resultsHash, OWNER);
       let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
 
       const treasury = await contractsRegistry.getTreasuryContract();
@@ -5042,7 +5042,7 @@ describe("GovPool", () => {
       const resultsHash = "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d";
       const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
 
-      let signHash = await govPool.getOffchainSignHash(resultsHash);
+      let signHash = await govPool.getOffchainSignHash(resultsHash, OWNER);
       let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
 
       await govPool.saveOffchainResults(resultsHash, signature);
@@ -5073,7 +5073,7 @@ describe("GovPool", () => {
 
       await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
 
-      let signHash = await govPool.getOffchainSignHash(resultsHash);
+      let signHash = await govPool.getOffchainSignHash(resultsHash, OWNER);
       let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
 
       const balance = await rewardToken.balanceOf(govPool.address);
@@ -5087,7 +5087,7 @@ describe("GovPool", () => {
       const resultsHash = "IPFS";
       const privateKey = Buffer.from(NOT_OWNER_PRIVATE_KEY, "hex");
 
-      let signHash = await govPool.getOffchainSignHash(resultsHash);
+      let signHash = await govPool.getOffchainSignHash(resultsHash, OWNER);
       let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
 
       await truffleAssert.reverts(govPool.saveOffchainResults(resultsHash, signature), "Gov: invalid signer");
@@ -5097,11 +5097,24 @@ describe("GovPool", () => {
       const resultsHash = "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d";
       const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
 
-      let signHash = await govPool.getOffchainSignHash(resultsHash);
+      let signHash = await govPool.getOffchainSignHash(resultsHash, OWNER);
       let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
 
       await govPool.saveOffchainResults(resultsHash, signature);
       await truffleAssert.reverts(govPool.saveOffchainResults(resultsHash, signature), "Gov: already used");
+    });
+
+    it("should revert if save is frontrun", async () => {
+      const resultsHash = "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d";
+      const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
+
+      let signHash = await govPool.getOffchainSignHash(resultsHash, OWNER);
+      let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
+
+      await truffleAssert.reverts(
+        govPool.saveOffchainResults(resultsHash, signature, { from: SECOND }),
+        "Gov: invalid signer"
+      );
     });
   });
 
