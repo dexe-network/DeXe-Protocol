@@ -50,7 +50,7 @@ library GovPoolUnlock {
             userProposals.remove(proposalId);
         }
 
-        if (maxLockedAmount <= maxUnlocked) {
+        if (maxLockedAmount == maxUnlocked) {
             userKeeper.updateMaxTokenLockedAmount(userProposals.values(), user);
         }
     }

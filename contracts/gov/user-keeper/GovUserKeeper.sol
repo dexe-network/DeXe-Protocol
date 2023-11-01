@@ -398,7 +398,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             newLockedAmount = newLockedAmount.max(voterInfo.lockedInProposals[lockedProposals[i]]);
 
             if (newLockedAmount == lockedAmount) {
-                break;
+                return;
             }
         }
 

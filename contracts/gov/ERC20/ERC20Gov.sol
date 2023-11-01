@@ -73,10 +73,7 @@ contract ERC20Gov is
         _unpause();
     }
 
-    function blacklist(
-        address[] calldata accounts,
-        bool value
-    ) external override whenNotPaused onlyGov {
+    function blacklist(address[] calldata accounts, bool value) external override onlyGov {
         if (value) {
             _blacklistAccounts.add(accounts);
         } else {

@@ -325,7 +325,7 @@ contract GovPool is
 
         _checkBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender);
 
-        _unlock(msg.sender);
+        _unlock(delegatee);
 
         _updateNftPowers(nftIds);
 
@@ -403,7 +403,7 @@ contract GovPool is
         string calldata resultsHash,
         bytes calldata signature
     ) external override onlyBABTHolder {
-        resultsHash.saveOffchainResults(signature, _offChain);
+        _offChain.saveOffchainResults(resultsHash, signature);
 
         _updateRewards(0, msg.sender, RewardType.SaveOffchainResults);
     }

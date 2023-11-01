@@ -16,9 +16,9 @@ library GovPoolOffchain {
     event OffchainResultsSaved(string resultsHash, address sender);
 
     function saveOffchainResults(
+        IGovPool.OffChain storage offChain,
         string calldata resultsHash,
-        bytes calldata signature,
-        IGovPool.OffChain storage offChain
+        bytes calldata signature
     ) external {
         bytes32 signHash_ = getSignHash(resultsHash);
 
