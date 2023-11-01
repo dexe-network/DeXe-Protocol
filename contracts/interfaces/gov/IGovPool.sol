@@ -559,8 +559,12 @@ interface IGovPool {
 
     /// @notice The function to get the sign hash from string resultsHash, chainid, govPool address
     /// @param resultsHash the ipfs hash
+    /// @param user the user who requests the signature
     /// @return bytes32 hash
-    function getOffchainSignHash(string calldata resultsHash) external view returns (bytes32);
+    function getOffchainSignHash(
+        string calldata resultsHash,
+        address user
+    ) external view returns (bytes32);
 
     /// @notice The function to get expert status of a voter
     /// @return address of a person, who votes

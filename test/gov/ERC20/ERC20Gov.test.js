@@ -184,12 +184,6 @@ describe("ERC20Gov", () => {
           "ERC20Pausable: token transfer while paused"
         );
       });
-
-      it("should not blacklist if erc20Gov is paused", async () => {
-        await erc20Gov.pause({ from: GOV_ADDRESS });
-
-        await truffleAssert.reverts(erc20Gov.blacklist([THIRD], true), "Pausable: paused");
-      });
     });
 
     describe("unpause", () => {

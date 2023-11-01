@@ -1265,11 +1265,12 @@ Return values:
 | validator   | address | the verifier address  |
 | resultsHash | string  | the ipfs hash         |
 
-### getOffchainSignHash (0x63d1cd0f)
+### getOffchainSignHash (0x8e19ade9)
 
 ```solidity
 function getOffchainSignHash(
-    string calldata resultsHash
+    string calldata resultsHash,
+    address user
 ) external view returns (bytes32)
 ```
 
@@ -1278,9 +1279,10 @@ The function to get the sign hash from string resultsHash, chainid, govPool addr
 
 Parameters:
 
-| Name        | Type   | Description    |
-| :---------- | :----- | :------------- |
-| resultsHash | string | the ipfs hash  |
+| Name        | Type    | Description                          |
+| :---------- | :------ | :----------------------------------- |
+| resultsHash | string  | the ipfs hash                        |
+| user        | address | the user who requests the signature  |
 
 
 Return values:

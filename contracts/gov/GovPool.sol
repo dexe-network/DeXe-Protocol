@@ -325,7 +325,7 @@ contract GovPool is
 
         _checkBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender);
 
-        _unlock(msg.sender);
+        _unlock(delegatee);
 
         _updateNftPowers(nftIds);
 
@@ -403,7 +403,7 @@ contract GovPool is
         string calldata resultsHash,
         bytes calldata signature
     ) external override onlyBABTHolder {
-        resultsHash.saveOffchainResults(signature, _offChain);
+        _offChain.saveOffchainResults(resultsHash, signature);
 
         _updateRewards(0, msg.sender, RewardType.SaveOffchainResults);
     }
@@ -538,9 +538,10 @@ contract GovPool is
     }
 
     function getOffchainSignHash(
-        string calldata resultHash
+        string calldata resultHash,
+        address user
     ) external view override returns (bytes32) {
-        return resultHash.getSignHash();
+        return resultHash.getSignHash(user);
     }
 
     function getExpertStatus(address user) public view override returns (bool) {

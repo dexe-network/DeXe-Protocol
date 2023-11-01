@@ -65,6 +65,8 @@ contract DistributionProposal is IDistributionProposal, IProposalValidator, Init
             (bool ok, ) = payable(msg.sender).call{value: amount - actualAmount}("");
             require(ok, "DP: failed to send back eth");
         } else {
+            require(msg.value == 0, "DP: wrong native amount");
+
             IERC20Metadata(token).safeTransferFrom(
                 msg.sender,
                 address(this),

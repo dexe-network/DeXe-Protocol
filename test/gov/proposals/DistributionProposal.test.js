@@ -537,6 +537,22 @@ describe("DistributionProposal", () => {
 
           await truffleAssert.reverts(govPool.execute(2), "DP: wrong native amount");
         });
+
+        it("should revert if msg.value > 0 and non-native token", async () => {
+          await web3.eth.sendTransaction({ to: govPool.address, value: wei("1"), from: OWNER });
+
+          await govPool.createProposal(
+            "example.com",
+            [[dp.address, 1, getBytesDistributionProposal(2, token.address, 1)]],
+            []
+          );
+
+          await govPool.vote(2, true, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+          await setTime(startTime + 20000);
+
+          await truffleAssert.reverts(govPool.execute(2), "DP: wrong native amount");
+        });
       });
     });
 

@@ -145,7 +145,6 @@ library TokenSaleProposalBuy {
                 .getHelperContracts();
 
             _canParticipate =
-                _canParticipate &&
                 IGovUserKeeper(govUserKeeper)
                 .votingPower(
                     user.asSingletonArray(),
@@ -155,20 +154,20 @@ library TokenSaleProposalBuy {
                 participationInfo.requiredDaoVotes;
         }
 
-        if (participationInfo.isWhitelisted) {
-            _canParticipate = _canParticipate && tokenSaleProposal.balanceOf(user, tierId) > 0;
+        if (_canParticipate && participationInfo.isWhitelisted) {
+            _canParticipate = tokenSaleProposal.balanceOf(user, tierId) > 0;
         }
 
-        if (participationInfo.isBABTed) {
-            _canParticipate = _canParticipate && tokenSaleProposal.babt().balanceOf(user) > 0;
+        if (_canParticipate && participationInfo.isBABTed) {
+            _canParticipate = tokenSaleProposal.babt().balanceOf(user) > 0;
         }
 
-        if (participationInfo.requiredTokenLock.length() > 0) {
-            _canParticipate = _canParticipate && _checkUserLockedTokens(tier, user);
+        if (_canParticipate && participationInfo.requiredTokenLock.length() > 0) {
+            _canParticipate = _checkUserLockedTokens(tier, user);
         }
 
-        if (participationInfo.requiredNftLock.length() > 0) {
-            _canParticipate = _canParticipate && _checkUserLockedNfts(tier, user);
+        if (_canParticipate && participationInfo.requiredNftLock.length() > 0) {
+            _canParticipate = _checkUserLockedNfts(tier, user);
         }
 
         return _canParticipate;
