@@ -123,15 +123,16 @@ library UniswapPathFinder {
         address tokenOut,
         IPriceFeed.SwapPath memory providedPath
     ) internal pure returns (bool verified) {
-        verified = providedPath.path.length < 3
-            ? false
-            : providedPath.path.length != providedPath.poolTypes.length + 1
-            ? false
-            : providedPath.path[0] != tokenIn
-            ? false
-            : providedPath.path[providedPath.path.length - 1] != tokenOut
-            ? false
-            : true;
+        if (
+            providedPath.path.length < 3 ||
+            providedPath.path.length != providedPath.poolTypes.length + 1 ||
+            providedPath.path[0] != tokenIn ||
+            providedPath.path[providedPath.path.length - 1] != tokenOut
+        ) {
+            verified = false;
+        } else {
+            verified = true;
+        }
 
         for (uint i = 0; i < providedPath.poolTypes.length; i++) {
             if (providedPath.poolTypes[i] == IPriceFeed.PoolType.None) {
@@ -272,13 +273,13 @@ library UniswapPathFinder {
     }
 
     function _feeByPoolType(IPriceFeed.PoolType poolType) internal pure returns (uint24 fee) {
-        poolType == IPriceFeed.PoolType.UniswapV3Fee10000
-            ? fee = 10000
-            : poolType == IPriceFeed.PoolType.UniswapV3Fee3000
-            ? fee = 3000
-            : poolType == IPriceFeed.PoolType.UniswapV3Fee500
-            ? fee = 500
-            : fee = 0;
+        if (poolType == IPriceFeed.PoolType.UniswapV3Fee10000) {
+            fee = 10000;
+        } else if (poolType == IPriceFeed.PoolType.UniswapV3Fee3000) {
+            fee = 3000;
+        } else {
+            fee = 500;
+        }
     }
 
     function _calculateSingleSwapV2(
