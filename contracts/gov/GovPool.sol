@@ -146,11 +146,11 @@ contract GovPool is
         _poolRegistry = registry.getPoolRegistryContract();
     }
 
-    function unlock(address user) public override onlyBABTHolder {
+    function unlock(address user) external override onlyBABTHolder {
         _unlock(user);
     }
 
-    function execute(uint256 proposalId) public override onlyBABTHolder {
+    function execute(uint256 proposalId) external override onlyBABTHolder {
         _updateRewards(proposalId, msg.sender, RewardType.Execute);
 
         _proposals.execute(proposalId);
@@ -412,7 +412,7 @@ contract GovPool is
 
     receive() external payable {}
 
-    function getProposalState(uint256 proposalId) public view override returns (ProposalState) {
+    function getProposalState(uint256 proposalId) external view override returns (ProposalState) {
         return _proposals.getProposalState(proposalId);
     }
 

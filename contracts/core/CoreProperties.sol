@@ -2,11 +2,8 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
-import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/IContractsRegistry.sol";
@@ -14,10 +11,6 @@ import "../interfaces/core/IContractsRegistry.sol";
 import "./Globals.sol";
 
 contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependant {
-    using EnumerableSet for EnumerableSet.AddressSet;
-    using Paginator for EnumerableSet.AddressSet;
-    using Math for uint256;
-
     CoreParameters public coreParameters;
 
     address internal _treasuryAddress;
