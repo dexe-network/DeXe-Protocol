@@ -234,21 +234,17 @@ library UniswapPathFinder {
         bool exactIn
     ) internal returns (uint256 amountAfterHop, IPriceFeed.PoolType poolType) {
         (amountAfterHop, poolType) = (exactIn ? 0 : type(uint256).max, IPriceFeed.PoolType.None);
-        uint256 swappedAmount = _calculateSingleSwapV2(amount, tokenIn, tokenOut, exactIn);
-        if (exactIn ? swappedAmount > amountAfterHop : swappedAmount < amountAfterHop) {
-            (amountAfterHop, poolType) = (swappedAmount, IPriceFeed.PoolType.UniswapV2);
-        }
-        for (uint i = 2; i < 5; i++) {
-            IPriceFeed.PoolType v3PoolType = IPriceFeed.PoolType(i);
-            swappedAmount = _calculateSingleSwapV3(
+        for (uint i = 1; i < 5; i++) {
+            IPriceFeed.PoolType currentPoolType = IPriceFeed.PoolType(i);
+            uint256 swappedAmount = _calculateSingleSwap(
                 amount,
                 tokenIn,
                 tokenOut,
-                _feeByPoolType(v3PoolType),
+                currentPoolType,
                 exactIn
             );
             if (exactIn ? swappedAmount > amountAfterHop : swappedAmount < amountAfterHop) {
-                (amountAfterHop, poolType) = (swappedAmount, v3PoolType);
+                (amountAfterHop, poolType) = (swappedAmount, currentPoolType);
             }
         }
     }
@@ -289,21 +285,22 @@ library UniswapPathFinder {
         bool exactIn
     ) internal view returns (uint256) {
         IUniswapV2Router02 router = IUniswapV2Router02(PriceFeed(address(this)).uniswapV2Router());
+        function(uint256, address[] memory)
+            external
+            view
+            returns (uint256[] memory) swapFunction = exactIn
+                ? router.getAmountsOut
+                : router.getAmountsIn;
+
         address[] memory path = new address[](2);
         path[0] = tokenIn;
         path[1] = tokenOut;
-        if (exactIn) {
-            try router.getAmountsOut(amount, path) returns (uint256[] memory amounts) {
-                return amounts[1];
-            } catch {
-                return 0;
-            }
-        } else {
-            try router.getAmountsIn(amount, path) returns (uint256[] memory amounts) {
-                return amounts[0];
-            } catch {
-                return type(uint256).max;
-            }
+
+        try swapFunction(amount, path) returns (uint256[] memory amounts) {
+            uint256 index = exactIn ? 1 : 0;
+            return amounts[index];
+        } catch {
+            return exactIn ? 0 : type(uint256).max;
         }
     }
 
@@ -315,23 +312,16 @@ library UniswapPathFinder {
         bool exactIn
     ) internal returns (uint256) {
         IQuoter quoter = IQuoter(PriceFeed(address(this)).uniswapV3Quoter());
+        function(address, address, uint24, uint256, uint160)
+            external
+            returns (uint256) swapFunction = exactIn
+                ? quoter.quoteExactInputSingle
+                : quoter.quoteExactOutputSingle;
 
-        if (exactIn) {
-            try quoter.quoteExactInputSingle(tokenIn, tokenOut, fee, amount, 0) returns (
-                uint256 newAmount
-            ) {
-                return newAmount;
-            } catch {
-                return 0;
-            }
-        } else {
-            try quoter.quoteExactOutputSingle(tokenIn, tokenOut, fee, amount, 0) returns (
-                uint256 newAmount
-            ) {
-                return newAmount;
-            } catch {
-                return type(uint256).max;
-            }
+        try swapFunction(tokenIn, tokenOut, fee, amount, 0) returns (uint256 newAmount) {
+            return newAmount;
+        } catch {
+            return exactIn ? 0 : type(uint256).max;
         }
     }
 }
