@@ -9,7 +9,7 @@ module.exports = async (deployer) => {
 
   // TODO use `config.tokens.BABT` instead
   const babtAddress = (await deployer.deploy(BABT)).address;
-  const nftAddress = (await deployer.deploy(DexeExpertNft, [], { name: "GlobalExpert" })).address;
+  const nftAddress = (await deployer.deploy(DexeExpertNft, { name: "GlobalExpert" })).address;
 
   await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), config.tokens.BUSD);
   await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), config.tokens.DEXE);

@@ -24,7 +24,7 @@ module.exports = async (deployer) => {
   const distributionProposal = await deployer.deploy(DistributionProposal);
 
   const govSettings = await deployer.deploy(GovSettings);
-  const expertNft = await deployer.deploy(ERC721Expert, [], { name: "LocalExpert" });
+  const expertNft = await deployer.deploy(ERC721Expert, { name: "LocalExpert" });
   const nftMultiplier = await deployer.deploy(ERC721Multiplier);
   const linearPower = await deployer.deploy(LinearPower);
   const polynomialPower = await deployer.deploy(PolynomialPower);
