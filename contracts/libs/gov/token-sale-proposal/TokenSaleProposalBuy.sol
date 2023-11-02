@@ -85,7 +85,7 @@ library TokenSaleProposalBuy {
             (bool success, ) = to.call{value: amount}("");
             require(success, "TSP: failed to transfer ether");
         } else {
-            IERC20(token).safeTransferFrom(msg.sender, to, amount.from18(token.decimals()));
+            IERC20(token).safeTransferFrom(msg.sender, to, amount.from18(token));
         }
     }
 

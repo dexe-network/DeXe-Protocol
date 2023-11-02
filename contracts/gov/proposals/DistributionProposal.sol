@@ -70,7 +70,7 @@ contract DistributionProposal is IDistributionProposal, IProposalValidator, Init
             IERC20Metadata(token).safeTransferFrom(
                 msg.sender,
                 address(this),
-                actualAmount.from18(token.decimals())
+                actualAmount.from18(token)
             );
         }
 

@@ -174,7 +174,7 @@ abstract contract AbstractERC721Power is
         IERC20(collateralToken).safeTransferFrom(
             msg.sender,
             address(this),
-            amount.from18(collateralToken.decimals())
+            amount.from18(collateralToken)
         );
 
         _recalculateRawNftPower(tokenId);
@@ -196,10 +196,7 @@ abstract contract AbstractERC721Power is
 
         nftInfo.currentCollateral -= amount;
 
-        IERC20(collateralToken).safeTransfer(
-            msg.sender,
-            amount.from18(collateralToken.decimals())
-        );
+        IERC20(collateralToken).safeTransfer(msg.sender, amount.from18(collateralToken));
     }
 
     function _recalculateRawNftPower(uint256 tokenId) internal {

@@ -80,7 +80,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     ) external override onlyOwner withSupportedToken {
         address token = tokenAddress;
 
-        IERC20(token).safeTransferFrom(payer, address(this), amount.from18(token.decimals()));
+        IERC20(token).safeTransferFrom(payer, address(this), amount.from18(token));
 
         _usersInfo[receiver].balances[IGovPool.VoteType.PersonalVote].tokens += amount;
     }
@@ -104,7 +104,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         payerBalanceInfo.tokens = balance - amount;
 
-        IERC20(token).safeTransfer(receiver, amount.from18(token.decimals()));
+        IERC20(token).safeTransfer(receiver, amount.from18(token));
     }
 
     function delegateTokens(
@@ -175,7 +175,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         address token = tokenAddress;
 
-        IERC20(token).safeTransfer(msg.sender, amount.from18(token.decimals()));
+        IERC20(token).safeTransfer(msg.sender, amount.from18(token));
     }
 
     function depositNfts(
@@ -515,7 +515,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             totalBalance += _usersInfo[voter].allDelegatedBalance.tokens;
         }
 
-        ownedBalance = ERC20(tokenAddress).balanceOf(voter).to18(tokenAddress.decimals());
+        ownedBalance = ERC20(tokenAddress).balanceOf(voter).to18(tokenAddress);
         totalBalance += ownedBalance;
     }
 
@@ -601,7 +601,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address token = tokenAddress;
 
         if (token != address(0)) {
-            power = IERC20(token).totalSupply().to18(token.decimals());
+            power = IERC20(token).totalSupply().to18(token);
         }
 
         token = _nftInfo.nftAddress;

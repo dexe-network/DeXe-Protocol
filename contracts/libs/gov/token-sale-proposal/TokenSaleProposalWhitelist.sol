@@ -47,7 +47,7 @@ library TokenSaleProposalWhitelist {
             IERC20(tokenToLock).safeTransferFrom(
                 msg.sender,
                 address(this),
-                amountToLock.from18(tokenToLock.decimals())
+                amountToLock.from18(tokenToLock)
             );
         } else {
             require(msg.value == amountToLock, "TSP: wrong lock amount");

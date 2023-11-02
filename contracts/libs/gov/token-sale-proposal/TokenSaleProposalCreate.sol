@@ -61,9 +61,7 @@ library TokenSaleProposalCreate {
                 IERC20.transferFrom.selector,
                 msg.sender,
                 address(this),
-                _tierInitParams.totalTokenProvided.from18(
-                    _tierInitParams.saleTokenAddress.decimals()
-                )
+                _tierInitParams.totalTokenProvided.from18(_tierInitParams.saleTokenAddress)
             )
         );
     }

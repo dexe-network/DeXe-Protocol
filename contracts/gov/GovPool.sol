@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Multicall.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
@@ -44,6 +45,7 @@ contract GovPool is
 {
     using MathHelper for uint256;
     using Math for uint256;
+    using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
     using GovPoolOffchain for *;
@@ -271,7 +273,7 @@ contract GovPool is
         if (amount != 0) {
             address token = _govUserKeeper.tokenAddress();
 
-            IERC20(token).transfer(address(_govUserKeeper), amount.from18(token.decimals()));
+            IERC20(token).safeTransfer(address(_govUserKeeper), amount.from18(token));
 
             _govUserKeeper.delegateTokensTreasury(delegatee, amount);
         }

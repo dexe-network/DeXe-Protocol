@@ -166,11 +166,11 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         (amountOut, path) = getExtendedPriceOut(
             inToken,
             outToken,
-            amountIn.from18(inToken.decimals()),
+            amountIn.from18(inToken),
             optionalPath
         );
 
-        amountOut = amountOut.to18(outToken.decimals());
+        amountOut = amountOut.to18(outToken);
     }
 
     function getNormalizedExtendedPriceIn(
@@ -182,11 +182,11 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         (amountIn, path) = getExtendedPriceIn(
             inToken,
             outToken,
-            amountOut.from18(outToken.decimals()),
+            amountOut.from18(outToken),
             optionalPath
         );
 
-        amountIn = amountIn.to18(inToken.decimals());
+        amountIn = amountIn.to18(inToken);
     }
 
     function getNormalizedPriceOut(
