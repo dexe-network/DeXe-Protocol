@@ -22,7 +22,7 @@ const SWAP_UNISWAP_V3_FEE500 = "2";
 const SWAP_UNISWAP_V3_FEE3000 = "3";
 const SWAP_UNISWAP_V3_FEE10000 = "4";
 
-describe("PriceFeed", () => {
+describe.only("PriceFeed", () => {
   let tokensToMint = toBN(1000000000);
   let reserveTokens = toBN(1000000);
 
@@ -585,6 +585,44 @@ describe("PriceFeed", () => {
       assert.equal(pricesInfo.amountOut.toFixed(), wei("4000"));
       assert.deepEqual(pricesInfo.path.path, [DEXE.address, MANA.address, USD.address]);
       assert.deepEqual(pricesInfo.path.poolTypes, [SWAP_UNISWAP_V3_FEE500, SWAP_UNISWAP_V3_FEE500]);
+    });
+
+    it("finds best path with intermediate tokens", async () => {
+      const MANA = await ERC20Mock.new("MANA", "MANA", 18);
+      const WBTC = await ERC20Mock.new("WBTC", "WBTC", 18);
+
+      await MANA.mint(OWNER, wei(tokensToMint));
+      await WBTC.mint(OWNER, wei(tokensToMint));
+
+      await MANA.approve(uniswapV2Router.address, wei(reserveTokens));
+      await uniswapV2Router.setReserve(MANA.address, wei(reserveTokens));
+
+      await WBTC.approve(uniswapV2Router.address, wei(reserveTokens));
+      await uniswapV2Router.setReserve(WBTC.address, wei(reserveTokens));
+
+      await uniswapV2Router.enablePair(DEXE.address, MANA.address);
+      await uniswapV2Router.enablePair(MANA.address, USD.address);
+
+      await uniswapV2Router.enablePair(DEXE.address, WBTC.address);
+      await uniswapV2Router.enablePair(WBTC.address, USD.address);
+
+      await setPoolInfo(DEXE, wei(reserveTokens), MANA, wei(reserveTokens.times(2)), 3000);
+      await setPoolInfo(MANA, wei(reserveTokens), USD, wei(reserveTokens.idiv(4)), 3000);
+
+      await setPoolInfo(DEXE, wei(reserveTokens), WBTC, wei(reserveTokens.idiv(2)), 3000);
+      await setPoolInfo(WBTC, wei(reserveTokens), USD, wei(reserveTokens.times(4)), 3000);
+
+      await priceFeed.addPathTokens([MANA.address, WBTC.address]);
+
+      let pricesInfo = await priceFeed.getExtendedPriceOut.call(DEXE.address, USD.address, wei("2000"), [[], []]);
+      assert.equal(pricesInfo.amountOut.toFixed(), wei("8000"));
+      assert.deepEqual(pricesInfo.path.path, [DEXE.address, WBTC.address, USD.address]);
+      assert.deepEqual(pricesInfo.path.poolTypes, [SWAP_UNISWAP_V2, SWAP_UNISWAP_V3_FEE3000]);
+
+      pricesInfo = await priceFeed.getExtendedPriceIn.call(USD.address, DEXE.address, wei("2000"), [[], []]);
+      assert.equal(pricesInfo.amountIn.toFixed(), wei("500"));
+      assert.deepEqual(pricesInfo.path.path, [USD.address, MANA.address, DEXE.address]);
+      assert.deepEqual(pricesInfo.path.poolTypes, [SWAP_UNISWAP_V3_FEE3000, SWAP_UNISWAP_V2]);
     });
   });
 });
