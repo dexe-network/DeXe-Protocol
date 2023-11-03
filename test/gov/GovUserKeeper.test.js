@@ -237,6 +237,15 @@ describe("GovUserKeeper", () => {
           wei("999690")
         );
       });
+
+      it("should not deposit tokens if conversion fails", async () => {
+        await token.setDecimals(6);
+
+        await truffleAssert.reverts(
+          userKeeper.depositTokens(OWNER, SECOND, wei("100", 6)),
+          "DecimalsConverter: conversion failed"
+        );
+      });
     });
 
     describe("depositNfts()", () => {

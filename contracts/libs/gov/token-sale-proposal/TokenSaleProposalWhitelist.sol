@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
+import "@solarity/solidity-lib/libs/utils/DecimalsConverter.sol";
 import "@solarity/solidity-lib/libs/arrays/SetHelper.sol";
 
 import "../../../gov/proposals/TokenSaleProposal.sol";
@@ -47,7 +47,7 @@ library TokenSaleProposalWhitelist {
             IERC20(tokenToLock).safeTransferFrom(
                 msg.sender,
                 address(this),
-                amountToLock.from18(tokenToLock)
+                amountToLock.from18Safe(tokenToLock)
             );
         } else {
             require(msg.value == amountToLock, "TSP: wrong lock amount");

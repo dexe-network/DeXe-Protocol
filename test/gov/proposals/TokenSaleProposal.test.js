@@ -1644,6 +1644,19 @@ describe("TokenSaleProposal", () => {
           await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, 0), "TSP: zero amount");
         });
 
+        it("should not buy if convertion is zero", async () => {
+          await purchaseToken1.setDecimals(6);
+
+          await setTime(+tiers[2].saleStartTime);
+
+          await babt.attest(OWNER);
+
+          await truffleAssert.reverts(
+            tsp.buy(3, purchaseToken1.address, wei("1", 6)),
+            "DecimalsConverter: conversion failed"
+          );
+        });
+
         it("should not buy if cannot participate", async () => {
           await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100)), "TSP: cannot participate");
           await truffleAssert.reverts(

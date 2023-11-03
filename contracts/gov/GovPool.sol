@@ -273,7 +273,7 @@ contract GovPool is
         if (amount != 0) {
             address token = _govUserKeeper.tokenAddress();
 
-            IERC20(token).safeTransfer(address(_govUserKeeper), amount.from18(token));
+            IERC20(token).safeTransfer(address(_govUserKeeper), amount.from18Safe(token));
 
             _govUserKeeper.delegateTokensTreasury(delegatee, amount);
         }

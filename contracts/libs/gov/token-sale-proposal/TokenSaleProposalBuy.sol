@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 import "@solarity/solidity-lib/libs/utils/TypeCaster.sol";
-import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
+import "@solarity/solidity-lib/libs/utils/DecimalsConverter.sol";
 
 import "../../../interfaces/gov/proposals/ITokenSaleProposal.sol";
 import "../../../interfaces/gov/IGovPool.sol";
@@ -85,7 +85,7 @@ library TokenSaleProposalBuy {
             (bool success, ) = to.call{value: amount}("");
             require(success, "TSP: failed to transfer ether");
         } else {
-            IERC20(token).safeTransferFrom(msg.sender, to, amount.from18(token));
+            IERC20(token).safeTransferFrom(msg.sender, to, amount.from18Safe(token));
         }
     }
 

@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgra
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
+import "@solarity/solidity-lib/libs/utils/DecimalsConverter.sol";
 import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 import "@solarity/solidity-lib/libs/arrays/ArrayHelper.sol";
 import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
@@ -80,7 +80,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     ) external override onlyOwner withSupportedToken {
         address token = tokenAddress;
 
-        IERC20(token).safeTransferFrom(payer, address(this), amount.from18(token));
+        IERC20(token).safeTransferFrom(payer, address(this), amount.from18Safe(token));
 
         _usersInfo[receiver].balances[IGovPool.VoteType.PersonalVote].tokens += amount;
     }
@@ -104,7 +104,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         payerBalanceInfo.tokens = balance - amount;
 
-        IERC20(token).safeTransfer(receiver, amount.from18(token));
+        IERC20(token).safeTransfer(receiver, amount.from18Safe(token));
     }
 
     function delegateTokens(
@@ -175,7 +175,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         address token = tokenAddress;
 
-        IERC20(token).safeTransfer(msg.sender, amount.from18(token));
+        IERC20(token).safeTransfer(msg.sender, amount.from18Safe(token));
     }
 
     function depositNfts(

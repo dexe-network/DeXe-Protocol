@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URISto
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
+import "@solarity/solidity-lib/libs/utils/DecimalsConverter.sol";
 
 import "../../../interfaces/gov/ERC721/powers/IERC721Power.sol";
 
@@ -174,7 +174,7 @@ abstract contract AbstractERC721Power is
         IERC20(collateralToken).safeTransferFrom(
             msg.sender,
             address(this),
-            amount.from18(collateralToken)
+            amount.from18Safe(collateralToken)
         );
 
         _recalculateRawNftPower(tokenId);
@@ -196,7 +196,7 @@ abstract contract AbstractERC721Power is
 
         nftInfo.currentCollateral -= amount;
 
-        IERC20(collateralToken).safeTransfer(msg.sender, amount.from18(collateralToken));
+        IERC20(collateralToken).safeTransfer(msg.sender, amount.from18Safe(collateralToken));
     }
 
     function _recalculateRawNftPower(uint256 tokenId) internal {
@@ -286,4 +286,6 @@ abstract contract AbstractERC721Power is
             "ERC721Power: power calculation already begun"
         );
     }
+
+    uint256[43] private _gap;
 }

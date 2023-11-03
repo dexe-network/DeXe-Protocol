@@ -30,7 +30,7 @@
   "dependencies": {
     "@openzeppelin/contracts": "4.9.2",
     "@openzeppelin/contracts-upgradeable": "4.9.2",
-    "@solarity/solidity-lib": "2.6.5",
+    "@solarity/solidity-lib": "2.6.7",
     "@spherex-xyz/contracts": "1.0.5",
     "@spherex-xyz/engine-contracts": "0.0.1",
     "@uniswap/v2-periphery": "1.1.0-beta.0",
