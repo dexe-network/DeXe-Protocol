@@ -70,7 +70,7 @@ interface IPoolFactory {
     /// @param settingsParams general settings of the pool
     /// @param validatorsParams parameters of validators
     /// @param userKeeperParams parameters of the user keeper
-    /// @param tokenSaleParams the token sale proposal parameters
+    /// @param tokenParams the gov token parameters
     /// @param votePowerParams vote power parameters
     /// @param verifier the address of the verifier
     /// @param onlyBABTHolders if true, only KYCed users will be allowed to interact with the pool
