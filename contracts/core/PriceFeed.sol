@@ -130,8 +130,6 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             amountIn,
             optionalPath
         );
-
-        return amountOut > 0 ? (amountOut, path) : (0, _getEmptySwapPath());
     }
 
     function getExtendedPriceIn(
@@ -150,8 +148,6 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             amountOut,
             optionalPath
         );
-
-        return amountIn < type(uint256).max ? (amountIn, path) : (0, _getEmptySwapPath());
     }
 
     function getNormalizedExtendedPriceOut(
