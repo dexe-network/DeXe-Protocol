@@ -38,7 +38,7 @@ library TokenSaleProposalBuy {
         ITokenSaleProposal.TierInitParams storage tierInitParams = tier.tierInitParams;
 
         require(
-            tokenToBuyWith != ETHEREUM_ADDRESS || amount == msg.value,
+            (tokenToBuyWith != ETHEREUM_ADDRESS && msg.value == 0) || amount == msg.value,
             "TSP: wrong native amount"
         );
 

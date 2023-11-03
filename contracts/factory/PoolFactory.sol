@@ -133,11 +133,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         _updateSalt(parameters.name);
 
-        TokenSaleProposal(tokenSaleProxy).createTiers(parameters.tokenSaleParams.tiersParams);
-        TokenSaleProposal(tokenSaleProxy).addToWhitelist(
-            parameters.tokenSaleParams.whitelistParams
-        );
-
         _initGovPool(poolProxy, govPoolDeps, parameters);
 
         DistributionProposal(payable(distributionAddress)).__DistributionProposal_init(poolProxy);
@@ -189,7 +184,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         bytes32 govSalt = _calculateGovSalt(tx.origin, parameters.name);
 
         if (parameters.userKeeperParams.tokenAddress == govSalt.predictTokenAddress()) {
-            poolProxy.deployToken(tokenSaleProxy, govSalt, parameters.tokenSaleParams.tokenParams);
+            poolProxy.deployToken(govSalt, parameters.tokenParams);
         }
     }
 

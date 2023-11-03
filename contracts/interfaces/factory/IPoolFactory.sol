@@ -56,16 +56,6 @@ interface IPoolFactory {
         uint256 nftsTotalSupply;
     }
 
-    /// @notice The token sale proposal parameters
-    /// @param tiersParams tiers parameters
-    /// @param whitelistParams whitelisted users (for participation in tiers)
-    /// @param tokenParams parameters of the token
-    struct TokenSaleProposalDeployParams {
-        ITokenSaleProposal.TierInitParams[] tiersParams;
-        ITokenSaleProposal.WhitelistingRequest[] whitelistParams;
-        IERC20Gov.ConstructorParams tokenParams;
-    }
-
     /// @notice The voting power parameters
     /// @param voteType type of algorythm to calculate votes number from token number
     /// @param initData initialization data for standard contract types
@@ -90,7 +80,7 @@ interface IPoolFactory {
         SettingsDeployParams settingsParams;
         ValidatorsDeployParams validatorsParams;
         UserKeeperDeployParams userKeeperParams;
-        TokenSaleProposalDeployParams tokenSaleParams;
+        IERC20Gov.ConstructorParams tokenParams;
         VotePowerDeployParams votePowerParams;
         address verifier;
         bool onlyBABTHolders;

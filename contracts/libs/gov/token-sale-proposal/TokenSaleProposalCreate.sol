@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@solarity/solidity-lib/libs/utils/DecimalsConverter.sol";
@@ -13,9 +14,10 @@ import "../../../gov/proposals/TokenSaleProposal.sol";
 import "../../../core/Globals.sol";
 
 library TokenSaleProposalCreate {
-    using DecimalsConverter for *;
+    using SafeERC20 for IERC20;
     using Math for uint256;
     using EnumerableMap for EnumerableMap.AddressToUintMap;
+    using DecimalsConverter for *;
 
     function createTier(
         mapping(uint256 => ITokenSaleProposal.Tier) storage tiers,
@@ -55,14 +57,10 @@ library TokenSaleProposalCreate {
             tierInitParams.participationDetails.push(_tierInitParams.participationDetails[i]);
         }
 
-        /// @dev return value is not checked intentionally
-        tierInitParams.saleTokenAddress.call(
-            abi.encodeWithSelector(
-                IERC20.transferFrom.selector,
-                msg.sender,
-                address(this),
-                _tierInitParams.totalTokenProvided.from18(_tierInitParams.saleTokenAddress)
-            )
+        IERC20(tierInitParams.saleTokenAddress).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _tierInitParams.totalTokenProvided.from18Safe(_tierInitParams.saleTokenAddress)
         );
     }
 

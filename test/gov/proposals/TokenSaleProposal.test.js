@@ -512,12 +512,10 @@ describe("TokenSaleProposal", () => {
 
       erc20Params = {
         govAddress: govPool.address,
-        saleAddress: tsp.address,
         constructorParameters: {
           name: "ERC20GovMocked",
           symbol: "ERC20GM",
           users: [SECOND, THIRD],
-          saleAmount: wei(1000),
           cap: wei(2000),
           mintedTotal: wei(1005),
           amounts: [wei(2), wei(3)],
@@ -526,7 +524,7 @@ describe("TokenSaleProposal", () => {
 
       erc20Gov = await ERC20Gov.new();
 
-      erc20Gov.__ERC20Gov_init(erc20Params.govAddress, erc20Params.saleAddress, erc20Params.constructorParameters);
+      erc20Gov.__ERC20Gov_init(erc20Params.govAddress, erc20Params.constructorParameters);
 
       purchaseToken1 = await ERC20Mock.new("PurchaseMockedToken1", "PMT1", 18);
       purchaseToken2 = await ERC20Mock.new("PurchaseMockedToken1", "PMT1", 18);
@@ -1003,6 +1001,8 @@ describe("TokenSaleProposal", () => {
       });
 
       it("should create tiers if all conditions are met", async () => {
+        await saleToken.mint(govPool.address, wei(6000));
+
         await createTiers(JSON.parse(JSON.stringify(tiers)));
 
         assert.deepEqual(
@@ -1039,7 +1039,7 @@ describe("TokenSaleProposal", () => {
 
     describe("if tiers are created", () => {
       beforeEach(async () => {
-        await saleToken.mint(govPool.address, wei(5000));
+        await saleToken.mint(govPool.address, wei(6000));
 
         await createTiers(JSON.parse(JSON.stringify(tiers)));
 
@@ -1206,6 +1206,10 @@ describe("TokenSaleProposal", () => {
           await truffleAssert.reverts(
             tsp.lockParticipationTokens(7, ETHER_ADDR, defaultTokenAmount, { value: 1 }),
             "TSP: wrong lock amount"
+          );
+          await truffleAssert.reverts(
+            tsp.lockParticipationTokens(4, participationToken.address, defaultTokenAmount, { value: 1 }),
+            "TSP: wrong native lock amount"
           );
         });
 
@@ -2068,6 +2072,15 @@ describe("TokenSaleProposal", () => {
             await setTime(+tiers[0].saleStartTime);
 
             await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, 0, { value: wei(1) }), "TSP: wrong native amount");
+          });
+
+          it("should not buy if wrong native amount", async () => {
+            await setTime(+tiers[0].saleStartTime);
+
+            await truffleAssert.reverts(
+              tsp.buy(1, purchaseToken1.address, 1, { value: wei(1) }),
+              "TSP: wrong native amount"
+            );
           });
 
           it("should not buy if wrong allocation", async () => {

@@ -32,7 +32,6 @@ contract ERC20Gov is
 
     function __ERC20Gov_init(
         address _govAddress,
-        address _saleAddress,
         ConstructorParams calldata params
     ) external initializer {
         __ERC20_init(params.name, params.symbol);
@@ -50,15 +49,13 @@ contract ERC20Gov is
 
         govAddress = _govAddress;
 
-        ERC20Upgradeable._mint(_saleAddress, params.saleAmount);
-
         for (uint256 i = 0; i < params.users.length; i++) {
-            ERC20Upgradeable._mint(params.users[i], params.amounts[i]);
+            _mint(params.users[i], params.amounts[i]);
         }
 
         require(totalSupply() <= params.mintedTotal, "ERC20Gov: overminting");
 
-        ERC20Upgradeable._mint(_govAddress, params.mintedTotal - totalSupply());
+        _mint(_govAddress, params.mintedTotal - totalSupply());
     }
 
     function mint(address account, uint256 amount) external override onlyGov {
@@ -109,6 +106,10 @@ contract ERC20Gov is
         address account,
         uint256 amount
     ) internal override(ERC20Upgradeable, ERC20CappedUpgradeable) {
+        if (amount == 0) {
+            return;
+        }
+
         super._mint(account, amount);
     }
 

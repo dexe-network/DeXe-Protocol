@@ -8,13 +8,12 @@ import "../../gov/ERC20/ERC20Gov.sol";
 library GovTokenDeployer {
     function deployToken(
         address poolProxy,
-        address tokenSaleProxy,
         bytes32 salt,
         ERC20Gov.ConstructorParams calldata tokenParams
     ) external returns (address) {
         ERC20Gov token = new ERC20Gov{salt: salt}();
 
-        token.__ERC20Gov_init(poolProxy, tokenSaleProxy, tokenParams);
+        token.__ERC20Gov_init(poolProxy, tokenParams);
 
         return address(token);
     }

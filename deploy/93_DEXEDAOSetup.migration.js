@@ -89,18 +89,13 @@ let POOL_PARAMETERS = {
     individualPower: 0,
     nftsTotalSupply: 0,
   },
-  tokenSaleParams: {
-    tiersParams: [],
-    whitelistParams: [],
-    tokenParams: {
-      name: "",
-      symbol: "",
-      users: [],
-      saleAmount: 0,
-      cap: 0,
-      mintedTotal: 0,
-      amounts: [],
-    },
+  tokenParams: {
+    name: "",
+    symbol: "",
+    users: [],
+    cap: 0,
+    mintedTotal: 0,
+    amounts: [],
   },
   votePowerParams: {
     voteType: 1,

@@ -253,7 +253,7 @@ contract TokenSaleProposal is
     }
 
     function _onlyGov() internal view {
-        require(govAddress == address(0) || msg.sender == govAddress, "TSP: not a Gov contract");
+        require(msg.sender == govAddress, "TSP: not a Gov contract");
     }
 
     function _onlyThis() internal view {

@@ -44,6 +44,8 @@ library TokenSaleProposalWhitelist {
         lockedTokens.set(tokenToLock, newLockedAmount);
 
         if (tokenToLock != ETHEREUM_ADDRESS) {
+            require(msg.value == 0, "TSP: wrong native lock amount");
+
             IERC20(tokenToLock).safeTransferFrom(
                 msg.sender,
                 address(this),
