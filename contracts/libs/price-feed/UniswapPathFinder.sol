@@ -131,15 +131,14 @@ library UniswapPathFinder {
 
         foundPath.path = providedPath.path;
         foundPath.poolTypes = providedPath.poolTypes;
-        foundPath = exactIn ? foundPath : _reversePath(foundPath);
 
         uint256 len = providedPath.path.length;
-        for (uint i = 0; i < len - 1; i++) {
+        for (uint i = exactIn ? 1 : len - 1; exactIn ? i < len : i > 0; exactIn ? i++ : i--) {
             amount = _calculateSingleSwap(
                 amount,
-                exactIn ? foundPath.path[i] : foundPath.path[i + 1],
-                exactIn ? foundPath.path[i + 1] : foundPath.path[i],
-                foundPath.poolTypes[i],
+                foundPath.path[i - 1],
+                foundPath.path[i],
+                foundPath.poolTypes[i - 1],
                 exactIn
             );
             if (amount == (exactIn ? 0 : type(uint256).max)) {
@@ -147,7 +146,6 @@ library UniswapPathFinder {
             }
         }
 
-        foundPath = exactIn ? foundPath : _reversePath(foundPath);
         return (foundPath, amount);
     }
 
@@ -162,36 +160,20 @@ library UniswapPathFinder {
 
         foundPath.poolTypes = new IPriceFeed.PoolType[](len - 1);
         foundPath.path = path;
-        foundPath = exactIn ? foundPath : _reversePath(foundPath);
 
-        for (uint i = 0; i < len - 1; i++) {
-            (amount, foundPath.poolTypes[i]) = _findBestHop(
+        for (uint i = exactIn ? 1 : len - 1; exactIn ? i < len : i > 0; exactIn ? i++ : i--) {
+            (amount, foundPath.poolTypes[i - 1]) = _findBestHop(
                 amount,
-                exactIn ? foundPath.path[i] : foundPath.path[i + 1],
-                exactIn ? foundPath.path[i + 1] : foundPath.path[i],
+                foundPath.path[i - 1],
+                foundPath.path[i],
                 exactIn
             );
-            if (foundPath.poolTypes[i] == IPriceFeed.PoolType.None) {
+            if (foundPath.poolTypes[i - 1] == IPriceFeed.PoolType.None) {
                 return (foundPath, exactIn ? 0 : type(uint256).max);
             }
         }
 
-        foundPath = exactIn ? foundPath : _reversePath(foundPath);
         return (foundPath, amount);
-    }
-
-    function _reversePath(
-        IPriceFeed.SwapPath memory path
-    ) internal pure returns (IPriceFeed.SwapPath memory newPath) {
-        uint256 len = path.path.length;
-        newPath.path = new address[](len);
-        newPath.poolTypes = new IPriceFeed.PoolType[](len - 1);
-
-        for (uint i = 0; i < len - 1; i++) {
-            newPath.path[i] = path.path[len - 1 - i];
-            newPath.poolTypes[i] = path.poolTypes[len - 2 - i];
-        }
-        newPath.path[len - 1] = path.path[0];
     }
 
     function _findBestHop(
