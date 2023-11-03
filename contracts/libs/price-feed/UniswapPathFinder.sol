@@ -18,7 +18,7 @@ library UniswapPathFinder {
         address tokenOut,
         uint256 amountIn,
         IPriceFeed.SwapPath memory providedPath
-    ) external returns (IPriceFeed.FoundPath memory foundPath) {
+    ) external returns (IPriceFeed.SwapPath memory, uint256) {
         return _getPathWithPrice(pathTokens, amountIn, tokenIn, tokenOut, true, providedPath);
     }
 
@@ -28,7 +28,7 @@ library UniswapPathFinder {
         address tokenOut,
         uint256 amountOut,
         IPriceFeed.SwapPath memory providedPath
-    ) external returns (IPriceFeed.FoundPath memory foundPath) {
+    ) external returns (IPriceFeed.SwapPath memory, uint256) {
         return _getPathWithPrice(pathTokens, amountOut, tokenIn, tokenOut, false, providedPath);
     }
 
@@ -40,21 +40,24 @@ library UniswapPathFinder {
         address tokenOut,
         bool exactIn,
         IPriceFeed.SwapPath memory providedPath
-    ) internal returns (IPriceFeed.FoundPath memory foundPath) {
+    ) internal returns (IPriceFeed.SwapPath memory foundPath, uint256 bestAmount) {
+        bestAmount = exactIn ? 0 : type(uint256).max;
         if (amount == 0) {
-            return foundPath;
+            return (foundPath, bestAmount);
         }
 
         address[] memory path2 = new address[](2);
         path2[0] = tokenIn;
         path2[1] = tokenOut;
 
-        (
-            IPriceFeed.FoundPath memory foundPath2,
-            bool isFoundAtLeastOnePath
-        ) = _calculatePathResults(amount, path2, exactIn);
+        (IPriceFeed.SwapPath memory foundPath2, uint currentAmount) = _calculatePathResults(
+            amount,
+            path2,
+            exactIn
+        );
 
-        if (isFoundAtLeastOnePath) {
+        if (exactIn ? currentAmount > bestAmount : currentAmount < bestAmount) {
+            bestAmount = currentAmount;
             foundPath = foundPath2;
         }
 
@@ -66,55 +69,28 @@ library UniswapPathFinder {
             path3[1] = pathTokens.at(i);
             path3[2] = tokenOut;
 
-            (IPriceFeed.FoundPath memory foundPath3, bool isPathValid) = _calculatePathResults(
-                amount,
-                path3,
-                exactIn
-            );
+            IPriceFeed.SwapPath memory foundPath3;
+            (foundPath3, currentAmount) = _calculatePathResults(amount, path3, exactIn);
 
-            if (isPathValid) {
-                if (!isFoundAtLeastOnePath) {
-                    isFoundAtLeastOnePath = true;
-                    foundPath = foundPath3;
-                } else {
-                    if (_comparePathResults(foundPath, foundPath3, exactIn)) {
-                        foundPath = foundPath3;
-                    }
-                }
+            if (exactIn ? currentAmount > bestAmount : currentAmount < bestAmount) {
+                bestAmount = currentAmount;
+                foundPath = foundPath3;
             }
         }
 
         if (_verifyPredefinedPath(tokenIn, tokenOut, providedPath)) {
-            (
-                IPriceFeed.FoundPath memory customPath,
-                bool isPathValid
-            ) = _calculatePredefinedPathResults(providedPath, amount, exactIn);
-            if (isPathValid) {
-                if (!isFoundAtLeastOnePath) {
-                    isFoundAtLeastOnePath = true;
-                    foundPath = customPath;
-                } else {
-                    if (_comparePathResults(foundPath, customPath, exactIn)) {
-                        foundPath = customPath;
-                    }
-                }
+            IPriceFeed.SwapPath memory customPath;
+            (customPath, currentAmount) = _calculatePredefinedPathResults(
+                providedPath,
+                amount,
+                exactIn
+            );
+            if (exactIn ? currentAmount > bestAmount : currentAmount < bestAmount) {
+                bestAmount = currentAmount;
+                foundPath = customPath;
             }
         }
-    }
-
-    function _comparePathResults(
-        IPriceFeed.FoundPath memory oldPath,
-        IPriceFeed.FoundPath memory newPath,
-        bool exactIn
-    ) internal pure returns (bool) {
-        uint256 oldAmount = exactIn
-            ? oldPath.amounts[oldPath.amounts.length - 1]
-            : oldPath.amounts[0];
-        uint256 newAmount = exactIn
-            ? newPath.amounts[newPath.amounts.length - 1]
-            : newPath.amounts[0];
-
-        return exactIn ? oldAmount < newAmount : oldAmount > newAmount;
+        return (foundPath, bestAmount);
     }
 
     // TODO: Switch provided path memory to calldata
@@ -146,85 +122,96 @@ library UniswapPathFinder {
         IPriceFeed.SwapPath memory providedPath,
         uint256 amount,
         bool exactIn
-    ) internal returns (IPriceFeed.FoundPath memory foundPath, bool isPathValid) {
-        isPathValid = true;
+    ) internal returns (IPriceFeed.SwapPath memory, uint256) {
+        IPriceFeed.SwapPath memory foundPath;
         uint256 len = providedPath.path.length;
-        uint256[] memory amounts = new uint256[](len);
         foundPath.path = providedPath.path;
         foundPath.poolTypes = providedPath.poolTypes;
-        foundPath.amounts = amounts;
 
         if (exactIn) {
-            amounts[0] = amount;
             for (uint i = 0; i < len - 1; i++) {
-                amounts[i + 1] = _calculateSingleSwap(
-                    amounts[i],
+                amount = _calculateSingleSwap(
+                    amount,
                     foundPath.path[i],
                     foundPath.path[i + 1],
                     foundPath.poolTypes[i],
                     true
                 );
-                if (amounts[i + 1] == 0) {
-                    return (foundPath, false);
+                if (amount == 0) {
+                    return (foundPath, 0);
                 }
             }
         } else {
-            amounts[len - 1] = amount;
             for (uint i = len - 1; i > 0; i--) {
-                amounts[i - 1] = _calculateSingleSwap(
-                    amounts[i],
+                amount = _calculateSingleSwap(
+                    amount,
                     foundPath.path[i - 1],
                     foundPath.path[i],
                     foundPath.poolTypes[i - 1],
                     false
                 );
-                if (amounts[i - 1] == type(uint256).max) {
-                    return (foundPath, false);
+                if (amount == type(uint256).max) {
+                    return (foundPath, type(uint256).max);
                 }
             }
         }
+
+        return (foundPath, amount);
     }
 
     function _calculatePathResults(
         uint256 amount,
         address[] memory path,
         bool exactIn
-    ) internal returns (IPriceFeed.FoundPath memory foundPath, bool isPathValid) {
-        isPathValid = true;
+    ) internal returns (IPriceFeed.SwapPath memory, uint256) {
+        IPriceFeed.SwapPath memory foundPath;
         uint256 len = path.length;
         assert(len >= 2);
 
-        foundPath.amounts = new uint256[](len);
         foundPath.poolTypes = new IPriceFeed.PoolType[](len - 1);
         foundPath.path = path;
 
         if (exactIn) {
-            foundPath.amounts[0] = amount;
             for (uint i = 0; i < len - 1; i++) {
-                (foundPath.amounts[i + 1], foundPath.poolTypes[i]) = _findBestHop(
-                    foundPath.amounts[i],
+                (amount, foundPath.poolTypes[i]) = _findBestHop(
+                    amount,
                     path[i],
                     path[i + 1],
                     true
                 );
                 if (foundPath.poolTypes[i] == IPriceFeed.PoolType.None) {
-                    return (foundPath, false);
+                    return (foundPath, 0);
                 }
             }
         } else {
-            foundPath.amounts[len - 1] = amount;
             for (uint i = len - 1; i > 0; i--) {
-                (foundPath.amounts[i - 1], foundPath.poolTypes[i - 1]) = _findBestHop(
-                    foundPath.amounts[i],
+                (amount, foundPath.poolTypes[i - 1]) = _findBestHop(
+                    amount,
                     path[i - 1],
                     path[i],
                     false
                 );
                 if (foundPath.poolTypes[i - 1] == IPriceFeed.PoolType.None) {
-                    return (foundPath, false);
+                    return (foundPath, type(uint256).max);
                 }
             }
         }
+
+        return (foundPath, amount);
+    }
+
+    function _reversePath(
+        IPriceFeed.SwapPath memory path
+    ) internal pure returns (IPriceFeed.SwapPath memory newPath) {
+        uint256 len = path.path.length;
+        newPath.path = new address[](len);
+        newPath.poolTypes = new IPriceFeed.PoolType[](len - 1);
+
+        for (uint i = 0; i < len - 1; i++) {
+            newPath.path[i] = path.path[len - 1 - i];
+            newPath.poolTypes[i] = path.poolTypes[len - 2 - i];
+        }
+        newPath.path[len - 1] = path.path[0];
     }
 
     function _findBestHop(

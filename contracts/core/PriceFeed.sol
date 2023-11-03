@@ -124,20 +124,14 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             return (amountIn, _getEmptySwapPath());
         }
 
-        FoundPath memory foundPath = _pathTokens.getUniswapPathWithPriceOut(
+        (path, amountOut) = _pathTokens.getUniswapPathWithPriceOut(
             inToken,
             outToken,
             amountIn,
             optionalPath
         );
 
-        return
-            foundPath.amounts.length > 0
-                ? (
-                    foundPath.amounts[foundPath.amounts.length - 1],
-                    SwapPath(foundPath.path, foundPath.poolTypes)
-                )
-                : (0, _getEmptySwapPath());
+        return amountOut > 0 ? (amountOut, path) : (0, _getEmptySwapPath());
     }
 
     function getExtendedPriceIn(
@@ -150,17 +144,14 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
             return (amountOut, _getEmptySwapPath());
         }
 
-        FoundPath memory foundPath = _pathTokens.getUniswapPathWithPriceIn(
+        (path, amountIn) = _pathTokens.getUniswapPathWithPriceIn(
             inToken,
             outToken,
             amountOut,
             optionalPath
         );
 
-        return
-            foundPath.amounts.length > 0
-                ? (foundPath.amounts[0], SwapPath(foundPath.path, foundPath.poolTypes))
-                : (0, _getEmptySwapPath());
+        return amountIn < type(uint256).max ? (amountIn, path) : (0, _getEmptySwapPath());
     }
 
     function getNormalizedExtendedPriceOut(
