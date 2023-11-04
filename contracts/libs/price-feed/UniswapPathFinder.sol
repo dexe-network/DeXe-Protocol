@@ -186,7 +186,8 @@ library UniswapPathFinder {
         bool exactIn
     ) internal returns (uint256 amountAfterHop, uint8 poolType) {
         (amountAfterHop, poolType) = (exactIn ? 0 : type(uint256).max, NO_POOL);
-        for (uint i = 0; i < 4; i++) {
+        uint256 swapTypeLength = IPriceFeed(address(this)).getPoolTypesLength();
+        for (uint i = 0; i < swapTypeLength; i++) {
             uint8 currentPoolType = uint8(i);
             uint256 swappedAmount = _calculateSingleSwap(
                 amount,

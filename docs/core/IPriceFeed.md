@@ -96,6 +96,13 @@ function setPoolTypes(IPriceFeed.PoolType[] calldata poolTypes) external
 ```
 
 
+### getPoolTypesLength (0x14980a8d)
+
+```solidity
+function getPoolTypesLength() external view returns (uint256)
+```
+
+
 ### getPoolTypes (0x2fbc3b93)
 
 ```solidity

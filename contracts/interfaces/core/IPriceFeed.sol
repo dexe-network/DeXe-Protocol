@@ -35,6 +35,8 @@ interface IPriceFeed {
 
     function setPoolTypes(PoolType[] calldata poolTypes) external;
 
+    function getPoolTypesLength() external view returns (uint256);
+
     function getPoolTypes() external view returns (PoolType[] memory);
 
     /// @notice Shares the same functionality as "getExtendedPriceOut" function with an empty optionalPath.

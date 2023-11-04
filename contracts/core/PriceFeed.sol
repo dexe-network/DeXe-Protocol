@@ -70,6 +70,10 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         return _poolTypes;
     }
 
+    function getPoolTypesLength() external view returns (uint256) {
+        return _poolTypes.length;
+    }
+
     function getPriceOut(
         address inToken,
         address outToken,
