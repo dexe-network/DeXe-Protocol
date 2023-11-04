@@ -17,7 +17,7 @@ library UniswapPathFinder {
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
-        IPriceFeed.SwapPath memory providedPath
+        IPriceFeed.SwapPath calldata providedPath
     ) external returns (IPriceFeed.SwapPath memory, uint256) {
         return _getPathWithPrice(pathTokens, amountIn, tokenIn, tokenOut, true, providedPath);
     }
@@ -27,19 +27,18 @@ library UniswapPathFinder {
         address tokenIn,
         address tokenOut,
         uint256 amountOut,
-        IPriceFeed.SwapPath memory providedPath
+        IPriceFeed.SwapPath calldata providedPath
     ) external returns (IPriceFeed.SwapPath memory, uint256) {
         return _getPathWithPrice(pathTokens, amountOut, tokenIn, tokenOut, false, providedPath);
     }
 
-    // TODO: Switch provided path memory to calldata
     function _getPathWithPrice(
         EnumerableSet.AddressSet storage pathTokens,
         uint256 amount,
         address tokenIn,
         address tokenOut,
         bool exactIn,
-        IPriceFeed.SwapPath memory providedPath
+        IPriceFeed.SwapPath calldata providedPath
     ) internal returns (IPriceFeed.SwapPath memory foundPath, uint256 bestAmount) {
         bestAmount = exactIn ? 0 : type(uint256).max;
         if (amount == 0) {
@@ -97,11 +96,10 @@ library UniswapPathFinder {
         return (foundPath, bestAmount);
     }
 
-    // TODO: Switch provided path memory to calldata
     function _verifyPredefinedPath(
         address tokenIn,
         address tokenOut,
-        IPriceFeed.SwapPath memory providedPath
+        IPriceFeed.SwapPath calldata providedPath
     ) internal pure returns (bool verified) {
         if (
             providedPath.path.length < 3 ||
@@ -121,9 +119,8 @@ library UniswapPathFinder {
         }
     }
 
-    // TODO: Switch provided path memory to calldata
     function _calculatePredefinedPathResults(
-        IPriceFeed.SwapPath memory providedPath,
+        IPriceFeed.SwapPath calldata providedPath,
         uint256 amount,
         bool exactIn
     ) internal returns (IPriceFeed.SwapPath memory, uint256) {
