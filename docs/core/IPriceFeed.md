@@ -89,6 +89,20 @@ Parameters:
 | :--------- | :-------- | :---------------------------------------------------- |
 | pathTokens | address[] | the array of tokens to be removed from the pathfinder |
 
+### setPoolTypes (0x3cbc6757)
+
+```solidity
+function setPoolTypes(IPriceFeed.PoolType[] calldata poolTypes) external
+```
+
+
+### getPoolTypes (0x2fbc3b93)
+
+```solidity
+function getPoolTypes() external view returns (IPriceFeed.PoolType[] memory)
+```
+
+
 ### getPriceOut (0x70e48e96)
 
 ```solidity

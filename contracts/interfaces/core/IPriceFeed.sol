@@ -33,6 +33,10 @@ interface IPriceFeed {
     /// @param pathTokens the array of tokens to be removed from the pathfinder
     function removePathTokens(address[] calldata pathTokens) external;
 
+    function setPoolTypes(PoolType[] calldata poolTypes) external;
+
+    function getPoolTypes() external view returns (PoolType[] memory);
+
     /// @notice Shares the same functionality as "getExtendedPriceOut" function with an empty optionalPath.
     /// It accepts and returns amounts with 18 decimals regardless of the inToken and outToken decimals
     /// @param inToken the token to exchange from

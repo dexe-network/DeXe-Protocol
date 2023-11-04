@@ -16,47 +16,26 @@ library UniswapPathFinder {
 
     function getUniswapPathWithPriceOut(
         EnumerableSet.AddressSet storage pathTokens,
-        IPriceFeed.PoolType[] calldata poolTypes,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
         IPriceFeed.SwapPath calldata providedPath
     ) external returns (IPriceFeed.SwapPath memory, uint256) {
-        return
-            _getPathWithPrice(
-                pathTokens,
-                poolTypes,
-                amountIn,
-                tokenIn,
-                tokenOut,
-                true,
-                providedPath
-            );
+        return _getPathWithPrice(pathTokens, amountIn, tokenIn, tokenOut, true, providedPath);
     }
 
     function getUniswapPathWithPriceIn(
         EnumerableSet.AddressSet storage pathTokens,
-        IPriceFeed.PoolType[] calldata poolTypes,
         address tokenIn,
         address tokenOut,
         uint256 amountOut,
         IPriceFeed.SwapPath calldata providedPath
     ) external returns (IPriceFeed.SwapPath memory, uint256) {
-        return
-            _getPathWithPrice(
-                pathTokens,
-                poolTypes,
-                amountOut,
-                tokenIn,
-                tokenOut,
-                false,
-                providedPath
-            );
+        return _getPathWithPrice(pathTokens, amountOut, tokenIn, tokenOut, false, providedPath);
     }
 
     function _getPathWithPrice(
         EnumerableSet.AddressSet storage pathTokens,
-        IPriceFeed.PoolType[] calldata poolTypes,
         uint256 amount,
         address tokenIn,
         address tokenOut,
@@ -105,11 +84,12 @@ library UniswapPathFinder {
             }
         }
 
-        if (_verifyPredefinedPath(tokenIn, tokenOut, providedPath)) {
-            (
-                IPriceFeed.SwapPath memory customPath,
-                uint currentAmount
-            ) = _calculatePredefinedPathResults(providedPath, amount, exactIn);
+        if (_verifyProvidedPath(tokenIn, tokenOut, providedPath)) {
+            (IPriceFeed.SwapPath memory customPath, uint currentAmount) = _calculateProvidedPath(
+                providedPath,
+                amount,
+                exactIn
+            );
             if (exactIn ? currentAmount > bestAmount : currentAmount < bestAmount) {
                 bestAmount = currentAmount;
                 foundPath = customPath;
@@ -122,7 +102,7 @@ library UniswapPathFinder {
         return (foundPath, bestAmount);
     }
 
-    function _verifyPredefinedPath(
+    function _verifyProvidedPath(
         address tokenIn,
         address tokenOut,
         IPriceFeed.SwapPath calldata providedPath
@@ -145,7 +125,7 @@ library UniswapPathFinder {
         }
     }
 
-    function _calculatePredefinedPathResults(
+    function _calculateProvidedPath(
         IPriceFeed.SwapPath calldata providedPath,
         uint256 amount,
         bool exactIn
@@ -228,35 +208,34 @@ library UniswapPathFinder {
         uint8 poolType,
         bool exactIn
     ) internal returns (uint256) {
+        IPriceFeed.PoolType[] memory swapTypes = IPriceFeed(address(this)).getPoolTypes();
         return
-            poolType == 0 // TODO SWITCH TO POOLTYPE
-                ? _calculateSingleSwapV2(amount, tokenIn, tokenOut, exactIn)
-                : _calculateSingleSwapV3(
+            swapTypes[poolType].poolType == IPriceFeed.PoolInterfaceType.UniswapV2Interface
+                ? _calculateSingleSwapV2(
+                    swapTypes[poolType].router,
                     amount,
                     tokenIn,
                     tokenOut,
-                    _feeByPoolType(poolType),
+                    exactIn
+                )
+                : _calculateSingleSwapV3(
+                    swapTypes[poolType].router,
+                    amount,
+                    tokenIn,
+                    tokenOut,
+                    swapTypes[poolType].fee,
                     exactIn
                 );
     }
 
-    function _feeByPoolType(uint8 poolType) internal pure returns (uint24 fee) {
-        if (poolType == 3) {
-            fee = 10000;
-        } else if (poolType == 2) {
-            fee = 3000;
-        } else {
-            fee = 500;
-        }
-    }
-
     function _calculateSingleSwapV2(
+        address routerAddress,
         uint256 amount,
         address tokenIn,
         address tokenOut,
         bool exactIn
     ) internal view returns (uint256) {
-        IUniswapV2Router02 router = IUniswapV2Router02(PriceFeed(address(this)).uniswapV2Router());
+        IUniswapV2Router02 router = IUniswapV2Router02(routerAddress);
         function(uint256, address[] memory)
             external
             view
@@ -277,13 +256,14 @@ library UniswapPathFinder {
     }
 
     function _calculateSingleSwapV3(
+        address quoterAddress,
         uint256 amount,
         address tokenIn,
         address tokenOut,
         uint24 fee,
         bool exactIn
     ) internal returns (uint256) {
-        IQuoter quoter = IQuoter(PriceFeed(address(this)).uniswapV3Quoter());
+        IQuoter quoter = IQuoter(quoterAddress);
         function(address, address, uint24, uint256, uint160)
             external
             returns (uint256) swapFunction = exactIn

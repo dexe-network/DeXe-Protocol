@@ -137,7 +137,6 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         }
 
         (path, amountOut) = _pathTokens.getUniswapPathWithPriceOut(
-            _poolTypes,
             inToken,
             outToken,
             amountIn,
@@ -156,7 +155,6 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         }
 
         (path, amountIn) = _pathTokens.getUniswapPathWithPriceIn(
-            _poolTypes,
             inToken,
             outToken,
             amountOut,
