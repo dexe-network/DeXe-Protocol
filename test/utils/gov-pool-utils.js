@@ -231,6 +231,10 @@ const getBytesAddSettings = (settings) => {
               name: "durationValidators",
             },
             {
+              type: "uint64",
+              name: "executionDelay",
+            },
+            {
               type: "uint128",
               name: "quorum",
             },
@@ -245,10 +249,6 @@ const getBytesAddSettings = (settings) => {
             {
               type: "uint256",
               name: "minVotesForCreating",
-            },
-            {
-              type: "uint64",
-              name: "executionDelay",
             },
             {
               components: [
@@ -318,6 +318,11 @@ const getBytesEditSettings = (ids, settings) => {
               type: "uint64",
               name: "durationValidators",
             },
+
+            {
+              type: "uint64",
+              name: "executionDelay",
+            },
             {
               type: "uint128",
               name: "quorum",
@@ -333,10 +338,6 @@ const getBytesEditSettings = (ids, settings) => {
             {
               type: "uint256",
               name: "minVotesForCreating",
-            },
-            {
-              type: "uint64",
-              name: "executionDelay",
             },
             {
               components: [

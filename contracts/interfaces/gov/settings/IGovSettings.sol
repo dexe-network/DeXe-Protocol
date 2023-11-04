@@ -17,11 +17,11 @@ interface IGovSettings {
     /// @param validatorsVote the boolean flag, if true then voting will have an additional validators step
     /// @param duration the duration of voting in seconds
     /// @param durationValidators the duration of validators voting in seconds
+    /// @param executionDelay the delay in seconds before the proposal can be executed
     /// @param quorum the percentage of total votes supply (erc20 + nft) to confirm the proposal
     /// @param quorumValidators the percentage of total validator token supply to confirm the proposal
     /// @param minVotesForVoting the minimal needed voting power to vote for the proposal
     /// @param minVotesForCreating the minimal needed voting power to create the proposal
-    /// @param executionDelay the delay in seconds before the proposal can be executed
     /// @param rewardsInfo the reward info for proposal creation and execution
     /// @param executorDescription the settings description string
     struct ProposalSettings {
@@ -30,11 +30,11 @@ interface IGovSettings {
         bool validatorsVote;
         uint64 duration;
         uint64 durationValidators;
+        uint64 executionDelay;
         uint128 quorum;
         uint128 quorumValidators;
         uint256 minVotesForVoting;
         uint256 minVotesForCreating;
-        uint64 executionDelay;
         RewardsInfo rewardsInfo;
         string executorDescription;
     }

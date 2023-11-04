@@ -175,7 +175,7 @@ struct GovPoolPredictedAddresses {
 
 ## Functions info
 
-### deployGovPool (0x22c683c5)
+### deployGovPool (0x0cc3c11c)
 
 ```solidity
 function deployGovPool(

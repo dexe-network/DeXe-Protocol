@@ -99,7 +99,7 @@ ERC20.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
-describe("GovPool", () => {
+describe.only("GovPool", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -829,11 +829,11 @@ describe("GovPool", () => {
         assert.equal(proposal.core.settings[2], defaultSettings.validatorsVote);
         assert.equal(proposal.core.settings[3], defaultSettings.duration);
         assert.equal(proposal.core.settings[4], defaultSettings.durationValidators);
-        assert.equal(proposal.core.settings[5], defaultSettings.quorum);
-        assert.equal(proposal.core.settings[6], defaultSettings.quorumValidators);
-        assert.equal(proposal.core.settings[7], defaultSettings.minVotesForVoting);
-        assert.equal(proposal.core.settings[8], defaultSettings.minVotesForCreating);
-        assert.equal(proposal.core.settings[9], defaultSettings.executionDelay);
+        assert.equal(proposal.core.settings[5], defaultSettings.executionDelay);
+        assert.equal(proposal.core.settings[6], defaultSettings.quorum);
+        assert.equal(proposal.core.settings[7], defaultSettings.quorumValidators);
+        assert.equal(proposal.core.settings[8], defaultSettings.minVotesForVoting);
+        assert.equal(proposal.core.settings[9], defaultSettings.minVotesForCreating);
 
         assert.isFalse(proposal.core.executed);
         assert.equal(proposal.descriptionURL, "example.com");
@@ -849,11 +849,11 @@ describe("GovPool", () => {
         assert.equal(proposal.core.settings[2], defaultSettings.validatorsVote);
         assert.equal(proposal.core.settings[3], defaultSettings.duration);
         assert.equal(proposal.core.settings[4], defaultSettings.durationValidators);
-        assert.equal(proposal.core.settings[5], defaultSettings.quorum);
-        assert.equal(proposal.core.settings[6], defaultSettings.quorumValidators);
-        assert.equal(proposal.core.settings[7], defaultSettings.minVotesForVoting);
-        assert.equal(proposal.core.settings[8], defaultSettings.minVotesForCreating);
-        assert.equal(proposal.core.settings[9], defaultSettings.executionDelay);
+        assert.equal(proposal.core.settings[5], defaultSettings.executionDelay);
+        assert.equal(proposal.core.settings[6], defaultSettings.quorum);
+        assert.equal(proposal.core.settings[7], defaultSettings.quorumValidators);
+        assert.equal(proposal.core.settings[8], defaultSettings.minVotesForVoting);
+        assert.equal(proposal.core.settings[9], defaultSettings.minVotesForCreating);
 
         assert.isFalse(proposal.core.executed);
         assert.equal(proposal.descriptionURL, "example2.com");
