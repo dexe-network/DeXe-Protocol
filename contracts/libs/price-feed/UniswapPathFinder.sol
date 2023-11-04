@@ -166,7 +166,7 @@ library UniswapPathFinder {
                 exactIn
             );
             if (foundPath.poolTypes[i - 1] == IPriceFeed.PoolType.None) {
-                return (foundPath, exactIn ? 0 : type(uint256).max);
+                return (foundPath, amount);
             }
         }
 
