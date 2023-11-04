@@ -25,6 +25,8 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     using SetHelper for EnumerableSet.AddressSet;
     using UniswapPathFinder for EnumerableSet.AddressSet;
 
+    PoolType[] internal _poolTypes;
+
     IUniswapV2Factory public uniswapFactory;
     IUniswapV2Router02 public uniswapV2Router;
     IQuoter public uniswapV3Quoter;
@@ -33,8 +35,10 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
 
     EnumerableSet.AddressSet internal _pathTokens;
 
-    function __PriceFeed_init() external initializer {
+    function __PriceFeed_init(PoolType[] calldata poolTypes) external initializer {
         __Ownable_init();
+
+        _setPoolTypes(poolTypes);
     }
 
     function setDependencies(
@@ -56,6 +60,14 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
 
     function removePathTokens(address[] calldata pathTokens) external override onlyOwner {
         _pathTokens.remove(pathTokens);
+    }
+
+    function setPoolTypes(PoolType[] calldata poolTypes) external onlyOwner {
+        _setPoolTypes(poolTypes);
+    }
+
+    function getPoolTypes() external view returns (PoolType[] memory) {
+        return _poolTypes;
     }
 
     function getPriceOut(
@@ -196,6 +208,15 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
         uint256 amountOut
     ) public override returns (uint256 amountIn, SwapPath memory path) {
         return getNormalizedExtendedPriceIn(inToken, outToken, amountOut, _getEmptySwapPath());
+    }
+
+    function _setPoolTypes(PoolType[] calldata poolTypes) internal {
+        assembly {
+            sstore(_poolTypes.slot, 0)
+        }
+        for (uint i = 0; i < poolTypes.length; i++) {
+            _poolTypes.push(poolTypes[i]);
+        }
     }
 
     function _getEmptySwapPath() internal pure returns (SwapPath memory path) {}

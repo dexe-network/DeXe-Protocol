@@ -6,6 +6,17 @@ pragma solidity ^0.8.20;
  * built into the contract to find the optimal* path between the pairs
  */
 interface IPriceFeed {
+    enum PoolInterfaceType {
+        UniswapV2Interface,
+        UniswapV3Interface
+    }
+
+    struct PoolType {
+        PoolInterfaceType poolType;
+        address router;
+        uint24 fee;
+    }
+
     /// @notice A struct describing a swap path alongside with swap types
     /// @param path the swap path itself
     /// @param poolTypes the v2/v3 pool types alongside the path

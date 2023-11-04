@@ -63,7 +63,14 @@ describe.only("PriceFeed", () => {
 
     priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
 
-    await priceFeed.__PriceFeed_init();
+    defaultPoolTypes = [
+      ["0", uniswapV2Router.address, "0"],
+      ["1", uniswapV3Quoter.address, "500"],
+      ["1", uniswapV3Quoter.address, "3000"],
+      ["1", uniswapV3Quoter.address, "10000"],
+    ];
+
+    await priceFeed.__PriceFeed_init(defaultPoolTypes);
 
     await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
 
@@ -74,7 +81,7 @@ describe.only("PriceFeed", () => {
 
   describe("access", () => {
     it("should not initialize twice", async () => {
-      await truffleAssert.reverts(priceFeed.__PriceFeed_init(), "Initializable: contract is already initialized");
+      await truffleAssert.reverts(priceFeed.__PriceFeed_init([]), "Initializable: contract is already initialized");
     });
 
     it("should not set dependencies from non dependant", async () => {
@@ -89,6 +96,11 @@ describe.only("PriceFeed", () => {
 
       await truffleAssert.reverts(
         priceFeed.removePathTokens([USD.address], { from: SECOND }),
+        "Ownable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        priceFeed.setPoolTypes(defaultPoolTypes, { from: SECOND }),
         "Ownable: caller is not the owner"
       );
     });
@@ -111,6 +123,17 @@ describe.only("PriceFeed", () => {
 
       assert.equal((await priceFeed.totalPathTokens()).toFixed(), "1");
       assert.deepEqual(await priceFeed.getPathTokens(), [DEXE.address]);
+    });
+  });
+
+  describe("pool types", () => {
+    it("initializes pool types properly", async () => {
+      assert.deepEqual(await priceFeed.getPoolTypes(), defaultPoolTypes);
+    });
+    it("could set new pool types", async () => {
+      const newPoolTypes = [["1", uniswapV3Quoter.address, "100"]];
+      await priceFeed.setPoolTypes(newPoolTypes);
+      assert.deepEqual(await priceFeed.getPoolTypes(), newPoolTypes);
     });
   });
 

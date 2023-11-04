@@ -13,7 +13,30 @@ interface IPriceFeed
 
 This is the price feed contract which is used to fetch the spot prices from the UniswapV2 protocol. There also is a pathfinder
 built into the contract to find the optimal* path between the pairs
+## Enums info
+
+### PoolInterfaceType
+
+```solidity
+enum PoolInterfaceType {
+	 UniswapV2Interface,
+	 UniswapV3Interface
+}
+```
+
+
 ## Structs info
+
+### PoolType
+
+```solidity
+struct PoolType {
+	IPriceFeed.PoolInterfaceType poolType;
+	address router;
+	uint24 fee;
+}
+```
+
 
 ### SwapPath
 
