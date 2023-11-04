@@ -16,26 +16,47 @@ library UniswapPathFinder {
 
     function getUniswapPathWithPriceOut(
         EnumerableSet.AddressSet storage pathTokens,
+        IPriceFeed.PoolType[] calldata poolTypes,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
         IPriceFeed.SwapPath calldata providedPath
     ) external returns (IPriceFeed.SwapPath memory, uint256) {
-        return _getPathWithPrice(pathTokens, amountIn, tokenIn, tokenOut, true, providedPath);
+        return
+            _getPathWithPrice(
+                pathTokens,
+                poolTypes,
+                amountIn,
+                tokenIn,
+                tokenOut,
+                true,
+                providedPath
+            );
     }
 
     function getUniswapPathWithPriceIn(
         EnumerableSet.AddressSet storage pathTokens,
+        IPriceFeed.PoolType[] calldata poolTypes,
         address tokenIn,
         address tokenOut,
         uint256 amountOut,
         IPriceFeed.SwapPath calldata providedPath
     ) external returns (IPriceFeed.SwapPath memory, uint256) {
-        return _getPathWithPrice(pathTokens, amountOut, tokenIn, tokenOut, false, providedPath);
+        return
+            _getPathWithPrice(
+                pathTokens,
+                poolTypes,
+                amountOut,
+                tokenIn,
+                tokenOut,
+                false,
+                providedPath
+            );
     }
 
     function _getPathWithPrice(
         EnumerableSet.AddressSet storage pathTokens,
+        IPriceFeed.PoolType[] calldata poolTypes,
         uint256 amount,
         address tokenIn,
         address tokenOut,
@@ -47,19 +68,21 @@ library UniswapPathFinder {
             return (foundPath, 0);
         }
 
-        address[] memory path2 = new address[](2);
-        path2[0] = tokenIn;
-        path2[1] = tokenOut;
+        {
+            address[] memory path2 = new address[](2);
+            path2[0] = tokenIn;
+            path2[1] = tokenOut;
 
-        (IPriceFeed.SwapPath memory foundPath2, uint currentAmount) = _calculatePathResults(
-            amount,
-            path2,
-            exactIn
-        );
+            (IPriceFeed.SwapPath memory foundPath2, uint currentAmount) = _calculatePathResults(
+                amount,
+                path2,
+                exactIn
+            );
 
-        if (exactIn ? currentAmount > bestAmount : currentAmount < bestAmount) {
-            bestAmount = currentAmount;
-            foundPath = foundPath2;
+            if (exactIn ? currentAmount > bestAmount : currentAmount < bestAmount) {
+                bestAmount = currentAmount;
+                foundPath = foundPath2;
+            }
         }
 
         uint256 length = pathTokens.length();
@@ -70,8 +93,11 @@ library UniswapPathFinder {
             path3[1] = pathTokens.at(i);
             path3[2] = tokenOut;
 
-            IPriceFeed.SwapPath memory foundPath3;
-            (foundPath3, currentAmount) = _calculatePathResults(amount, path3, exactIn);
+            (IPriceFeed.SwapPath memory foundPath3, uint currentAmount) = _calculatePathResults(
+                amount,
+                path3,
+                exactIn
+            );
 
             if (exactIn ? currentAmount > bestAmount : currentAmount < bestAmount) {
                 bestAmount = currentAmount;
@@ -80,12 +106,10 @@ library UniswapPathFinder {
         }
 
         if (_verifyPredefinedPath(tokenIn, tokenOut, providedPath)) {
-            IPriceFeed.SwapPath memory customPath;
-            (customPath, currentAmount) = _calculatePredefinedPathResults(
-                providedPath,
-                amount,
-                exactIn
-            );
+            (
+                IPriceFeed.SwapPath memory customPath,
+                uint currentAmount
+            ) = _calculatePredefinedPathResults(providedPath, amount, exactIn);
             if (exactIn ? currentAmount > bestAmount : currentAmount < bestAmount) {
                 bestAmount = currentAmount;
                 foundPath = customPath;
