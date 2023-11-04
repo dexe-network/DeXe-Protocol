@@ -52,8 +52,8 @@ contract PriceFeedMock is PriceFeed {
         address[] memory path
     ) internal returns (SwapPath memory fullPath) {
         fullPath.path = path;
-        PoolType[] memory poolTypes = new PoolType[](1);
-        poolTypes[0] = PoolType.UniswapV2;
+        uint8[] memory poolTypes = new uint8[](1);
+        poolTypes[0] = 0;
         fullPath.poolTypes = poolTypes;
     }
 }

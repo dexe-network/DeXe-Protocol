@@ -12,6 +12,8 @@ import "../../core/PriceFeed.sol";
 library UniswapPathFinder {
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    uint8 constant NO_POOL = 255;
+
     function getUniswapPathWithPriceOut(
         EnumerableSet.AddressSet storage pathTokens,
         address tokenIn,
@@ -113,7 +115,7 @@ library UniswapPathFinder {
         }
 
         for (uint i = 0; i < providedPath.poolTypes.length; i++) {
-            if (providedPath.poolTypes[i] == IPriceFeed.PoolType.None) {
+            if (providedPath.poolTypes[i] == NO_POOL) {
                 verified = false;
             }
         }
@@ -155,7 +157,7 @@ library UniswapPathFinder {
         uint256 len = path.length;
         assert(len >= 2);
 
-        foundPath.poolTypes = new IPriceFeed.PoolType[](len - 1);
+        foundPath.poolTypes = new uint8[](len - 1);
         foundPath.path = path;
 
         for (uint i = exactIn ? 1 : len - 1; exactIn ? i < len : i > 0; exactIn ? i++ : i--) {
@@ -165,7 +167,7 @@ library UniswapPathFinder {
                 foundPath.path[i],
                 exactIn
             );
-            if (foundPath.poolTypes[i - 1] == IPriceFeed.PoolType.None) {
+            if (foundPath.poolTypes[i - 1] == NO_POOL) {
                 return (foundPath, amount);
             }
         }
@@ -178,10 +180,10 @@ library UniswapPathFinder {
         address tokenIn,
         address tokenOut,
         bool exactIn
-    ) internal returns (uint256 amountAfterHop, IPriceFeed.PoolType poolType) {
-        (amountAfterHop, poolType) = (exactIn ? 0 : type(uint256).max, IPriceFeed.PoolType.None);
-        for (uint i = 1; i < 5; i++) {
-            IPriceFeed.PoolType currentPoolType = IPriceFeed.PoolType(i);
+    ) internal returns (uint256 amountAfterHop, uint8 poolType) {
+        (amountAfterHop, poolType) = (exactIn ? 0 : type(uint256).max, NO_POOL);
+        for (uint i = 0; i < 4; i++) {
+            uint8 currentPoolType = uint8(i);
             uint256 swappedAmount = _calculateSingleSwap(
                 amount,
                 tokenIn,
@@ -199,11 +201,11 @@ library UniswapPathFinder {
         uint256 amount,
         address tokenIn,
         address tokenOut,
-        IPriceFeed.PoolType poolType,
+        uint8 poolType,
         bool exactIn
     ) internal returns (uint256) {
         return
-            poolType == IPriceFeed.PoolType.UniswapV2
+            poolType == 0 // TODO SWITCH TO POOLTYPE
                 ? _calculateSingleSwapV2(amount, tokenIn, tokenOut, exactIn)
                 : _calculateSingleSwapV3(
                     amount,
@@ -214,10 +216,10 @@ library UniswapPathFinder {
                 );
     }
 
-    function _feeByPoolType(IPriceFeed.PoolType poolType) internal pure returns (uint24 fee) {
-        if (poolType == IPriceFeed.PoolType.UniswapV3Fee10000) {
+    function _feeByPoolType(uint8 poolType) internal pure returns (uint24 fee) {
+        if (poolType == 3) {
             fee = 10000;
-        } else if (poolType == IPriceFeed.PoolType.UniswapV3Fee3000) {
+        } else if (poolType == 2) {
             fee = 3000;
         } else {
             fee = 500;

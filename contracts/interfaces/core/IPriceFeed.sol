@@ -6,30 +6,12 @@ pragma solidity ^0.8.20;
  * built into the contract to find the optimal* path between the pairs
  */
 interface IPriceFeed {
-    enum PoolType {
-        None,
-        UniswapV2,
-        UniswapV3Fee500,
-        UniswapV3Fee3000,
-        UniswapV3Fee10000
-    }
-
     /// @notice A struct describing a swap path alongside with swap types
     /// @param path the swap path itself
     /// @param poolTypes the v2/v3 pool types alongside the path
     struct SwapPath {
         address[] path;
-        PoolType[] poolTypes;
-    }
-
-    /// @notice A struct this is returned from the UniswapPathFinder library when an optimal* path is found
-    /// @param path the optimal* path itself
-    /// @param poolTypes the optimal* v2/v3 pool types alongside the path
-    /// @param amounts either the "amounts out" or "amounts in" required
-    struct FoundPath {
-        address[] path;
-        PoolType[] poolTypes;
-        uint256[] amounts;
+        uint8[] poolTypes;
     }
 
     /// @notice This function sets path tokens that will be used in the pathfinder

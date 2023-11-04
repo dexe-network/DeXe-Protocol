@@ -13,21 +13,6 @@ interface IPriceFeed
 
 This is the price feed contract which is used to fetch the spot prices from the UniswapV2 protocol. There also is a pathfinder
 built into the contract to find the optimal* path between the pairs
-## Enums info
-
-### PoolType
-
-```solidity
-enum PoolType {
-	 None,
-	 UniswapV2,
-	 UniswapV3Fee500,
-	 UniswapV3Fee3000,
-	 UniswapV3Fee10000
-}
-```
-
-
 ## Structs info
 
 ### SwapPath
@@ -35,7 +20,7 @@ enum PoolType {
 ```solidity
 struct SwapPath {
 	address[] path;
-	IPriceFeed.PoolType[] poolTypes;
+	uint8[] poolTypes;
 }
 ```
 
@@ -44,31 +29,10 @@ A struct describing a swap path alongside with swap types
 
 Parameters:
 
-| Name      | Type                       | Description                             |
-| :-------- | :------------------------- | :-------------------------------------- |
-| path      | address[]                  | the swap path itself                    |
-| poolTypes | enum IPriceFeed.PoolType[] | the v2/v3 pool types alongside the path |
-
-### FoundPath
-
-```solidity
-struct FoundPath {
-	address[] path;
-	IPriceFeed.PoolType[] poolTypes;
-	uint256[] amounts;
-}
-```
-
-A struct this is returned from the UniswapPathFinder library when an optimal* path is found
-
-
-Parameters:
-
-| Name      | Type                       | Description                                       |
-| :-------- | :------------------------- | :------------------------------------------------ |
-| path      | address[]                  | the optimal* path itself                          |
-| poolTypes | enum IPriceFeed.PoolType[] | the optimal* v2/v3 pool types alongside the path  |
-| amounts   | uint256[]                  | either the "amounts out" or "amounts in" required |
+| Name      | Type      | Description                             |
+| :-------- | :-------- | :-------------------------------------- |
+| path      | address[] | the swap path itself                    |
+| poolTypes | uint8[]   | the v2/v3 pool types alongside the path |
 
 ## Functions info
 
