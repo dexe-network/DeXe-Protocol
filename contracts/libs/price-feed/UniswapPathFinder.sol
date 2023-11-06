@@ -7,7 +7,6 @@ import "@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "../../interfaces/core/IPriceFeed.sol";
-import "../../core/PriceFeed.sol";
 
 library UniswapPathFinder {
     using EnumerableSet for EnumerableSet.AddressSet;

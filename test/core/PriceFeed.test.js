@@ -22,7 +22,7 @@ const SWAP_UNISWAP_V3_FEE500 = "1";
 const SWAP_UNISWAP_V3_FEE3000 = "2";
 const SWAP_UNISWAP_V3_FEE10000 = "3";
 
-describe.only("PriceFeed", () => {
+describe("PriceFeed", () => {
   let tokensToMint = toBN(1000000000);
   let reserveTokens = toBN(1000000);
 
@@ -31,6 +31,7 @@ describe.only("PriceFeed", () => {
 
   let priceFeed;
   let uniswapV2Router;
+  let uniswapV3Quoter;
   let DEXE;
   let USD;
 
@@ -57,9 +58,6 @@ describe.only("PriceFeed", () => {
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
-    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
-    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), uniswapV2Router.address);
-    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V3_QUOTER_NAME(), uniswapV3Quoter.address);
 
     priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
 

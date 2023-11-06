@@ -27,9 +27,6 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
 
     PoolType[] internal _poolTypes;
 
-    IUniswapV2Factory public uniswapFactory;
-    IUniswapV2Router02 public uniswapV2Router;
-    IQuoter public uniswapV3Quoter;
     address internal _usdAddress;
     address internal _dexeAddress;
 
@@ -47,9 +44,6 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     ) public virtual override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
-        uniswapFactory = IUniswapV2Factory(registry.getUniswapV2FactoryContract());
-        uniswapV2Router = IUniswapV2Router02(registry.getUniswapV2RouterContract());
-        uniswapV3Quoter = IQuoter(registry.getUniswapV3QuoterContract());
         _usdAddress = registry.getUSDContract();
         _dexeAddress = registry.getDEXEContract();
     }

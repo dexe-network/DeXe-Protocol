@@ -11,7 +11,8 @@ const PoolRegistry = artifacts.require("PoolRegistry");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const BABTMock = artifacts.require("BABTMock");
 const CoreProperties = artifacts.require("CoreProperties");
-const PriceFeedMock = artifacts.require("PriceFeedMock");
+const PriceFeed = artifacts.require("PriceFeed");
+const UniswapPathFinderLib = artifacts.require("UniswapPathFinder");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const UniswapV3QuoterMock = artifacts.require("UniswapV3QuoterMock");
 const SphereXEngineMock = artifacts.require("SphereXEngineMock");
@@ -24,7 +25,7 @@ PoolRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
-PriceFeedMock.numberFormat = "BigNumber";
+PriceFeed.numberFormat = "BigNumber";
 UniswapV2RouterMock.numberFormat = "BigNumber";
 UniswapV3QuoterMock.numberFormat = "BigNumber";
 
@@ -50,13 +51,16 @@ describe("PoolRegistry", () => {
     FACTORY = await accounts(2);
     NOTHING = await accounts(9);
 
+    const uniswapPathFinderLib = await UniswapPathFinderLib.new();
+    await PriceFeed.link(uniswapPathFinderLib);
+
     const contractsRegistry = await ContractsRegistry.new();
     const _poolRegistry = await PoolRegistry.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     const USD = await ERC20Mock.new("USD", "USD", 18);
     const BABT = await BABTMock.new();
     const _coreProperties = await CoreProperties.new();
-    const _priceFeed = await PriceFeedMock.new();
+    const _priceFeed = await PriceFeed.new();
     const uniswapV2Router = await UniswapV2RouterMock.new();
     const uniswapV3Quoter = await UniswapV3QuoterMock.new();
     sphereXEngine = await SphereXEngineMock.new();
@@ -70,19 +74,16 @@ describe("PoolRegistry", () => {
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), BABT.address);
-    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
     await contractsRegistry.addContract(await contractsRegistry.POOL_FACTORY_NAME(), FACTORY);
-    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V3_QUOTER_NAME(), uniswapV3Quoter.address);
 
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
-    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), NOTHING);
 
     const coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
-    const priceFeed = await PriceFeedMock.at(await contractsRegistry.getPriceFeedContract());
+    const priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
 
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
-    await priceFeed.__PriceFeed_init([]);
+    await priceFeed.__PriceFeed_init([["0", uniswapV2Router.address, "0"]]);
     await poolRegistry.__OwnablePoolContractsRegistry_init();
 
     await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());

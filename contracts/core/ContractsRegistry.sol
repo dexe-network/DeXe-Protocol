@@ -21,9 +21,6 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
     string public constant DEXE_EXPERT_NFT_NAME = "DEXE_EXPERT_NFT";
 
     string public constant PRICE_FEED_NAME = "PRICE_FEED";
-    string public constant UNISWAP_V2_ROUTER_NAME = "UNISWAP_V2_ROUTER";
-    string public constant UNISWAP_V3_QUOTER_NAME = "UNISWAP_V3_QUOTER";
-    string public constant UNISWAP_V2_FACTORY_NAME = "UNISWAP_V2_FACTORY";
 
     string public constant TREASURY_NAME = "TREASURY";
 
@@ -51,18 +48,6 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
 
     function getPriceFeedContract() external view override returns (address) {
         return getContract(PRICE_FEED_NAME);
-    }
-
-    function getUniswapV2RouterContract() external view override returns (address) {
-        return getContract(UNISWAP_V2_ROUTER_NAME);
-    }
-
-    function getUniswapV3QuoterContract() external view override returns (address) {
-        return getContract(UNISWAP_V3_QUOTER_NAME);
-    }
-
-    function getUniswapV2FactoryContract() external view override returns (address) {
-        return getContract(UNISWAP_V2_FACTORY_NAME);
     }
 
     function getTreasuryContract() external view override returns (address) {
