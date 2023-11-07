@@ -54,6 +54,16 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
         _coefficient3 = coefficient3;
     }
 
+    function changeCoefficients(
+        uint256 coefficient1,
+        uint256 coefficient2,
+        uint256 coefficient3
+    ) external onlyOwner {
+        _coefficient1 = coefficient1;
+        _coefficient2 = coefficient2;
+        _coefficient3 = coefficient3;
+    }
+
     function transformVotes(
         address voter,
         uint256 votes

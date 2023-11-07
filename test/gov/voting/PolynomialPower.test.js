@@ -1,7 +1,8 @@
 const { assert } = require("chai");
-const { toBN, accounts } = require("../../../scripts/utils/utils");
+const { toBN, accounts, wei } = require("../../../scripts/utils/utils");
 const { PRECISION, DECIMAL } = require("../../../scripts/utils/constants");
 const truffleAssert = require("truffle-assertions");
+const { impersonate } = require("../../helpers/impersonator");
 const Reverter = require("../../helpers/reverter");
 
 const PolynomialTesterMock = artifacts.require("PolynomialTesterMock");
@@ -11,6 +12,7 @@ PolynomialPower.numberFormat = "BigNumber";
 PolynomialTesterMock.numberFormat = "BigNumber";
 
 describe("PolynomialPower", () => {
+  let OWNER;
   let SECOND;
 
   let govPool;
@@ -137,6 +139,7 @@ describe("PolynomialPower", () => {
   }
 
   before("setup", async () => {
+    OWNER = await accounts(0);
     SECOND = await accounts(1);
 
     govPool = await PolynomialTesterMock.new();
@@ -152,6 +155,22 @@ describe("PolynomialPower", () => {
   });
 
   afterEach(reverter.revert);
+
+  describe("access", () => {
+    it("only owner should change coefficients", async () => {
+      await truffleAssert.reverts(power.changeCoefficients(1, 2, 3), "Ownable: caller is not the owner");
+
+      await impersonate(govPool.address);
+
+      await web3.eth.sendTransaction({
+        from: OWNER,
+        to: govPool.address,
+        value: wei(1),
+      });
+
+      await power.changeCoefficients(1, 2, 3, { from: govPool.address });
+    });
+  });
 
   describe("check math", () => {
     it("holders", async () => {

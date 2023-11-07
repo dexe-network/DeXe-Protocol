@@ -44,6 +44,8 @@ contract PolynomialTesterMock {
         return (zero, address(this), zero, zero, zero);
     }
 
+    receive() external payable {}
+
     function getExpertStatus(address user) external view returns (bool) {
         return _expertStatus[user];
     }
