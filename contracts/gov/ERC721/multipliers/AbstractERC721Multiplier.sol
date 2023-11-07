@@ -165,7 +165,7 @@ abstract contract AbstractERC721Multiplier is
 
         NftInfo memory info = _tokens[latestLockedTokenId];
 
-        if (info.mintedAt + info.duration < block.timestamp) {
+        if (uint256(info.mintedAt) + info.duration < block.timestamp) {
             return (0, 0, 0);
         }
 

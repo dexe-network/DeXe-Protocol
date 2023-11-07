@@ -41,7 +41,7 @@ describe("LinearPower", () => {
       it("should return the same value as input", async () => {
         assert.equal(await linearPower.transformVotes(ZERO_ADDR, wei(1)), wei(1));
 
-        assert.equal(await linearPower.transformVotes(ZERO_ADDR, "0"), "0");
+        assert.equal(await linearPower.transformVotesFull(ZERO_ADDR, "0", "0", "0", "0"), "0");
       });
     });
 

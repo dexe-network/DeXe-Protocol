@@ -801,6 +801,12 @@ describe("TokenSaleProposal", () => {
         await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: vesting settings validation failed");
       });
 
+      it("should not create tiers if claimLock > cliff", async () => {
+        tiers[0].claimLockDuration = wei("1");
+
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: claimLock > cliff");
+      });
+
       it("should not create tiers if no purchaseTokenAddresses provided", async () => {
         tiers[0].purchaseTokenAddresses = [];
 

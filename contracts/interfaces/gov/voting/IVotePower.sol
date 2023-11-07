@@ -20,7 +20,7 @@ interface IVotePower {
     /// @param micropoolPower the user's total micropool power
     /// @param treasuryPower the user's total treasury power
     /// @return resultingVotes voting power
-    function transformVotes(
+    function transformVotesFull(
         address voter,
         uint256 votes,
         uint256 personalPower,

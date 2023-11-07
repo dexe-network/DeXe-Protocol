@@ -200,6 +200,10 @@ library TokenSaleProposalCreate {
             "TSP: vesting settings validation failed"
         );
         require(
+            tierInitParams.claimLockDuration <= tierInitParams.vestingSettings.cliffPeriod,
+            "TSP: claimLock > cliff"
+        );
+        require(
             tierInitParams.purchaseTokenAddresses.length != 0,
             "TSP: purchase tokens are not provided"
         );

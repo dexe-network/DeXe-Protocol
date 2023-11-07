@@ -392,7 +392,7 @@ library GovPoolVote {
             );
 
         return
-            IVotePower(votePower).transformVotes(
+            IVotePower(votePower).transformVotesFull(
                 voter,
                 voteAmount,
                 votingPowers[0].rawPower,

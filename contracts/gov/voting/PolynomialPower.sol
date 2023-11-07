@@ -61,7 +61,7 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
         return _transformVotes(voter, votes, _getTotalPower(), getVotesRatio(voter));
     }
 
-    function transformVotes(
+    function transformVotesFull(
         address voter,
         uint256 votes,
         uint256 personalPower,
