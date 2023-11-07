@@ -8,6 +8,7 @@ const PriceFeed = artifacts.require("PriceFeed");
 const UniswapV2PathFinderLib = artifacts.require("UniswapV2PathFinder");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const SphereXEngineMock = artifacts.require("SphereXEngineMock");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PriceFeed.numberFormat = "BigNumber";
@@ -42,8 +43,11 @@ describe("PriceFeed", () => {
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     USD = await ERC20Mock.new("USD", "USD", 18);
     uniswapV2Router = await UniswapV2RouterMock.new();
+    const _sphereXEngine = await SphereXEngineMock.new();
 
-    await contractsRegistry.__OwnableContractsRegistry_init();
+    await contractsRegistry.__MultiOwnableContractsRegistry_init();
+
+    await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
 
     await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), _priceFeed.address);
 
@@ -69,18 +73,18 @@ describe("PriceFeed", () => {
     });
 
     it("should not set dependencies from non dependant", async () => {
-      await truffleAssert.reverts(priceFeed.setDependencies(OWNER), "Dependant: Not an injector");
+      await truffleAssert.reverts(priceFeed.setDependencies(OWNER, "0x"), "Dependant: not an injector");
     });
 
     it("only owner should call these methods", async () => {
       await truffleAssert.reverts(
         priceFeed.addPathTokens([USD.address], { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(
         priceFeed.removePathTokens([USD.address], { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
     });
   });
@@ -137,11 +141,13 @@ describe("PriceFeed", () => {
       await uniswapV2Router.enablePair(DEXE.address, USD.address);
 
       const pricesInfo = await priceFeed.getExtendedPriceOut(DEXE.address, USD.address, wei("1000"), []);
+      const rawPricesInfo = await priceFeed.getPriceOut(DEXE.address, USD.address, wei("1000"));
       const usdPricesInfo = await priceFeed.getNormalizedPriceOutUSD(DEXE.address, wei("1000"));
       const dexePricesInfo = await priceFeed.getNormalizedPriceOutDEXE(USD.address, wei("250"));
       const normPricesInfo = await priceFeed.getNormalizedExtendedPriceOut(DEXE.address, USD.address, wei("1000"), []);
 
       assert.equal(pricesInfo.amountOut.toFixed(), normPricesInfo.amountOut.toFixed());
+      assert.equal(pricesInfo.amountOut.toFixed(), rawPricesInfo.amountOut.toFixed());
       assert.equal(pricesInfo.amountOut.toFixed(), usdPricesInfo.amountOut.toFixed());
       assert.equal(pricesInfo.amountOut.toFixed(), dexePricesInfo.amountOut.toFixed());
       assert.equal(pricesInfo.amountOut.toFixed(), wei("500"));
@@ -259,11 +265,13 @@ describe("PriceFeed", () => {
       await uniswapV2Router.enablePair(DEXE.address, USD.address);
 
       const pricesInfo = await priceFeed.getExtendedPriceIn(DEXE.address, USD.address, wei("500"), []);
+      const rawPricesInfo = await priceFeed.getPriceIn(DEXE.address, USD.address, wei("500"));
       const usdPriceInfo = await priceFeed.getNormalizedPriceInUSD(DEXE.address, wei("500"));
       const dexePriceInfo = await priceFeed.getNormalizedPriceInDEXE(USD.address, wei("2000"));
       const normPricesInfo = await priceFeed.getNormalizedExtendedPriceIn(DEXE.address, USD.address, wei("500"), []);
 
       assert.equal(pricesInfo.amountIn.toFixed(), normPricesInfo.amountIn.toFixed());
+      assert.equal(pricesInfo.amountIn.toFixed(), rawPricesInfo.amountIn.toFixed());
       assert.equal(pricesInfo.amountIn.toFixed(), usdPriceInfo.amountIn.toFixed());
       assert.equal(pricesInfo.amountIn.toFixed(), dexePriceInfo.amountIn.toFixed());
       assert.equal(pricesInfo.amountIn.toFixed(), wei("1000"));
@@ -382,286 +390,6 @@ describe("PriceFeed", () => {
 
       assert.equal(pricesInfo.amountIn.toFixed(), wei("2000"));
       assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, USD.address]);
-    });
-  });
-
-  describe("exchange, normalized exchange", () => {
-    let WBTC;
-
-    beforeEach("setup", async () => {
-      const MANA = await ERC20Mock.new("MANA", "MANA", 18);
-      WBTC = await ERC20Mock.new("WBTC", "WBTC", 8);
-
-      await DEXE.mint(OWNER, wei(tokensToMint));
-
-      await MANA.mint(OWNER, wei(tokensToMint));
-      await WBTC.mint(OWNER, wei(tokensToMint, 8));
-
-      await DEXE.approve(uniswapV2Router.address, wei(reserveTokens));
-      await uniswapV2Router.setReserve(DEXE.address, wei(reserveTokens));
-
-      await MANA.approve(uniswapV2Router.address, wei(reserveTokens));
-      await uniswapV2Router.setReserve(MANA.address, wei(reserveTokens));
-
-      await WBTC.approve(uniswapV2Router.address, wei(reserveTokens, 8));
-      await uniswapV2Router.setReserve(WBTC.address, wei(reserveTokens, 8));
-
-      await uniswapV2Router.enablePair(DEXE.address, MANA.address);
-      await uniswapV2Router.enablePair(MANA.address, WBTC.address);
-
-      await priceFeed.addPathTokens([MANA.address]);
-    });
-
-    it("should exchange from tokens", async () => {
-      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("999000000"));
-      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("999000000", 8));
-
-      await DEXE.approve(priceFeed.address, wei("1000"));
-
-      await priceFeed.exchangeFromExact(DEXE.address, WBTC.address, wei("1000"), [], 0);
-
-      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("998999000"));
-      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("999001000", 8));
-    });
-
-    it("should exchange to tokens", async () => {
-      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("999000000"));
-      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("999000000", 8));
-
-      await DEXE.approve(priceFeed.address, wei("1000"));
-
-      await priceFeed.exchangeToExact(DEXE.address, WBTC.address, wei("1000", 8), [], wei("1000"));
-
-      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("998999000"));
-      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("999001000", 8));
-    });
-
-    it("should exchange norm from tokens", async () => {
-      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("999000000"));
-      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("999000000", 8));
-
-      await WBTC.approve(priceFeed.address, wei("1000", 8));
-
-      await priceFeed.normalizedExchangeFromExact(WBTC.address, DEXE.address, wei("1000"), [], 0);
-
-      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("999001000"));
-      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("998999000", 8));
-    });
-
-    it("should exchange norm to tokens", async () => {
-      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("999000000"));
-      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("999000000", 8));
-
-      await WBTC.approve(priceFeed.address, wei("1000", 8));
-
-      await priceFeed.normalizedExchangeToExact(WBTC.address, DEXE.address, wei("1000"), [], wei("1000"));
-
-      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("999001000"));
-      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("998999000", 8));
-    });
-
-    it("should not exchange from tokens", async () => {
-      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("999000000"));
-
-      await DEXE.approve(priceFeed.address, wei("1000"));
-
-      await priceFeed.exchangeFromExact(DEXE.address, WBTC.address, 0, [], 0);
-      await priceFeed.exchangeFromExact(DEXE.address, DEXE.address, wei("1000"), [], 0);
-
-      assert.equal(toBN(await DEXE.balanceOf(OWNER)).toFixed(), wei("999000000"));
-    });
-
-    it("should not exchange to tokens", async () => {
-      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("999000000", 8));
-
-      await DEXE.approve(priceFeed.address, wei("1000"));
-
-      await priceFeed.exchangeToExact(DEXE.address, WBTC.address, 0, [], 0);
-      await priceFeed.exchangeToExact(WBTC.address, WBTC.address, wei("1000", 8), [], wei("1000", 8));
-
-      assert.equal(toBN(await WBTC.balanceOf(OWNER)).toFixed(), wei("999000000", 8));
-    });
-  });
-
-  describe("saved path", () => {
-    let MANA;
-    let WBTC;
-
-    beforeEach("setup", async () => {
-      MANA = await ERC20Mock.new("MANA", "MANA", 18);
-      WBTC = await ERC20Mock.new("WBTC", "WBTC", 8);
-
-      await DEXE.mint(OWNER, wei(tokensToMint));
-      await USD.mint(OWNER, wei(tokensToMint));
-
-      await MANA.mint(OWNER, wei(tokensToMint));
-      await WBTC.mint(OWNER, wei(tokensToMint, 8));
-
-      await DEXE.approve(uniswapV2Router.address, wei(reserveTokens));
-      await uniswapV2Router.setReserve(DEXE.address, wei(reserveTokens));
-
-      await USD.approve(uniswapV2Router.address, wei(reserveTokens));
-      await uniswapV2Router.setReserve(USD.address, wei(reserveTokens.idiv(2)));
-
-      await MANA.approve(uniswapV2Router.address, wei(reserveTokens));
-      await uniswapV2Router.setReserve(MANA.address, wei(reserveTokens));
-
-      await WBTC.approve(uniswapV2Router.address, wei(reserveTokens, 8));
-      await uniswapV2Router.setReserve(WBTC.address, wei(reserveTokens, 8));
-
-      await uniswapV2Router.enablePair(DEXE.address, MANA.address);
-      await uniswapV2Router.enablePair(MANA.address, WBTC.address);
-      await uniswapV2Router.enablePair(WBTC.address, USD.address);
-
-      await priceFeed.addPathTokens([MANA.address, WBTC.address]);
-    });
-
-    it("should save the path correctly", async () => {
-      assert.deepEqual(await priceFeed.getSavedPaths(OWNER, DEXE.address, USD.address), []);
-
-      let pricesInfo = await priceFeed.getNormalizedPriceOut(DEXE.address, USD.address, wei("500"));
-
-      assert.equal(pricesInfo.amountOut.toFixed(), "0");
-
-      await DEXE.approve(priceFeed.address, wei("1000"));
-
-      await priceFeed.exchangeFromExact(
-        DEXE.address,
-        USD.address,
-        wei("1000"),
-        [DEXE.address, MANA.address, WBTC.address, USD.address],
-        0
-      );
-
-      assert.deepEqual(await priceFeed.getSavedPaths(OWNER, DEXE.address, USD.address), [
-        DEXE.address,
-        MANA.address,
-        WBTC.address,
-        USD.address,
-      ]);
-
-      assert.deepEqual(await priceFeed.getSavedPaths(OWNER, USD.address, DEXE.address), [
-        USD.address,
-        WBTC.address,
-        MANA.address,
-        DEXE.address,
-      ]);
-
-      pricesInfo = await priceFeed.getNormalizedPriceOut(DEXE.address, USD.address, wei("500"));
-
-      assert.closeTo(pricesInfo.amountOut.toNumber(), toBN(wei("250")).toNumber(), toBN(wei("1")).toNumber());
-      assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, WBTC.address, USD.address]);
-    });
-
-    it("should reuse the saved path", async () => {
-      await DEXE.approve(priceFeed.address, wei("3000"));
-      await USD.approve(priceFeed.address, wei("1000"));
-
-      await truffleAssert.reverts(
-        priceFeed.exchangeFromExact(DEXE.address, USD.address, wei("1000"), [], 0),
-        "PriceFeed: unreachable asset"
-      );
-
-      await priceFeed.exchangeFromExact(
-        DEXE.address,
-        USD.address,
-        wei("1000"),
-        [DEXE.address, MANA.address, WBTC.address, USD.address],
-        0
-      );
-
-      await truffleAssert.passes(
-        priceFeed.exchangeToExact(USD.address, DEXE.address, wei("500"), [], wei("1000")),
-        "Assets is reachable"
-      );
-
-      assert.deepEqual(await priceFeed.getSavedPaths(OWNER, DEXE.address, USD.address), [
-        DEXE.address,
-        MANA.address,
-        WBTC.address,
-        USD.address,
-      ]);
-
-      assert.deepEqual(await priceFeed.getSavedPaths(OWNER, USD.address, DEXE.address), [
-        USD.address,
-        WBTC.address,
-        MANA.address,
-        DEXE.address,
-      ]);
-    });
-
-    it("should save the path correctly 2", async () => {
-      assert.deepEqual(await priceFeed.getSavedPaths(OWNER, DEXE.address, USD.address), []);
-
-      let pricesInfo = await priceFeed.getNormalizedPriceIn(DEXE.address, USD.address, wei("1000"));
-
-      assert.equal(pricesInfo.amountIn.toFixed(), "0");
-
-      await DEXE.approve(priceFeed.address, wei("1000"));
-
-      await priceFeed.exchangeToExact(
-        DEXE.address,
-        USD.address,
-        wei("500"),
-        [DEXE.address, MANA.address, WBTC.address, USD.address],
-        wei("1000")
-      );
-
-      assert.deepEqual(await priceFeed.getSavedPaths(OWNER, DEXE.address, USD.address), [
-        DEXE.address,
-        MANA.address,
-        WBTC.address,
-        USD.address,
-      ]);
-
-      assert.deepEqual(await priceFeed.getSavedPaths(OWNER, USD.address, DEXE.address), [
-        USD.address,
-        WBTC.address,
-        MANA.address,
-        DEXE.address,
-      ]);
-
-      pricesInfo = await priceFeed.getNormalizedPriceIn(DEXE.address, USD.address, wei("500"));
-
-      assert.closeTo(pricesInfo.amountIn.toNumber(), toBN(wei("1000")).toNumber(), toBN(wei("10")).toNumber());
-      assert.deepEqual(pricesInfo.path, [DEXE.address, MANA.address, WBTC.address, USD.address]);
-    });
-
-    it("should reuse the saved path 2", async () => {
-      await DEXE.approve(priceFeed.address, wei("3000"));
-      await USD.approve(priceFeed.address, wei("1000"));
-
-      await truffleAssert.reverts(
-        priceFeed.exchangeToExact(DEXE.address, USD.address, wei("500"), [], 0),
-        "PriceFeed: unreachable asset"
-      );
-
-      await priceFeed.exchangeToExact(
-        DEXE.address,
-        USD.address,
-        wei("500"),
-        [DEXE.address, MANA.address, WBTC.address, USD.address],
-        wei("1000")
-      );
-
-      await truffleAssert.passes(
-        priceFeed.exchangeFromExact(USD.address, DEXE.address, wei("500"), [], 0),
-        "Assets is reachable"
-      );
-
-      assert.deepEqual(await priceFeed.getSavedPaths(OWNER, DEXE.address, USD.address), [
-        DEXE.address,
-        MANA.address,
-        WBTC.address,
-        USD.address,
-      ]);
-
-      assert.deepEqual(await priceFeed.getSavedPaths(OWNER, USD.address, DEXE.address), [
-        USD.address,
-        WBTC.address,
-        MANA.address,
-        DEXE.address,
-      ]);
     });
   });
 });

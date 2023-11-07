@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "../../../libs/data-structures/ShrinkableArray.sol";
+import "../../../interfaces/gov/IGovPool.sol";
 
 /**
  * This contract is responsible for securely storing user's funds that are used during the voting. These are either
@@ -11,50 +11,61 @@ import "../../../libs/data-structures/ShrinkableArray.sol";
  */
 interface IGovUserKeeper {
     /// @notice The struct holds information about user deposited tokens
-    /// @param tokenBalance the amount of deposited tokens
-    /// @param maxTokensLocked the upper bound of currently locked tokens
-    /// @param lockedInProposals the amount of deposited tokens locked in proposals
-    /// @param nftBalance the array of deposited nfts
+    /// @param tokens the amount of deposited tokens
+    /// @param nfts the array of deposited nfts
     struct BalanceInfo {
-        uint256 tokenBalance;
-        uint256 maxTokensLocked;
-        mapping(uint256 => uint256) lockedInProposals; // proposal id => locked amount
-        EnumerableSet.UintSet nftBalance; // array of NFTs
+        uint256 tokens;
+        EnumerableSet.UintSet nfts;
     }
 
     /// @notice The struct holds information about user balances
-    /// @param balanceInfo the BalanceInfo struct
-    /// @param delegatedTokens the mapping of delegated tokens (delegatee address => delegated amount)
-    /// @param delegatedNfts the mapping of delegated nfts (delegatee address => array of delegated nft ids)
+    /// @param balances matching vote types with balance infos
+    /// @param nftsPowers matching vote types with cached nfts powers
+    /// @param delegatedBalances matching delegatees with balances infos
+    /// @param delegatedNftPowers matching delegatees with delegated nft powers
+    /// @param allDelegatedBalance the balance info of all delegated assets
     /// @param delegatees the array of delegatees
-    /// @param delegatees the array of delegatees
+    /// @param maxTokensLocked the upper bound of currently locked tokens
+    /// @param lockedInProposals the amount of deposited tokens locked in proposals
     struct UserInfo {
-        BalanceInfo balanceInfo;
-        mapping(address => uint256) delegatedTokens; // delegatee => amount
-        mapping(address => EnumerableSet.UintSet) delegatedNfts; // delegatee => tokenIds
+        mapping(IGovPool.VoteType => BalanceInfo) balances;
+        mapping(IGovPool.VoteType => uint256) nftsPowers;
+        mapping(address => BalanceInfo) delegatedBalances;
+        mapping(address => uint256) delegatedNftPowers;
+        BalanceInfo allDelegatedBalance;
         EnumerableSet.AddressSet delegatees;
+        uint256 maxTokensLocked;
+        mapping(uint256 => uint256) lockedInProposals;
     }
 
     /// @notice The struct holds information about nft contract
+    /// @param nftAddress the address of the nft
     /// @param isSupportPower boolean flag, if true then nft contract supports power
-    /// @param totalPowerInTokens the voting power of all nfts
+    /// @param individualPower the voting power an nft
     /// @param totalSupply the total supply of nfts that are not enumerable
+    /// @param nftMinPower matching nft ids to their minimal powers
     struct NFTInfo {
+        address nftAddress;
         bool isSupportPower;
-        uint256 totalPowerInTokens;
+        uint256 individualPower;
         uint256 totalSupply;
+        mapping(uint256 => uint256) nftMinPower;
     }
 
     /// @notice The struct that is used in view functions of contract as a return argument
     /// @param power the total vote power of a user
+    /// @param rawPower the total deposited assets power of a user
     /// @param nftPower the total nft power of a user
+    /// @param rawNftPower the total deposited nft power of a user
     /// @param perNftPower the power of every nft, bounded by index with nftIds
     /// @param ownedBalance the owned erc20 balance, decimals = 18
     /// @param ownedLength the amount of owned nfts
     /// @param nftIds the array of nft ids, bounded by index with perNftPower
     struct VotingPowerView {
         uint256 power;
+        uint256 rawPower;
         uint256 nftPower;
+        uint256 rawNftPower;
         uint256[] perNftPower;
         uint256 ownedBalance;
         uint256 ownedLength;
@@ -93,11 +104,21 @@ interface IGovUserKeeper {
     /// @param amount the erc20 delegation amount
     function delegateTokens(address delegator, address delegatee, uint256 amount) external;
 
+    /// @notice The function for delegating tokens from Treasury
+    /// @param delegatee the address of delegatee
+    /// @param amount the erc20 delegation amount
+    function delegateTokensTreasury(address delegatee, uint256 amount) external;
+
     /// @notice The function for undelegating tokens
     /// @param delegator the address of delegator
     /// @param delegatee the address of delegatee
     /// @param amount the erc20 undelegation amount
     function undelegateTokens(address delegator, address delegatee, uint256 amount) external;
+
+    /// @notice The function for undelegating tokens from Treasury
+    /// @param delegatee the address of delegatee
+    /// @param amount the erc20 undelegation amount
+    function undelegateTokensTreasury(address delegatee, uint256 amount) external;
 
     /// @notice The function for depositing nfts
     /// @param payer the address of depositor
@@ -121,6 +142,11 @@ interface IGovUserKeeper {
         uint256[] calldata nftIds
     ) external;
 
+    /// @notice The function for delegating nfts from Treasury
+    /// @param delegatee the address of delegatee
+    /// @param nftIds the array of delegated nft ids
+    function delegateNftsTreasury(address delegatee, uint256[] calldata nftIds) external;
+
     /// @notice The function for undelegating nfts
     /// @param delegator the address of delegator
     /// @param delegatee the address of delegatee
@@ -131,51 +157,37 @@ interface IGovUserKeeper {
         uint256[] calldata nftIds
     ) external;
 
-    /// @notice The function for creation nft power snapshot
-    /// @return `id` of power snapshot
-    function createNftPowerSnapshot() external returns (uint256);
+    /// @notice The function for undelegating nfts from Treasury
+    /// @param delegatee the address of delegatee
+    /// @param nftIds the array of undelegated nft ids
+    function undelegateNftsTreasury(address delegatee, uint256[] calldata nftIds) external;
 
     /// @notice The function for recalculating max token locked amount of a user
     /// @param lockedProposals the array of proposal ids for recalculation
     /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then recalculation is made for micropool
     function updateMaxTokenLockedAmount(
         uint256[] calldata lockedProposals,
-        address voter,
-        bool isMicropool
+        address voter
     ) external;
 
     /// @notice The function for locking tokens in a proposal
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then micropool funds are locked
     /// @param amount the amount of tokens to lock
-    function lockTokens(
-        uint256 proposalId,
-        address voter,
-        bool isMicropool,
-        uint256 amount
-    ) external;
+    function lockTokens(uint256 proposalId, address voter, uint256 amount) external;
 
     /// @notice The function for unlocking tokens in proposal
     /// @param proposalId the id of proposal
     /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then micropool funds are unlocked
-    function unlockTokens(
-        uint256 proposalId,
-        address voter,
-        bool isMicropool
-    ) external returns (uint256 unlockedAmount);
+    function unlockTokens(uint256 proposalId, address voter) external;
 
     /// @notice The function for locking nfts
     /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then micropool nfts are locked
-    /// @param useDelegated the bool flag, if true then delegated nfts are locked
+    /// @param voteType the type of vote
     /// @param nftIds the array of nft ids to lock
     function lockNfts(
         address voter,
-        bool isMicropool,
-        bool useDelegated,
+        IGovPool.VoteType voteType,
         uint256[] calldata nftIds
     ) external;
 
@@ -193,146 +205,127 @@ interface IGovUserKeeper {
 
     /// @notice The function for setting erc721 address
     /// @param _nftAddress the erc721 address
-    /// @param totalPowerInTokens the total voting power of nfts
+    /// @param individualPower the voting power of an nft
     /// @param nftsTotalSupply the total supply of nft contract
     function setERC721Address(
         address _nftAddress,
-        uint256 totalPowerInTokens,
+        uint256 individualPower,
         uint256 nftsTotalSupply
     ) external;
 
-    /// @notice The function for getting information about nft contract
-    /// @return `NFTInfo` struct
-    function getNftInfo() external view returns (NFTInfo memory);
+    /// @notice The function for getting erc20 address
+    /// @return `tokenAddress` the erc20 address
+    function tokenAddress() external view returns (address);
+
+    /// @notice The function for getting erc721 address
+    /// @return `nftAddress` the erc721 address
+    function nftAddress() external view returns (address);
+
+    /// @notice The function for getting nft info
+    /// @return isSupportPower boolean flag, if true then nft contract supports power
+    /// @return individualPower the voting power an nft
+    /// @return totalSupply the total supply of nfts that are not enumerable
+    function getNftInfo()
+        external
+        view
+        returns (bool isSupportPower, uint256 individualPower, uint256 totalSupply);
 
     /// @notice The function for getting max locked amount of a user
     /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then uses micropool locked amounts
     /// @return `max locked amount`
-    function maxLockedAmount(address voter, bool isMicropool) external view returns (uint256);
+    function maxLockedAmount(address voter) external view returns (uint256);
 
     /// @notice The function for getting token balance of a user
     /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then uses micropool balance
-    /// @param useDelegated the boolean flag, if true then balance is calculated with delegations
+    /// @param voteType the type of vote
     /// @return balance the total balance with delegations
     /// @return ownedBalance the user balance that is not deposited to the contract
     function tokenBalance(
         address voter,
-        bool isMicropool,
-        bool useDelegated
+        IGovPool.VoteType voteType
     ) external view returns (uint256 balance, uint256 ownedBalance);
 
     /// @notice The function for getting nft balance of a user
     /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then uses micropool nft balance
-    /// @param useDelegated the boolean flag, if true then balance is calculated with delegations
+    /// @param voteType the type of vote
     /// @return balance the total balance with delegations
     /// @return ownedBalance the number of nfts that are not deposited to the contract
     function nftBalance(
         address voter,
-        bool isMicropool,
-        bool useDelegated
+        IGovPool.VoteType voteType
     ) external view returns (uint256 balance, uint256 ownedBalance);
 
     /// @notice The function for getting nft ids of a user
     /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then uses micropool balance
-    /// @param useDelegated the boolean flag, if true then balance is calculated with delegations
+    /// @param voteType the type of vote
     /// @return nfts the array of owned nft ids
     /// @return ownedLength the number of nfts that are not deposited to the contract
     function nftExactBalance(
         address voter,
-        bool isMicropool,
-        bool useDelegated
+        IGovPool.VoteType voteType
     ) external view returns (uint256[] memory nfts, uint256 ownedLength);
 
-    /// @notice The function for getting nft power from snapshot
-    /// @param nftIds the array of nft ids to get the power of
-    /// @param snapshotId the id of snapshot
-    /// @return the power of nfts
-    function getNftsPowerInTokensBySnapshot(
-        uint256[] calldata nftIds,
-        uint256 snapshotId
-    ) external view returns (uint256);
+    /// @notice The function for getting total power of nfts by ids
+    /// @param nftIds the array of nft ids
+    /// @param voteType the type of vote
+    /// @param voter the address of user
+    /// @param perNftPowerArray should the nft raw powers array be returned
+    /// @return nftPower the total total power of nfts
+    /// @return perNftPower the array of nft powers, bounded with nftIds by index
+    function getTotalNftsPower(
+        uint256[] memory nftIds,
+        IGovPool.VoteType voteType,
+        address voter,
+        bool perNftPowerArray
+    ) external view returns (uint256 nftPower, uint256[] memory perNftPower);
 
     /// @notice The function for getting total voting power of the contract
-    /// @return `total` power
-    function getTotalVoteWeight() external view returns (uint256);
+    /// @return power total power
+    function getTotalPower() external view returns (uint256 power);
 
     /// @notice The function to define if voter is able to create a proposal. Includes micropool balance
     /// @param voter the address of voter
-    /// @param useDelegated the boolean flag, if true then balance is calculated with delegations
+    /// @param voteType the type of vote
     /// @param requiredVotes the required voting power
-    /// @param snapshotId the id of snapshot
     /// @return `true` - can participate, `false` - can't participate
     function canCreate(
         address voter,
-        bool useDelegated,
-        uint256 requiredVotes,
-        uint256 snapshotId
-    ) external view returns (bool);
-
-    /// @notice The function to define if voter is able to vote. Includes wallet balance
-    /// @param voter the address of voter
-    /// @param isMicropool the boolean flag, if true then uses micropool balance
-    /// @param useDelegated the boolean flag, if true then balance is calculated with delegations
-    /// @param requiredVotes the required voting power
-    /// @param snapshotId the id of snapshot
-    /// @return `true` - can participate, `false` - can't participate
-    function canVote(
-        address voter,
-        bool isMicropool,
-        bool useDelegated,
-        uint256 requiredVotes,
-        uint256 snapshotId
+        IGovPool.VoteType voteType,
+        uint256 requiredVotes
     ) external view returns (bool);
 
     /// @notice The function for getting voting power of users
     /// @param users the array of users addresses
-    /// @param isMicropools the array of boolean flags to use the micropool balances or not
-    /// @param useDelegated the array of boolean flags to use the delegated tokens or not
+    /// @param voteTypes the array of vote types
+    /// @param perNftPowerArray should the nft powers array be calculated
     /// @return votingPowers the array of VotingPowerView structs
     function votingPower(
         address[] calldata users,
-        bool[] calldata isMicropools,
-        bool[] calldata useDelegated
+        IGovPool.VoteType[] calldata voteTypes,
+        bool perNftPowerArray
     ) external view returns (VotingPowerView[] memory votingPowers);
 
-    /// @notice The function for getting power of nfts by ids
+    /// @notice The function for getting voting power after the formula
+    /// @param voter the address of the voter
+    /// @param amount the amount of tokens
     /// @param nftIds the array of nft ids
-    /// @return nftPower the total power of nfts
-    /// @return perNftPower the array of nft powers, bounded with nftIds by index
-    function nftVotingPower(
-        uint256[] memory nftIds
-    ) external view returns (uint256 nftPower, uint256[] memory perNftPower);
+    /// @return personalPower the personal voting power after the formula
+    /// @return fullPower the personal plus delegated voting power after the formula
+    function transformedVotingPower(
+        address voter,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external view returns (uint256 personalPower, uint256 fullPower);
 
     /// @notice The function for getting information about user's delegations
     /// @param user the address of user
+    /// @param perNftPowerArray should the nft powers array be calculated
     /// @return power the total delegated power
     /// @return delegationsInfo the array of DelegationInfoView structs
     function delegations(
-        address user
+        address user,
+        bool perNftPowerArray
     ) external view returns (uint256 power, DelegationInfoView[] memory delegationsInfo);
-
-    /// @notice The function for getting information about funds that can be undelegated
-    /// @param delegator the delegator address
-    /// @param lockedProposals the array of ids of locked proposals
-    /// @param unlockedNfts the array of unlocked nfts
-    /// @return undelegateableTokens the tokens that can be undelegated
-    /// @return undelegateableNfts the array of nfts that can be undelegated
-    function getUndelegateableAssets(
-        address delegator,
-        address delegatee,
-        ShrinkableArray.UintArray calldata lockedProposals,
-        uint256[] calldata unlockedNfts
-    )
-        external
-        view
-        returns (
-            uint256 undelegateableTokens,
-            ShrinkableArray.UintArray memory undelegateableNfts
-        );
 
     /// @notice The function for getting information about funds that can be withdrawn
     /// @param voter the address of voter
@@ -342,24 +335,16 @@ interface IGovUserKeeper {
     /// @return withdrawableNfts the array of nfts that can we withdrawn
     function getWithdrawableAssets(
         address voter,
-        ShrinkableArray.UintArray calldata lockedProposals,
+        uint256[] calldata lockedProposals,
         uint256[] calldata unlockedNfts
-    )
-        external
-        view
-        returns (uint256 withdrawableTokens, ShrinkableArray.UintArray memory withdrawableNfts);
+    ) external view returns (uint256 withdrawableTokens, uint256[] memory withdrawableNfts);
 
-    /// @notice The function for getting the list of delegatees by the delegator address
-    /// @param delegator the address of the delegator
-    /// @return the list of delegatees
-    function getDelegatees(address delegator) external view returns (address[] memory);
-
-    /// @notice The function for getting the total delegated stake amount by the delegator and the delegatee
+    /// @notice The function for getting the total delegated power by the delegator and the delegatee
     /// @param delegator the address of the delegator
     /// @param delegatee the address of the delegatee
-    /// @return the delegated stake amount
-    function getDelegatedStakeAmount(
+    /// @return delegatedPower the total delegated power
+    function getDelegatedAssetsPower(
         address delegator,
         address delegatee
-    ) external view returns (uint256);
+    ) external view returns (uint256 delegatedPower);
 }

@@ -62,6 +62,25 @@ const getBytesTransfer = (address, amount) => {
   );
 };
 
+const getBytesChangeVotePower = (votePower) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "votePower",
+          type: "address",
+        },
+      ],
+      name: "changeVotePower",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [votePower]
+  );
+};
+
 const getBytesEditUrl = (url) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -159,7 +178,7 @@ const getBytesSetERC20Address = (address) => {
   );
 };
 
-const getBytesSetERC721Address = (address, totalPowerInTokens, nftsTotalSupply) => {
+const getBytesSetERC721Address = (address, individualPower, nftsTotalSupply) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       name: "setERC721Address",
@@ -170,7 +189,7 @@ const getBytesSetERC721Address = (address, totalPowerInTokens, nftsTotalSupply) 
           type: "address",
         },
         {
-          name: "totalPowerInTokens",
+          name: "individualPower",
           type: "uint256",
         },
         {
@@ -179,7 +198,7 @@ const getBytesSetERC721Address = (address, totalPowerInTokens, nftsTotalSupply) 
         },
       ],
     },
-    [address, totalPowerInTokens, nftsTotalSupply]
+    [address, individualPower, nftsTotalSupply]
   );
 };
 
@@ -212,6 +231,10 @@ const getBytesAddSettings = (settings) => {
               name: "durationValidators",
             },
             {
+              type: "uint64",
+              name: "executionDelay",
+            },
+            {
               type: "uint128",
               name: "quorum",
             },
@@ -228,20 +251,26 @@ const getBytesAddSettings = (settings) => {
               name: "minVotesForCreating",
             },
             {
-              type: "address",
-              name: "rewardToken",
-            },
-            {
-              type: "uint256",
-              name: "creationReward",
-            },
-            {
-              type: "uint256",
-              name: "executionReward",
-            },
-            {
-              type: "uint256",
-              name: "voteRewardsCoefficient",
+              components: [
+                {
+                  name: "rewardToken",
+                  type: "address",
+                },
+                {
+                  name: "creationReward",
+                  type: "uint256",
+                },
+                {
+                  name: "executionReward",
+                  type: "uint256",
+                },
+                {
+                  name: "voteRewardsCoefficient",
+                  type: "uint256",
+                },
+              ],
+              name: "rewardsInfo",
+              type: "tuple",
             },
             {
               type: "string",
@@ -289,6 +318,11 @@ const getBytesEditSettings = (ids, settings) => {
               type: "uint64",
               name: "durationValidators",
             },
+
+            {
+              type: "uint64",
+              name: "executionDelay",
+            },
             {
               type: "uint128",
               name: "quorum",
@@ -306,20 +340,26 @@ const getBytesEditSettings = (ids, settings) => {
               name: "minVotesForCreating",
             },
             {
-              type: "address",
-              name: "rewardToken",
-            },
-            {
-              type: "uint256",
-              name: "creationReward",
-            },
-            {
-              type: "uint256",
-              name: "executionReward",
-            },
-            {
-              type: "uint256",
-              name: "voteRewardsCoefficient",
+              components: [
+                {
+                  name: "rewardToken",
+                  type: "address",
+                },
+                {
+                  name: "creationReward",
+                  type: "uint256",
+                },
+                {
+                  name: "executionReward",
+                  type: "uint256",
+                },
+                {
+                  name: "voteRewardsCoefficient",
+                  type: "uint256",
+                },
+              ],
+              name: "rewardsInfo",
+              type: "tuple",
             },
             {
               type: "string",
@@ -394,6 +434,11 @@ const getBytesCreateTiersTSP = (tiers) => {
               type: "uint64",
             },
             {
+              internalType: "uint64",
+              name: "claimLockDuration",
+              type: "uint64",
+            },
+            {
               internalType: "address",
               name: "saleTokenAddress",
               type: "address",
@@ -445,9 +490,26 @@ const getBytesCreateTiersTSP = (tiers) => {
               name: "vestingSettings",
               type: "tuple",
             },
+            {
+              components: [
+                {
+                  internalType: "enum ITokenSaleProposal.ParticipationType",
+                  name: "participationType",
+                  type: "uint8",
+                },
+                {
+                  internalType: "bytes",
+                  name: "data",
+                  type: "bytes",
+                },
+              ],
+              internalType: "struct ITokenSaleProposal.ParticipationDetails[]",
+              name: "participationDetails",
+              type: "tuple[]",
+            },
           ],
-          internalType: "struct ITokenSaleProposal.TierView[]",
-          name: "tiers",
+          internalType: "struct ITokenSaleProposal.TierInitParams[]",
+          name: "tierInitParams",
           type: "tuple[]",
         },
       ],
@@ -534,6 +596,93 @@ const getBytesRecoverTSP = (tierIds) => {
   );
 };
 
+const getBytesBuyTSP = (tierId, tokenToBuyWith, amount) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "uint256",
+          name: "tierId",
+          type: "uint256",
+        },
+        {
+          internalType: "address",
+          name: "tokenToBuyWith",
+          type: "address",
+        },
+        {
+          internalType: "uint256",
+          name: "amount",
+          type: "uint256",
+        },
+      ],
+      name: "buy",
+      outputs: [],
+      stateMutability: "payable",
+      type: "function",
+    },
+    [tierId, tokenToBuyWith, amount]
+  );
+};
+
+const getBytesLockParticipationTokensTSP = (tierId, tokenToLock, amountToLock) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "uint256",
+          name: "tierId",
+          type: "uint256",
+        },
+        {
+          internalType: "address",
+          name: "tokenToLock",
+          type: "address",
+        },
+        {
+          internalType: "uint256",
+          name: "amountToLock",
+          type: "uint256",
+        },
+      ],
+      name: "lockParticipationTokens",
+      outputs: [],
+      stateMutability: "payable",
+      type: "function",
+    },
+    [tierId, tokenToLock, amountToLock]
+  );
+};
+
+const getBytesLockParticipationNftTSP = (tierId, nftToLock, nftIdsToLock) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "uint256",
+          name: "tierId",
+          type: "uint256",
+        },
+        {
+          internalType: "address",
+          name: "nftToLock",
+          type: "address",
+        },
+        {
+          internalType: "uint256[]",
+          name: "nftIdsToLock",
+          type: "uint256[]",
+        },
+      ],
+      name: "lockParticipationNft",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [tierId, nftToLock, nftIdsToLock]
+  );
+};
+
 const getBytesChangeVerifier = (newAddress) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -591,7 +740,7 @@ const getBytesGovExecute = (proposalId) => {
   );
 };
 
-const getBytesGovClaimRewards = (proposalIds) => {
+const getBytesGovClaimRewards = (proposalIds, user) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       inputs: [
@@ -600,17 +749,22 @@ const getBytesGovClaimRewards = (proposalIds) => {
           name: "proposalIds",
           type: "uint256[]",
         },
+        {
+          internalType: "address",
+          name: "user",
+          type: "address",
+        },
       ],
       name: "claimRewards",
       outputs: [],
       stateMutability: "nonpayable",
       type: "function",
     },
-    [proposalIds]
+    [proposalIds, user]
   );
 };
 
-const getBytesGovVote = (proposalId, voteAmount, voteNftIds) => {
+const getBytesGovVote = (proposalId, voteAmount, voteNftIds, isVoteFor = true) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       inputs: [
@@ -618,6 +772,11 @@ const getBytesGovVote = (proposalId, voteAmount, voteNftIds) => {
           internalType: "uint256",
           name: "proposalId",
           type: "uint256",
+        },
+        {
+          internalType: "bool",
+          name: "isVoteFor",
+          type: "bool",
         },
         {
           internalType: "uint256",
@@ -635,40 +794,35 @@ const getBytesGovVote = (proposalId, voteAmount, voteNftIds) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [proposalId, voteAmount, voteNftIds]
+    [proposalId, isVoteFor, voteAmount, voteNftIds]
   );
 };
 
-const getBytesGovVoteDelegated = (proposalId, voteAmount, voteNftIds) => {
+const getBytesGovDeposit = (amount, nftIds) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       inputs: [
         {
           internalType: "uint256",
-          name: "proposalId",
-          type: "uint256",
-        },
-        {
-          internalType: "uint256",
-          name: "voteAmount",
+          name: "amount",
           type: "uint256",
         },
         {
           internalType: "uint256[]",
-          name: "voteNftIds",
+          name: "nftIds",
           type: "uint256[]",
         },
       ],
-      name: "voteDelegated",
+      name: "deposit",
       outputs: [],
       stateMutability: "nonpayable",
       type: "function",
     },
-    [proposalId, voteAmount, voteNftIds]
+    [amount, nftIds]
   );
 };
 
-const getBytesGovDeposit = (receiver, amount, nftIds) => {
+const getBytesGovWithdraw = (receiver, amount, nftIds) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       inputs: [
@@ -688,12 +842,70 @@ const getBytesGovDeposit = (receiver, amount, nftIds) => {
           type: "uint256[]",
         },
       ],
-      name: "deposit",
+      name: "withdraw",
       outputs: [],
       stateMutability: "nonpayable",
       type: "function",
     },
     [receiver, amount, nftIds]
+  );
+};
+
+const getBytesGovDelegate = (delegatee, amount, nftIds) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "delegatee",
+          type: "address",
+        },
+        {
+          internalType: "uint256",
+          name: "amount",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256[]",
+          name: "nftIds",
+          type: "uint256[]",
+        },
+      ],
+      name: "delegate",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [delegatee, amount, nftIds]
+  );
+};
+
+const getBytesGovUndelegate = (delegatee, amount, nftIds) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "delegatee",
+          type: "address",
+        },
+        {
+          internalType: "uint256",
+          name: "amount",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256[]",
+          name: "nftIds",
+          type: "uint256[]",
+        },
+      ],
+      name: "undelegate",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [delegatee, amount, nftIds]
   );
 };
 
@@ -726,11 +938,161 @@ const getBytesKeeperWithdrawTokens = (payer, receiver, amount) => {
   );
 };
 
+const getBytesSetCreditInfo = (tokens, amounts) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address[]",
+          name: "tokens",
+          type: "address[]",
+        },
+        {
+          internalType: "uint256[]",
+          name: "amounts",
+          type: "uint256[]",
+        },
+      ],
+      name: "setCreditInfo",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [tokens, amounts]
+  );
+};
+
+const getBytesChangeVoteModifiers = (regularModifier, expertModifier) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "uint256",
+          name: "regularModifier",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256",
+          name: "expertModifier",
+          type: "uint256",
+        },
+      ],
+      name: "changeVoteModifiers",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [regularModifier, expertModifier]
+  );
+};
+
+const getBytesMintExpertNft = (to, uri) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "to",
+          type: "address",
+        },
+        {
+          internalType: "string",
+          name: "uri",
+          type: "string",
+        },
+      ],
+      name: "mint",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [to, uri]
+  );
+};
+
+const getBytesBurnExpertNft = (from) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "from",
+          type: "address",
+        },
+      ],
+      name: "burn",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [from]
+  );
+};
+
+const getBytesDelegateTreasury = (delegatee, amount, nftIds) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "delegatee",
+          type: "address",
+        },
+        {
+          internalType: "uint256",
+          name: "amount",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256[]",
+          name: "nftIds",
+          type: "uint256[]",
+        },
+      ],
+      name: "delegateTreasury",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [delegatee, amount, nftIds]
+  );
+};
+
+const getBytesUndelegateTreasury = (delegatee, amount, nftIds) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "delegatee",
+          type: "address",
+        },
+        {
+          internalType: "uint256",
+          name: "amount",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256[]",
+          name: "nftIds",
+          type: "uint256[]",
+        },
+      ],
+      name: "undelegateTreasury",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [delegatee, amount, nftIds]
+  );
+};
+
 module.exports = {
   getBytesExecute,
   getBytesApprove,
   getBytesApproveAll,
   getBytesTransfer,
+  getBytesChangeVotePower,
   getBytesEditUrl,
   getBytesSetNftMultiplierAddress,
   getBytesDistributionProposal,
@@ -744,12 +1106,23 @@ module.exports = {
   getBytesAddToWhitelistTSP,
   getBytesOffTiersTSP,
   getBytesRecoverTSP,
+  getBytesBuyTSP,
+  getBytesLockParticipationTokensTSP,
+  getBytesLockParticipationNftTSP,
   getBytesChangeVerifier,
   getBytesChangeBABTRestriction,
   getBytesGovExecute,
   getBytesGovClaimRewards,
   getBytesGovVote,
-  getBytesGovVoteDelegated,
   getBytesGovDeposit,
+  getBytesGovWithdraw,
+  getBytesGovDelegate,
+  getBytesGovUndelegate,
   getBytesKeeperWithdrawTokens,
+  getBytesSetCreditInfo,
+  getBytesChangeVoteModifiers,
+  getBytesMintExpertNft,
+  getBytesBurnExpertNft,
+  getBytesDelegateTreasury,
+  getBytesUndelegateTreasury,
 };

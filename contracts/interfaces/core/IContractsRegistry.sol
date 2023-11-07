@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 /**
  * This is the registry contract of DEXE platform that stores information about
@@ -40,16 +40,8 @@ interface IContractsRegistry {
     function getUniswapV2FactoryContract() external view returns (address);
 
     /// @notice Used in dependency injection mechanism
-    /// @return Insurance contract address
-    function getInsuranceContract() external view returns (address);
-
-    /// @notice Used in dependency injection mechanism
     /// @return Treasury contract/wallet address
     function getTreasuryContract() external view returns (address);
-
-    /// @notice Used in dependency injection mechanism
-    /// @return Dividends contract/wallet address
-    function getDividendsContract() external view returns (address);
 
     /// @notice Used in dependency injection mechanism
     /// @return CoreProperties contract address
@@ -58,4 +50,16 @@ interface IContractsRegistry {
     /// @notice Used in dependency injection mechanism
     /// @return BABT contract address
     function getBABTContract() external view returns (address);
+
+    /// @notice Used in dependency injection mechanism
+    /// @return DexeExpertNft contract address
+    function getDexeExpertNftContract() external view returns (address);
+
+    /// @notice Used in dependency injection mechanism
+    /// @return SphereX engine for DAOs
+    function getPoolSphereXEngineContract() external view returns (address);
+
+    /// @notice Used in dependency injection mechanism
+    /// @return SphereX engine for global entities
+    function getSphereXEngineContract() external view returns (address);
 }

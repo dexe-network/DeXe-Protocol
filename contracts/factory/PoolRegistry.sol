@@ -1,23 +1,21 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "@dlsl/dev-modules/pool-contracts-registry/presets/OwnablePoolContractsRegistry.sol";
-import "@dlsl/dev-modules/libs/arrays/Paginator.sol";
+import "@solarity/solidity-lib/contracts-registry/pools/presets/MultiOwnablePoolContractsRegistry.sol";
+import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 
 import "../interfaces/factory/IPoolRegistry.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
+import "../proxy/PoolBeacon.sol";
+
+contract PoolRegistry is IPoolRegistry, MultiOwnablePoolContractsRegistry {
     using EnumerableSet for EnumerableSet.AddressSet;
     using Paginator for EnumerableSet.AddressSet;
     using Math for uint256;
-
-    string public constant BASIC_POOL_NAME = "BASIC_POOL";
-    string public constant INVEST_POOL_NAME = "INVEST_POOL";
-    string public constant RISKY_PROPOSAL_NAME = "RISKY_POOL_PROPOSAL";
-    string public constant INVEST_PROPOSAL_NAME = "INVEST_POOL_PROPOSAL";
 
     string public constant GOV_POOL_NAME = "GOV_POOL";
     string public constant SETTINGS_NAME = "SETTINGS";
@@ -26,98 +24,76 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     string public constant DISTRIBUTION_PROPOSAL_NAME = "DISTRIBUTION_PROPOSAL";
     string public constant TOKEN_SALE_PROPOSAL_NAME = "TOKEN_SALE_PROPOSAL";
 
-    address internal _poolFactory;
+    string public constant EXPERT_NFT_NAME = "EXPERT_NFT";
+    string public constant NFT_MULTIPLIER_NAME = "NFT_MULTIPLIER";
 
-    mapping(address => mapping(string => EnumerableSet.AddressSet)) internal _ownerPools; // pool owner => name => pool
+    string public constant LINEAR_POWER_NAME = "LINEAR_POWER";
+    string public constant POLYNOMIAL_POWER_NAME = "POLYNOMIAL_POWER";
+
+    address internal _poolFactory;
+    address internal _poolSphereXEngine;
 
     modifier onlyPoolFactory() {
         _onlyPoolFactory();
         _;
     }
 
-    function setDependencies(address contractsRegistry) public override {
-        super.setDependencies(contractsRegistry);
+    function setDependencies(address contractsRegistry, bytes memory data) public override {
+        super.setDependencies(contractsRegistry, data);
 
         _poolFactory = IContractsRegistry(contractsRegistry).getPoolFactoryContract();
+        _poolSphereXEngine = IContractsRegistry(contractsRegistry).getPoolSphereXEngineContract();
     }
 
     function addProxyPool(
-        string calldata name,
+        string memory name,
         address poolAddress
-    ) external override onlyPoolFactory {
+    ) public override(IPoolRegistry, MultiOwnablePoolContractsRegistry) onlyPoolFactory {
         _addProxyPool(name, poolAddress);
     }
 
-    function associateUserWithPool(
-        address user,
-        string calldata name,
-        address poolAddress
-    ) external onlyPoolFactory {
-        _ownerPools[user][name].add(poolAddress);
+    function toggleSphereXEngine(bool on) external onlyOwner {
+        address sphereXEngine = on ? _poolSphereXEngine : address(0);
+
+        _setSphereXEngine(GOV_POOL_NAME, sphereXEngine);
+        _setSphereXEngine(SETTINGS_NAME, sphereXEngine);
+        _setSphereXEngine(VALIDATORS_NAME, sphereXEngine);
+        _setSphereXEngine(USER_KEEPER_NAME, sphereXEngine);
+        _setSphereXEngine(DISTRIBUTION_PROPOSAL_NAME, sphereXEngine);
+        _setSphereXEngine(TOKEN_SALE_PROPOSAL_NAME, sphereXEngine);
+        _setSphereXEngine(EXPERT_NFT_NAME, sphereXEngine);
+        _setSphereXEngine(NFT_MULTIPLIER_NAME, sphereXEngine);
+        _setSphereXEngine(LINEAR_POWER_NAME, sphereXEngine);
+        _setSphereXEngine(POLYNOMIAL_POWER_NAME, sphereXEngine);
     }
 
-    function countAssociatedPools(
-        address user,
-        string calldata name
-    ) external view override returns (uint256) {
-        return _ownerPools[user][name].length();
+    function protectPoolFunctions(
+        string calldata poolName,
+        bytes4[] calldata selectors
+    ) external onlyOwner {
+        SphereXProxyBase(getProxyBeacon(poolName)).addProtectedFuncSigs(selectors);
     }
 
-    function listAssociatedPools(
-        address user,
-        string calldata name,
-        uint256 offset,
-        uint256 limit
-    ) external view override returns (address[] memory pools) {
-        return _ownerPools[user][name].part(offset, limit);
-    }
-
-    function listTraderPoolsWithInfo(
-        string calldata name,
-        uint256 offset,
-        uint256 limit
-    )
-        external
-        view
-        override
-        returns (
-            address[] memory pools,
-            ITraderPool.PoolInfo[] memory poolInfos,
-            ITraderPool.LeverageInfo[] memory leverageInfos
-        )
-    {
-        pools = _pools[name].part(offset, limit);
-
-        poolInfos = new ITraderPool.PoolInfo[](pools.length);
-        leverageInfos = new ITraderPool.LeverageInfo[](pools.length);
-
-        for (uint256 i = 0; i < pools.length; i++) {
-            poolInfos[i] = ITraderPool(pools[i]).getPoolInfo();
-            leverageInfos[i] = ITraderPool(pools[i]).getLeverageInfo();
-        }
-    }
-
-    function isBasicPool(address potentialPool) public view override returns (bool) {
-        return _isPool(BASIC_POOL_NAME, potentialPool);
-    }
-
-    function isInvestPool(address potentialPool) public view override returns (bool) {
-        return _isPool(INVEST_POOL_NAME, potentialPool);
-    }
-
-    function isTraderPool(address potentialPool) external view override returns (bool) {
-        return isBasicPool(potentialPool) || isInvestPool(potentialPool);
+    function unprotectPoolFunctions(
+        string calldata poolName,
+        bytes4[] calldata selectors
+    ) external onlyOwner {
+        SphereXProxyBase(getProxyBeacon(poolName)).removeProtectedFuncSigs(selectors);
     }
 
     function isGovPool(address potentialPool) external view override returns (bool) {
-        return _isPool(GOV_POOL_NAME, potentialPool);
+        return isPool(GOV_POOL_NAME, potentialPool);
     }
 
-    function _isPool(string memory name, address potentialPool) internal view returns (bool) {
-        return _pools[name].contains(potentialPool);
+    function _setSphereXEngine(string memory poolName, address sphereXEngine) internal {
+        PoolBeacon(getProxyBeacon(poolName)).changeSphereXEngine(sphereXEngine);
     }
 
     function _onlyPoolFactory() internal view {
         require(_poolFactory == msg.sender, "PoolRegistry: Caller is not a factory");
+    }
+
+    function _deployProxyBeacon() internal override returns (address) {
+        return address(new PoolBeacon(msg.sender, address(this), address(0)));
     }
 }

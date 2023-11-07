@@ -1,21 +1,9 @@
-const { PRECISION, SECONDS_IN_DAY, SECONDS_IN_MONTH, DECIMAL } = require("../../scripts/utils/constants");
-
-const ExchangeType = {
-  FROM_EXACT: 0,
-  TO_EXACT: 1,
-};
+const { PRECISION } = require("../../scripts/utils/constants");
 
 const ExecutorType = {
   DEFAULT: 0,
   INTERNAL: 1,
-  DISTRIBUTION: 2,
-  VALIDATORS: 3,
-};
-
-const ComissionPeriods = {
-  PERIOD_1: 0,
-  PERIOD_2: 1,
-  PERIOD_3: 2,
+  VALIDATORS: 2,
 };
 
 const ProposalState = {
@@ -23,54 +11,66 @@ const ProposalState = {
   WaitingForVotingTransfer: 1,
   ValidatorVoting: 2,
   Defeated: 3,
-  Succeeded: 4,
-  Executed: 5,
-  Undefined: 6,
+  SucceededFor: 4,
+  SucceededAgainst: 5,
+  Locked: 6,
+  ExecutedFor: 7,
+  ExecutedAgainst: 8,
+  Undefined: 9,
+};
+
+const VoteType = {
+  PersonalVote: 0,
+  MicropoolVote: 1,
+  DelegatedVote: 2,
+  TreasuryVote: 3,
 };
 
 const ValidatorsProposalState = {
   Voting: 0,
   Defeated: 1,
   Succeeded: 2,
-  Executed: 3,
-  Undefined: 4,
+  Locked: 3,
+  Executed: 4,
+  Undefined: 5,
+};
+
+const ProposalType = {
+  ChangeSettings: 0,
+  ChangeBalances: 1,
+  MonthlyWithdraw: 2,
+  OffchainProposal: 3,
+};
+
+const ParticipationType = {
+  DAOVotes: "0",
+  Whitelist: "1",
+  BABT: "2",
+  TokenLock: "3",
+  NftLock: "4",
+};
+
+const VotePowerType = {
+  LINEAR_VOTES: "0",
+  POLYNOMIAL_VOTES: "1",
+  CUSTOM_VOTES: "2",
 };
 
 const DEFAULT_CORE_PROPERTIES = {
-  traderParams: {
-    maxPoolInvestors: 1000,
-    maxOpenPositions: 25,
-    leverageThreshold: 2500,
-    leverageSlope: 5,
-    commissionInitTimestamp: 0,
-    commissionDurations: [SECONDS_IN_MONTH, SECONDS_IN_MONTH * 3, SECONDS_IN_MONTH * 12],
-    dexeCommissionPercentage: PRECISION.times(30).toFixed(),
-    dexeCommissionDistributionPercentages: [
-      PRECISION.times(33).toFixed(),
-      PRECISION.times(33).toFixed(),
-      PRECISION.times(33).toFixed(),
-    ],
-    minTraderCommission: PRECISION.times(20).toFixed(),
-    maxTraderCommissions: [PRECISION.times(30).toFixed(), PRECISION.times(50).toFixed(), PRECISION.times(70).toFixed()],
-    delayForRiskyPool: SECONDS_IN_DAY * 20,
-  },
-  insuranceParams: {
-    insuranceFactor: 10,
-    maxInsurancePoolShare: PRECISION.times(33.3333).toFixed(),
-    minInsuranceDeposit: DECIMAL.times(10).toFixed(),
-    insuranceWithdrawalLock: SECONDS_IN_DAY,
-  },
-  govParams: {
-    govVotesLimit: 20,
-    govCommissionPercentage: PRECISION.times(20).toFixed(),
-  },
+  govVotesLimit: 20,
+  govCommissionPercentage: PRECISION.times(20).toFixed(),
+  tokenSaleProposalCommissionPercentage: PRECISION.toFixed(),
+  micropoolVoteRewardsPercentage: PRECISION.times(20).toFixed(),
+  treasuryVoteRewardsPercentage: PRECISION.times(1.618).toFixed(),
 };
 
 module.exports = {
-  ExchangeType,
   ExecutorType,
-  ComissionPeriods,
   ProposalState,
+  ProposalType,
+  VoteType,
   ValidatorsProposalState,
+  ParticipationType,
+  VotePowerType,
   DEFAULT_CORE_PROPERTIES,
 };

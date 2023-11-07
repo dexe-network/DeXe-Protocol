@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 /**
  * This is the voting contract that is queried on the proposal's second voting stage
@@ -9,51 +9,56 @@ interface IGovValidators {
         Voting,
         Defeated,
         Succeeded,
+        Locked,
         Executed,
         Undefined
     }
 
     enum ProposalType {
-        ChangeInternalDuration,
-        ChangeInternalQuorum,
-        ChangeInternalDurationAndQuorum,
-        ChangeBalances
+        ChangeSettings,
+        ChangeBalances,
+        MonthlyWithdraw,
+        OffchainProposal
     }
 
-    /// @notice The struct holds information about settings for internal validators proposal
+    /// @notice The struct holds information about settings for validators proposal
     /// @param duration the duration of voting
+    /// @param executionDelay the delay in seconds after voting end
     /// @param quorum the percentage of validators token supply to confirm the proposal
-    struct InternalProposalSettings {
+    struct ProposalSettings {
         uint64 duration;
+        uint64 executionDelay;
         uint128 quorum;
     }
 
     /// @notice The struct holds core properties of a proposal
-    /// @param executed the boolean flag that indicated whether the proposal is executed or not
+    /// @param executed the boolean flag that indicates whether the proposal is executed or not
     /// @param snapshotId the id of snapshot
     /// @param voteEnd the timestamp of voting end of the proposal
+    /// @param executeAfter the timestamp of execution in seconds after voting end
     /// @param quorum the percentage of validators token supply to confirm the proposal
     /// @param votesFor the total number of votes in proposal from all voters
+    /// @param votesAgainst the total number of votes against proposal from all voters
     struct ProposalCore {
         bool executed;
         uint56 snapshotId;
         uint64 voteEnd;
+        uint64 executeAfter;
         uint128 quorum;
         uint256 votesFor;
+        uint256 votesAgainst;
     }
 
     /// @notice The struct holds information about the internal proposal
     /// @param proposalType the `ProposalType` enum
     /// @param core the struct that holds information about core properties of the proposal
     /// @param descriptionURL the string with link to IPFS doc with proposal description
-    /// @param newValues the array of new values. Usage varies by proposal type
-    /// @param userAddresses the array of user addresses
+    /// @param data the data to be executed
     struct InternalProposal {
         ProposalType proposalType;
         ProposalCore core;
         string descriptionURL;
-        uint256[] newValues;
-        address[] userAddresses;
+        bytes data;
     }
 
     /// @notice The struct holds information about the external proposal
@@ -72,34 +77,48 @@ interface IGovValidators {
         uint256 requiredQuorum;
     }
 
-    /// @notice The function for getting the latest id of the internal proposal
-    /// @return `id` of latest internal proposal
-    function latestInternalProposalId() external view returns (uint256);
-
     /// @notice The function for getting current number of validators
     /// @return `number` of validators
     function validatorsCount() external view returns (uint256);
 
     /// @notice Create internal proposal for changing validators balances, base quorum, base duration
     /// @param proposalType `ProposalType`
-    /// 0 - `ChangeInternalDuration`, change base duration
-    /// 1 - `ChangeInternalQuorum`, change base quorum
-    /// 2 - `ChangeInternalDurationAndQuorum`, change base duration and quorum
-    /// 3 - `ChangeBalances`, change address balance
-    /// @param newValues New values (tokens amounts array, quorum or duration or both)
-    /// @param userAddresses Validators addresses, set it if `proposalType` == `ChangeBalances`
+    /// 0 - `ChangeInternalDurationAndQuorum`, change base duration and quorum
+    /// 1 - `ChangeBalances`, change address balance
+    /// 2 - `MonthlyWithdraw`, monthly token withdraw
+    /// 3 - `OffchainProposal`, offchain action
+    /// @param data New packed data, depending on proposal type
     function createInternalProposal(
         ProposalType proposalType,
         string calldata descriptionURL,
-        uint256[] calldata newValues,
-        address[] calldata userAddresses
+        bytes calldata data
     ) external;
 
     /// @notice Create external proposal. This function can call only `Gov` contract
     /// @param proposalId Proposal ID from `Gov` contract
-    /// @param duration Duration from `Gov` contract
-    /// @param quorum Quorum from `Gov` contract
-    function createExternalProposal(uint256 proposalId, uint64 duration, uint128 quorum) external;
+    /// @param proposalSettings `ProposalSettings` struct
+    function createExternalProposal(
+        uint256 proposalId,
+        ProposalSettings calldata proposalSettings
+    ) external;
+
+    function voteInternalProposal(uint256 proposalId, uint256 amount, bool isVoteFor) external;
+
+    function voteExternalProposal(uint256 proposalId, uint256 amount, bool isVoteFor) external;
+
+    function cancelVoteInternalProposal(uint256 proposalId) external;
+
+    function cancelVoteExternalProposal(uint256 proposalId) external;
+
+    /// @notice Only for internal proposals. External proposals should be executed from governance.
+    /// @param proposalId Internal proposal ID
+    function executeInternalProposal(uint256 proposalId) external;
+
+    /// @notice The function called by governance that marks the external proposal as executed
+    /// @param proposalId External proposal ID
+    function executeExternalProposal(uint256 proposalId) external;
+
+    function changeSettings(uint64 duration, uint64 executionDelay, uint128 quorum) external;
 
     /// @notice The function for changing validators balances
     /// @param newValues the array of new balances
@@ -109,19 +128,11 @@ interface IGovValidators {
         address[] calldata userAddresses
     ) external;
 
-    /// @notice Vote in proposal
-    /// @param proposalId Proposal ID, internal or external
-    /// @param amount Amount of tokens to vote
-    /// @param isInternal If `true`, you will vote in internal proposal
-    function vote(uint256 proposalId, uint256 amount, bool isInternal) external;
-
-    /// @notice Only for internal proposals. External proposals should be executed from governance.
-    /// @param proposalId Internal proposal ID
-    function execute(uint256 proposalId) external;
-
-    /// @notice The function called by governance that marks the external proposal as executed
-    /// @param proposalId External proposal ID
-    function executeExternalProposal(uint256 proposalId) external;
+    function monthlyWithdraw(
+        address[] calldata tokens,
+        uint256[] calldata amounts,
+        address destination
+    ) external;
 
     /// @notice The function for getting information about the external proposals
     /// @param index the index of proposal

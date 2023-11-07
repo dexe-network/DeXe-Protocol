@@ -1,30 +1,24 @@
-const Proxy = artifacts.require("ERC1967Proxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
-
 const PoolFactory = artifacts.require("PoolFactory");
-const GovTokenSaleDeployerLib = artifacts.require("GovTokenSaleDeployer");
 const PoolRegistry = artifacts.require("PoolRegistry");
+const SphereXEngine = artifacts.require("SphereXEngine");
 
-async function link(deployer) {
-  await deployer.deploy(GovTokenSaleDeployerLib);
-
-  await deployer.link(GovTokenSaleDeployerLib, PoolFactory);
-}
-
-module.exports = async (deployer, logger) => {
-  const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
-
-  await link(deployer);
+module.exports = async (deployer) => {
+  const contractsRegistry = await deployer.deployed(ContractsRegistry, "proxy");
 
   const poolFactory = await deployer.deploy(PoolFactory);
   const poolRegistry = await deployer.deploy(PoolRegistry);
 
-  logger.logTransaction(
-    await contractsRegistry.addProxyContract(await contractsRegistry.POOL_FACTORY_NAME(), poolFactory.address),
-    "AddProxy PoolFactory"
+  await contractsRegistry.addProxyContract(await contractsRegistry.POOL_FACTORY_NAME(), poolFactory.address);
+  await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), poolRegistry.address);
+
+  const poolSphereXEngine = await deployer.deployed(
+    SphereXEngine,
+    await contractsRegistry.getPoolSphereXEngineContract()
   );
-  logger.logTransaction(
-    await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), poolRegistry.address),
-    "AddProxy PoolRegistry"
+
+  await poolSphereXEngine.grantRole(
+    await poolSphereXEngine.SENDER_ADDER_ROLE(),
+    await contractsRegistry.getPoolFactoryContract()
   );
 };

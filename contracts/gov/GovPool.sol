@@ -1,31 +1,36 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Multicall.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 
-import "@dlsl/dev-modules/contracts-registry/AbstractDependant.sol";
+import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
+import "@solarity/solidity-lib/utils/BlockGuard.sol";
 
 import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
 import "../interfaces/gov/IGovPool.sol";
+import "../interfaces/gov/ERC721/experts/IERC721Expert.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/ISBT721.sol";
+import "../interfaces/factory/IPoolFactory.sol";
 
-import "../libs/gov-user-keeper/GovUserKeeperLocal.sol";
-import "../libs/gov-pool/GovPoolView.sol";
-import "../libs/gov-pool/GovPoolCreate.sol";
-import "../libs/gov-pool/GovPoolRewards.sol";
-import "../libs/gov-pool/GovPoolVote.sol";
-import "../libs/gov-pool/GovPoolUnlock.sol";
-import "../libs/gov-pool/GovPoolExecute.sol";
-import "../libs/gov-pool/GovPoolStaking.sol";
-import "../libs/gov-pool/GovPoolOffchain.sol";
+import "../libs/gov/gov-user-keeper/GovUserKeeperLocal.sol";
+import "../libs/gov/gov-pool/GovPoolView.sol";
+import "../libs/gov/gov-pool/GovPoolCreate.sol";
+import "../libs/gov/gov-pool/GovPoolRewards.sol";
+import "../libs/gov/gov-pool/GovPoolVote.sol";
+import "../libs/gov/gov-pool/GovPoolUnlock.sol";
+import "../libs/gov/gov-pool/GovPoolExecute.sol";
+import "../libs/gov/gov-pool/GovPoolMicropool.sol";
+import "../libs/gov/gov-pool/GovPoolCredit.sol";
+import "../libs/gov/gov-pool/GovPoolOffchain.sol";
 import "../libs/math/MathHelper.sol";
 
 import "../core/Globals.sol";
@@ -35,14 +40,14 @@ contract GovPool is
     AbstractDependant,
     ERC721HolderUpgradeable,
     ERC1155HolderUpgradeable,
-    Multicall
+    Multicall,
+    BlockGuard
 {
     using MathHelper for uint256;
     using Math for uint256;
+    using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using ShrinkableArray for uint256[];
-    using ShrinkableArray for ShrinkableArray.UintArray;
     using GovPoolOffchain for *;
     using GovUserKeeperLocal for *;
     using GovPoolView for *;
@@ -51,45 +56,46 @@ contract GovPool is
     using GovPoolVote for *;
     using GovPoolUnlock for *;
     using GovPoolExecute for *;
-    using GovPoolStaking for *;
+    using GovPoolCredit for *;
+    using GovPoolMicropool for *;
+    using DecimalsConverter for *;
+    using TokenBalance for address;
 
-    uint256 public constant PERCENTAGE_MICROPOOL_REWARDS = PERCENTAGE_100 / 5; // 20%
+    address internal _nftMultiplier;
+    IERC721Expert internal _expertNft;
+    IERC721Expert internal _dexeExpertNft;
+    ISBT721 internal _babt;
 
     IGovSettings internal _govSettings;
     IGovUserKeeper internal _govUserKeeper;
     IGovValidators internal _govValidators;
-    address internal _distributionProposal;
+    address internal _poolRegistry;
+    address internal _votePowerContract;
 
     ICoreProperties public coreProperties;
-
-    address public nftMultiplier;
-    ISBT721 public babt;
-
-    bool public onlyBABTHolders;
 
     string public descriptionURL;
     string public name;
 
+    bool public onlyBABTHolders;
+
     uint256 public latestProposalId;
     uint256 public deployerBABTid;
 
+    CreditInfo internal _creditInfo;
     OffChain internal _offChain;
 
     mapping(uint256 => Proposal) internal _proposals; // proposalId => info
-    mapping(uint256 => uint256) public latestVoteBlocks; // proposalId => block
+    mapping(address => UserInfo) internal _userInfos; // user => info
 
-    mapping(uint256 => mapping(address => mapping(bool => VoteInfo))) internal _voteInfos; // proposalId => voter => isMicropool => info
-    mapping(address => mapping(bool => EnumerableSet.UintSet)) internal _votedInProposals; // voter => isMicropool => active proposal ids
-
-    mapping(address => PendingRewards) internal _pendingRewards; // user => pending rewards
-
-    mapping(address => MicropoolInfo) internal _micropoolInfos;
+    string private constant DEPOSIT_WITHDRAW = "DEPOSIT_WITHDRAW";
+    string private constant DELEGATE_UNDELEGATE = "DELEGATE_UNDELEGATE";
+    string private constant DELEGATE_UNDELEGATE_TREASURY = "DELEGATE_UNDELEGATE_TREASURY";
 
     event Delegated(address from, address to, uint256 amount, uint256[] nfts, bool isDelegate);
-    event MovedToValidators(uint256 proposalId, address sender);
+    event DelegatedTreasury(address to, uint256 amount, uint256[] nfts, bool isDelegate);
     event Deposited(uint256 amount, uint256[] nfts, address sender);
     event Withdrawn(uint256 amount, uint256[] nfts, address sender);
-    event OffchainResultsSaved(string resultsHash, address sender);
 
     modifier onlyThis() {
         _onlyThis();
@@ -101,26 +107,26 @@ contract GovPool is
         _;
     }
 
+    modifier onlyValidatorContract() {
+        _onlyValidatorContract();
+        _;
+    }
+
     function __GovPool_init(
-        address govSettingAddress,
-        address govUserKeeperAddress,
-        address distributionProposalAddress,
-        address validatorsAddress,
-        address nftMultiplierAddress,
+        Dependencies calldata govPoolDeps,
         address _verifier,
         bool _onlyBABTHolders,
         uint256 _deployerBABTid,
         string calldata _descriptionURL,
         string calldata _name
     ) external initializer {
-        _govSettings = IGovSettings(govSettingAddress);
-        _govUserKeeper = IGovUserKeeper(govUserKeeperAddress);
-        _govValidators = IGovValidators(validatorsAddress);
-        _distributionProposal = distributionProposalAddress;
+        _govSettings = IGovSettings(govPoolDeps.settingsAddress);
+        _govUserKeeper = IGovUserKeeper(govPoolDeps.userKeeperAddress);
+        _govValidators = IGovValidators(govPoolDeps.validatorsAddress);
+        _expertNft = IERC721Expert(govPoolDeps.expertNftAddress);
+        _nftMultiplier = govPoolDeps.nftMultiplierAddress;
 
-        if (nftMultiplierAddress != address(0)) {
-            _setNftMultiplierAddress(nftMultiplierAddress);
-        }
+        _changeVotePower(govPoolDeps.votePowerAddress);
 
         onlyBABTHolders = _onlyBABTHolders;
         deployerBABTid = _deployerBABTid;
@@ -131,138 +137,83 @@ contract GovPool is
         _offChain.verifier = _verifier;
     }
 
-    function unlock(address user, bool isMicropool) public override onlyBABTHolder {
-        _unlock(user, isMicropool);
-    }
-
-    function unlockInProposals(
-        uint256[] memory proposalIds,
-        address user,
-        bool isMicropool
-    ) public override onlyBABTHolder {
-        _unlockInProposals(proposalIds, user, isMicropool);
-    }
-
-    function execute(uint256 proposalId) public override onlyBABTHolder {
-        _proposals.execute(proposalId);
-
-        _pendingRewards.updateRewards(
-            _proposals,
-            proposalId,
-            RewardType.Execute,
-            _proposals[proposalId].core.settings.executionReward,
-            PRECISION
-        );
-    }
-
-    function deposit(
-        address receiver,
-        uint256 amount,
-        uint256[] calldata nftIds
-    ) public override onlyBABTHolder {
-        require(amount > 0 || nftIds.length > 0, "Gov: empty deposit");
-
-        _govUserKeeper.depositTokens.exec(receiver, amount);
-        _govUserKeeper.depositNfts.exec(receiver, nftIds);
-
-        emit Deposited(amount, nftIds, receiver);
-    }
-
-    function setDependencies(address contractsRegistry) external override dependant {
+    function setDependencies(address contractsRegistry, bytes memory) public override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         coreProperties = ICoreProperties(registry.getCorePropertiesContract());
-        babt = ISBT721(registry.getBABTContract());
+        _babt = ISBT721(registry.getBABTContract());
+        _dexeExpertNft = IERC721Expert(registry.getDexeExpertNftContract());
+        _poolRegistry = registry.getPoolRegistryContract();
+    }
+
+    function unlock(address user) external override onlyBABTHolder {
+        _unlock(user);
+    }
+
+    function execute(uint256 proposalId) external override onlyBABTHolder {
+        _updateRewards(proposalId, msg.sender, RewardType.Execute);
+
+        _proposals.execute(proposalId);
+    }
+
+    function deposit(uint256 amount, uint256[] calldata nftIds) external override onlyBABTHolder {
+        require(amount > 0 || nftIds.length > 0, "Gov: empty deposit");
+
+        _lockBlock(DEPOSIT_WITHDRAW, msg.sender);
+
+        _govUserKeeper.depositTokens.exec(msg.sender, amount);
+        _govUserKeeper.depositNfts.exec(msg.sender, nftIds);
+
+        emit Deposited(amount, nftIds, msg.sender);
     }
 
     function createProposal(
         string calldata _descriptionURL,
-        string calldata misc,
-        address[] calldata executors,
-        uint256[] calldata values,
-        bytes[] calldata data
+        ProposalAction[] calldata actionsOnFor,
+        ProposalAction[] calldata actionsOnAgainst
     ) external override onlyBABTHolder {
-        uint256 proposalId = ++latestProposalId;
+        uint256 proposalId = _createProposal(_descriptionURL, actionsOnFor, actionsOnAgainst);
 
-        _proposals.createProposal(_descriptionURL, misc, executors, values, data);
-
-        _pendingRewards.updateRewards(
-            _proposals,
-            proposalId,
-            RewardType.Create,
-            _proposals[proposalId].core.settings.creationReward,
-            PRECISION
-        );
+        _updateRewards(proposalId, msg.sender, RewardType.Create);
     }
 
-    function moveProposalToValidators(uint256 proposalId) external override {
+    function createProposalAndVote(
+        string calldata _descriptionURL,
+        ProposalAction[] calldata actionsOnFor,
+        ProposalAction[] calldata actionsOnAgainst,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds
+    ) external override onlyBABTHolder {
+        uint256 proposalId = _createProposal(_descriptionURL, actionsOnFor, actionsOnAgainst);
+
+        _updateRewards(proposalId, msg.sender, RewardType.Create);
+
+        _unlock(msg.sender);
+
+        _vote(proposalId, voteAmount, voteNftIds, true);
+    }
+
+    function moveProposalToValidators(uint256 proposalId) external override onlyBABTHolder {
         _proposals.moveProposalToValidators(proposalId);
 
-        _pendingRewards.updateRewards(
-            _proposals,
-            proposalId,
-            RewardType.Create,
-            _proposals[proposalId].core.settings.creationReward,
-            PRECISION
-        );
-
-        emit MovedToValidators(proposalId, msg.sender);
+        _updateRewards(proposalId, msg.sender, RewardType.Execute);
     }
 
     function vote(
         uint256 proposalId,
+        bool isVoteFor,
         uint256 voteAmount,
         uint256[] calldata voteNftIds
     ) external override onlyBABTHolder {
-        _unlock(msg.sender, false);
+        _unlock(msg.sender);
 
-        uint256 reward = _proposals.vote(
-            _votedInProposals,
-            _voteInfos,
-            proposalId,
-            voteAmount,
-            voteNftIds
-        );
-
-        _pendingRewards.updateRewards(
-            _proposals,
-            proposalId,
-            RewardType.Vote,
-            reward,
-            _proposals[proposalId].core.settings.voteRewardsCoefficient
-        );
+        _vote(proposalId, voteAmount, voteNftIds, isVoteFor);
     }
 
-    function voteDelegated(
-        uint256 proposalId,
-        uint256 voteAmount,
-        uint256[] calldata voteNftIds
-    ) external override onlyBABTHolder {
-        _unlock(msg.sender, true);
+    function cancelVote(uint256 proposalId) external override onlyBABTHolder {
+        _unlock(msg.sender);
 
-        uint256 reward = _proposals.voteDelegated(
-            _votedInProposals,
-            _voteInfos,
-            proposalId,
-            voteAmount,
-            voteNftIds
-        );
-
-        uint256 micropoolReward = reward.percentage(PERCENTAGE_MICROPOOL_REWARDS);
-
-        _pendingRewards.updateRewards(
-            _proposals,
-            proposalId,
-            RewardType.VoteDelegated,
-            micropoolReward,
-            _proposals[proposalId].core.settings.voteRewardsCoefficient
-        );
-
-        _micropoolInfos[msg.sender].updateRewards(
-            reward - micropoolReward,
-            _proposals[proposalId].core.settings.voteRewardsCoefficient,
-            _proposals[proposalId].core.settings.rewardToken
-        );
+        _proposals.cancelVote(_userInfos, proposalId);
     }
 
     function withdraw(
@@ -272,7 +223,9 @@ contract GovPool is
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty withdrawal");
 
-        _unlock(msg.sender, false);
+        _checkBlock(DEPOSIT_WITHDRAW, msg.sender);
+
+        _unlock(msg.sender);
 
         _govUserKeeper.withdrawTokens.exec(receiver, amount);
         _govUserKeeper.withdrawNfts.exec(receiver, nftIds);
@@ -286,19 +239,60 @@ contract GovPool is
         uint256[] calldata nftIds
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
+        require(msg.sender != delegatee, "Gov: delegator's equal delegatee");
 
-        _unlock(msg.sender, false);
+        _lockBlock(DELEGATE_UNDELEGATE, msg.sender);
 
-        MicropoolInfo storage micropool = _micropoolInfos[delegatee];
+        _unlock(msg.sender);
+        _unlock(delegatee);
 
-        micropool.stake(delegatee);
+        _updateNftPowers(nftIds);
 
         _govUserKeeper.delegateTokens.exec(delegatee, amount);
         _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
 
-        micropool.updateStakingCache(delegatee);
+        _userInfos.saveDelegationInfo(delegatee);
+
+        _revoteDelegated(delegatee, VoteType.MicropoolVote);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, true);
+    }
+
+    function delegateTreasury(
+        address delegatee,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external override onlyThis {
+        require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
+        require(getExpertStatus(delegatee), "Gov: delegatee is not an expert");
+
+        _lockBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender);
+
+        _unlock(delegatee);
+
+        if (amount != 0) {
+            address token = _govUserKeeper.tokenAddress();
+
+            IERC20(token).safeTransfer(address(_govUserKeeper), amount.from18Safe(token));
+
+            _govUserKeeper.delegateTokensTreasury(delegatee, amount);
+        }
+
+        if (nftIds.length != 0) {
+            IERC721 nft = IERC721(_govUserKeeper.nftAddress());
+
+            for (uint256 i; i < nftIds.length; i++) {
+                nft.safeTransferFrom(address(this), address(_govUserKeeper), nftIds[i]);
+            }
+
+            _updateNftPowers(nftIds);
+
+            _govUserKeeper.delegateNftsTreasury(delegatee, nftIds);
+        }
+
+        _revoteDelegated(delegatee, VoteType.TreasuryVote);
+
+        emit DelegatedTreasury(delegatee, amount, nftIds, true);
     }
 
     function undelegate(
@@ -308,24 +302,72 @@ contract GovPool is
     ) external override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty undelegation");
 
-        _unlock(delegatee, true);
+        _checkBlock(DELEGATE_UNDELEGATE, msg.sender);
 
-        MicropoolInfo storage micropool = _micropoolInfos[delegatee];
+        _unlock(delegatee);
 
-        micropool.unstake(delegatee);
+        _updateNftPowers(nftIds);
 
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
         _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
 
-        micropool.updateStakingCache(delegatee);
+        _userInfos.saveDelegationInfo(delegatee);
+
+        _revoteDelegated(delegatee, VoteType.MicropoolVote);
 
         emit Delegated(msg.sender, delegatee, amount, nftIds, false);
     }
 
-    function claimRewards(uint256[] calldata proposalIds) external override onlyBABTHolder {
+    function undelegateTreasury(
+        address delegatee,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external override onlyThis {
+        require(amount > 0 || nftIds.length > 0, "Gov: empty undelegation");
+
+        _checkBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender);
+
+        _unlock(delegatee);
+
+        _updateNftPowers(nftIds);
+
+        _govUserKeeper.undelegateTokensTreasury.exec(delegatee, amount);
+        _govUserKeeper.undelegateNftsTreasury.exec(delegatee, nftIds);
+
+        _revoteDelegated(delegatee, VoteType.TreasuryVote);
+
+        emit DelegatedTreasury(delegatee, amount, nftIds, false);
+    }
+
+    function claimRewards(
+        uint256[] calldata proposalIds,
+        address user
+    ) external override onlyBABTHolder {
         for (uint256 i; i < proposalIds.length; i++) {
-            _pendingRewards.claimReward(_proposals, proposalIds[i]);
+            uint256 proposalId = proposalIds[i];
+
+            _updateRewards(proposalId, user, RewardType.Vote);
+
+            _userInfos.claimReward(_proposals, proposalId, user);
         }
+    }
+
+    function claimMicropoolRewards(
+        uint256[] calldata proposalIds,
+        address delegator,
+        address delegatee
+    ) external override onlyBABTHolder {
+        for (uint256 i; i < proposalIds.length; i++) {
+            uint256 proposalId = proposalIds[i];
+
+            _updateRewards(proposalId, delegatee, RewardType.Vote);
+
+            _userInfos.claim(_proposals, proposalId, delegator, delegatee);
+        }
+    }
+
+    function changeVotePower(address votePower) external override onlyThis {
+        _changeVotePower(votePower);
     }
 
     function editDescriptionURL(string calldata newDescriptionURL) external override onlyThis {
@@ -341,80 +383,37 @@ contract GovPool is
     }
 
     function setNftMultiplierAddress(address nftMultiplierAddress) external override onlyThis {
-        _setNftMultiplierAddress(nftMultiplierAddress);
+        _nftMultiplier = nftMultiplierAddress;
     }
 
-    function setLatestVoteBlock(uint256 proposalId) external override onlyThis {
-        latestVoteBlocks[proposalId] = block.number;
+    function setCreditInfo(
+        address[] calldata tokens,
+        uint256[] calldata amounts
+    ) external override onlyThis {
+        _creditInfo.setCreditInfo(tokens, amounts);
+    }
+
+    function transferCreditAmount(
+        address[] calldata tokens,
+        uint256[] calldata amounts,
+        address destination
+    ) external override onlyValidatorContract {
+        _creditInfo.transferCreditAmount(tokens, amounts, destination);
     }
 
     function saveOffchainResults(
         string calldata resultsHash,
         bytes calldata signature
     ) external override onlyBABTHolder {
-        resultsHash.saveOffchainResults(signature, _offChain);
+        _offChain.saveOffchainResults(resultsHash, signature);
 
-        _pendingRewards.updateRewards(
-            _proposals,
-            0,
-            RewardType.SaveOffchainResults,
-            _govSettings.getInternalSettings().executionReward,
-            PRECISION
-        );
-
-        emit OffchainResultsSaved(resultsHash, msg.sender);
+        _updateRewards(0, msg.sender, RewardType.SaveOffchainResults);
     }
 
     receive() external payable {}
 
-    function getProposalState(uint256 proposalId) public view override returns (ProposalState) {
-        ProposalCore storage core = _proposals[proposalId].core;
-
-        uint64 voteEnd = core.voteEnd;
-
-        if (voteEnd == 0) {
-            return ProposalState.Undefined;
-        }
-
-        if (core.executed) {
-            return ProposalState.Executed;
-        }
-
-        if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
-            if (_quorumReached(core)) {
-                if (core.settings.validatorsVote) {
-                    IGovValidators.ProposalState status = _govValidators.getProposalState(
-                        proposalId,
-                        false
-                    );
-
-                    if (status == IGovValidators.ProposalState.Undefined) {
-                        return
-                            _govValidators.validatorsCount() > 0
-                                ? ProposalState.WaitingForVotingTransfer
-                                : ProposalState.Succeeded;
-                    }
-
-                    if (status == IGovValidators.ProposalState.Succeeded) {
-                        return ProposalState.Succeeded;
-                    }
-
-                    if (status == IGovValidators.ProposalState.Defeated) {
-                        return ProposalState.Defeated;
-                    }
-
-                    return ProposalState.ValidatorVoting;
-                } else {
-                    return ProposalState.Succeeded;
-                }
-            }
-
-            if (voteEnd < block.timestamp) {
-                return ProposalState.Defeated;
-            }
-        }
-
-        return ProposalState.Voting;
+    function getProposalState(uint256 proposalId) external view override returns (ProposalState) {
+        return _proposals.getProposalState(proposalId);
     }
 
     function getHelperContracts()
@@ -425,15 +424,26 @@ contract GovPool is
             address settings,
             address userKeeper,
             address validators,
-            address distributionProposal
+            address poolRegistry,
+            address votePower
         )
     {
         return (
             address(_govSettings),
             address(_govUserKeeper),
             address(_govValidators),
-            _distributionProposal
+            _poolRegistry,
+            _votePowerContract
         );
+    }
+
+    function getNftContracts()
+        external
+        view
+        override
+        returns (address nftMultiplier, address expertNft, address dexeExpertNft, address babt)
+    {
+        return (_nftMultiplier, address(_expertNft), address(_dexeExpertNft), address(_babt));
     }
 
     function getProposals(
@@ -441,6 +451,10 @@ contract GovPool is
         uint256 limit
     ) external view override returns (ProposalView[] memory proposals) {
         return _proposals.getProposals(offset, limit);
+    }
+
+    function getUserActiveProposalsCount(address user) external view override returns (uint256) {
+        return _userInfos[user].votedInProposals.length();
     }
 
     function getProposalRequiredQuorum(
@@ -452,102 +466,153 @@ contract GovPool is
             return 0;
         }
 
-        return _govUserKeeper.getTotalVoteWeight().ratio(core.settings.quorum, PERCENTAGE_100);
+        return _govUserKeeper.getTotalPower().ratio(core.settings.quorum, PERCENTAGE_100);
     }
 
     function getTotalVotes(
         uint256 proposalId,
         address voter,
-        bool isMicropool
-    ) external view override returns (uint256, uint256) {
+        VoteType voteType
+    ) external view override returns (uint256, uint256, uint256, bool) {
+        require(voteType != VoteType.DelegatedVote, "Gov: use personal");
+
+        ProposalCore storage core = _proposals[proposalId].core;
+        VoteInfo storage info = _userInfos[voter].voteInfos[proposalId];
+
         return (
-            _proposals[proposalId].core.votesFor,
-            _voteInfos[proposalId][voter][isMicropool].totalVoted
+            core.rawVotesFor,
+            core.rawVotesAgainst,
+            info.rawVotes[VoteType.PersonalVote].totalVoted,
+            info.isVoteFor
         );
     }
 
     function getUserVotes(
         uint256 proposalId,
         address voter,
-        bool isMicropool
+        VoteType voteType
     ) external view override returns (VoteInfoView memory voteInfo) {
-        VoteInfo storage info = _voteInfos[proposalId][voter][isMicropool];
+        VoteInfo storage info = _userInfos[voter].voteInfos[proposalId];
+        RawVote storage rawVote = info.rawVotes[voteType];
 
         return
             VoteInfoView({
+                isVoteFor: info.isVoteFor,
                 totalVoted: info.totalVoted,
-                tokensVoted: info.tokensVoted,
-                nftsVoted: info.nftsVoted.values()
+                tokensVoted: rawVote.tokensVoted,
+                totalRawVoted: rawVote.totalVoted,
+                nftsVoted: rawVote.nftsVoted.values()
             });
     }
 
     function getWithdrawableAssets(
-        address delegator,
-        address delegatee
-    ) external view override returns (uint256 tokens, ShrinkableArray.UintArray memory nfts) {
-        return
-            delegatee == address(0)
-                ? delegator.getWithdrawableAssets(_votedInProposals, _voteInfos)
-                : delegator.getUndelegateableAssets(delegatee, _votedInProposals, _voteInfos);
+        address delegator
+    ) external view override returns (uint256 tokens, uint256[] memory nfts) {
+        return _userInfos.getWithdrawableAssets(delegator);
     }
 
     function getPendingRewards(
         address user,
         uint256[] calldata proposalIds
     ) external view override returns (PendingRewardsView memory) {
-        return _pendingRewards.getPendingRewards(_proposals, user, proposalIds);
+        return _userInfos.getPendingRewards(_proposals, user, proposalIds);
     }
 
-    function getDelegatorStakingRewards(
-        address delegator
-    ) external view override returns (UserStakeRewardsView[] memory) {
-        return _micropoolInfos.getDelegatorStakingRewards(delegator);
+    function getDelegatorRewards(
+        uint256[] calldata proposalIds,
+        address delegator,
+        address delegatee
+    ) external view override returns (DelegatorRewards memory) {
+        return _userInfos.getDelegatorRewards(_proposals, proposalIds, delegator, delegatee);
     }
 
-    function getOffchainResultsHash() external view override returns (string memory resultsHash) {
-        return _offChain.resultsHash;
+    function getCreditInfo() external view override returns (CreditInfoView[] memory) {
+        return _creditInfo.getCreditInfo();
+    }
+
+    function getOffchainInfo()
+        external
+        view
+        override
+        returns (address validator, string memory resultsHash)
+    {
+        return (_offChain.verifier, _offChain.resultsHash);
     }
 
     function getOffchainSignHash(
-        string calldata resultHash
+        string calldata resultHash,
+        address user
     ) external view override returns (bytes32) {
-        return resultHash.getSignHash();
+        return resultHash.getSignHash(user);
     }
 
-    function getVerifier() external view override returns (address) {
-        return _offChain.verifier;
+    function getExpertStatus(address user) public view override returns (bool) {
+        return _expertNft.isExpert(user) || _dexeExpertNft.isExpert(user);
     }
 
-    function _setNftMultiplierAddress(address nftMultiplierAddress) internal {
-        require(nftMultiplier == address(0), "Gov: current nft address isn't zero");
-        require(nftMultiplierAddress != address(0), "Gov: new nft address is zero");
+    function _createProposal(
+        string calldata _descriptionURL,
+        ProposalAction[] calldata actionsOnFor,
+        ProposalAction[] calldata actionsOnAgainst
+    ) internal returns (uint256 proposalId) {
+        proposalId = ++latestProposalId;
 
-        nftMultiplier = nftMultiplierAddress;
+        _proposals.createProposal(_userInfos, _descriptionURL, actionsOnFor, actionsOnAgainst);
     }
 
-    function _unlock(address user, bool isMicropool) internal {
-        _unlockInProposals(_votedInProposals[user][isMicropool].values(), user, isMicropool);
-    }
-
-    function _unlockInProposals(
-        uint256[] memory proposalIds,
-        address user,
-        bool isMicropool
+    function _vote(
+        uint256 proposalId,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds,
+        bool isVoteFor
     ) internal {
-        _votedInProposals.unlockInProposals(_voteInfos, proposalIds, user, isMicropool);
+        _updateNftPowers(voteNftIds);
+
+        _proposals.vote(_userInfos, proposalId, voteAmount, voteNftIds, isVoteFor);
     }
 
-    function _quorumReached(ProposalCore storage core) internal view returns (bool) {
-        return
-            PERCENTAGE_100.ratio(core.votesFor, _govUserKeeper.getTotalVoteWeight()) >=
-            core.settings.quorum;
+    function _revoteDelegated(address delegatee, VoteType voteType) internal {
+        _proposals.revoteDelegated(_userInfos, delegatee, voteType);
+    }
+
+    function _updateRewards(uint256 proposalId, address user, RewardType rewardType) internal {
+        if (rewardType == RewardType.Vote) {
+            _userInfos.updateVotingRewards(_proposals, proposalId, user);
+        } else if (rewardType == RewardType.SaveOffchainResults) {
+            _userInfos.updateOffchainRewards(user);
+        } else {
+            _userInfos.updateStaticRewards(_proposals, proposalId, user, rewardType);
+        }
+    }
+
+    function _updateNftPowers(uint256[] calldata nftIds) internal {
+        _govUserKeeper.updateNftPowers(nftIds);
+    }
+
+    function _unlock(address user) internal {
+        _userInfos.unlockInProposals(user);
+    }
+
+    function _changeVotePower(address votePower) internal {
+        require(votePower != address(0), "Gov: zero vote power contract");
+
+        _votePowerContract = votePower;
     }
 
     function _onlyThis() internal view {
         require(address(this) == msg.sender, "Gov: not this contract");
     }
 
+    function _onlyValidatorContract() internal view {
+        require(address(_govValidators) == msg.sender, "Gov: not the validators contract");
+    }
+
     function _onlyBABTHolder() internal view {
-        require(!onlyBABTHolders || babt.balanceOf(msg.sender) > 0, "Gov: not BABT holder");
+        require(
+            !onlyBABTHolders ||
+                _babt.balanceOf(msg.sender) > 0 ||
+                IPoolRegistry(_poolRegistry).isGovPool(msg.sender),
+            "Gov: not BABT holder"
+        );
     }
 }

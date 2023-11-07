@@ -1,9 +1,9 @@
 require("@nomiclabs/hardhat-web3");
 require("@nomiclabs/hardhat-truffle5");
 require("@typechain/hardhat");
-require("@dlsl/hardhat-migrate");
-require("@dlsl/hardhat-markup");
-require("@dlsl/hardhat-gobind");
+require("@solarity/hardhat-migrate");
+require("@solarity/hardhat-markup");
+require("@solarity/hardhat-gobind");
 require("hardhat-contract-sizer");
 require("hardhat-gas-reporter");
 require("solidity-coverage");
@@ -58,12 +58,13 @@ module.exports = {
     },
   },
   solidity: {
-    version: "0.8.9",
+    version: "0.8.20",
     settings: {
       optimizer: {
         enabled: true,
         runs: 200,
       },
+      evmVersion: "paris",
     },
   },
   etherscan: {
@@ -78,7 +79,7 @@ module.exports = {
     pathToMigrations: "./deploy/",
   },
   markup: {
-    onlyFiles: ["./contracts/"],
+    onlyFiles: ["./contracts/interfaces"],
   },
   gobind: {
     onlyFiles: ["./contracts/"],
