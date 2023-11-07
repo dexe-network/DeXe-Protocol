@@ -29,7 +29,7 @@ describe("UserRegistry", () => {
     const _userRegistry = await UserRegistry.new();
     const _sphereXEngine = await SphereXEngineMock.new();
 
-    await contractsRegistry.__OwnableContractsRegistry_init();
+    await contractsRegistry.__MultiOwnableContractsRegistry_init();
 
     userRegistryName = await contractsRegistry.USER_REGISTRY_NAME();
 
@@ -95,7 +95,7 @@ describe("UserRegistry", () => {
 
       await truffleAssert.reverts(
         userRegistry.setPrivacyPolicyDocumentHash(docHash, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
     });
   });

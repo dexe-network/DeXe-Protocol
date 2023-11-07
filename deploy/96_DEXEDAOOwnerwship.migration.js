@@ -1,3 +1,5 @@
+const config = require("./config/config.json");
+
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
 const CoreProperties = artifacts.require("CoreProperties");
@@ -15,10 +17,20 @@ module.exports = async (deployer) => {
   const priceFeed = await deployer.deployed(PriceFeed, await contractsRegistry.getPriceFeedContract());
   const expertNft = await deployer.deployed(DexeExpertNft, await contractsRegistry.getDexeExpertNftContract());
 
-  await contractsRegistry.transferOwnership(deployer.dexeDaoAddress);
-  await poolRegistry.transferOwnership(deployer.dexeDaoAddress);
-  await coreProperties.transferOwnership(deployer.dexeDaoAddress);
-  await userRegistry.transferOwnership(deployer.dexeDaoAddress);
-  await priceFeed.transferOwnership(deployer.dexeDaoAddress);
+  const owners = config.owners;
+  owners.push(deployer.dexeDaoAddress);
+
   await expertNft.transferOwnership(deployer.dexeDaoAddress);
+
+  await contractsRegistry.addOwners(owners);
+  await poolRegistry.addOwners(owners);
+  await coreProperties.addOwners(owners);
+  await userRegistry.addOwners(owners);
+  await priceFeed.addOwners(owners);
+
+  await contractsRegistry.renounceOwnership();
+  await poolRegistry.renounceOwnership();
+  await coreProperties.renounceOwnership();
+  await userRegistry.renounceOwnership();
+  await priceFeed.renounceOwnership();
 };

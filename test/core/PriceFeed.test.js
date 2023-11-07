@@ -45,7 +45,7 @@ describe("PriceFeed", () => {
     uniswapV2Router = await UniswapV2RouterMock.new();
     const _sphereXEngine = await SphereXEngineMock.new();
 
-    await contractsRegistry.__OwnableContractsRegistry_init();
+    await contractsRegistry.__MultiOwnableContractsRegistry_init();
 
     await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
 
@@ -79,12 +79,12 @@ describe("PriceFeed", () => {
     it("only owner should call these methods", async () => {
       await truffleAssert.reverts(
         priceFeed.addPathTokens([USD.address], { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(
         priceFeed.removePathTokens([USD.address], { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
     });
   });

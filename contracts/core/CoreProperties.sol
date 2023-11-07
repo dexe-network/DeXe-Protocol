@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-
+import "@solarity/solidity-lib/access-control/MultiOwnable.sol";
 import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
 
 import "../interfaces/core/ICoreProperties.sol";
@@ -10,13 +9,13 @@ import "../interfaces/core/IContractsRegistry.sol";
 
 import "./Globals.sol";
 
-contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependant {
+contract CoreProperties is ICoreProperties, MultiOwnable, AbstractDependant {
     CoreParameters public coreParameters;
 
     address internal _treasuryAddress;
 
     function __CoreProperties_init(CoreParameters calldata _coreParameters) external initializer {
-        __Ownable_init();
+        __MultiOwnable_init();
 
         coreParameters = _coreParameters;
     }

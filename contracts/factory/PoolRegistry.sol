@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "@solarity/solidity-lib/contracts-registry/pools/presets/OwnablePoolContractsRegistry.sol";
+import "@solarity/solidity-lib/contracts-registry/pools/presets/MultiOwnablePoolContractsRegistry.sol";
 import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 
 import "../interfaces/factory/IPoolRegistry.sol";
@@ -12,7 +12,7 @@ import "../interfaces/core/IContractsRegistry.sol";
 
 import "../proxy/PoolBeacon.sol";
 
-contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
+contract PoolRegistry is IPoolRegistry, MultiOwnablePoolContractsRegistry {
     using EnumerableSet for EnumerableSet.AddressSet;
     using Paginator for EnumerableSet.AddressSet;
     using Math for uint256;
@@ -46,9 +46,9 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     }
 
     function addProxyPool(
-        string calldata name,
+        string memory name,
         address poolAddress
-    ) external override onlyPoolFactory {
+    ) public override(IPoolRegistry, MultiOwnablePoolContractsRegistry) onlyPoolFactory {
         _addProxyPool(name, poolAddress);
     }
 

@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-import "@solarity/solidity-lib/contracts-registry/presets/OwnableContractsRegistry.sol";
+import "@solarity/solidity-lib/contracts-registry/presets/MultiOwnableContractsRegistry.sol";
 
 import "@spherex-xyz/engine-contracts/src/SphereXEngine.sol";
 
@@ -11,7 +11,7 @@ import "../interfaces/core/IContractsRegistry.sol";
 
 import "../proxy/ProtectedTransparentProxy.sol";
 
-contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPSUpgradeable {
+contract ContractsRegistry is IContractsRegistry, MultiOwnableContractsRegistry, UUPSUpgradeable {
     string public constant USER_REGISTRY_NAME = "USER_REGISTRY";
 
     string public constant POOL_FACTORY_NAME = "POOL_FACTORY";

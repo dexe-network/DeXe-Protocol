@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+import "@solarity/solidity-lib/access-control/MultiOwnable.sol";
 import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
 import "@solarity/solidity-lib/libs/arrays/SetHelper.sol";
 import "@solarity/solidity-lib/libs/utils/DecimalsConverter.sol";
@@ -18,7 +18,7 @@ import "../libs/price-feed/UniswapV2PathFinder.sol";
 
 import "../core/Globals.sol";
 
-contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
+contract PriceFeed is IPriceFeed, MultiOwnable, AbstractDependant {
     using EnumerableSet for EnumerableSet.AddressSet;
     using DecimalsConverter for *;
     using SetHelper for EnumerableSet.AddressSet;
@@ -32,7 +32,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
     EnumerableSet.AddressSet internal _pathTokens;
 
     function __PriceFeed_init() external initializer {
-        __Ownable_init();
+        __MultiOwnable_init();
     }
 
     function setDependencies(

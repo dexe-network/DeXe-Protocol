@@ -34,7 +34,7 @@ describe("ContractsRegistry", () => {
     sphereXEngine = await SphereXEngineMock.new();
     sphereXCallee = await SphereXCalleeMock.new();
 
-    await contractsRegistry.__OwnableContractsRegistry_init();
+    await contractsRegistry.__MultiOwnableContractsRegistry_init();
 
     await reverter.snapshot();
   });
@@ -50,7 +50,7 @@ describe("ContractsRegistry", () => {
 
       proxyRegistry = await ContractsRegistry.at((await ERC1967Proxy.new(implementation.address, "0x")).address);
 
-      await proxyRegistry.__OwnableContractsRegistry_init();
+      await proxyRegistry.__MultiOwnableContractsRegistry_init();
     });
 
     it("should upgrade if all conditions are met", async () => {
@@ -60,7 +60,7 @@ describe("ContractsRegistry", () => {
     it("should not upgrade if caller is not the owner", async () => {
       await truffleAssert.reverts(
         proxyRegistry.upgradeTo(implementation.address, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
     });
   });
@@ -233,17 +233,17 @@ describe("ContractsRegistry", () => {
     it("should not work with engine if not an owner", async () => {
       await truffleAssert.reverts(
         contractsRegistry.toggleSphereXEngine(true, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(
         contractsRegistry.protectContractFunctions(NAME, [protectedMethodSelector], { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(
         contractsRegistry.unprotectContractFunctions(NAME, [protectedMethodSelector], { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
     });
   });

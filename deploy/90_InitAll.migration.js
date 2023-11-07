@@ -40,7 +40,7 @@ module.exports = async (deployer) => {
 
   await expertNft.__ERC721Expert_init("Dexe Expert Nft", "DEXEXPNFT");
 
-  await poolRegistry.__OwnablePoolContractsRegistry_init();
+  await poolRegistry.__MultiOwnablePoolContractsRegistry_init();
 
   ////////////////////////////////////////////////////////////
 

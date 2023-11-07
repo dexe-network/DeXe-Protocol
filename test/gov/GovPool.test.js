@@ -234,7 +234,7 @@ describe("GovPool", () => {
     nftPower = await ERC721RawPower.new();
     rewardToken = await ERC20Mock.new("REWARD", "RWD", 18);
 
-    await contractsRegistry.__OwnableContractsRegistry_init();
+    await contractsRegistry.__MultiOwnableContractsRegistry_init();
 
     await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
     await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
@@ -263,7 +263,7 @@ describe("GovPool", () => {
     );
 
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
-    await poolRegistry.__OwnablePoolContractsRegistry_init();
+    await poolRegistry.__MultiOwnablePoolContractsRegistry_init();
     await dexeExpertNft.__ERC721Expert_init("Global", "Global");
 
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());

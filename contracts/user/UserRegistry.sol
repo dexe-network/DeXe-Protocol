@@ -2,11 +2,12 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+
+import "@solarity/solidity-lib/access-control/MultiOwnable.sol";
 
 import "../interfaces/user/IUserRegistry.sol";
 
-contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
+contract UserRegistry is IUserRegistry, EIP712Upgradeable, MultiOwnable {
     bytes32 public documentHash;
 
     mapping(bytes32 => mapping(address => bytes32)) internal _signatureHashes;
@@ -18,7 +19,7 @@ contract UserRegistry is IUserRegistry, EIP712Upgradeable, OwnableUpgradeable {
 
     function __UserRegistry_init(string calldata name) external initializer {
         __EIP712_init(name, "1");
-        __Ownable_init();
+        __MultiOwnable_init();
     }
 
     function changeProfile(string calldata url) public override {

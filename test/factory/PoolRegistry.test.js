@@ -58,7 +58,7 @@ describe("PoolRegistry", () => {
     sphereXEngine = await SphereXEngineMock.new();
     sphereXCallee = await SphereXCalleeMock.new();
 
-    await contractsRegistry.__OwnableContractsRegistry_init();
+    await contractsRegistry.__MultiOwnableContractsRegistry_init();
 
     await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), sphereXEngine.address);
     await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), sphereXEngine.address);
@@ -82,7 +82,7 @@ describe("PoolRegistry", () => {
 
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
     await priceFeed.__PriceFeed_init();
-    await poolRegistry.__OwnablePoolContractsRegistry_init();
+    await poolRegistry.__MultiOwnablePoolContractsRegistry_init();
 
     await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
@@ -199,17 +199,17 @@ describe("PoolRegistry", () => {
     it("should not work with engine if not an operator", async () => {
       await truffleAssert.reverts(
         poolRegistry.toggleSphereXEngine(true, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(
         poolRegistry.protectPoolFunctions(GOV_NAME, [protectedMethodSelector], { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(
         poolRegistry.unprotectPoolFunctions(GOV_NAME, [protectedMethodSelector], { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
     });
 

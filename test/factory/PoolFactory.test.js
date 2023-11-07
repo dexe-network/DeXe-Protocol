@@ -154,7 +154,7 @@ describe("PoolFactory", () => {
     const uniswapV2Router = await UniswapV2RouterMock.new();
     sphereXEngine = await SphereXEngine.new(0, OWNER);
 
-    await contractsRegistry.__OwnableContractsRegistry_init();
+    await contractsRegistry.__MultiOwnableContractsRegistry_init();
 
     await sphereXEngine.grantRole(await sphereXEngine.SENDER_ADDER_ROLE(), contractsRegistry.address);
 
@@ -183,7 +183,7 @@ describe("PoolFactory", () => {
     await sphereXEngine.grantRole(await sphereXEngine.SENDER_ADDER_ROLE(), poolFactory.address);
 
     await priceFeed.__PriceFeed_init();
-    await poolRegistry.__OwnablePoolContractsRegistry_init();
+    await poolRegistry.__MultiOwnablePoolContractsRegistry_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
 
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_FACTORY_NAME());

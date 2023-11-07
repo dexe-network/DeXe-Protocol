@@ -119,7 +119,7 @@ describe("DistributionProposal", () => {
     nft = await ERC721EnumMock.new("Mock", "Mock");
     const _sphereXEngine = await SphereXEngineMock.new();
 
-    await contractsRegistry.__OwnableContractsRegistry_init();
+    await contractsRegistry.__MultiOwnableContractsRegistry_init();
 
     await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
     await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
@@ -138,7 +138,7 @@ describe("DistributionProposal", () => {
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
 
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
-    await poolRegistry.__OwnablePoolContractsRegistry_init();
+    await poolRegistry.__MultiOwnablePoolContractsRegistry_init();
 
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());

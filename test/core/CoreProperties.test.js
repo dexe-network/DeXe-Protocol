@@ -35,7 +35,7 @@ describe("CoreProperties", () => {
     USD = await ERC20Mock.new("USD", "USD", 18);
     const _sphereXEngine = await SphereXEngineMock.new();
 
-    await contractsRegistry.__OwnableContractsRegistry_init();
+    await contractsRegistry.__MultiOwnableContractsRegistry_init();
 
     await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
 
@@ -69,27 +69,27 @@ describe("CoreProperties", () => {
     it("only owner should call these methods", async () => {
       await truffleAssert.reverts(
         coreProperties.setCoreParameters(DEFAULT_CORE_PROPERTIES, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(
         coreProperties.setDEXECommissionPercentages(10, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(
         coreProperties.setTokenSaleProposalCommissionPercentage(0, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(
         coreProperties.setVoteRewardsPercentages(0, 0, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(
         coreProperties.setGovVotesLimit(20, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
     });
   });
