@@ -3949,7 +3949,7 @@ describe("GovPool", () => {
 
         assert.equal(
           (await rewardToken.balanceOf(OWNER)).toFixed(),
-          toBN(wei(1000)).plus(wei(20)).times(3.5).toFixed()
+          toBN(wei(1000)).times(3.5).plus(wei(20)).toFixed()
         );
       });
 
