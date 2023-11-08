@@ -22,7 +22,7 @@ const SWAP_UNISWAP_V3_FEE500 = "1";
 const SWAP_UNISWAP_V3_FEE3000 = "2";
 const SWAP_UNISWAP_V3_FEE10000 = "3";
 
-describe.only("PriceFeed", () => {
+describe("PriceFeed", () => {
   let tokensToMint = toBN(1000000000);
   let reserveTokens = toBN(1000000);
 
@@ -537,6 +537,15 @@ describe.only("PriceFeed", () => {
       assert.deepEqual(pricesInfo.path.poolTypes, [SWAP_UNISWAP_V3_FEE10000]);
     });
 
+    it("returns zero if path for priceIn not exist", async () => {
+      const MANA = await ERC20Mock.new("MANA", "MANA", 18);
+      const WBTC = await ERC20Mock.new("WBTC", "WBTC", 18);
+
+      let pricesInfo = await priceFeed.getExtendedPriceIn.call(MANA.address, WBTC.address, wei("1000"), [[], []]);
+      assert.equal(pricesInfo.amountIn.toFixed(), 0);
+      assert.deepEqual(pricesInfo.path, [[], []]);
+    });
+
     it("properly handles proper path but no pools alongside it", async () => {
       await uniswapV2Router.enablePair(DEXE.address, USD.address);
 
@@ -593,7 +602,7 @@ describe.only("PriceFeed", () => {
 
       pricesInfo = await priceFeed.getExtendedPriceOut.call(DEXE.address, USD.address, wei("1000"), [
         [DEXE.address, MANA.address, USD.address],
-        [0, SWAP_UNISWAP_V3_FEE500],
+        [70, SWAP_UNISWAP_V3_FEE500],
       ]);
       assert.equal(pricesInfo.amountOut.toFixed(), wei("1000"));
       assert.deepEqual(pricesInfo.path.path, [DEXE.address, USD.address]);

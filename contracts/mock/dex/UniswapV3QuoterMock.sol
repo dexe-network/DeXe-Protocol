@@ -19,41 +19,73 @@ contract UniswapV3QuoterMock {
         _poolInfos[token0][token1][fee] = poolInfo;
     }
 
+    struct QuoteExactInputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint256 amountIn;
+        uint24 fee;
+        uint160 sqrtPriceLimitX96;
+    }
+
     function quoteExactInputSingle(
-        address tokenIn,
-        address tokenOut,
-        uint24 fee,
-        uint256 amountIn,
-        uint160 sqrtPriceLimitX96
-    ) external returns (uint256 amountOut) {
-        if (amountIn == 0) {
-            return 0;
+        QuoteExactInputSingleParams memory params
+    )
+        external
+        returns (
+            uint256 amountOut,
+            uint160 sqrtPriceX96After,
+            uint32 initializedTicksCrossed,
+            uint256 gasEstimate
+        )
+    {
+        if (params.amountIn == 0) {
+            return (0, 0, 0, 0);
         }
-        (uint256 reserveIn, uint256 reserveOut) = _getReserves(tokenIn, tokenOut, fee);
+        (uint256 reserveIn, uint256 reserveOut) = _getReserves(
+            params.tokenIn,
+            params.tokenOut,
+            params.fee
+        );
         if (reserveIn == 0) {
             revert();
         }
-        amountOut = (amountIn * reserveOut) / reserveIn;
+        amountOut = (params.amountIn * reserveOut) / reserveIn;
         if (amountOut > reserveOut) {
             amountOut = reserveOut;
         }
     }
 
+    struct QuoteExactOutputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint256 amount;
+        uint24 fee;
+        uint160 sqrtPriceLimitX96;
+    }
+
     function quoteExactOutputSingle(
-        address tokenIn,
-        address tokenOut,
-        uint24 fee,
-        uint256 amountOut,
-        uint160 sqrtPriceLimitX96
-    ) external returns (uint256 amountIn) {
-        if (amountOut == 0) {
-            return 0;
+        QuoteExactOutputSingleParams memory params
+    )
+        external
+        returns (
+            uint256 amountIn,
+            uint160 sqrtPriceX96After,
+            uint32 initializedTicksCrossed,
+            uint256 gasEstimate
+        )
+    {
+        if (params.amount == 0) {
+            return (0, 0, 0, 0);
         }
-        (uint256 reserveIn, uint256 reserveOut) = _getReserves(tokenIn, tokenOut, fee);
-        if (reserveOut == 0 || amountOut > reserveOut) {
+        (uint256 reserveIn, uint256 reserveOut) = _getReserves(
+            params.tokenIn,
+            params.tokenOut,
+            params.fee
+        );
+        if (reserveOut == 0 || params.amount > reserveOut) {
             revert();
         }
-        amountIn = (amountOut * reserveIn) / reserveOut;
+        amountIn = (params.amount * reserveIn) / reserveOut;
     }
 
     function _getReserves(

@@ -24,6 +24,15 @@ enum PoolInterfaceType {
 }
 ```
 
+The enum that holds information about the router type
+
+
+Parameters:
+
+| Name               | Description                    |
+| :----------------- | :----------------------------- |
+| UniswapV2Interface | the Uniswap V2 router V2 type  |
+| UniswapV3Interface | the Uniswap V3 quouter V2 type |
 
 ## Structs info
 
@@ -37,6 +46,16 @@ struct PoolType {
 }
 ```
 
+A struct describing single swapping pool parameters
+
+
+Parameters:
+
+| Name     | Type                              | Description                          |
+| :------- | :-------------------------------- | :----------------------------------- |
+| poolType | enum IPriceFeed.PoolInterfaceType | the interface type of the router     |
+| router   | address                           | the address of the router or quoter  |
+| fee      | uint24                            | the pool fee (in case of V3 pools)   |
 
 ### SwapPath
 
@@ -47,14 +66,14 @@ struct SwapPath {
 }
 ```
 
-A struct describing a swap path alongside with swap types
+A struct describing a swap path
 
 
 Parameters:
 
 | Name      | Type      | Description                             |
 | :-------- | :-------- | :-------------------------------------- |
-| path      | address[] | the swap path itself                    |
+| path      | address[] | the tokens swapped alongside the path   |
 | poolTypes | uint8[]   | the v2/v3 pool types alongside the path |
 
 ## Functions info
@@ -95,20 +114,14 @@ Parameters:
 function setPoolTypes(IPriceFeed.PoolType[] calldata poolTypes) external
 ```
 
-
-### getPoolTypesLength (0x14980a8d)
-
-```solidity
-function getPoolTypesLength() external view returns (uint256)
-```
+This function sets pool types that will be used in the pathfinder
 
 
-### getPoolTypes (0x2fbc3b93)
+Parameters:
 
-```solidity
-function getPoolTypes() external view returns (IPriceFeed.PoolType[] memory)
-```
-
+| Name      | Type                         | Description             |
+| :-------- | :--------------------------- | :---------------------- |
+| poolTypes | struct IPriceFeed.PoolType[] | the array of pool types |
 
 ### getPriceOut (0x70e48e96)
 
@@ -307,6 +320,36 @@ Return values:
 | Name | Type      | Description             |
 | :--- | :-------- | :---------------------- |
 | [0]  | address[] | the list of path tokens |
+
+### getPoolTypesLength (0x14980a8d)
+
+```solidity
+function getPoolTypesLength() external view returns (uint256)
+```
+
+The function that returns the total number of pool types used in the pathfinder
+
+
+Return values:
+
+| Name | Type    | Description              |
+| :--- | :------ | :----------------------- |
+| [0]  | uint256 | the number of pool types |
+
+### getPoolTypes (0x2fbc3b93)
+
+```solidity
+function getPoolTypes() external view returns (IPriceFeed.PoolType[] memory)
+```
+
+The function to return the list of pool types used in the pathfinder
+
+
+Return values:
+
+| Name | Type                         | Description            |
+| :--- | :--------------------------- | :--------------------- |
+| [0]  | struct IPriceFeed.PoolType[] | the list of pool types |
 
 ### isSupportedPathToken (0xa5b0de41)
 

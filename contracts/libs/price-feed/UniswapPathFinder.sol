@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol";
+import "@uniswap/v3-periphery/contracts/interfaces/IQuoterV2.sol";
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
@@ -105,7 +105,7 @@ library UniswapPathFinder {
         address tokenIn,
         address tokenOut,
         IPriceFeed.SwapPath calldata providedPath
-    ) internal pure returns (bool verified) {
+    ) internal view returns (bool verified) {
         if (
             providedPath.path.length < 3 ||
             providedPath.path.length != providedPath.poolTypes.length + 1 ||
@@ -118,7 +118,7 @@ library UniswapPathFinder {
         }
 
         for (uint i = 0; i < providedPath.poolTypes.length; i++) {
-            if (providedPath.poolTypes[i] == NO_POOL) {
+            if (providedPath.poolTypes[i] > IPriceFeed(address(this)).getPoolTypesLength() - 1) {
                 verified = false;
             }
         }
@@ -262,17 +262,36 @@ library UniswapPathFinder {
         uint24 fee,
         bool exactIn
     ) internal returns (uint256) {
-        IQuoter quoter = IQuoter(quoterAddress);
-        function(address, address, uint24, uint256, uint160)
-            external
-            returns (uint256) swapFunction = exactIn
-                ? quoter.quoteExactInputSingle
-                : quoter.quoteExactOutputSingle;
+        IQuoterV2 quoter = IQuoterV2(quoterAddress);
 
-        try swapFunction(tokenIn, tokenOut, fee, amount, 0) returns (uint256 newAmount) {
-            return newAmount;
-        } catch {
-            return exactIn ? 0 : type(uint256).max;
+        if (exactIn) {
+            IQuoterV2.QuoteExactInputSingleParams memory data = IQuoterV2
+                .QuoteExactInputSingleParams(tokenIn, tokenOut, amount, fee, 0);
+
+            try quoter.quoteExactInputSingle(data) returns (
+                uint256 newAmount,
+                uint160,
+                uint32,
+                uint256
+            ) {
+                return newAmount;
+            } catch {
+                return 0;
+            }
+        } else {
+            IQuoterV2.QuoteExactOutputSingleParams memory data = IQuoterV2
+                .QuoteExactOutputSingleParams(tokenIn, tokenOut, amount, fee, 0);
+
+            try quoter.quoteExactOutputSingle(data) returns (
+                uint256 newAmount,
+                uint160,
+                uint32,
+                uint256
+            ) {
+                return newAmount;
+            } catch {
+                return type(uint256).max;
+            }
         }
     }
 }
