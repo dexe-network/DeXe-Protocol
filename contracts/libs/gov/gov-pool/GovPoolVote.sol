@@ -58,7 +58,7 @@ library GovPoolVote {
                 userKeeper.lockNfts(msg.sender, voteType, nftIds);
             }
 
-            _vote(rawVotes[IGovPool.VoteType.PersonalVote], amount, nftIds, address(0), voteType);
+            _vote(rawVotes[IGovPool.VoteType.PersonalVote], amount, nftIds, msg.sender, voteType);
         }
 
         if (voteType != IGovPool.VoteType.DelegatedVote) {

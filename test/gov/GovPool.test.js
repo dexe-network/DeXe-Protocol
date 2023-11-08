@@ -107,7 +107,6 @@ describe("GovPool", () => {
   let FIFTH;
   let SIXTH;
   let FACTORY;
-  let NOTHING;
 
   let contractsRegistry;
   let coreProperties;
@@ -188,7 +187,6 @@ describe("GovPool", () => {
     FIFTH = await accounts(4);
     SIXTH = await accounts(5);
     FACTORY = await accounts(6);
-    NOTHING = await accounts(9);
 
     const govUserKeeperViewLib = await GovUserKeeperViewLib.new();
 
@@ -258,7 +256,7 @@ describe("GovPool", () => {
       (await getCurrentBlockTime()) + 200,
       token.address,
       toPercent("0.01"),
-      toPercent("90"),
+      wei("90"),
       "540"
     );
 
@@ -1603,10 +1601,13 @@ describe("GovPool", () => {
         nftMultiplier = poolContracts.nftMultiplier;
 
         await token.approve(userKeeper.address, wei("10000000000"));
+        await token.approve(nftPower.address, wei("10000"));
 
         for (let i = 1; i < 11; i++) {
           await nftPower.mint(OWNER, i, "");
           await nftPower.approve(userKeeper.address, i);
+
+          await nftPower.addCollateral(wei("800"), i);
         }
 
         await govPool.deposit(wei("1000"), [1, 2, 3, 4]);
@@ -1621,9 +1622,9 @@ describe("GovPool", () => {
 
         const totalVotes = await govPool.getTotalVotes(1, OWNER, VoteType.PersonalVote);
 
-        assert.equal(totalVotes[0].toFixed(), wei("20"));
+        assert.equal(totalVotes[0].toFixed(), wei("380"));
         assert.equal(totalVotes[1].toFixed(), "0");
-        assert.equal(totalVotes[2].toFixed(), wei("20"));
+        assert.equal(totalVotes[2].toFixed(), wei("380"));
         assert.isTrue(totalVotes[3]);
       });
     });

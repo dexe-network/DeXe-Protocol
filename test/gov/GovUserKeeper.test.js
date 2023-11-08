@@ -1515,6 +1515,18 @@ describe("GovUserKeeper", () => {
         await nft.addCollateral(wei("250"), "7");
       });
 
+      it("should return min nfts power", async () => {
+        await setTime(startTime + 1001);
+
+        let totalNftsPowers = await userKeeper.getTotalNftsPower([7, 9], VoteType.PersonalVote, ZERO_ADDR, true);
+
+        assert.equal(totalNftsPowers[0].toFixed(), wei("15000"));
+        assert.deepEqual(
+          totalNftsPowers[1].map((e) => e.toFixed()),
+          [wei("5000"), wei("10000")]
+        );
+      });
+
       it("should return total nfts min power correctly if micropool", async () => {
         let totalNftsPowers = await userKeeper.getTotalNftsPower([7, 9], VoteType.MicropoolVote, SECOND, true);
 

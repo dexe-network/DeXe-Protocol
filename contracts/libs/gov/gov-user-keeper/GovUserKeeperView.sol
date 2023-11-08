@@ -286,13 +286,13 @@ library GovUserKeeperView {
         uint256[] memory nftIds,
         bool perNftPowerArray
     ) internal view returns (uint256 nftPower, uint256[] memory perNftPower) {
-        uint256 individualPower = nftInfo.individualPower;
-
         if (perNftPowerArray) {
             perNftPower = new uint256[](nftIds.length);
         }
 
         if (!nftInfo.isSupportPower) {
+            uint256 individualPower = nftInfo.individualPower;
+
             nftPower = nftIds.length * individualPower;
 
             if (perNftPowerArray) {
