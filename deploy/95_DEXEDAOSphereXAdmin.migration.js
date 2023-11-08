@@ -1,5 +1,6 @@
 const { Reporter } = require("@solarity/hardhat-migrate");
 
+const config = require("./config/config.json");
 const { accounts } = require("../scripts/utils/utils");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -53,6 +54,10 @@ module.exports = async (deployer) => {
 
   for (const [, engine] of engines) {
     const instance = await deployer.deployed(SphereXEngine, engine);
+
+    for (const owner of config.owners) {
+      await instance.grantRole(await instance.OPERATOR_ROLE(), owner);
+    }
 
     await instance.grantRole(await instance.OPERATOR_ROLE(), deployer.dexeDaoAddress);
     await instance.renounceRole(await instance.OPERATOR_ROLE(), DEPLOYER);

@@ -16,13 +16,13 @@ let POOL_PARAMETERS = {
         earlyCompletion: true,
         delegatedVotingAllowed: false,
         validatorsVote: false,
-        duration: 600,
-        durationValidators: 600,
-        quorum: PRECISION.times("0.00001").toFixed(),
-        quorumValidators: PRECISION.times("0.00001").toFixed(),
-        minVotesForVoting: wei("10"),
-        minVotesForCreating: wei("1"),
-        executionDelay: 0,
+        duration: 432000, // 5 days
+        durationValidators: 432000, // 5 days
+        quorum: PRECISION.times("5").toFixed(), // 5%
+        quorumValidators: PRECISION.times("51").toFixed(), // 51%
+        minVotesForVoting: wei("13"), // 13 votes
+        minVotesForCreating: wei("10000"), // 10000 votes
+        executionDelay: 1800, // 30 mins
         rewardsInfo: {
           rewardToken: ZERO_ADDR,
           creationReward: 0,
@@ -35,13 +35,13 @@ let POOL_PARAMETERS = {
         earlyCompletion: true,
         delegatedVotingAllowed: false,
         validatorsVote: false,
-        duration: 600,
-        durationValidators: 600,
-        quorum: PRECISION.times("0.00001").toFixed(),
-        quorumValidators: PRECISION.times("0.00001").toFixed(),
-        minVotesForVoting: wei("10"),
-        minVotesForCreating: wei("1"),
-        executionDelay: 0,
+        duration: 432000, // 5 days
+        durationValidators: 432000, // 5 days
+        quorum: PRECISION.times("5").toFixed(), // 5%
+        quorumValidators: PRECISION.times("51").toFixed(), // 51%
+        minVotesForVoting: wei("13"), // 13 votes
+        minVotesForCreating: wei("10000"), // 10000 votes
+        executionDelay: 1800, // 30 mins
         rewardsInfo: {
           rewardToken: ZERO_ADDR,
           creationReward: 0,
@@ -54,13 +54,13 @@ let POOL_PARAMETERS = {
         earlyCompletion: true,
         delegatedVotingAllowed: false,
         validatorsVote: false,
-        duration: 600,
-        durationValidators: 600,
-        quorum: PRECISION.times("0.00001").toFixed(),
-        quorumValidators: PRECISION.times("0.00001").toFixed(),
-        minVotesForVoting: wei("10"),
-        minVotesForCreating: wei("1"),
-        executionDelay: 0,
+        duration: 432000, // 5 days
+        durationValidators: 432000, // 5 days
+        quorum: PRECISION.times("5").toFixed(), // 5%
+        quorumValidators: PRECISION.times("51").toFixed(), // 51%
+        minVotesForVoting: wei("13"), // 13 votes
+        minVotesForCreating: wei("10000"), // 10000 votes
+        executionDelay: 1800, // 30 mins
         rewardsInfo: {
           rewardToken: ZERO_ADDR,
           creationReward: 0,
@@ -74,11 +74,11 @@ let POOL_PARAMETERS = {
   },
   validatorsParams: {
     name: "DEXE Validator Token",
-    symbol: "DVT",
+    symbol: "DEXEVT",
     proposalSettings: {
-      duration: 600,
-      executionDelay: 0,
-      quorum: PRECISION.times("0.00001").toFixed(),
+      duration: 432000, // 5 days
+      executionDelay: 1800, // 30 mins
+      quorum: PRECISION.times("51").toFixed(), // 51%
     },
     validators: [],
     balances: [],
@@ -109,43 +109,43 @@ let POOL_PARAMETERS = {
 };
 
 const DP_SETTINGS = {
-  earlyCompletion: false,
+  earlyCompletion: true,
   delegatedVotingAllowed: true,
   validatorsVote: false,
-  duration: 600,
-  durationValidators: 600,
-  quorum: PRECISION.times("0.00001").toFixed(),
-  quorumValidators: PRECISION.times("0.00001").toFixed(),
-  minVotesForVoting: wei("10"),
-  minVotesForCreating: wei("1"),
-  executionDelay: 0,
+  duration: 432000, // 5 days
+  durationValidators: 432000, // 5 days
+  quorum: PRECISION.times("5").toFixed(), // 5%
+  quorumValidators: PRECISION.times("51").toFixed(), // 51%
+  minVotesForVoting: wei("13"), // 13 votes
+  minVotesForCreating: wei("10000"), // 10000 votes
+  executionDelay: 1800, // 30 mins
   rewardsInfo: {
-    rewardToken: config.tokens.DEXE,
-    creationReward: wei("10"),
-    executionReward: wei("15"),
-    voteRewardsCoefficient: PRECISION.times("10").toFixed(),
+    rewardToken: ZERO_ADDR,
+    creationReward: 0,
+    executionReward: 0,
+    voteRewardsCoefficient: 0,
   },
-  executorDescription: "dp",
+  executorDescription: "distribution-proposal",
 };
 
 const TOKENSALE_SETTINGS = {
   earlyCompletion: true,
   delegatedVotingAllowed: false,
   validatorsVote: false,
-  duration: 600,
-  durationValidators: 600,
-  quorum: PRECISION.times("0.00001").toFixed(),
-  quorumValidators: PRECISION.times("0.00001").toFixed(),
-  minVotesForVoting: wei("10"),
-  minVotesForCreating: wei("1"),
-  executionDelay: 0,
+  duration: 432000, // 5 days
+  durationValidators: 432000, // 5 days
+  quorum: PRECISION.times("5").toFixed(), // 5%
+  quorumValidators: PRECISION.times("51").toFixed(), // 51%
+  minVotesForVoting: wei("13"), // 13 votes
+  minVotesForCreating: wei("10000"), // 10000 votes
+  executionDelay: 1800, // 30 mins
   rewardsInfo: {
-    rewardToken: config.tokens.DEXE,
-    creationReward: wei("10"),
-    executionReward: wei("15"),
-    voteRewardsCoefficient: PRECISION.times("10").toFixed(),
+    rewardToken: ZERO_ADDR,
+    creationReward: 0,
+    executionReward: 0,
+    voteRewardsCoefficient: 0,
   },
-  executorDescription: "tokensale",
+  executorDescription: "tokensale-proposal",
 };
 
 module.exports = async (deployer) => {

@@ -9,10 +9,11 @@ const PriceFeed = artifacts.require("PriceFeed");
 const DexeExpertNft = artifacts.require("ERC721Expert");
 const PoolFactory = artifacts.require("PoolFactory");
 const PoolRegistry = artifacts.require("PoolRegistry");
+const SphereXEngine = artifacts.require("SphereXEngine");
 
 const DEFAULT_CORE_PROPERTIES = {
-  govVotesLimit: 20,
-  govCommissionPercentage: PRECISION.times(20).toFixed(),
+  govVotesLimit: 50,
+  govCommissionPercentage: PRECISION.times(30).toFixed(),
   tokenSaleProposalCommissionPercentage: PRECISION.toFixed(),
   micropoolVoteRewardsPercentage: PRECISION.times(20).toFixed(),
   treasuryVoteRewardsPercentage: PRECISION.times(1.618).toFixed(),
@@ -31,6 +32,12 @@ module.exports = async (deployer) => {
   const poolFactory = await deployer.deployed(PoolFactory, await contractsRegistry.getPoolFactoryContract());
   const poolRegistry = await deployer.deployed(PoolRegistry, await contractsRegistry.getPoolRegistryContract());
 
+  const sphereXEngine = await deployer.deployed(SphereXEngine, await contractsRegistry.getSphereXEngineContract());
+  const poolSphereXEngine = await deployer.deployed(
+    SphereXEngine,
+    await contractsRegistry.getPoolSphereXEngineContract()
+  );
+
   ////////////////////////////////////////////////////////////
 
   await userRegistry.__UserRegistry_init(await contractsRegistry.USER_REGISTRY_NAME());
@@ -38,7 +45,7 @@ module.exports = async (deployer) => {
 
   await priceFeed.__PriceFeed_init();
 
-  await expertNft.__ERC721Expert_init("Dexe Expert Nft", "DEXEXPNFT");
+  await expertNft.__ERC721Expert_init("DeXe Protocol Global Expert NFT", "DPGEXPNFT");
 
   await poolRegistry.__MultiOwnablePoolContractsRegistry_init();
 
@@ -58,6 +65,8 @@ module.exports = async (deployer) => {
     ["PriceFeed", priceFeed.address],
     ["ERC721Expert", expertNft.address],
     ["PoolFactory", poolFactory.address],
-    ["PoolRegistry", poolRegistry.address]
+    ["PoolRegistry", poolRegistry.address],
+    ["SphereXEngine", sphereXEngine.address],
+    ["PoolSphereXEngine", poolSphereXEngine.address]
   );
 };

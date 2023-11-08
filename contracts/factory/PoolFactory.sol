@@ -34,11 +34,11 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     using GovTokenDeployer for *;
     using Vector for Vector.AddressVector;
 
-    string internal constant EXPERT_NAME_POSTFIX = (" Expert Nft");
+    string internal constant EXPERT_NAME_POSTFIX = (" Expert NFT");
     string internal constant EXPERT_SYMBOL_POSTFIX = (" EXPNFT");
 
-    string internal constant NFT_MULTIPLIER_NAME_POSTFIX = (" NFT Multiplier");
-    string internal constant NFT_MULTIPLIER_SYMBOL_POSTFIX = (" MULTIPLIER");
+    string internal constant NFT_MULTIPLIER_NAME_POSTFIX = (" Multiplier NFT");
+    string internal constant NFT_MULTIPLIER_SYMBOL_POSTFIX = (" MULTNFT");
 
     PoolRegistry internal _poolRegistry;
     CoreProperties internal _coreProperties;

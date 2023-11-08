@@ -1,5 +1,5 @@
 {
-  "name": "dexe-contracts",
+  "name": "dexe-protocol",
   "version": "1.0.0",
   "description": "",
   "scripts": {
@@ -13,8 +13,8 @@
     "deploy-dev": "npx hardhat migrate --network localhost",
     "deploy-goerli": "npx hardhat migrate --network goerli --verify",
     "deploy-chapel": "npx hardhat migrate --network chapel --verify",
-    "deploy-eth-mainnet": "npx hardhat migrate --network ethereum --verify",
-    "deploy-bsc-mainnet": "npx hardhat migrate --network bsc --verify",
+    "deploy-eth": "npx hardhat migrate --network ethereum --verify",
+    "deploy-bsc": "npx hardhat migrate --network bsc --verify",
     "generate-types": "TYPECHAIN_FORCE=true npx hardhat typechain",
     "generate-gobinds": "npx hardhat gobind",
     "generate-docs": "bash .docs/gen-docs.sh",
@@ -26,7 +26,7 @@
   },
   "author": "",
   "license": "MIT",
-  "homepage": "https://github.com/dexe-network/investment-contracts",
+  "homepage": "https://github.com/dexe-network/DeXe-Protocol",
   "dependencies": {
     "@openzeppelin/contracts": "4.9.2",
     "@openzeppelin/contracts-upgradeable": "4.9.2",
