@@ -1588,6 +1588,46 @@ describe("GovPool", () => {
       });
     });
 
+    describe("vote() nftPower", () => {
+      beforeEach(async () => {
+        POOL_PARAMETERS = await getPoolParameters(nftPower.address);
+
+        let poolContracts = await deployPool(POOL_PARAMETERS);
+        settings = poolContracts.settings;
+        govPool = poolContracts.govPool;
+        userKeeper = poolContracts.userKeeper;
+        validators = poolContracts.validators;
+        dp = poolContracts.distributionProposal;
+        expertNft = poolContracts.expertNft;
+        votePower = poolContracts.votePower;
+        nftMultiplier = poolContracts.nftMultiplier;
+
+        await token.approve(userKeeper.address, wei("10000000000"));
+
+        for (let i = 1; i < 11; i++) {
+          await nftPower.mint(OWNER, i, "");
+          await nftPower.approve(userKeeper.address, i);
+        }
+
+        await govPool.deposit(wei("1000"), [1, 2, 3, 4]);
+      });
+
+      it("should vote NFT power", async () => {
+        await setTime((await getCurrentBlockTime()) + 300);
+
+        await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
+
+        await govPool.vote(1, true, wei("20"), [1, 2, 3, 4]);
+
+        const totalVotes = await govPool.getTotalVotes(1, OWNER, VoteType.PersonalVote);
+
+        assert.equal(totalVotes[0].toFixed(), wei("20"));
+        assert.equal(totalVotes[1].toFixed(), "0");
+        assert.equal(totalVotes[2].toFixed(), wei("20"));
+        assert.isTrue(totalVotes[3]);
+      });
+    });
+
     describe("vote()", () => {
       beforeEach(async () => {
         await token.mint(SECOND, wei("100000000000000000000"));

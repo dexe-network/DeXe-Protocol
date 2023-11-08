@@ -151,14 +151,15 @@ library GovUserKeeperView {
                 voteType == IGovPool.VoteType.TreasuryVote
             ) {
                 if (perNftPowerArray) {
+                    uint256 individualPower = nftInfo.individualPower;
                     perNftPower = new uint256[](nftIds.length);
 
                     if (!nftInfo.isSupportPower) {
                         for (uint256 i = 0; i < perNftPower.length; i++) {
-                            perNftPower[i] = nftInfo.individualPower;
+                            perNftPower[i] = individualPower;
                         }
 
-                        return (nftIds.length * nftInfo.individualPower, perNftPower);
+                        return (nftIds.length * individualPower, perNftPower);
                     }
 
                     for (uint256 i = 0; i < nftIds.length; ++i) {
@@ -285,25 +286,27 @@ library GovUserKeeperView {
         uint256[] memory nftIds,
         bool perNftPowerArray
     ) internal view returns (uint256 nftPower, uint256[] memory perNftPower) {
-        if (!nftInfo.isSupportPower) {
-            nftPower = nftIds.length * nftInfo.individualPower;
-        } else {
-            for (uint256 i = 0; i < nftIds.length; ++i) {
-                nftPower += powerFunc(nftIds[i]);
-            }
-        }
+        uint256 individualPower = nftInfo.individualPower;
 
         if (perNftPowerArray) {
             perNftPower = new uint256[](nftIds.length);
+        }
 
-            if (!nftInfo.isSupportPower) {
+        if (!nftInfo.isSupportPower) {
+            nftPower = nftIds.length * individualPower;
+
+            if (perNftPowerArray) {
                 for (uint256 i = 0; i < perNftPower.length; i++) {
-                    perNftPower[i] = nftInfo.individualPower;
+                    perNftPower[i] = individualPower;
                 }
-            } else {
-                for (uint256 i = 0; i < nftIds.length; ++i) {
-                    uint256 currentNftPower = powerFunc(nftIds[i]);
+            }
+        } else {
+            for (uint256 i = 0; i < nftIds.length; ++i) {
+                uint256 currentNftPower = powerFunc(nftIds[i]);
 
+                nftPower += currentNftPower;
+
+                if (perNftPowerArray) {
                     perNftPower[i] = currentNftPower;
                 }
             }
