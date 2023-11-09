@@ -172,6 +172,19 @@ struct GovPoolPredictedAddresses {
 }
 ```
 
+The predicted pool addresses given tx.origin and GovPool name
+
+
+Parameters:
+
+| Name                 | Type    | Description                                 |
+| :------------------- | :------ | :------------------------------------------ |
+| govPool              | address | the predicted govPool address               |
+| govTokenSale         | address | the predicted govTokenSale address          |
+| govToken             | address | the predicted govToken address              |
+| distributionProposal | address | the predicted distributionProposal address  |
+| expertNft            | address | the predicted expertNft address             |
+| nftMultiplier        | address | the predicted nftMultiplier address         |
 
 ## Functions info
 

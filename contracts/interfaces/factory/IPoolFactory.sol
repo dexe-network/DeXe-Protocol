@@ -88,6 +88,13 @@ interface IPoolFactory {
         string name;
     }
 
+    /// @notice The predicted pool addresses given tx.origin and GovPool name
+    /// @param govPool the predicted govPool address
+    /// @param govTokenSale the predicted govTokenSale address
+    /// @param govToken the predicted govToken address
+    /// @param distributionProposal the predicted distributionProposal address
+    /// @param expertNft the predicted expertNft address
+    /// @param nftMultiplier the predicted nftMultiplier address
     struct GovPoolPredictedAddresses {
         address govPool;
         address govTokenSale;
