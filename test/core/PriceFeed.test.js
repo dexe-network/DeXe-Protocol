@@ -22,7 +22,7 @@ const SWAP_UNISWAP_V3_FEE500 = "1";
 const SWAP_UNISWAP_V3_FEE3000 = "2";
 const SWAP_UNISWAP_V3_FEE10000 = "3";
 
-describe.only("PriceFeed", () => {
+describe("PriceFeed", () => {
   let tokensToMint = toBN(1000000000);
   let reserveTokens = toBN(1000000);
 
