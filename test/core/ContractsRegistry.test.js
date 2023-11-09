@@ -16,7 +16,6 @@ ContractsRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 
 describe("ContractsRegistry", () => {
-  let OWNER;
   let SECOND;
 
   let contractsRegistry;
@@ -27,7 +26,6 @@ describe("ContractsRegistry", () => {
   const reverter = new Reverter();
 
   before("setup", async () => {
-    OWNER = await accounts(0);
     SECOND = await accounts(1);
 
     contractsRegistry = await ContractsRegistry.new();
@@ -104,23 +102,23 @@ describe("ContractsRegistry", () => {
     });
 
     it("should just add and remove the proxy contract", async () => {
-      const _USD = await ERC20Mock.new("USD", "USD", 18);
+      const _DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
 
       await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), sphereXEngine.address);
 
-      await contractsRegistry.addProxyContract(await contractsRegistry.USD_NAME(), _USD.address);
+      await contractsRegistry.addProxyContract(await contractsRegistry.DEXE_NAME(), _DEXE.address);
 
-      const USD = await contractsRegistry.getUSDContract();
+      const DEXE = await contractsRegistry.getDEXEContract();
 
-      await contractsRegistry.removeContract(await contractsRegistry.USD_NAME());
+      await contractsRegistry.removeContract(await contractsRegistry.DEXE_NAME());
 
-      await contractsRegistry.justAddProxyContract(await contractsRegistry.USD_NAME(), USD);
+      await contractsRegistry.justAddProxyContract(await contractsRegistry.DEXE_NAME(), DEXE);
 
-      assert.isTrue(await contractsRegistry.hasContract(await contractsRegistry.USD_NAME()));
+      assert.isTrue(await contractsRegistry.hasContract(await contractsRegistry.DEXE_NAME()));
 
-      await contractsRegistry.removeContract(await contractsRegistry.USD_NAME());
+      await contractsRegistry.removeContract(await contractsRegistry.DEXE_NAME());
 
-      assert.isFalse(await contractsRegistry.hasContract(await contractsRegistry.USD_NAME()));
+      assert.isFalse(await contractsRegistry.hasContract(await contractsRegistry.DEXE_NAME()));
     });
   });
 

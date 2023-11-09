@@ -8,31 +8,28 @@ import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
 import "@solarity/solidity-lib/libs/arrays/SetHelper.sol";
 import "@solarity/solidity-lib/libs/utils/DecimalsConverter.sol";
 
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
-
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "../libs/price-feed/UniswapV2PathFinder.sol";
-
-import "../core/Globals.sol";
+import "../libs/price-feed/UniswapPathFinder.sol";
 
 contract PriceFeed is IPriceFeed, MultiOwnable, AbstractDependant {
     using EnumerableSet for EnumerableSet.AddressSet;
     using DecimalsConverter for *;
     using SetHelper for EnumerableSet.AddressSet;
-    using UniswapV2PathFinder for EnumerableSet.AddressSet;
+    using UniswapPathFinder for EnumerableSet.AddressSet;
 
-    IUniswapV2Factory public uniswapFactory;
-    IUniswapV2Router02 public uniswapV2Router;
+    PoolType[] internal _poolTypes;
+
     address internal _usdAddress;
     address internal _dexeAddress;
 
     EnumerableSet.AddressSet internal _pathTokens;
 
-    function __PriceFeed_init() external initializer {
+    function __PriceFeed_init(PoolType[] calldata poolTypes) external initializer {
         __MultiOwnable_init();
+
+        _setPoolTypes(poolTypes);
     }
 
     function setDependencies(
@@ -41,8 +38,6 @@ contract PriceFeed is IPriceFeed, MultiOwnable, AbstractDependant {
     ) public virtual override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
-        uniswapFactory = IUniswapV2Factory(registry.getUniswapV2FactoryContract());
-        uniswapV2Router = IUniswapV2Router02(registry.getUniswapV2RouterContract());
         _usdAddress = registry.getUSDContract();
         _dexeAddress = registry.getDEXEContract();
     }
@@ -55,47 +50,59 @@ contract PriceFeed is IPriceFeed, MultiOwnable, AbstractDependant {
         _pathTokens.remove(pathTokens);
     }
 
+    function setPoolTypes(PoolType[] calldata poolTypes) external onlyOwner {
+        _setPoolTypes(poolTypes);
+    }
+
+    function getPoolTypes() external view returns (PoolType[] memory) {
+        return _poolTypes;
+    }
+
+    function getPoolTypesLength() external view returns (uint256) {
+        return _poolTypes.length;
+    }
+
     function getPriceOut(
         address inToken,
         address outToken,
         uint256 amountIn
-    ) external view override returns (uint256 amountOut, address[] memory path) {
-        return getExtendedPriceOut(inToken, outToken, amountIn, new address[](0));
+    ) external override returns (uint256 amountOut, SwapPath memory path) {
+        return getExtendedPriceOut(inToken, outToken, amountIn, _getEmptySwapPath());
     }
 
     function getPriceIn(
         address inToken,
         address outToken,
         uint256 amountOut
-    ) external view override returns (uint256 amountIn, address[] memory path) {
-        return getExtendedPriceIn(inToken, outToken, amountOut, new address[](0));
+    ) external override returns (uint256 amountIn, SwapPath memory path) {
+        return getExtendedPriceIn(inToken, outToken, amountOut, _getEmptySwapPath());
     }
 
     function getNormalizedPriceOutUSD(
         address inToken,
         uint256 amountIn
-    ) external view override returns (uint256 amountOut, address[] memory path) {
+    ) external override returns (uint256 amountOut, SwapPath memory path) {
         return getNormalizedPriceOut(inToken, _usdAddress, amountIn);
     }
 
     function getNormalizedPriceInUSD(
         address inToken,
         uint256 amountOut
-    ) external view override returns (uint256 amountIn, address[] memory path) {
+    ) external override returns (uint256 amountIn, SwapPath memory path) {
         return getNormalizedPriceIn(inToken, _usdAddress, amountOut);
     }
 
     function getNormalizedPriceOutDEXE(
         address inToken,
         uint256 amountIn
-    ) external view override returns (uint256 amountOut, address[] memory path) {
+    ) external override returns (uint256 amountOut, SwapPath memory path) {
         return getNormalizedPriceOut(inToken, _dexeAddress, amountIn);
     }
 
     function getNormalizedPriceInDEXE(
         address inToken,
         uint256 amountOut
-    ) external view override returns (uint256 amountIn, address[] memory path) {
+    ) external override returns (uint256 amountIn, SwapPath memory path) {
         return getNormalizedPriceIn(inToken, _dexeAddress, amountOut);
     }
 
@@ -115,54 +122,44 @@ contract PriceFeed is IPriceFeed, MultiOwnable, AbstractDependant {
         address inToken,
         address outToken,
         uint256 amountIn,
-        address[] memory optionalPath
-    ) public view virtual override returns (uint256 amountOut, address[] memory path) {
+        SwapPath memory optionalPath
+    ) public virtual override returns (uint256 amountOut, SwapPath memory path) {
         if (inToken == outToken) {
-            return (amountIn, new address[](0));
+            return (amountIn, _getEmptySwapPath());
         }
 
-        FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceOut(
+        (path, amountOut) = _pathTokens.getUniswapPathWithPriceOut(
             inToken,
             outToken,
             amountIn,
             optionalPath
         );
-
-        return
-            foundPath.amounts.length > 0
-                ? (foundPath.amounts[foundPath.amounts.length - 1], foundPath.path)
-                : (0, new address[](0));
     }
 
     function getExtendedPriceIn(
         address inToken,
         address outToken,
         uint256 amountOut,
-        address[] memory optionalPath
-    ) public view virtual override returns (uint256 amountIn, address[] memory path) {
+        SwapPath memory optionalPath
+    ) public virtual override returns (uint256 amountIn, SwapPath memory path) {
         if (inToken == outToken) {
-            return (amountOut, new address[](0));
+            return (amountOut, _getEmptySwapPath());
         }
 
-        FoundPath memory foundPath = _pathTokens.getUniV2PathWithPriceIn(
+        (path, amountIn) = _pathTokens.getUniswapPathWithPriceIn(
             inToken,
             outToken,
             amountOut,
             optionalPath
         );
-
-        return
-            foundPath.amounts.length > 0
-                ? (foundPath.amounts[0], foundPath.path)
-                : (0, new address[](0));
     }
 
     function getNormalizedExtendedPriceOut(
         address inToken,
         address outToken,
         uint256 amountIn,
-        address[] memory optionalPath
-    ) public view override returns (uint256 amountOut, address[] memory path) {
+        SwapPath memory optionalPath
+    ) public override returns (uint256 amountOut, SwapPath memory path) {
         (amountOut, path) = getExtendedPriceOut(
             inToken,
             outToken,
@@ -177,8 +174,8 @@ contract PriceFeed is IPriceFeed, MultiOwnable, AbstractDependant {
         address inToken,
         address outToken,
         uint256 amountOut,
-        address[] memory optionalPath
-    ) public view override returns (uint256 amountIn, address[] memory path) {
+        SwapPath memory optionalPath
+    ) public override returns (uint256 amountIn, SwapPath memory path) {
         (amountIn, path) = getExtendedPriceIn(
             inToken,
             outToken,
@@ -193,15 +190,27 @@ contract PriceFeed is IPriceFeed, MultiOwnable, AbstractDependant {
         address inToken,
         address outToken,
         uint256 amountIn
-    ) public view override returns (uint256 amountOut, address[] memory path) {
-        return getNormalizedExtendedPriceOut(inToken, outToken, amountIn, new address[](0));
+    ) public override returns (uint256 amountOut, SwapPath memory path) {
+        return getNormalizedExtendedPriceOut(inToken, outToken, amountIn, _getEmptySwapPath());
     }
 
     function getNormalizedPriceIn(
         address inToken,
         address outToken,
         uint256 amountOut
-    ) public view override returns (uint256 amountIn, address[] memory path) {
-        return getNormalizedExtendedPriceIn(inToken, outToken, amountOut, new address[](0));
+    ) public override returns (uint256 amountIn, SwapPath memory path) {
+        return getNormalizedExtendedPriceIn(inToken, outToken, amountOut, _getEmptySwapPath());
     }
+
+    function _setPoolTypes(PoolType[] calldata poolTypes) internal {
+        assembly {
+            sstore(_poolTypes.slot, 0)
+        }
+
+        for (uint256 i = 0; i < poolTypes.length; i++) {
+            _poolTypes.push(poolTypes[i]);
+        }
+    }
+
+    function _getEmptySwapPath() internal pure returns (SwapPath memory path) {}
 }

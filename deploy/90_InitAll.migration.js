@@ -33,9 +33,10 @@ module.exports = async (deployer) => {
   ////////////////////////////////////////////////////////////
 
   await userRegistry.__UserRegistry_init(await contractsRegistry.USER_REGISTRY_NAME());
+
   await coreProperties.__CoreProperties_init(config.DEFAULT_CORE_PROPERTIES);
 
-  await priceFeed.__PriceFeed_init();
+  await priceFeed.__PriceFeed_init(config.DEFAULT_POOL_TYPES);
 
   await expertNft.__ERC721Expert_init("DeXe Protocol Global Expert NFT", "DPGEXPNFT");
 

@@ -32,14 +32,6 @@ interface IContractsRegistry {
     function getPriceFeedContract() external view returns (address);
 
     /// @notice Used in dependency injection mechanism
-    /// @return UniswapV2Router contract address. This can be any forked contract as well
-    function getUniswapV2RouterContract() external view returns (address);
-
-    /// @notice Used in dependency injection mechanism
-    /// @return UniswapV2Factory contract address. This can be any forked contract as well
-    function getUniswapV2FactoryContract() external view returns (address);
-
-    /// @notice Used in dependency injection mechanism
     /// @return Treasury contract/wallet address
     function getTreasuryContract() external view returns (address);
 

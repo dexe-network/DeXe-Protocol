@@ -106,36 +106,6 @@ Return values:
 | :--- | :------ | :------------------------- |
 | [0]  | address | PriceFeed contract address |
 
-### getUniswapV2RouterContract (0xaba2227e)
-
-```solidity
-function getUniswapV2RouterContract() external view returns (address)
-```
-
-Used in dependency injection mechanism
-
-
-Return values:
-
-| Name | Type    | Description                                                               |
-| :--- | :------ | :------------------------------------------------------------------------ |
-| [0]  | address | UniswapV2Router contract address. This can be any forked contract as well |
-
-### getUniswapV2FactoryContract (0x694712be)
-
-```solidity
-function getUniswapV2FactoryContract() external view returns (address)
-```
-
-Used in dependency injection mechanism
-
-
-Return values:
-
-| Name | Type    | Description                                                                |
-| :--- | :------ | :------------------------------------------------------------------------- |
-| [0]  | address | UniswapV2Factory contract address. This can be any forked contract as well |
-
 ### getTreasuryContract (0x26c74fc3)
 
 ```solidity

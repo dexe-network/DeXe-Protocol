@@ -15,7 +15,7 @@ const tokens = {
 
 const uniswap = {
   router: "0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3",
-  factory: "0xb7926c0430afb07aa7defde6da862ae0bde767bc",
+  quoter: "0xbC203d7f83677c7ed3F7acEc959963E7F4ECC5C2",
 };
 
 const DEXE_DAO_NAME = "DeXe Protocol";
@@ -29,6 +29,14 @@ const DEFAULT_CORE_PROPERTIES = {
   micropoolVoteRewardsPercentage: PRECISION.times(20).toFixed(),
   treasuryVoteRewardsPercentage: PRECISION.times(1.618).toFixed(),
 };
+
+const DEFAULT_POOL_TYPES = [
+  ["0", uniswap.router, "0"],
+  ["1", uniswap.quoter, "100"],
+  ["1", uniswap.quoter, "500"],
+  ["1", uniswap.quoter, "2500"],
+  ["1", uniswap.quoter, "10000"],
+];
 
 const POOL_PARAMETERS = {
   settingsParams: {
@@ -176,6 +184,7 @@ module.exports = {
   DEXE_DAO_NAME,
   DOCUMENT_HASH,
   DEFAULT_CORE_PROPERTIES,
+  DEFAULT_POOL_TYPES,
   POOL_PARAMETERS,
   DP_SETTINGS,
   TOKENSALE_SETTINGS,

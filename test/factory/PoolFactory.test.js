@@ -15,7 +15,6 @@ const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const LinearPower = artifacts.require("LinearPower");
 const PolynomialPower = artifacts.require("PolynomialPower");
 const CoreProperties = artifacts.require("CoreProperties");
-const PriceFeed = artifacts.require("PriceFeed");
 const PoolRegistry = artifacts.require("PoolRegistry");
 const GovPool = artifacts.require("GovPool");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
@@ -23,8 +22,6 @@ const GovSettings = artifacts.require("GovSettings");
 const GovValidators = artifacts.require("GovValidators");
 const DistributionProposal = artifacts.require("DistributionProposal");
 const TokenSaleProposal = artifacts.require("TokenSaleProposal");
-const UniswapV2PathFinderLib = artifacts.require("UniswapV2PathFinder");
-const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const PoolFactory = artifacts.require("PoolFactory");
 const GovTokenDeployerLib = artifacts.require("GovTokenDeployer");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
@@ -53,13 +50,11 @@ ERC20Mock.numberFormat = "BigNumber";
 ERC721Mock.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
-PriceFeed.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
 GovPool.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 GovSettings.numberFormat = "BigNumber";
 GovValidators.numberFormat = "BigNumber";
-UniswapV2RouterMock.numberFormat = "BigNumber";
 PoolFactory.numberFormat = "BigNumber";
 DistributionProposal.numberFormat = "BigNumber";
 TokenSaleProposal.numberFormat = "BigNumber";
@@ -135,10 +130,6 @@ describe("PoolFactory", () => {
     await GovValidators.link(govValidatorsVoteLib);
     await GovValidators.link(govValidatorsExecuteLib);
 
-    const uniswapV2PathFinderLib = await UniswapV2PathFinderLib.new();
-
-    await PriceFeed.link(uniswapV2PathFinderLib);
-
     testERC20 = await ERC20Mock.new("TestERC20", "TS", 18);
     testERC721 = await ERC721Mock.new("TestERC721", "TS");
 
@@ -148,10 +139,8 @@ describe("PoolFactory", () => {
     babt = await BABTMock.new();
     const _dexeExpertNft = await ERC721Expert.new();
     const _coreProperties = await CoreProperties.new();
-    const _priceFeed = await PriceFeed.new();
     const _poolRegistry = await PoolRegistry.new();
     const _poolFactory = await PoolFactory.new();
-    const uniswapV2Router = await UniswapV2RouterMock.new();
     sphereXEngine = await SphereXEngine.new(0, OWNER);
 
     await contractsRegistry.__MultiOwnableContractsRegistry_init();
@@ -162,7 +151,6 @@ describe("PoolFactory", () => {
     await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), sphereXEngine.address);
 
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
-    await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), _priceFeed.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), _poolRegistry.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.POOL_FACTORY_NAME(), _poolFactory.address);
 
@@ -170,26 +158,21 @@ describe("PoolFactory", () => {
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
     await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), _dexeExpertNft.address);
-    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_ROUTER_NAME(), uniswapV2Router.address);
-    await contractsRegistry.addContract(await contractsRegistry.UNISWAP_V2_FACTORY_NAME(), uniswapV2Router.address);
 
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
 
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
     poolFactory = await PoolFactory.at(await contractsRegistry.getPoolFactoryContract());
-    const priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
 
     await sphereXEngine.grantRole(await sphereXEngine.SENDER_ADDER_ROLE(), poolFactory.address);
 
-    await priceFeed.__PriceFeed_init();
     await poolRegistry.__MultiOwnablePoolContractsRegistry_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
 
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_FACTORY_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
-    await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
 
     let distributionProposal = await DistributionProposal.new();
     let tokenSaleProposal = await TokenSaleProposal.new();
