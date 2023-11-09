@@ -25,7 +25,7 @@ contract VotePowerMock is IVotePower, OwnableUpgradeable {
         return votes * votes;
     }
 
-    function transformVotes(
+    function transformVotesFull(
         address,
         uint256 votes,
         uint256,

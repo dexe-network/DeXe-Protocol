@@ -4,7 +4,6 @@ const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { DEFAULT_CORE_PROPERTIES } = require("../utils/constants");
 const { impersonate } = require("../helpers/impersonator");
-const { ZERO_ADDR } = require("../../scripts/utils/constants");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
@@ -53,7 +52,11 @@ describe("PoolRegistry", () => {
     sphereXEngine = await SphereXEngineMock.new();
     sphereXCallee = await SphereXCalleeMock.new();
 
-    await contractsRegistry.__OwnableContractsRegistry_init();
+    await contractsRegistry.__MultiOwnableContractsRegistry_init();
+
+    await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), sphereXEngine.address);
+    await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), sphereXEngine.address);
+
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), _poolRegistry.address);
 
@@ -68,7 +71,7 @@ describe("PoolRegistry", () => {
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
 
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
-    await poolRegistry.__OwnablePoolContractsRegistry_init();
+    await poolRegistry.__MultiOwnablePoolContractsRegistry_init();
 
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
@@ -106,7 +109,6 @@ describe("PoolRegistry", () => {
 
   describe("SphereX", () => {
     let sphereXCalleeProxy;
-    let poolBeaconProxy;
     let protectedPublicBeaconProxy;
     let protectedMethodSelector;
 
@@ -140,7 +142,7 @@ describe("PoolRegistry", () => {
         ]
       );
 
-      poolBeaconProxy = await PoolBeacon.at(await poolRegistry.getProxyBeacon(GOV_NAME));
+      const poolBeaconProxy = await PoolBeacon.at(await poolRegistry.getProxyBeacon(GOV_NAME));
 
       protectedPublicBeaconProxy = await ProtectedPublicBeaconProxy.new(poolBeaconProxy.address, "0x");
       sphereXCalleeProxy = await SphereXCalleeMock.at(protectedPublicBeaconProxy.address);
@@ -149,18 +151,22 @@ describe("PoolRegistry", () => {
     });
 
     it("should protect when sphereXEngine and selector are on", async () => {
-      await poolRegistry.setSphereXEngine(sphereXEngine.address);
-      await poolBeaconProxy.addProtectedFuncSigs([protectedMethodSelector], { from: poolRegistry.address });
+      await poolRegistry.toggleSphereXEngine(true);
+      await poolRegistry.protectPoolFunctions(GOV_NAME, [protectedMethodSelector]);
 
       await truffleAssert.passes(sphereXCalleeProxy.protectedMethod());
 
       await sphereXEngine.toggleRevert();
 
       await truffleAssert.reverts(sphereXCalleeProxy.protectedMethod(), "SphereXEngineMock: malicious tx");
+
+      await poolRegistry.unprotectPoolFunctions(GOV_NAME, [protectedMethodSelector]);
+
+      await sphereXCalleeProxy.protectedMethod();
     });
 
     it("should not protect when selector is off", async () => {
-      await poolRegistry.setSphereXEngine(sphereXEngine.address);
+      await poolRegistry.toggleSphereXEngine(true);
 
       await sphereXEngine.toggleRevert();
 
@@ -168,19 +174,30 @@ describe("PoolRegistry", () => {
     });
 
     it("should not protect when sphereXEngine is off", async () => {
-      await poolRegistry.setSphereXEngine(sphereXEngine.address);
-      await poolRegistry.setSphereXEngine(ZERO_ADDR);
-      await poolBeaconProxy.addProtectedFuncSigs([protectedMethodSelector], { from: poolRegistry.address });
+      await poolRegistry.toggleSphereXEngine(true);
+      await poolRegistry.toggleSphereXEngine(false);
+
+      await poolRegistry.protectPoolFunctions(GOV_NAME, [protectedMethodSelector]);
 
       await sphereXEngine.toggleRevert();
 
       await truffleAssert.passes(sphereXCalleeProxy.protectedMethod());
     });
 
-    it("should not set engine if not an operator", async () => {
+    it("should not work with engine if not an operator", async () => {
       await truffleAssert.reverts(
-        poolRegistry.setSphereXEngine(sphereXEngine.address, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        poolRegistry.toggleSphereXEngine(true, { from: SECOND }),
+        "MultiOwnable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        poolRegistry.protectPoolFunctions(GOV_NAME, [protectedMethodSelector], { from: SECOND }),
+        "MultiOwnable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        poolRegistry.unprotectPoolFunctions(GOV_NAME, [protectedMethodSelector], { from: SECOND }),
+        "MultiOwnable: caller is not the owner"
       );
     });
 

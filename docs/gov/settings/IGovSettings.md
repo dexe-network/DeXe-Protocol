@@ -36,11 +36,11 @@ struct ProposalSettings {
 	bool validatorsVote;
 	uint64 duration;
 	uint64 durationValidators;
+	uint64 executionDelay;
 	uint128 quorum;
 	uint128 quorumValidators;
 	uint256 minVotesForVoting;
 	uint256 minVotesForCreating;
-	uint64 executionDelay;
 	IGovSettings.RewardsInfo rewardsInfo;
 	string executorDescription;
 }
@@ -58,11 +58,11 @@ Parameters:
 | validatorsVote         | bool                            | the boolean flag, if true then voting will have an additional validators step                                    |
 | duration               | uint64                          | the duration of voting in seconds                                                                                |
 | durationValidators     | uint64                          | the duration of validators voting in seconds                                                                     |
+| executionDelay         | uint64                          | the delay in seconds before the proposal can be executed                                                         |
 | quorum                 | uint128                         | the percentage of total votes supply (erc20 + nft) to confirm the proposal                                       |
 | quorumValidators       | uint128                         | the percentage of total validator token supply to confirm the proposal                                           |
 | minVotesForVoting      | uint256                         | the minimal needed voting power to vote for the proposal                                                         |
 | minVotesForCreating    | uint256                         | the minimal needed voting power to create the proposal                                                           |
-| executionDelay         | uint64                          | the delay in seconds before the proposal can be executed                                                         |
 | rewardsInfo            | struct IGovSettings.RewardsInfo | the reward info for proposal creation and execution                                                              |
 | executorDescription    | string                          | the settings description string                                                                                  |
 
@@ -113,7 +113,7 @@ Return values:
 | :--- | :------ | :------------------------- |
 | [0]  | uint256 | setting id of the executor |
 
-### addSettings (0xeed3d691)
+### addSettings (0x6a11e769)
 
 ```solidity
 function addSettings(
@@ -130,7 +130,7 @@ Parameters:
 | :-------- | :------------------------------------- | :----------- |
 | _settings | struct IGovSettings.ProposalSettings[] | New settings |
 
-### editSettings (0x8b2d4aa6)
+### editSettings (0x2d141cdd)
 
 ```solidity
 function editSettings(

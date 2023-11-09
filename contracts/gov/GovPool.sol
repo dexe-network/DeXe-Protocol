@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Multicall.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
@@ -14,7 +15,7 @@ import "../interfaces/gov/settings/IGovSettings.sol";
 import "../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../interfaces/gov/validators/IGovValidators.sol";
 import "../interfaces/gov/IGovPool.sol";
-import "../interfaces/gov/ERC721/IERC721Expert.sol";
+import "../interfaces/gov/ERC721/experts/IERC721Expert.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/ISBT721.sol";
@@ -44,6 +45,7 @@ contract GovPool is
 {
     using MathHelper for uint256;
     using Math for uint256;
+    using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableSet for EnumerableSet.AddressSet;
     using GovPoolOffchain for *;
@@ -144,11 +146,11 @@ contract GovPool is
         _poolRegistry = registry.getPoolRegistryContract();
     }
 
-    function unlock(address user) public override onlyBABTHolder {
+    function unlock(address user) external override onlyBABTHolder {
         _unlock(user);
     }
 
-    function execute(uint256 proposalId) public override onlyBABTHolder {
+    function execute(uint256 proposalId) external override onlyBABTHolder {
         _updateRewards(proposalId, msg.sender, RewardType.Execute);
 
         _proposals.execute(proposalId);
@@ -170,11 +172,25 @@ contract GovPool is
         ProposalAction[] calldata actionsOnFor,
         ProposalAction[] calldata actionsOnAgainst
     ) external override onlyBABTHolder {
-        uint256 proposalId = ++latestProposalId;
-
-        _proposals.createProposal(_userInfos, _descriptionURL, actionsOnFor, actionsOnAgainst);
+        uint256 proposalId = _createProposal(_descriptionURL, actionsOnFor, actionsOnAgainst);
 
         _updateRewards(proposalId, msg.sender, RewardType.Create);
+    }
+
+    function createProposalAndVote(
+        string calldata _descriptionURL,
+        ProposalAction[] calldata actionsOnFor,
+        ProposalAction[] calldata actionsOnAgainst,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds
+    ) external override onlyBABTHolder {
+        uint256 proposalId = _createProposal(_descriptionURL, actionsOnFor, actionsOnAgainst);
+
+        _updateRewards(proposalId, msg.sender, RewardType.Create);
+
+        _unlock(msg.sender);
+
+        _vote(proposalId, voteAmount, voteNftIds, true);
     }
 
     function moveProposalToValidators(uint256 proposalId) external override onlyBABTHolder {
@@ -191,7 +207,7 @@ contract GovPool is
     ) external override onlyBABTHolder {
         _unlock(msg.sender);
 
-        _proposals.vote(_userInfos, proposalId, voteAmount, voteNftIds, isVoteFor);
+        _vote(proposalId, voteAmount, voteNftIds, isVoteFor);
     }
 
     function cancelVote(uint256 proposalId) external override onlyBABTHolder {
@@ -230,6 +246,8 @@ contract GovPool is
         _unlock(msg.sender);
         _unlock(delegatee);
 
+        _updateNftPowers(nftIds);
+
         _govUserKeeper.delegateTokens.exec(delegatee, amount);
         _govUserKeeper.delegateNfts.exec(delegatee, nftIds);
 
@@ -255,7 +273,7 @@ contract GovPool is
         if (amount != 0) {
             address token = _govUserKeeper.tokenAddress();
 
-            IERC20(token).transfer(address(_govUserKeeper), amount.from18(token.decimals()));
+            IERC20(token).safeTransfer(address(_govUserKeeper), amount.from18Safe(token));
 
             _govUserKeeper.delegateTokensTreasury(delegatee, amount);
         }
@@ -266,6 +284,8 @@ contract GovPool is
             for (uint256 i; i < nftIds.length; i++) {
                 nft.safeTransferFrom(address(this), address(_govUserKeeper), nftIds[i]);
             }
+
+            _updateNftPowers(nftIds);
 
             _govUserKeeper.delegateNftsTreasury(delegatee, nftIds);
         }
@@ -286,6 +306,8 @@ contract GovPool is
 
         _unlock(delegatee);
 
+        _updateNftPowers(nftIds);
+
         _govUserKeeper.undelegateTokens.exec(delegatee, amount);
         _govUserKeeper.undelegateNfts.exec(delegatee, nftIds);
 
@@ -305,7 +327,9 @@ contract GovPool is
 
         _checkBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender);
 
-        _unlock(msg.sender);
+        _unlock(delegatee);
+
+        _updateNftPowers(nftIds);
 
         _govUserKeeper.undelegateTokensTreasury.exec(delegatee, amount);
         _govUserKeeper.undelegateNftsTreasury.exec(delegatee, nftIds);
@@ -381,14 +405,14 @@ contract GovPool is
         string calldata resultsHash,
         bytes calldata signature
     ) external override onlyBABTHolder {
-        resultsHash.saveOffchainResults(signature, _offChain);
+        _offChain.saveOffchainResults(resultsHash, signature);
 
         _updateRewards(0, msg.sender, RewardType.SaveOffchainResults);
     }
 
     receive() external payable {}
 
-    function getProposalState(uint256 proposalId) public view override returns (ProposalState) {
+    function getProposalState(uint256 proposalId) external view override returns (ProposalState) {
         return _proposals.getProposalState(proposalId);
     }
 
@@ -442,7 +466,7 @@ contract GovPool is
             return 0;
         }
 
-        return _govUserKeeper.getTotalVoteWeight().ratio(core.settings.quorum, PERCENTAGE_100);
+        return _govUserKeeper.getTotalPower().ratio(core.settings.quorum, PERCENTAGE_100);
     }
 
     function getTotalVotes(
@@ -516,13 +540,35 @@ contract GovPool is
     }
 
     function getOffchainSignHash(
-        string calldata resultHash
+        string calldata resultHash,
+        address user
     ) external view override returns (bytes32) {
-        return resultHash.getSignHash();
+        return resultHash.getSignHash(user);
     }
 
     function getExpertStatus(address user) public view override returns (bool) {
         return _expertNft.isExpert(user) || _dexeExpertNft.isExpert(user);
+    }
+
+    function _createProposal(
+        string calldata _descriptionURL,
+        ProposalAction[] calldata actionsOnFor,
+        ProposalAction[] calldata actionsOnAgainst
+    ) internal returns (uint256 proposalId) {
+        proposalId = ++latestProposalId;
+
+        _proposals.createProposal(_userInfos, _descriptionURL, actionsOnFor, actionsOnAgainst);
+    }
+
+    function _vote(
+        uint256 proposalId,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds,
+        bool isVoteFor
+    ) internal {
+        _updateNftPowers(voteNftIds);
+
+        _proposals.vote(_userInfos, proposalId, voteAmount, voteNftIds, isVoteFor);
     }
 
     function _revoteDelegated(address delegatee, VoteType voteType) internal {
@@ -537,6 +583,10 @@ contract GovPool is
         } else {
             _userInfos.updateStaticRewards(_proposals, proposalId, user, rewardType);
         }
+    }
+
+    function _updateNftPowers(uint256[] calldata nftIds) internal {
+        _govUserKeeper.updateNftPowers(nftIds);
     }
 
     function _unlock(address user) internal {

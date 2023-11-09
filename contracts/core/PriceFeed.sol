@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+import "@solarity/solidity-lib/access-control/MultiOwnable.sol";
 import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
 import "@solarity/solidity-lib/libs/arrays/SetHelper.sol";
-import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
+import "@solarity/solidity-lib/libs/utils/DecimalsConverter.sol";
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol";
@@ -19,7 +19,7 @@ import "../libs/price-feed/UniswapPathFinder.sol";
 
 import "../core/Globals.sol";
 
-contract PriceFeed is IPriceFeed, OwnableUpgradeable {
+contract PriceFeed is IPriceFeed, MultiOwnable {
     using EnumerableSet for EnumerableSet.AddressSet;
     using DecimalsConverter for *;
     using SetHelper for EnumerableSet.AddressSet;
@@ -37,7 +37,7 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable {
         address usdAddress,
         PoolType[] calldata poolTypes
     ) external initializer {
-        __Ownable_init();
+        __MultiOwnable_init();
 
         _usdAddress = usdAddress;
         _dexeAddress = dexeAddress;
@@ -166,11 +166,11 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable {
         (amountOut, path) = getExtendedPriceOut(
             inToken,
             outToken,
-            amountIn.from18(inToken.decimals()),
+            amountIn.from18(inToken),
             optionalPath
         );
 
-        amountOut = amountOut.to18(outToken.decimals());
+        amountOut = amountOut.to18(outToken);
     }
 
     function getNormalizedExtendedPriceIn(
@@ -182,11 +182,11 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable {
         (amountIn, path) = getExtendedPriceIn(
             inToken,
             outToken,
-            amountOut.from18(outToken.decimals()),
+            amountOut.from18(outToken),
             optionalPath
         );
 
-        amountIn = amountIn.to18(inToken.decimals());
+        amountIn = amountIn.to18(inToken);
     }
 
     function getNormalizedPriceOut(

@@ -7,6 +7,7 @@ const truffleAssert = require("truffle-assertions");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const CoreProperties = artifacts.require("CoreProperties");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const SphereXEngineMock = artifacts.require("SphereXEngineMock");
 
 ContractsRegistry.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
@@ -32,8 +33,11 @@ describe("CoreProperties", () => {
     const _coreProperties = await CoreProperties.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     USD = await ERC20Mock.new("USD", "USD", 18);
+    const _sphereXEngine = await SphereXEngineMock.new();
 
-    await contractsRegistry.__OwnableContractsRegistry_init();
+    await contractsRegistry.__MultiOwnableContractsRegistry_init();
+
+    await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
 
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
 
@@ -65,27 +69,27 @@ describe("CoreProperties", () => {
     it("only owner should call these methods", async () => {
       await truffleAssert.reverts(
         coreProperties.setCoreParameters(DEFAULT_CORE_PROPERTIES, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(
         coreProperties.setDEXECommissionPercentages(10, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(
         coreProperties.setTokenSaleProposalCommissionPercentage(0, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(
         coreProperties.setVoteRewardsPercentages(0, 0, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(
         coreProperties.setGovVotesLimit(20, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
     });
   });

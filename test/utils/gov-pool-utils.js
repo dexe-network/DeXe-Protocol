@@ -178,7 +178,7 @@ const getBytesSetERC20Address = (address) => {
   );
 };
 
-const getBytesSetERC721Address = (address, totalPowerInTokens, nftsTotalSupply) => {
+const getBytesSetERC721Address = (address, individualPower, nftsTotalSupply) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       name: "setERC721Address",
@@ -189,7 +189,7 @@ const getBytesSetERC721Address = (address, totalPowerInTokens, nftsTotalSupply) 
           type: "address",
         },
         {
-          name: "totalPowerInTokens",
+          name: "individualPower",
           type: "uint256",
         },
         {
@@ -198,7 +198,7 @@ const getBytesSetERC721Address = (address, totalPowerInTokens, nftsTotalSupply) 
         },
       ],
     },
-    [address, totalPowerInTokens, nftsTotalSupply]
+    [address, individualPower, nftsTotalSupply]
   );
 };
 
@@ -231,6 +231,10 @@ const getBytesAddSettings = (settings) => {
               name: "durationValidators",
             },
             {
+              type: "uint64",
+              name: "executionDelay",
+            },
+            {
               type: "uint128",
               name: "quorum",
             },
@@ -245,10 +249,6 @@ const getBytesAddSettings = (settings) => {
             {
               type: "uint256",
               name: "minVotesForCreating",
-            },
-            {
-              type: "uint64",
-              name: "executionDelay",
             },
             {
               components: [
@@ -318,6 +318,11 @@ const getBytesEditSettings = (ids, settings) => {
               type: "uint64",
               name: "durationValidators",
             },
+
+            {
+              type: "uint64",
+              name: "executionDelay",
+            },
             {
               type: "uint128",
               name: "quorum",
@@ -333,10 +338,6 @@ const getBytesEditSettings = (ids, settings) => {
             {
               type: "uint256",
               name: "minVotesForCreating",
-            },
-            {
-              type: "uint64",
-              name: "executionDelay",
             },
             {
               components: [

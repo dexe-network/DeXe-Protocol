@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "@solarity/solidity-lib/contracts-registry/pools/presets/OwnablePoolContractsRegistry.sol";
+import "@solarity/solidity-lib/contracts-registry/pools/presets/MultiOwnablePoolContractsRegistry.sol";
 import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 
 import "../interfaces/factory/IPoolRegistry.sol";
@@ -12,7 +12,7 @@ import "../interfaces/core/IContractsRegistry.sol";
 
 import "../proxy/PoolBeacon.sol";
 
-contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
+contract PoolRegistry is IPoolRegistry, MultiOwnablePoolContractsRegistry {
     using EnumerableSet for EnumerableSet.AddressSet;
     using Paginator for EnumerableSet.AddressSet;
     using Math for uint256;
@@ -31,6 +31,7 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
     string public constant POLYNOMIAL_POWER_NAME = "POLYNOMIAL_POWER";
 
     address internal _poolFactory;
+    address internal _poolSphereXEngine;
 
     modifier onlyPoolFactory() {
         _onlyPoolFactory();
@@ -41,16 +42,19 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         super.setDependencies(contractsRegistry, data);
 
         _poolFactory = IContractsRegistry(contractsRegistry).getPoolFactoryContract();
+        _poolSphereXEngine = IContractsRegistry(contractsRegistry).getPoolSphereXEngineContract();
     }
 
     function addProxyPool(
-        string calldata name,
+        string memory name,
         address poolAddress
-    ) external override onlyPoolFactory {
+    ) public override(IPoolRegistry, MultiOwnablePoolContractsRegistry) onlyPoolFactory {
         _addProxyPool(name, poolAddress);
     }
 
-    function setSphereXEngine(address sphereXEngine) external onlyOwner {
+    function toggleSphereXEngine(bool on) external onlyOwner {
+        address sphereXEngine = on ? _poolSphereXEngine : address(0);
+
         _setSphereXEngine(GOV_POOL_NAME, sphereXEngine);
         _setSphereXEngine(SETTINGS_NAME, sphereXEngine);
         _setSphereXEngine(VALIDATORS_NAME, sphereXEngine);
@@ -61,6 +65,20 @@ contract PoolRegistry is IPoolRegistry, OwnablePoolContractsRegistry {
         _setSphereXEngine(NFT_MULTIPLIER_NAME, sphereXEngine);
         _setSphereXEngine(LINEAR_POWER_NAME, sphereXEngine);
         _setSphereXEngine(POLYNOMIAL_POWER_NAME, sphereXEngine);
+    }
+
+    function protectPoolFunctions(
+        string calldata poolName,
+        bytes4[] calldata selectors
+    ) external onlyOwner {
+        SphereXProxyBase(getProxyBeacon(poolName)).addProtectedFuncSigs(selectors);
+    }
+
+    function unprotectPoolFunctions(
+        string calldata poolName,
+        bytes4[] calldata selectors
+    ) external onlyOwner {
+        SphereXProxyBase(getProxyBeacon(poolName)).removeProtectedFuncSigs(selectors);
     }
 
     function isGovPool(address potentialPool) external view override returns (bool) {

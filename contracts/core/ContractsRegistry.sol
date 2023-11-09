@@ -3,13 +3,15 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-import "@solarity/solidity-lib/contracts-registry/presets/OwnableContractsRegistry.sol";
+import "@solarity/solidity-lib/contracts-registry/presets/MultiOwnableContractsRegistry.sol";
+
+import "@spherex-xyz/engine-contracts/src/SphereXEngine.sol";
 
 import "../interfaces/core/IContractsRegistry.sol";
 
 import "../proxy/ProtectedTransparentProxy.sol";
 
-contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPSUpgradeable {
+contract ContractsRegistry is IContractsRegistry, MultiOwnableContractsRegistry, UUPSUpgradeable {
     string public constant USER_REGISTRY_NAME = "USER_REGISTRY";
 
     string public constant POOL_FACTORY_NAME = "POOL_FACTORY";
@@ -25,6 +27,34 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
     string public constant TREASURY_NAME = "TREASURY";
 
     string public constant CORE_PROPERTIES_NAME = "CORE_PROPERTIES";
+
+    string public constant SPHEREX_ENGINE_NAME = "SPHEREX_ENGINE";
+    string public constant POOL_SPHEREX_ENGINE_NAME = "POOL_SPHEREX_ENGINE";
+
+    function toggleSphereXEngine(bool on) external onlyOwner {
+        address sphereXEngine = on ? getSphereXEngineContract() : address(0);
+
+        _setSphereXEngine(USER_REGISTRY_NAME, sphereXEngine);
+        _setSphereXEngine(POOL_FACTORY_NAME, sphereXEngine);
+        _setSphereXEngine(POOL_REGISTRY_NAME, sphereXEngine);
+        _setSphereXEngine(DEXE_EXPERT_NFT_NAME, sphereXEngine);
+        _setSphereXEngine(PRICE_FEED_NAME, sphereXEngine);
+        _setSphereXEngine(CORE_PROPERTIES_NAME, sphereXEngine);
+    }
+
+    function protectContractFunctions(
+        string calldata contractName,
+        bytes4[] calldata selectors
+    ) external onlyOwner {
+        SphereXProxyBase(getContract(contractName)).addProtectedFuncSigs(selectors);
+    }
+
+    function unprotectContractFunctions(
+        string calldata contractName,
+        bytes4[] calldata selectors
+    ) external onlyOwner {
+        SphereXProxyBase(getContract(contractName)).removeProtectedFuncSigs(selectors);
+    }
 
     function getUserRegistryContract() external view override returns (address) {
         return getContract(USER_REGISTRY_NAME);
@@ -66,13 +96,12 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
         return getContract(DEXE_EXPERT_NFT_NAME);
     }
 
-    function setSphereXEngine(address sphereXEngine) external onlyOwner {
-        _setSphereXEngine(USER_REGISTRY_NAME, sphereXEngine);
-        _setSphereXEngine(POOL_FACTORY_NAME, sphereXEngine);
-        _setSphereXEngine(POOL_REGISTRY_NAME, sphereXEngine);
-        _setSphereXEngine(DEXE_EXPERT_NFT_NAME, sphereXEngine);
-        _setSphereXEngine(PRICE_FEED_NAME, sphereXEngine);
-        _setSphereXEngine(CORE_PROPERTIES_NAME, sphereXEngine);
+    function getPoolSphereXEngineContract() external view override returns (address) {
+        return getContract(POOL_SPHEREX_ENGINE_NAME);
+    }
+
+    function getSphereXEngineContract() public view override returns (address) {
+        return getContract(SPHEREX_ENGINE_NAME);
     }
 
     function _setSphereXEngine(string memory contractName, address sphereXEngine) internal {
@@ -85,18 +114,19 @@ contract ContractsRegistry is IContractsRegistry, OwnableContractsRegistry, UUPS
         address contractAddress,
         address admin,
         bytes memory data
-    ) internal override returns (address) {
-        return
-            address(
-                new ProtectedTransparentProxy(
-                    msg.sender,
-                    address(this),
-                    address(0),
-                    contractAddress,
-                    admin,
-                    data
-                )
-            );
+    ) internal override returns (address proxy) {
+        proxy = address(
+            new ProtectedTransparentProxy(
+                msg.sender,
+                address(this),
+                address(0),
+                contractAddress,
+                admin,
+                data
+            )
+        );
+
+        ISphereXEngine(getSphereXEngineContract()).addAllowedSenderOnChain(proxy);
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}

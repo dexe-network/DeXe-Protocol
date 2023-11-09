@@ -88,7 +88,7 @@ Parameters:
 struct UserKeeperDeployParams {
 	address tokenAddress;
 	address nftAddress;
-	uint256 totalPowerInTokens;
+	uint256 individualPower;
 	uint256 nftsTotalSupply;
 }
 ```
@@ -98,33 +98,12 @@ Parameters of the user keeper
 
 Parameters:
 
-| Name               | Type    | Description                            |
-| :----------------- | :------ | :------------------------------------- |
-| tokenAddress       | address | address of the tokens used for voting  |
-| nftAddress         | address | address of the NFT used for voting     |
-| totalPowerInTokens | uint256 | the token equivalent of all NFTs       |
-| nftsTotalSupply    | uint256 | the NFT collection size                |
-
-### TokenSaleProposalDeployParams
-
-```solidity
-struct TokenSaleProposalDeployParams {
-	ITokenSaleProposal.TierInitParams[] tiersParams;
-	ITokenSaleProposal.WhitelistingRequest[] whitelistParams;
-	IERC20Gov.ConstructorParams tokenParams;
-}
-```
-
-The token sale proposal parameters
-
-
-Parameters:
-
-| Name            | Type                                            | Description                                     |
-| :-------------- | :---------------------------------------------- | :---------------------------------------------- |
-| tiersParams     | struct ITokenSaleProposal.TierInitParams[]      | tiers parameters                                |
-| whitelistParams | struct ITokenSaleProposal.WhitelistingRequest[] | whitelisted users (for participation in tiers)  |
-| tokenParams     | struct IERC20Gov.ConstructorParams              | parameters of the token                         |
+| Name            | Type    | Description                            |
+| :-------------- | :------ | :------------------------------------- |
+| tokenAddress    | address | address of the tokens used for voting  |
+| nftAddress      | address | address of the NFT used for voting     |
+| individualPower | uint256 | the voting power of an NFT             |
+| nftsTotalSupply | uint256 | the NFT collection size                |
 
 ### VotePowerDeployParams
 
@@ -154,7 +133,7 @@ struct GovPoolDeployParams {
 	IPoolFactory.SettingsDeployParams settingsParams;
 	IPoolFactory.ValidatorsDeployParams validatorsParams;
 	IPoolFactory.UserKeeperDeployParams userKeeperParams;
-	IPoolFactory.TokenSaleProposalDeployParams tokenSaleParams;
+	IERC20Gov.ConstructorParams tokenParams;
 	IPoolFactory.VotePowerDeployParams votePowerParams;
 	address verifier;
 	bool onlyBABTHolders;
@@ -168,17 +147,17 @@ The pool deploy parameters
 
 Parameters:
 
-| Name             | Type                                              | Description                                                          |
-| :--------------- | :------------------------------------------------ | :------------------------------------------------------------------- |
-| settingsParams   | struct IPoolFactory.SettingsDeployParams          | general settings of the pool                                         |
-| validatorsParams | struct IPoolFactory.ValidatorsDeployParams        | parameters of validators                                             |
-| userKeeperParams | struct IPoolFactory.UserKeeperDeployParams        | parameters of the user keeper                                        |
-| tokenSaleParams  | struct IPoolFactory.TokenSaleProposalDeployParams | the token sale proposal parameters                                   |
-| votePowerParams  | struct IPoolFactory.VotePowerDeployParams         | vote power parameters                                                |
-| verifier         | address                                           | the address of the verifier                                          |
-| onlyBABTHolders  | bool                                              | if true, only KYCed users will be allowed to interact with the pool  |
-| descriptionURL   | string                                            | the description of the pool                                          |
-| name             | string                                            | the name of the pool                                                 |
+| Name             | Type                                       | Description                                                          |
+| :--------------- | :----------------------------------------- | :------------------------------------------------------------------- |
+| settingsParams   | struct IPoolFactory.SettingsDeployParams   | general settings of the pool                                         |
+| validatorsParams | struct IPoolFactory.ValidatorsDeployParams | parameters of validators                                             |
+| userKeeperParams | struct IPoolFactory.UserKeeperDeployParams | parameters of the user keeper                                        |
+| tokenParams      | struct IERC20Gov.ConstructorParams         | the gov token parameters                                             |
+| votePowerParams  | struct IPoolFactory.VotePowerDeployParams  | vote power parameters                                                |
+| verifier         | address                                    | the address of the verifier                                          |
+| onlyBABTHolders  | bool                                       | if true, only KYCed users will be allowed to interact with the pool  |
+| descriptionURL   | string                                     | the description of the pool                                          |
+| name             | string                                     | the name of the pool                                                 |
 
 ### GovPoolPredictedAddresses
 
@@ -193,10 +172,23 @@ struct GovPoolPredictedAddresses {
 }
 ```
 
+The predicted pool addresses given tx.origin and GovPool name
+
+
+Parameters:
+
+| Name                 | Type    | Description                                 |
+| :------------------- | :------ | :------------------------------------------ |
+| govPool              | address | the predicted govPool address               |
+| govTokenSale         | address | the predicted govTokenSale address          |
+| govToken             | address | the predicted govToken address              |
+| distributionProposal | address | the predicted distributionProposal address  |
+| expertNft            | address | the predicted expertNft address             |
+| nftMultiplier        | address | the predicted nftMultiplier address         |
 
 ## Functions info
 
-### deployGovPool (0xa282a9e2)
+### deployGovPool (0x0cc3c11c)
 
 ```solidity
 function deployGovPool(

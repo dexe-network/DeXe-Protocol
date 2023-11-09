@@ -19,10 +19,10 @@ This is the custom NFT contract with voting power
 ```solidity
 struct NftInfo {
 	uint64 lastUpdate;
-	uint256 currentPower;
-	uint256 currentCollateral;
-	uint256 maxPower;
+	uint256 maxRawPower;
+	uint256 currentRawPower;
 	uint256 requiredCollateral;
+	uint256 currentCollateral;
 }
 ```
 
@@ -34,27 +34,35 @@ Parameters:
 | Name               | Type    | Description                                    |
 | :----------------- | :------ | :--------------------------------------------- |
 | lastUpdate         | uint64  | the last time when the power was recalculated  |
-| currentPower       | uint256 | the current nft power                          |
-| currentCollateral  | uint256 | the current nft collateral                     |
-| maxPower           | uint256 | the maximum nft power limit                    |
+| maxRawPower        | uint256 | the maximum raw nft power limit                |
+| currentRawPower    | uint256 | the current raw nft power                      |
 | requiredCollateral | uint256 | the required collateral amount                 |
+| currentCollateral  | uint256 | the current nft collateral                     |
 
-## Functions info
-
-### totalPower (0xdb3ad22c)
+### NftInfoView
 
 ```solidity
-function totalPower() external view returns (uint256)
+struct NftInfoView {
+	IERC721Power.NftInfo rawInfo;
+	uint256 maxPower;
+	uint256 minPower;
+	uint256 currentPower;
+}
 ```
 
-Get total power
+The struct to get info about the NFT
 
 
-Return values:
+Parameters:
 
-| Name | Type    | Description |
-| :--- | :------ | :---------- |
-| [0]  | uint256 | totalPower  |
+| Name         | Type                        | Description         |
+| :----------- | :-------------------------- | :------------------ |
+| rawInfo      | struct IERC721Power.NftInfo | the raw NFT info    |
+| maxPower     | uint256                     | real max nft power  |
+| minPower     | uint256                     | real min nft power  |
+| currentPower | uint256                     | real nft power      |
+
+## Functions info
 
 ### addCollateral (0xa8f35adf)
 
@@ -88,10 +96,10 @@ Parameters:
 | amount  | uint256 | Wei         |
 | tokenId | uint256 | Nft number  |
 
-### recalculateNftPower (0xf6462f4a)
+### recalculateNftPowers (0xa79b53d5)
 
 ```solidity
-function recalculateNftPower(uint256 tokenId) external returns (uint256)
+function recalculateNftPowers(uint256[] calldata tokenIds) external
 ```
 
 Recalculate nft power (coefficient)
@@ -99,21 +107,29 @@ Recalculate nft power (coefficient)
 
 Parameters:
 
-| Name    | Type    | Description |
-| :------ | :------ | :---------- |
-| tokenId | uint256 | Nft number  |
+| Name     | Type      | Description |
+| :------- | :-------- | :---------- |
+| tokenIds | uint256[] | Nft numbers |
+
+### totalPower (0xdb3ad22c)
+
+```solidity
+function totalPower() external view returns (uint256)
+```
+
+Get total power
 
 
 Return values:
 
-| Name | Type    | Description   |
-| :--- | :------ | :------------ |
-| [0]  | uint256 | new Nft power |
+| Name | Type    | Description |
+| :--- | :------ | :---------- |
+| [0]  | uint256 | totalPower  |
 
-### getMaxPowerForNft (0x4fc685f7)
+### getNftMaxPower (0x6c889f41)
 
 ```solidity
-function getMaxPowerForNft(uint256 tokenId) external view returns (uint256)
+function getNftMaxPower(uint256 tokenId) external view returns (uint256)
 ```
 
 Return max possible power (coefficient) for nft
@@ -132,15 +148,13 @@ Return values:
 | :--- | :------ | :---------------- |
 | [0]  | uint256 | max power for Nft |
 
-### getRequiredCollateralForNft (0x2e8e5fae)
+### getNftMinPower (0x7c24b33a)
 
 ```solidity
-function getRequiredCollateralForNft(
-    uint256 tokenId
-) external view returns (uint256)
+function getNftMinPower(uint256 tokenId) external view returns (uint256)
 ```
 
-Return required collateral amount for nft
+Return min possible power (coefficient) for nft
 
 
 Parameters:
@@ -152,9 +166,9 @@ Parameters:
 
 Return values:
 
-| Name | Type    | Description                 |
-| :--- | :------ | :-------------------------- |
-| [0]  | uint256 | required collateral for Nft |
+| Name | Type    | Description       |
+| :--- | :------ | :---------------- |
+| [0]  | uint256 | min power for Nft |
 
 ### getNftPower (0x412e8a29)
 
@@ -177,3 +191,27 @@ Return values:
 | Name | Type    | Description              |
 | :--- | :------ | :----------------------- |
 | [0]  | uint256 | current power of the Nft |
+
+### getNftRequiredCollateral (0xcbf208a7)
+
+```solidity
+function getNftRequiredCollateral(
+    uint256 tokenId
+) external view returns (uint256)
+```
+
+Return required collateral amount for nft
+
+
+Parameters:
+
+| Name    | Type    | Description |
+| :------ | :------ | :---------- |
+| tokenId | uint256 | Nft number  |
+
+
+Return values:
+
+| Name | Type    | Description                 |
+| :--- | :------ | :-------------------------- |
+| [0]  | uint256 | required collateral for Nft |

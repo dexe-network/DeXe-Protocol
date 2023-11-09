@@ -21,7 +21,6 @@ struct ConstructorParams {
 	string name;
 	string symbol;
 	address[] users;
-	uint256 saleAmount;
 	uint256 cap;
 	uint256 mintedTotal;
 	uint256[] amounts;
@@ -38,7 +37,6 @@ Parameters:
 | name        | string    | the name of the token                                                    |
 | symbol      | string    | the symbol of the token                                                  |
 | users       | address[] | the list of users for which tokens are needed to be minted               |
-| saleAmount  | uint256   | the token amount to be minted for sale                                   |
 | cap         | uint256   | cap on the token's total supply                                          |
 | mintedTotal | uint256   | the total amount of tokens to be minted with the contract creation       |
 | amounts     | uint256[] | the list of token amounts which should be minted to the respective users |

@@ -19,8 +19,8 @@ ERC20 tokens or NFTs
 
 ```solidity
 struct BalanceInfo {
-	uint256 tokenBalance;
-	EnumerableSet.UintSet nftBalance;
+	uint256 tokens;
+	EnumerableSet.UintSet nfts;
 }
 ```
 
@@ -29,20 +29,20 @@ The struct holds information about user deposited tokens
 
 Parameters:
 
-| Name         | Type                         | Description                     |
-| :----------- | :--------------------------- | :------------------------------ |
-| tokenBalance | uint256                      | the amount of deposited tokens  |
-| nftBalance   | struct EnumerableSet.UintSet | the array of deposited nfts     |
+| Name   | Type                         | Description                     |
+| :----- | :--------------------------- | :------------------------------ |
+| tokens | uint256                      | the amount of deposited tokens  |
+| nfts   | struct EnumerableSet.UintSet | the array of deposited nfts     |
 
 ### UserInfo
 
 ```solidity
 struct UserInfo {
-	IGovUserKeeper.BalanceInfo balanceInfo;
-	mapping(address => uint256) delegatedTokens;
-	uint256 allDelegatedTokens;
-	mapping(address => EnumerableSet.UintSet) delegatedNfts;
-	EnumerableSet.UintSet allDelegatedNfts;
+	mapping(IGovPool.VoteType => struct IGovUserKeeper.BalanceInfo) balances;
+	mapping(IGovPool.VoteType => uint256) nftsPowers;
+	mapping(address => IGovUserKeeper.BalanceInfo) delegatedBalances;
+	mapping(address => uint256) delegatedNftPowers;
+	IGovUserKeeper.BalanceInfo allDelegatedBalance;
 	EnumerableSet.AddressSet delegatees;
 	uint256 maxTokensLocked;
 	mapping(uint256 => uint256) lockedInProposals;
@@ -54,24 +54,26 @@ The struct holds information about user balances
 
 Parameters:
 
-| Name               | Type                                             | Description                                                                      |
-| :----------------- | :----------------------------------------------- | :------------------------------------------------------------------------------- |
-| balanceInfo        | struct IGovUserKeeper.BalanceInfo                | the BalanceInfo struct                                                           |
-| delegatedTokens    | mapping(address => uint256)                      | the mapping of delegated tokens (delegatee address => delegated amount)          |
-| allDelegatedTokens | uint256                                          | the total amount of delegated tokens                                             |
-| delegatedNfts      | mapping(address => struct EnumerableSet.UintSet) | the mapping of delegated nfts (delegatee address => array of delegated nft ids)  |
-| allDelegatedNfts   | struct EnumerableSet.UintSet                     | the list of all delegated nfts                                                   |
-| delegatees         | struct EnumerableSet.AddressSet                  | the array of delegatees                                                          |
-| maxTokensLocked    | uint256                                          | the upper bound of currently locked tokens                                       |
-| lockedInProposals  | mapping(uint256 => uint256)                      | the amount of deposited tokens locked in proposals                               |
+| Name                | Type                                                                 | Description                                        |
+| :------------------ | :------------------------------------------------------------------- | :------------------------------------------------- |
+| balances            | mapping(enum IGovPool.VoteType => struct IGovUserKeeper.BalanceInfo) | matching vote types with balance infos             |
+| nftsPowers          | mapping(enum IGovPool.VoteType => uint256)                           | matching vote types with cached nfts powers        |
+| delegatedBalances   | mapping(address => struct IGovUserKeeper.BalanceInfo)                | matching delegatees with balances infos            |
+| delegatedNftPowers  | mapping(address => uint256)                                          | matching delegatees with delegated nft powers      |
+| allDelegatedBalance | struct IGovUserKeeper.BalanceInfo                                    | the balance info of all delegated assets           |
+| delegatees          | struct EnumerableSet.AddressSet                                      | the array of delegatees                            |
+| maxTokensLocked     | uint256                                                              | the upper bound of currently locked tokens         |
+| lockedInProposals   | mapping(uint256 => uint256)                                          | the amount of deposited tokens locked in proposals |
 
 ### NFTInfo
 
 ```solidity
 struct NFTInfo {
+	address nftAddress;
 	bool isSupportPower;
-	uint256 totalPowerInTokens;
+	uint256 individualPower;
 	uint256 totalSupply;
+	mapping(uint256 => uint256) nftMinPower;
 }
 ```
 
@@ -80,11 +82,13 @@ The struct holds information about nft contract
 
 Parameters:
 
-| Name               | Type    | Description                                             |
-| :----------------- | :------ | :------------------------------------------------------ |
-| isSupportPower     | bool    | boolean flag, if true then nft contract supports power  |
-| totalPowerInTokens | uint256 | the voting power of all nfts                            |
-| totalSupply        | uint256 | the total supply of nfts that are not enumerable        |
+| Name            | Type                        | Description                                             |
+| :-------------- | :-------------------------- | :------------------------------------------------------ |
+| nftAddress      | address                     | the address of the nft                                  |
+| isSupportPower  | bool                        | boolean flag, if true then nft contract supports power  |
+| individualPower | uint256                     | the voting power an nft                                 |
+| totalSupply     | uint256                     | the total supply of nfts that are not enumerable        |
+| nftMinPower     | mapping(uint256 => uint256) | matching nft ids to their minimal powers                |
 
 ### VotingPowerView
 
@@ -382,21 +386,6 @@ Parameters:
 | delegatee | address   | the address of delegatee         |
 | nftIds    | uint256[] | the array of undelegated nft ids |
 
-### createNftPowerSnapshot (0x624fd5a2)
-
-```solidity
-function createNftPowerSnapshot() external returns (uint256)
-```
-
-The function for creation nft power snapshot
-
-
-Return values:
-
-| Name | Type    | Description            |
-| :--- | :------ | :--------------------- |
-| [0]  | uint256 | `id` of power snapshot |
-
 ### updateMaxTokenLockedAmount (0x5f884296)
 
 ```solidity
@@ -520,7 +509,7 @@ Parameters:
 ```solidity
 function setERC721Address(
     address _nftAddress,
-    uint256 totalPowerInTokens,
+    uint256 individualPower,
     uint256 nftsTotalSupply
 ) external
 ```
@@ -530,11 +519,11 @@ The function for setting erc721 address
 
 Parameters:
 
-| Name               | Type    | Description                      |
-| :----------------- | :------ | :------------------------------- |
-| _nftAddress        | address | the erc721 address               |
-| totalPowerInTokens | uint256 | the total voting power of nfts   |
-| nftsTotalSupply    | uint256 | the total supply of nft contract |
+| Name            | Type    | Description                      |
+| :-------------- | :------ | :------------------------------- |
+| _nftAddress     | address | the erc721 address               |
+| individualPower | uint256 | the voting power of an nft       |
+| nftsTotalSupply | uint256 | the total supply of nft contract |
 
 ### tokenAddress (0x9d76ea58)
 
@@ -569,17 +558,22 @@ Return values:
 ### getNftInfo (0x7ca5685f)
 
 ```solidity
-function getNftInfo() external view returns (IGovUserKeeper.NFTInfo memory)
+function getNftInfo()
+    external
+    view
+    returns (bool isSupportPower, uint256 individualPower, uint256 totalSupply)
 ```
 
-The function for getting information about nft contract
+The function for getting nft info
 
 
 Return values:
 
-| Name | Type                          | Description      |
-| :--- | :---------------------------- | :--------------- |
-| [0]  | struct IGovUserKeeper.NFTInfo | `NFTInfo` struct |
+| Name            | Type    | Description                                             |
+| :-------------- | :------ | :------------------------------------------------------ |
+| isSupportPower  | bool    | boolean flag, if true then nft contract supports power  |
+| individualPower | uint256 | the voting power an nft                                 |
+| totalSupply     | uint256 | the total supply of nfts that are not enumerable        |
 
 ### maxLockedAmount (0x3b3707a3)
 
@@ -684,36 +678,41 @@ Return values:
 | nfts        | uint256[] | the array of owned nft ids                                |
 | ownedLength | uint256   | the number of nfts that are not deposited to the contract |
 
-### getNftsPowerInTokensBySnapshot (0x8fd229bc)
+### getTotalNftsPower (0x4a5f293c)
 
 ```solidity
-function getNftsPowerInTokensBySnapshot(
+function getTotalNftsPower(
     uint256[] memory nftIds,
-    uint256 snapshotId
-) external view returns (uint256)
+    IGovPool.VoteType voteType,
+    address voter,
+    bool perNftPowerArray
+) external view returns (uint256 nftPower, uint256[] memory perNftPower)
 ```
 
-The function for getting nft power from snapshot
+The function for getting total power of nfts by ids
 
 
 Parameters:
 
-| Name       | Type      | Description                               |
-| :--------- | :-------- | :---------------------------------------- |
-| nftIds     | uint256[] | the array of nft ids to get the power of  |
-| snapshotId | uint256   | the id of snapshot                        |
+| Name             | Type                   | Description                                  |
+| :--------------- | :--------------------- | :------------------------------------------- |
+| nftIds           | uint256[]              | the array of nft ids                         |
+| voteType         | enum IGovPool.VoteType | the type of vote                             |
+| voter            | address                | the address of user                          |
+| perNftPowerArray | bool                   | should the nft raw powers array be returned  |
 
 
 Return values:
 
-| Name | Type    | Description       |
-| :--- | :------ | :---------------- |
-| [0]  | uint256 | the power of nfts |
+| Name        | Type      | Description                                           |
+| :---------- | :-------- | :---------------------------------------------------- |
+| nftPower    | uint256   | the total total power of nfts                         |
+| perNftPower | uint256[] | the array of nft powers, bounded with nftIds by index |
 
-### getTotalVoteWeight (0x002f26dd)
+### getTotalPower (0x53976a26)
 
 ```solidity
-function getTotalVoteWeight() external view returns (uint256)
+function getTotalPower() external view returns (uint256 power)
 ```
 
 The function for getting total voting power of the contract
@@ -721,18 +720,17 @@ The function for getting total voting power of the contract
 
 Return values:
 
-| Name | Type    | Description   |
-| :--- | :------ | :------------ |
-| [0]  | uint256 | `total` power |
+| Name  | Type    | Description |
+| :---- | :------ | :---------- |
+| power | uint256 | total power |
 
-### canCreate (0xc328371d)
+### canCreate (0x6f123e76)
 
 ```solidity
 function canCreate(
     address voter,
     IGovPool.VoteType voteType,
-    uint256 requiredVotes,
-    uint256 snapshotId
+    uint256 requiredVotes
 ) external view returns (bool)
 ```
 
@@ -746,7 +744,6 @@ Parameters:
 | voter         | address                | the address of voter       |
 | voteType      | enum IGovPool.VoteType | the type of vote           |
 | requiredVotes | uint256                | the required voting power  |
-| snapshotId    | uint256                | the id of snapshot         |
 
 
 Return values:
@@ -811,33 +808,6 @@ Return values:
 | :------------ | :------ | :--------------------------------------------------------- |
 | personalPower | uint256 | the personal voting power after the formula                |
 | fullPower     | uint256 | the personal plus delegated voting power after the formula |
-
-### nftVotingPower (0xabe04d74)
-
-```solidity
-function nftVotingPower(
-    uint256[] memory nftIds,
-    bool perNftPowerArray
-) external view returns (uint256 nftPower, uint256[] memory perNftPower)
-```
-
-The function for getting power of nfts by ids
-
-
-Parameters:
-
-| Name             | Type      | Description                                |
-| :--------------- | :-------- | :----------------------------------------- |
-| nftIds           | uint256[] | the array of nft ids                       |
-| perNftPowerArray | bool      | should the nft powers array be calculated  |
-
-
-Return values:
-
-| Name        | Type      | Description                                           |
-| :---------- | :-------- | :---------------------------------------------------- |
-| nftPower    | uint256   | the total power of nfts                               |
-| perNftPower | uint256[] | the array of nft powers, bounded with nftIds by index |
 
 ### delegations (0x4d123d7e)
 
@@ -904,16 +874,16 @@ Return values:
 | withdrawableTokens | uint256   | the tokens that can we withdrawn        |
 | withdrawableNfts   | uint256[] | the array of nfts that can we withdrawn |
 
-### getDelegatedAssets (0x4d735416)
+### getDelegatedAssetsPower (0x8a3ca923)
 
 ```solidity
-function getDelegatedAssets(
+function getDelegatedAssetsPower(
     address delegator,
     address delegatee
-) external view returns (uint256 tokenAmount, uint256[] memory nftIds)
+) external view returns (uint256 delegatedPower)
 ```
 
-The function for getting the total delegated amount by the delegator and the delegatee
+The function for getting the total delegated power by the delegator and the delegatee
 
 
 Parameters:
@@ -926,7 +896,6 @@ Parameters:
 
 Return values:
 
-| Name        | Type      | Description                     |
-| :---------- | :-------- | :------------------------------ |
-| tokenAmount | uint256   | the amount of delegated tokens  |
-| nftIds      | uint256[] | the list of delegated nft ids   |
+| Name           | Type    | Description               |
+| :------------- | :------ | :------------------------ |
+| delegatedPower | uint256 | the total delegated power |

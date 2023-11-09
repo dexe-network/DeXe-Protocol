@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
+import "@solarity/solidity-lib/libs/utils/DecimalsConverter.sol";
 
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/proposals/IDistributionProposal.sol";
@@ -65,10 +65,12 @@ contract DistributionProposal is IDistributionProposal, IProposalValidator, Init
             (bool ok, ) = payable(msg.sender).call{value: amount - actualAmount}("");
             require(ok, "DP: failed to send back eth");
         } else {
+            require(msg.value == 0, "DP: wrong native amount");
+
             IERC20Metadata(token).safeTransferFrom(
                 msg.sender,
                 address(this),
-                actualAmount.from18(token.decimals())
+                actualAmount.from18Safe(token)
             );
         }
 

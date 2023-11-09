@@ -16,21 +16,6 @@ the other contracts used by the protocol. Its purpose is to keep track of the pr
 contracts, provide upgradeability mechanism and dependency injection mechanism.
 ## Functions info
 
-### setSphereXEngine (0x44a63d1b)
-
-```solidity
-function setSphereXEngine(address sphereXEngine) external
-```
-
-The function to set the SphereX engine to all the contracts handled by the registry
-
-
-Parameters:
-
-| Name          | Type    | Description                       |
-| :------------ | :------ | :-------------------------------- |
-| sphereXEngine | address | the address of the SphereX engine |
-
 ### getUserRegistryContract (0x435403b4)
 
 ```solidity
@@ -180,3 +165,33 @@ Return values:
 | Name | Type    | Description                    |
 | :--- | :------ | :----------------------------- |
 | [0]  | address | DexeExpertNft contract address |
+
+### getPoolSphereXEngineContract (0x93446644)
+
+```solidity
+function getPoolSphereXEngineContract() external view returns (address)
+```
+
+Used in dependency injection mechanism
+
+
+Return values:
+
+| Name | Type    | Description             |
+| :--- | :------ | :---------------------- |
+| [0]  | address | SphereX engine for DAOs |
+
+### getSphereXEngineContract (0xb5ec48a4)
+
+```solidity
+function getSphereXEngineContract() external view returns (address)
+```
+
+Used in dependency injection mechanism
+
+
+Return values:
+
+| Name | Type    | Description                        |
+| :--- | :------ | :--------------------------------- |
+| [0]  | address | SphereX engine for global entities |

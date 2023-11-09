@@ -44,6 +44,8 @@ contract PolynomialTesterMock {
         return (zero, address(this), zero, zero, zero);
     }
 
+    receive() external payable {}
+
     function getExpertStatus(address user) external view returns (bool) {
         return _expertStatus[user];
     }
@@ -60,7 +62,7 @@ contract PolynomialTesterMock {
         }
     }
 
-    function getTotalVoteWeight() external view returns (uint256) {
+    function getTotalPower() external view returns (uint256) {
         return _totalVotes;
     }
 }

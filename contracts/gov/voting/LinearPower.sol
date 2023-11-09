@@ -20,7 +20,7 @@ contract LinearPower is IVotePower, OwnableUpgradeable {
         return votes;
     }
 
-    function transformVotes(
+    function transformVotesFull(
         address,
         uint256 votes,
         uint256,

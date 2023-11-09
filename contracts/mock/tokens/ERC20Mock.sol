@@ -20,17 +20,21 @@ contract ERC20Mock is ERC20 {
         return _decimals;
     }
 
-    function mint(address to, uint256 _amount) public {
+    function mint(address to, uint256 _amount) external {
         require(_allowMint, "ERC20Mock: minting is off");
 
         _mint(to, _amount);
     }
 
-    function burn(address from, uint256 _amount) public {
+    function burn(address from, uint256 _amount) external {
         _burn(from, _amount);
     }
 
-    function toggleMint() public {
+    function toggleMint() external {
         _allowMint = !_allowMint;
+    }
+
+    function setDecimals(uint8 decimals_) external {
+        _decimals = decimals_;
     }
 }

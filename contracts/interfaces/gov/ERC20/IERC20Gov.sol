@@ -9,7 +9,6 @@ interface IERC20Gov {
     /// @param name the name of the token
     /// @param symbol the symbol of the token
     /// @param users the list of users for which tokens are needed to be minted
-    /// @param saleAmount the token amount to be minted for sale
     /// @param cap cap on the token's total supply
     /// @param mintedTotal the total amount of tokens to be minted with the contract creation
     /// @param amounts the list of token amounts which should be minted to the respective users
@@ -17,7 +16,6 @@ interface IERC20Gov {
         string name;
         string symbol;
         address[] users;
-        uint256 saleAmount;
         uint256 cap;
         uint256 mintedTotal;
         uint256[] amounts;

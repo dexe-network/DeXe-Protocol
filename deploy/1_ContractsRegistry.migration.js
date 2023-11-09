@@ -1,12 +1,9 @@
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const ERC1967Proxy = artifacts.require("ERC1967Proxy");
 
-module.exports = async (deployer, logger) => {
+module.exports = async (deployer) => {
   const contractsRegistry = await deployer.deploy(ContractsRegistry);
-  const proxy = await deployer.deploy(ERC1967Proxy, contractsRegistry.address, "0x");
+  await deployer.deploy(ERC1967Proxy, [contractsRegistry.address, "0x"], { name: "proxy" });
 
-  logger.logTransaction(
-    await (await ContractsRegistry.at(proxy.address)).__OwnableContractsRegistry_init(),
-    "Init ContractsRegistry"
-  );
+  await (await deployer.deployed(ContractsRegistry, "proxy")).__MultiOwnableContractsRegistry_init();
 };

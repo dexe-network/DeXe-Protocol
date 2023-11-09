@@ -11,44 +11,48 @@ contract SphereXEngineMock is ISphereXEngine {
     }
 
     function sphereXValidatePre(
-        int256 num,
-        address sender,
-        bytes calldata data
-    ) external override returns (bytes32[] memory returnData) {
+        int256,
+        address,
+        bytes calldata
+    ) external view override returns (bytes32[] memory returnData) {
         _revert();
+
+        return returnData;
     }
 
     function sphereXValidatePost(
-        int256 num,
-        uint256 gas,
-        bytes32[] calldata valuesBefore,
-        bytes32[] calldata valuesAfter
-    ) external override {
+        int256,
+        uint256,
+        bytes32[] calldata,
+        bytes32[] calldata
+    ) external view override {
         _revert();
     }
 
     function sphereXValidateInternalPre(
-        int256 num
-    ) external returns (bytes32[] memory returnData) {
+        int256
+    ) external view returns (bytes32[] memory returnData) {
         _revert();
+
+        return returnData;
     }
 
     function sphereXValidateInternalPost(
-        int256 num,
-        uint256 gas,
-        bytes32[] calldata valuesBefore,
-        bytes32[] calldata valuesAfter
-    ) external {
+        int256,
+        uint256,
+        bytes32[] calldata,
+        bytes32[] calldata
+    ) external view {
         _revert();
     }
 
     function addAllowedSenderOnChain(address sender) external override {}
 
-    function supportsInterface(bytes4 interfaceId) external view returns (bool) {
+    function supportsInterface(bytes4) external pure returns (bool) {
         return true;
     }
 
-    function _revert() internal {
+    function _revert() internal view {
         require(!shouldRevert, "SphereXEngineMock: malicious tx");
     }
 }

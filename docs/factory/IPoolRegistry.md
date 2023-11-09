@@ -32,21 +32,6 @@ Parameters:
 | name        | string  | the type of the pool           |
 | poolAddress | address | the address of the pool to add |
 
-### setSphereXEngine (0x44a63d1b)
-
-```solidity
-function setSphereXEngine(address sphereXEngine) external
-```
-
-The function to set the SphereX engine to all the contracts handled by the registry
-
-
-Parameters:
-
-| Name          | Type    | Description                       |
-| :------------ | :------ | :-------------------------------- |
-| sphereXEngine | address | the address of the SphereX engine |
-
 ### isGovPool (0x9e475551)
 
 ```solidity

@@ -35,6 +35,7 @@ const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
 const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
 const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
 const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
+const SphereXEngineMock = artifacts.require("SphereXEngineMock");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -116,8 +117,12 @@ describe("DistributionProposal", () => {
     const BABT = await BABTMock.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721EnumMock.new("Mock", "Mock");
+    const _sphereXEngine = await SphereXEngineMock.new();
 
-    await contractsRegistry.__OwnableContractsRegistry_init();
+    await contractsRegistry.__MultiOwnableContractsRegistry_init();
+
+    await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
+    await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
 
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), _poolRegistry.address);
@@ -133,7 +138,7 @@ describe("DistributionProposal", () => {
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
 
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
-    await poolRegistry.__OwnablePoolContractsRegistry_init();
+    await poolRegistry.__MultiOwnablePoolContractsRegistry_init();
 
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
@@ -177,7 +182,7 @@ describe("DistributionProposal", () => {
     await userKeeper.__GovUserKeeper_init(
       poolParams.userKeeperParams.tokenAddress,
       poolParams.userKeeperParams.nftAddress,
-      poolParams.userKeeperParams.totalPowerInTokens,
+      poolParams.userKeeperParams.individualPower,
       poolParams.userKeeperParams.nftsTotalSupply
     );
 
@@ -331,7 +336,7 @@ describe("DistributionProposal", () => {
         userKeeperParams: {
           tokenAddress: ZERO_ADDR,
           nftAddress: nft.address,
-          totalPowerInTokens: wei("33000"),
+          individualPower: wei("1000"),
           nftsTotalSupply: 33,
         },
         regularVoteModifier: wei("1", 25),
@@ -532,6 +537,22 @@ describe("DistributionProposal", () => {
 
           await truffleAssert.reverts(govPool.execute(2), "DP: wrong native amount");
         });
+
+        it("should revert if msg.value > 0 and non-native token", async () => {
+          await web3.eth.sendTransaction({ to: govPool.address, value: wei("1"), from: OWNER });
+
+          await govPool.createProposal(
+            "example.com",
+            [[dp.address, 1, getBytesDistributionProposal(2, token.address, 1)]],
+            []
+          );
+
+          await govPool.vote(2, true, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+          await setTime(startTime + 20000);
+
+          await truffleAssert.reverts(govPool.execute(2), "DP: wrong native amount");
+        });
       });
     });
 
@@ -609,8 +630,8 @@ describe("DistributionProposal", () => {
         await dp.claim(THIRD, [1]);
 
         assert.isTrue(await dp.isClaimed(1, SECOND));
-        assert.equal((await token.balanceOf(SECOND)).toFixed(), "55555555555555555555556");
-        assert.equal((await token.balanceOf(THIRD)).toFixed(), "44444444444444444444443");
+        assert.equal((await token.balanceOf(SECOND)).toFixed(), "55555555555555555555555");
+        assert.equal((await token.balanceOf(THIRD)).toFixed(), "44444444444444444444444");
       });
 
       it("should correctly claim ether", async () => {

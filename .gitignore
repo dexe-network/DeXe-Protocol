@@ -12,3 +12,6 @@ coverage
 # Typechain generated files
 generated-types
 generated-markups
+
+# Hardhat migrate files
+.storage.json

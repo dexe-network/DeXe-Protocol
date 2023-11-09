@@ -34,12 +34,9 @@ library GovPoolRewards {
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
         IGovSettings.RewardsInfo storage rewardsInfo = core.settings.rewardsInfo;
 
-        uint256 amountToAdd = _getMultipliedRewards(
-            user,
-            rewardType == IGovPool.RewardType.Create
-                ? rewardsInfo.creationReward
-                : rewardsInfo.executionReward
-        );
+        uint256 amountToAdd = rewardType == IGovPool.RewardType.Create
+            ? rewardsInfo.creationReward
+            : rewardsInfo.executionReward;
 
         userInfos[user].pendingRewards.staticRewards[proposalId] += amountToAdd;
 
@@ -56,13 +53,11 @@ library GovPoolRewards {
             .getInternalSettings()
             .rewardsInfo;
 
-        uint256 amountToAdd = _getMultipliedRewards(user, rewardsInfo.executionReward);
-
         address rewardToken = rewardsInfo.rewardToken;
 
         IGovPool.PendingRewards storage userRewards = userInfos[user].pendingRewards;
 
-        userRewards.offchainRewards[rewardToken] += amountToAdd;
+        userRewards.offchainRewards[rewardToken] += rewardsInfo.executionReward;
         userRewards.offchainTokens.add(rewardToken);
     }
 

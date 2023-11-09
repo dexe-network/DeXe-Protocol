@@ -1,29 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
-
+import "@solarity/solidity-lib/access-control/MultiOwnable.sol";
 import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
-import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 
 import "../interfaces/core/ICoreProperties.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
 import "./Globals.sol";
 
-contract CoreProperties is ICoreProperties, OwnableUpgradeable, AbstractDependant {
-    using EnumerableSet for EnumerableSet.AddressSet;
-    using Paginator for EnumerableSet.AddressSet;
-    using Math for uint256;
-
+contract CoreProperties is ICoreProperties, MultiOwnable, AbstractDependant {
     CoreParameters public coreParameters;
 
     address internal _treasuryAddress;
 
     function __CoreProperties_init(CoreParameters calldata _coreParameters) external initializer {
-        __Ownable_init();
+        __MultiOwnable_init();
 
         coreParameters = _coreParameters;
     }

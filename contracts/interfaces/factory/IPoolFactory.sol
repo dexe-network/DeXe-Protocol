@@ -47,23 +47,13 @@ interface IPoolFactory {
     /// @notice Parameters of the user keeper
     /// @param tokenAddress address of the tokens used for voting
     /// @param nftAddress address of the NFT used for voting
-    /// @param totalPowerInTokens the token equivalent of all NFTs
+    /// @param individualPower the voting power of an NFT
     /// @param nftsTotalSupply the NFT collection size
     struct UserKeeperDeployParams {
         address tokenAddress;
         address nftAddress;
-        uint256 totalPowerInTokens;
+        uint256 individualPower;
         uint256 nftsTotalSupply;
-    }
-
-    /// @notice The token sale proposal parameters
-    /// @param tiersParams tiers parameters
-    /// @param whitelistParams whitelisted users (for participation in tiers)
-    /// @param tokenParams parameters of the token
-    struct TokenSaleProposalDeployParams {
-        ITokenSaleProposal.TierInitParams[] tiersParams;
-        ITokenSaleProposal.WhitelistingRequest[] whitelistParams;
-        IERC20Gov.ConstructorParams tokenParams;
     }
 
     /// @notice The voting power parameters
@@ -80,7 +70,7 @@ interface IPoolFactory {
     /// @param settingsParams general settings of the pool
     /// @param validatorsParams parameters of validators
     /// @param userKeeperParams parameters of the user keeper
-    /// @param tokenSaleParams the token sale proposal parameters
+    /// @param tokenParams the gov token parameters
     /// @param votePowerParams vote power parameters
     /// @param verifier the address of the verifier
     /// @param onlyBABTHolders if true, only KYCed users will be allowed to interact with the pool
@@ -90,7 +80,7 @@ interface IPoolFactory {
         SettingsDeployParams settingsParams;
         ValidatorsDeployParams validatorsParams;
         UserKeeperDeployParams userKeeperParams;
-        TokenSaleProposalDeployParams tokenSaleParams;
+        IERC20Gov.ConstructorParams tokenParams;
         VotePowerDeployParams votePowerParams;
         address verifier;
         bool onlyBABTHolders;
@@ -98,6 +88,13 @@ interface IPoolFactory {
         string name;
     }
 
+    /// @notice The predicted pool addresses given tx.origin and GovPool name
+    /// @param govPool the predicted govPool address
+    /// @param govTokenSale the predicted govTokenSale address
+    /// @param govToken the predicted govToken address
+    /// @param distributionProposal the predicted distributionProposal address
+    /// @param expertNft the predicted expertNft address
+    /// @param nftMultiplier the predicted nftMultiplier address
     struct GovPoolPredictedAddresses {
         address govPool;
         address govTokenSale;

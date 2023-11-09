@@ -1,7 +1,8 @@
 const { assert } = require("chai");
-const { toBN, accounts } = require("../../../scripts/utils/utils");
+const { toBN, accounts, wei } = require("../../../scripts/utils/utils");
 const { PRECISION, DECIMAL } = require("../../../scripts/utils/constants");
 const truffleAssert = require("truffle-assertions");
+const { impersonate } = require("../../helpers/impersonator");
 const Reverter = require("../../helpers/reverter");
 
 const PolynomialTesterMock = artifacts.require("PolynomialTesterMock");
@@ -11,6 +12,7 @@ PolynomialPower.numberFormat = "BigNumber";
 PolynomialTesterMock.numberFormat = "BigNumber";
 
 describe("PolynomialPower", () => {
+  let OWNER;
   let SECOND;
 
   let govPool;
@@ -21,8 +23,8 @@ describe("PolynomialPower", () => {
   async function forHolders(votes) {
     const v = toBN(votes);
 
-    let totalSupply = toBN(await govPool.getTotalVoteWeight());
-    let [k1, k2, k3] = Object.entries(await power.getVoteCoefficients()).map((x) => toBN(x[1]).div(PRECISION));
+    let totalSupply = toBN(await govPool.getTotalPower());
+    let [, , k3] = Object.entries(await power.getVoteCoefficients()).map((x) => toBN(x[1]).div(PRECISION));
     let threshold = totalSupply.times(7).div(100).minus(7);
 
     if (v.comparedTo(threshold) === -1) {
@@ -48,8 +50,8 @@ describe("PolynomialPower", () => {
   async function forExpert(votes, isDao) {
     const v = toBN(votes);
 
-    let totalSupply = toBN(await govPool.getTotalVoteWeight());
-    let [k1, k2, k3] = Object.entries(await power.getVoteCoefficients()).map((x) => toBN(x[1]).div(PRECISION));
+    let totalSupply = toBN(await govPool.getTotalPower());
+    let [k1, k2] = Object.entries(await power.getVoteCoefficients()).map((x) => toBN(x[1]).div(PRECISION));
     let k;
 
     if (isDao) {
@@ -121,10 +123,7 @@ describe("PolynomialPower", () => {
     const estimated = await forExpert(v, true);
 
     assert.equal(result.idiv(DECIMAL).toFixed(), estimated.idiv(DECIMAL).toFixed());
-    assert.equal(
-      result.toFixed(),
-      (await power.methods["transformVotes(address,uint256,uint256,uint256,uint256)"](SECOND, v, 0, 0, 1000)).toFixed()
-    );
+    assert.equal(result.toFixed(), (await power.transformVotesFull(SECOND, v, 0, 0, 1000)).toFixed());
   }
 
   async function compareExpertsDao50Percent(votes) {
@@ -136,13 +135,11 @@ describe("PolynomialPower", () => {
     const estimated = dao.plus(notDao).div(2);
 
     assert.equal(result.idiv(DECIMAL).toFixed(), estimated.idiv(DECIMAL).toFixed());
-    assert.equal(
-      result.toFixed(),
-      (await power.methods["transformVotes(address,uint256,uint256,uint256,uint256)"](SECOND, v, 0, 500, 500)).toFixed()
-    );
+    assert.equal(result.toFixed(), (await power.transformVotesFull(SECOND, v, 0, 500, 500)).toFixed());
   }
 
   before("setup", async () => {
+    OWNER = await accounts(0);
     SECOND = await accounts(1);
 
     govPool = await PolynomialTesterMock.new();
@@ -158,6 +155,22 @@ describe("PolynomialPower", () => {
   });
 
   afterEach(reverter.revert);
+
+  describe("access", () => {
+    it("only owner should change coefficients", async () => {
+      await truffleAssert.reverts(power.changeCoefficients(1, 2, 3), "Ownable: caller is not the owner");
+
+      await impersonate(govPool.address);
+
+      await web3.eth.sendTransaction({
+        from: OWNER,
+        to: govPool.address,
+        value: wei(1),
+      });
+
+      await power.changeCoefficients(1, 2, 3, { from: govPool.address });
+    });
+  });
 
   describe("check math", () => {
     it("holders", async () => {

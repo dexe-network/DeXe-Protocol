@@ -51,6 +51,7 @@ const TokenSaleProposalRecoverLib = artifacts.require("TokenSaleProposalRecover"
 const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
 const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
 const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
+const SphereXEngineMock = artifacts.require("SphereXEngineMock");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -166,8 +167,12 @@ describe("TokenSaleProposal", () => {
     token = await ERC20Mock.new("Mock", "Mock", 18);
     participationToken = await ERC20Mock.new("PTMock", "PTMock", 18);
     participationNft = await ERC721Mock.new("PNFTMock", "PNFTMock");
+    const _sphereXEngine = await SphereXEngineMock.new();
 
-    await contractsRegistry.__OwnableContractsRegistry_init();
+    await contractsRegistry.__MultiOwnableContractsRegistry_init();
+
+    await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
+    await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
 
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), _poolRegistry.address);
@@ -183,7 +188,7 @@ describe("TokenSaleProposal", () => {
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
 
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
-    await poolRegistry.__OwnablePoolContractsRegistry_init();
+    await poolRegistry.__MultiOwnablePoolContractsRegistry_init();
 
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
@@ -229,7 +234,7 @@ describe("TokenSaleProposal", () => {
     await userKeeper.__GovUserKeeper_init(
       poolParams.userKeeperParams.tokenAddress,
       poolParams.userKeeperParams.nftAddress,
-      poolParams.userKeeperParams.totalPowerInTokens,
+      poolParams.userKeeperParams.individualPower,
       poolParams.userKeeperParams.nftsTotalSupply
     );
 
@@ -489,7 +494,7 @@ describe("TokenSaleProposal", () => {
         userKeeperParams: {
           tokenAddress: token.address,
           nftAddress: ZERO_ADDR,
-          totalPowerInTokens: wei("33000"),
+          individualPower: wei("1000"),
           nftsTotalSupply: 33,
         },
         regularVoteModifier: wei("1.3", 25),
@@ -507,12 +512,10 @@ describe("TokenSaleProposal", () => {
 
       erc20Params = {
         govAddress: govPool.address,
-        saleAddress: tsp.address,
         constructorParameters: {
           name: "ERC20GovMocked",
           symbol: "ERC20GM",
           users: [SECOND, THIRD],
-          saleAmount: wei(1000),
           cap: wei(2000),
           mintedTotal: wei(1005),
           amounts: [wei(2), wei(3)],
@@ -521,7 +524,7 @@ describe("TokenSaleProposal", () => {
 
       erc20Gov = await ERC20Gov.new();
 
-      erc20Gov.__ERC20Gov_init(erc20Params.govAddress, erc20Params.saleAddress, erc20Params.constructorParameters);
+      erc20Gov.__ERC20Gov_init(erc20Params.govAddress, erc20Params.constructorParameters);
 
       purchaseToken1 = await ERC20Mock.new("PurchaseMockedToken1", "PMT1", 18);
       purchaseToken2 = await ERC20Mock.new("PurchaseMockedToken1", "PMT1", 18);
@@ -798,6 +801,12 @@ describe("TokenSaleProposal", () => {
         await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: vesting settings validation failed");
       });
 
+      it("should not create tiers if claimLock > cliff", async () => {
+        tiers[0].claimLockDuration = wei("1");
+
+        await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: claimLock > cliff");
+      });
+
       it("should not create tiers if no purchaseTokenAddresses provided", async () => {
         tiers[0].purchaseTokenAddresses = [];
 
@@ -998,6 +1007,8 @@ describe("TokenSaleProposal", () => {
       });
 
       it("should create tiers if all conditions are met", async () => {
+        await saleToken.mint(govPool.address, wei(6000));
+
         await createTiers(JSON.parse(JSON.stringify(tiers)));
 
         assert.deepEqual(
@@ -1034,7 +1045,7 @@ describe("TokenSaleProposal", () => {
 
     describe("if tiers are created", () => {
       beforeEach(async () => {
-        await saleToken.mint(govPool.address, wei(5000));
+        await saleToken.mint(govPool.address, wei(6000));
 
         await createTiers(JSON.parse(JSON.stringify(tiers)));
 
@@ -1201,6 +1212,10 @@ describe("TokenSaleProposal", () => {
           await truffleAssert.reverts(
             tsp.lockParticipationTokens(7, ETHER_ADDR, defaultTokenAmount, { value: 1 }),
             "TSP: wrong lock amount"
+          );
+          await truffleAssert.reverts(
+            tsp.lockParticipationTokens(4, participationToken.address, defaultTokenAmount, { value: 1 }),
+            "TSP: wrong native lock amount"
           );
         });
 
@@ -1639,6 +1654,19 @@ describe("TokenSaleProposal", () => {
           await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, 0), "TSP: zero amount");
         });
 
+        it("should not buy if convertion is zero", async () => {
+          await purchaseToken1.setDecimals(6);
+
+          await setTime(+tiers[2].saleStartTime);
+
+          await babt.attest(OWNER);
+
+          await truffleAssert.reverts(
+            tsp.buy(3, purchaseToken1.address, wei("1", 6)),
+            "DecimalsConverter: conversion failed"
+          );
+        });
+
         it("should not buy if cannot participate", async () => {
           await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100)), "TSP: cannot participate");
           await truffleAssert.reverts(
@@ -2050,6 +2078,15 @@ describe("TokenSaleProposal", () => {
             await setTime(+tiers[0].saleStartTime);
 
             await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, 0, { value: wei(1) }), "TSP: wrong native amount");
+          });
+
+          it("should not buy if wrong native amount", async () => {
+            await setTime(+tiers[0].saleStartTime);
+
+            await truffleAssert.reverts(
+              tsp.buy(1, purchaseToken1.address, 1, { value: wei(1) }),
+              "TSP: wrong native amount"
+            );
           });
 
           it("should not buy if wrong allocation", async () => {

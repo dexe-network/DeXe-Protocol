@@ -137,7 +137,6 @@ struct ProposalCore {
 	uint256 votesAgainst;
 	uint256 rawVotesFor;
 	uint256 rawVotesAgainst;
-	uint256 nftPowerSnapshotId;
 	uint256 givenRewards;
 }
 ```
@@ -147,18 +146,17 @@ The struct holds core properties of proposal
 
 Parameters:
 
-| Name               | Type                                 | Description                                                                        |
-| :----------------- | :----------------------------------- | :--------------------------------------------------------------------------------- |
-| settings           | struct IGovSettings.ProposalSettings | the struct that holds information about settings of the proposal                   |
-| voteEnd            | uint64                               | the timestamp of voting end for the proposal                                       |
-| executeAfter       | uint64                               | the timestamp of execution in seconds after voting end                             |
-| executed           | bool                                 | the boolean indicating whether the proposal has been executed                      |
-| votesFor           | uint256                              | the total number of votes for the proposal from all voters                         |
-| votesAgainst       | uint256                              | the total number of votes against the proposal from all voters                     |
-| rawVotesFor        | uint256                              | the total number of votes for the proposal from all voters before the formula      |
-| rawVotesAgainst    | uint256                              | the total number of votes against the proposal from all voters before the formula  |
-| nftPowerSnapshotId | uint256                              | the id of nft power snapshot                                                       |
-| givenRewards       | uint256                              | the amount of rewards payable after the proposal execution                         |
+| Name            | Type                                 | Description                                                                        |
+| :-------------- | :----------------------------------- | :--------------------------------------------------------------------------------- |
+| settings        | struct IGovSettings.ProposalSettings | the struct that holds information about settings of the proposal                   |
+| voteEnd         | uint64                               | the timestamp of voting end for the proposal                                       |
+| executeAfter    | uint64                               | the timestamp of execution in seconds after voting end                             |
+| executed        | bool                                 | the boolean indicating whether the proposal has been executed                      |
+| votesFor        | uint256                              | the total number of votes for the proposal from all voters                         |
+| votesAgainst    | uint256                              | the total number of votes against the proposal from all voters                     |
+| rawVotesFor     | uint256                              | the total number of votes for the proposal from all voters before the formula      |
+| rawVotesAgainst | uint256                              | the total number of votes against the proposal from all voters before the formula  |
+| givenRewards    | uint256                              | the amount of rewards payable after the proposal execution                         |
 
 ### ProposalAction
 
@@ -235,6 +233,7 @@ Parameters:
 struct RawVote {
 	uint256 tokensVoted;
 	uint256 totalVoted;
+	uint256 nftsAmount;
 	EnumerableSet.UintSet nftsVoted;
 }
 ```
@@ -248,6 +247,7 @@ Parameters:
 | :---------- | :--------------------------- | :-------------------------------------------------------------------------------- |
 | tokensVoted | uint256                      | the total erc20 amount voted from one user for the proposal before the formula    |
 | totalVoted  | uint256                      | the total power of typed votes from one user for the proposal before the formula  |
+| nftsAmount  | uint256                      | the amount of nfts participating in the vote                                      |
 | nftsVoted   | struct EnumerableSet.UintSet | the set of ids of nfts voted from one user for the proposal                       |
 
 ### VoteInfo
@@ -326,8 +326,7 @@ Parameters:
 ```solidity
 struct DelegatorInfo {
 	uint256[] delegationTimes;
-	uint256[][] nftIds;
-	uint256[] tokenAmounts;
+	uint256[] delegationPowers;
 	mapping(uint256 => bool) isClaimed;
 }
 ```
@@ -337,12 +336,11 @@ The struct that holds information about the delegator (only for internal needs)
 
 Parameters:
 
-| Name            | Type                     | Description                                                                    |
-| :-------------- | :----------------------- | :----------------------------------------------------------------------------- |
-| delegationTimes | uint256[]                | the list of timestamps when delegated amount was changed                       |
-| nftIds          | uint256[][]              | lists of delegated nfts in corresponding timestamps                            |
-| tokenAmounts    | uint256[]                | the list of delegated token amounts in corresponding timestamps                |
-| isClaimed       | mapping(uint256 => bool) | matching proposals ids with flags indicating whether rewards have been claimed |
+| Name             | Type                     | Description                                                                    |
+| :--------------- | :----------------------- | :----------------------------------------------------------------------------- |
+| delegationTimes  | uint256[]                | the list of timestamps when delegated amount was changed                       |
+| delegationPowers | uint256[]                | the list of delegated assets powers                                            |
+| isClaimed        | mapping(uint256 => bool) | matching proposals ids with flags indicating whether rewards have been claimed |
 
 ### PendingRewards
 
@@ -598,6 +596,31 @@ Parameters:
 | descriptionURL   | string                           | IPFS url to the proposal's description                              |
 | actionsOnFor     | struct IGovPool.ProposalAction[] | the array of structs with information about actions on for step     |
 | actionsOnAgainst | struct IGovPool.ProposalAction[] | the array of structs with information about actions on against step |
+
+### createProposalAndVote (0xee0e5215)
+
+```solidity
+function createProposalAndVote(
+    string calldata descriptionURL,
+    IGovPool.ProposalAction[] calldata actionsOnFor,
+    IGovPool.ProposalAction[] calldata actionsOnAgainst,
+    uint256 voteAmount,
+    uint256[] calldata voteNftIds
+) external
+```
+
+Create and vote for on the proposal
+
+
+Parameters:
+
+| Name             | Type                             | Description                                                          |
+| :--------------- | :------------------------------- | :------------------------------------------------------------------- |
+| descriptionURL   | string                           | IPFS url to the proposal's description                               |
+| actionsOnFor     | struct IGovPool.ProposalAction[] | the array of structs with information about actions on for step      |
+| actionsOnAgainst | struct IGovPool.ProposalAction[] | the array of structs with information about actions on against step  |
+| voteAmount       | uint256                          | the erc20 vote amount                                                |
+| voteNftIds       | uint256[]                        | the nft ids that will be used in voting                              |
 
 ### moveProposalToValidators (0x2db47bdd)
 
@@ -1242,11 +1265,12 @@ Return values:
 | validator   | address | the verifier address  |
 | resultsHash | string  | the ipfs hash         |
 
-### getOffchainSignHash (0x63d1cd0f)
+### getOffchainSignHash (0x8e19ade9)
 
 ```solidity
 function getOffchainSignHash(
-    string calldata resultsHash
+    string calldata resultsHash,
+    address user
 ) external view returns (bytes32)
 ```
 
@@ -1255,9 +1279,10 @@ The function to get the sign hash from string resultsHash, chainid, govPool addr
 
 Parameters:
 
-| Name        | Type   | Description    |
-| :---------- | :----- | :------------- |
-| resultsHash | string | the ipfs hash  |
+| Name        | Type    | Description                          |
+| :---------- | :------ | :----------------------------------- |
+| resultsHash | string  | the ipfs hash                        |
+| user        | address | the user who requests the signature  |
 
 
 Return values:

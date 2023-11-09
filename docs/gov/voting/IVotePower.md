@@ -40,10 +40,10 @@ Return values:
 | :------------- | :------ | :----------- |
 | resultingVotes | uint256 | voting power |
 
-### transformVotes (0xfac1a8c2)
+### transformVotesFull (0x13f60dc5)
 
 ```solidity
-function transformVotes(
+function transformVotesFull(
     address voter,
     uint256 votes,
     uint256 personalPower,

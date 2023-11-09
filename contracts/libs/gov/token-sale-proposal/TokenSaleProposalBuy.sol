@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 import "@solarity/solidity-lib/libs/utils/TypeCaster.sol";
-import "@solarity/solidity-lib/libs/decimals/DecimalsConverter.sol";
+import "@solarity/solidity-lib/libs/utils/DecimalsConverter.sol";
 
 import "../../../interfaces/gov/proposals/ITokenSaleProposal.sol";
 import "../../../interfaces/gov/IGovPool.sol";
@@ -32,23 +32,18 @@ library TokenSaleProposalBuy {
         uint256 tierId,
         address tokenToBuyWith,
         uint256 amount
-    ) external {
+    ) external returns (uint256 saleTokenAmount) {
         ITokenSaleProposal.UserInfo storage userInfo = tier.users[msg.sender];
         ITokenSaleProposal.PurchaseInfo storage purchaseInfo = userInfo.purchaseInfo;
         ITokenSaleProposal.TierInitParams storage tierInitParams = tier.tierInitParams;
 
         require(
-            tokenToBuyWith != ETHEREUM_ADDRESS || amount == msg.value,
+            (tokenToBuyWith != ETHEREUM_ADDRESS && msg.value == 0) || amount == msg.value,
             "TSP: wrong native amount"
         );
 
-        uint256 saleTokenAmount = getSaleTokenAmount(
-            tier,
-            msg.sender,
-            tierId,
-            tokenToBuyWith,
-            amount
-        );
+        saleTokenAmount = getSaleTokenAmount(tier, msg.sender, tierId, tokenToBuyWith, amount);
+
         uint256 vestingCurrentAmount = saleTokenAmount.percentage(
             tierInitParams.vestingSettings.vestingPercentage
         );
@@ -90,7 +85,7 @@ library TokenSaleProposalBuy {
             (bool success, ) = to.call{value: amount}("");
             require(success, "TSP: failed to transfer ether");
         } else {
-            IERC20(token).safeTransferFrom(msg.sender, to, amount.from18(token.decimals()));
+            IERC20(token).safeTransferFrom(msg.sender, to, amount.from18Safe(token));
         }
     }
 
@@ -150,7 +145,6 @@ library TokenSaleProposalBuy {
                 .getHelperContracts();
 
             _canParticipate =
-                _canParticipate &&
                 IGovUserKeeper(govUserKeeper)
                 .votingPower(
                     user.asSingletonArray(),
@@ -160,20 +154,20 @@ library TokenSaleProposalBuy {
                 participationInfo.requiredDaoVotes;
         }
 
-        if (participationInfo.isWhitelisted) {
-            _canParticipate = _canParticipate && tokenSaleProposal.balanceOf(user, tierId) > 0;
+        if (_canParticipate && participationInfo.isWhitelisted) {
+            _canParticipate = tokenSaleProposal.balanceOf(user, tierId) > 0;
         }
 
-        if (participationInfo.isBABTed) {
-            _canParticipate = _canParticipate && tokenSaleProposal.babt().balanceOf(user) > 0;
+        if (_canParticipate && participationInfo.isBABTed) {
+            _canParticipate = tokenSaleProposal.babt().balanceOf(user) > 0;
         }
 
-        if (participationInfo.requiredTokenLock.length() > 0) {
-            _canParticipate = _canParticipate && _checkUserLockedTokens(tier, user);
+        if (_canParticipate && participationInfo.requiredTokenLock.length() > 0) {
+            _canParticipate = _checkUserLockedTokens(tier, user);
         }
 
-        if (participationInfo.requiredNftLock.length() > 0) {
-            _canParticipate = _canParticipate && _checkUserLockedNfts(tier, user);
+        if (_canParticipate && participationInfo.requiredNftLock.length() > 0) {
+            _canParticipate = _checkUserLockedNfts(tier, user);
         }
 
         return _canParticipate;

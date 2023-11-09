@@ -4,9 +4,7 @@ const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { getBytesLinearPowerInit, getBytesPolynomialPowerInit } = require("../utils/gov-vote-power-utils");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
-const { DEFAULT_CORE_PROPERTIES, ParticipationType, VotePowerType } = require("../utils/constants");
-const { toPercent } = require("../utils/utils");
-const { getCurrentBlockTime } = require("../helpers/block-helper");
+const { DEFAULT_CORE_PROPERTIES, VotePowerType } = require("../utils/constants");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const ERC20Mock = artifacts.require("ERC20Mock");
@@ -24,7 +22,6 @@ const GovSettings = artifacts.require("GovSettings");
 const GovValidators = artifacts.require("GovValidators");
 const DistributionProposal = artifacts.require("DistributionProposal");
 const TokenSaleProposal = artifacts.require("TokenSaleProposal");
-const UniswapPathFinderLib = artifacts.require("UniswapPathFinder");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const UniswapV3QuoterMock = artifacts.require("UniswapV3QuoterMock");
 const PoolFactory = artifacts.require("PoolFactory");
@@ -48,6 +45,7 @@ const TokenSaleProposalRecoverLib = artifacts.require("TokenSaleProposalRecover"
 const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
 const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
 const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
+const SphereXEngine = artifacts.require("SphereXEngine");
 
 ContractsRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
@@ -77,6 +75,7 @@ describe("PoolFactory", () => {
   let testERC20;
   let testERC721;
   let babt;
+  let sphereXEngine;
 
   const reverter = new Reverter();
 
@@ -146,8 +145,14 @@ describe("PoolFactory", () => {
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
     const _poolFactory = await PoolFactory.new();
+    sphereXEngine = await SphereXEngine.new(0, OWNER);
 
-    await contractsRegistry.__OwnableContractsRegistry_init();
+    await contractsRegistry.__MultiOwnableContractsRegistry_init();
+
+    await sphereXEngine.grantRole(await sphereXEngine.SENDER_ADDER_ROLE(), contractsRegistry.address);
+
+    await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), sphereXEngine.address);
+    await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), sphereXEngine.address);
 
     await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), _coreProperties.address);
     await contractsRegistry.addProxyContract(await contractsRegistry.POOL_REGISTRY_NAME(), _poolRegistry.address);
@@ -164,11 +169,13 @@ describe("PoolFactory", () => {
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
     poolFactory = await PoolFactory.at(await contractsRegistry.getPoolFactoryContract());
 
-    await poolRegistry.__OwnablePoolContractsRegistry_init();
+    await sphereXEngine.grantRole(await sphereXEngine.SENDER_ADDER_ROLE(), poolFactory.address);
+
+    await priceFeed.__PriceFeed_init();
+    await poolRegistry.__MultiOwnablePoolContractsRegistry_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
 
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_FACTORY_NAME());
-    await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
 
@@ -296,49 +303,16 @@ describe("PoolFactory", () => {
         userKeeperParams: {
           tokenAddress: testERC20.address,
           nftAddress: testERC721.address,
-          totalPowerInTokens: wei("33000"),
+          individualPower: wei("1000"),
           nftsTotalSupply: 33,
         },
-        tokenSaleParams: {
-          tiersParams: [
-            {
-              metadata: {
-                name: "tier1",
-                description: "description",
-              },
-              totalTokenProvided: wei("100"),
-              saleStartTime: 0,
-              saleEndTime: 1000000,
-              claimLockDuration: 0,
-              saleTokenAddress: ZERO_ADDR,
-              purchaseTokenAddresses: [testERC20.address],
-              exchangeRates: [PRECISION.toFixed()],
-              minAllocationPerUser: wei("1"),
-              maxAllocationPerUser: wei("100"),
-              vestingSettings: {
-                vestingPercentage: toPercent(50),
-                vestingDuration: 86400,
-                cliffPeriod: 0,
-                unlockStep: 1,
-              },
-              participationDetails: [
-                {
-                  participationType: ParticipationType.Whitelist,
-                  data: "0x",
-                },
-              ],
-            },
-          ],
-          whitelistParams: [],
-          tokenParams: {
-            name: "gov token",
-            symbol: "st",
-            users: [],
-            saleAmount: wei("100"),
-            cap: wei("1000"),
-            mintedTotal: wei("150"),
-            amounts: [],
-          },
+        tokenParams: {
+          name: "gov token",
+          symbol: "st",
+          users: [],
+          cap: wei("1000"),
+          mintedTotal: wei("150"),
+          amounts: [],
         },
         votePowerParams: {
           voteType: VotePowerType.LINEAR_VOTES,
@@ -377,40 +351,11 @@ describe("PoolFactory", () => {
     }
 
     describe("deployGovPool", () => {
-      it("should deploy pool and instantiate token sale", async () => {
+      it("should deploy pool with token", async () => {
         let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
-
-        POOL_PARAMETERS.tokenSaleParams.tiersParams.push({
-          metadata: {
-            name: "tier2",
-            description: "description",
-          },
-          totalTokenProvided: wei("100"),
-          saleStartTime: await getCurrentBlockTime(),
-          saleEndTime: (await getCurrentBlockTime()) + 10000,
-          claimLockDuration: 0,
-          saleTokenAddress: testERC20.address,
-          purchaseTokenAddresses: [testERC20.address],
-          exchangeRates: [PRECISION.toFixed()],
-          minAllocationPerUser: wei("1"),
-          maxAllocationPerUser: wei("100"),
-          vestingSettings: {
-            vestingPercentage: toPercent(50),
-            vestingDuration: 86400,
-            cliffPeriod: 0,
-            unlockStep: 1,
-          },
-          participationDetails: [
-            {
-              participationType: ParticipationType.BABT,
-              data: "0x",
-            },
-          ],
-        });
 
         const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
 
-        POOL_PARAMETERS.tokenSaleParams.tiersParams[0].saleTokenAddress = predictedGovAddresses.govToken;
         POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedGovAddresses.govToken;
         POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
 
@@ -437,10 +382,9 @@ describe("PoolFactory", () => {
         let govUserKeeper = await GovUserKeeper.at(helperContracts[1]);
 
         assert.equal(await token.totalSupply(), wei("150"));
-        assert.equal(await token.balanceOf(govPool.address), wei("50"));
-        assert.equal(await token.balanceOf(tokenSale.address), wei("100"));
+        assert.equal(await token.balanceOf(govPool.address), wei("150"));
 
-        assert.equal(await tokenSale.latestTierId(), "2");
+        assert.equal(await tokenSale.latestTierId(), "0");
 
         assert.equal(await govUserKeeper.tokenAddress(), token.address);
 
@@ -449,29 +393,18 @@ describe("PoolFactory", () => {
         assert.equal(await votePower.transformVotes(ZERO_ADDR, 2), 2);
       });
 
-      it("should deploy pool with empty token sale", async () => {
+      it("should revert with protection on and deploy with off", async () => {
         let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
 
-        const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+        await sphereXEngine.configureRules("0x0000000000000001");
+        await poolRegistry.protectPoolFunctions(await poolRegistry.TOKEN_SALE_PROPOSAL_NAME(), ["0x69130451"]);
+        await poolRegistry.toggleSphereXEngine(true);
 
-        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
-        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
+        await truffleAssert.reverts(poolFactory.deployGovPool(POOL_PARAMETERS), "SphereX error: disallowed tx pattern");
 
-        let tx = await poolFactory.deployGovPool(POOL_PARAMETERS);
-        let event = tx.receipt.logs[0];
+        await poolRegistry.unprotectPoolFunctions(await poolRegistry.TOKEN_SALE_PROPOSAL_NAME(), ["0x69130451"]);
 
-        let tokenSale = await TokenSaleProposal.at(event.args.tokenSale);
-        let token = await ERC20Mock.at(event.args.token);
-
-        let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
-        let helperContracts = await govPool.getHelperContracts();
-
-        let govUserKeeper = await GovUserKeeper.at(helperContracts[1]);
-
-        assert.equal(await tokenSale.latestTierId(), "0");
-
-        assert.equal(await govUserKeeper.tokenAddress(), token.address);
-        assert.equal(await govUserKeeper.tokenAddress(), testERC20.address);
+        await poolFactory.deployGovPool(POOL_PARAMETERS);
       });
 
       it("should set babt id correctly", async () => {
@@ -481,7 +414,6 @@ describe("PoolFactory", () => {
 
         const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
 
-        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
         POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
 
         await poolFactory.deployGovPool(POOL_PARAMETERS);
@@ -499,7 +431,6 @@ describe("PoolFactory", () => {
         POOL_PARAMETERS.votePowerParams.voteType = VotePowerType.POLYNOMIAL_VOTES;
         POOL_PARAMETERS.votePowerParams.initData = getBytesPolynomialPowerInit(1, 2, 3);
 
-        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
         POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
 
         await poolFactory.deployGovPool(POOL_PARAMETERS);
@@ -523,7 +454,6 @@ describe("PoolFactory", () => {
         POOL_PARAMETERS.votePowerParams.initData = "0x";
         POOL_PARAMETERS.votePowerParams.presetAddress = (await LinearPower.new()).address;
 
-        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
         POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
 
         await poolFactory.deployGovPool(POOL_PARAMETERS);
@@ -543,7 +473,6 @@ describe("PoolFactory", () => {
 
         POOL_PARAMETERS.votePowerParams.initData = getBytesPolynomialPowerInit(1, 2, 3);
 
-        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
         POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
 
         await truffleAssert.reverts(poolFactory.deployGovPool(POOL_PARAMETERS), "PoolFactory: power init failed");
@@ -563,7 +492,6 @@ describe("PoolFactory", () => {
 
         const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
 
-        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
         POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
 
         await poolFactory.deployGovPool(POOL_PARAMETERS);
@@ -578,8 +506,6 @@ describe("PoolFactory", () => {
       it("should not deploy pools with the same salt", async () => {
         let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
 
-        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
-
         await poolFactory.deployGovPool(POOL_PARAMETERS);
 
         await truffleAssert.reverts(
@@ -591,7 +517,6 @@ describe("PoolFactory", () => {
       it("should revert if name is an empty string", async () => {
         let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
 
-        POOL_PARAMETERS.tokenSaleParams.tiersParams.pop();
         POOL_PARAMETERS.name = "";
 
         await truffleAssert.reverts(

@@ -12,7 +12,6 @@ describe("ERC20Gov", () => {
   let OWNER;
   let SECOND;
   let THIRD;
-  let SALE_ADDRESS;
   let GOV_ADDRESS;
 
   let DEFAULT_PARAMS;
@@ -25,8 +24,7 @@ describe("ERC20Gov", () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
     THIRD = await accounts(2);
-    SALE_ADDRESS = await accounts(3);
-    GOV_ADDRESS = await accounts(4);
+    GOV_ADDRESS = await accounts(3);
 
     erc20Gov = await ERC20Gov.new();
 
@@ -38,15 +36,13 @@ describe("ERC20Gov", () => {
   beforeEach(async () => {
     DEFAULT_PARAMS = {
       govAddress: GOV_ADDRESS,
-      saleAddress: SALE_ADDRESS,
       constructorParameters: {
         name: "ERC20GovMocked",
         symbol: "ERC20GM",
-        users: [SECOND, THIRD],
-        saleAmount: wei(1),
+        users: [SECOND, THIRD, GOV_ADDRESS],
         cap: wei(20),
         mintedTotal: wei(10),
-        amounts: [wei(2), wei(3)],
+        amounts: [wei(2), wei(3), 0],
       },
     };
   });
@@ -56,11 +52,7 @@ describe("ERC20Gov", () => {
       DEFAULT_PARAMS.govAddress = ZERO_ADDR;
 
       await truffleAssert.reverts(
-        erc20Gov.__ERC20Gov_init(
-          DEFAULT_PARAMS.govAddress,
-          DEFAULT_PARAMS.saleAddress,
-          DEFAULT_PARAMS.constructorParameters
-        ),
+        erc20Gov.__ERC20Gov_init(DEFAULT_PARAMS.govAddress, DEFAULT_PARAMS.constructorParameters),
         "ERC20Gov: govAddress is zero"
       );
     });
@@ -69,11 +61,7 @@ describe("ERC20Gov", () => {
       DEFAULT_PARAMS.constructorParameters.mintedTotal = wei(30);
 
       await truffleAssert.reverts(
-        erc20Gov.__ERC20Gov_init(
-          DEFAULT_PARAMS.govAddress,
-          DEFAULT_PARAMS.saleAddress,
-          DEFAULT_PARAMS.constructorParameters
-        ),
+        erc20Gov.__ERC20Gov_init(DEFAULT_PARAMS.govAddress, DEFAULT_PARAMS.constructorParameters),
         "ERC20Gov: mintedTotal should not be greater than cap"
       );
     });
@@ -82,54 +70,33 @@ describe("ERC20Gov", () => {
       DEFAULT_PARAMS.constructorParameters.users = [];
 
       await truffleAssert.reverts(
-        erc20Gov.__ERC20Gov_init(
-          DEFAULT_PARAMS.govAddress,
-          DEFAULT_PARAMS.saleAddress,
-          DEFAULT_PARAMS.constructorParameters
-        ),
+        erc20Gov.__ERC20Gov_init(DEFAULT_PARAMS.govAddress, DEFAULT_PARAMS.constructorParameters),
         "ERC20Gov: users and amounts lengths mismatch"
       );
     });
 
     it("should revert if the sum of amounts is greater than totalMinted", async () => {
-      DEFAULT_PARAMS.constructorParameters.amounts = [wei(10), wei(10)];
+      DEFAULT_PARAMS.constructorParameters.amounts = [wei(10), wei(10), 0];
 
       await truffleAssert.reverts(
-        erc20Gov.__ERC20Gov_init(
-          DEFAULT_PARAMS.govAddress,
-          DEFAULT_PARAMS.saleAddress,
-          DEFAULT_PARAMS.constructorParameters
-        ),
+        erc20Gov.__ERC20Gov_init(DEFAULT_PARAMS.govAddress, DEFAULT_PARAMS.constructorParameters),
         "ERC20Gov: overminting"
       );
     });
 
     it("should deploy properly if all conditions are met", async () => {
-      await erc20Gov.__ERC20Gov_init(
-        DEFAULT_PARAMS.govAddress,
-        DEFAULT_PARAMS.saleAddress,
-        DEFAULT_PARAMS.constructorParameters
-      );
+      await erc20Gov.__ERC20Gov_init(DEFAULT_PARAMS.govAddress, DEFAULT_PARAMS.constructorParameters);
 
       assert.equal((await erc20Gov.balanceOf(DEFAULT_PARAMS.constructorParameters.users[0])).toFixed(), wei(2));
       assert.equal((await erc20Gov.balanceOf(DEFAULT_PARAMS.constructorParameters.users[1])).toFixed(), wei(3));
-      assert.equal((await erc20Gov.balanceOf(DEFAULT_PARAMS.saleAddress)).toFixed(), wei(1));
-      assert.equal((await erc20Gov.balanceOf(DEFAULT_PARAMS.govAddress)).toFixed(), wei(4));
+      assert.equal((await erc20Gov.balanceOf(DEFAULT_PARAMS.govAddress)).toFixed(), wei(5));
     });
 
     it("should not initialize twice", async () => {
-      await erc20Gov.__ERC20Gov_init(
-        DEFAULT_PARAMS.govAddress,
-        DEFAULT_PARAMS.saleAddress,
-        DEFAULT_PARAMS.constructorParameters
-      );
+      await erc20Gov.__ERC20Gov_init(DEFAULT_PARAMS.govAddress, DEFAULT_PARAMS.constructorParameters);
 
       await truffleAssert.reverts(
-        erc20Gov.__ERC20Gov_init(
-          DEFAULT_PARAMS.govAddress,
-          DEFAULT_PARAMS.saleAddress,
-          DEFAULT_PARAMS.constructorParameters
-        ),
+        erc20Gov.__ERC20Gov_init(DEFAULT_PARAMS.govAddress, DEFAULT_PARAMS.constructorParameters),
         "Initializable: contract is already initialized"
       );
     });
@@ -137,16 +104,12 @@ describe("ERC20Gov", () => {
 
   describe("functionality", () => {
     beforeEach(async () => {
-      await erc20Gov.__ERC20Gov_init(
-        DEFAULT_PARAMS.govAddress,
-        DEFAULT_PARAMS.saleAddress,
-        DEFAULT_PARAMS.constructorParameters
-      );
+      await erc20Gov.__ERC20Gov_init(DEFAULT_PARAMS.govAddress, DEFAULT_PARAMS.constructorParameters);
     });
 
     describe("mint", () => {
       it("should not mint if caller is not govPool", async () => {
-        await truffleAssert.reverts(erc20Gov.mint(SALE_ADDRESS, wei(1)), "ERC20Gov: not a Gov contract");
+        await truffleAssert.reverts(erc20Gov.mint(OWNER, wei(1)), "ERC20Gov: not a Gov contract");
       });
 
       it("should not mint if the cap is reached", async () => {
@@ -183,12 +146,6 @@ describe("ERC20Gov", () => {
           erc20Gov.transfer(THIRD, wei(1), { from: SECOND }),
           "ERC20Pausable: token transfer while paused"
         );
-      });
-
-      it("should not blacklist if erc20Gov is paused", async () => {
-        await erc20Gov.pause({ from: GOV_ADDRESS });
-
-        await truffleAssert.reverts(erc20Gov.blacklist([THIRD], true), "Pausable: paused");
       });
     });
 

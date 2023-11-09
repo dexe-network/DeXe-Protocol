@@ -54,14 +54,24 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
         _coefficient3 = coefficient3;
     }
 
+    function changeCoefficients(
+        uint256 coefficient1,
+        uint256 coefficient2,
+        uint256 coefficient3
+    ) external onlyOwner {
+        _coefficient1 = coefficient1;
+        _coefficient2 = coefficient2;
+        _coefficient3 = coefficient3;
+    }
+
     function transformVotes(
         address voter,
         uint256 votes
     ) external view override returns (uint256) {
-        return _transformVotes(voter, votes, _getTotalSupply(), getVotesRatio(voter));
+        return _transformVotes(voter, votes, _getTotalPower(), getVotesRatio(voter));
     }
 
-    function transformVotes(
+    function transformVotesFull(
         address voter,
         uint256 votes,
         uint256 personalPower,
@@ -72,7 +82,7 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
             _transformVotes(
                 voter,
                 votes,
-                _getTotalSupply(),
+                _getTotalPower(),
                 _getVotesRatio(personalPower, micropoolPower, treasuryPower)
             );
     }
@@ -103,10 +113,10 @@ contract PolynomialPower is IVotePower, OwnableUpgradeable {
             );
     }
 
-    function _getTotalSupply() internal view returns (uint256) {
+    function _getTotalPower() internal view returns (uint256) {
         (, address userKeeper, , , ) = IGovPool(payable(owner())).getHelperContracts();
 
-        return IGovUserKeeper(userKeeper).getTotalVoteWeight();
+        return IGovUserKeeper(userKeeper).getTotalPower();
     }
 
     function _forHolders(uint256 votes, uint256 totalSupply) internal view returns (uint256) {

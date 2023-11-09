@@ -2,14 +2,12 @@ const { assert } = require("chai");
 const { toBN, accounts } = require("../../scripts/utils/utils");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
-const { ZERO_ADDR } = require("../../scripts/utils/constants");
 const { impersonate } = require("../helpers/impersonator");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const ERC1967Proxy = artifacts.require("ERC1967Proxy");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC20MockUpgraded = artifacts.require("ERC20MockUpgraded");
-const ProtectedTransparentProxy = artifacts.require("ProtectedTransparentProxy");
 const SphereXEngineMock = artifacts.require("SphereXEngineMock");
 const SphereXCalleeMock = artifacts.require("SphereXCalleeMock");
 
@@ -36,7 +34,7 @@ describe("ContractsRegistry", () => {
     sphereXEngine = await SphereXEngineMock.new();
     sphereXCallee = await SphereXCalleeMock.new();
 
-    await contractsRegistry.__OwnableContractsRegistry_init();
+    await contractsRegistry.__MultiOwnableContractsRegistry_init();
 
     await reverter.snapshot();
   });
@@ -52,7 +50,7 @@ describe("ContractsRegistry", () => {
 
       proxyRegistry = await ContractsRegistry.at((await ERC1967Proxy.new(implementation.address, "0x")).address);
 
-      await proxyRegistry.__OwnableContractsRegistry_init();
+      await proxyRegistry.__MultiOwnableContractsRegistry_init();
     });
 
     it("should upgrade if all conditions are met", async () => {
@@ -62,7 +60,7 @@ describe("ContractsRegistry", () => {
     it("should not upgrade if caller is not the owner", async () => {
       await truffleAssert.reverts(
         proxyRegistry.upgradeTo(implementation.address, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
     });
   });
@@ -82,8 +80,19 @@ describe("ContractsRegistry", () => {
       assert.isFalse(await contractsRegistry.hasContract(await contractsRegistry.USD_NAME()));
     });
 
+    it("should not add proxy contract without engine", async () => {
+      const _USD = await ERC20Mock.new("USD", "USD", 18);
+
+      await truffleAssert.reverts(
+        contractsRegistry.addProxyContract(await contractsRegistry.USD_NAME(), _USD.address),
+        "ContractsRegistry: this mapping doesn't exist"
+      );
+    });
+
     it("should add and remove the proxy contract", async () => {
       const _USD = await ERC20Mock.new("USD", "USD", 18);
+
+      await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), sphereXEngine.address);
 
       await contractsRegistry.addProxyContract(await contractsRegistry.USD_NAME(), _USD.address);
 
@@ -96,6 +105,8 @@ describe("ContractsRegistry", () => {
 
     it("should just add and remove the proxy contract", async () => {
       const _DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
+
+      await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), sphereXEngine.address);
 
       await contractsRegistry.addProxyContract(await contractsRegistry.DEXE_NAME(), _DEXE.address);
 
@@ -122,6 +133,8 @@ describe("ContractsRegistry", () => {
     beforeEach("setup", async () => {
       _USD = await ERC20Mock.new("USD", "USD", 18);
       _USD2 = await ERC20MockUpgraded.new("USD", "USD", 18);
+
+      await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), sphereXEngine.address);
 
       await contractsRegistry.addProxyContract(await contractsRegistry.USD_NAME(), _USD.address);
 
@@ -162,11 +175,13 @@ describe("ContractsRegistry", () => {
 
   describe("SphereX", () => {
     let sphereXCalleeProxy;
-    let transparentProxy;
     let protectedMethodSelector;
+    let NAME;
 
     beforeEach(async () => {
       protectedMethodSelector = web3.eth.abi.encodeFunctionSignature("protectedMethod()");
+
+      await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), sphereXEngine.address);
 
       await contractsRegistry.addProxyContract(await contractsRegistry.USER_REGISTRY_NAME(), sphereXCallee.address);
       await contractsRegistry.addProxyContract(await contractsRegistry.POOL_FACTORY_NAME(), sphereXCallee.address);
@@ -175,25 +190,30 @@ describe("ContractsRegistry", () => {
       await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), sphereXCallee.address);
       await contractsRegistry.addProxyContract(await contractsRegistry.CORE_PROPERTIES_NAME(), sphereXCallee.address);
 
+      NAME = await contractsRegistry.USER_REGISTRY_NAME();
+
       sphereXCalleeProxy = await SphereXCalleeMock.at(await contractsRegistry.getUserRegistryContract());
-      transparentProxy = await ProtectedTransparentProxy.at(sphereXCalleeProxy.address);
 
       await impersonate(contractsRegistry.address);
     });
 
     it("should protect when sphereXEngine and selector are on", async () => {
-      await contractsRegistry.setSphereXEngine(sphereXEngine.address);
-      await transparentProxy.addProtectedFuncSigs([protectedMethodSelector], { from: contractsRegistry.address });
+      await contractsRegistry.toggleSphereXEngine(true);
+      await contractsRegistry.protectContractFunctions(NAME, [protectedMethodSelector]);
 
       await truffleAssert.passes(sphereXCalleeProxy.protectedMethod());
 
       await sphereXEngine.toggleRevert();
 
       await truffleAssert.reverts(sphereXCalleeProxy.protectedMethod(), "SphereXEngineMock: malicious tx");
+
+      await contractsRegistry.unprotectContractFunctions(NAME, [protectedMethodSelector]);
+
+      await sphereXCalleeProxy.protectedMethod();
     });
 
     it("should not protect when selector is off", async () => {
-      await contractsRegistry.setSphereXEngine(sphereXEngine.address);
+      await contractsRegistry.toggleSphereXEngine(true);
 
       await sphereXEngine.toggleRevert();
 
@@ -201,19 +221,29 @@ describe("ContractsRegistry", () => {
     });
 
     it("should not protect when sphereXEngine is off", async () => {
-      await contractsRegistry.setSphereXEngine(sphereXEngine.address);
-      await contractsRegistry.setSphereXEngine(ZERO_ADDR);
-      await transparentProxy.addProtectedFuncSigs([protectedMethodSelector], { from: contractsRegistry.address });
+      await contractsRegistry.toggleSphereXEngine(true);
+      await contractsRegistry.toggleSphereXEngine(false);
+      await contractsRegistry.protectContractFunctions(NAME, [protectedMethodSelector]);
 
       await sphereXEngine.toggleRevert();
 
       await truffleAssert.passes(sphereXCalleeProxy.protectedMethod());
     });
 
-    it("should not set engine if not an operator", async () => {
+    it("should not work with engine if not an owner", async () => {
       await truffleAssert.reverts(
-        contractsRegistry.setSphereXEngine(sphereXEngine.address, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        contractsRegistry.toggleSphereXEngine(true, { from: SECOND }),
+        "MultiOwnable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        contractsRegistry.protectContractFunctions(NAME, [protectedMethodSelector], { from: SECOND }),
+        "MultiOwnable: caller is not the owner"
+      );
+
+      await truffleAssert.reverts(
+        contractsRegistry.unprotectContractFunctions(NAME, [protectedMethodSelector], { from: SECOND }),
+        "MultiOwnable: caller is not the owner"
       );
     });
   });

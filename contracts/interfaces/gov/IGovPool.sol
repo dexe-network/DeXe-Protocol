@@ -86,7 +86,6 @@ interface IGovPool {
     /// @param votesAgainst the total number of votes against the proposal from all voters
     /// @param rawVotesFor the total number of votes for the proposal from all voters before the formula
     /// @param rawVotesAgainst the total number of votes against the proposal from all voters before the formula
-    /// @param nftPowerSnapshotId the id of nft power snapshot
     /// @param givenRewards the amount of rewards payable after the proposal execution
     struct ProposalCore {
         IGovSettings.ProposalSettings settings;
@@ -97,7 +96,6 @@ interface IGovPool {
         uint256 votesAgainst;
         uint256 rawVotesFor;
         uint256 rawVotesAgainst;
-        uint256 nftPowerSnapshotId;
         uint256 givenRewards;
     }
 
@@ -140,10 +138,12 @@ interface IGovPool {
     /// @notice The struct that holds information about the typed vote (only for internal needs)
     /// @param tokensVoted the total erc20 amount voted from one user for the proposal before the formula
     /// @param totalVoted the total power of typed votes from one user for the proposal before the formula
+    /// @param nftsAmount the amount of nfts participating in the vote
     /// @param nftsVoted the set of ids of nfts voted from one user for the proposal
     struct RawVote {
         uint256 tokensVoted;
         uint256 totalVoted;
+        uint256 nftsAmount;
         EnumerableSet.UintSet nftsVoted;
     }
 
@@ -187,13 +187,11 @@ interface IGovPool {
 
     /// @notice The struct that holds information about the delegator (only for internal needs)
     /// @param delegationTimes the list of timestamps when delegated amount was changed
-    /// @param nftIds lists of delegated nfts in corresponding timestamps
-    /// @param tokenAmounts the list of delegated token amounts in corresponding timestamps
+    /// @param delegationPowers the list of delegated assets powers
     /// @param isClaimed matching proposals ids with flags indicating whether rewards have been claimed
     struct DelegatorInfo {
         uint256[] delegationTimes;
-        uint256[][] nftIds;
-        uint256[] tokenAmounts;
+        uint256[] delegationPowers;
         mapping(uint256 => bool) isClaimed;
     }
 
@@ -315,9 +313,6 @@ interface IGovPool {
         returns (address nftMultiplier, address expertNft, address dexeExpertNft, address babt);
 
     /// @notice Create proposal
-    /// @notice For internal proposal, last executor should be `GovSetting` contract
-    /// @notice For typed proposal, last executor should be typed contract
-    /// @notice For external proposal, any configuration of addresses and bytes
     /// @param descriptionURL IPFS url to the proposal's description
     /// @param actionsOnFor the array of structs with information about actions on for step
     /// @param actionsOnAgainst the array of structs with information about actions on against step
@@ -325,6 +320,20 @@ interface IGovPool {
         string calldata descriptionURL,
         ProposalAction[] calldata actionsOnFor,
         ProposalAction[] calldata actionsOnAgainst
+    ) external;
+
+    /// @notice Create and vote for on the proposal
+    /// @param descriptionURL IPFS url to the proposal's description
+    /// @param actionsOnFor the array of structs with information about actions on for step
+    /// @param actionsOnAgainst the array of structs with information about actions on against step
+    /// @param voteAmount the erc20 vote amount
+    /// @param voteNftIds the nft ids that will be used in voting
+    function createProposalAndVote(
+        string calldata descriptionURL,
+        ProposalAction[] calldata actionsOnFor,
+        ProposalAction[] calldata actionsOnAgainst,
+        uint256 voteAmount,
+        uint256[] calldata voteNftIds
     ) external;
 
     /// @notice Move proposal from internal voting to `Validators` contract
@@ -550,8 +559,12 @@ interface IGovPool {
 
     /// @notice The function to get the sign hash from string resultsHash, chainid, govPool address
     /// @param resultsHash the ipfs hash
+    /// @param user the user who requests the signature
     /// @return bytes32 hash
-    function getOffchainSignHash(string calldata resultsHash) external view returns (bytes32);
+    function getOffchainSignHash(
+        string calldata resultsHash,
+        address user
+    ) external view returns (bytes32);
 
     /// @notice The function to get expert status of a voter
     /// @return address of a person, who votes

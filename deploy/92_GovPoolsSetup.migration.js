@@ -1,28 +1,5 @@
-const Proxy = artifacts.require("ERC1967Proxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
-
 const PoolRegistry = artifacts.require("PoolRegistry");
-
-const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
-const GovPoolCreateLib = artifacts.require("GovPoolCreate");
-const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
-const GovPoolMicropoolLib = artifacts.require("GovPoolMicropool");
-const GovPoolRewardsLib = artifacts.require("GovPoolRewards");
-const GovPoolUnlockLib = artifacts.require("GovPoolUnlock");
-const GovPoolVoteLib = artifacts.require("GovPoolVote");
-const GovPoolViewLib = artifacts.require("GovPoolView");
-const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
-const GovPoolCreditLib = artifacts.require("GovPoolCredit");
-const TokenSaleProposalCreateLib = artifacts.require("TokenSaleProposalCreate");
-const TokenSaleProposalBuyLib = artifacts.require("TokenSaleProposalBuy");
-const TokenSaleProposalVestingLib = artifacts.require("TokenSaleProposalVesting");
-const TokenSaleProposalWhitelistLib = artifacts.require("TokenSaleProposalWhitelist");
-const TokenSaleProposalClaimLib = artifacts.require("TokenSaleProposalClaim");
-const TokenSaleProposalRecoverLib = artifacts.require("TokenSaleProposalRecover");
-const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
-const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
-const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
-
 const GovPool = artifacts.require("GovPool");
 const GovSettings = artifacts.require("GovSettings");
 const GovValidators = artifacts.require("GovValidators");
@@ -34,80 +11,20 @@ const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const LinearPower = artifacts.require("LinearPower");
 const PolynomialPower = artifacts.require("PolynomialPower");
 
-async function linkGovPool(deployer) {
-  await deployer.deploy(GovPoolCreateLib);
-  await deployer.deploy(GovPoolExecuteLib);
-  await deployer.deploy(GovPoolMicropoolLib);
-  await deployer.deploy(GovPoolRewardsLib);
-  await deployer.deploy(GovPoolUnlockLib);
-  await deployer.deploy(GovPoolVoteLib);
-  await deployer.deploy(GovPoolViewLib);
-  await deployer.deploy(GovPoolOffchainLib);
-  await deployer.deploy(GovPoolCreditLib);
+module.exports = async (deployer) => {
+  const contractsRegistry = await deployer.deployed(ContractsRegistry, "proxy");
 
-  await deployer.link(GovPoolCreateLib, GovPool);
-  await deployer.link(GovPoolExecuteLib, GovPool);
-  await deployer.link(GovPoolMicropoolLib, GovPool);
-  await deployer.link(GovPoolRewardsLib, GovPool);
-  await deployer.link(GovPoolUnlockLib, GovPool);
-  await deployer.link(GovPoolVoteLib, GovPool);
-  await deployer.link(GovPoolViewLib, GovPool);
-  await deployer.link(GovPoolOffchainLib, GovPool);
-  await deployer.link(GovPoolCreditLib, GovPool);
-}
+  const poolRegistry = await deployer.deployed(PoolRegistry, await contractsRegistry.getPoolRegistryContract());
 
-async function linkGovUserKeeper(deployer) {
-  await deployer.deploy(GovUserKeeperViewLib);
-
-  await deployer.link(GovUserKeeperViewLib, GovUserKeeper);
-}
-
-async function linkTokenSaleProposal(deployer) {
-  await deployer.deploy(TokenSaleProposalCreateLib);
-  await deployer.deploy(TokenSaleProposalBuyLib);
-  await deployer.deploy(TokenSaleProposalVestingLib);
-  await deployer.deploy(TokenSaleProposalWhitelistLib);
-  await deployer.deploy(TokenSaleProposalClaimLib);
-  await deployer.deploy(TokenSaleProposalRecoverLib);
-
-  await deployer.link(TokenSaleProposalCreateLib, TokenSaleProposal);
-  await deployer.link(TokenSaleProposalBuyLib, TokenSaleProposal);
-  await deployer.link(TokenSaleProposalVestingLib, TokenSaleProposal);
-  await deployer.link(TokenSaleProposalWhitelistLib, TokenSaleProposal);
-  await deployer.link(TokenSaleProposalClaimLib, TokenSaleProposal);
-  await deployer.link(TokenSaleProposalRecoverLib, TokenSaleProposal);
-}
-
-async function linkGovValidators(deployer) {
-  await deployer.deploy(GovValidatorsCreateLib);
-  await deployer.deploy(GovValidatorsVoteLib);
-  await deployer.deploy(GovValidatorsExecuteLib);
-
-  await deployer.link(GovValidatorsCreateLib, GovValidators);
-  await deployer.link(GovValidatorsVoteLib, GovValidators);
-  await deployer.link(GovValidatorsExecuteLib, GovValidators);
-}
-
-module.exports = async (deployer, logger) => {
-  const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
-
-  const poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
-
-  await linkGovPool(deployer);
   const govPool = await deployer.deploy(GovPool);
-
-  await linkGovValidators(deployer);
   const govValidators = await deployer.deploy(GovValidators);
-
-  await linkGovUserKeeper(deployer);
   const govUserKeeper = await deployer.deploy(GovUserKeeper);
 
-  await linkTokenSaleProposal(deployer);
   const tokenSaleProposal = await deployer.deploy(TokenSaleProposal);
-
   const distributionProposal = await deployer.deploy(DistributionProposal);
+
   const govSettings = await deployer.deploy(GovSettings);
-  const expertNft = await deployer.deploy(ERC721Expert);
+  const expertNft = await deployer.deploy(ERC721Expert, { name: "LocalExpert" });
   const nftMultiplier = await deployer.deploy(ERC721Multiplier);
   const linearPower = await deployer.deploy(LinearPower);
   const polynomialPower = await deployer.deploy(PolynomialPower);
@@ -123,33 +40,30 @@ module.exports = async (deployer, logger) => {
   const linearPowerName = await poolRegistry.LINEAR_POWER_NAME();
   const polynomialPowerName = await poolRegistry.POLYNOMIAL_POWER_NAME();
 
-  logger.logTransaction(
-    await poolRegistry.setNewImplementations(
-      [
-        govPoolName,
-        govSettingsName,
-        govValidatorsName,
-        govUserKeeperName,
-        distributionProposalName,
-        tokenSaleProposalName,
-        expertNftName,
-        nftMultiplierName,
-        linearPowerName,
-        polynomialPowerName,
-      ],
-      [
-        govPool.address,
-        govSettings.address,
-        govValidators.address,
-        govUserKeeper.address,
-        distributionProposal.address,
-        tokenSaleProposal.address,
-        expertNft.address,
-        nftMultiplier.address,
-        linearPower.address,
-        polynomialPower.address,
-      ]
-    ),
-    "Set GovPools implementations"
+  await poolRegistry.setNewImplementations(
+    [
+      govPoolName,
+      govSettingsName,
+      govValidatorsName,
+      govUserKeeperName,
+      distributionProposalName,
+      tokenSaleProposalName,
+      expertNftName,
+      nftMultiplierName,
+      linearPowerName,
+      polynomialPowerName,
+    ],
+    [
+      govPool.address,
+      govSettings.address,
+      govValidators.address,
+      govUserKeeper.address,
+      distributionProposal.address,
+      tokenSaleProposal.address,
+      expertNft.address,
+      nftMultiplier.address,
+      linearPower.address,
+      polynomialPower.address,
+    ]
   );
 };

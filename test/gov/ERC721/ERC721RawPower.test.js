@@ -7,13 +7,13 @@ const { ZERO_ADDR, PERCENTAGE_100 } = require("../../../scripts/utils/constants"
 const Reverter = require("../../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
-const ERC721Power = artifacts.require("ERC721PowerMock");
+const ERC721RawPower = artifacts.require("ERC721RawPowerMock");
 const ERC20Mock = artifacts.require("ERC20Mock");
 
-ERC721Power.numberFormat = "BigNumber";
+ERC721RawPower.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 
-describe("ERC721Power", () => {
+describe("ERC721RawPower", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -27,16 +27,17 @@ describe("ERC721Power", () => {
 
   const reverter = new Reverter();
 
-  const deployNft = async function (startTime, maxPower, reductionPercent, requiredCollateral) {
+  const deployNft = async function (startTime, reductionPercent, nftMaxRawPower, nftRequiredCollateral) {
     token = await ERC20Mock.new("Mock", "Mock", 18);
-    await nft.__ERC721Power_init(
+
+    await nft.__ERC721RawPower_init(
       "NFTMock",
       "NFTM",
       startTime,
       token.address,
-      maxPower,
       reductionPercent,
-      requiredCollateral
+      nftMaxRawPower,
+      nftRequiredCollateral
     );
 
     await token.mint(SECOND, DEFAULT_AMOUNT);
@@ -54,7 +55,7 @@ describe("ERC721Power", () => {
 
     startTime = await getCurrentBlockTime();
 
-    nft = await ERC721Power.new();
+    nft = await ERC721RawPower.new();
 
     await reverter.snapshot();
   });
@@ -70,56 +71,60 @@ describe("ERC721Power", () => {
   describe("initialize", () => {
     it("should revert if the token address is zero", async () => {
       await truffleAssert.reverts(
-        nft.__ERC721Power_init("", "", startTime, ZERO_ADDR, "1", "2", "3"),
+        nft.__ERC721RawPower_init("", "", startTime, ZERO_ADDR, "1", "2", "3"),
         "ERC721Power: zero address"
       );
     });
 
     it("should revert if the max power is zero", async () => {
       await truffleAssert.reverts(
-        nft.__ERC721Power_init("", "", startTime, NOTHING, "0", "2", "3"),
+        nft.__ERC721RawPower_init("", "", startTime, NOTHING, "2", "0", "3"),
         "ERC721Power: max power can't be zero"
       );
     });
 
     it("should revert if the reduction percent is zero", async () => {
       await truffleAssert.reverts(
-        nft.__ERC721Power_init("", "", startTime, NOTHING, "1", "0", "3"),
+        nft.__ERC721RawPower_init("", "", startTime, NOTHING, "0", "1", "3"),
         "ERC721Power: reduction percent can't be zero"
       );
     });
 
     it("should revert if the reduction percent >= 100%", async () => {
       await truffleAssert.reverts(
-        nft.__ERC721Power_init("", "", startTime, NOTHING, "1", PERCENTAGE_100, "3"),
+        nft.__ERC721RawPower_init("", "", startTime, NOTHING, PERCENTAGE_100, "1", "3"),
         "ERC721Power: reduction can't be 100%"
       );
     });
 
     it("should revert if the required collateral is zero", async () => {
       await truffleAssert.reverts(
-        nft.__ERC721Power_init("", "", startTime, NOTHING, "1", "2", "0"),
+        nft.__ERC721RawPower_init("", "", startTime, NOTHING, "1", "2", "0"),
         "ERC721Power: required collateral amount can't be zero"
       );
     });
 
     it("should initialize properly if all conditions are met", async () => {
-      await nft.__ERC721Power_init("", "", startTime, NOTHING, "1", "2", "3");
+      await nft.__ERC721RawPower_init("", "", startTime, NOTHING, "1", "2", "3");
 
-      assert.equal(await nft.powerCalcStartTimestamp(), startTime);
+      assert.equal(toBN(await nft.powerCalcStartTimestamp()).toFixed(), startTime);
       assert.equal(await nft.collateralToken(), NOTHING);
-      assert.equal(await nft.maxPower(), "1");
-      assert.equal(await nft.reductionPercent(), "2");
-      assert.equal(await nft.requiredCollateral(), "3");
+      assert.equal(toBN(await nft.reductionPercent()).toFixed(), "1");
+      assert.equal(toBN(await nft.nftMaxRawPower()).toFixed(), "2");
+      assert.equal(toBN(await nft.nftRequiredCollateral()).toFixed(), "3");
     });
 
     it("should not initialize twice", async () => {
-      await nft.__ERC721Power_init("", "", startTime, NOTHING, "1", "2", "3");
+      await nft.__ERC721RawPower_init("", "", startTime, NOTHING, "1", "2", "3");
 
       await truffleAssert.reverts(
-        nft.__ERC721Power_init("", "", startTime, NOTHING, "1", "2", "3"),
+        nft.__ERC721RawPower_init("", "", startTime, NOTHING, "1", "2", "3"),
         "Initializable: contract is already initialized"
       );
+    });
+
+    it("should not initialize if non-initializing", async () => {
+      await truffleAssert.reverts(nft.mockInit(), "Initializable: contract is not initializing");
     });
   });
 
@@ -130,15 +135,12 @@ describe("ERC721Power", () => {
       });
 
       it("only owner should call these functions", async () => {
-        await truffleAssert.reverts(nft.setNftMaxPower(1, 1, { from: SECOND }), "Ownable: caller is not the owner");
-
+        await truffleAssert.reverts(nft.setNftMaxRawPower(1, 1, { from: SECOND }), "Ownable: caller is not the owner");
         await truffleAssert.reverts(
           nft.setNftRequiredCollateral(1, 1, { from: SECOND }),
           "Ownable: caller is not the owner"
         );
-
         await truffleAssert.reverts(nft.mint(OWNER, 1, "URI", { from: SECOND }), "Ownable: caller is not the owner");
-
         await truffleAssert.reverts(nft.setTokenURI(1, "", { from: SECOND }), "Ownable: caller is not the owner");
       });
     });
@@ -149,21 +151,21 @@ describe("ERC721Power", () => {
       });
 
       it("should support these interfaces", async () => {
-        assert.isTrue(await nft.supportsInterface("0xcf72ef58"));
+        assert.isTrue(await nft.supportsInterface("0x24b96d42"));
         assert.isTrue(await nft.supportsInterface("0x780e9d63"));
       });
     });
 
     describe("totalPower()", () => {
       beforeEach(async () => {
-        await deployNft(startTime + 1000, toPercent("90"), toPercent("0.01"), "540");
+        await deployNft(startTime + 1000, toPercent("0.01"), toPercent("90"), "540");
       });
 
       it("should be zero if no minted nfts", async () => {
-        await nft.setNftMaxPower("1337", "1");
-        await nft.setNftMaxPower("1337000", "2");
+        await nft.setNftMaxRawPower("1337", "1");
+        await nft.setNftMaxRawPower("1337000", "2");
 
-        assert.equal(await nft.totalPower(), "0");
+        assert.equal(toBN(await nft.totalPower()).toFixed(), "0");
       });
 
       describe("after nfts minting", () => {
@@ -174,32 +176,33 @@ describe("ERC721Power", () => {
         });
 
         it("should return proper total power", async () => {
-          assert.equal((await nft.totalPower()).toFixed(), toPercent("90").times(3).toFixed());
+          assert.equal(toBN(await nft.totalPower()).toFixed(), toPercent("90").times(3).toFixed());
         });
 
         it("should not change totalPower if power was set to an nft which does not exist", async () => {
-          await nft.setNftMaxPower(toPercent("100"), 4);
+          await nft.setNftMaxRawPower(toPercent("100"), 4);
 
-          assert.equal((await nft.totalPower()).toFixed(), toPercent("90").times(3).toFixed());
+          assert.equal(toBN(await nft.totalPower()).toFixed(), toPercent("90").times(3).toFixed());
         });
 
-        it("should change total power if setNftMaxPower was called", async () => {
-          await nft.setNftMaxPower(toPercent("100"), 1);
-          await nft.setNftMaxPower("1337", 2);
+        it("should change total power if setNftMaxRawPower was called", async () => {
+          await nft.setNftMaxRawPower(toPercent("100"), 1);
+          await nft.setNftMaxRawPower("1337", 2);
 
           assert.equal(
-            (await nft.totalPower()).toFixed(),
+            toBN(await nft.totalPower()).toFixed(),
             toPercent("90").plus(toPercent("100")).plus("1337").toFixed()
           );
         });
 
         it("should recalculate total power when nft is being transferred and startTimestamp is reached", async () => {
           await setTime(startTime + 1000);
+
           await nft.transferFrom(SECOND, THIRD, 1, { from: SECOND });
 
-          assert.equal((await nft.getNftPower(1)).toFixed(), toPercent("89.991").toFixed());
+          assert.equal(toBN(await nft.getNftPower(1)).toFixed(), toPercent("89.991").toFixed());
           assert.equal(
-            (await nft.totalPower()).toFixed(),
+            toBN(await nft.totalPower()).toFixed(),
             toPercent("90").times(2).plus(toPercent("89.991")).toFixed()
           );
         });
@@ -207,13 +210,13 @@ describe("ERC721Power", () => {
         it("should not recalculate total power when nft is being transferred and startTimestamp is not reached", async () => {
           await nft.transferFrom(SECOND, THIRD, 1, { from: SECOND });
 
-          assert.equal((await nft.getNftPower(1)).toFixed(), toPercent("0").toFixed());
-          assert.equal((await nft.totalPower()).toFixed(), toPercent("90").times(3).toFixed());
+          assert.equal(toBN(await nft.getNftPower(1)).toFixed(), toPercent("0").toFixed());
+          assert.equal(toBN(await nft.totalPower()).toFixed(), toPercent("90").times(3).toFixed());
         });
       });
     });
 
-    describe("setNftMaxPower()", () => {
+    describe("setNftMaxRawPower()", () => {
       beforeEach(async () => {
         await deployNft(startTime + 1000, "1", "1", "1");
       });
@@ -221,20 +224,40 @@ describe("ERC721Power", () => {
       it("should correctly set max power", async () => {
         await setTime(startTime + 100);
 
-        await nft.setNftMaxPower("10", "1");
+        await nft.setNftMaxRawPower("10", "1");
 
-        assert.equal((await nft.nftInfos("1")).maxPower, "10");
-        assert.equal(await nft.getMaxPowerForNft(1), "10");
+        assert.equal(toBN((await nft.getNftInfo("1")).maxPower).toFixed(), "0");
+        assert.equal(toBN((await nft.getNftInfo("1")).rawInfo.maxRawPower).toFixed(), "10");
+        assert.equal(toBN(await nft.getNftMaxPower(1)).toFixed(), "0");
       });
 
       it("should revert if try to set max power to zero", async () => {
         await setTime(startTime + 200);
-        await truffleAssert.reverts(nft.setNftMaxPower("0", "1"), "ERC721Power: max power can't be zero");
+
+        await truffleAssert.reverts(nft.setNftMaxRawPower("0", "1"), "ERC721Power: max power can't be zero");
       });
 
       it("should revert if try to set max power for nft after calculation start", async () => {
         await setTime(startTime + 999);
-        await truffleAssert.reverts(nft.setNftMaxPower("10", "1"), "ERC721Power: power calculation already begun");
+
+        await truffleAssert.reverts(nft.setNftMaxRawPower("10", "1"), "ERC721Power: power calculation already begun");
+      });
+    });
+
+    describe("getNftMinPower()", () => {
+      beforeEach(async () => {
+        await deployNft(startTime + 1000, "1", wei("100"), wei("500"));
+        await nft.mint(SECOND, 1, "URI");
+      });
+
+      it("should return correct min power", async () => {
+        assert.equal((await nft.getNftMinPower(1)).toFixed(), "0");
+
+        await nft.addCollateral(wei("250"), "1", { from: SECOND });
+
+        await setTime((await getCurrentBlockTime()) + 1000);
+
+        assert.equal((await nft.getNftMinPower(1)).toFixed(), wei("50"));
       });
     });
 
@@ -248,8 +271,8 @@ describe("ERC721Power", () => {
 
         await nft.setNftRequiredCollateral("100", "1");
 
-        assert.equal((await nft.nftInfos("1")).requiredCollateral, "100");
-        assert.equal(await nft.getRequiredCollateralForNft(1), "100");
+        assert.equal(toBN((await nft.getNftInfo("1")).rawInfo.requiredCollateral).toFixed(), "100");
+        assert.equal(toBN(await nft.getNftRequiredCollateral(1)).toFixed(), "100");
       });
 
       it("should revert if try to set required collateral amount for nft to zero", async () => {
@@ -263,6 +286,7 @@ describe("ERC721Power", () => {
 
       it("should revert if try to set required collateral amount after calculation start", async () => {
         await setTime(startTime + 999);
+
         await truffleAssert.reverts(
           nft.setNftRequiredCollateral("10", "1"),
           "ERC721Power: power calculation already begun"
@@ -279,14 +303,13 @@ describe("ERC721Power", () => {
         await setTime(startTime + 100);
 
         assert.equal(await nft.totalSupply(), "0");
-
         assert.equal(await nft.totalPower(), "0");
 
         await nft.mint(SECOND, 1, "URI1");
 
-        assert.equal(await nft.totalSupply(), "1");
+        assert.equal(toBN(await nft.totalSupply()).toFixed(), "1");
         assert.equal(await nft.ownerOf("1"), SECOND);
-        assert.equal(await nft.totalPower(), "1");
+        assert.equal(toBN(await nft.totalPower()).toFixed(), "1");
         assert.equal(await nft.tokenURI(1), "URI1");
       });
 
@@ -312,9 +335,9 @@ describe("ERC721Power", () => {
       });
     });
 
-    describe("recalculateNftPower()", () => {
+    describe("recalculateNftPowers()", () => {
       beforeEach(async () => {
-        await deployNft(startTime + 1000, toPercent("90"), toPercent("0.01"), "540");
+        await deployNft(startTime + 1000, toPercent("0.01"), toPercent("90"), "540");
 
         await nft.mint(SECOND, 1, "URI1");
         await nft.mint(SECOND, 2, "URI2");
@@ -324,38 +347,46 @@ describe("ERC721Power", () => {
       it("should correctly recalculate nft power", async () => {
         await setTime(startTime + 900);
 
-        await nft.recalculateNftPower("1");
+        await nft.recalculateNftPowers(["1"]);
 
-        let infos = await nft.nftInfos("1");
-        assert.equal(infos.lastUpdate, "0");
-        assert.equal(infos.currentPower, "0");
-        assert.equal(infos.currentCollateral, "0");
-        assert.equal((await nft.totalPower()).toFixed(), toPercent("90").times(3).toFixed());
+        let infos = await nft.getNftInfo("1");
+        assert.equal(toBN(infos.rawInfo.lastUpdate).toFixed(), "0");
+        assert.equal(toBN(infos.rawInfo.currentRawPower).toFixed(), "0");
+        assert.equal(toBN(infos.currentPower).toFixed(), "0");
+        assert.equal(toBN(infos.rawInfo.currentCollateral).toFixed(), "0");
+        assert.equal(toBN(await nft.totalPower()).toFixed(), toPercent("90").times(3).toFixed());
 
         await setTime(startTime + 1000);
-        await nft.recalculateNftPower("1");
+        await nft.recalculateNftPowers(["1"]);
 
-        infos = await nft.nftInfos("1");
-        assert.equal(infos.lastUpdate.toFixed(), startTime + 1001);
+        infos = await nft.getNftInfo("1");
+        assert.equal(toBN(infos.rawInfo.lastUpdate).toFixed(), startTime + 1001);
+        assert.equal(toBN(infos.rawInfo.currentRawPower).toFixed(), toPercent("89.991").toFixed());
         assert.equal(toBN(infos.currentPower).toFixed(), toPercent("89.991").toFixed());
-        assert.equal(infos.currentCollateral.toFixed(), "0");
-        assert.equal((await nft.totalPower()).toFixed(), toPercent("90").times(2).plus(toPercent("89.991")).toFixed());
+        assert.equal(toBN(infos.rawInfo.currentCollateral).toFixed(), "0");
+        assert.equal(
+          toBN(await nft.totalPower()).toFixed(),
+          toPercent("90").times(2).plus(toPercent("89.991")).toFixed()
+        );
 
         await setTime(startTime + 2000);
-        await nft.recalculateNftPower("1");
+        await nft.recalculateNftPowers(["1"]);
 
-        infos = await nft.nftInfos("1");
-        assert.equal(infos.lastUpdate.toFixed(), startTime + 2001);
+        infos = await nft.getNftInfo("1");
+        assert.equal(toBN(infos.rawInfo.lastUpdate).toFixed(), startTime + 2001);
         assert.equal(toBN(infos.currentPower).toFixed(), toPercent("80.991").toFixed());
-        assert.equal(infos.currentCollateral.toFixed(), "0");
-        assert.equal((await nft.totalPower()).toFixed(), toPercent("90").times(2).plus(toPercent("80.991")).toFixed());
+        assert.equal(toBN(infos.rawInfo.currentCollateral).toFixed(), "0");
+        assert.equal(
+          toBN(await nft.totalPower()).toFixed(),
+          toPercent("90").times(2).plus(toPercent("80.991")).toFixed()
+        );
       });
 
       it("should not recalculate non-existing NFT power", async () => {
         let power = await nft.getNftPower(1337);
 
         await setTime(startTime + 900);
-        await nft.recalculateNftPower(1337);
+        await nft.recalculateNftPowers([1337]);
 
         assert.equal(toBN(power).toFixed(), "0");
         assert.equal(toBN(power).toFixed(), toBN(await nft.getNftPower(1337)).toFixed());
@@ -364,38 +395,39 @@ describe("ERC721Power", () => {
 
     describe("addCollateral()", () => {
       beforeEach(async () => {
-        await deployNft(startTime + 1000, toPercent("110"), toPercent("0.01"), wei("500"));
+        await deployNft(startTime + 1000, toPercent("0.01"), toPercent("110"), wei("500"));
         await nft.mint(SECOND, 1, "URI");
       });
 
       it("should add collateral", async () => {
         await setTime(startTime + 900);
+
         await nft.addCollateral(wei("200"), "1", { from: SECOND });
         await nft.addCollateral(wei("200"), "1", { from: SECOND });
 
-        assert.equal(await token.balanceOf(nft.address), wei("400"));
-        assert.equal((await nft.nftInfos("1")).currentCollateral.toFixed(), wei("400"));
+        assert.equal(toBN(await token.balanceOf(nft.address)).toFixed(), wei("400"));
+        assert.equal(toBN((await nft.getNftInfo("1")).rawInfo.currentCollateral).toFixed(), wei("400"));
       });
 
       it("should recalculate nft power", async () => {
         await setTime(startTime + 1000);
         await nft.addCollateral(wei("200"), "1", { from: SECOND });
 
-        const infos = await nft.nftInfos("1");
+        const infos = await nft.getNftInfo("1");
 
-        assert.equal(infos.lastUpdate.toFixed(), startTime + 1001);
-        assert.equal(infos.currentCollateral.toFixed(), wei("200"));
+        assert.equal(toBN(infos.rawInfo.lastUpdate).toFixed(), startTime + 1001);
+        assert.equal(toBN(infos.rawInfo.currentCollateral).toFixed(), wei("200"));
       });
 
       it("nft power should not decrease", async () => {
         await setTime(startTime + 1000);
         await nft.addCollateral(wei("500"), "1", { from: SECOND });
 
-        let power = (await nft.nftInfos("1")).currentPower.toFixed();
+        let power = toBN((await nft.getNftInfo("1")).currentPower).toFixed();
 
         await setTime(startTime + 2000);
 
-        assert.equal((await nft.nftInfos("1")).currentPower.toFixed(), power);
+        assert.equal(toBN((await nft.getNftInfo("1")).currentPower).toFixed(), power);
       });
 
       it("should revert if try to add collateral from not a nft owner", async () => {
@@ -415,21 +447,22 @@ describe("ERC721Power", () => {
 
     describe("removeCollateral()", () => {
       beforeEach(async () => {
-        await deployNft(startTime + 1000, toPercent("110"), toPercent("0.01"), wei("500"));
+        await deployNft(startTime + 1000, toPercent("0.01"), toPercent("110"), wei("500"));
 
         await nft.mint(SECOND, 1, "URI");
       });
 
       it("should remove collateral", async () => {
         await setTime(startTime + 900);
-        await nft.addCollateral(wei("200"), "1", { from: SECOND });
 
+        await nft.addCollateral(wei("200"), "1", { from: SECOND });
         await nft.removeCollateral(wei("150"), "1", { from: SECOND });
 
         assert.equal((await token.balanceOf(nft.address)).toFixed(), wei("50"));
         assert.equal(toBN(await token.balanceOf(SECOND)).toFixed(), toBN(DEFAULT_AMOUNT).minus(wei("50")).toFixed());
 
         await nft.removeCollateral(wei("50"), "1", { from: SECOND });
+
         await truffleAssert.reverts(
           nft.removeCollateral(wei("1"), "1", { from: SECOND }),
           "ERC721Power: wrong collateral amount"
@@ -442,11 +475,11 @@ describe("ERC721Power", () => {
         await setTime(startTime + 1000);
         await nft.removeCollateral(wei("100"), "1", { from: SECOND });
 
-        const infos = await nft.nftInfos("1");
+        const infos = await nft.getNftInfo("1");
 
-        assert.equal(infos.lastUpdate.toFixed(), startTime + 1001);
-        assert.equal(infos.currentPower.toFixed(), toPercent("109.989").toFixed());
-        assert.equal(infos.currentCollateral.toFixed(), wei("100"));
+        assert.equal(toBN(infos.rawInfo.lastUpdate).toFixed(), startTime + 1001);
+        assert.equal(toBN(infos.currentPower).toFixed(), toPercent("109.989").toFixed());
+        assert.equal(toBN(infos.rawInfo.currentCollateral).toFixed(), wei("100"));
       });
 
       it("should decrease power slightly", async () => {
@@ -455,11 +488,11 @@ describe("ERC721Power", () => {
 
         await nft.removeCollateral(wei("1"), "1", { from: SECOND });
 
-        assert.equal((await nft.nftInfos("1")).currentPower.toFixed(), toPercent("110").toFixed());
+        assert.equal(toBN((await nft.getNftInfo("1")).currentPower).toFixed(), toPercent("110").toFixed());
 
-        await nft.recalculateNftPower("1");
+        await nft.recalculateNftPowers(["1"]);
 
-        assert.equal((await nft.nftInfos("1")).currentPower.toFixed(), toPercent("109.989").toFixed());
+        assert.equal(toBN((await nft.getNftInfo("1")).currentPower).toFixed(), toPercent("109.989").toFixed());
       });
 
       it("should not increase power", async () => {
@@ -469,11 +502,11 @@ describe("ERC721Power", () => {
 
         await nft.addCollateral(wei("200"), "1", { from: SECOND });
 
-        assert.equal((await nft.nftInfos("1")).currentPower.toFixed(), toPercent("87.989").toFixed());
+        assert.equal(toBN((await nft.getNftInfo("1")).currentPower).toFixed(), toPercent("87.989").toFixed());
 
-        await nft.recalculateNftPower("1");
+        await nft.recalculateNftPowers(["1"]);
 
-        assert.equal((await nft.nftInfos("1")).currentPower.toFixed(), toPercent("87.989").toFixed());
+        assert.equal(toBN((await nft.getNftInfo("1")).currentPower).toFixed(), toPercent("87.989").toFixed());
       });
 
       it("should revert if try to remove collateral from not a nft owner", async () => {

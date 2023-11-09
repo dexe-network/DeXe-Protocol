@@ -9,6 +9,7 @@ const UniswapPathFinderLib = artifacts.require("UniswapPathFinder");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const UniswapV3QuoterMock = artifacts.require("UniswapV3QuoterMock");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const SphereXEngineMock = artifacts.require("SphereXEngineMock");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PriceFeed.numberFormat = "BigNumber";
@@ -51,8 +52,11 @@ describe("PriceFeed", () => {
     USD = await ERC20Mock.new("USD", "USD", 18);
     uniswapV2Router = await UniswapV2RouterMock.new();
     uniswapV3Quoter = await UniswapV3QuoterMock.new();
+    const _sphereXEngine = await SphereXEngineMock.new();
 
-    await contractsRegistry.__OwnableContractsRegistry_init();
+    await contractsRegistry.__MultiOwnableContractsRegistry_init();
+
+    await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
 
     await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), _priceFeed.address);
 
@@ -83,12 +87,12 @@ describe("PriceFeed", () => {
     it("only owner should call these methods", async () => {
       await truffleAssert.reverts(
         priceFeed.addPathTokens([USD.address], { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(
         priceFeed.removePathTokens([USD.address], { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(

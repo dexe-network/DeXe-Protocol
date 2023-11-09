@@ -1,23 +1,17 @@
-const config = require("./config/config.json");
+const config = require("./config/utils.js").getConfig();
 
-const Proxy = artifacts.require("ERC1967Proxy");
 const ContractsRegistry = artifacts.require("ContractsRegistry");
-
 const PriceFeed = artifacts.require("PriceFeed");
 const UserRegistry = artifacts.require("UserRegistry");
 
-module.exports = async (deployer, logger) => {
-  const contractsRegistry = await ContractsRegistry.at((await Proxy.deployed()).address);
+module.exports = async (deployer) => {
+  const contractsRegistry = await deployer.deployed(ContractsRegistry, "proxy");
 
-  const priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
-  const userRegistry = await UserRegistry.at(await contractsRegistry.getUserRegistryContract());
+  const priceFeed = await deployer.deployed(PriceFeed, await contractsRegistry.getPriceFeedContract());
+  const userRegistry = await deployer.deployed(UserRegistry, await contractsRegistry.getUserRegistryContract());
 
   let pathAddresses = [config.tokens.WBNB, config.tokens.USDT, config.tokens.BUSD];
 
-  logger.logTransaction(await priceFeed.addPathTokens(pathAddresses), "Add supported path tokens");
-
-  logger.logTransaction(
-    await userRegistry.setPrivacyPolicyDocumentHash(config.userRegistry.documentHash),
-    "Add document hash"
-  );
+  await priceFeed.addPathTokens(pathAddresses);
+  await userRegistry.setPrivacyPolicyDocumentHash(config.DOCUMENT_HASH);
 };
