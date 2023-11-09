@@ -1,6 +1,6 @@
 const { Reporter } = require("@solarity/hardhat-migrate");
 
-const { PRECISION } = require("../scripts/utils/constants");
+const config = require("./config/utils.js").getConfig();
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const UserRegistry = artifacts.require("UserRegistry");
@@ -10,14 +10,6 @@ const DexeExpertNft = artifacts.require("ERC721Expert");
 const PoolFactory = artifacts.require("PoolFactory");
 const PoolRegistry = artifacts.require("PoolRegistry");
 const SphereXEngine = artifacts.require("SphereXEngine");
-
-const DEFAULT_CORE_PROPERTIES = {
-  govVotesLimit: 50,
-  govCommissionPercentage: PRECISION.times(30).toFixed(),
-  tokenSaleProposalCommissionPercentage: PRECISION.toFixed(),
-  micropoolVoteRewardsPercentage: PRECISION.times(20).toFixed(),
-  treasuryVoteRewardsPercentage: PRECISION.times(1.618).toFixed(),
-};
 
 module.exports = async (deployer) => {
   const contractsRegistry = await deployer.deployed(ContractsRegistry, "proxy");
@@ -41,7 +33,7 @@ module.exports = async (deployer) => {
   ////////////////////////////////////////////////////////////
 
   await userRegistry.__UserRegistry_init(await contractsRegistry.USER_REGISTRY_NAME());
-  await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
+  await coreProperties.__CoreProperties_init(config.DEFAULT_CORE_PROPERTIES);
 
   await priceFeed.__PriceFeed_init();
 

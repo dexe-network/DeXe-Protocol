@@ -1,3 +1,19 @@
+const getConfig = () => {
+  if (process.env.ENVIRONMENT == "PROD") {
+    return require("./configs/prod.conf.js");
+  }
+
+  if (process.env.ENVIRONMENT == "STAGE") {
+    return require("./configs/stage.conf.js");
+  }
+
+  if (process.env.ENVIRONMENT == "DEV") {
+    return require("./configs/dev.conf.js");
+  }
+
+  throw Error("No environment config specified");
+};
+
 const getBytesPolynomialPowerInit = (k1, k2, k3) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -23,5 +39,6 @@ const getBytesPolynomialPowerInit = (k1, k2, k3) => {
 };
 
 module.exports = {
+  getConfig,
   getBytesPolynomialPowerInit,
 };

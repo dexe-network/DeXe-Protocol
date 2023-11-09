@@ -1,4 +1,4 @@
-const config = require("./config/config.json");
+const config = require("./config/utils.js").getConfig();
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
