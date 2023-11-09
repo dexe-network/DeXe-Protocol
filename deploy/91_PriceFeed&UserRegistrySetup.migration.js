@@ -1,4 +1,4 @@
-const config = require("./config/config.json");
+const config = require("./config/utils.js").getConfig();
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PriceFeed = artifacts.require("PriceFeed");
@@ -13,5 +13,5 @@ module.exports = async (deployer) => {
   let pathAddresses = [config.tokens.WBNB, config.tokens.USDT, config.tokens.BUSD];
 
   await priceFeed.addPathTokens(pathAddresses);
-  await userRegistry.setPrivacyPolicyDocumentHash(config.userRegistry.documentHash);
+  await userRegistry.setPrivacyPolicyDocumentHash(config.DOCUMENT_HASH);
 };

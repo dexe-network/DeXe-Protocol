@@ -1,6 +1,7 @@
 const { Reporter } = require("@solarity/hardhat-migrate");
 
-const config = require("./config/config.json");
+const config = require("./config/utils.js").getConfig();
+
 const { accounts } = require("../scripts/utils/utils");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
