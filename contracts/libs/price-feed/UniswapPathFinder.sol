@@ -58,8 +58,7 @@ library UniswapPathFinder {
             );
 
             if (exactIn ? currentAmount > bestAmount : currentAmount < bestAmount) {
-                bestAmount = currentAmount;
-                foundPath = foundPath2;
+                (bestAmount, foundPath) = (currentAmount, foundPath2);
             }
         }
 
@@ -78,8 +77,7 @@ library UniswapPathFinder {
             );
 
             if (exactIn ? currentAmount > bestAmount : currentAmount < bestAmount) {
-                bestAmount = currentAmount;
-                foundPath = foundPath3;
+                (bestAmount, foundPath) = (currentAmount, foundPath3);
             }
         }
 
@@ -90,8 +88,7 @@ library UniswapPathFinder {
                 exactIn
             );
             if (exactIn ? currentAmount > bestAmount : currentAmount < bestAmount) {
-                bestAmount = currentAmount;
-                foundPath = customPath;
+                (bestAmount, foundPath) = (currentAmount, customPath);
             }
         }
 
@@ -129,10 +126,7 @@ library UniswapPathFinder {
         uint256 amount,
         bool exactIn
     ) internal returns (IPriceFeed.SwapPath memory, uint256) {
-        IPriceFeed.SwapPath memory foundPath;
-
-        foundPath.path = providedPath.path;
-        foundPath.poolTypes = providedPath.poolTypes;
+        IPriceFeed.SwapPath memory foundPath = providedPath;
 
         uint256 len = providedPath.path.length;
         for (uint i = exactIn ? 1 : len - 1; exactIn ? i < len : i > 0; exactIn ? i++ : i--) {
