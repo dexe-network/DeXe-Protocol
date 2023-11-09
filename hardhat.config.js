@@ -44,6 +44,7 @@ module.exports = {
       url: "https://data-seed-prebsc-1-s1.binance.org:8545",
       accounts: privateKey(),
       gasMultiplier: 1.2,
+      gasPrice: 6000000000,
       timeout: 600000,
     },
     bsc: {

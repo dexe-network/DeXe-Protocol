@@ -22,8 +22,6 @@ const GovSettings = artifacts.require("GovSettings");
 const GovValidators = artifacts.require("GovValidators");
 const DistributionProposal = artifacts.require("DistributionProposal");
 const TokenSaleProposal = artifacts.require("TokenSaleProposal");
-const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
-const UniswapV3QuoterMock = artifacts.require("UniswapV3QuoterMock");
 const PoolFactory = artifacts.require("PoolFactory");
 const GovTokenDeployerLib = artifacts.require("GovTokenDeployer");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
@@ -57,8 +55,6 @@ GovPool.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 GovSettings.numberFormat = "BigNumber";
 GovValidators.numberFormat = "BigNumber";
-UniswapV2RouterMock.numberFormat = "BigNumber";
-UniswapV3QuoterMock.numberFormat = "BigNumber";
 PoolFactory.numberFormat = "BigNumber";
 DistributionProposal.numberFormat = "BigNumber";
 TokenSaleProposal.numberFormat = "BigNumber";
@@ -171,7 +167,6 @@ describe("PoolFactory", () => {
 
     await sphereXEngine.grantRole(await sphereXEngine.SENDER_ADDER_ROLE(), poolFactory.address);
 
-    await priceFeed.__PriceFeed_init();
     await poolRegistry.__MultiOwnablePoolContractsRegistry_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
 
