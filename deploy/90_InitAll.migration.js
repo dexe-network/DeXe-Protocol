@@ -1,3 +1,5 @@
+const config = require("./config/config.json");
+
 const { PRECISION } = require("../scripts/utils/constants");
 
 const Proxy = artifacts.require("ERC1967Proxy");
@@ -44,7 +46,19 @@ module.exports = async (deployer, logger) => {
   );
 
   logger.logTransaction(await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES), "Init CoreProperties");
-  logger.logTransaction(await priceFeed.__PriceFeed_init(), "Init PriceFeed");
+
+  const DEFAULT_POOL_TYPES = [
+    ["0", config.uniswapV2.router, "0"],
+    ["1", config.uniswapV3.quoter, "100"],
+    ["1", config.uniswapV3.quoter, "500"],
+    ["1", config.uniswapV3.quoter, "2500"],
+    ["1", config.uniswapV3.quoter, "10000"],
+  ];
+
+  logger.logTransaction(
+    await priceFeed.__PriceFeed_init(config.tokens.DEXE, config.tokens.USD, DEFAULT_POOL_TYPES),
+    "Init PriceFeed"
+  );
 
   logger.logTransaction(await expertNft.__ERC721Expert_init("Dexe Expert Nft", "DEXEXPNFT"), "Init ERC721Expert");
 
@@ -53,11 +67,6 @@ module.exports = async (deployer, logger) => {
   ////////////////////////////////////////////////////////////
 
   console.log();
-
-  logger.logTransaction(
-    await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME()),
-    "Inject PriceFeed"
-  );
 
   logger.logTransaction(
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_FACTORY_NAME()),

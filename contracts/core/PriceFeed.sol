@@ -19,7 +19,7 @@ import "../libs/price-feed/UniswapPathFinder.sol";
 
 import "../core/Globals.sol";
 
-contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
+contract PriceFeed is IPriceFeed, OwnableUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
     using DecimalsConverter for *;
     using SetHelper for EnumerableSet.AddressSet;
@@ -32,20 +32,17 @@ contract PriceFeed is IPriceFeed, OwnableUpgradeable, AbstractDependant {
 
     EnumerableSet.AddressSet internal _pathTokens;
 
-    function __PriceFeed_init(PoolType[] calldata poolTypes) external initializer {
+    function __PriceFeed_init(
+        address dexeAddress,
+        address usdAddress,
+        PoolType[] calldata poolTypes
+    ) external initializer {
         __Ownable_init();
 
+        _usdAddress = usdAddress;
+        _dexeAddress = dexeAddress;
+
         _setPoolTypes(poolTypes);
-    }
-
-    function setDependencies(
-        address contractsRegistry,
-        bytes memory
-    ) public virtual override dependant {
-        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
-
-        _usdAddress = registry.getUSDContract();
-        _dexeAddress = registry.getDEXEContract();
     }
 
     function addPathTokens(address[] calldata pathTokens) external override onlyOwner {

@@ -6,8 +6,10 @@
     "documentHash": "0xdcf5635e2f38018583c7faa2aebd3361ed82c67c59c6a54de06b19181a596210"
   },
   "uniswapV2": {
-    "router": "0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3",
-    "factory": "0xb7926c0430afb07aa7defde6da862ae0bde767bc"
+    "router": "0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3"
+  },
+  "uniswapV3": {
+    "quoter": "0xbC203d7f83677c7ed3F7acEc959963E7F4ECC5C2"
   },
   "tokens": {
     "DEXE": "0xa651EdBbF77e1A2678DEfaE08A33c5004b491457",

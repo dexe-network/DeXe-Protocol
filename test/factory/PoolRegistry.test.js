@@ -83,10 +83,13 @@ describe("PoolRegistry", () => {
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
 
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
-    await priceFeed.__PriceFeed_init([["0", uniswapV2Router.address, "0"]]);
+    await priceFeed.__PriceFeed_init(
+      await contractsRegistry.getDEXEContract(),
+      await contractsRegistry.getUSDContract(),
+      [["0", uniswapV2Router.address, "0"]]
+    );
     await poolRegistry.__OwnablePoolContractsRegistry_init();
 
-    await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
     await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
 

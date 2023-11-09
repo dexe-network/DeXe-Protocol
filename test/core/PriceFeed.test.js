@@ -56,9 +56,6 @@ describe("PriceFeed", () => {
 
     await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), _priceFeed.address);
 
-    await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
-    await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
-
     priceFeed = await PriceFeed.at(await contractsRegistry.getPriceFeedContract());
 
     defaultPoolTypes = [
@@ -68,9 +65,7 @@ describe("PriceFeed", () => {
       ["1", uniswapV3Quoter.address, "10000"],
     ];
 
-    await priceFeed.__PriceFeed_init(defaultPoolTypes);
-
-    await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
+    await priceFeed.__PriceFeed_init(DEXE.address, USD.address, defaultPoolTypes);
 
     await reverter.snapshot();
   });
@@ -79,11 +74,10 @@ describe("PriceFeed", () => {
 
   describe("access", () => {
     it("should not initialize twice", async () => {
-      await truffleAssert.reverts(priceFeed.__PriceFeed_init([]), "Initializable: contract is already initialized");
-    });
-
-    it("should not set dependencies from non dependant", async () => {
-      await truffleAssert.reverts(priceFeed.setDependencies(OWNER, "0x"), "Dependant: not an injector");
+      await truffleAssert.reverts(
+        priceFeed.__PriceFeed_init(DEXE.address, USD.address, defaultPoolTypes),
+        "Initializable: contract is already initialized"
+      );
     });
 
     it("only owner should call these methods", async () => {
