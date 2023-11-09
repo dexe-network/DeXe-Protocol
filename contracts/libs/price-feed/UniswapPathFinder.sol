@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
@@ -51,7 +51,7 @@ library UniswapPathFinder {
             path2[0] = tokenIn;
             path2[1] = tokenOut;
 
-            (IPriceFeed.SwapPath memory foundPath2, uint currentAmount) = _calculatePathResults(
+            (IPriceFeed.SwapPath memory foundPath2, uint256 currentAmount) = _calculatePathResults(
                 amount,
                 path2,
                 exactIn
@@ -70,7 +70,7 @@ library UniswapPathFinder {
             path3[1] = pathTokens.at(i);
             path3[2] = tokenOut;
 
-            (IPriceFeed.SwapPath memory foundPath3, uint currentAmount) = _calculatePathResults(
+            (IPriceFeed.SwapPath memory foundPath3, uint256 currentAmount) = _calculatePathResults(
                 amount,
                 path3,
                 exactIn
@@ -82,11 +82,10 @@ library UniswapPathFinder {
         }
 
         if (_verifyProvidedPath(tokenIn, tokenOut, providedPath)) {
-            (IPriceFeed.SwapPath memory customPath, uint currentAmount) = _calculateProvidedPath(
-                providedPath,
-                amount,
-                exactIn
-            );
+            (
+                IPriceFeed.SwapPath memory customPath,
+                uint256 currentAmount
+            ) = _calculateProvidedPath(providedPath, amount, exactIn);
             if (exactIn ? currentAmount > bestAmount : currentAmount < bestAmount) {
                 (bestAmount, foundPath) = (currentAmount, customPath);
             }
@@ -109,16 +108,16 @@ library UniswapPathFinder {
             providedPath.path[0] != tokenIn ||
             providedPath.path[providedPath.path.length - 1] != tokenOut
         ) {
-            verified = false;
-        } else {
-            verified = true;
+            return false;
         }
 
         for (uint i = 0; i < providedPath.poolTypes.length; i++) {
             if (providedPath.poolTypes[i] > IPriceFeed(address(this)).getPoolTypesLength() - 1) {
-                verified = false;
+                return false;
             }
         }
+
+        return true;
     }
 
     function _calculateProvidedPath(
@@ -129,7 +128,7 @@ library UniswapPathFinder {
         IPriceFeed.SwapPath memory foundPath = providedPath;
 
         uint256 len = providedPath.path.length;
-        for (uint i = exactIn ? 1 : len - 1; exactIn ? i < len : i > 0; exactIn ? i++ : i--) {
+        for (uint256 i = exactIn ? 1 : len - 1; exactIn ? i < len : i > 0; exactIn ? i++ : i--) {
             amount = _calculateSingleSwap(
                 amount,
                 foundPath.path[i - 1],
@@ -157,7 +156,7 @@ library UniswapPathFinder {
         foundPath.poolTypes = new uint8[](len - 1);
         foundPath.path = path;
 
-        for (uint i = exactIn ? 1 : len - 1; exactIn ? i < len : i > 0; exactIn ? i++ : i--) {
+        for (uint256 i = exactIn ? 1 : len - 1; exactIn ? i < len : i > 0; exactIn ? i++ : i--) {
             (amount, foundPath.poolTypes[i - 1]) = _findBestHop(
                 amount,
                 foundPath.path[i - 1],
@@ -241,8 +240,7 @@ library UniswapPathFinder {
         path[1] = tokenOut;
 
         try swapFunction(amount, path) returns (uint256[] memory amounts) {
-            uint256 index = exactIn ? 1 : 0;
-            return amounts[index];
+            return amounts[exactIn ? 1 : 0];
         } catch {
             return exactIn ? 0 : type(uint256).max;
         }
