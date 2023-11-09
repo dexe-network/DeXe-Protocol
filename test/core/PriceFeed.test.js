@@ -13,7 +13,6 @@ const SphereXEngineMock = artifacts.require("SphereXEngineMock");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PriceFeed.numberFormat = "BigNumber";
-UniswapPathFinderLib.numberFormat = "BigNumber";
 UniswapV2RouterMock.numberFormat = "BigNumber";
 UniswapV3QuoterMock.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
@@ -56,6 +55,8 @@ describe("PriceFeed", () => {
 
     await contractsRegistry.__MultiOwnableContractsRegistry_init();
 
+    await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
+    await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
     await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
 
     await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), _priceFeed.address);
@@ -69,7 +70,9 @@ describe("PriceFeed", () => {
       ["1", uniswapV3Quoter.address, "10000"],
     ];
 
-    await priceFeed.__PriceFeed_init(DEXE.address, USD.address, defaultPoolTypes);
+    await priceFeed.__PriceFeed_init(defaultPoolTypes);
+
+    await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
 
     await reverter.snapshot();
   });
@@ -79,9 +82,13 @@ describe("PriceFeed", () => {
   describe("access", () => {
     it("should not initialize twice", async () => {
       await truffleAssert.reverts(
-        priceFeed.__PriceFeed_init(DEXE.address, USD.address, defaultPoolTypes),
+        priceFeed.__PriceFeed_init(defaultPoolTypes),
         "Initializable: contract is already initialized"
       );
+    });
+
+    it("should not set dependencies from non dependant", async () => {
+      await truffleAssert.reverts(priceFeed.setDependencies(OWNER, "0x"), "Dependant: not an injector");
     });
 
     it("only owner should call these methods", async () => {
@@ -126,6 +133,7 @@ describe("PriceFeed", () => {
     it("initializes pool types properly", async () => {
       assert.deepEqual(await priceFeed.getPoolTypes(), defaultPoolTypes);
     });
+
     it("could set new pool types", async () => {
       const newPoolTypes = [["1", uniswapV3Quoter.address, "100"]];
       await priceFeed.setPoolTypes(newPoolTypes);

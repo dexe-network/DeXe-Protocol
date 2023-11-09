@@ -8,18 +8,12 @@ import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
 import "@solarity/solidity-lib/libs/arrays/SetHelper.sol";
 import "@solarity/solidity-lib/libs/utils/DecimalsConverter.sol";
 
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
-
 import "../interfaces/core/IPriceFeed.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
 import "../libs/price-feed/UniswapPathFinder.sol";
 
-import "../core/Globals.sol";
-
-contract PriceFeed is IPriceFeed, MultiOwnable {
+contract PriceFeed is IPriceFeed, MultiOwnable, AbstractDependant {
     using EnumerableSet for EnumerableSet.AddressSet;
     using DecimalsConverter for *;
     using SetHelper for EnumerableSet.AddressSet;
@@ -32,17 +26,20 @@ contract PriceFeed is IPriceFeed, MultiOwnable {
 
     EnumerableSet.AddressSet internal _pathTokens;
 
-    function __PriceFeed_init(
-        address dexeAddress,
-        address usdAddress,
-        PoolType[] calldata poolTypes
-    ) external initializer {
+    function __PriceFeed_init(PoolType[] calldata poolTypes) external initializer {
         __MultiOwnable_init();
 
-        _usdAddress = usdAddress;
-        _dexeAddress = dexeAddress;
-
         _setPoolTypes(poolTypes);
+    }
+
+    function setDependencies(
+        address contractsRegistry,
+        bytes memory
+    ) public virtual override dependant {
+        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
+
+        _usdAddress = registry.getUSDContract();
+        _dexeAddress = registry.getDEXEContract();
     }
 
     function addPathTokens(address[] calldata pathTokens) external override onlyOwner {
@@ -209,7 +206,8 @@ contract PriceFeed is IPriceFeed, MultiOwnable {
         assembly {
             sstore(_poolTypes.slot, 0)
         }
-        for (uint i = 0; i < poolTypes.length; i++) {
+
+        for (uint256 i = 0; i < poolTypes.length; i++) {
             _poolTypes.push(poolTypes[i]);
         }
     }

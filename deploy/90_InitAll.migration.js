@@ -33,20 +33,10 @@ module.exports = async (deployer) => {
   ////////////////////////////////////////////////////////////
 
   await userRegistry.__UserRegistry_init(await contractsRegistry.USER_REGISTRY_NAME());
+
   await coreProperties.__CoreProperties_init(config.DEFAULT_CORE_PROPERTIES);
 
-  const DEFAULT_POOL_TYPES = [
-    ["0", config.uniswapV2.router, "0"],
-    ["1", config.uniswapV3.quoter, "100"],
-    ["1", config.uniswapV3.quoter, "500"],
-    ["1", config.uniswapV3.quoter, "2500"],
-    ["1", config.uniswapV3.quoter, "10000"],
-  ];
-
-  logger.logTransaction(
-    await priceFeed.__PriceFeed_init(config.tokens.DEXE, config.tokens.BUSD, DEFAULT_POOL_TYPES),
-    "Init PriceFeed"
-  );
+  await priceFeed.__PriceFeed_init(config.DEFAULT_POOL_TYPES);
 
   await expertNft.__ERC721Expert_init("DeXe Protocol Global Expert NFT", "DPGEXPNFT");
 

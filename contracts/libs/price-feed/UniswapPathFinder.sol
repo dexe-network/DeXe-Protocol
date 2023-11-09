@@ -41,10 +41,11 @@ library UniswapPathFinder {
         bool exactIn,
         IPriceFeed.SwapPath calldata providedPath
     ) internal returns (IPriceFeed.SwapPath memory foundPath, uint256 bestAmount) {
-        bestAmount = exactIn ? 0 : type(uint256).max;
         if (amount == 0) {
             return (foundPath, 0);
         }
+
+        bestAmount = exactIn ? 0 : type(uint256).max;
 
         {
             address[] memory path2 = new address[](2);
@@ -52,8 +53,8 @@ library UniswapPathFinder {
             path2[1] = tokenOut;
 
             (IPriceFeed.SwapPath memory foundPath2, uint256 currentAmount) = _calculatePathResults(
-                amount,
                 path2,
+                amount,
                 exactIn
             );
 
@@ -71,8 +72,8 @@ library UniswapPathFinder {
             path3[2] = tokenOut;
 
             (IPriceFeed.SwapPath memory foundPath3, uint256 currentAmount) = _calculatePathResults(
-                amount,
                 path3,
+                amount,
                 exactIn
             );
 
@@ -81,11 +82,12 @@ library UniswapPathFinder {
             }
         }
 
-        if (_verifyProvidedPath(tokenIn, tokenOut, providedPath)) {
+        if (_verifyProvidedPath(providedPath, tokenIn, tokenOut)) {
             (
                 IPriceFeed.SwapPath memory customPath,
                 uint256 currentAmount
             ) = _calculateProvidedPath(providedPath, amount, exactIn);
+
             if (exactIn ? currentAmount > bestAmount : currentAmount < bestAmount) {
                 (bestAmount, foundPath) = (currentAmount, customPath);
             }
@@ -94,40 +96,17 @@ library UniswapPathFinder {
         if (!exactIn && bestAmount == type(uint256).max) {
             bestAmount = 0;
         }
+
         return (foundPath, bestAmount);
     }
 
-    function _verifyProvidedPath(
-        address tokenIn,
-        address tokenOut,
-        IPriceFeed.SwapPath calldata providedPath
-    ) internal view returns (bool verified) {
-        if (
-            providedPath.path.length < 3 ||
-            providedPath.path.length != providedPath.poolTypes.length + 1 ||
-            providedPath.path[0] != tokenIn ||
-            providedPath.path[providedPath.path.length - 1] != tokenOut
-        ) {
-            return false;
-        }
-
-        for (uint i = 0; i < providedPath.poolTypes.length; i++) {
-            if (providedPath.poolTypes[i] > IPriceFeed(address(this)).getPoolTypesLength() - 1) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     function _calculateProvidedPath(
-        IPriceFeed.SwapPath calldata providedPath,
+        IPriceFeed.SwapPath memory foundPath,
         uint256 amount,
         bool exactIn
     ) internal returns (IPriceFeed.SwapPath memory, uint256) {
-        IPriceFeed.SwapPath memory foundPath = providedPath;
+        uint256 len = foundPath.path.length;
 
-        uint256 len = providedPath.path.length;
         for (uint256 i = exactIn ? 1 : len - 1; exactIn ? i < len : i > 0; exactIn ? i++ : i--) {
             amount = _calculateSingleSwap(
                 amount,
@@ -136,6 +115,7 @@ library UniswapPathFinder {
                 foundPath.poolTypes[i - 1],
                 exactIn
             );
+
             if (amount == (exactIn ? 0 : type(uint256).max)) {
                 return (foundPath, amount);
             }
@@ -145,12 +125,13 @@ library UniswapPathFinder {
     }
 
     function _calculatePathResults(
-        uint256 amount,
         address[] memory path,
+        uint256 amount,
         bool exactIn
     ) internal returns (IPriceFeed.SwapPath memory, uint256) {
         IPriceFeed.SwapPath memory foundPath;
         uint256 len = path.length;
+
         assert(len >= 2);
 
         foundPath.poolTypes = new uint8[](len - 1);
@@ -163,6 +144,7 @@ library UniswapPathFinder {
                 foundPath.path[i],
                 exactIn
             );
+
             if (foundPath.poolTypes[i - 1] == NO_POOL) {
                 return (foundPath, amount);
             }
@@ -179,6 +161,7 @@ library UniswapPathFinder {
     ) internal returns (uint256 amountAfterHop, uint8 poolType) {
         (amountAfterHop, poolType) = (exactIn ? 0 : type(uint256).max, NO_POOL);
         uint256 swapTypeLength = IPriceFeed(address(this)).getPoolTypesLength();
+
         for (uint8 currentPoolType = 0; currentPoolType < swapTypeLength; currentPoolType++) {
             uint256 swappedAmount = _calculateSingleSwap(
                 amount,
@@ -187,6 +170,7 @@ library UniswapPathFinder {
                 currentPoolType,
                 exactIn
             );
+
             if (exactIn ? swappedAmount > amountAfterHop : swappedAmount < amountAfterHop) {
                 (amountAfterHop, poolType) = (swappedAmount, currentPoolType);
             }
@@ -201,6 +185,7 @@ library UniswapPathFinder {
         bool exactIn
     ) internal returns (uint256) {
         IPriceFeed.PoolType[] memory swapTypes = IPriceFeed(address(this)).getPoolTypes();
+
         return
             swapTypes[poolType].poolType == IPriceFeed.PoolInterfaceType.UniswapV2Interface
                 ? _calculateSingleSwapV2(
@@ -228,6 +213,7 @@ library UniswapPathFinder {
         bool exactIn
     ) internal view returns (uint256) {
         IUniswapV2Router02 router = IUniswapV2Router02(routerAddress);
+
         function(uint256, address[] memory)
             external
             view
@@ -285,5 +271,28 @@ library UniswapPathFinder {
                 return type(uint256).max;
             }
         }
+    }
+
+    function _verifyProvidedPath(
+        IPriceFeed.SwapPath calldata providedPath,
+        address tokenIn,
+        address tokenOut
+    ) internal view returns (bool verified) {
+        if (
+            providedPath.path.length < 3 ||
+            providedPath.path.length != providedPath.poolTypes.length + 1 ||
+            providedPath.path[0] != tokenIn ||
+            providedPath.path[providedPath.path.length - 1] != tokenOut
+        ) {
+            return false;
+        }
+
+        for (uint256 i = 0; i < providedPath.poolTypes.length; i++) {
+            if (providedPath.poolTypes[i] > IPriceFeed(address(this)).getPoolTypesLength() - 1) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

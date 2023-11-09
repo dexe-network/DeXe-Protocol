@@ -16,7 +16,6 @@ ContractsRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 
 describe("ContractsRegistry", () => {
-  let OWNER;
   let SECOND;
 
   let contractsRegistry;
@@ -27,7 +26,6 @@ describe("ContractsRegistry", () => {
   const reverter = new Reverter();
 
   before("setup", async () => {
-    OWNER = await accounts(0);
     SECOND = await accounts(1);
 
     contractsRegistry = await ContractsRegistry.new();
