@@ -482,7 +482,7 @@ contract GovPool is
         return (
             core.rawVotesFor,
             core.rawVotesAgainst,
-            info.rawVotes[VoteType.PersonalVote].totalVoted,
+            info.rawVotes[voteType].totalVoted,
             info.isVoteFor
         );
     }
