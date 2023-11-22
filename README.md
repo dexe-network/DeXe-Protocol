@@ -1,8 +1,8 @@
+[![npm](https://img.shields.io/npm/v/@dexe-network/dexe-protocol.svg)](https://www.npmjs.com/package/@dexe-network/dexe-protocol)
+
 # DeXe Protocol
 
-**Join the DAOvolution with DeXe DAO Studio**
-
-Empower your vision, create and manage DAOs! Enhance governance and community interaction through one seamless interface!
+**Your gateway to next-gen governance, empowered by the strength of a decentralized community**
 
 ## Protocol Deployments
 
