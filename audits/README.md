@@ -1,6 +1,9 @@
 <div align="center">
-    <img src="https://github.com/dexe-network/DeXe-Protocol/blob/master/dexe_github_w.svg#gh-light-mode-only">
-    <img src="https://github.com/dexe-network/DeXe-Protocol/blob/master/dexe_github_b.svg#gh-dark-mode-only">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="/.github/dexe_github_b.svg">
+  <source media="(prefers-color-scheme: light)" srcset="/.github/dexe_github_w.svg">
+  <img alt="DeXe Protocol" src="/.github/dexe_github_w.svg">
+</picture>
 </div>
 
 # DeXe Protocol smart contracts audit reports
