@@ -1,12 +1,20 @@
 [![npm](https://img.shields.io/npm/v/@dexe-network/dexe-protocol.svg)](https://www.npmjs.com/package/@dexe-network/dexe-protocol)
 
+<div align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="/.github/dexe_github_b.svg">
+  <source media="(prefers-color-scheme: light)" srcset="/.github/dexe_github_w.svg">
+  <img alt="DeXe Protocol" src="/.github/dexe_github_w.svg">
+</picture>
+</div>
+
 # DeXe Protocol
 
-**Your gateway to next-gen governance, empowered by the strength of a decentralized community**
+The DeXe Protocol is an open-source library of smart contracts for building and governing effective DAOs. It’s a comprehensive and flexible infrastructure that allows building custom DAOs for any specific need, from straightforward to complex organizational structures.
 
 ## Protocol Deployments
 
-### Prod (BSC)
+### Production (BNB Chain)
 
 | Name              | Address                                    |
 | :---------------- | :----------------------------------------- |
@@ -22,7 +30,7 @@
 | SphereXEngine     | 0x41260f637a993ce714Ece1ee9875F489e483e9b3 |
 | PoolSphereXEngine | 0x4fa2092E32934Dd3823E58C79ceD0e410a5B0D4b |
 
-### Stage (BSC Testnet)
+### Stage (BNB Chain Testnet)
 
 | Name              | Address                                    |
 | :---------------- | :----------------------------------------- |
@@ -37,3 +45,15 @@
 | PoolRegistry      | 0xFEB26AAB75638440B3CEFe8B10de6118972f9C6B |
 | SphereXEngine     | 0x41260f637a993ce714Ece1ee9875F489e483e9b3 |
 | PoolSphereXEngine | 0x4fa2092E32934Dd3823E58C79ceD0e410a5B0D4b |
+
+## Audits and Security
+
+DeXe Protocol smart contracts have been audited by several external auditors, and the full reports are available on [this repository](https://github.com/dexe-network/DeXe-Protocol/tree/master/audits) or via the links provided below.
+
+### DeXe Protocol smart contracts audit reports
+
+#### [Certik](https://github.com/dexe-network/DeXe-Protocol/blob/master/audits/certik-2023-05-04.pdf)
+#### [Cyfrin](https://github.com/dexe-network/DeXe-Protocol/blob/master/audits/cyfrin-2023-11-10.pdf)
+#### [Hacken](https://github.com/dexe-network/DeXe-Protocol/blob/master/audits/hacken-2023-05-22.pdf)
+#### [Ambisafe](https://github.com/dexe-network/DeXe-Protocol/blob/master/audits/ambisafe-2023-07-18.pdf)
+#### [Ambisafe #2](https://github.com/dexe-network/DeXe-Protocol/blob/master/audits/ambisafe-2023-11-10.pdf)
