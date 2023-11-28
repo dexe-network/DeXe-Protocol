@@ -31,7 +31,6 @@
     "deploy-bsc": "npx hardhat migrate --network bsc --verify",
     "generate-types": "TYPECHAIN_FORCE=true npx hardhat typechain",
     "generate-gobinds": "npx hardhat gobind",
-    "generate-docs": "bash .docs/gen-docs.sh",
     "generate-markups": "npx hardhat markup",
     "lint-fix": "npm run lint-sol-fix && npm run lint-js-fix && npm run lint-json-fix",
     "lint-json-fix": "prettier --write \"./[a-zA-Z0-9.]+(?!-lock).json\"",
