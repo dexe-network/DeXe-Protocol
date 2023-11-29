@@ -5,7 +5,7 @@ const { PRECISION } = require("../../../scripts/utils/constants");
 const Reverter = require("../../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
-const DexeERC721Multiplier = artifacts.require("DexeERC721Multiplier");
+const DexeERC721Multiplier = artifacts.require("DexeERC721MultiplierMock");
 const GovPoolMock = artifacts.require("GovPoolMock");
 
 DexeERC721Multiplier.numberFormat = "BigNumber";

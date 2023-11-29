@@ -86,10 +86,6 @@ contract DexeERC721Multiplier is IDexeERC721Multiplier, AbstractERC721Multiplier
         multiplier = multiplier.max(PRECISION) - PRECISION;
     }
 
-    function getImplementation() external view returns (address) {
-        return _getImplementation();
-    }
-
     function _afterTokenUnlock(uint256 tokenId) internal override {
         super._afterTokenUnlock(tokenId);
 
