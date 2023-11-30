@@ -5,7 +5,8 @@ const { PRECISION } = require("../../../scripts/utils/constants");
 const Reverter = require("../../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
-const DexeERC721Multiplier = artifacts.require("DexeERC721Multiplier");
+const Proxy = artifacts.require("ERC1967Proxy");
+const DexeERC721Multiplier = artifacts.require("DexeERC721MultiplierMock");
 const GovPoolMock = artifacts.require("GovPoolMock");
 
 DexeERC721Multiplier.numberFormat = "BigNumber";
@@ -56,6 +57,30 @@ describe("DexeERC721Multiplier", () => {
         nft.__ERC721Multiplier_init(NFT_NAME, NFT_SYMBOL),
         "Initializable: contract is already initialized"
       );
+    });
+  });
+
+  describe("upgradeability", () => {
+    beforeEach(async () => {
+      const proxy = await Proxy.new(nft.address, "0x");
+      dexeNft = await DexeERC721Multiplier.at(proxy.address);
+
+      dexeNft.__ERC721Multiplier_init(NFT_NAME, NFT_SYMBOL);
+    });
+
+    it("correct implementation", async () => {
+      assert.equal(await dexeNft.getImplementation(), nft.address);
+    });
+
+    it("not owner cant upgrade", async () => {
+      await truffleAssert.reverts(dexeNft.upgradeTo(nft.address, { from: SECOND }), "Ownable: caller is not the owner");
+    });
+
+    it("could upgrade", async () => {
+      const nft1 = await DexeERC721Multiplier.new();
+      await dexeNft.upgradeTo(nft1.address);
+
+      assert.equal(await dexeNft.getImplementation(), nft1.address);
     });
   });
 

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../../../interfaces/gov/ERC721/multipliers/IDexeERC721Multiplier.sol";
@@ -9,7 +10,7 @@ import "../../../libs/math/MathHelper.sol";
 
 import "./AbstractERC721Multiplier.sol";
 
-contract DexeERC721Multiplier is IDexeERC721Multiplier, AbstractERC721Multiplier {
+contract DexeERC721Multiplier is IDexeERC721Multiplier, AbstractERC721Multiplier, UUPSUpgradeable {
     using MathHelper for uint256;
     using Math for uint256;
 
@@ -91,4 +92,6 @@ contract DexeERC721Multiplier is IDexeERC721Multiplier, AbstractERC721Multiplier
         _multiplierSlashing[tokenId] = (_multiplierSlashing[tokenId] +
             MULTIPLIER_SLASHING_PERCENTAGE).min(PERCENTAGE_100);
     }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
