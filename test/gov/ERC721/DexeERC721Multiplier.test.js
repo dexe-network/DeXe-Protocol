@@ -5,6 +5,7 @@ const { PRECISION } = require("../../../scripts/utils/constants");
 const Reverter = require("../../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 
+const Proxy = artifacts.require("ERC1967Proxy");
 const DexeERC721Multiplier = artifacts.require("DexeERC721MultiplierMock");
 const GovPoolMock = artifacts.require("GovPoolMock");
 
@@ -61,9 +62,9 @@ describe("DexeERC721Multiplier", () => {
 
   describe("upgradeability", () => {
     beforeEach(async () => {
-      const Proxy = artifacts.require("ERC1967Proxy");
       const proxy = await Proxy.new(nft.address, "0x");
       dexeNft = await DexeERC721Multiplier.at(proxy.address);
+
       dexeNft.__ERC721Multiplier_init(NFT_NAME, NFT_SYMBOL);
     });
 
@@ -78,6 +79,7 @@ describe("DexeERC721Multiplier", () => {
     it("could upgrade", async () => {
       const nft1 = await DexeERC721Multiplier.new();
       await dexeNft.upgradeTo(nft1.address);
+
       assert.equal(await dexeNft.getImplementation(), nft1.address);
     });
   });
