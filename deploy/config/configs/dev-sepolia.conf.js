@@ -7,15 +7,15 @@ const owners = ["0xEd498E75d471C3b874461a87Bb7146453CC8175A", "0xCa543e570e4A1F6
 
 const tokens = {
   DEXE: "0xc4ae9e07e4d78fc588d32ca7736c9ab8d8d6ef7a",
-  BUSD: "0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7",
-  USDT: "0x7ef95a0fee0dd31b22626fa2e10ee6a223f8a684",
+  BUSD: "0x7169D38820dfd117C3FA1f22a697dBA58d90BA06",
+  USDT: "0x6f14C02Fc1F78322cFd7d707aB90f18baD3B54f5",
   BABT: "0x0000000000000000000000000000000000000000",
-  WBNB: "0xae13d989dac2f0debff460ac112a837c89baa7cd",
+  WBNB: "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
 };
 
 const uniswap = {
-  router: "0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3",
-  quoter: "0xbC203d7f83677c7ed3F7acEc959963E7F4ECC5C2",
+  router: "0x8bc7BA2e98c660819f74eD4B4759689BBC6cB041",
+  quoter: "0xed1f6473345f45b75f8179591dd5ba1888cf2fb3",
 };
 
 const DEXE_DAO_NAME = "DeXe Protocol";
@@ -32,7 +32,6 @@ const DEFAULT_CORE_PROPERTIES = {
 
 const DEFAULT_POOL_TYPES = [
   ["0", uniswap.router, "0"],
-  ["1", uniswap.quoter, "100"],
   ["1", uniswap.quoter, "500"],
   ["1", uniswap.quoter, "2500"],
   ["1", uniswap.quoter, "10000"],
