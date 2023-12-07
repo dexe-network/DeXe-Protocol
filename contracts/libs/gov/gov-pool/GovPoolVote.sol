@@ -127,7 +127,8 @@ library GovPoolVote {
         require(_isVotingState(proposalId), "Gov: cancel unavailable");
 
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
-        IGovPool.VoteInfo storage voteInfo = userInfos[msg.sender].voteInfos[proposalId];
+        IGovPool.UserInfo storage userInfo = userInfos[msg.sender];
+        IGovPool.VoteInfo storage voteInfo = userInfo.voteInfos[proposalId];
 
         mapping(IGovPool.VoteType => IGovPool.RawVote) storage rawVotes = voteInfo.rawVotes;
         IGovPool.RawVote storage personalRawVote = rawVotes[IGovPool.VoteType.PersonalVote];
@@ -151,6 +152,8 @@ library GovPoolVote {
         }
 
         _updateGlobalState(core, userInfos, proposalId, msg.sender, voteInfo.isVoteFor);
+
+        userKeeper.updateMaxTokenLockedAmount(userInfo.votedInProposals.values(), msg.sender);
     }
 
     function _voteDelegated(
