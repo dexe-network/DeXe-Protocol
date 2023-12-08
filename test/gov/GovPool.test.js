@@ -2253,6 +2253,32 @@ describe("GovPool", () => {
         assert.equal((await govPool.getTotalVotes(1, OWNER, VoteType.PersonalVote))[0].toFixed(), "0");
       });
 
+      it("should cancel vote and withdraw", async () => {
+        await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
+
+        await govPool.vote(1, true, wei("100"), []);
+
+        let vote = await govPool.getUserVotes(1, OWNER, VoteType.PersonalVote);
+
+        assert.equal(vote.totalRawVoted, wei("100"));
+        assert.equal((await govPool.getTotalVotes(1, OWNER, VoteType.PersonalVote))[0].toFixed(), wei("100"));
+
+        await govPool.cancelVote(1);
+
+        vote = await govPool.getUserVotes(1, OWNER, VoteType.PersonalVote);
+        assert.equal(vote.totalRawVoted, "0");
+
+        const withdrawable = await govPool.getWithdrawableAssets(OWNER);
+
+        assert.equal(toBN(withdrawable.tokens).toFixed(), wei("1000"));
+
+        const balanceBefore = await token.balanceOf(OWNER);
+
+        await govPool.withdraw(OWNER, wei("1000"), []);
+
+        assert.equal(toBN(balanceBefore).plus(wei("1000")).toFixed(), toBN(await token.balanceOf(OWNER)).toFixed());
+      });
+
       it("should cancel micropool for if all conditions are met", async () => {
         await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
 
