@@ -1,17 +1,7 @@
-const {Reporter} = require("@solarity/hardhat-migrate");
+const { Reporter } = require("@solarity/hardhat-migrate");
 
 const GovPool = artifacts.require("GovPool");
 const PoolRegistry = artifacts.require("PoolRegistry");
-
-// const GovPoolVoteLib = artifacts.require("GovPoolVote");
-const GovPoolViewLib = artifacts.require("GovPoolView");
-const GovPoolUnlockLib = artifacts.require("GovPoolUnlock");
-const GovPoolRewardsLib = artifacts.require("GovPoolRewards");
-const GovPoolOffchainLib = artifacts.require("GovPoolOffchain");
-const GovPoolMicropoolLib = artifacts.require("GovPoolMicropool");
-const GovPoolExecuteLib = artifacts.require("GovPoolExecute");
-const GovPoolCreditLib = artifacts.require("GovPoolCredit");
-const GovPoolCreateLib = artifacts.require("GovPoolCreate");
 
 const poolRegistryAddress = "0xFEB26AAB75638440B3CEFe8B10de6118972f9C6B";
 
@@ -26,27 +16,18 @@ const govPoolCreditAddress = "0x33dcd3927203eCb1e2c3e7f50050aDb2BeDB7e5f";
 const govPoolCreateAddress = "0x7c658E2aF73439409698a29dF2ccf6f96365cc56";
 
 module.exports = async (deployer) => {
-  // const govPoolVoteLib = await GovPoolVoteLib.new();
-  const govPoolViewLib = await GovPoolViewLib.at(govPoolViewAddress);
-  const govPoolUnlockLib = await GovPoolUnlockLib.at(govPoolUnlockAddress);
-  const govPoolRewardsLib = await GovPoolRewardsLib.at(govPoolRewardsAddress);
-  const govPoolOffchainLib = await GovPoolOffchainLib.at(govPoolOffchainAddress);
-  const govPoolMicropoolLib = await GovPoolMicropoolLib.at(govPoolMicropoolAddress);
-  const govPoolExecuteLib = await GovPoolExecuteLib.at(govPoolExecuteAddress);
-  const govPoolCreditLib = await GovPoolCreditLib.at(govPoolCreditAddress);
-  const govPoolCreateLib = await GovPoolCreateLib.at(govPoolCreateAddress);
-
-  // await GovPool.link(govPoolVoteLib);
-  await GovPool.link(govPoolViewLib);
-  await GovPool.link(govPoolUnlockLib);
-  await GovPool.link(govPoolRewardsLib);
-  await GovPool.link(govPoolOffchainLib);
-  await GovPool.link(govPoolMicropoolLib);
-  await GovPool.link(govPoolExecuteLib);
-  await GovPool.link(govPoolCreditLib);
-  await GovPool.link(govPoolCreateLib);
-
-  const govPool = await deployer.deploy(GovPool);
+  const govPool = await deployer.deploy(GovPool, {
+    libraries: {
+      GovPoolView: govPoolViewAddress,
+      GovPoolUnlock: govPoolUnlockAddress,
+      GovPoolRewards: govPoolRewardsAddress,
+      GovPoolOffchain: govPoolOffchainAddress,
+      GovPoolMicropool: govPoolMicropoolAddress,
+      GovPoolExecute: govPoolExecuteAddress,
+      GovPoolCredit: govPoolCreditAddress,
+      GovPoolCreate: govPoolCreateAddress,
+    },
+  });
 
   Reporter.reportContracts(["implementation", govPool.address]);
 
