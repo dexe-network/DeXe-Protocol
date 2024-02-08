@@ -130,6 +130,8 @@ describe("GovPool", () => {
 
   let attacker;
 
+  let newToken;
+
   const reverter = new Reverter();
 
   const getProposalByIndex = async (index) => (await govPool.getProposals(index - 1, 1))[0].proposal;
@@ -4205,7 +4207,7 @@ describe("GovPool", () => {
       });
 
       it("should mint when balance < rewards", async () => {
-        let newToken = await ERC20Mock.new("NT", "NT", 18);
+        newToken = await ERC20Mock.new("NT", "NT", 18);
 
         NEW_SETTINGS.rewardsInfo.rewardToken = newToken.address;
 
@@ -4234,6 +4236,69 @@ describe("GovPool", () => {
 
         assert.equal((await newToken.balanceOf(treasury)).toFixed(), wei("3.2"));
         assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("16"));
+      });
+
+      describe.only("rewards with low pool balance", () => {
+        async function comparePendingRewards(
+          user,
+          proposalId,
+          staticRewards = 0,
+          presonalRewards = 0,
+          micropoolRewards = 0,
+          treasuryRewards = 0
+        ) {
+          let rewards = await govPool.getPendingRewards(user, [proposalId]);
+          assert.equal(rewards.staticRewards, staticRewards);
+          assert.equal(rewards.votingRewards[0][0], presonalRewards);
+          assert.equal(rewards.votingRewards[0][1], micropoolRewards);
+          assert.equal(rewards.votingRewards[0][2], treasuryRewards);
+        }
+
+        beforeEach(async () => {
+          newToken = await ERC20Mock.new("NT", "NT", 18);
+          await newToken.toggleMint();
+
+          NEW_SETTINGS.rewardsInfo.rewardToken = newToken.address;
+
+          const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
+
+          await govPool.createProposal("example.com", [[settings.address, 0, bytes]], []);
+          await govPool.vote(1, true, wei("100000000000000000000"), [], { from: SECOND });
+
+          await govPool.moveProposalToValidators(1);
+          await validators.voteExternalProposal(1, wei("1000000000000"), true, { from: SECOND });
+
+          await govPool.execute(1);
+        });
+
+        it("should keep rewards with empty treasury", async () => {
+          await govPool.createProposal(
+            "example.com",
+
+            [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]],
+            []
+          );
+
+          await govPool.vote(2, true, wei("1"), []);
+
+          assert.equal((await newToken.balanceOf(treasury)).toFixed(), "0");
+          assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("0"));
+
+          await executeAndClaim(2, OWNER);
+
+          await comparePendingRewards(OWNER, 2, wei("15"), wei("1"));
+
+          // assert.equal((await newToken.balanceOf(treasury)).toFixed(), wei("0"));
+          assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("0"));
+
+          await newToken.toggleMint();
+          await govPool.claimRewards([2], OWNER, { from: OWNER });
+
+          await comparePendingRewards(OWNER, 2);
+
+          // assert.equal((await newToken.balanceOf(treasury)).toFixed(), wei("3.2"));
+          assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("16"));
+        });
       });
     });
 

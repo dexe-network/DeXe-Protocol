@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../../../interfaces/core/ICoreProperties.sol";
 
@@ -15,6 +16,7 @@ library GovPoolRewards {
     using EnumerableSet for EnumerableSet.AddressSet;
     using TokenBalance for address;
     using MathHelper for uint256;
+    using Math for uint256;
 
     event RewardClaimed(uint256 proposalId, address sender, address token, uint256 rewards);
     event VotingRewardClaimed(
@@ -89,6 +91,35 @@ library GovPoolRewards {
         userRewards.areVotingRewardsSet[proposalId] = true;
     }
 
+    function _repay(
+        uint256 amountPaid,
+        uint256 amountToPay
+    ) private pure returns (uint256, uint256, uint256) {
+        uint256 amountMin = amountPaid.min(amountToPay);
+        return (amountPaid - amountMin, amountMin, amountToPay - amountMin);
+    }
+
+    function _repayVotingRewards(
+        uint256 amountPaid,
+        IGovPool.VotingRewards memory votingRewardsPaid,
+        IGovPool.VotingRewards memory votingRewards
+    ) private pure returns (uint256) {
+        (amountPaid, votingRewardsPaid.personal, votingRewards.personal) = _repay(
+            amountPaid,
+            votingRewards.personal
+        );
+        (amountPaid, votingRewardsPaid.micropool, votingRewards.micropool) = _repay(
+            amountPaid,
+            votingRewards.micropool
+        );
+        (amountPaid, votingRewardsPaid.treasury, votingRewards.treasury) = _repay(
+            amountPaid,
+            votingRewards.treasury
+        );
+
+        return amountPaid;
+    }
+
     function claimReward(
         mapping(address => IGovPool.UserInfo) storage userInfos,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
@@ -103,14 +134,16 @@ library GovPoolRewards {
             require(core.executed, "Gov: proposal is not executed");
 
             uint256 staticRewards = userRewards.staticRewards[proposalId];
+            uint256 staticRewardsPaid;
             IGovPool.VotingRewards memory votingRewards = userRewards.votingRewards[proposalId];
+            IGovPool.VotingRewards memory votingRewardsPaid;
 
             delete userRewards.staticRewards[proposalId];
             delete userRewards.votingRewards[proposalId];
 
             address rewardToken = core.settings.rewardsInfo.rewardToken;
 
-            _sendRewards(
+            uint256 rewardsPaid = _sendRewards(
                 user,
                 core.settings.rewardsInfo.rewardToken,
                 staticRewards +
@@ -119,8 +152,14 @@ library GovPoolRewards {
                     votingRewards.treasury
             );
 
-            emit RewardClaimed(proposalId, user, rewardToken, staticRewards);
-            emit VotingRewardClaimed(proposalId, user, rewardToken, votingRewards);
+            (rewardsPaid, staticRewardsPaid, staticRewards) = _repay(rewardsPaid, staticRewards);
+            rewardsPaid = _repayVotingRewards(rewardsPaid, votingRewardsPaid, votingRewards);
+
+            userRewards.staticRewards[proposalId] = staticRewards;
+            userRewards.votingRewards[proposalId] = votingRewards;
+
+            emit RewardClaimed(proposalId, user, rewardToken, staticRewardsPaid);
+            emit VotingRewardClaimed(proposalId, user, rewardToken, votingRewardsPaid);
         } else {
             EnumerableSet.AddressSet storage offchainTokens = userRewards.offchainTokens;
             mapping(address => uint256) storage offchainRewards = userRewards.offchainRewards;
@@ -189,11 +228,15 @@ library GovPoolRewards {
         }
     }
 
-    function _sendRewards(address receiver, address rewardToken, uint256 rewards) internal {
+    function _sendRewards(
+        address receiver,
+        address rewardToken,
+        uint256 rewards
+    ) internal returns (uint256) {
         require(rewardToken != address(0), "Gov: rewards are off");
         require(rewards != 0, "Gov: zero rewards");
 
-        rewardToken.sendFunds(receiver, rewards, TokenBalance.TransferType.TryMint);
+        return rewardToken.sendFunds(receiver, rewards, TokenBalance.TransferType.TryMint);
     }
 
     function _getMultipliedRewards(address user, uint256 amount) internal view returns (uint256) {
