@@ -4238,7 +4238,7 @@ describe("GovPool", () => {
         assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("16"));
       });
 
-      describe.only("rewards with low pool balance", () => {
+      describe("rewards with low pool balance", () => {
         async function comparePendingRewards(
           user,
           proposalId,
@@ -4252,6 +4252,12 @@ describe("GovPool", () => {
           assert.equal(rewards.votingRewards[0][0], presonalRewards);
           assert.equal(rewards.votingRewards[0][1], micropoolRewards);
           assert.equal(rewards.votingRewards[0][2], treasuryRewards);
+        }
+
+        async function mintNewToken(amount) {
+          await newToken.toggleMint();
+          await newToken.mint(govPool.address, amount);
+          await newToken.toggleMint();
         }
 
         beforeEach(async () => {
@@ -4298,6 +4304,40 @@ describe("GovPool", () => {
 
           // assert.equal((await newToken.balanceOf(treasury)).toFixed(), wei("3.2"));
           assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("16"));
+        });
+
+        it("could get rewards by parts", async () => {
+          await govPool.createProposal(
+            "example.com",
+
+            [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]],
+            []
+          );
+
+          await govPool.vote(2, true, wei("1"), []);
+
+          await executeAndClaim(2, OWNER);
+
+          await mintNewToken(wei("5"));
+          await govPool.claimRewards([2], OWNER, { from: OWNER });
+
+          assert.equal((await newToken.balanceOf(govPool.address)).toFixed(), wei("0"));
+          assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("5"));
+          await comparePendingRewards(OWNER, 2, wei("10"), wei("1"));
+
+          await mintNewToken(wei("10.3"));
+          await govPool.claimRewards([2], OWNER, { from: OWNER });
+
+          assert.equal((await newToken.balanceOf(govPool.address)).toFixed(), wei("0"));
+          assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("15.3"));
+          await comparePendingRewards(OWNER, 2, wei("0"), wei("0.7"));
+
+          await mintNewToken(wei("100"));
+          await govPool.claimRewards([2], OWNER, { from: OWNER });
+
+          assert.equal((await newToken.balanceOf(govPool.address)).toFixed(), wei("99.3"));
+          assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("16"));
+          await comparePendingRewards(OWNER, 2);
         });
       });
     });
