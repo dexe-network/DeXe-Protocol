@@ -193,6 +193,7 @@ interface IGovPool {
         uint256[] delegationTimes;
         uint256[] delegationPowers;
         mapping(uint256 => bool) isClaimed;
+        mapping(uint256 => uint256) partiallyClaimed;
     }
 
     /// @notice The struct that holds reward properties (only for internal needs)

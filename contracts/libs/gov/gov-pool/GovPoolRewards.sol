@@ -171,11 +171,16 @@ library GovPoolRewards {
                 uint256 rewards = offchainRewards[rewardToken];
 
                 delete offchainRewards[rewardToken];
-                offchainTokens.remove(rewardToken);
 
-                _sendRewards(user, rewardToken, rewards);
+                uint256 paid = _sendRewards(user, rewardToken, rewards);
 
-                emit RewardClaimed(0, user, rewardToken, rewards);
+                if (paid < rewards) {
+                    offchainRewards[rewardToken] = rewards - paid;
+                } else {
+                    offchainTokens.remove(rewardToken);
+                }
+
+                emit RewardClaimed(0, user, rewardToken, paid);
             }
         }
     }

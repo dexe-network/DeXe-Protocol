@@ -4339,6 +4339,139 @@ describe("GovPool", () => {
           assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("16"));
           await comparePendingRewards(OWNER, 2);
         });
+
+        it("recieves correct micropool reward", async () => {
+          await token.mint(SECOND, wei("1"));
+          await token.approve(userKeeper.address, wei("1"), { from: SECOND });
+          await govPool.deposit(wei("1"), [], { from: SECOND });
+          await govPool.delegate(OWNER, wei("1"), [], { from: SECOND });
+
+          await govPool.createProposal(
+            "example.com",
+
+            [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]],
+            []
+          );
+
+          await govPool.vote(2, true, wei("1"), []);
+          await govPool.execute(2);
+          await comparePendingRewards(OWNER, 2, wei("15"), wei("1"), wei("0.2"));
+          let rewards = await govPool.getDelegatorRewards([2], SECOND, OWNER);
+          assert.equal(rewards.expectedRewards, wei("0.8"));
+          assert.equal(rewards.isClaimed[0], false);
+
+          await mintNewToken(wei("0.3"));
+          await govPool.claimMicropoolRewards([2], SECOND, OWNER, { from: SECOND });
+          rewards = await govPool.getDelegatorRewards([2], SECOND, OWNER);
+          assert.equal(rewards.expectedRewards, wei("0.5"));
+          assert.equal(rewards.isClaimed[0], false);
+          assert.equal(await newToken.balanceOf(SECOND), wei("0.3"));
+
+          await mintNewToken(wei("1"));
+          await govPool.claimMicropoolRewards([2], SECOND, OWNER, { from: SECOND });
+          rewards = await govPool.getDelegatorRewards([2], SECOND, OWNER);
+          assert.equal(rewards.expectedRewards, wei("0"));
+          assert.equal(rewards.isClaimed[0], true);
+          assert.equal(await newToken.balanceOf(SECOND), wei("0.8"));
+
+          await truffleAssert.reverts(
+            govPool.claimMicropoolRewards([2], SECOND, OWNER, { from: SECOND }),
+            "Gov: no micropool rewards"
+          );
+        });
+
+        it("receives correct offchain rewards", async () => {
+          const OWNER_PRIVATE_KEY = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+
+          const resultsHash = "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d";
+          const privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
+
+          let signHash = await govPool.getOffchainSignHash(resultsHash, OWNER);
+          let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
+
+          await govPool.saveOffchainResults(resultsHash, signature);
+
+          let rewards = await govPool.getPendingRewards(OWNER, []);
+
+          assert.deepEqual(rewards.offchainTokens, [newToken.address]);
+          assert.deepEqual(
+            rewards.offchainRewards.map((e) => toBN(e).toFixed()),
+            [wei("5")]
+          );
+
+          assert.equal((await newToken.balanceOf(OWNER)).toFixed(), "0");
+
+          await mintNewToken(wei("1"));
+          await govPool.claimRewards([0], OWNER);
+
+          rewards = await govPool.getPendingRewards(OWNER, []);
+
+          assert.deepEqual(rewards.offchainTokens, [newToken.address]);
+          assert.deepEqual(
+            rewards.offchainRewards.map((e) => toBN(e).toFixed()),
+            [wei("4")]
+          );
+          assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("1"));
+
+          await mintNewToken(wei("4"));
+          await govPool.claimRewards([0], OWNER);
+
+          rewards = await govPool.getPendingRewards(OWNER, []);
+
+          assert.deepEqual(rewards.offchainTokens, []);
+          assert.deepEqual(
+            rewards.offchainRewards.map((e) => toBN(e).toFixed()),
+            []
+          );
+          assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("5"));
+        });
+
+        it("deletes offchain tokens correct", async () => {
+          const OWNER_PRIVATE_KEY = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+
+          let resultsHash = "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647d";
+          let privateKey = Buffer.from(OWNER_PRIVATE_KEY, "hex");
+
+          let signHash = await govPool.getOffchainSignHash(resultsHash, OWNER);
+          let signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
+
+          await govPool.saveOffchainResults(resultsHash, signature);
+
+          newToken2 = await ERC20Mock.new("NT2", "NT2", 18);
+          await newToken2.toggleMint();
+          NEW_SETTINGS.rewardsInfo.rewardToken = newToken2.address;
+          await impersonate(govPool.address);
+          await settings.editSettings([1], [NEW_SETTINGS], { from: govPool.address });
+
+          resultsHash = "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647c";
+
+          signHash = await govPool.getOffchainSignHash(resultsHash, OWNER);
+          signature = ethSigUtil.personalSign({ privateKey: privateKey, data: signHash });
+
+          await govPool.saveOffchainResults(resultsHash, signature);
+
+          let rewards = await govPool.getPendingRewards(OWNER, []);
+
+          assert.deepEqual(rewards.offchainTokens, [newToken.address, newToken2.address]);
+          assert.deepEqual(
+            rewards.offchainRewards.map((e) => toBN(e).toFixed()),
+            [wei("5"), wei("5")]
+          );
+
+          assert.equal((await newToken.balanceOf(OWNER)).toFixed(), "0");
+
+          await mintNewToken(wei("5"));
+          await govPool.claimRewards([0], OWNER);
+
+          rewards = await govPool.getPendingRewards(OWNER, []);
+
+          assert.deepEqual(rewards.offchainTokens, [newToken2.address]);
+          assert.deepEqual(
+            rewards.offchainRewards.map((e) => toBN(e).toFixed()),
+            [wei("5")]
+          );
+          assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("5"));
+        });
       });
     });
 

@@ -71,13 +71,22 @@ library GovPoolMicropool {
 
         require(reward != 0, "Gov: no micropool rewards");
 
-        userInfos[delegatee].delegatorInfos[delegator].isClaimed[proposalId] = true;
+        IGovPool.DelegatorInfo storage delegatorInfo = userInfos[delegatee].delegatorInfos[
+            delegator
+        ];
+
+        delegatorInfo.isClaimed[proposalId] = true;
 
         address rewardToken = proposals[proposalId].core.settings.rewardsInfo.rewardToken;
 
-        rewardToken.sendFunds(delegator, reward, TokenBalance.TransferType.TryMint);
+        uint256 paid = rewardToken.sendFunds(delegator, reward, TokenBalance.TransferType.TryMint);
 
-        emit DelegatorRewardsClaimed(proposalId, delegator, delegatee, rewardToken, reward);
+        if (paid < reward) {
+            delegatorInfo.isClaimed[proposalId] = false;
+            delegatorInfo.partiallyClaimed[proposalId] += paid;
+        }
+
+        emit DelegatorRewardsClaimed(proposalId, delegator, delegatee, rewardToken, paid);
     }
 
     function getDelegatorRewards(
@@ -151,9 +160,12 @@ library GovPoolMicropool {
 
         uint256 totalVoted = micropoolRawVote.totalVoted;
 
-        return
-            delegatorsRewards.ratio(delegatorInfo.delegationPowers[index], totalVoted).min(
-                totalVoted
-            );
+        uint256 reward = delegatorsRewards
+            .ratio(delegatorInfo.delegationPowers[index], totalVoted)
+            .min(totalVoted);
+
+        reward -= delegatorInfo.partiallyClaimed[proposalId];
+
+        return reward;
     }
 }
