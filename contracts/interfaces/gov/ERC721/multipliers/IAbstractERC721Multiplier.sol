@@ -11,7 +11,7 @@ interface IAbstractERC721Multiplier is IERC721EnumerableUpgradeable {
     /// @notice This struct holds NFT Multiplier parameters
     /// @param multiplier the basic rewards multiplier
     /// @param duration the time for which an nft can be locked
-    /// @param mintedAt the time nft was minteronly
+    /// @param mintedAt the time nft was minter
     struct NftInfo {
         uint256 multiplier;
         uint64 duration;
