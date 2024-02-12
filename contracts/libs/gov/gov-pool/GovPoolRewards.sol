@@ -91,35 +91,6 @@ library GovPoolRewards {
         userRewards.areVotingRewardsSet[proposalId] = true;
     }
 
-    function _repay(
-        uint256 amountPaid,
-        uint256 amountToPay
-    ) private pure returns (uint256, uint256, uint256) {
-        uint256 amountMin = amountPaid.min(amountToPay);
-        return (amountPaid - amountMin, amountMin, amountToPay - amountMin);
-    }
-
-    function _repayVotingRewards(
-        uint256 amountPaid,
-        IGovPool.VotingRewards memory votingRewardsPaid,
-        IGovPool.VotingRewards memory votingRewards
-    ) private pure returns (uint256) {
-        (amountPaid, votingRewardsPaid.personal, votingRewards.personal) = _repay(
-            amountPaid,
-            votingRewards.personal
-        );
-        (amountPaid, votingRewardsPaid.micropool, votingRewards.micropool) = _repay(
-            amountPaid,
-            votingRewards.micropool
-        );
-        (amountPaid, votingRewardsPaid.treasury, votingRewards.treasury) = _repay(
-            amountPaid,
-            votingRewards.treasury
-        );
-
-        return amountPaid;
-    }
-
     function claimReward(
         mapping(address => IGovPool.UserInfo) storage userInfos,
         mapping(uint256 => IGovPool.Proposal) storage proposals,
@@ -133,9 +104,11 @@ library GovPoolRewards {
 
             require(core.executed, "Gov: proposal is not executed");
 
-            uint256 staticRewards = userRewards.staticRewards[proposalId];
+            uint256 staticRewardsToPay = userRewards.staticRewards[proposalId];
             uint256 staticRewardsPaid;
-            IGovPool.VotingRewards memory votingRewards = userRewards.votingRewards[proposalId];
+            IGovPool.VotingRewards memory votingRewardsToPay = userRewards.votingRewards[
+                proposalId
+            ];
             IGovPool.VotingRewards memory votingRewardsPaid;
 
             delete userRewards.staticRewards[proposalId];
@@ -146,17 +119,21 @@ library GovPoolRewards {
             uint256 rewardsPaid = _sendRewards(
                 user,
                 core.settings.rewardsInfo.rewardToken,
-                staticRewards +
-                    votingRewards.personal +
-                    votingRewards.micropool +
-                    votingRewards.treasury
+                staticRewardsToPay +
+                    votingRewardsToPay.personal +
+                    votingRewardsToPay.micropool +
+                    votingRewardsToPay.treasury
             );
 
-            (rewardsPaid, staticRewardsPaid, staticRewards) = _repay(rewardsPaid, staticRewards);
-            rewardsPaid = _repayVotingRewards(rewardsPaid, votingRewardsPaid, votingRewards);
+            (staticRewardsToPay, staticRewardsPaid) = _recalculateAllRewards(
+                rewardsPaid,
+                staticRewardsToPay,
+                votingRewardsPaid,
+                votingRewardsToPay
+            );
 
-            userRewards.staticRewards[proposalId] = staticRewards;
-            userRewards.votingRewards[proposalId] = votingRewards;
+            userRewards.staticRewards[proposalId] = staticRewardsToPay;
+            userRewards.votingRewards[proposalId] = votingRewardsToPay;
 
             emit RewardClaimed(proposalId, user, rewardToken, staticRewardsPaid);
             emit VotingRewardClaimed(proposalId, user, rewardToken, votingRewardsPaid);
@@ -329,5 +306,44 @@ library GovPoolRewards {
         );
 
         votingRewards.micropool -= delegatorsRewards;
+    }
+
+    function _recalculateReward(
+        uint256 rewardsPaid,
+        uint256 rewardsToPay
+    ) private pure returns (uint256, uint256, uint256) {
+        uint256 amountMin = rewardsPaid.min(rewardsToPay);
+        return (rewardsPaid - amountMin, amountMin, rewardsToPay - amountMin);
+    }
+
+    function _recalculateAllRewards(
+        uint256 rewardsPaid,
+        uint256 staticRewardsToPay,
+        IGovPool.VotingRewards memory votingRewardsPaid,
+        IGovPool.VotingRewards memory votingRewardsToPay
+    ) private pure returns (uint256, uint256) {
+        uint256 staticRewardsPaid;
+        (rewardsPaid, staticRewardsPaid, staticRewardsToPay) = _recalculateReward(
+            rewardsPaid,
+            staticRewardsToPay
+        );
+
+        (
+            rewardsPaid,
+            votingRewardsPaid.personal,
+            votingRewardsToPay.personal
+        ) = _recalculateReward(rewardsPaid, votingRewardsToPay.personal);
+        (
+            rewardsPaid,
+            votingRewardsPaid.micropool,
+            votingRewardsToPay.micropool
+        ) = _recalculateReward(rewardsPaid, votingRewardsToPay.micropool);
+        (
+            rewardsPaid,
+            votingRewardsPaid.treasury,
+            votingRewardsToPay.treasury
+        ) = _recalculateReward(rewardsPaid, votingRewardsToPay.treasury);
+
+        return (staticRewardsToPay, staticRewardsPaid);
     }
 }
