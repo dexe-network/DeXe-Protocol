@@ -160,9 +160,10 @@ library GovPoolMicropool {
 
         uint256 totalVoted = micropoolRawVote.totalVoted;
 
-        uint256 reward = delegatorsRewards
-            .ratio(delegatorInfo.delegationPowers[index], totalVoted)
-            .min(totalVoted);
+        uint256 reward = delegatorsRewards.ratio(
+            delegatorInfo.delegationPowers[index],
+            totalVoted
+        );
 
         reward -= delegatorInfo.partiallyClaimed[proposalId];
 
