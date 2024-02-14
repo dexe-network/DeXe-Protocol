@@ -4308,7 +4308,6 @@ describe("GovPool", () => {
         it("could get rewards by parts", async () => {
           await govPool.createProposal(
             "example.com",
-
             [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]],
             []
           );
