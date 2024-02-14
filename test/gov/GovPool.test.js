@@ -4355,12 +4355,14 @@ describe("GovPool", () => {
           await govPool.vote(2, true, wei("1"), []);
           await govPool.execute(2);
           await comparePendingRewards(OWNER, 2, wei("15"), wei("1"), wei("0.2"));
+          
           let rewards = await govPool.getDelegatorRewards([2], SECOND, OWNER);
           assert.equal(rewards.expectedRewards, wei("0.8"));
           assert.equal(rewards.isClaimed[0], false);
 
           await mintNewToken(wei("0.3"));
           await govPool.claimMicropoolRewards([2], SECOND, OWNER, { from: SECOND });
+          
           rewards = await govPool.getDelegatorRewards([2], SECOND, OWNER);
           assert.equal(rewards.expectedRewards, wei("0.5"));
           assert.equal(rewards.isClaimed[0], false);
@@ -4368,6 +4370,7 @@ describe("GovPool", () => {
 
           await mintNewToken(wei("1"));
           await govPool.claimMicropoolRewards([2], SECOND, OWNER, { from: SECOND });
+          
           rewards = await govPool.getDelegatorRewards([2], SECOND, OWNER);
           assert.equal(rewards.expectedRewards, wei("0"));
           assert.equal(rewards.isClaimed[0], true);
