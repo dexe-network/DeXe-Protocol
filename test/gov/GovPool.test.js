@@ -4280,7 +4280,6 @@ describe("GovPool", () => {
         it("should keep rewards with empty treasury", async () => {
           await govPool.createProposal(
             "example.com",
-
             [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]],
             []
           );
