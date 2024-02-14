@@ -323,6 +323,7 @@ library GovPoolRewards {
         IGovPool.VotingRewards memory votingRewardsToPay
     ) private pure returns (uint256, uint256) {
         uint256 staticRewardsPaid;
+        
         (rewardsPaid, staticRewardsPaid, staticRewardsToPay) = _recalculateReward(
             rewardsPaid,
             staticRewardsToPay
