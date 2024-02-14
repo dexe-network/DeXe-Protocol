@@ -165,8 +165,6 @@ library GovPoolMicropool {
             totalVoted
         );
 
-        reward -= delegatorInfo.partiallyClaimed[proposalId];
-
-        return reward;
+        return reward - delegatorInfo.partiallyClaimed[proposalId];
     }
 }
