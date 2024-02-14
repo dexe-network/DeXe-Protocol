@@ -49,7 +49,7 @@ library TokenBalance {
             IERC20(token).safeTransfer(receiver, amount.from18(token));
         }
 
-        return (amount);
+        return amount;
     }
 
     function sendFunds(address token, address receiver, uint256 amount) internal {
