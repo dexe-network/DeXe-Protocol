@@ -313,6 +313,7 @@ library GovPoolRewards {
         uint256 rewardsToPay
     ) private pure returns (uint256, uint256, uint256) {
         uint256 amountMin = rewardsPaid.min(rewardsToPay);
+        
         return (rewardsPaid - amountMin, amountMin, rewardsToPay - amountMin);
     }
 
