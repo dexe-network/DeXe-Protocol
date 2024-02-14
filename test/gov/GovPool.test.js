@@ -4440,8 +4440,11 @@ describe("GovPool", () => {
 
           newToken2 = await ERC20Mock.new("NT2", "NT2", 18);
           await newToken2.toggleMint();
+
           NEW_SETTINGS.rewardsInfo.rewardToken = newToken2.address;
+          
           await impersonate(govPool.address);
+          
           await settings.editSettings([1], [NEW_SETTINGS], { from: govPool.address });
 
           resultsHash = "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647c";
