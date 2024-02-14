@@ -4278,11 +4278,7 @@ describe("GovPool", () => {
         });
 
         it("should keep rewards with empty treasury", async () => {
-          await govPool.createProposal(
-            "example.com",
-            [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]],
-            []
-          );
+          await govPool.createProposal("example.com", [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]], []);
 
           await govPool.vote(2, true, wei("1"), []);
 
@@ -4293,7 +4289,6 @@ describe("GovPool", () => {
 
           await comparePendingRewards(OWNER, 2, wei("15"), wei("1"));
 
-          // assert.equal((await newToken.balanceOf(treasury)).toFixed(), wei("0"));
           assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("0"));
 
           await newToken.toggleMint();
@@ -4301,16 +4296,11 @@ describe("GovPool", () => {
 
           await comparePendingRewards(OWNER, 2);
 
-          // assert.equal((await newToken.balanceOf(treasury)).toFixed(), wei("3.2"));
           assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("16"));
         });
 
         it("could get rewards by parts", async () => {
-          await govPool.createProposal(
-            "example.com",
-            [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]],
-            []
-          );
+          await govPool.createProposal("example.com", [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]], []);
 
           await govPool.vote(2, true, wei("1"), []);
 
@@ -4354,14 +4344,14 @@ describe("GovPool", () => {
           await govPool.vote(2, true, wei("1"), []);
           await govPool.execute(2);
           await comparePendingRewards(OWNER, 2, wei("15"), wei("1"), wei("0.2"));
-          
+
           let rewards = await govPool.getDelegatorRewards([2], SECOND, OWNER);
           assert.equal(rewards.expectedRewards, wei("0.8"));
           assert.equal(rewards.isClaimed[0], false);
 
           await mintNewToken(wei("0.3"));
           await govPool.claimMicropoolRewards([2], SECOND, OWNER, { from: SECOND });
-          
+
           rewards = await govPool.getDelegatorRewards([2], SECOND, OWNER);
           assert.equal(rewards.expectedRewards, wei("0.5"));
           assert.equal(rewards.isClaimed[0], false);
@@ -4369,7 +4359,7 @@ describe("GovPool", () => {
 
           await mintNewToken(wei("1"));
           await govPool.claimMicropoolRewards([2], SECOND, OWNER, { from: SECOND });
-          
+
           rewards = await govPool.getDelegatorRewards([2], SECOND, OWNER);
           assert.equal(rewards.expectedRewards, wei("0"));
           assert.equal(rewards.isClaimed[0], true);
@@ -4442,9 +4432,9 @@ describe("GovPool", () => {
           await newToken2.toggleMint();
 
           NEW_SETTINGS.rewardsInfo.rewardToken = newToken2.address;
-          
+
           await impersonate(govPool.address);
-          
+
           await settings.editSettings([1], [NEW_SETTINGS], { from: govPool.address });
 
           resultsHash = "0xc4f46c912cc2a1f30891552ac72871ab0f0e977886852bdd5dccd221a595647c";
