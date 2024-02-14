@@ -106,6 +106,7 @@ library GovPoolRewards {
 
             uint256 staticRewardsToPay = userRewards.staticRewards[proposalId];
             uint256 staticRewardsPaid;
+            
             IGovPool.VotingRewards memory votingRewardsToPay = userRewards.votingRewards[
                 proposalId
             ];
