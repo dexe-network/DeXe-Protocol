@@ -27,13 +27,14 @@ library TokenBalance {
         address receiver,
         uint256 amount,
         TransferType transferType
-    ) internal {
+    ) internal returns (uint256) {
         uint256 balance = normThisBalance(token);
 
         require(balance >= amount || transferType == TransferType.TryMint, "Insufficient funds");
 
         if (token == ETHEREUM_ADDRESS) {
-            (bool status, ) = payable(receiver).call{value: amount.min(balance)}("");
+            amount = amount.min(balance);
+            (bool status, ) = payable(receiver).call{value: amount}("");
 
             require(status, "Failed to send eth");
         } else {
@@ -47,6 +48,8 @@ library TokenBalance {
 
             IERC20(token).safeTransfer(receiver, amount.from18(token));
         }
+
+        return amount;
     }
 
     function sendFunds(address token, address receiver, uint256 amount) internal {
