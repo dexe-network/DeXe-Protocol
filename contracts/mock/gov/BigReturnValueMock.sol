@@ -2,8 +2,17 @@
 pragma solidity ^0.8.20;
 
 contract BigReturnValueMock {
+    bool withRevert;
+
     function execute() external returns (bytes memory) {
-        return
+        if (withRevert) {
+            revert();
+        } else {
             hex"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        }
+    }
+
+    function switcher() external {
+        withRevert = !withRevert;
     }
 }
