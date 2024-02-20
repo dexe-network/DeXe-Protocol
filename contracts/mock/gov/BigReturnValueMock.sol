@@ -8,7 +8,8 @@ contract BigReturnValueMock {
         if (withRevert) {
             revert();
         } else {
-            hex"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+            return
+                hex"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
         }
     }
 
