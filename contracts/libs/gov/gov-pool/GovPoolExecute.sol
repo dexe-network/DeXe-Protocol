@@ -62,7 +62,9 @@ library GovPoolExecute {
                 value: actions[i].value
             }(actions[i].data);
 
-            require(status, returnedData.getRevertMsg());
+            if (!status) {
+                revert(returnedData.getRevertMsg());
+            }
         }
 
         emit ProposalExecuted(

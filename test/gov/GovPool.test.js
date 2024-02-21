@@ -68,6 +68,7 @@ const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC20 = artifacts.require("ERC20");
 const BABTMock = artifacts.require("BABTMock");
 const ExecutorTransferMock = artifacts.require("ExecutorTransferMock");
+const BigReturnValueMock = artifacts.require("BigReturnValueMock");
 const GovPoolAttackerMock = artifacts.require("GovPoolAttackerMock");
 const GovUserKeeperViewLib = artifacts.require("GovUserKeeperView");
 const GovPoolCreateLib = artifacts.require("GovPoolCreate");
@@ -3352,6 +3353,49 @@ describe("GovPool", () => {
         await validators.voteExternalProposal(1, wei("1000000000000"), true, { from: SECOND });
 
         await truffleAssert.reverts(govPool.execute(1), "ERC20: insufficient allowance");
+      });
+
+      it("should not calculate revert message on successfull call", async () => {
+        let startTime = await getCurrentBlockTime();
+
+        const executorReturnValue = await BigReturnValueMock.new();
+
+        const bytesExecute = getBytesExecute();
+
+        await govPool.createProposal("example.com", [[executorReturnValue.address, 0, bytesExecute]], []);
+        await govPool.vote(1, true, wei("1000"), []);
+        await govPool.vote(1, true, wei("100000000000000000000"), [], { from: SECOND });
+
+        await setTime(startTime + 999);
+
+        await govPool.moveProposalToValidators(1);
+        await validators.voteExternalProposal(1, wei("100"), true);
+        await validators.voteExternalProposal(1, wei("1000000000000"), true, { from: SECOND });
+
+        await govPool.execute(1);
+
+        assert.equal(await govPool.getProposalState(1), ProposalState.ExecutedFor);
+      });
+
+      it("should detect silent revert", async () => {
+        let startTime = await getCurrentBlockTime();
+
+        const executorReturnValue = await BigReturnValueMock.new();
+        await executorReturnValue.switcher();
+
+        const bytesExecute = getBytesExecute();
+
+        await govPool.createProposal("example.com", [[executorReturnValue.address, 0, bytesExecute]], []);
+        await govPool.vote(1, true, wei("1000"), []);
+        await govPool.vote(1, true, wei("100000000000000000000"), [], { from: SECOND });
+
+        await setTime(startTime + 999);
+
+        await govPool.moveProposalToValidators(1);
+        await validators.voteExternalProposal(1, wei("100"), true);
+        await validators.voteExternalProposal(1, wei("1000000000000"), true, { from: SECOND });
+
+        await truffleAssert.reverts(govPool.execute(1), "Transaction reverted silently");
       });
 
       describe("self execution", () => {
