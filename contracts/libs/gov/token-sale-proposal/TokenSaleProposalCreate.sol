@@ -80,7 +80,8 @@ library TokenSaleProposalCreate {
 
             tierViews[i - offset] = ITokenSaleProposal.TierView({
                 tierInitParams: tier.tierInitParams,
-                tierInfo: tier.tierInfo
+                tierInfo: tier.tierInfo,
+                tierAdditionalInfo: tier.tierAdditionalInfo
             });
         }
     }

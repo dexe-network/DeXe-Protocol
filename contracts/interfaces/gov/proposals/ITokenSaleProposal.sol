@@ -14,12 +14,14 @@ interface ITokenSaleProposal {
     /// @param BABT indicates that the user must own the BABT token
     /// @param TokenLock indicates that the user must lock a specific amount of tokens in the tier
     /// @param NftLock indicates that the user must lock an nft in the tier
+    /// @param MerkleWhitelist indicates that the user must have whitelist Merkle Proofs
     enum ParticipationType {
         DAOVotes,
         Whitelist,
         BABT,
         TokenLock,
-        NftLock
+        NftLock,
+        MerkleWhitelist
     }
 
     /// @notice Metadata of the tier that is part of the initial tier parameters
@@ -97,6 +99,16 @@ interface ITokenSaleProposal {
         uint256 totalSold;
         string uri;
         VestingTierInfo vestingTierInfo;
+    }
+
+    /// @notice Dynamic tier parameters
+    /// @param isOff whether the tier is off
+    /// @param totalSold how many tokens were sold
+    /// @param uri whitelist uri
+    /// @param vestingTierInfo vesting tier-related params
+    struct TierAdditionalInfo {
+        bytes32 merkleRoot;
+        string merkleUri;
     }
 
     /// @notice Purchase parameters
@@ -213,6 +225,7 @@ interface ITokenSaleProposal {
         ParticipationInfo participationInfo;
         mapping(address => uint256) rates;
         mapping(address => UserInfo) users;
+        TierAdditionalInfo tierAdditionalInfo;
     }
 
     /// @notice Tier parameters. This struct is used in view functions as a return argument
@@ -221,6 +234,7 @@ interface ITokenSaleProposal {
     struct TierView {
         TierInitParams tierInitParams;
         TierInfo tierInfo;
+        TierAdditionalInfo tierAdditionalInfo;
     }
 
     /// @notice Whitelisting request parameters. This struct is used as an input parameter to the whitelist update function
