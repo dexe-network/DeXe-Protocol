@@ -15,6 +15,7 @@ const {
   getBytesApprove,
 } = require("../../utils/gov-pool-utils");
 const { getCurrentBlockTime, setTime } = require("../../helpers/block-helper");
+const { StandardMerkleTree } = require("@openzeppelin/merkle-tree");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
