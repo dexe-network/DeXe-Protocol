@@ -67,7 +67,7 @@ GovSettings.numberFormat = "BigNumber";
 GovValidators.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 
-describe("TokenSaleProposal", () => {
+describe.only("TokenSaleProposal", () => {
   let OWNER;
   let SECOND;
   let THIRD;
@@ -720,6 +720,33 @@ describe("TokenSaleProposal", () => {
             },
           ],
         },
+        {
+          metadata: {
+            name: "tier 8",
+            description: "the eigth tier",
+          },
+          totalTokenProvided: wei(1000),
+          saleStartTime: (timeNow + 100).toString(),
+          saleEndTime: (timeNow + 200).toString(),
+          claimLockDuration: "10",
+          saleTokenAddress: saleToken.address,
+          purchaseTokenAddresses: [purchaseToken1.address, ETHER_ADDR],
+          exchangeRates: [PRECISION.idiv(3).toFixed(), PRECISION.idiv(100).toFixed()],
+          minAllocationPerUser: wei(20),
+          maxAllocationPerUser: wei(600),
+          vestingSettings: {
+            vestingPercentage: PERCENTAGE_100.idiv(5).toFixed(),
+            vestingDuration: "100",
+            cliffPeriod: "50",
+            unlockStep: "3",
+          },
+          participationDetails: [
+            {
+              participationType: ParticipationType.Whitelist,
+              data: "0x",
+            },
+          ],
+        },
       ];
     });
 
@@ -740,11 +767,11 @@ describe("TokenSaleProposal", () => {
       it("latestTierId should increase when tiers are created", async () => {
         assert.equal(await tsp.latestTierId(), 0);
 
-        await saleToken.mint(govPool.address, wei(6000));
+        await saleToken.mint(govPool.address, wei(7000));
 
         await createTiers(tiers);
 
-        assert.equal((await tsp.latestTierId()).toFixed(), "7");
+        assert.equal((await tsp.latestTierId()).toFixed(), "8");
       });
     });
 
@@ -1007,16 +1034,16 @@ describe("TokenSaleProposal", () => {
       });
 
       it("should create tiers if all conditions are met", async () => {
-        await saleToken.mint(govPool.address, wei(6000));
+        await saleToken.mint(govPool.address, wei(7000));
 
         await createTiers(JSON.parse(JSON.stringify(tiers)));
 
         assert.deepEqual(
-          tierInitParamsToObjects((await tsp.getTierViews(0, 7)).map((tier) => tier.tierInitParams)),
+          tierInitParamsToObjects((await tsp.getTierViews(0, 8)).map((tier) => tier.tierInitParams)),
           tiers
         );
 
-        const actualVestingTierInfos = (await tsp.getTierViews(0, 7)).map((e) => ({
+        const actualVestingTierInfos = (await tsp.getTierViews(0, 8)).map((e) => ({
           vestingStartTime: e.tierInfo.vestingTierInfo.vestingStartTime,
           vestingEndTime: e.tierInfo.vestingTierInfo.vestingEndTime,
         }));
@@ -1045,7 +1072,7 @@ describe("TokenSaleProposal", () => {
 
     describe("if tiers are created", () => {
       beforeEach(async () => {
-        await saleToken.mint(govPool.address, wei(6000));
+        await saleToken.mint(govPool.address, wei(7000));
 
         await createTiers(JSON.parse(JSON.stringify(tiers)));
 
