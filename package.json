@@ -42,6 +42,7 @@
   "dependencies": {
     "@openzeppelin/contracts": "4.9.2",
     "@openzeppelin/contracts-upgradeable": "4.9.2",
+    "@openzeppelin/merkle-tree": "^1.0.6",
     "@solarity/solidity-lib": "2.6.9",
     "@spherex-xyz/contracts": "1.0.5",
     "@spherex-xyz/engine-contracts": "0.0.1",
