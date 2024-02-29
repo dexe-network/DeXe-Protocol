@@ -102,6 +102,8 @@ describe.only("TokenSaleProposal", () => {
   let dp;
   let babt;
 
+  let merkleTree;
+
   const defaultDaoVotes = toBN(wei("100"));
   const defaultTokenAmount = toBN(wei("100"));
 
@@ -533,6 +535,8 @@ describe.only("TokenSaleProposal", () => {
 
       const timeNow = await getCurrentBlockTime();
 
+      merkleTree = StandardMerkleTree.of([[SECOND], [THIRD]], ["address"]);
+
       tiers = [
         {
           metadata: {
@@ -727,8 +731,8 @@ describe.only("TokenSaleProposal", () => {
             description: "the eigth tier",
           },
           totalTokenProvided: wei(1000),
-          saleStartTime: (timeNow + 100).toString(),
-          saleEndTime: (timeNow + 200).toString(),
+          saleStartTime: (timeNow + 11000).toString(),
+          saleEndTime: (timeNow + 12000).toString(),
           claimLockDuration: "10",
           saleTokenAddress: saleToken.address,
           purchaseTokenAddresses: [purchaseToken1.address, ETHER_ADDR],
@@ -743,8 +747,8 @@ describe.only("TokenSaleProposal", () => {
           },
           participationDetails: [
             {
-              participationType: ParticipationType.Whitelist,
-              data: "0x",
+              participationType: ParticipationType.MerkleWhitelist,
+              data: web3.eth.abi.encodeParameters(["bytes32", "string"], [merkleTree.root, ""]),
             },
           ],
         },

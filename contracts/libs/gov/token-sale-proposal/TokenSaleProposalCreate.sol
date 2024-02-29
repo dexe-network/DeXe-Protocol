@@ -161,7 +161,7 @@ library TokenSaleProposalCreate {
             } else {
                 /// @dev ITokenSaleProposal.ParticipationType.MerkleWhitelist
                 require(
-                    participationDetails.data.length >= 32,
+                    participationDetails.data.length >= 96,
                     "TSP: invalid Merkle Whitelist data"
                 );
 
