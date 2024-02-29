@@ -278,7 +278,13 @@ interface ITokenSaleProposal {
     /// @param tierId the id of the tier where tokens will be purchased
     /// @param tokenToBuyWith the token that will be used (exchanged) to purchase token on the token sale
     /// @param amount the amount of the token to be used for this exchange
-    function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable;
+    /// @param proof the merkle proof for merkle whitelist. Could be empty if whitelist is disabled
+    function buy(
+        uint256 tierId,
+        address tokenToBuyWith,
+        uint256 amount,
+        bytes32[] calldata proof
+    ) external payable;
 
     /// @notice This function is used to lock the specified amount of tokens to participate in the given tier
     /// @param tierId the id of the tier to lock the tokens for
@@ -325,12 +331,14 @@ interface ITokenSaleProposal {
     /// @param tierId the id of the tier in which tokens are purchased
     /// @param tokenToBuyWith the token which is used for exchange
     /// @param amount the token amount used for exchange
+    /// @param proof the merkle proof for merkle whitelist. Could be empty if whitelist is disabled
     /// @return expected sale token amount
     function getSaleTokenAmount(
         address user,
         uint256 tierId,
         address tokenToBuyWith,
-        uint256 amount
+        uint256 amount,
+        bytes32[] calldata proof
     ) external view returns (uint256);
 
     /// @notice This function is used to get information about the amount of non-vesting tokens that user can withdraw (that are unlocked) from given tiers
@@ -371,8 +379,10 @@ interface ITokenSaleProposal {
     /// @param user the address of the user whose infos are required
     /// @param tierIds the list of tier ids to get infos from
     /// @return userViews the list of user views
+    /// @param proofs the list of merkle proofs
     function getUserViews(
         address user,
-        uint256[] calldata tierIds
+        uint256[] calldata tierIds,
+        bytes32[][] calldata proofs
     ) external view returns (UserView[] memory userViews);
 }

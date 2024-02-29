@@ -122,8 +122,13 @@ contract TokenSaleProposal is
         }
     }
 
-    function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable {
-        uint256 bought = _getActiveTier(tierId).buy(tierId, tokenToBuyWith, amount);
+    function buy(
+        uint256 tierId,
+        address tokenToBuyWith,
+        uint256 amount,
+        bytes32[] calldata proof
+    ) external payable {
+        uint256 bought = _getActiveTier(tierId).buy(tierId, tokenToBuyWith, amount, proof);
 
         emit Bought(tierId, tokenToBuyWith, bought, amount, msg.sender);
     }
@@ -170,9 +175,11 @@ contract TokenSaleProposal is
         address user,
         uint256 tierId,
         address tokenToBuyWith,
-        uint256 amount
+        uint256 amount,
+        bytes32[] calldata proof
     ) external view returns (uint256) {
-        return _getActiveTier(tierId).getSaleTokenAmount(user, tierId, tokenToBuyWith, amount);
+        return
+            _getActiveTier(tierId).getSaleTokenAmount(user, tierId, tokenToBuyWith, amount, proof);
     }
 
     function getClaimAmounts(
@@ -216,15 +223,17 @@ contract TokenSaleProposal is
 
     function getUserViews(
         address user,
-        uint256[] calldata tierIds
+        uint256[] calldata tierIds,
+        bytes32[][] calldata proofs
     ) external view returns (UserView[] memory userViews) {
+        require(proofs.length == tierIds.length, "TSP: Different number of Ids and Proofs");
         userViews = new UserView[](tierIds.length);
 
         for (uint256 i = 0; i < userViews.length; i++) {
             Tier storage tier = _getTier(tierIds[i]);
 
             userViews[i] = UserView({
-                canParticipate: tier.canParticipate(tierIds[i], user),
+                canParticipate: tier.canParticipate(tierIds[i], user, proofs[i]),
                 purchaseView: tier.getPurchaseView(user),
                 vestingUserView: tier.getVestingUserView(user)
             });

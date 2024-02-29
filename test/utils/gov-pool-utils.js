@@ -596,7 +596,7 @@ const getBytesRecoverTSP = (tierIds) => {
   );
 };
 
-const getBytesBuyTSP = (tierId, tokenToBuyWith, amount) => {
+const getBytesBuyTSP = (tierId, tokenToBuyWith, amount, proof) => {
   return web3.eth.abi.encodeFunctionCall(
     {
       inputs: [
@@ -615,13 +615,18 @@ const getBytesBuyTSP = (tierId, tokenToBuyWith, amount) => {
           name: "amount",
           type: "uint256",
         },
+        {
+          internalType: "bytes32[]",
+          name: "proof",
+          type: "bytes32[]",
+        },
       ],
       name: "buy",
       outputs: [],
       stateMutability: "payable",
       type: "function",
     },
-    [tierId, tokenToBuyWith, amount]
+    [tierId, tokenToBuyWith, amount, proof]
   );
 };
 
