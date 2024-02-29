@@ -101,11 +101,9 @@ interface ITokenSaleProposal {
         VestingTierInfo vestingTierInfo;
     }
 
-    /// @notice Dynamic tier parameters
-    /// @param isOff whether the tier is off
-    /// @param totalSold how many tokens were sold
-    /// @param uri whitelist uri
-    /// @param vestingTierInfo vesting tier-related params
+    /// @notice Tier additional parameters
+    /// @param merkleRoot root of Merkle Tree for whitelist (zero if Merkle proofs turned off)
+    /// @param merkleUri merkle whitlist uri
     struct TierAdditionalInfo {
         bytes32 merkleRoot;
         string merkleUri;
@@ -219,6 +217,7 @@ interface ITokenSaleProposal {
     /// @param participationInfo the information about participation requirements
     /// @param rates the mapping of token addresses to their exchange rates
     /// @param users the mapping of user addresses to their infos
+    /// @param tierAdditionalInfo the information about additional tier properties
     struct Tier {
         TierInitParams tierInitParams;
         TierInfo tierInfo;

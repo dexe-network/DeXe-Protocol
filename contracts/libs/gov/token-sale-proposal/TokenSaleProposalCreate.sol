@@ -165,13 +165,18 @@ library TokenSaleProposalCreate {
                     "TSP: invalid Merkle Whitelist data"
                 );
 
+                ITokenSaleProposal.TierAdditionalInfo storage additionalInfo = tier
+                    .tierAdditionalInfo;
+
+                require(
+                    additionalInfo.merkleRoot == bytes32(0),
+                    "TSP: multiple Merkle whitelist requirements"
+                );
+
                 (bytes32 merkleRoot, string memory merkleUri) = abi.decode(
                     participationDetails.data,
                     (bytes32, string)
                 );
-
-                ITokenSaleProposal.TierAdditionalInfo storage additionalInfo = tier
-                    .tierAdditionalInfo;
 
                 require(merkleRoot != bytes32(0), "TSP: zero Merkle Root");
 

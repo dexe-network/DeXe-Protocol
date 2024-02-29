@@ -748,7 +748,7 @@ describe.only("TokenSaleProposal", () => {
           participationDetails: [
             {
               participationType: ParticipationType.MerkleWhitelist,
-              data: web3.eth.abi.encodeParameters(["bytes32", "string"], [merkleTree.root, ""]),
+              data: web3.eth.abi.encodeParameters(["bytes32", "string"], [merkleTree.root, "white_list"]),
             },
           ],
         },
@@ -1038,6 +1038,46 @@ describe.only("TokenSaleProposal", () => {
         await truffleAssert.reverts(createTiers(tiers.slice(0, 1)), "TSP: multiple nft lock requirements");
       });
 
+      it("should not create tiers if invalid merkle whitelist data", async () => {
+        tiers[7].participationDetails = [
+          {
+            participationType: ParticipationType.MerkleWhitelist,
+            data: web3.eth.abi.encodeParameters(["address", "address"], [SECOND, THIRD]),
+          },
+        ];
+
+        await truffleAssert.reverts(createTiers(tiers.slice(7, 8)), "TSP: invalid Merkle Whitelist data");
+      });
+
+      it("should not create tiers with zero merkle root", async () => {
+        tiers[7].participationDetails = [
+          {
+            participationType: ParticipationType.MerkleWhitelist,
+            data: web3.eth.abi.encodeParameters(
+              ["bytes32", "string"],
+              ["0x0000000000000000000000000000000000000000000000000000000000000000", "0x"]
+            ),
+          },
+        ];
+
+        await truffleAssert.reverts(createTiers(tiers.slice(7, 8)), "TSP: zero Merkle Root");
+      });
+
+      it("should not create tiers if multiple merkle whitelist requirements", async () => {
+        tiers[7].participationDetails = [
+          {
+            participationType: ParticipationType.MerkleWhitelist,
+            data: web3.eth.abi.encodeParameters(["bytes32", "string"], [merkleTree.root, "white_list"]),
+          },
+          {
+            participationType: ParticipationType.MerkleWhitelist,
+            data: web3.eth.abi.encodeParameters(["bytes32", "string"], [merkleTree.root, "white_list"]),
+          },
+        ];
+
+        await truffleAssert.reverts(createTiers(tiers.slice(7, 8)), "TSP: multiple Merkle whitelist requirements");
+      });
+
       it("should create tiers if all conditions are met", async () => {
         await saleToken.mint(govPool.address, wei(7000));
 
@@ -1072,6 +1112,32 @@ describe.only("TokenSaleProposal", () => {
         });
 
         assert.deepEqual(actualVestingTierInfos, expectedVestingTiersInfos);
+
+        const actualAdditionalTierInfos = (await tsp.getTierViews(0, 8)).map((e) => ({
+          merkleRoot: e.tierAdditionalInfo.merkleRoot,
+          merkleUri: e.tierAdditionalInfo.merkleUri,
+        }));
+
+        const expectedAdditionalTiersInfos = tiers.map((e) => {
+          if (
+            e.participationDetails.length != 0 &&
+            e.participationDetails[0].participationType == ParticipationType.MerkleWhitelist
+          ) {
+            const decoded = web3.eth.abi.decodeParameters(["bytes32", "string"], e.participationDetails[0].data);
+
+            return {
+              merkleRoot: decoded[0],
+              merkleUri: decoded[1],
+            };
+          }
+
+          return {
+            merkleRoot: "0x0000000000000000000000000000000000000000000000000000000000000000",
+            merkleUri: "",
+          };
+        });
+
+        assert.deepEqual(actualAdditionalTierInfos, expectedAdditionalTiersInfos);
       });
     });
 
