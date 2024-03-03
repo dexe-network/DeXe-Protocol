@@ -171,7 +171,7 @@ library TokenSaleProposalBuy {
         if (_canParticipate && (participationInfo.isWhitelisted || isMerkleRootPresent)) {
             _canParticipate =
                 tokenSaleProposal.balanceOf(user, tierId) > 0 ||
-                _checkMerkleProofs(tier, proof, msg.sender);
+                _checkMerkleProofs(tier, proof, user);
         }
 
         if (_canParticipate && participationInfo.isBABTed) {
@@ -311,7 +311,7 @@ library TokenSaleProposalBuy {
             return false;
         }
 
-        bytes32 leaf = bytes32(bytes20(user));
+        bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(user))));
 
         return proof.verifyCalldata(root, leaf);
     }

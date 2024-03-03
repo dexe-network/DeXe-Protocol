@@ -1168,6 +1168,10 @@ describe("TokenSaleProposal", () => {
         await network.provider.send("hardhat_setBalance", [OWNER, "0x" + wei("100000")]);
       });
 
+      it("should revert on different number of tiers and proofs", async () => {
+        await truffleAssert.reverts(tsp.getUserViews(OWNER, [4], []), "TSP: Different number of Ids and Proofs");
+      });
+
       describe("addToWhitelist", () => {
         it("should not whitelist if caller is not govPool", async () => {
           const whitelistingRequest = [
@@ -1782,7 +1786,10 @@ describe("TokenSaleProposal", () => {
         });
 
         it("should not buy if cannot participate", async () => {
-          await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100), []), "TSP: cannot participate");
+          await truffleAssert.reverts(
+            tsp.buy(1, purchaseToken1.address, wei(100), merkleTree.getProof(0)),
+            "TSP: cannot participate"
+          );
           await truffleAssert.reverts(
             tsp.buy(2, purchaseToken2.address, wei(20), [], { from: THIRD }),
             "TSP: cannot participate"
@@ -1790,6 +1797,7 @@ describe("TokenSaleProposal", () => {
           await truffleAssert.reverts(tsp.buy(3, purchaseToken1.address, wei(100), []), "TSP: cannot participate");
           await truffleAssert.reverts(tsp.buy(4, purchaseToken1.address, wei(100), []), "TSP: cannot participate");
           await truffleAssert.reverts(tsp.buy(5, purchaseToken1.address, wei(100), []), "TSP: cannot participate");
+          await truffleAssert.reverts(tsp.buy(7, purchaseToken1.address, wei(100), []), "TSP: cannot participate");
         });
 
         it("should buy if can participate (no whitelist)", async () => {
@@ -2191,7 +2199,7 @@ describe("TokenSaleProposal", () => {
             await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, wei(7), [], { value: wei(7) }), "TSP: wrong allocation");
           });
 
-          it("should not byy if insufficient sale token amount", async () => {
+          it("should not buy if insufficient sale token amount", async () => {
             await setTime(+tiers[1].saleStartTime);
 
             await purchaseToken1.approve(tsp.address, wei(200));
@@ -2306,6 +2314,48 @@ describe("TokenSaleProposal", () => {
               userViewsToObjects(await tsp.getUserViews(OWNER, [1], [[]]))[0].purchaseView,
               purchaseView
             );
+          });
+
+          it("could buy if merkle proofs are provided", async () => {
+            let SECOND_PROOFS = merkleTree.getProof(0);
+
+            await setTime(+tiers[7].saleStartTime);
+
+            await purchaseToken1.mint(SECOND, wei(200));
+            await purchaseToken1.approve(tsp.address, wei(100), { from: SECOND });
+            assert.equal((await purchaseToken1.balanceOf(SECOND)).toFixed(), wei(200));
+
+            await truffleAssert.reverts(
+              tsp.getSaleTokenAmount(SECOND, 8, purchaseToken1.address, wei(100), []),
+              "TSP: cannot participate"
+            );
+
+            assert.equal(
+              (await tsp.getSaleTokenAmount(SECOND, 8, purchaseToken1.address, wei(100), SECOND_PROOFS)).toFixed(),
+              wei(300)
+            );
+
+            await tsp.buy(8, purchaseToken1.address, wei(100), SECOND_PROOFS, { from: SECOND });
+
+            const purchaseView = {
+              isClaimed: false,
+              canClaim: false,
+              claimUnlockTime: (+tiers[7].saleEndTime + +tiers[7].claimLockDuration).toString(),
+              claimTotalAmount: wei(240),
+              boughtTotalAmount: wei(300),
+              lockedTokenAddresses: [],
+              lockedTokenAmounts: [],
+              lockedNftAddresses: [],
+              lockedNftIds: [],
+              purchaseTokenAddresses: [purchaseToken1.address],
+              purchaseTokenAmounts: [wei(100)],
+            };
+
+            assert.deepEqual(
+              userViewsToObjects(await tsp.getUserViews(SECOND, [8], [SECOND_PROOFS]))[0].purchaseView,
+              purchaseView
+            );
+            assert.equal((await purchaseToken1.balanceOf(SECOND)).toFixed(), wei(100));
           });
         });
       });
