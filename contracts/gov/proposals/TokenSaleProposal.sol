@@ -226,7 +226,6 @@ contract TokenSaleProposal is
         uint256[] calldata tierIds,
         bytes32[][] calldata proofs
     ) external view returns (UserView[] memory userViews) {
-        require(proofs.length == tierIds.length, "TSP: Different number of Ids and Proofs");
         userViews = new UserView[](tierIds.length);
 
         for (uint256 i = 0; i < userViews.length; i++) {
