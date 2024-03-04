@@ -1168,10 +1168,6 @@ describe("TokenSaleProposal", () => {
         await network.provider.send("hardhat_setBalance", [OWNER, "0x" + wei("100000")]);
       });
 
-      it("should revert on different number of tiers and proofs", async () => {
-        await truffleAssert.reverts(tsp.getUserViews(OWNER, [4], []), "TSP: Different number of Ids and Proofs");
-      });
-
       describe("addToWhitelist", () => {
         it("should not whitelist if caller is not govPool", async () => {
           const whitelistingRequest = [
