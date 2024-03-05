@@ -14,12 +14,14 @@ interface ITokenSaleProposal {
     /// @param BABT indicates that the user must own the BABT token
     /// @param TokenLock indicates that the user must lock a specific amount of tokens in the tier
     /// @param NftLock indicates that the user must lock an nft in the tier
+    /// @param MerkleWhitelist indicates that the user must have whitelist Merkle Proofs
     enum ParticipationType {
         DAOVotes,
         Whitelist,
         BABT,
         TokenLock,
-        NftLock
+        NftLock,
+        MerkleWhitelist
     }
 
     /// @notice Metadata of the tier that is part of the initial tier parameters
@@ -97,6 +99,14 @@ interface ITokenSaleProposal {
         uint256 totalSold;
         string uri;
         VestingTierInfo vestingTierInfo;
+    }
+
+    /// @notice Tier additional parameters
+    /// @param merkleRoot root of Merkle Tree for whitelist (zero if Merkle proofs turned off)
+    /// @param merkleUri merkle whitlist uri
+    struct TierAdditionalInfo {
+        bytes32 merkleRoot;
+        string merkleUri;
     }
 
     /// @notice Purchase parameters
@@ -207,12 +217,14 @@ interface ITokenSaleProposal {
     /// @param participationInfo the information about participation requirements
     /// @param rates the mapping of token addresses to their exchange rates
     /// @param users the mapping of user addresses to their infos
+    /// @param tierAdditionalInfo the information about additional tier properties
     struct Tier {
         TierInitParams tierInitParams;
         TierInfo tierInfo;
         ParticipationInfo participationInfo;
         mapping(address => uint256) rates;
         mapping(address => UserInfo) users;
+        TierAdditionalInfo tierAdditionalInfo;
     }
 
     /// @notice Tier parameters. This struct is used in view functions as a return argument
@@ -221,6 +233,7 @@ interface ITokenSaleProposal {
     struct TierView {
         TierInitParams tierInitParams;
         TierInfo tierInfo;
+        TierAdditionalInfo tierAdditionalInfo;
     }
 
     /// @notice Whitelisting request parameters. This struct is used as an input parameter to the whitelist update function
@@ -265,7 +278,13 @@ interface ITokenSaleProposal {
     /// @param tierId the id of the tier where tokens will be purchased
     /// @param tokenToBuyWith the token that will be used (exchanged) to purchase token on the token sale
     /// @param amount the amount of the token to be used for this exchange
-    function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable;
+    /// @param proof the merkle proof for merkle whitelist. Could be empty if whitelist is disabled
+    function buy(
+        uint256 tierId,
+        address tokenToBuyWith,
+        uint256 amount,
+        bytes32[] calldata proof
+    ) external payable;
 
     /// @notice This function is used to lock the specified amount of tokens to participate in the given tier
     /// @param tierId the id of the tier to lock the tokens for
@@ -312,12 +331,14 @@ interface ITokenSaleProposal {
     /// @param tierId the id of the tier in which tokens are purchased
     /// @param tokenToBuyWith the token which is used for exchange
     /// @param amount the token amount used for exchange
+    /// @param proof the merkle proof for merkle whitelist. Could be empty if whitelist is disabled
     /// @return expected sale token amount
     function getSaleTokenAmount(
         address user,
         uint256 tierId,
         address tokenToBuyWith,
-        uint256 amount
+        uint256 amount,
+        bytes32[] calldata proof
     ) external view returns (uint256);
 
     /// @notice This function is used to get information about the amount of non-vesting tokens that user can withdraw (that are unlocked) from given tiers
@@ -358,8 +379,10 @@ interface ITokenSaleProposal {
     /// @param user the address of the user whose infos are required
     /// @param tierIds the list of tier ids to get infos from
     /// @return userViews the list of user views
+    /// @param proofs the list of merkle proofs
     function getUserViews(
         address user,
-        uint256[] calldata tierIds
+        uint256[] calldata tierIds,
+        bytes32[][] calldata proofs
     ) external view returns (UserView[] memory userViews);
 }

@@ -48,6 +48,7 @@ const ParticipationType = {
   BABT: "2",
   TokenLock: "3",
   NftLock: "4",
+  MerkleWhitelist: "5",
 };
 
 const VotePowerType = {

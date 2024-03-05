@@ -58,6 +58,7 @@
     "@solarity/hardhat-gobind": "^1.1.0",
     "@solarity/hardhat-markup": "^1.0.2",
     "@solarity/hardhat-migrate": "^2.0.0-alpha.20",
+    "@openzeppelin/merkle-tree": "^1.0.6",
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.3",
     "@typechain/truffle-v5": "^8.0.1",

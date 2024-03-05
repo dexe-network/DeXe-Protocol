@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 import "@solarity/solidity-lib/libs/utils/TypeCaster.sol";
 import "@solarity/solidity-lib/libs/utils/DecimalsConverter.sol";
@@ -26,12 +27,14 @@ library TokenSaleProposalBuy {
     using SafeERC20 for IERC20;
     using EnumerableSet for *;
     using EnumerableMap for EnumerableMap.AddressToUintMap;
+    using MerkleProof for *;
 
     function buy(
         ITokenSaleProposal.Tier storage tier,
         uint256 tierId,
         address tokenToBuyWith,
-        uint256 amount
+        uint256 amount,
+        bytes32[] calldata proof
     ) external returns (uint256 saleTokenAmount) {
         ITokenSaleProposal.UserInfo storage userInfo = tier.users[msg.sender];
         ITokenSaleProposal.PurchaseInfo storage purchaseInfo = userInfo.purchaseInfo;
@@ -42,7 +45,14 @@ library TokenSaleProposalBuy {
             "TSP: wrong native amount"
         );
 
-        saleTokenAmount = getSaleTokenAmount(tier, msg.sender, tierId, tokenToBuyWith, amount);
+        saleTokenAmount = getSaleTokenAmount(
+            tier,
+            msg.sender,
+            tierId,
+            tokenToBuyWith,
+            amount,
+            proof
+        );
 
         uint256 vestingCurrentAmount = saleTokenAmount.percentage(
             tierInitParams.vestingSettings.vestingPercentage
@@ -94,13 +104,14 @@ library TokenSaleProposalBuy {
         address user,
         uint256 tierId,
         address tokenToBuyWith,
-        uint256 amount
+        uint256 amount,
+        bytes32[] calldata proof
     ) public view returns (uint256) {
         ITokenSaleProposal.TierInitParams memory tierInitParams = tier.tierInitParams;
         ITokenSaleProposal.UserInfo storage userInfo = tier.users[msg.sender];
 
         require(amount > 0, "TSP: zero amount");
-        require(canParticipate(tier, tierId, user), "TSP: cannot participate");
+        require(canParticipate(tier, tierId, user, proof), "TSP: cannot participate");
         require(
             tierInitParams.saleStartTime <= block.timestamp &&
                 block.timestamp <= tierInitParams.saleEndTime,
@@ -133,7 +144,8 @@ library TokenSaleProposalBuy {
     function canParticipate(
         ITokenSaleProposal.Tier storage tier,
         uint256 tierId,
-        address user
+        address user,
+        bytes32[] calldata proof
     ) public view returns (bool) {
         ITokenSaleProposal.ParticipationInfo storage participationInfo = tier.participationInfo;
         TokenSaleProposal tokenSaleProposal = TokenSaleProposal(address(this));
@@ -154,8 +166,12 @@ library TokenSaleProposalBuy {
                 participationInfo.requiredDaoVotes;
         }
 
-        if (_canParticipate && participationInfo.isWhitelisted) {
-            _canParticipate = tokenSaleProposal.balanceOf(user, tierId) > 0;
+        bool isMerkleRootPresent = tier.tierAdditionalInfo.merkleRoot != bytes32(0);
+
+        if (_canParticipate && (participationInfo.isWhitelisted || isMerkleRootPresent)) {
+            _canParticipate =
+                tokenSaleProposal.balanceOf(user, tierId) > 0 ||
+                _checkMerkleProofs(tier, proof, user);
         }
 
         if (_canParticipate && participationInfo.isBABTed) {
@@ -278,5 +294,25 @@ library TokenSaleProposalBuy {
         }
 
         return true;
+    }
+
+    function _checkMerkleProofs(
+        ITokenSaleProposal.Tier storage tier,
+        bytes32[] calldata proof,
+        address user
+    ) internal view returns (bool) {
+        if (proof.length == 0) {
+            return false;
+        }
+
+        bytes32 root = tier.tierAdditionalInfo.merkleRoot;
+
+        if (root == bytes32(0)) {
+            return false;
+        }
+
+        bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(user))));
+
+        return proof.verifyCalldata(root, leaf);
     }
 }

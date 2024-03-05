@@ -80,7 +80,8 @@ library TokenSaleProposalCreate {
 
             tierViews[i - offset] = ITokenSaleProposal.TierView({
                 tierInitParams: tier.tierInitParams,
-                tierInfo: tier.tierInfo
+                tierInfo: tier.tierInfo,
+                tierAdditionalInfo: tier.tierAdditionalInfo
             });
         }
     }
@@ -141,8 +142,10 @@ library TokenSaleProposalCreate {
                     participationInfo.requiredTokenLock.set(token, amount),
                     "TSP: multiple token lock requirements"
                 );
-            } else {
-                /// @dev ITokenSaleProposal.ParticipationType.NftLock
+            } else if (
+                participationDetails.participationType ==
+                ITokenSaleProposal.ParticipationType.NftLock
+            ) {
                 require(participationDetails.data.length == 64, "TSP: invalid nft lock data");
 
                 (address nft, uint256 amount) = abi.decode(
@@ -155,6 +158,30 @@ library TokenSaleProposalCreate {
                     participationInfo.requiredNftLock.set(nft, amount),
                     "TSP: multiple nft lock requirements"
                 );
+            } else {
+                /// @dev ITokenSaleProposal.ParticipationType.MerkleWhitelist
+                require(
+                    participationDetails.data.length >= 96,
+                    "TSP: invalid Merkle Whitelist data"
+                );
+
+                ITokenSaleProposal.TierAdditionalInfo storage additionalInfo = tier
+                    .tierAdditionalInfo;
+
+                require(
+                    additionalInfo.merkleRoot == bytes32(0),
+                    "TSP: multiple Merkle whitelist requirements"
+                );
+
+                (bytes32 merkleRoot, string memory merkleUri) = abi.decode(
+                    participationDetails.data,
+                    (bytes32, string)
+                );
+
+                require(merkleRoot != bytes32(0), "TSP: zero Merkle Root");
+
+                additionalInfo.merkleRoot = merkleRoot;
+                additionalInfo.merkleUri = merkleUri;
             }
         }
     }
