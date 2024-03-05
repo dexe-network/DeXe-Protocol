@@ -1755,17 +1755,17 @@ describe("TokenSaleProposal", () => {
 
       describe("buy", () => {
         it("should not buy if tier does not exist", async () => {
-          await truffleAssert.reverts(tsp.buy(10, purchaseToken1.address, wei(100)), "TSP: tier does not exist");
+          await truffleAssert.reverts(tsp.buy(10, purchaseToken1.address, wei(100), []), "TSP: tier does not exist");
         });
 
         it("should not buy if tier is off", async () => {
           await acceptProposal([[tsp.address, 0, getBytesOffTiersTSP([1])]]);
 
-          await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100)), "TSP: tier is off");
+          await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(100), []), "TSP: tier is off");
         });
 
         it("should not buy if zero amount", async () => {
-          await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, 0), "TSP: zero amount");
+          await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, 0, []), "TSP: zero amount");
         });
 
         it("should not buy if convertion is zero", async () => {
@@ -1776,7 +1776,7 @@ describe("TokenSaleProposal", () => {
           await babt.attest(OWNER);
 
           await truffleAssert.reverts(
-            tsp.buy(3, purchaseToken1.address, wei("1", 6)),
+            tsp.buy(3, purchaseToken1.address, wei("1", 6), []),
             "DecimalsConverter: conversion failed"
           );
         });
@@ -1787,13 +1787,13 @@ describe("TokenSaleProposal", () => {
             "TSP: cannot participate"
           );
           await truffleAssert.reverts(
-            tsp.buy(2, purchaseToken2.address, wei(20), { from: THIRD }),
+            tsp.buy(2, purchaseToken2.address, wei(20), [], { from: THIRD }),
             "TSP: cannot participate"
           );
-          await truffleAssert.reverts(tsp.buy(3, purchaseToken1.address, wei(100)), "TSP: cannot participate");
-          await truffleAssert.reverts(tsp.buy(4, purchaseToken1.address, wei(100)), "TSP: cannot participate");
-          await truffleAssert.reverts(tsp.buy(5, purchaseToken1.address, wei(100)), "TSP: cannot participate");
-          await truffleAssert.reverts(tsp.buy(7, purchaseToken1.address, wei(100)), "TSP: cannot participate");
+          await truffleAssert.reverts(tsp.buy(3, purchaseToken1.address, wei(100), []), "TSP: cannot participate");
+          await truffleAssert.reverts(tsp.buy(4, purchaseToken1.address, wei(100), []), "TSP: cannot participate");
+          await truffleAssert.reverts(tsp.buy(5, purchaseToken1.address, wei(100), []), "TSP: cannot participate");
+          await truffleAssert.reverts(tsp.buy(7, purchaseToken1.address, wei(100), []), "TSP: cannot participate");
         });
 
         it("should buy if can participate (no whitelist)", async () => {
@@ -1805,7 +1805,7 @@ describe("TokenSaleProposal", () => {
             (await tsp.getSaleTokenAmount(OWNER, 6, purchaseToken1.address, wei(100), [])).toFixed(),
             wei(400)
           );
-          await tsp.buy(6, purchaseToken1.address, wei(100));
+          await tsp.buy(6, purchaseToken1.address, wei(100), []);
 
           const purchaseView = {
             isClaimed: false,
@@ -1843,7 +1843,7 @@ describe("TokenSaleProposal", () => {
           await purchaseToken2.approve(tsp.address, wei(20), { from: THIRD });
 
           assert.equal((await tsp.getSaleTokenAmount(THIRD, 2, purchaseToken2.address, wei(20), [])).toFixed(), wei(5));
-          await tsp.buy(2, purchaseToken2.address, wei(20), { from: THIRD });
+          await tsp.buy(2, purchaseToken2.address, wei(20), [], { from: THIRD });
 
           const purchaseView = {
             isClaimed: false,
@@ -1880,7 +1880,7 @@ describe("TokenSaleProposal", () => {
             (await tsp.getSaleTokenAmount(OWNER, 3, purchaseToken1.address, wei(100), [])).toFixed(),
             wei(400)
           );
-          await tsp.buy(3, purchaseToken1.address, wei(100));
+          await tsp.buy(3, purchaseToken1.address, wei(100), []);
 
           const purchaseView = {
             isClaimed: false,
@@ -2019,7 +2019,7 @@ describe("TokenSaleProposal", () => {
               wei(5)
             );
 
-            await tsp.buy(2, purchaseToken2.address, wei(20), { from: THIRD });
+            await tsp.buy(2, purchaseToken2.address, wei(20), [], { from: THIRD });
 
             const purchaseView = {
               isClaimed: false,
@@ -2053,7 +2053,7 @@ describe("TokenSaleProposal", () => {
               (await tsp.getSaleTokenAmount(OWNER, 3, purchaseToken1.address, wei(100), [])).toFixed(),
               wei(400)
             );
-            await tsp.buy(3, purchaseToken1.address, wei(100));
+            await tsp.buy(3, purchaseToken1.address, wei(100), []);
 
             const purchaseView = {
               isClaimed: false,
@@ -2175,24 +2175,24 @@ describe("TokenSaleProposal", () => {
           });
 
           it("should not buy if cannot buy now", async () => {
-            await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(10)), "TSP: cannot buy now");
+            await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(10), []), "TSP: cannot buy now");
 
             await setTime(+tiers[0].saleEndTime + 1);
 
-            await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(10)), "TSP: cannot buy now");
+            await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(10), []), "TSP: cannot buy now");
           });
 
           it("should not buy if incorrect token", async () => {
             await setTime(+tiers[0].saleStartTime);
 
-            await truffleAssert.reverts(tsp.buy(1, purchaseToken2.address, wei(10)), "TSP: incorrect token");
+            await truffleAssert.reverts(tsp.buy(1, purchaseToken2.address, wei(10), []), "TSP: incorrect token");
           });
 
           it("should not buy if wrong allocation", async () => {
             await setTime(+tiers[0].saleStartTime);
 
-            await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(1)), "TSP: wrong allocation");
-            await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, wei(7), { value: wei(7) }), "TSP: wrong allocation");
+            await truffleAssert.reverts(tsp.buy(1, purchaseToken1.address, wei(1), []), "TSP: wrong allocation");
+            await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, wei(7), [], { value: wei(7) }), "TSP: wrong allocation");
           });
 
           it("should not buy if insufficient sale token amount", async () => {
@@ -2201,9 +2201,9 @@ describe("TokenSaleProposal", () => {
             await purchaseToken1.approve(tsp.address, wei(200));
             await purchaseToken1.approve(tsp.address, wei(200), { from: SECOND });
 
-            await tsp.buy(2, purchaseToken1.address, wei(200));
+            await tsp.buy(2, purchaseToken1.address, wei(200), []);
             await truffleAssert.reverts(
-              tsp.buy(2, purchaseToken1.address, wei(200), { from: SECOND }),
+              tsp.buy(2, purchaseToken1.address, wei(200), [], { from: SECOND }),
               "TSP: insufficient sale token amount"
             );
           });
@@ -2214,7 +2214,7 @@ describe("TokenSaleProposal", () => {
             await setTime(+tiers[0].saleStartTime);
 
             await truffleAssert.reverts(
-              tsp.buy(1, ETHER_ADDR, wei(1), { value: wei(1) }),
+              tsp.buy(1, ETHER_ADDR, wei(1), [], { value: wei(1) }),
               "TSP: failed to transfer ether"
             );
           });
@@ -2222,14 +2222,14 @@ describe("TokenSaleProposal", () => {
           it("should not buy if wrong native amount", async () => {
             await setTime(+tiers[0].saleStartTime);
 
-            await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, 0, { value: wei(1) }), "TSP: wrong native amount");
+            await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, 0, [], { value: wei(1) }), "TSP: wrong native amount");
           });
 
           it("should not buy if wrong native amount", async () => {
             await setTime(+tiers[0].saleStartTime);
 
             await truffleAssert.reverts(
-              tsp.buy(1, purchaseToken1.address, 1, { value: wei(1) }),
+              tsp.buy(1, purchaseToken1.address, 1, [], { value: wei(1) }),
               "TSP: wrong native amount"
             );
           });
@@ -2239,8 +2239,8 @@ describe("TokenSaleProposal", () => {
 
             await purchaseToken1.approve(tsp.address, wei(300));
 
-            await tsp.buy(1, purchaseToken1.address, wei(200));
-            await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, wei(1), { value: wei(1) }), "TSP: wrong allocation");
+            await tsp.buy(1, purchaseToken1.address, wei(200), []);
+            await truffleAssert.reverts(tsp.buy(1, ETHER_ADDR, wei(1), [], { value: wei(1) }), "TSP: wrong allocation");
           });
 
           it("should buy if all conditions are met", async () => {
@@ -2252,7 +2252,7 @@ describe("TokenSaleProposal", () => {
               (await tsp.getSaleTokenAmount(OWNER, 1, purchaseToken1.address, wei(100), [])).toFixed(),
               wei(300)
             );
-            await tsp.buy(1, purchaseToken1.address, wei(100));
+            await tsp.buy(1, purchaseToken1.address, wei(100), []);
 
             assert.equal((await purchaseToken1.balanceOf(OWNER)).toFixed(), wei(900));
 
@@ -2278,7 +2278,7 @@ describe("TokenSaleProposal", () => {
             const etherBalanceBefore = await web3.eth.getBalance(OWNER);
 
             assert.equal((await tsp.getSaleTokenAmount(OWNER, 1, ETHER_ADDR, wei(1), [])).toFixed(), wei(100));
-            const tx = await tsp.buy(1, ETHER_ADDR, wei(1), { value: wei(1) });
+            const tx = await tsp.buy(1, ETHER_ADDR, wei(1), [], { value: wei(1) });
 
             assert.equal(
               toBN(etherBalanceBefore)
@@ -2298,7 +2298,7 @@ describe("TokenSaleProposal", () => {
               purchaseView
             );
 
-            await tsp.buy(1, purchaseToken1.address, wei(50));
+            await tsp.buy(1, purchaseToken1.address, wei(50), []);
 
             assert.equal((await purchaseToken1.balanceOf(OWNER)).toFixed(), wei(850));
 
@@ -2331,13 +2331,7 @@ describe("TokenSaleProposal", () => {
               wei(300)
             );
 
-            await tsp.methods["buy(uint256,address,uint256,bytes32[])"](
-              8,
-              purchaseToken1.address,
-              wei(100),
-              SECOND_PROOFS,
-              { from: SECOND }
-            );
+            await tsp.buy(8, purchaseToken1.address, wei(100), SECOND_PROOFS, { from: SECOND });
 
             const purchaseView = {
               isClaimed: false,
@@ -2377,7 +2371,7 @@ describe("TokenSaleProposal", () => {
           await purchaseToken1.approve(tsp.address, wei(200));
 
           await setTime(+tiers[0].saleStartTime);
-          await tsp.buy(1, purchaseToken1.address, wei(200));
+          await tsp.buy(1, purchaseToken1.address, wei(200), []);
         });
 
         it("should not recover if recover conditions were not met", async () => {
@@ -2468,7 +2462,7 @@ describe("TokenSaleProposal", () => {
           await setTime(+tiers[0].saleStartTime);
 
           await purchaseToken1.approve(tsp.address, wei(100));
-          await tsp.buy(1, purchaseToken1.address, wei(100));
+          await tsp.buy(1, purchaseToken1.address, wei(100), []);
 
           let purchaseView = userViewsToObjects(await tsp.getUserViews(OWNER, [1], [[]]))[0].purchaseView;
 
@@ -2531,7 +2525,7 @@ describe("TokenSaleProposal", () => {
           await setTime(+tiers[0].saleStartTime);
 
           await purchaseToken1.approve(tsp.address, wei(100));
-          await tsp.buy(1, purchaseToken1.address, wei(100));
+          await tsp.buy(1, purchaseToken1.address, wei(100), []);
 
           const firstVestingWithdraw =
             +tiers[0].saleEndTime + +tiers[0].vestingSettings.cliffPeriod + +tiers[0].vestingSettings.unlockStep;
