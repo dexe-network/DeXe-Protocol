@@ -122,6 +122,17 @@ contract TokenSaleProposal is
         }
     }
 
+    function buy(uint256 tierId, address tokenToBuyWith, uint256 amount) external payable {
+        uint256 bought = _getActiveTier(tierId).buy(
+            tierId,
+            tokenToBuyWith,
+            amount,
+            new bytes32[](0)
+        );
+
+        emit Bought(tierId, tokenToBuyWith, bought, amount, msg.sender);
+    }
+
     function buy(
         uint256 tierId,
         address tokenToBuyWith,
