@@ -16,6 +16,7 @@ import "../../libs/gov/token-sale-proposal/TokenSaleProposalVesting.sol";
 import "../../libs/gov/token-sale-proposal/TokenSaleProposalWhitelist.sol";
 import "../../libs/gov/token-sale-proposal/TokenSaleProposalClaim.sol";
 import "../../libs/gov/token-sale-proposal/TokenSaleProposalRecover.sol";
+import "../../libs/gov/token-sale-proposal/TokenSaleProposalModify.sol";
 
 contract TokenSaleProposal is
     ITokenSaleProposal,
@@ -30,6 +31,7 @@ contract TokenSaleProposal is
     using TokenSaleProposalWhitelist for Tier;
     using TokenSaleProposalClaim for Tier;
     using TokenSaleProposalRecover for Tier;
+    using TokenSaleProposalModify for Tier;
 
     address public govAddress;
     ISBT721 public babt;
@@ -90,6 +92,13 @@ contract TokenSaleProposal is
                 tierInitParams[i].participationDetails
             );
         }
+    }
+
+    function changeParticipationDetails(
+        uint256 tierId,
+        ITokenSaleProposal.ParticipationInfoView calldata newSettings
+    ) external onlyGov {
+        _getActiveTier(tierId).changeParticipationDetails(newSettings);
     }
 
     function addToWhitelist(WhitelistingRequest[] calldata requests) external override onlyGov {
@@ -219,6 +228,12 @@ contract TokenSaleProposal is
         uint256 limit
     ) external view returns (TierView[] memory tierViews) {
         return _tiers.getTierViews(offset, limit);
+    }
+
+    function getParticipationDetails(
+        uint256 tierId
+    ) external view returns (ITokenSaleProposal.ParticipationInfoView memory) {
+        return _getActiveTier(tierId).getParticipationDetails();
     }
 
     function getUserViews(
