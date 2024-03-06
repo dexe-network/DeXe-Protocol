@@ -193,6 +193,28 @@ interface ITokenSaleProposal {
         EnumerableMap.AddressToUintMap requiredNftLock;
     }
 
+    /// @notice Commplete list of participation parameters
+    /// @param isWhitelisted the boolean indicating whether the tier requires whitelist
+    /// @param isBABTed the boolean indicating whether the tier requires BABT token
+    /// @param requiredDaoVotes the required amount of DAO votes
+    /// @param requiredTokenAddresses list of required tokens to lock
+    /// @param requiredTokenAmounts list of required amounts of token to lock
+    /// @param requiredNftAddresses list of required nfts to lock
+    /// @param requiredNftAmounts list of required amounts of nft to lock
+    /// @param merkleRoot root of Merkle Tree for whitelist (zero if Merkle proofs turned off)
+    /// @param merkleUri merkle whitlist uri
+    struct ParticipationInfoView {
+        bool isWhitelisted;
+        bool isBABTed;
+        uint256 requiredDaoVotes;
+        address[] requiredTokenAddresses;
+        uint256[] requiredTokenAmounts;
+        address[] requiredNftAddresses;
+        uint256[] requiredNftAmounts;
+        bytes32 merkleRoot;
+        string merkleUri;
+    }
+
     /// @notice User parameters
     /// @param purchaseInfo the information about the user purchase
     /// @param vestingUserInfo the information about the user vesting
