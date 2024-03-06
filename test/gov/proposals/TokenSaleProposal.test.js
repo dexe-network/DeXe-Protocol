@@ -49,6 +49,7 @@ const TokenSaleProposalVestingLib = artifacts.require("TokenSaleProposalVesting"
 const TokenSaleProposalWhitelistLib = artifacts.require("TokenSaleProposalWhitelist");
 const TokenSaleProposalClaimLib = artifacts.require("TokenSaleProposalClaim");
 const TokenSaleProposalRecoverLib = artifacts.require("TokenSaleProposalRecover");
+const TokenSaleProposalModifyLib = artifacts.require("TokenSaleProposalModify");
 const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
 const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
 const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
@@ -146,6 +147,7 @@ describe("TokenSaleProposal", () => {
     const tspWhitelistLib = await TokenSaleProposalWhitelistLib.new();
     const tspClaimLib = await TokenSaleProposalClaimLib.new();
     const tspRecoverLib = await TokenSaleProposalRecoverLib.new();
+    const tspModifyLib = await TokenSaleProposalModifyLib.new();
 
     await TokenSaleProposal.link(tspCreateLib);
     await TokenSaleProposal.link(tspBuyLib);
@@ -153,6 +155,7 @@ describe("TokenSaleProposal", () => {
     await TokenSaleProposal.link(tspWhitelistLib);
     await TokenSaleProposal.link(tspClaimLib);
     await TokenSaleProposal.link(tspRecoverLib);
+    await TokenSaleProposal.link(tspModifyLib);
 
     const govValidatorsCreateLib = await GovValidatorsCreateLib.new();
     const govValidatorsVoteLib = await GovValidatorsVoteLib.new();
