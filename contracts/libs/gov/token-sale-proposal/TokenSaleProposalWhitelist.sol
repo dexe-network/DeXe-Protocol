@@ -90,16 +90,22 @@ library TokenSaleProposalWhitelist {
             .users[msg.sender]
             .purchaseInfo
             .lockedTokens;
+        EnumerableMap.AddressToUintMap storage requiredTokenLock = tier
+            .participationInfo
+            .requiredTokenLock;
+
+        (, uint256 lockedAmount) = lockedTokens.tryGet(tokenToUnlock);
+        (, uint256 requiredAmount) = requiredTokenLock.tryGet(tokenToUnlock);
+        uint256 overlock = lockedAmount < requiredAmount ? 0 : lockedAmount - requiredAmount;
 
         require(
             block.timestamp >= tier.tierInitParams.saleEndTime ||
-                !tier._checkUserLockedTokens(msg.sender),
+                !tier._checkUserLockedTokens(msg.sender) ||
+                overlock >= amountToUnlock,
             "TSP: unlock unavailable"
         );
 
         require(amountToUnlock > 0, "TSP: zero amount to unlock");
-
-        (, uint256 lockedAmount) = lockedTokens.tryGet(tokenToUnlock);
 
         require(amountToUnlock <= lockedAmount, "TSP: unlock exceeds lock");
 
@@ -119,10 +125,18 @@ library TokenSaleProposalWhitelist {
     ) external {
         ITokenSaleProposal.PurchaseInfo storage purchaseInfo = tier.users[msg.sender].purchaseInfo;
         EnumerableSet.UintSet storage lockedNfts = purchaseInfo.lockedNfts[nftToUnlock];
+        EnumerableMap.AddressToUintMap storage requiredNftLock = tier
+            .participationInfo
+            .requiredNftLock;
+
+        (, uint256 requiredAmount) = requiredNftLock.tryGet(nftToUnlock);
+        uint256 lockedAmount = lockedNfts.length();
+        uint256 overlock = lockedAmount < requiredAmount ? 0 : lockedAmount - requiredAmount;
 
         require(
             block.timestamp >= tier.tierInitParams.saleEndTime ||
-                !tier._checkUserLockedNfts(msg.sender),
+                !tier._checkUserLockedNfts(msg.sender) ||
+                overlock >= nftIdsToUnlock.length,
             "TSP: unlock unavailable"
         );
 
