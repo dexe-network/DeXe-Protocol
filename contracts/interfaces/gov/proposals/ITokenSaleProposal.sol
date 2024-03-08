@@ -276,6 +276,14 @@ interface ITokenSaleProposal {
     /// @param tiers parameters of tiers
     function createTiers(TierInitParams[] calldata tiers) external;
 
+    /// @notice This function is used for changing participation settings of the tier
+    /// @param tierId id of the tier to modify
+    /// @param newSettings list of participation parameters to set
+    function changeParticipationDetails(
+        uint256 tierId,
+        ParticipationInfoView calldata newSettings
+    ) external;
+
     /// @notice This function is used to add users to the whitelist of tier
     /// @param requests requests for adding users to the whitelist
     function addToWhitelist(WhitelistingRequest[] calldata requests) external;
@@ -396,6 +404,13 @@ interface ITokenSaleProposal {
         uint256 offset,
         uint256 limit
     ) external view returns (TierView[] memory tierViews);
+
+    /// @notice This function is used to get participation settings of a tier
+    /// @param tierId the tier id
+    /// @return tierParticipationDetails the list of tier participation settings
+    function getParticipationDetails(
+        uint256 tierId
+    ) external view returns (ParticipationInfoView memory tierParticipationDetails);
 
     /// @notice This function is used to get user's infos from tiers
     /// @param user the address of the user whose infos are required
