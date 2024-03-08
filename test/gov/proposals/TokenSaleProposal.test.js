@@ -1764,7 +1764,8 @@ describe("TokenSaleProposal", () => {
           const newDetails = [];
           newDetails.isWhitelisted = false;
           newDetails.isBABTed = false;
-          (newDetails.requiredDaoVotes = "0"), (newDetails.requiredTokenAddresses = []);
+          newDetails.requiredDaoVotes = "0";
+          newDetails.requiredTokenAddresses = [];
           newDetails.requiredTokenAmounts = [];
           newDetails.requiredNftAddresses = [];
           newDetails.requiredNftAmounts = [];
@@ -1880,6 +1881,38 @@ describe("TokenSaleProposal", () => {
           await truffleAssert.reverts(
             tsp.changeParticipationDetails(1, details, { from: govPool.address }),
             "TSP: Duplicated address"
+          );
+        });
+
+        it("cant buy after switching whitelist", async () => {
+          const whitelistingRequest = [
+            {
+              tierId: 1,
+              users: [OWNER],
+              uri: "",
+            },
+          ];
+          await acceptProposal([[tsp.address, 0, getBytesAddToWhitelistTSP(whitelistingRequest)]]);
+
+          await setTime(+tiers[0].saleStartTime);
+          await purchaseToken1.approve(tsp.address, wei(150));
+
+          assert.equal(
+            (await tsp.getSaleTokenAmount(OWNER, 1, purchaseToken1.address, wei(100), [])).toFixed(),
+            wei(300)
+          );
+
+          let participationDetails = tiersToParticipationDetails()[0];
+          participationDetails.isWhitelisted = false;
+          participationDetails.merkleRoot = merkleTree.root;
+          participationDetails.merkleUri = "white_list";
+          let details = detailsInfoSimplify(participationDetails);
+
+          await tsp.changeParticipationDetails(1, details, { from: govPool.address });
+
+          await truffleAssert.reverts(
+            tsp.getSaleTokenAmount(OWNER, 1, purchaseToken1.address, wei(100), []),
+            "TSP: cannot participate"
           );
         });
 
