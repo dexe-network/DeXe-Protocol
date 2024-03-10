@@ -30,28 +30,11 @@ library TokenSaleProposalCreate {
 
         _setParticipationInfo(tier, _tierInitParams);
         _setRates(tier, _tierInitParams);
-
-        uint64 vestingStartTime = _tierInitParams.vestingSettings.vestingDuration == 0
-            ? 0
-            : _tierInitParams.saleEndTime + _tierInitParams.vestingSettings.cliffPeriod;
-        tier.tierInfo.vestingTierInfo = ITokenSaleProposal.VestingTierInfo({
-            vestingStartTime: vestingStartTime,
-            vestingEndTime: vestingStartTime + _tierInitParams.vestingSettings.vestingDuration
-        });
+        _setVestingParameters(tier, _tierInitParams);
 
         ITokenSaleProposal.TierInitParams storage tierInitParams = tier.tierInitParams;
 
-        tierInitParams.metadata = _tierInitParams.metadata;
-        tierInitParams.totalTokenProvided = _tierInitParams.totalTokenProvided;
-        tierInitParams.saleStartTime = _tierInitParams.saleStartTime;
-        tierInitParams.saleEndTime = _tierInitParams.saleEndTime;
-        tierInitParams.claimLockDuration = _tierInitParams.claimLockDuration;
-        tierInitParams.saleTokenAddress = _tierInitParams.saleTokenAddress;
-        tierInitParams.purchaseTokenAddresses = _tierInitParams.purchaseTokenAddresses;
-        tierInitParams.exchangeRates = _tierInitParams.exchangeRates;
-        tierInitParams.minAllocationPerUser = _tierInitParams.minAllocationPerUser;
-        tierInitParams.maxAllocationPerUser = _tierInitParams.maxAllocationPerUser;
-        tierInitParams.vestingSettings = _tierInitParams.vestingSettings;
+        _setBasicParameters(tierInitParams, _tierInitParams);
 
         for (uint256 i = 0; i < _tierInitParams.participationDetails.length; i++) {
             tierInitParams.participationDetails.push(_tierInitParams.participationDetails[i]);
@@ -62,6 +45,24 @@ library TokenSaleProposalCreate {
             address(this),
             _tierInitParams.totalTokenProvided.from18Safe(_tierInitParams.saleTokenAddress)
         );
+    }
+
+    function modifyTier(
+        ITokenSaleProposal.Tier storage tier,
+        ITokenSaleProposal.TierInitParams memory newParams
+    ) external {
+        require(
+            block.timestamp <= tier.tierInitParams.saleStartTime,
+            "TSP: token sale already started"
+        );
+        require(
+            newParams.participationDetails.length == 0,
+            "TSP: participation details cant be changed with this function"
+        );
+
+        _validateTierInitParams(newParams);
+
+        _setRates(tier, newParams);
     }
 
     function getTierViews(
@@ -84,6 +85,36 @@ library TokenSaleProposalCreate {
                 tierAdditionalInfo: tier.tierAdditionalInfo
             });
         }
+    }
+
+    function _setBasicParameters(
+        ITokenSaleProposal.TierInitParams storage tierInitParams,
+        ITokenSaleProposal.TierInitParams memory _tierInitParams
+    ) private {
+        tierInitParams.metadata = _tierInitParams.metadata;
+        tierInitParams.totalTokenProvided = _tierInitParams.totalTokenProvided;
+        tierInitParams.saleStartTime = _tierInitParams.saleStartTime;
+        tierInitParams.saleEndTime = _tierInitParams.saleEndTime;
+        tierInitParams.claimLockDuration = _tierInitParams.claimLockDuration;
+        tierInitParams.saleTokenAddress = _tierInitParams.saleTokenAddress;
+        tierInitParams.purchaseTokenAddresses = _tierInitParams.purchaseTokenAddresses;
+        tierInitParams.exchangeRates = _tierInitParams.exchangeRates;
+        tierInitParams.minAllocationPerUser = _tierInitParams.minAllocationPerUser;
+        tierInitParams.maxAllocationPerUser = _tierInitParams.maxAllocationPerUser;
+        tierInitParams.vestingSettings = _tierInitParams.vestingSettings;
+    }
+
+    function _setVestingParameters(
+        ITokenSaleProposal.Tier storage tier,
+        ITokenSaleProposal.TierInitParams memory _tierInitParams
+    ) private {
+        uint64 vestingStartTime = _tierInitParams.vestingSettings.vestingDuration == 0
+            ? 0
+            : _tierInitParams.saleEndTime + _tierInitParams.vestingSettings.cliffPeriod;
+        tier.tierInfo.vestingTierInfo = ITokenSaleProposal.VestingTierInfo({
+            vestingStartTime: vestingStartTime,
+            vestingEndTime: vestingStartTime + _tierInitParams.vestingSettings.vestingDuration
+        });
     }
 
     function _setParticipationInfo(
@@ -190,6 +221,10 @@ library TokenSaleProposalCreate {
         ITokenSaleProposal.Tier storage tier,
         ITokenSaleProposal.TierInitParams memory tierInitParams
     ) private {
+        for (uint256 i = 0; i < tier.tierInitParams.purchaseTokenAddresses.length; i++) {
+            tier.rates[tier.tierInitParams.purchaseTokenAddresses[i]] = 0;
+        }
+
         for (uint256 i = 0; i < tierInitParams.purchaseTokenAddresses.length; i++) {
             require(tierInitParams.exchangeRates[i] != 0, "TSP: rate cannot be zero");
             require(
