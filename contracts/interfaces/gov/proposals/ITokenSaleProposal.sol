@@ -303,6 +303,11 @@ interface ITokenSaleProposal {
     /// @param tiers parameters of tiers
     function createTiers(TierInitParams[] calldata tiers) external;
 
+    /// @notice This function is used to modify tier
+    /// @param tierId the id of tier
+    /// @param newSettings the new tier settings
+    function modifyTier(uint256 tierId, TierModifyParams calldata newSettings) external;
+
     /// @notice This function is used for changing participation settings of the tier
     /// @param tierId id of the tier to modify
     /// @param newSettings list of participation parameters to set
