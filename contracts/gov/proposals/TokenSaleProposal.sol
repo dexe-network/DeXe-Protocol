@@ -16,7 +16,6 @@ import "../../libs/gov/token-sale-proposal/TokenSaleProposalVesting.sol";
 import "../../libs/gov/token-sale-proposal/TokenSaleProposalWhitelist.sol";
 import "../../libs/gov/token-sale-proposal/TokenSaleProposalClaim.sol";
 import "../../libs/gov/token-sale-proposal/TokenSaleProposalRecover.sol";
-import "../../libs/gov/token-sale-proposal/TokenSaleProposalModify.sol";
 
 contract TokenSaleProposal is
     ITokenSaleProposal,
@@ -31,7 +30,6 @@ contract TokenSaleProposal is
     using TokenSaleProposalWhitelist for Tier;
     using TokenSaleProposalClaim for Tier;
     using TokenSaleProposalRecover for Tier;
-    using TokenSaleProposalModify for Tier;
 
     address public govAddress;
     ISBT721 public babt;

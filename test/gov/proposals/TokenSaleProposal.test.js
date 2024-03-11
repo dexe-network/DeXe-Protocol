@@ -50,7 +50,6 @@ const TokenSaleProposalVestingLib = artifacts.require("TokenSaleProposalVesting"
 const TokenSaleProposalWhitelistLib = artifacts.require("TokenSaleProposalWhitelist");
 const TokenSaleProposalClaimLib = artifacts.require("TokenSaleProposalClaim");
 const TokenSaleProposalRecoverLib = artifacts.require("TokenSaleProposalRecover");
-const TokenSaleProposalModifyLib = artifacts.require("TokenSaleProposalModify");
 const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
 const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
 const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
@@ -148,7 +147,6 @@ describe("TokenSaleProposal", () => {
     const tspWhitelistLib = await TokenSaleProposalWhitelistLib.new();
     const tspClaimLib = await TokenSaleProposalClaimLib.new();
     const tspRecoverLib = await TokenSaleProposalRecoverLib.new();
-    const tspModifyLib = await TokenSaleProposalModifyLib.new();
 
     await TokenSaleProposal.link(tspCreateLib);
     await TokenSaleProposal.link(tspBuyLib);
@@ -156,7 +154,6 @@ describe("TokenSaleProposal", () => {
     await TokenSaleProposal.link(tspWhitelistLib);
     await TokenSaleProposal.link(tspClaimLib);
     await TokenSaleProposal.link(tspRecoverLib);
-    await TokenSaleProposal.link(tspModifyLib);
 
     const govValidatorsCreateLib = await GovValidatorsCreateLib.new();
     const govValidatorsVoteLib = await GovValidatorsVoteLib.new();
@@ -2042,32 +2039,18 @@ describe("TokenSaleProposal", () => {
         });
 
         it("modify should be called from GovPool", async () => {
-          await truffleAssert.reverts(
-            tsp.modifyTier(1, [
-              ["", ""],
-              0,
-              0,
-              0,
-              0,
-              [],
-              [],
-              0,
-              0,
-              [0, 0, 0, 0],
-              [0, 0, 0, [], [], [], [], merkleTree.root, ""],
-            ]),
-            "TSP: not a Gov contract"
-          );
+          const modifyList = tierToModifyTierParams()[0];
+
+          await truffleAssert.reverts(tsp.modifyTier(1, modifyList), "TSP: not a Gov contract");
         });
 
         it("cant modify after token sale start", async () => {
+          const modifyList = tierToModifyTierParams()[0];
+
           await setTime(+tiers[0].saleStartTime);
+
           await truffleAssert.reverts(
-            tsp.modifyTier(
-              1,
-              [["", ""], 0, 0, 0, 0, [], [], 0, 0, [0, 0, 0, 0], [0, 0, 0, [], [], [], [], merkleTree.root, ""]],
-              { from: govPool.address }
-            ),
+            tsp.modifyTier(1, modifyList, { from: govPool.address }),
             "TSP: token sale already started"
           );
         });
@@ -2087,7 +2070,6 @@ describe("TokenSaleProposal", () => {
           assert.equal((await erc20Gov.balanceOf(govPool.address)).toFixed(), wei("500"));
           assert.equal((await erc20Gov.balanceOf(tsp.address)).toFixed(), wei("1000"));
 
-          // Approve is not zero at this moment so resetting
           await erc20Gov.approve(tsp.address, wei("0"), { from: govPool.address });
           const modifyList = tierToModifyTierParams()[0];
           modifyList[1] = wei("1100");
@@ -2101,6 +2083,49 @@ describe("TokenSaleProposal", () => {
 
           assert.equal((await erc20Gov.balanceOf(govPool.address)).toFixed(), wei("400"));
           assert.equal((await erc20Gov.balanceOf(tsp.address)).toFixed(), wei("1100"));
+        });
+
+        it("modifies tier", async () => {
+          const modifyList = tierToModifyTierParams()[7];
+
+          assert.deepEqual(
+            tierInitParamsToObjects((await tsp.getTierViews(6, 1)).map((tier) => tier.tierInitParams)),
+            tiers.slice(6, 7)
+          );
+
+          await setTime(+tiers[6].saleStartTime - 2);
+          await tsp.modifyTier(7, modifyList, { from: govPool.address });
+
+          const newParams = (await tsp.getTierViews(6, 1))[0];
+          const tierInitParams = newParams.tierInitParams;
+          const expectedParams = tiers[7];
+          assert.equal(tierInitParams.metadata[0], expectedParams.metadata.name);
+          assert.equal(tierInitParams.metadata[1], expectedParams.metadata.description);
+          assert.equal(tierInitParams.totalTokenProvided, expectedParams.totalTokenProvided);
+          assert.equal(tierInitParams.saleStartTime, expectedParams.saleStartTime);
+          assert.equal(tierInitParams.saleEndTime, expectedParams.saleEndTime);
+          assert.equal(tierInitParams.claimLockDuration, expectedParams.claimLockDuration);
+          assert.deepEqual(tierInitParams.purchaseTokenAddresses, expectedParams.purchaseTokenAddresses);
+          assert.deepEqual(tierInitParams.exchangeRates, expectedParams.exchangeRates);
+          assert.equal(tierInitParams.minAllocationPerUser, expectedParams.minAllocationPerUser);
+          assert.equal(tierInitParams.maxAllocationPerUser, expectedParams.maxAllocationPerUser);
+          assert.equal(tierInitParams.vestingSettings[0], expectedParams.vestingSettings.vestingPercentage);
+          assert.equal(tierInitParams.vestingSettings[1], expectedParams.vestingSettings.vestingDuration);
+          assert.equal(tierInitParams.vestingSettings[2], expectedParams.vestingSettings.cliffPeriod);
+          assert.equal(tierInitParams.vestingSettings[3], expectedParams.vestingSettings.unlockStep);
+
+          const participationDetails = await tsp.getParticipationDetails(7);
+          assert.deepEqual(participationDetails.slice(0, 9), [
+            false,
+            false,
+            "0",
+            [],
+            [],
+            [],
+            [],
+            merkleTree.root,
+            "white_list",
+          ]);
         });
       });
 
