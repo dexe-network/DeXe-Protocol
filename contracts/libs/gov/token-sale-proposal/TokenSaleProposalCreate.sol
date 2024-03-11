@@ -49,20 +49,53 @@ library TokenSaleProposalCreate {
 
     function modifyTier(
         ITokenSaleProposal.Tier storage tier,
-        ITokenSaleProposal.TierInitParams memory newParams
+        ITokenSaleProposal.TierModifyParams memory newSettings
     ) external {
         require(
             block.timestamp <= tier.tierInitParams.saleStartTime,
             "TSP: token sale already started"
         );
-        require(
-            newParams.participationDetails.length == 0,
-            "TSP: participation details cant be changed with this function"
-        );
 
-        _validateTierInitParams(newParams);
+        ITokenSaleProposal.TierInitParams storage tierInitParams = tier.tierInitParams;
 
-        _setRates(tier, newParams);
+        ITokenSaleProposal.TierInitParams memory _tierInitParams = ITokenSaleProposal
+            .TierInitParams({
+                metadata: newSettings.metadata,
+                totalTokenProvided: newSettings.totalTokenProvided,
+                saleStartTime: newSettings.saleStartTime,
+                saleEndTime: newSettings.saleEndTime,
+                claimLockDuration: newSettings.claimLockDuration,
+                saleTokenAddress: tierInitParams.saleTokenAddress,
+                purchaseTokenAddresses: newSettings.purchaseTokenAddresses,
+                exchangeRates: newSettings.exchangeRates,
+                minAllocationPerUser: newSettings.minAllocationPerUser,
+                maxAllocationPerUser: newSettings.maxAllocationPerUser,
+                vestingSettings: newSettings.vestingSettings,
+                participationDetails: new ITokenSaleProposal.ParticipationDetails[](0)
+            });
+
+        _validateTierInitParams(_tierInitParams);
+
+        _setRates(tier, _tierInitParams);
+        _setVestingParameters(tier, _tierInitParams);
+
+        uint256 oldSupply = tierInitParams.totalTokenProvided;
+        uint256 newSupply = _tierInitParams.totalTokenProvided;
+
+        _setBasicParameters(tierInitParams, _tierInitParams);
+
+        if (oldSupply < newSupply) {
+            IERC20(_tierInitParams.saleTokenAddress).safeTransferFrom(
+                msg.sender,
+                address(this),
+                (newSupply - oldSupply).from18Safe(_tierInitParams.saleTokenAddress)
+            );
+        } else if (oldSupply > newSupply) {
+            IERC20(_tierInitParams.saleTokenAddress).safeTransfer(
+                msg.sender,
+                (oldSupply - newSupply).from18Safe(_tierInitParams.saleTokenAddress)
+            );
+        }
     }
 
     function getTierViews(

@@ -81,6 +81,33 @@ interface ITokenSaleProposal {
         ParticipationDetails[] participationDetails;
     }
 
+    /// @notice Parameters to modify tier
+    /// @param metadata metadata of the tier (see TierMetadata)
+    /// @param totalTokenProvided total supply of tokens provided for the tier
+    /// @param saleStartTime start time of token sales
+    /// @param saleEndTime end time of token sales
+    /// @param claimLockDuration the period of time between the end of the token sale and the non-vesting tokens claiming
+    /// @param purchaseTokenAddresses tokens, that can be used for purchasing token of the proposal
+    /// @param exchangeRates exchange rates of other tokens to the token of TokenSaleProposal. Must disregard tokens decimals.
+    /// If you want to sell 1 BTC for 1 ETH, exchangeRate has to be 10**25
+    /// @param minAllocationPerUser minimal allocation of tokens per one user
+    /// @param maxAllocationPerUser maximal allocation of tokens per one user
+    /// @param vestingSettings settings for managing tokens vesting (unlocking). While tokens are locked investors won`t be able to withdraw them
+    /// @param participationDetails the list of new participation details
+    struct TierModifyParams {
+        TierMetadata metadata;
+        uint256 totalTokenProvided;
+        uint64 saleStartTime;
+        uint64 saleEndTime;
+        uint64 claimLockDuration;
+        address[] purchaseTokenAddresses;
+        uint256[] exchangeRates;
+        uint256 minAllocationPerUser;
+        uint256 maxAllocationPerUser;
+        VestingSettings vestingSettings;
+        ParticipationInfoView participationDetails;
+    }
+
     /// @notice Vesting tier-related parameters
     /// @param vestingStartTime the start time of the vesting when the cliff period ends
     /// @param vestingEndTime the end time of the vesting
