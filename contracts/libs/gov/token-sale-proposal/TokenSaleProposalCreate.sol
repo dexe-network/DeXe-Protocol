@@ -49,10 +49,10 @@ library TokenSaleProposalCreate {
 
     function modifyTier(
         ITokenSaleProposal.Tier storage tier,
-        ITokenSaleProposal.TierModifyParams memory newSettings
+        ITokenSaleProposal.TierModifyParams calldata newSettings
     ) external {
         require(
-            block.timestamp <= tier.tierInitParams.saleStartTime,
+            block.timestamp < tier.tierInitParams.saleStartTime,
             "TSP: token sale already started"
         );
 
@@ -84,6 +84,8 @@ library TokenSaleProposalCreate {
 
         _setBasicParameters(tierInitParams, _tierInitParams);
 
+        _changeParticipationDetails(tier, newSettings.participationDetails);
+
         if (oldSupply < newSupply) {
             IERC20(_tierInitParams.saleTokenAddress).safeTransferFrom(
                 msg.sender,
@@ -96,6 +98,13 @@ library TokenSaleProposalCreate {
                 (oldSupply - newSupply).from18Safe(_tierInitParams.saleTokenAddress)
             );
         }
+    }
+
+    function changeParticipationDetails(
+        ITokenSaleProposal.Tier storage tier,
+        ITokenSaleProposal.ParticipationInfoView calldata newSettings
+    ) external {
+        _changeParticipationDetails(tier, newSettings);
     }
 
     function getTierViews(
@@ -250,6 +259,37 @@ library TokenSaleProposalCreate {
         }
     }
 
+    function _changeParticipationDetails(
+        ITokenSaleProposal.Tier storage tier,
+        ITokenSaleProposal.ParticipationInfoView calldata newSettings
+    ) private {
+        require(block.timestamp <= tier.tierInitParams.saleEndTime, "TSP: token sale is over");
+
+        address[] calldata tokenAddresses = newSettings.requiredTokenAddresses;
+        uint256[] calldata tokenAmounts = newSettings.requiredTokenAmounts;
+        address[] calldata nftAddresses = newSettings.requiredNftAddresses;
+        uint256[] calldata nftAmounts = newSettings.requiredNftAmounts;
+        require(
+            tokenAddresses.length == tokenAmounts.length,
+            "TSP: Tokens and amounts numbers does not match"
+        );
+        require(
+            nftAddresses.length == nftAmounts.length,
+            "TSP: Nfts and amounts numbers does not match"
+        );
+
+        ITokenSaleProposal.ParticipationInfo storage participationInfo = tier.participationInfo;
+        ITokenSaleProposal.TierAdditionalInfo storage additionalInfo = tier.tierAdditionalInfo;
+
+        participationInfo.isWhitelisted = newSettings.isWhitelisted;
+        participationInfo.isBABTed = newSettings.isBABTed;
+        participationInfo.requiredDaoVotes = newSettings.requiredDaoVotes;
+        additionalInfo.merkleRoot = newSettings.merkleRoot;
+        additionalInfo.merkleUri = newSettings.merkleUri;
+        _updateEnumerableMap(participationInfo.requiredTokenLock, tokenAddresses, tokenAmounts);
+        _updateEnumerableMap(participationInfo.requiredNftLock, nftAddresses, nftAmounts);
+    }
+
     function _setRates(
         ITokenSaleProposal.Tier storage tier,
         ITokenSaleProposal.TierInitParams memory tierInitParams
@@ -326,5 +366,19 @@ library TokenSaleProposalCreate {
             vestingSettings.unlockStep != 0 &&
             vestingSettings.vestingPercentage <= PERCENTAGE_100 &&
             vestingSettings.vestingDuration >= vestingSettings.unlockStep;
+    }
+
+    function _updateEnumerableMap(
+        EnumerableMap.AddressToUintMap storage map,
+        address[] calldata addresses,
+        uint256[] calldata amounts
+    ) internal {
+        for (uint256 i = map.length(); i > 0; i--) {
+            (address key, ) = map.at(i - 1);
+            map.remove(key);
+        }
+        for (uint256 i = 0; i < addresses.length; i++) {
+            require(map.set(addresses[i], amounts[i]), "TSP: Duplicated address");
+        }
     }
 }

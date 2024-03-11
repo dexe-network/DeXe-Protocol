@@ -1824,6 +1824,43 @@ describe("TokenSaleProposal", () => {
           return participationDetails;
         }
 
+        function tierToModifyTierParams() {
+          const participationDetails = tiersToParticipationDetails();
+
+          const tiersParams = tiers.map((e, i) => {
+            return [
+              [e.metadata.name, e.metadata.description],
+              e.totalTokenProvided,
+              e.saleStartTime,
+              e.saleEndTime,
+              e.claimLockDuration,
+              e.purchaseTokenAddresses,
+              e.exchangeRates,
+              e.minAllocationPerUser,
+              e.maxAllocationPerUser,
+              [
+                e.vestingSettings.vestingPercentage,
+                e.vestingSettings.vestingDuration,
+                e.vestingSettings.cliffPeriod,
+                e.vestingSettings.unlockStep,
+              ],
+              [
+                participationDetails[i].isWhitelisted,
+                participationDetails[i].isBABTed,
+                participationDetails[i].requiredDaoVotes,
+                participationDetails[i].requiredTokenAddresses,
+                participationDetails[i].requiredTokenAmounts,
+                participationDetails[i].requiredNftAddresses,
+                participationDetails[i].requiredNftAmounts,
+                participationDetails[i].merkleRoot,
+                participationDetails[i].merkleUri,
+              ],
+            ];
+          });
+
+          return tiersParams;
+        }
+
         it("should return correct participation parameters", async () => {
           const expectedParticipationInfos = tiersToParticipationDetails();
 
@@ -1833,7 +1870,7 @@ describe("TokenSaleProposal", () => {
           }
         });
 
-        it("should be called from GovPool", async () => {
+        it("modify participation settings should be called from GovPool", async () => {
           let details = getDefaultDetailsInfo();
           details = detailsInfoSimplify(details);
 
@@ -1916,7 +1953,7 @@ describe("TokenSaleProposal", () => {
           );
         });
 
-        it("could modify settings", async () => {
+        it("could modify participation settings", async () => {
           const newDetails = [];
           newDetails.isWhitelisted = false;
           newDetails.isBABTed = true;
@@ -2002,6 +2039,68 @@ describe("TokenSaleProposal", () => {
           assert.equal(await participationNft.balanceOf(OWNER), 0);
           await tsp.unlockParticipationNft(1, participationNft.address, [1]);
           assert.equal(await participationNft.balanceOf(OWNER), 1);
+        });
+
+        it("modify should be called from GovPool", async () => {
+          await truffleAssert.reverts(
+            tsp.modifyTier(1, [
+              ["", ""],
+              0,
+              0,
+              0,
+              0,
+              [],
+              [],
+              0,
+              0,
+              [0, 0, 0, 0],
+              [0, 0, 0, [], [], [], [], merkleTree.root, ""],
+            ]),
+            "TSP: not a Gov contract"
+          );
+        });
+
+        it("cant modify after token sale start", async () => {
+          await setTime(+tiers[0].saleStartTime);
+          await truffleAssert.reverts(
+            tsp.modifyTier(
+              1,
+              [["", ""], 0, 0, 0, 0, [], [], 0, 0, [0, 0, 0, 0], [0, 0, 0, [], [], [], [], merkleTree.root, ""]],
+              { from: govPool.address }
+            ),
+            "TSP: token sale already started"
+          );
+        });
+
+        it("returns sale token if total supply decreased", async () => {
+          const modifyList = tierToModifyTierParams()[0];
+          assert.equal((await erc20Gov.balanceOf(govPool.address)).toFixed(), 0);
+          assert.equal((await erc20Gov.balanceOf(tsp.address)).toFixed(), wei("1000"));
+          modifyList[1] = wei("500");
+          await tsp.modifyTier(1, modifyList, { from: govPool.address });
+          assert.equal((await erc20Gov.balanceOf(govPool.address)).toFixed(), wei("500"));
+          assert.equal((await erc20Gov.balanceOf(tsp.address)).toFixed(), wei("500"));
+        });
+
+        it("transfers sale token if total supply increases", async () => {
+          await erc20Gov.mint(govPool.address, wei("500"), { from: govPool.address });
+          assert.equal((await erc20Gov.balanceOf(govPool.address)).toFixed(), wei("500"));
+          assert.equal((await erc20Gov.balanceOf(tsp.address)).toFixed(), wei("1000"));
+
+          // Approve is not zero at this moment so resetting
+          await erc20Gov.approve(tsp.address, wei("0"), { from: govPool.address });
+          const modifyList = tierToModifyTierParams()[0];
+          modifyList[1] = wei("1100");
+          await truffleAssert.reverts(
+            tsp.modifyTier(1, modifyList, { from: govPool.address }),
+            "ERC20: insufficient allowance"
+          );
+
+          await erc20Gov.approve(tsp.address, wei("100"), { from: govPool.address });
+          await tsp.modifyTier(1, modifyList, { from: govPool.address });
+
+          assert.equal((await erc20Gov.balanceOf(govPool.address)).toFixed(), wei("400"));
+          assert.equal((await erc20Gov.balanceOf(tsp.address)).toFixed(), wei("1100"));
         });
       });
 
