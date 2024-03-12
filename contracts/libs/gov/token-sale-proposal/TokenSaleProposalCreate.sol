@@ -28,17 +28,13 @@ library TokenSaleProposalCreate {
 
         ITokenSaleProposal.Tier storage tier = tiers[newTierId];
 
-        _setParticipationInfo(tier, _tierInitParams);
+        _setParticipationInfo(tier, _tierInitParams.participationDetails);
         _setRates(tier, _tierInitParams);
         _setVestingParameters(tier, _tierInitParams);
 
         ITokenSaleProposal.TierInitParams storage tierInitParams = tier.tierInitParams;
 
         _setBasicParameters(tierInitParams, _tierInitParams);
-
-        for (uint256 i = 0; i < _tierInitParams.participationDetails.length; i++) {
-            tierInitParams.participationDetails.push(_tierInitParams.participationDetails[i]);
-        }
 
         IERC20(tierInitParams.saleTokenAddress).safeTransferFrom(
             msg.sender,
@@ -49,62 +45,55 @@ library TokenSaleProposalCreate {
 
     function modifyTier(
         ITokenSaleProposal.Tier storage tier,
-        ITokenSaleProposal.TierModifyParams calldata newSettings
+        ITokenSaleProposal.TierInitParams calldata newSettings
     ) external {
         require(
             block.timestamp < tier.tierInitParams.saleStartTime,
             "TSP: token sale already started"
         );
+        require(
+            newSettings.saleTokenAddress == tier.tierInitParams.saleTokenAddress,
+            "TSP: cant change sale token"
+        );
 
         ITokenSaleProposal.TierInitParams storage tierInitParams = tier.tierInitParams;
 
-        ITokenSaleProposal.TierInitParams memory _tierInitParams = ITokenSaleProposal
-            .TierInitParams({
-                metadata: newSettings.metadata,
-                totalTokenProvided: newSettings.totalTokenProvided,
-                saleStartTime: newSettings.saleStartTime,
-                saleEndTime: newSettings.saleEndTime,
-                claimLockDuration: newSettings.claimLockDuration,
-                saleTokenAddress: tierInitParams.saleTokenAddress,
-                purchaseTokenAddresses: newSettings.purchaseTokenAddresses,
-                exchangeRates: newSettings.exchangeRates,
-                minAllocationPerUser: newSettings.minAllocationPerUser,
-                maxAllocationPerUser: newSettings.maxAllocationPerUser,
-                vestingSettings: newSettings.vestingSettings,
-                participationDetails: new ITokenSaleProposal.ParticipationDetails[](0)
-            });
+        _validateTierInitParams(newSettings);
 
-        _validateTierInitParams(_tierInitParams);
+        _clearTierData(tier);
 
-        _setRates(tier, _tierInitParams);
-        _setVestingParameters(tier, _tierInitParams);
+        _setParticipationInfo(tier, newSettings.participationDetails);
+        _setRates(tier, newSettings);
+        _setVestingParameters(tier, newSettings);
 
         uint256 oldSupply = tierInitParams.totalTokenProvided;
-        uint256 newSupply = _tierInitParams.totalTokenProvided;
+        uint256 newSupply = newSettings.totalTokenProvided;
 
-        _setBasicParameters(tierInitParams, _tierInitParams);
-
-        _changeParticipationDetails(tier, newSettings.participationDetails);
+        _setBasicParameters(tierInitParams, newSettings);
 
         if (oldSupply < newSupply) {
-            IERC20(_tierInitParams.saleTokenAddress).safeTransferFrom(
+            IERC20(newSettings.saleTokenAddress).safeTransferFrom(
                 msg.sender,
                 address(this),
-                (newSupply - oldSupply).from18Safe(_tierInitParams.saleTokenAddress)
+                (newSupply - oldSupply).from18Safe(newSettings.saleTokenAddress)
             );
         } else if (oldSupply > newSupply) {
-            IERC20(_tierInitParams.saleTokenAddress).safeTransfer(
+            IERC20(newSettings.saleTokenAddress).safeTransfer(
                 msg.sender,
-                (oldSupply - newSupply).from18Safe(_tierInitParams.saleTokenAddress)
+                (oldSupply - newSupply).from18Safe(newSettings.saleTokenAddress)
             );
         }
     }
 
     function changeParticipationDetails(
         ITokenSaleProposal.Tier storage tier,
-        ITokenSaleProposal.ParticipationInfoView calldata newSettings
+        ITokenSaleProposal.ParticipationDetails[] calldata newSettings
     ) external {
-        _changeParticipationDetails(tier, newSettings);
+        require(block.timestamp <= tier.tierInitParams.saleEndTime, "TSP: token sale is over");
+
+        _clearParticipationData(tier);
+
+        _setParticipationInfo(tier, newSettings);
     }
 
     function getTierViews(
@@ -201,13 +190,13 @@ library TokenSaleProposalCreate {
 
     function _setParticipationInfo(
         ITokenSaleProposal.Tier storage tier,
-        ITokenSaleProposal.TierInitParams memory tierInitParams
+        ITokenSaleProposal.ParticipationDetails[] memory participationSettings
     ) private {
         ITokenSaleProposal.ParticipationInfo storage participationInfo = tier.participationInfo;
 
-        for (uint256 i = 0; i < tierInitParams.participationDetails.length; i++) {
-            ITokenSaleProposal.ParticipationDetails memory participationDetails = tierInitParams
-                .participationDetails[i];
+        for (uint256 i = 0; i < participationSettings.length; i++) {
+            ITokenSaleProposal.ParticipationDetails
+                memory participationDetails = participationSettings[i];
 
             if (
                 participationDetails.participationType ==
@@ -296,48 +285,15 @@ library TokenSaleProposalCreate {
                 additionalInfo.merkleRoot = merkleRoot;
                 additionalInfo.merkleUri = merkleUri;
             }
+
+            tier.tierInitParams.participationDetails.push(participationDetails);
         }
-    }
-
-    function _changeParticipationDetails(
-        ITokenSaleProposal.Tier storage tier,
-        ITokenSaleProposal.ParticipationInfoView calldata newSettings
-    ) private {
-        require(block.timestamp <= tier.tierInitParams.saleEndTime, "TSP: token sale is over");
-
-        address[] calldata tokenAddresses = newSettings.requiredTokenAddresses;
-        uint256[] calldata tokenAmounts = newSettings.requiredTokenAmounts;
-        address[] calldata nftAddresses = newSettings.requiredNftAddresses;
-        uint256[] calldata nftAmounts = newSettings.requiredNftAmounts;
-        require(
-            tokenAddresses.length == tokenAmounts.length,
-            "TSP: Tokens and amounts numbers does not match"
-        );
-        require(
-            nftAddresses.length == nftAmounts.length,
-            "TSP: Nfts and amounts numbers does not match"
-        );
-
-        ITokenSaleProposal.ParticipationInfo storage participationInfo = tier.participationInfo;
-        ITokenSaleProposal.TierAdditionalInfo storage additionalInfo = tier.tierAdditionalInfo;
-
-        participationInfo.isWhitelisted = newSettings.isWhitelisted;
-        participationInfo.isBABTed = newSettings.isBABTed;
-        participationInfo.requiredDaoVotes = newSettings.requiredDaoVotes;
-        additionalInfo.merkleRoot = newSettings.merkleRoot;
-        additionalInfo.merkleUri = newSettings.merkleUri;
-        _updateEnumerableMap(participationInfo.requiredTokenLock, tokenAddresses, tokenAmounts);
-        _updateEnumerableMap(participationInfo.requiredNftLock, nftAddresses, nftAmounts);
     }
 
     function _setRates(
         ITokenSaleProposal.Tier storage tier,
         ITokenSaleProposal.TierInitParams memory tierInitParams
     ) private {
-        for (uint256 i = 0; i < tier.tierInitParams.purchaseTokenAddresses.length; i++) {
-            tier.rates[tier.tierInitParams.purchaseTokenAddresses[i]] = 0;
-        }
-
         for (uint256 i = 0; i < tierInitParams.purchaseTokenAddresses.length; i++) {
             require(tierInitParams.exchangeRates[i] != 0, "TSP: rate cannot be zero");
             require(
@@ -350,6 +306,34 @@ library TokenSaleProposalCreate {
             );
 
             tier.rates[tierInitParams.purchaseTokenAddresses[i]] = tierInitParams.exchangeRates[i];
+        }
+    }
+
+    function _clearTierData(ITokenSaleProposal.Tier storage tier) private {
+        for (uint256 i = 0; i < tier.tierInitParams.purchaseTokenAddresses.length; i++) {
+            tier.rates[tier.tierInitParams.purchaseTokenAddresses[i]] = 0;
+        }
+
+        _clearParticipationData(tier);
+    }
+
+    function _clearParticipationData(ITokenSaleProposal.Tier storage tier) private {
+        ITokenSaleProposal.ParticipationInfo storage participationInfo = tier.participationInfo;
+        ITokenSaleProposal.TierAdditionalInfo storage additionalInfo = tier.tierAdditionalInfo;
+
+        participationInfo.isWhitelisted = false;
+        participationInfo.isBABTed = false;
+        participationInfo.requiredDaoVotes = 0;
+        _clearEnumerableMap(participationInfo.requiredTokenLock);
+        _clearEnumerableMap(participationInfo.requiredNftLock);
+        additionalInfo.merkleRoot = bytes32(0);
+        additionalInfo.merkleUri = "";
+
+        ITokenSaleProposal.ParticipationDetails[] storage participationDetails = tier
+            .tierInitParams
+            .participationDetails;
+        assembly {
+            sstore(participationDetails.slot, 0)
         }
     }
 
@@ -408,17 +392,10 @@ library TokenSaleProposalCreate {
             vestingSettings.vestingDuration >= vestingSettings.unlockStep;
     }
 
-    function _updateEnumerableMap(
-        EnumerableMap.AddressToUintMap storage map,
-        address[] calldata addresses,
-        uint256[] calldata amounts
-    ) internal {
+    function _clearEnumerableMap(EnumerableMap.AddressToUintMap storage map) internal {
         for (uint256 i = map.length(); i > 0; i--) {
             (address key, ) = map.at(i - 1);
             map.remove(key);
-        }
-        for (uint256 i = 0; i < addresses.length; i++) {
-            require(map.set(addresses[i], amounts[i]), "TSP: Duplicated address");
         }
     }
 }

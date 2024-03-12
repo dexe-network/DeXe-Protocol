@@ -1757,33 +1757,18 @@ describe("TokenSaleProposal", () => {
       });
 
       describe("modify tiers", () => {
-        function getDefaultDetailsInfo() {
-          const newDetails = [];
-          newDetails.isWhitelisted = false;
-          newDetails.isBABTed = false;
-          newDetails.requiredDaoVotes = "0";
-          newDetails.requiredTokenAddresses = [];
-          newDetails.requiredTokenAmounts = [];
-          newDetails.requiredNftAddresses = [];
-          newDetails.requiredNftAmounts = [];
-          newDetails.merkleRoot = "0x0000000000000000000000000000000000000000000000000000000000000000";
-          newDetails.merkleUri = "";
-
-          return newDetails;
-        }
-
-        function detailsInfoSimplify(details) {
-          const simpleDetails = [];
-          for (d in details) {
-            simpleDetails.push(details[d]);
-          }
-
-          return simpleDetails;
-        }
-
         function tiersToParticipationDetails() {
           const participationDetails = tiers.map((e) => {
-            let details = getDefaultDetailsInfo();
+            let details = [];
+            details.isWhitelisted = false;
+            details.isBABTed = false;
+            details.requiredDaoVotes = "0";
+            details.requiredTokenAddresses = [];
+            details.requiredTokenAmounts = [];
+            details.requiredNftAddresses = [];
+            details.requiredNftAmounts = [];
+            details.merkleRoot = "0x0000000000000000000000000000000000000000000000000000000000000000";
+            details.merkleUri = "";
 
             for (d of e.participationDetails) {
               let decoded;
@@ -1821,43 +1806,6 @@ describe("TokenSaleProposal", () => {
           return participationDetails;
         }
 
-        function tierToModifyTierParams() {
-          const participationDetails = tiersToParticipationDetails();
-
-          const tiersParams = tiers.map((e, i) => {
-            return [
-              [e.metadata.name, e.metadata.description],
-              e.totalTokenProvided,
-              e.saleStartTime,
-              e.saleEndTime,
-              e.claimLockDuration,
-              e.purchaseTokenAddresses,
-              e.exchangeRates,
-              e.minAllocationPerUser,
-              e.maxAllocationPerUser,
-              [
-                e.vestingSettings.vestingPercentage,
-                e.vestingSettings.vestingDuration,
-                e.vestingSettings.cliffPeriod,
-                e.vestingSettings.unlockStep,
-              ],
-              [
-                participationDetails[i].isWhitelisted,
-                participationDetails[i].isBABTed,
-                participationDetails[i].requiredDaoVotes,
-                participationDetails[i].requiredTokenAddresses,
-                participationDetails[i].requiredTokenAmounts,
-                participationDetails[i].requiredNftAddresses,
-                participationDetails[i].requiredNftAmounts,
-                participationDetails[i].merkleRoot,
-                participationDetails[i].merkleUri,
-              ],
-            ];
-          });
-
-          return tiersParams;
-        }
-
         it("should return correct participation parameters", async () => {
           const expectedParticipationInfos = tiersToParticipationDetails();
 
@@ -1868,53 +1816,29 @@ describe("TokenSaleProposal", () => {
         });
 
         it("modify participation settings should be called from GovPool", async () => {
-          let details = getDefaultDetailsInfo();
-          details = detailsInfoSimplify(details);
-
-          await truffleAssert.reverts(tsp.changeParticipationDetails(0, details), "TSP: not a Gov contract");
+          await truffleAssert.reverts(
+            tsp.changeParticipationDetails(0, tiers[0].participationDetails),
+            "TSP: not a Gov contract"
+          );
         });
 
         it("cant change parameters after the end of tokensale", async () => {
           await setTime(+tiers[0].saleEndTime);
 
-          let details = getDefaultDetailsInfo();
-          details = detailsInfoSimplify(details);
-
           await truffleAssert.reverts(
-            tsp.changeParticipationDetails(1, details, { from: govPool.address }),
+            tsp.changeParticipationDetails(1, tiers[0].participationDetails, { from: govPool.address }),
             "TSP: token sale is over"
           );
         });
 
-        it("addresses and values length should match", async () => {
-          let details = getDefaultDetailsInfo();
-          details.requiredTokenAddresses = [SECOND];
-          details = detailsInfoSimplify(details);
-
-          await truffleAssert.reverts(
-            tsp.changeParticipationDetails(1, details, { from: govPool.address }),
-            "TSP: Tokens and amounts numbers does not match"
-          );
-
-          details = getDefaultDetailsInfo();
-          details.requiredNftAddresses = [SECOND];
-          details = detailsInfoSimplify(details);
-
-          await truffleAssert.reverts(
-            tsp.changeParticipationDetails(1, details, { from: govPool.address }),
-            "TSP: Nfts and amounts numbers does not match"
-          );
-        });
-
         it("addresses should not repeat", async () => {
-          let details = getDefaultDetailsInfo();
-          details.requiredTokenAddresses = [SECOND, SECOND];
-          details.requiredTokenAmounts = [wei("2"), wei("3")];
-          details = detailsInfoSimplify(details);
+          const details = JSON.parse(JSON.stringify(tiers[3].participationDetails));
+
+          details.push(details[0]);
 
           await truffleAssert.reverts(
             tsp.changeParticipationDetails(1, details, { from: govPool.address }),
-            "TSP: Duplicated address"
+            "TSP: multiple token lock requirements"
           );
         });
 
@@ -1936,11 +1860,7 @@ describe("TokenSaleProposal", () => {
             wei(300)
           );
 
-          let participationDetails = tiersToParticipationDetails()[0];
-          participationDetails.isWhitelisted = false;
-          participationDetails.merkleRoot = merkleTree.root;
-          participationDetails.merkleUri = "white_list";
-          let details = detailsInfoSimplify(participationDetails);
+          const details = tiers[7].participationDetails;
 
           await tsp.changeParticipationDetails(1, details, { from: govPool.address });
 
@@ -1951,52 +1871,104 @@ describe("TokenSaleProposal", () => {
         });
 
         it("could modify participation settings", async () => {
-          const newDetails = [];
-          newDetails.isWhitelisted = false;
-          newDetails.isBABTed = true;
-          (newDetails.requiredDaoVotes = wei("1")), (newDetails.requiredTokenAddresses = [SECOND, THIRD]);
-          newDetails.requiredTokenAmounts = [wei("2"), wei("3")];
-          newDetails.requiredNftAddresses = [THIRD];
-          newDetails.requiredNftAmounts = ["3"];
-          newDetails.merkleRoot = merkleTree.root;
-          newDetails.merkleUri = "white_list";
+          const details = [
+            {
+              participationType: ParticipationType.BABT,
+              data: "0x",
+            },
+            {
+              participationType: ParticipationType.DAOVotes,
+              data: web3.eth.abi.encodeParameter("uint256", wei("1")),
+            },
+            {
+              participationType: ParticipationType.MerkleWhitelist,
+              data: web3.eth.abi.encodeParameters(["bytes32", "string"], [merkleTree.root, "white_list"]),
+            },
+            {
+              participationType: ParticipationType.NftLock,
+              data: web3.eth.abi.encodeParameters(["address", "uint256"], [THIRD, "3"]),
+            },
+            {
+              participationType: ParticipationType.TokenLock,
+              data: web3.eth.abi.encodeParameters(["address", "uint256"], [SECOND, wei("2")]),
+            },
+            {
+              participationType: ParticipationType.TokenLock,
+              data: web3.eth.abi.encodeParameters(["address", "uint256"], [THIRD, wei("3")]),
+            },
+          ];
 
-          let detailsToSend = detailsInfoSimplify(newDetails);
-          await tsp.changeParticipationDetails(1, detailsToSend, { from: govPool.address });
+          await tsp.changeParticipationDetails(1, details, { from: govPool.address });
 
           let returnedDetails = await tsp.getParticipationDetails(1);
-          assert.deepEqual(newDetails, returnedDetails.slice(9, 18));
+          assert.deepEqual(returnedDetails.slice(0, 9), [
+            false,
+            true,
+            wei("1"),
+            [SECOND, THIRD],
+            [wei("2"), wei("3")],
+            [THIRD],
+            ["3"],
+            merkleTree.root,
+            "white_list",
+          ]);
 
-          newDetails.requiredTokenAddresses = [THIRD];
-          newDetails.requiredTokenAmounts = [wei("3")];
-          newDetails.requiredNftAddresses = [SECOND, THIRD];
-          newDetails.requiredNftAmounts = ["2", "3"];
+          details.pop();
+          details.pop();
+          details.pop();
+          details.push({
+            participationType: ParticipationType.NftLock,
+            data: web3.eth.abi.encodeParameters(["address", "uint256"], [SECOND, "2"]),
+          });
+          details.push({
+            participationType: ParticipationType.NftLock,
+            data: web3.eth.abi.encodeParameters(["address", "uint256"], [THIRD, "3"]),
+          });
+          details.push({
+            participationType: ParticipationType.TokenLock,
+            data: web3.eth.abi.encodeParameters(["address", "uint256"], [THIRD, wei("3")]),
+          });
 
-          detailsToSend = detailsInfoSimplify(newDetails);
-          await tsp.changeParticipationDetails(1, detailsToSend, { from: govPool.address });
+          await tsp.changeParticipationDetails(1, details, { from: govPool.address });
 
           returnedDetails = await tsp.getParticipationDetails(1);
-          assert.deepEqual(newDetails, returnedDetails.slice(9, 18));
+          assert.deepEqual(returnedDetails.slice(0, 9), [
+            false,
+            true,
+            wei("1"),
+            [THIRD],
+            [wei("3")],
+            [SECOND, THIRD],
+            ["2", "3"],
+            merkleTree.root,
+            "white_list",
+          ]);
         });
 
         it("could unlock overlocked tokens", async () => {
           await setTime(+tiers[0].saleStartTime);
 
-          let details = getDefaultDetailsInfo();
-          details.requiredTokenAddresses = [participationToken.address];
-          details.requiredTokenAmounts = [wei("2")];
-          let simpleDetails = detailsInfoSimplify(details);
+          let details = [
+            {
+              participationType: ParticipationType.TokenLock,
+              data: web3.eth.abi.encodeParameters(["address", "uint256"], [participationToken.address, wei("2")]),
+            },
+          ];
 
-          await tsp.changeParticipationDetails(1, simpleDetails, { from: govPool.address });
+          await tsp.changeParticipationDetails(1, details, { from: govPool.address });
 
           await participationToken.mint(OWNER, wei("2"));
           await participationToken.approve(tsp.address, wei("2"));
 
           await tsp.lockParticipationTokens(1, participationToken.address, wei("2"));
 
-          details.requiredTokenAmounts = [wei("1")];
-          simpleDetails = detailsInfoSimplify(details);
-          await tsp.changeParticipationDetails(1, simpleDetails, { from: govPool.address });
+          details = [
+            {
+              participationType: ParticipationType.TokenLock,
+              data: web3.eth.abi.encodeParameters(["address", "uint256"], [participationToken.address, wei("1")]),
+            },
+          ];
+          await tsp.changeParticipationDetails(1, details, { from: govPool.address });
 
           await truffleAssert.reverts(
             tsp.unlockParticipationTokens(1, participationToken.address, wei("2")),
@@ -2011,12 +1983,14 @@ describe("TokenSaleProposal", () => {
         it("could unlock overlocked nfts", async () => {
           await setTime(+tiers[0].saleStartTime);
 
-          let details = getDefaultDetailsInfo();
-          details.requiredNftAddresses = [participationNft.address];
-          details.requiredNftAmounts = ["2"];
-          let simpleDetails = detailsInfoSimplify(details);
+          let details = [
+            {
+              participationType: ParticipationType.NftLock,
+              data: web3.eth.abi.encodeParameters(["address", "uint256"], [participationNft.address, "2"]),
+            },
+          ];
 
-          await tsp.changeParticipationDetails(1, simpleDetails, { from: govPool.address });
+          await tsp.changeParticipationDetails(1, details, { from: govPool.address });
 
           await participationNft.mint(OWNER, 1);
           await participationNft.mint(OWNER, 2);
@@ -2024,9 +1998,14 @@ describe("TokenSaleProposal", () => {
 
           await tsp.lockParticipationNft(1, participationNft.address, [1, 2]);
 
-          details.requiredNftAmounts = ["1"];
-          simpleDetails = detailsInfoSimplify(details);
-          await tsp.changeParticipationDetails(1, simpleDetails, { from: govPool.address });
+          details = [
+            {
+              participationType: ParticipationType.NftLock,
+              data: web3.eth.abi.encodeParameters(["address", "uint256"], [participationNft.address, "1"]),
+            },
+          ];
+
+          await tsp.changeParticipationDetails(1, details, { from: govPool.address });
 
           await truffleAssert.reverts(
             tsp.unlockParticipationNft(1, participationNft.address, [1, 2]),
@@ -2039,28 +2018,38 @@ describe("TokenSaleProposal", () => {
         });
 
         it("modify should be called from GovPool", async () => {
-          const modifyList = tierToModifyTierParams()[0];
-
-          await truffleAssert.reverts(tsp.modifyTier(1, modifyList), "TSP: not a Gov contract");
+          await truffleAssert.reverts(tsp.modifyTier(1, tiers[0]), "TSP: not a Gov contract");
         });
 
         it("cant modify after token sale start", async () => {
-          const modifyList = tierToModifyTierParams()[0];
-
           await setTime(+tiers[0].saleStartTime);
 
           await truffleAssert.reverts(
-            tsp.modifyTier(1, modifyList, { from: govPool.address }),
+            tsp.modifyTier(1, tiers[0], { from: govPool.address }),
             "TSP: token sale already started"
           );
         });
 
+        it("cant modify with different sale token", async () => {
+          const params = JSON.parse(JSON.stringify(tiers[0]));
+          params.saleTokenAddress = saleToken.address;
+
+          await setTime(+tiers[0].saleStartTime - 2);
+
+          await truffleAssert.reverts(
+            tsp.modifyTier(1, params, { from: govPool.address }),
+            "TSP: cant change sale token"
+          );
+        });
+
         it("returns sale token if total supply decreased", async () => {
-          const modifyList = tierToModifyTierParams()[0];
+          const newParams = JSON.parse(JSON.stringify(tiers[0]));
+
           assert.equal((await erc20Gov.balanceOf(govPool.address)).toFixed(), 0);
           assert.equal((await erc20Gov.balanceOf(tsp.address)).toFixed(), wei("1000"));
-          modifyList[1] = wei("500");
-          await tsp.modifyTier(1, modifyList, { from: govPool.address });
+          newParams.totalTokenProvided = wei("500");
+
+          await tsp.modifyTier(1, newParams, { from: govPool.address });
           assert.equal((await erc20Gov.balanceOf(govPool.address)).toFixed(), wei("500"));
           assert.equal((await erc20Gov.balanceOf(tsp.address)).toFixed(), wei("500"));
         });
@@ -2071,48 +2060,37 @@ describe("TokenSaleProposal", () => {
           assert.equal((await erc20Gov.balanceOf(tsp.address)).toFixed(), wei("1000"));
 
           await erc20Gov.approve(tsp.address, wei("0"), { from: govPool.address });
-          const modifyList = tierToModifyTierParams()[0];
-          modifyList[1] = wei("1100");
+
+          const newParams = JSON.parse(JSON.stringify(tiers[0]));
+          newParams.totalTokenProvided = wei("1100");
+
           await truffleAssert.reverts(
-            tsp.modifyTier(1, modifyList, { from: govPool.address }),
+            tsp.modifyTier(1, newParams, { from: govPool.address }),
             "ERC20: insufficient allowance"
           );
 
           await erc20Gov.approve(tsp.address, wei("100"), { from: govPool.address });
-          await tsp.modifyTier(1, modifyList, { from: govPool.address });
+          await tsp.modifyTier(1, newParams, { from: govPool.address });
 
           assert.equal((await erc20Gov.balanceOf(govPool.address)).toFixed(), wei("400"));
           assert.equal((await erc20Gov.balanceOf(tsp.address)).toFixed(), wei("1100"));
         });
 
         it("modifies tier", async () => {
-          const modifyList = tierToModifyTierParams()[7];
-
           assert.deepEqual(
             tierInitParamsToObjects((await tsp.getTierViews(6, 1)).map((tier) => tier.tierInitParams)),
             tiers.slice(6, 7)
           );
 
-          await setTime(+tiers[6].saleStartTime - 2);
-          await tsp.modifyTier(7, modifyList, { from: govPool.address });
+          const params = tiers[7];
 
-          const newParams = (await tsp.getTierViews(6, 1))[0];
-          const tierInitParams = newParams.tierInitParams;
-          const expectedParams = tiers[7];
-          assert.equal(tierInitParams.metadata[0], expectedParams.metadata.name);
-          assert.equal(tierInitParams.metadata[1], expectedParams.metadata.description);
-          assert.equal(tierInitParams.totalTokenProvided, expectedParams.totalTokenProvided);
-          assert.equal(tierInitParams.saleStartTime, expectedParams.saleStartTime);
-          assert.equal(tierInitParams.saleEndTime, expectedParams.saleEndTime);
-          assert.equal(tierInitParams.claimLockDuration, expectedParams.claimLockDuration);
-          assert.deepEqual(tierInitParams.purchaseTokenAddresses, expectedParams.purchaseTokenAddresses);
-          assert.deepEqual(tierInitParams.exchangeRates, expectedParams.exchangeRates);
-          assert.equal(tierInitParams.minAllocationPerUser, expectedParams.minAllocationPerUser);
-          assert.equal(tierInitParams.maxAllocationPerUser, expectedParams.maxAllocationPerUser);
-          assert.equal(tierInitParams.vestingSettings[0], expectedParams.vestingSettings.vestingPercentage);
-          assert.equal(tierInitParams.vestingSettings[1], expectedParams.vestingSettings.vestingDuration);
-          assert.equal(tierInitParams.vestingSettings[2], expectedParams.vestingSettings.cliffPeriod);
-          assert.equal(tierInitParams.vestingSettings[3], expectedParams.vestingSettings.unlockStep);
+          await setTime(+tiers[6].saleStartTime - 2);
+          await tsp.modifyTier(7, params, { from: govPool.address });
+
+          assert.deepEqual(
+            tierInitParamsToObjects((await tsp.getTierViews(6, 1)).map((tier) => tier.tierInitParams)),
+            tiers.slice(7, 8)
+          );
 
           const participationDetails = await tsp.getParticipationDetails(7);
           assert.deepEqual(participationDetails.slice(0, 9), [

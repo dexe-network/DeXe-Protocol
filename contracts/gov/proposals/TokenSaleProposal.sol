@@ -94,14 +94,14 @@ contract TokenSaleProposal is
 
     function modifyTier(
         uint256 tierId,
-        ITokenSaleProposal.TierModifyParams calldata newSettings
+        ITokenSaleProposal.TierInitParams calldata newSettings
     ) external onlyGov {
         _getActiveTier(tierId).modifyTier(newSettings);
     }
 
     function changeParticipationDetails(
         uint256 tierId,
-        ITokenSaleProposal.ParticipationInfoView calldata newSettings
+        ITokenSaleProposal.ParticipationDetails[] calldata newSettings
     ) external onlyGov {
         _getActiveTier(tierId).changeParticipationDetails(newSettings);
     }
