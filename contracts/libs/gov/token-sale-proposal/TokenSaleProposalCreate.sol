@@ -53,7 +53,7 @@ library TokenSaleProposalCreate {
         );
         require(
             newSettings.saleTokenAddress == tier.tierInitParams.saleTokenAddress,
-            "TSP: cant change sale token"
+            "TSP: can't change sale token"
         );
 
         ITokenSaleProposal.TierInitParams storage tierInitParams = tier.tierInitParams;
