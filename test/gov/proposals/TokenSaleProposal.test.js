@@ -2038,7 +2038,7 @@ describe("TokenSaleProposal", () => {
 
           await truffleAssert.reverts(
             tsp.modifyTier(1, params, { from: govPool.address }),
-            "TSP: cant change sale token"
+            "TSP: can't change sale token"
           );
         });
 
