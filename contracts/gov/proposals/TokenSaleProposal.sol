@@ -46,6 +46,11 @@ contract TokenSaleProposal is
         address saleToken,
         ParticipationDetails[] participationDetails
     );
+    event TierModified(
+        uint256 tierId,
+        address saleToken,
+        ParticipationDetails[] participationDetails
+    );
     event Bought(uint256 tierId, address paidWith, uint256 received, uint256 given, address buyer);
     event Whitelisted(uint256 tierId, address user);
 
@@ -97,13 +102,18 @@ contract TokenSaleProposal is
         ITokenSaleProposal.TierInitParams calldata newSettings
     ) external onlyGov {
         _getActiveTier(tierId).modifyTier(newSettings);
+
+        emit TierModified(tierId, newSettings.saleTokenAddress, newSettings.participationDetails);
     }
 
     function changeParticipationDetails(
         uint256 tierId,
         ITokenSaleProposal.ParticipationDetails[] calldata newSettings
     ) external onlyGov {
-        _getActiveTier(tierId).changeParticipationDetails(newSettings);
+        ITokenSaleProposal.Tier storage tier = _getActiveTier(tierId);
+        tier.changeParticipationDetails(newSettings);
+
+        emit TierModified(tierId, tier.tierInitParams.saleTokenAddress, newSettings);
     }
 
     function addToWhitelist(WhitelistingRequest[] calldata requests) external override onlyGov {

@@ -100,7 +100,8 @@ library TokenSaleProposalWhitelist {
 
         require(
             block.timestamp >= tier.tierInitParams.saleEndTime ||
-                !tier._checkUserLockedTokens(msg.sender) ||
+                (!tier._checkUserLockedTokens(msg.sender) &&
+                    _getBlockNumber() != tier.tierAdditionalInfo.lastModified) ||
                 overlock >= amountToUnlock,
             "TSP: unlock unavailable"
         );
@@ -135,7 +136,8 @@ library TokenSaleProposalWhitelist {
 
         require(
             block.timestamp >= tier.tierInitParams.saleEndTime ||
-                !tier._checkUserLockedNfts(msg.sender) ||
+                (!tier._checkUserLockedNfts(msg.sender) &&
+                    _getBlockNumber() != tier.tierAdditionalInfo.lastModified) ||
                 overlock >= nftIdsToUnlock.length,
             "TSP: unlock unavailable"
         );
@@ -166,5 +168,9 @@ library TokenSaleProposalWhitelist {
         for (uint256 i = 0; i < request.users.length; i++) {
             TokenSaleProposal(address(this)).mint(request.users[i], request.tierId);
         }
+    }
+
+    function _getBlockNumber() internal view returns (uint256 block_) {
+        return block.number;
     }
 }

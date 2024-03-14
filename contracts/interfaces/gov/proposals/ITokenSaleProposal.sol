@@ -104,9 +104,11 @@ interface ITokenSaleProposal {
     /// @notice Tier additional parameters
     /// @param merkleRoot root of Merkle Tree for whitelist (zero if Merkle proofs turned off)
     /// @param merkleUri merkle whitlist uri
+    /// @param lastModified proposal was last modified on this block number. 0 for the new tiers
     struct TierAdditionalInfo {
         bytes32 merkleRoot;
         string merkleUri;
+        uint256 lastModified;
     }
 
     /// @notice Purchase parameters

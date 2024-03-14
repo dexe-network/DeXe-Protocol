@@ -94,6 +94,8 @@ library TokenSaleProposalCreate {
         _clearParticipationData(tier);
 
         _setParticipationInfo(tier, newSettings);
+
+        tier.tierAdditionalInfo.lastModified = _getBlockNumber();
     }
 
     function getTierViews(
@@ -397,5 +399,9 @@ library TokenSaleProposalCreate {
             (address key, ) = map.at(i - 1);
             map.remove(key);
         }
+    }
+
+    function _getBlockNumber() internal view returns (uint256 block_) {
+        return block.number;
     }
 }

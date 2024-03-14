@@ -6,6 +6,7 @@ const truffleAssert = require("truffle-assertions");
 const { DEFAULT_CORE_PROPERTIES, ParticipationType } = require("../../utils/constants");
 const {
   getBytesCreateTiersTSP,
+  getBytesChangeParticipationDetailsTSP,
   getBytesOffTiersTSP,
   getBytesRecoverTSP,
   getBytesAddToWhitelistTSP,
@@ -17,6 +18,7 @@ const {
 const { getCurrentBlockTime, setTime } = require("../../helpers/block-helper");
 const { impersonate } = require("../../helpers/impersonator");
 const { StandardMerkleTree } = require("@openzeppelin/merkle-tree");
+const { artifacts } = require("hardhat");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
@@ -54,6 +56,7 @@ const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
 const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
 const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
 const SphereXEngineMock = artifacts.require("SphereXEngineMock");
+const GovTokenSaleAttackerMock = artifacts.require("GovTokenSaleAttackerMock");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -172,6 +175,7 @@ describe("TokenSaleProposal", () => {
     participationToken = await ERC20Mock.new("PTMock", "PTMock", 18);
     participationNft = await ERC721Mock.new("PNFTMock", "PNFTMock");
     const _sphereXEngine = await SphereXEngineMock.new();
+    attacker = await GovTokenSaleAttackerMock.new();
 
     await contractsRegistry.__MultiOwnableContractsRegistry_init();
 
@@ -1867,6 +1871,81 @@ describe("TokenSaleProposal", () => {
           await truffleAssert.reverts(
             tsp.getSaleTokenAmount(OWNER, 1, purchaseToken1.address, wei(100), []),
             "TSP: cannot participate"
+          );
+        });
+
+        it("token flashloan attack will revert", async () => {
+          await setTime(+tiers[3].saleStartTime + 2);
+
+          const details = [
+            {
+              participationType: ParticipationType.TokenLock,
+              data: web3.eth.abi.encodeParameters(
+                ["address", "uint256"],
+                [participationToken.address, toBN(wei("200"))]
+              ),
+            },
+          ];
+
+          let actionsFor = [];
+          actionsFor.push([tsp.address, 0, getBytesChangeParticipationDetailsTSP(4, details)]);
+
+          await govPool.createProposal("example.com", actionsFor, []);
+
+          const proposalId = await govPool.latestProposalId();
+
+          await govPool.vote(proposalId, true, wei("1000"), []);
+          await govPool.vote(proposalId, true, wei("100000000000000000000"), [], { from: SECOND });
+
+          await participationToken.mint(attacker.address, wei("200"));
+
+          await truffleAssert.reverts(
+            attacker.attackExecuteUnlockToken(
+              govPool.address,
+              proposalId,
+              tsp.address,
+              4,
+              participationToken.address,
+              wei("100")
+            ),
+            "TSP: unlock unavailable"
+          );
+        });
+
+        it.only("nft flashloan attack will revert", async () => {
+          await setTime(+tiers[4].saleStartTime + 2);
+
+          const details = [
+            {
+              participationType: ParticipationType.NftLock,
+              data: web3.eth.abi.encodeParameters(["address", "uint256"], [participationNft.address, "4"]),
+            },
+          ];
+
+          let actionsFor = [];
+          actionsFor.push([tsp.address, 0, getBytesChangeParticipationDetailsTSP(5, details)]);
+
+          await govPool.createProposal("example.com", actionsFor, []);
+
+          const proposalId = await govPool.latestProposalId();
+
+          await govPool.vote(proposalId, true, wei("1000"), []);
+          await govPool.vote(proposalId, true, wei("100000000000000000000"), [], { from: SECOND });
+
+          await participationNft.mint(attacker.address, 1);
+          await participationNft.mint(attacker.address, 2);
+          await participationNft.mint(attacker.address, 3);
+
+          await truffleAssert.reverts(
+            attacker.attackExecuteUnlockNft(
+              govPool.address,
+              proposalId,
+              tsp.address,
+              5,
+              participationNft.address,
+              [1, 2, 3]
+            ),
+            "TSP: unlock unavailable"
           );
         });
 
