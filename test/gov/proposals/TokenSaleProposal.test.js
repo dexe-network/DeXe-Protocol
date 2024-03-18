@@ -6,6 +6,7 @@ const truffleAssert = require("truffle-assertions");
 const { DEFAULT_CORE_PROPERTIES, ParticipationType } = require("../../utils/constants");
 const {
   getBytesCreateTiersTSP,
+  getBytesChangeParticipationDetailsTSP,
   getBytesOffTiersTSP,
   getBytesRecoverTSP,
   getBytesAddToWhitelistTSP,
@@ -15,7 +16,9 @@ const {
   getBytesApprove,
 } = require("../../utils/gov-pool-utils");
 const { getCurrentBlockTime, setTime } = require("../../helpers/block-helper");
+const { impersonate } = require("../../helpers/impersonator");
 const { StandardMerkleTree } = require("@openzeppelin/merkle-tree");
+const { artifacts } = require("hardhat");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
@@ -53,6 +56,7 @@ const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
 const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
 const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
 const SphereXEngineMock = artifacts.require("SphereXEngineMock");
+const GovTokenSaleAttackerMock = artifacts.require("GovTokenSaleAttackerMock");
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -171,6 +175,7 @@ describe("TokenSaleProposal", () => {
     participationToken = await ERC20Mock.new("PTMock", "PTMock", 18);
     participationNft = await ERC721Mock.new("PNFTMock", "PNFTMock");
     const _sphereXEngine = await SphereXEngineMock.new();
+    attacker = await GovTokenSaleAttackerMock.new();
 
     await contractsRegistry.__MultiOwnableContractsRegistry_init();
 
@@ -214,6 +219,8 @@ describe("TokenSaleProposal", () => {
     votePower = await LinearPower.new();
     govPool = await GovPool.new();
     tsp = await TokenSaleProposal.new();
+
+    await impersonate(govPool.address);
 
     await settings.__GovSettings_init(
       govPool.address,
@@ -1750,6 +1757,432 @@ describe("TokenSaleProposal", () => {
             (await tsp.getTierViews(0, 2)).map((tier) => tier.tierInfo.isOff),
             [true, true]
           );
+        });
+      });
+
+      describe("modify tiers", () => {
+        function tiersToParticipationDetails() {
+          const participationDetails = tiers.map((e) => {
+            let details = [];
+            details.isWhitelisted = false;
+            details.isBABTed = false;
+            details.requiredDaoVotes = "0";
+            details.requiredTokenAddresses = [];
+            details.requiredTokenAmounts = [];
+            details.requiredNftAddresses = [];
+            details.requiredNftAmounts = [];
+            details.merkleRoot = "0x0000000000000000000000000000000000000000000000000000000000000000";
+            details.merkleUri = "";
+
+            for (d of e.participationDetails) {
+              let decoded;
+              switch (d.participationType) {
+                case ParticipationType.MerkleWhitelist:
+                  decoded = web3.eth.abi.decodeParameters(["bytes32", "string"], d.data);
+                  details.merkleRoot = decoded[0];
+                  details.merkleUri = decoded[1];
+                  break;
+                case ParticipationType.Whitelist:
+                  details.isWhitelisted = true;
+                  break;
+                case ParticipationType.BABT:
+                  details.isBABTed = true;
+                  break;
+                case ParticipationType.DAOVotes:
+                  decoded = web3.eth.abi.decodeParameters(["uint256"], d.data);
+                  details.requiredDaoVotes = decoded[0].toString();
+                  break;
+                case ParticipationType.TokenLock:
+                  decoded = web3.eth.abi.decodeParameters(["address", "uint256"], d.data);
+                  details.requiredTokenAddresses.push(decoded[0]);
+                  details.requiredTokenAmounts.push(decoded[1]);
+                  break;
+                case ParticipationType.NftLock:
+                  decoded = web3.eth.abi.decodeParameters(["address", "uint256"], d.data);
+                  details.requiredNftAddresses.push(decoded[0]);
+                  details.requiredNftAmounts.push(decoded[1]);
+                  break;
+              }
+            }
+            return details;
+          });
+
+          return participationDetails;
+        }
+
+        it("should return correct participation parameters", async () => {
+          const expectedParticipationInfos = tiersToParticipationDetails();
+
+          for (let i = 1; i <= 8; i++) {
+            let participationInfo = await tsp.getParticipationDetails(i);
+            assert.deepEqual(participationInfo.slice(9, 18), expectedParticipationInfos[i - 1]);
+          }
+        });
+
+        it("modify participation settings should be called from GovPool", async () => {
+          await truffleAssert.reverts(
+            tsp.changeParticipationDetails(0, tiers[0].participationDetails),
+            "TSP: not a Gov contract"
+          );
+        });
+
+        it("cant change parameters after the end of tokensale", async () => {
+          await setTime(+tiers[0].saleEndTime);
+
+          await truffleAssert.reverts(
+            tsp.changeParticipationDetails(1, tiers[0].participationDetails, { from: govPool.address }),
+            "TSP: token sale is over"
+          );
+        });
+
+        it("addresses should not repeat", async () => {
+          const details = JSON.parse(JSON.stringify(tiers[3].participationDetails));
+
+          details.push(details[0]);
+
+          await truffleAssert.reverts(
+            tsp.changeParticipationDetails(1, details, { from: govPool.address }),
+            "TSP: multiple token lock requirements"
+          );
+        });
+
+        it("cant buy after switching whitelist", async () => {
+          const whitelistingRequest = [
+            {
+              tierId: 1,
+              users: [OWNER],
+              uri: "",
+            },
+          ];
+          await acceptProposal([[tsp.address, 0, getBytesAddToWhitelistTSP(whitelistingRequest)]]);
+
+          await setTime(+tiers[0].saleStartTime);
+          await purchaseToken1.approve(tsp.address, wei(150));
+
+          assert.equal(
+            (await tsp.getSaleTokenAmount(OWNER, 1, purchaseToken1.address, wei(100), [])).toFixed(),
+            wei(300)
+          );
+
+          const details = tiers[7].participationDetails;
+
+          await tsp.changeParticipationDetails(1, details, { from: govPool.address });
+
+          await truffleAssert.reverts(
+            tsp.getSaleTokenAmount(OWNER, 1, purchaseToken1.address, wei(100), []),
+            "TSP: cannot participate"
+          );
+        });
+
+        it("token flashloan attack will revert", async () => {
+          await setTime(+tiers[3].saleStartTime + 2);
+
+          const details = [
+            {
+              participationType: ParticipationType.TokenLock,
+              data: web3.eth.abi.encodeParameters(
+                ["address", "uint256"],
+                [participationToken.address, toBN(wei("200"))]
+              ),
+            },
+          ];
+
+          let actionsFor = [];
+          actionsFor.push([tsp.address, 0, getBytesChangeParticipationDetailsTSP(4, details)]);
+
+          await govPool.createProposal("example.com", actionsFor, []);
+
+          const proposalId = await govPool.latestProposalId();
+
+          await govPool.vote(proposalId, true, wei("1000"), []);
+          await govPool.vote(proposalId, true, wei("100000000000000000000"), [], { from: SECOND });
+
+          await participationToken.mint(attacker.address, wei("200"));
+
+          await truffleAssert.reverts(
+            attacker.attackExecuteUnlockToken(
+              govPool.address,
+              proposalId,
+              tsp.address,
+              4,
+              participationToken.address,
+              wei("100")
+            ),
+            "TSP: unlock unavailable"
+          );
+        });
+
+        it.only("nft flashloan attack will revert", async () => {
+          await setTime(+tiers[4].saleStartTime + 2);
+
+          const details = [
+            {
+              participationType: ParticipationType.NftLock,
+              data: web3.eth.abi.encodeParameters(["address", "uint256"], [participationNft.address, "4"]),
+            },
+          ];
+
+          let actionsFor = [];
+          actionsFor.push([tsp.address, 0, getBytesChangeParticipationDetailsTSP(5, details)]);
+
+          await govPool.createProposal("example.com", actionsFor, []);
+
+          const proposalId = await govPool.latestProposalId();
+
+          await govPool.vote(proposalId, true, wei("1000"), []);
+          await govPool.vote(proposalId, true, wei("100000000000000000000"), [], { from: SECOND });
+
+          await participationNft.mint(attacker.address, 1);
+          await participationNft.mint(attacker.address, 2);
+          await participationNft.mint(attacker.address, 3);
+
+          await truffleAssert.reverts(
+            attacker.attackExecuteUnlockNft(
+              govPool.address,
+              proposalId,
+              tsp.address,
+              5,
+              participationNft.address,
+              [1, 2, 3]
+            ),
+            "TSP: unlock unavailable"
+          );
+        });
+
+        it("could modify participation settings", async () => {
+          const details = [
+            {
+              participationType: ParticipationType.BABT,
+              data: "0x",
+            },
+            {
+              participationType: ParticipationType.DAOVotes,
+              data: web3.eth.abi.encodeParameter("uint256", wei("1")),
+            },
+            {
+              participationType: ParticipationType.MerkleWhitelist,
+              data: web3.eth.abi.encodeParameters(["bytes32", "string"], [merkleTree.root, "white_list"]),
+            },
+            {
+              participationType: ParticipationType.NftLock,
+              data: web3.eth.abi.encodeParameters(["address", "uint256"], [THIRD, "3"]),
+            },
+            {
+              participationType: ParticipationType.TokenLock,
+              data: web3.eth.abi.encodeParameters(["address", "uint256"], [SECOND, wei("2")]),
+            },
+            {
+              participationType: ParticipationType.TokenLock,
+              data: web3.eth.abi.encodeParameters(["address", "uint256"], [THIRD, wei("3")]),
+            },
+          ];
+
+          await tsp.changeParticipationDetails(1, details, { from: govPool.address });
+
+          let returnedDetails = await tsp.getParticipationDetails(1);
+          assert.deepEqual(returnedDetails.slice(0, 9), [
+            false,
+            true,
+            wei("1"),
+            [SECOND, THIRD],
+            [wei("2"), wei("3")],
+            [THIRD],
+            ["3"],
+            merkleTree.root,
+            "white_list",
+          ]);
+
+          details.pop();
+          details.pop();
+          details.pop();
+          details.push({
+            participationType: ParticipationType.NftLock,
+            data: web3.eth.abi.encodeParameters(["address", "uint256"], [SECOND, "2"]),
+          });
+          details.push({
+            participationType: ParticipationType.NftLock,
+            data: web3.eth.abi.encodeParameters(["address", "uint256"], [THIRD, "3"]),
+          });
+          details.push({
+            participationType: ParticipationType.TokenLock,
+            data: web3.eth.abi.encodeParameters(["address", "uint256"], [THIRD, wei("3")]),
+          });
+
+          await tsp.changeParticipationDetails(1, details, { from: govPool.address });
+
+          returnedDetails = await tsp.getParticipationDetails(1);
+          assert.deepEqual(returnedDetails.slice(0, 9), [
+            false,
+            true,
+            wei("1"),
+            [THIRD],
+            [wei("3")],
+            [SECOND, THIRD],
+            ["2", "3"],
+            merkleTree.root,
+            "white_list",
+          ]);
+        });
+
+        it("could unlock overlocked tokens", async () => {
+          await setTime(+tiers[0].saleStartTime);
+
+          let details = [
+            {
+              participationType: ParticipationType.TokenLock,
+              data: web3.eth.abi.encodeParameters(["address", "uint256"], [participationToken.address, wei("2")]),
+            },
+          ];
+
+          await tsp.changeParticipationDetails(1, details, { from: govPool.address });
+
+          await participationToken.mint(OWNER, wei("2"));
+          await participationToken.approve(tsp.address, wei("2"));
+
+          await tsp.lockParticipationTokens(1, participationToken.address, wei("2"));
+
+          details = [
+            {
+              participationType: ParticipationType.TokenLock,
+              data: web3.eth.abi.encodeParameters(["address", "uint256"], [participationToken.address, wei("1")]),
+            },
+          ];
+          await tsp.changeParticipationDetails(1, details, { from: govPool.address });
+
+          await truffleAssert.reverts(
+            tsp.unlockParticipationTokens(1, participationToken.address, wei("2")),
+            "TSP: unlock unavailable"
+          );
+
+          assert.equal(await participationToken.balanceOf(OWNER), 0);
+          await tsp.unlockParticipationTokens(1, participationToken.address, wei("1"));
+          assert.equal(await participationToken.balanceOf(OWNER), wei("1"));
+        });
+
+        it("could unlock overlocked nfts", async () => {
+          await setTime(+tiers[0].saleStartTime);
+
+          let details = [
+            {
+              participationType: ParticipationType.NftLock,
+              data: web3.eth.abi.encodeParameters(["address", "uint256"], [participationNft.address, "2"]),
+            },
+          ];
+
+          await tsp.changeParticipationDetails(1, details, { from: govPool.address });
+
+          await participationNft.mint(OWNER, 1);
+          await participationNft.mint(OWNER, 2);
+          await participationNft.setApprovalForAll(tsp.address, true);
+
+          await tsp.lockParticipationNft(1, participationNft.address, [1, 2]);
+
+          details = [
+            {
+              participationType: ParticipationType.NftLock,
+              data: web3.eth.abi.encodeParameters(["address", "uint256"], [participationNft.address, "1"]),
+            },
+          ];
+
+          await tsp.changeParticipationDetails(1, details, { from: govPool.address });
+
+          await truffleAssert.reverts(
+            tsp.unlockParticipationNft(1, participationNft.address, [1, 2]),
+            "TSP: unlock unavailable"
+          );
+
+          assert.equal(await participationNft.balanceOf(OWNER), 0);
+          await tsp.unlockParticipationNft(1, participationNft.address, [1]);
+          assert.equal(await participationNft.balanceOf(OWNER), 1);
+        });
+
+        it("modify should be called from GovPool", async () => {
+          await truffleAssert.reverts(tsp.modifyTier(1, tiers[0]), "TSP: not a Gov contract");
+        });
+
+        it("cant modify after token sale start", async () => {
+          await setTime(+tiers[0].saleStartTime);
+
+          await truffleAssert.reverts(
+            tsp.modifyTier(1, tiers[0], { from: govPool.address }),
+            "TSP: token sale already started"
+          );
+        });
+
+        it("cant modify with different sale token", async () => {
+          const params = JSON.parse(JSON.stringify(tiers[0]));
+          params.saleTokenAddress = saleToken.address;
+
+          await setTime(+tiers[0].saleStartTime - 2);
+
+          await truffleAssert.reverts(
+            tsp.modifyTier(1, params, { from: govPool.address }),
+            "TSP: can't change sale token"
+          );
+        });
+
+        it("returns sale token if total supply decreased", async () => {
+          const newParams = JSON.parse(JSON.stringify(tiers[0]));
+
+          assert.equal((await erc20Gov.balanceOf(govPool.address)).toFixed(), 0);
+          assert.equal((await erc20Gov.balanceOf(tsp.address)).toFixed(), wei("1000"));
+          newParams.totalTokenProvided = wei("500");
+
+          await tsp.modifyTier(1, newParams, { from: govPool.address });
+          assert.equal((await erc20Gov.balanceOf(govPool.address)).toFixed(), wei("500"));
+          assert.equal((await erc20Gov.balanceOf(tsp.address)).toFixed(), wei("500"));
+        });
+
+        it("transfers sale token if total supply increases", async () => {
+          await erc20Gov.mint(govPool.address, wei("500"), { from: govPool.address });
+          assert.equal((await erc20Gov.balanceOf(govPool.address)).toFixed(), wei("500"));
+          assert.equal((await erc20Gov.balanceOf(tsp.address)).toFixed(), wei("1000"));
+
+          await erc20Gov.approve(tsp.address, wei("0"), { from: govPool.address });
+
+          const newParams = JSON.parse(JSON.stringify(tiers[0]));
+          newParams.totalTokenProvided = wei("1100");
+
+          await truffleAssert.reverts(
+            tsp.modifyTier(1, newParams, { from: govPool.address }),
+            "ERC20: insufficient allowance"
+          );
+
+          await erc20Gov.approve(tsp.address, wei("100"), { from: govPool.address });
+          await tsp.modifyTier(1, newParams, { from: govPool.address });
+
+          assert.equal((await erc20Gov.balanceOf(govPool.address)).toFixed(), wei("400"));
+          assert.equal((await erc20Gov.balanceOf(tsp.address)).toFixed(), wei("1100"));
+        });
+
+        it("modifies tier", async () => {
+          assert.deepEqual(
+            tierInitParamsToObjects((await tsp.getTierViews(6, 1)).map((tier) => tier.tierInitParams)),
+            tiers.slice(6, 7)
+          );
+
+          const params = tiers[7];
+
+          await setTime(+tiers[6].saleStartTime - 2);
+          await tsp.modifyTier(7, params, { from: govPool.address });
+
+          assert.deepEqual(
+            tierInitParamsToObjects((await tsp.getTierViews(6, 1)).map((tier) => tier.tierInitParams)),
+            tiers.slice(7, 8)
+          );
+
+          const participationDetails = await tsp.getParticipationDetails(7);
+          assert.deepEqual(participationDetails.slice(0, 9), [
+            false,
+            false,
+            "0",
+            [],
+            [],
+            [],
+            [],
+            merkleTree.root,
+            "white_list",
+          ]);
         });
       });
 

@@ -28,40 +28,74 @@ library TokenSaleProposalCreate {
 
         ITokenSaleProposal.Tier storage tier = tiers[newTierId];
 
-        _setParticipationInfo(tier, _tierInitParams);
+        _setParticipationInfo(tier, _tierInitParams.participationDetails);
         _setRates(tier, _tierInitParams);
-
-        uint64 vestingStartTime = _tierInitParams.vestingSettings.vestingDuration == 0
-            ? 0
-            : _tierInitParams.saleEndTime + _tierInitParams.vestingSettings.cliffPeriod;
-        tier.tierInfo.vestingTierInfo = ITokenSaleProposal.VestingTierInfo({
-            vestingStartTime: vestingStartTime,
-            vestingEndTime: vestingStartTime + _tierInitParams.vestingSettings.vestingDuration
-        });
+        _setVestingParameters(tier, _tierInitParams);
 
         ITokenSaleProposal.TierInitParams storage tierInitParams = tier.tierInitParams;
 
-        tierInitParams.metadata = _tierInitParams.metadata;
-        tierInitParams.totalTokenProvided = _tierInitParams.totalTokenProvided;
-        tierInitParams.saleStartTime = _tierInitParams.saleStartTime;
-        tierInitParams.saleEndTime = _tierInitParams.saleEndTime;
-        tierInitParams.claimLockDuration = _tierInitParams.claimLockDuration;
-        tierInitParams.saleTokenAddress = _tierInitParams.saleTokenAddress;
-        tierInitParams.purchaseTokenAddresses = _tierInitParams.purchaseTokenAddresses;
-        tierInitParams.exchangeRates = _tierInitParams.exchangeRates;
-        tierInitParams.minAllocationPerUser = _tierInitParams.minAllocationPerUser;
-        tierInitParams.maxAllocationPerUser = _tierInitParams.maxAllocationPerUser;
-        tierInitParams.vestingSettings = _tierInitParams.vestingSettings;
-
-        for (uint256 i = 0; i < _tierInitParams.participationDetails.length; i++) {
-            tierInitParams.participationDetails.push(_tierInitParams.participationDetails[i]);
-        }
+        _setBasicParameters(tierInitParams, _tierInitParams);
 
         IERC20(tierInitParams.saleTokenAddress).safeTransferFrom(
             msg.sender,
             address(this),
             _tierInitParams.totalTokenProvided.from18Safe(_tierInitParams.saleTokenAddress)
         );
+    }
+
+    function modifyTier(
+        ITokenSaleProposal.Tier storage tier,
+        ITokenSaleProposal.TierInitParams calldata newSettings
+    ) external {
+        require(
+            block.timestamp < tier.tierInitParams.saleStartTime,
+            "TSP: token sale already started"
+        );
+        require(
+            newSettings.saleTokenAddress == tier.tierInitParams.saleTokenAddress,
+            "TSP: can't change sale token"
+        );
+
+        ITokenSaleProposal.TierInitParams storage tierInitParams = tier.tierInitParams;
+
+        _validateTierInitParams(newSettings);
+
+        _clearTierData(tier);
+
+        _setParticipationInfo(tier, newSettings.participationDetails);
+        _setRates(tier, newSettings);
+        _setVestingParameters(tier, newSettings);
+
+        uint256 oldSupply = tierInitParams.totalTokenProvided;
+        uint256 newSupply = newSettings.totalTokenProvided;
+
+        _setBasicParameters(tierInitParams, newSettings);
+
+        if (oldSupply < newSupply) {
+            IERC20(newSettings.saleTokenAddress).safeTransferFrom(
+                msg.sender,
+                address(this),
+                (newSupply - oldSupply).from18Safe(newSettings.saleTokenAddress)
+            );
+        } else if (oldSupply > newSupply) {
+            IERC20(newSettings.saleTokenAddress).safeTransfer(
+                msg.sender,
+                (oldSupply - newSupply).from18Safe(newSettings.saleTokenAddress)
+            );
+        }
+    }
+
+    function changeParticipationDetails(
+        ITokenSaleProposal.Tier storage tier,
+        ITokenSaleProposal.ParticipationDetails[] calldata newSettings
+    ) external {
+        require(block.timestamp <= tier.tierInitParams.saleEndTime, "TSP: token sale is over");
+
+        _clearParticipationData(tier);
+
+        _setParticipationInfo(tier, newSettings);
+
+        tier.tierAdditionalInfo.lastModified = _getBlockNumber();
     }
 
     function getTierViews(
@@ -86,15 +120,85 @@ library TokenSaleProposalCreate {
         }
     }
 
+    function getParticipationDetails(
+        ITokenSaleProposal.Tier storage tier
+    )
+        external
+        view
+        returns (ITokenSaleProposal.ParticipationInfoView memory participationDetails)
+    {
+        ITokenSaleProposal.ParticipationInfo storage participationInfo = tier.participationInfo;
+        ITokenSaleProposal.TierAdditionalInfo storage additionalInfo = tier.tierAdditionalInfo;
+
+        participationDetails.isWhitelisted = participationInfo.isWhitelisted;
+        participationDetails.isBABTed = participationInfo.isBABTed;
+        participationDetails.requiredDaoVotes = participationInfo.requiredDaoVotes;
+        participationDetails.merkleRoot = additionalInfo.merkleRoot;
+        participationDetails.merkleUri = additionalInfo.merkleUri;
+
+        uint256 length = participationInfo.requiredTokenLock.length();
+
+        address[] memory addresses = new address[](length);
+        uint256[] memory amounts = new uint256[](length);
+
+        for (uint256 i = 0; i < length; i++) {
+            (addresses[i], amounts[i]) = participationInfo.requiredTokenLock.at(i);
+        }
+
+        participationDetails.requiredTokenAddresses = addresses;
+        participationDetails.requiredTokenAmounts = amounts;
+
+        length = participationInfo.requiredNftLock.length();
+        addresses = new address[](length);
+        amounts = new uint256[](length);
+
+        for (uint256 i = 0; i < length; i++) {
+            (addresses[i], amounts[i]) = participationInfo.requiredNftLock.at(i);
+        }
+
+        participationDetails.requiredNftAddresses = addresses;
+        participationDetails.requiredNftAmounts = amounts;
+    }
+
+    function _setBasicParameters(
+        ITokenSaleProposal.TierInitParams storage tierInitParams,
+        ITokenSaleProposal.TierInitParams memory _tierInitParams
+    ) private {
+        tierInitParams.metadata = _tierInitParams.metadata;
+        tierInitParams.totalTokenProvided = _tierInitParams.totalTokenProvided;
+        tierInitParams.saleStartTime = _tierInitParams.saleStartTime;
+        tierInitParams.saleEndTime = _tierInitParams.saleEndTime;
+        tierInitParams.claimLockDuration = _tierInitParams.claimLockDuration;
+        tierInitParams.saleTokenAddress = _tierInitParams.saleTokenAddress;
+        tierInitParams.purchaseTokenAddresses = _tierInitParams.purchaseTokenAddresses;
+        tierInitParams.exchangeRates = _tierInitParams.exchangeRates;
+        tierInitParams.minAllocationPerUser = _tierInitParams.minAllocationPerUser;
+        tierInitParams.maxAllocationPerUser = _tierInitParams.maxAllocationPerUser;
+        tierInitParams.vestingSettings = _tierInitParams.vestingSettings;
+    }
+
+    function _setVestingParameters(
+        ITokenSaleProposal.Tier storage tier,
+        ITokenSaleProposal.TierInitParams memory _tierInitParams
+    ) private {
+        uint64 vestingStartTime = _tierInitParams.vestingSettings.vestingDuration == 0
+            ? 0
+            : _tierInitParams.saleEndTime + _tierInitParams.vestingSettings.cliffPeriod;
+        tier.tierInfo.vestingTierInfo = ITokenSaleProposal.VestingTierInfo({
+            vestingStartTime: vestingStartTime,
+            vestingEndTime: vestingStartTime + _tierInitParams.vestingSettings.vestingDuration
+        });
+    }
+
     function _setParticipationInfo(
         ITokenSaleProposal.Tier storage tier,
-        ITokenSaleProposal.TierInitParams memory tierInitParams
+        ITokenSaleProposal.ParticipationDetails[] memory participationSettings
     ) private {
         ITokenSaleProposal.ParticipationInfo storage participationInfo = tier.participationInfo;
 
-        for (uint256 i = 0; i < tierInitParams.participationDetails.length; i++) {
-            ITokenSaleProposal.ParticipationDetails memory participationDetails = tierInitParams
-                .participationDetails[i];
+        for (uint256 i = 0; i < participationSettings.length; i++) {
+            ITokenSaleProposal.ParticipationDetails
+                memory participationDetails = participationSettings[i];
 
             if (
                 participationDetails.participationType ==
@@ -183,6 +287,8 @@ library TokenSaleProposalCreate {
                 additionalInfo.merkleRoot = merkleRoot;
                 additionalInfo.merkleUri = merkleUri;
             }
+
+            tier.tierInitParams.participationDetails.push(participationDetails);
         }
     }
 
@@ -202,6 +308,34 @@ library TokenSaleProposalCreate {
             );
 
             tier.rates[tierInitParams.purchaseTokenAddresses[i]] = tierInitParams.exchangeRates[i];
+        }
+    }
+
+    function _clearTierData(ITokenSaleProposal.Tier storage tier) private {
+        for (uint256 i = 0; i < tier.tierInitParams.purchaseTokenAddresses.length; i++) {
+            tier.rates[tier.tierInitParams.purchaseTokenAddresses[i]] = 0;
+        }
+
+        _clearParticipationData(tier);
+    }
+
+    function _clearParticipationData(ITokenSaleProposal.Tier storage tier) private {
+        ITokenSaleProposal.ParticipationInfo storage participationInfo = tier.participationInfo;
+        ITokenSaleProposal.TierAdditionalInfo storage additionalInfo = tier.tierAdditionalInfo;
+
+        participationInfo.isWhitelisted = false;
+        participationInfo.isBABTed = false;
+        participationInfo.requiredDaoVotes = 0;
+        _clearEnumerableMap(participationInfo.requiredTokenLock);
+        _clearEnumerableMap(participationInfo.requiredNftLock);
+        additionalInfo.merkleRoot = bytes32(0);
+        additionalInfo.merkleUri = "";
+
+        ITokenSaleProposal.ParticipationDetails[] storage participationDetails = tier
+            .tierInitParams
+            .participationDetails;
+        assembly {
+            sstore(participationDetails.slot, 0)
         }
     }
 
@@ -258,5 +392,16 @@ library TokenSaleProposalCreate {
             vestingSettings.unlockStep != 0 &&
             vestingSettings.vestingPercentage <= PERCENTAGE_100 &&
             vestingSettings.vestingDuration >= vestingSettings.unlockStep;
+    }
+
+    function _clearEnumerableMap(EnumerableMap.AddressToUintMap storage map) internal {
+        for (uint256 i = map.length(); i > 0; i--) {
+            (address key, ) = map.at(i - 1);
+            map.remove(key);
+        }
+    }
+
+    function _getBlockNumber() internal view returns (uint256 block_) {
+        return block.number;
     }
 }

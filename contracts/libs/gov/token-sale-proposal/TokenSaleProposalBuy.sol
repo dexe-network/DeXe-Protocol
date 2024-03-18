@@ -169,9 +169,10 @@ library TokenSaleProposalBuy {
         bool isMerkleRootPresent = tier.tierAdditionalInfo.merkleRoot != bytes32(0);
 
         if (_canParticipate && (participationInfo.isWhitelisted || isMerkleRootPresent)) {
-            _canParticipate =
-                tokenSaleProposal.balanceOf(user, tierId) > 0 ||
-                _checkMerkleProofs(tier, proof, user);
+            bool turnedOnAndWhitelisted = participationInfo.isWhitelisted &&
+                tokenSaleProposal.balanceOf(user, tierId) > 0;
+
+            _canParticipate = turnedOnAndWhitelisted || _checkMerkleProofs(tier, proof, user);
         }
 
         if (_canParticipate && participationInfo.isBABTed) {

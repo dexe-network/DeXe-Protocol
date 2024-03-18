@@ -15,6 +15,10 @@ const getConfig = () => {
     return require("./configs/dev-sepolia.conf.js");
   }
 
+  if (process.env.ENVIRONMENT == "DEV_MUMBAI") {
+    return require("./configs/dev-mumbai.conf.js");
+  }
+
   throw Error("No environment config specified");
 };
 

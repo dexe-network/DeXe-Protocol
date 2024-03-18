@@ -46,6 +46,11 @@ contract TokenSaleProposal is
         address saleToken,
         ParticipationDetails[] participationDetails
     );
+    event TierModified(
+        uint256 tierId,
+        address saleToken,
+        ParticipationDetails[] participationDetails
+    );
     event Bought(uint256 tierId, address paidWith, uint256 received, uint256 given, address buyer);
     event Whitelisted(uint256 tierId, address user);
 
@@ -90,6 +95,25 @@ contract TokenSaleProposal is
                 tierInitParams[i].participationDetails
             );
         }
+    }
+
+    function modifyTier(
+        uint256 tierId,
+        ITokenSaleProposal.TierInitParams calldata newSettings
+    ) external onlyGov {
+        _getActiveTier(tierId).modifyTier(newSettings);
+
+        emit TierModified(tierId, newSettings.saleTokenAddress, newSettings.participationDetails);
+    }
+
+    function changeParticipationDetails(
+        uint256 tierId,
+        ITokenSaleProposal.ParticipationDetails[] calldata newSettings
+    ) external onlyGov {
+        ITokenSaleProposal.Tier storage tier = _getActiveTier(tierId);
+        tier.changeParticipationDetails(newSettings);
+
+        emit TierModified(tierId, tier.tierInitParams.saleTokenAddress, newSettings);
     }
 
     function addToWhitelist(WhitelistingRequest[] calldata requests) external override onlyGov {
@@ -219,6 +243,12 @@ contract TokenSaleProposal is
         uint256 limit
     ) external view returns (TierView[] memory tierViews) {
         return _tiers.getTierViews(offset, limit);
+    }
+
+    function getParticipationDetails(
+        uint256 tierId
+    ) external view returns (ITokenSaleProposal.ParticipationInfoView memory) {
+        return _getActiveTier(tierId).getParticipationDetails();
     }
 
     function getUserViews(

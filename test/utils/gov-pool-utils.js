@@ -522,6 +522,42 @@ const getBytesCreateTiersTSP = (tiers) => {
   );
 };
 
+const getBytesChangeParticipationDetailsTSP = (tierId, newSettings) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      inputs: [
+        {
+          internalType: "uint256",
+          name: "tierId",
+          type: "uint256",
+        },
+        {
+          components: [
+            {
+              internalType: "enum ITokenSaleProposal.ParticipationType",
+              name: "participationType",
+              type: "uint8",
+            },
+            {
+              internalType: "bytes",
+              name: "data",
+              type: "bytes",
+            },
+          ],
+          internalType: "struct ITokenSaleProposal.ParticipationDetails[]",
+          name: "newSettings",
+          type: "tuple[]",
+        },
+      ],
+      name: "changeParticipationDetails",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    [tierId, newSettings]
+  );
+};
+
 const getBytesAddToWhitelistTSP = (requests) => {
   return web3.eth.abi.encodeFunctionCall(
     {
@@ -1108,6 +1144,7 @@ module.exports = {
   getBytesEditSettings,
   getBytesChangeExecutors,
   getBytesCreateTiersTSP,
+  getBytesChangeParticipationDetailsTSP,
   getBytesAddToWhitelistTSP,
   getBytesOffTiersTSP,
   getBytesRecoverTSP,
