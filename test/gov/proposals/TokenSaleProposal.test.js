@@ -1912,7 +1912,7 @@ describe("TokenSaleProposal", () => {
           );
         });
 
-        it.only("nft flashloan attack will revert", async () => {
+        it("nft flashloan attack will revert", async () => {
           await setTime(+tiers[4].saleStartTime + 2);
 
           const details = [

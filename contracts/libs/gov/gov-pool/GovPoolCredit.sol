@@ -62,12 +62,12 @@ library GovPoolCredit {
                 "GPC: Current credit permission < amount to withdraw"
             );
 
-            currentToken.sendFunds(destination, currentAmount);
-
             creditInfo.tokenInfo[currentToken].timestamps.push(block.timestamp);
             uint256[] storage history = creditInfo.tokenInfo[currentToken].cumulativeAmounts;
 
             history.push(currentAmount + (history.length == 0 ? 0 : history[history.length - 1]));
+
+            currentToken.sendFunds(destination, currentAmount);
         }
     }
 
