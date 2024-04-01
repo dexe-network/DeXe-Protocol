@@ -46,7 +46,40 @@ const getBytesPolynomialPowerInit = (k1, k2, k3) => {
   );
 };
 
+const getBytesContractsRegistryInit = () => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      name: "__MultiOwnableContractsRegistry_init",
+      type: "function",
+      inputs: [],
+    },
+    []
+  );
+};
+
+const getBytesDexeMultiplierInit = (multiplierName, multiplierSymbol) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      name: "__ERC721Multiplier_init",
+      type: "function",
+      inputs: [
+        {
+          type: "string",
+          name: "name",
+        },
+        {
+          type: "string",
+          name: "symbol",
+        },
+      ],
+    },
+    [multiplierName, multiplierSymbol]
+  );
+};
+
 module.exports = {
   getConfig,
   getBytesPolynomialPowerInit,
+  getBytesContractsRegistryInit,
+  getBytesDexeMultiplierInit,
 };
