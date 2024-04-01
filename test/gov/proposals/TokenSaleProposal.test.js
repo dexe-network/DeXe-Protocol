@@ -1912,7 +1912,7 @@ describe("TokenSaleProposal", () => {
           );
         });
 
-        it.only("nft flashloan attack will revert", async () => {
+        it("nft flashloan attack will revert", async () => {
           await setTime(+tiers[4].saleStartTime + 2);
 
           const details = [
@@ -2743,6 +2743,47 @@ describe("TokenSaleProposal", () => {
               userViewsToObjects(await tsp.getUserViews(OWNER, [1], [[]]))[0].purchaseView,
               purchaseView
             );
+          });
+
+          it("correctly handles situation with a single whitelisted address", async () => {
+            await saleToken.mint(govPool.address, wei(1000));
+
+            let lastTier = JSON.parse(JSON.stringify(tiers[7]));
+            let newMerkleTree = StandardMerkleTree.of([[SECOND]], ["address"]);
+            lastTier.participationDetails[0].data = web3.eth.abi.encodeParameters(
+              ["bytes32", "string"],
+              [newMerkleTree.root, "white_list"]
+            );
+            await createTiers([lastTier]);
+
+            let SECOND_PROOFS = newMerkleTree.getProof(0);
+            assert.deepEqual(SECOND_PROOFS, []);
+
+            await setTime(+tiers[7].saleStartTime);
+            await purchaseToken1.mint(SECOND, wei(200));
+            await purchaseToken1.approve(tsp.address, wei(100), { from: SECOND });
+            assert.equal((await purchaseToken1.balanceOf(SECOND)).toFixed(), wei(200));
+
+            await truffleAssert.reverts(
+              tsp.getSaleTokenAmount(THIRD, 9, purchaseToken1.address, wei(100), []),
+              "TSP: cannot participate"
+            );
+
+            assert.equal(
+              (await tsp.getSaleTokenAmount(SECOND, 9, purchaseToken1.address, wei(100), SECOND_PROOFS)).toFixed(),
+              wei(300)
+            );
+
+            await truffleAssert.reverts(
+              tsp.buy(9, purchaseToken1.address, wei(100), SECOND_PROOFS, { from: THIRD }),
+              "TSP: cannot participate"
+            );
+
+            await tsp.buy(9, purchaseToken1.address, wei(100), SECOND_PROOFS, { from: SECOND });
+            await setTime(+tiers[7].saleEndTime + 11);
+            await tsp.claim([9], { from: SECOND });
+            assert.equal((await purchaseToken1.balanceOf(SECOND)).toFixed(), wei(100));
+            assert.equal((await saleToken.balanceOf(SECOND)).toFixed(), wei(240));
           });
 
           it("could buy if merkle proofs are provided", async () => {
