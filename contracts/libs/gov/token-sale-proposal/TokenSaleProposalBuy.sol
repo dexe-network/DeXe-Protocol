@@ -302,10 +302,6 @@ library TokenSaleProposalBuy {
         bytes32[] calldata proof,
         address user
     ) internal view returns (bool) {
-        if (proof.length == 0) {
-            return false;
-        }
-
         bytes32 root = tier.tierAdditionalInfo.merkleRoot;
 
         if (root == bytes32(0)) {
