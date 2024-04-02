@@ -1,7 +1,8 @@
 name: Feature request
 description: Suggest a new feature
 labels: ['feature']
-assignees: 
+assignees:
+  - todesstille
 body:
   - type: textarea
     id: feature-description
