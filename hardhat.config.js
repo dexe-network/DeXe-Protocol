@@ -35,11 +35,6 @@ module.exports = {
       initialDate: "1970-01-01T00:00:00Z",
       gasMultiplier: 1.2,
     },
-    goerli: {
-      url: `https://goerli.infura.io/v3/${process.env.INFURA_KEY}`,
-      accounts: privateKey(),
-      gasMultiplier: 1.2,
-    },
     sepolia: {
       url: `https://sepolia.infura.io/v3/${process.env.INFURA_KEY}`,
       accounts: privateKey(),
@@ -118,6 +113,6 @@ module.exports = {
     target: typechainTarget(),
     alwaysGenerateOverloads: true,
     discriminateTypes: true,
-    dontOverrideCompile: true & !forceTypechain(),
+    dontOverrideCompile: !forceTypechain(),
   },
 };

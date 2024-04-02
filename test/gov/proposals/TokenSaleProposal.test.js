@@ -2743,7 +2743,7 @@ describe("TokenSaleProposal", () => {
               userViewsToObjects(await tsp.getUserViews(OWNER, [1], [[]]))[0].purchaseView,
               purchaseView
             );
-          });
+          }); 
 
           it("correctly handles situation with a single whitelisted address", async () => {
             await saleToken.mint(govPool.address, wei(1000));
@@ -2754,6 +2754,7 @@ describe("TokenSaleProposal", () => {
               ["bytes32", "string"],
               [newMerkleTree.root, "white_list"]
             );
+
             await createTiers([lastTier]);
 
             let SECOND_PROOFS = newMerkleTree.getProof(0);
@@ -2782,6 +2783,7 @@ describe("TokenSaleProposal", () => {
             await tsp.buy(9, purchaseToken1.address, wei(100), SECOND_PROOFS, { from: SECOND });
             await setTime(+tiers[7].saleEndTime + 11);
             await tsp.claim([9], { from: SECOND });
+
             assert.equal((await purchaseToken1.balanceOf(SECOND)).toFixed(), wei(100));
             assert.equal((await saleToken.balanceOf(SECOND)).toFixed(), wei(240));
           });
