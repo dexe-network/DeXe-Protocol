@@ -37,7 +37,7 @@ describe("ERC721RawPower", () => {
       token.address,
       reductionPercent,
       nftMaxRawPower,
-      nftRequiredCollateral
+      nftRequiredCollateral,
     );
 
     await token.mint(SECOND, DEFAULT_AMOUNT);
@@ -72,35 +72,35 @@ describe("ERC721RawPower", () => {
     it("should revert if the token address is zero", async () => {
       await truffleAssert.reverts(
         nft.__ERC721RawPower_init("", "", startTime, ZERO_ADDR, "1", "2", "3"),
-        "ERC721Power: zero address"
+        "ERC721Power: zero address",
       );
     });
 
     it("should revert if the max power is zero", async () => {
       await truffleAssert.reverts(
         nft.__ERC721RawPower_init("", "", startTime, NOTHING, "2", "0", "3"),
-        "ERC721Power: max power can't be zero"
+        "ERC721Power: max power can't be zero",
       );
     });
 
     it("should revert if the reduction percent is zero", async () => {
       await truffleAssert.reverts(
         nft.__ERC721RawPower_init("", "", startTime, NOTHING, "0", "1", "3"),
-        "ERC721Power: reduction percent can't be zero"
+        "ERC721Power: reduction percent can't be zero",
       );
     });
 
     it("should revert if the reduction percent >= 100%", async () => {
       await truffleAssert.reverts(
         nft.__ERC721RawPower_init("", "", startTime, NOTHING, PERCENTAGE_100, "1", "3"),
-        "ERC721Power: reduction can't be 100%"
+        "ERC721Power: reduction can't be 100%",
       );
     });
 
     it("should revert if the required collateral is zero", async () => {
       await truffleAssert.reverts(
         nft.__ERC721RawPower_init("", "", startTime, NOTHING, "1", "2", "0"),
-        "ERC721Power: required collateral amount can't be zero"
+        "ERC721Power: required collateral amount can't be zero",
       );
     });
 
@@ -119,7 +119,7 @@ describe("ERC721RawPower", () => {
 
       await truffleAssert.reverts(
         nft.__ERC721RawPower_init("", "", startTime, NOTHING, "1", "2", "3"),
-        "Initializable: contract is already initialized"
+        "Initializable: contract is already initialized",
       );
     });
 
@@ -138,7 +138,7 @@ describe("ERC721RawPower", () => {
         await truffleAssert.reverts(nft.setNftMaxRawPower(1, 1, { from: SECOND }), "Ownable: caller is not the owner");
         await truffleAssert.reverts(
           nft.setNftRequiredCollateral(1, 1, { from: SECOND }),
-          "Ownable: caller is not the owner"
+          "Ownable: caller is not the owner",
         );
         await truffleAssert.reverts(nft.mint(OWNER, 1, "URI", { from: SECOND }), "Ownable: caller is not the owner");
         await truffleAssert.reverts(nft.setTokenURI(1, "", { from: SECOND }), "Ownable: caller is not the owner");
@@ -191,7 +191,7 @@ describe("ERC721RawPower", () => {
 
           assert.equal(
             toBN(await nft.totalPower()).toFixed(),
-            toPercent("90").plus(toPercent("100")).plus("1337").toFixed()
+            toPercent("90").plus(toPercent("100")).plus("1337").toFixed(),
           );
         });
 
@@ -203,7 +203,7 @@ describe("ERC721RawPower", () => {
           assert.equal(toBN(await nft.getNftPower(1)).toFixed(), toPercent("89.991").toFixed());
           assert.equal(
             toBN(await nft.totalPower()).toFixed(),
-            toPercent("90").times(2).plus(toPercent("89.991")).toFixed()
+            toPercent("90").times(2).plus(toPercent("89.991")).toFixed(),
           );
         });
 
@@ -280,7 +280,7 @@ describe("ERC721RawPower", () => {
 
         await truffleAssert.reverts(
           nft.setNftRequiredCollateral("0", "1"),
-          "ERC721Power: required collateral amount can't be zero"
+          "ERC721Power: required collateral amount can't be zero",
         );
       });
 
@@ -289,7 +289,7 @@ describe("ERC721RawPower", () => {
 
         await truffleAssert.reverts(
           nft.setNftRequiredCollateral("10", "1"),
-          "ERC721Power: power calculation already begun"
+          "ERC721Power: power calculation already begun",
         );
       });
     });
@@ -366,7 +366,7 @@ describe("ERC721RawPower", () => {
         assert.equal(toBN(infos.rawInfo.currentCollateral).toFixed(), "0");
         assert.equal(
           toBN(await nft.totalPower()).toFixed(),
-          toPercent("90").times(2).plus(toPercent("89.991")).toFixed()
+          toPercent("90").times(2).plus(toPercent("89.991")).toFixed(),
         );
 
         await setTime(startTime + 2000);
@@ -378,7 +378,7 @@ describe("ERC721RawPower", () => {
         assert.equal(toBN(infos.rawInfo.currentCollateral).toFixed(), "0");
         assert.equal(
           toBN(await nft.totalPower()).toFixed(),
-          toPercent("90").times(2).plus(toPercent("80.991")).toFixed()
+          toPercent("90").times(2).plus(toPercent("80.991")).toFixed(),
         );
       });
 
@@ -433,14 +433,14 @@ describe("ERC721RawPower", () => {
       it("should revert if try to add collateral from not a nft owner", async () => {
         await truffleAssert.reverts(
           nft.addCollateral("1", "1", { from: THIRD }),
-          "ERC721Power: sender isn't an nft owner"
+          "ERC721Power: sender isn't an nft owner",
         );
       });
 
       it("should revert if try to add zero collateral", async () => {
         await truffleAssert.reverts(
           nft.addCollateral("0", "1", { from: SECOND }),
-          "ERC721Power: wrong collateral amount"
+          "ERC721Power: wrong collateral amount",
         );
       });
     });
@@ -465,7 +465,7 @@ describe("ERC721RawPower", () => {
 
         await truffleAssert.reverts(
           nft.removeCollateral(wei("1"), "1", { from: SECOND }),
-          "ERC721Power: wrong collateral amount"
+          "ERC721Power: wrong collateral amount",
         );
       });
 

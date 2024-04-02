@@ -39,7 +39,7 @@ describe("ERC721EquivalentPower", () => {
       toPercent("0.001"),
       wei("1"),
       wei("1"),
-      wei("100")
+      wei("100"),
     );
 
     await token.mint(OWNER, wei("100"));
@@ -54,7 +54,7 @@ describe("ERC721EquivalentPower", () => {
     it("should not initialize twice", async () => {
       await truffleAssert.reverts(
         nft.__ERC721EquivalentPower_init("", "", startTime, ZERO_ADDR, "1", "2", "3", "4"),
-        "Initializable: contract is already initialized"
+        "Initializable: contract is already initialized",
       );
     });
   });

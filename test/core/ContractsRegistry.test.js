@@ -58,7 +58,7 @@ describe("ContractsRegistry", () => {
     it("should not upgrade if caller is not the owner", async () => {
       await truffleAssert.reverts(
         proxyRegistry.upgradeTo(implementation.address, { from: SECOND }),
-        "MultiOwnable: caller is not the owner"
+        "MultiOwnable: caller is not the owner",
       );
     });
   });
@@ -83,7 +83,7 @@ describe("ContractsRegistry", () => {
 
       await truffleAssert.reverts(
         contractsRegistry.addProxyContract(await contractsRegistry.USD_NAME(), _USD.address),
-        "ContractsRegistry: this mapping doesn't exist"
+        "ContractsRegistry: this mapping doesn't exist",
       );
     });
 
@@ -162,7 +162,7 @@ describe("ContractsRegistry", () => {
             },
           ],
         },
-        ["42"]
+        ["42"],
       );
 
       await contractsRegistry.upgradeContractAndCall(await contractsRegistry.USD_NAME(), _USD2.address, data);
@@ -231,17 +231,17 @@ describe("ContractsRegistry", () => {
     it("should not work with engine if not an owner", async () => {
       await truffleAssert.reverts(
         contractsRegistry.toggleSphereXEngine(true, { from: SECOND }),
-        "MultiOwnable: caller is not the owner"
+        "MultiOwnable: caller is not the owner",
       );
 
       await truffleAssert.reverts(
         contractsRegistry.protectContractFunctions(NAME, [protectedMethodSelector], { from: SECOND }),
-        "MultiOwnable: caller is not the owner"
+        "MultiOwnable: caller is not the owner",
       );
 
       await truffleAssert.reverts(
         contractsRegistry.unprotectContractFunctions(NAME, [protectedMethodSelector], { from: SECOND }),
-        "MultiOwnable: caller is not the owner"
+        "MultiOwnable: caller is not the owner",
       );
     });
   });

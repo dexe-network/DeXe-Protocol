@@ -58,7 +58,7 @@ describe("CoreProperties", () => {
     it("should not initialize twice", async () => {
       await truffleAssert.reverts(
         coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES),
-        "Initializable: contract is already initialized"
+        "Initializable: contract is already initialized",
       );
     });
 
@@ -69,27 +69,27 @@ describe("CoreProperties", () => {
     it("only owner should call these methods", async () => {
       await truffleAssert.reverts(
         coreProperties.setCoreParameters(DEFAULT_CORE_PROPERTIES, { from: SECOND }),
-        "MultiOwnable: caller is not the owner"
+        "MultiOwnable: caller is not the owner",
       );
 
       await truffleAssert.reverts(
         coreProperties.setDEXECommissionPercentages(10, { from: SECOND }),
-        "MultiOwnable: caller is not the owner"
+        "MultiOwnable: caller is not the owner",
       );
 
       await truffleAssert.reverts(
         coreProperties.setTokenSaleProposalCommissionPercentage(0, { from: SECOND }),
-        "MultiOwnable: caller is not the owner"
+        "MultiOwnable: caller is not the owner",
       );
 
       await truffleAssert.reverts(
         coreProperties.setVoteRewardsPercentages(0, 0, { from: SECOND }),
-        "MultiOwnable: caller is not the owner"
+        "MultiOwnable: caller is not the owner",
       );
 
       await truffleAssert.reverts(
         coreProperties.setGovVotesLimit(20, { from: SECOND }),
-        "MultiOwnable: caller is not the owner"
+        "MultiOwnable: caller is not the owner",
       );
     });
   });

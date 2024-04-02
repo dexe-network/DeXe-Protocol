@@ -55,7 +55,7 @@ describe("DexeERC721Multiplier", () => {
     it("should not initialize twice", async () => {
       await truffleAssert.reverts(
         nft.__ERC721Multiplier_init(NFT_NAME, NFT_SYMBOL),
-        "Initializable: contract is already initialized"
+        "Initializable: contract is already initialized",
       );
     });
   });
@@ -162,7 +162,7 @@ describe("DexeERC721Multiplier", () => {
           nft.mint(OWNER, TOKENS[0].multiplier, TOKENS[0].duration, TOKENS[0].averageBalance, TOKENS[0].uri, {
             from: SECOND,
           }),
-          "Ownable: caller is not the owner"
+          "Ownable: caller is not the owner",
         );
       });
     });
@@ -194,7 +194,7 @@ describe("DexeERC721Multiplier", () => {
         it("should not change if not the owner", async () => {
           await truffleAssert.reverts(
             nft.changeToken(0, 0, 0, 0, { from: SECOND }),
-            "Ownable: caller is not the owner"
+            "Ownable: caller is not the owner",
           );
         });
       });
@@ -219,13 +219,13 @@ describe("DexeERC721Multiplier", () => {
               toBN(amount)
                 .times(PRECISION)
                 .times(PRECISION)
-                .idiv(toBN(TOKENS[2].multiplier).times(TOKENS[2].averageBalance))
+                .idiv(toBN(TOKENS[2].multiplier).times(TOKENS[2].averageBalance)),
             )
             .minus(PRECISION);
 
           assert.equal(
             (await nft.getExtraRewards(SECOND, amount)).toFixed(),
-            currentMultiplier.times(amount).idiv(PRECISION).toFixed()
+            currentMultiplier.times(amount).idiv(PRECISION).toFixed(),
           );
         });
 
@@ -277,7 +277,7 @@ describe("DexeERC721Multiplier", () => {
               toBN(amount)
                 .times(PRECISION)
                 .times(PRECISION)
-                .idiv(toBN(TOKENS[2].multiplier).times(TOKENS[2].averageBalance))
+                .idiv(toBN(TOKENS[2].multiplier).times(TOKENS[2].averageBalance)),
             )
             .minus(PRECISION)
             .plus(1)
@@ -307,7 +307,7 @@ describe("DexeERC721Multiplier", () => {
               toBN(amount)
                 .times(PRECISION)
                 .times(PRECISION)
-                .idiv(toBN(TOKENS[2].multiplier).times(TOKENS[2].averageBalance))
+                .idiv(toBN(TOKENS[2].multiplier).times(TOKENS[2].averageBalance)),
             )
             .minus(PRECISION)
             .plus(1)
@@ -329,7 +329,7 @@ describe("DexeERC721Multiplier", () => {
               toBN(amount)
                 .times(PRECISION)
                 .times(PRECISION)
-                .idiv(toBN(TOKENS[2].multiplier).times(TOKENS[2].averageBalance))
+                .idiv(toBN(TOKENS[2].multiplier).times(TOKENS[2].averageBalance)),
             )
             .minus(PRECISION)
             .toFixed();
@@ -421,7 +421,7 @@ describe("DexeERC721Multiplier", () => {
               toBN(amount)
                 .times(PRECISION)
                 .times(PRECISION)
-                .idiv(toBN(TOKENS[2].multiplier).times(TOKENS[3].averageBalance))
+                .idiv(toBN(TOKENS[2].multiplier).times(TOKENS[3].averageBalance)),
             )
             .minus(PRECISION)
             .toFixed();

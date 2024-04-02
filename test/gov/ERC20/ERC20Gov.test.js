@@ -53,7 +53,7 @@ describe("ERC20Gov", () => {
 
       await truffleAssert.reverts(
         erc20Gov.__ERC20Gov_init(DEFAULT_PARAMS.govAddress, DEFAULT_PARAMS.constructorParameters),
-        "ERC20Gov: govAddress is zero"
+        "ERC20Gov: govAddress is zero",
       );
     });
 
@@ -62,7 +62,7 @@ describe("ERC20Gov", () => {
 
       await truffleAssert.reverts(
         erc20Gov.__ERC20Gov_init(DEFAULT_PARAMS.govAddress, DEFAULT_PARAMS.constructorParameters),
-        "ERC20Gov: mintedTotal should not be greater than cap"
+        "ERC20Gov: mintedTotal should not be greater than cap",
       );
     });
 
@@ -71,7 +71,7 @@ describe("ERC20Gov", () => {
 
       await truffleAssert.reverts(
         erc20Gov.__ERC20Gov_init(DEFAULT_PARAMS.govAddress, DEFAULT_PARAMS.constructorParameters),
-        "ERC20Gov: users and amounts lengths mismatch"
+        "ERC20Gov: users and amounts lengths mismatch",
       );
     });
 
@@ -80,7 +80,7 @@ describe("ERC20Gov", () => {
 
       await truffleAssert.reverts(
         erc20Gov.__ERC20Gov_init(DEFAULT_PARAMS.govAddress, DEFAULT_PARAMS.constructorParameters),
-        "ERC20Gov: overminting"
+        "ERC20Gov: overminting",
       );
     });
 
@@ -97,7 +97,7 @@ describe("ERC20Gov", () => {
 
       await truffleAssert.reverts(
         erc20Gov.__ERC20Gov_init(DEFAULT_PARAMS.govAddress, DEFAULT_PARAMS.constructorParameters),
-        "Initializable: contract is already initialized"
+        "Initializable: contract is already initialized",
       );
     });
   });
@@ -135,7 +135,7 @@ describe("ERC20Gov", () => {
 
         await truffleAssert.reverts(
           erc20Gov.mint(OWNER, wei(1), { from: GOV_ADDRESS }),
-          "ERC20Pausable: token transfer while paused"
+          "ERC20Pausable: token transfer while paused",
         );
       });
 
@@ -144,7 +144,7 @@ describe("ERC20Gov", () => {
 
         await truffleAssert.reverts(
           erc20Gov.transfer(THIRD, wei(1), { from: SECOND }),
-          "ERC20Pausable: token transfer while paused"
+          "ERC20Pausable: token transfer while paused",
         );
       });
     });
@@ -222,7 +222,7 @@ describe("ERC20Gov", () => {
 
         await truffleAssert.reverts(
           erc20Gov.mint(SECOND, wei(1), { from: GOV_ADDRESS }),
-          "ERC20Gov: account is blacklisted"
+          "ERC20Gov: account is blacklisted",
         );
       });
 
@@ -231,7 +231,7 @@ describe("ERC20Gov", () => {
 
         await truffleAssert.reverts(
           erc20Gov.transfer(GOV_ADDRESS, wei(1), { from: SECOND }),
-          "ERC20Gov: account is blacklisted"
+          "ERC20Gov: account is blacklisted",
         );
       });
     });
