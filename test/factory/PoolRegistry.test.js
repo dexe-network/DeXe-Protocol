@@ -139,7 +139,7 @@ describe("PoolRegistry", () => {
           sphereXCallee.address,
           sphereXCallee.address,
           sphereXCallee.address,
-        ],
+        ]
       );
 
       const poolBeaconProxy = await PoolBeacon.at(await poolRegistry.getProxyBeacon(GOV_NAME));
@@ -187,17 +187,17 @@ describe("PoolRegistry", () => {
     it("should not work with engine if not an operator", async () => {
       await truffleAssert.reverts(
         poolRegistry.toggleSphereXEngine(true, { from: SECOND }),
-        "MultiOwnable: caller is not the owner",
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(
         poolRegistry.protectPoolFunctions(GOV_NAME, [protectedMethodSelector], { from: SECOND }),
-        "MultiOwnable: caller is not the owner",
+        "MultiOwnable: caller is not the owner"
       );
 
       await truffleAssert.reverts(
         poolRegistry.unprotectPoolFunctions(GOV_NAME, [protectedMethodSelector], { from: SECOND }),
-        "MultiOwnable: caller is not the owner",
+        "MultiOwnable: caller is not the owner"
       );
     });
 

@@ -64,6 +64,6 @@ module.exports = async (deployer) => {
       nftMultiplier.address,
       linearPower.address,
       polynomialPower.address,
-    ],
+    ]
   );
 };

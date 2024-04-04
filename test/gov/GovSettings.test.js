@@ -131,9 +131,9 @@ describe("GovSettings", () => {
           VALIDATORS_ADDRESS,
           USER_KEEPER_ADDRESS,
           [DEFAULT_SETTINGS, INTERNAL_SETTINGS, VALIDATORS_BALANCES_SETTINGS],
-          [OWNER],
+          [OWNER]
         ),
-        "GovSettings: invalid proposal settings count",
+        "GovSettings: invalid proposal settings count"
       );
     });
   });
@@ -185,7 +185,7 @@ describe("GovSettings", () => {
         VALIDATORS_ADDRESS,
         USER_KEEPER_ADDRESS,
         [DEFAULT_SETTINGS, INTERNAL_SETTINGS, VALIDATORS_BALANCES_SETTINGS, newSettings1, newSettings2],
-        [OWNER, SECOND],
+        [OWNER, SECOND]
       );
 
       const settings1 = await settings.settings(3);
@@ -205,7 +205,7 @@ describe("GovSettings", () => {
         VALIDATORS_ADDRESS,
         USER_KEEPER_ADDRESS,
         [DEFAULT_SETTINGS, INTERNAL_SETTINGS, VALIDATORS_BALANCES_SETTINGS, DP_SETTINGS],
-        [DP_ADDRESS],
+        [DP_ADDRESS]
       );
     });
 
@@ -279,26 +279,26 @@ describe("GovSettings", () => {
             VALIDATORS_ADDRESS,
             USER_KEEPER_ADDRESS,
             [DEFAULT_SETTINGS, INTERNAL_SETTINGS, VALIDATORS_BALANCES_SETTINGS],
-            [],
+            []
           ),
-          "Initializable: contract is already initialized",
+          "Initializable: contract is already initialized"
         );
       });
 
       it("only owner should call these functions", async () => {
         await truffleAssert.reverts(
           settings.addSettings([INTERNAL_SETTINGS], { from: SECOND }),
-          "Ownable: caller is not the owner",
+          "Ownable: caller is not the owner"
         );
 
         await truffleAssert.reverts(
           settings.editSettings([1], [INTERNAL_SETTINGS], { from: SECOND }),
-          "Ownable: caller is not the owner",
+          "Ownable: caller is not the owner"
         );
 
         await truffleAssert.reverts(
           settings.changeExecutors([OWNER], [2], { from: SECOND }),
-          "Ownable: caller is not the owner",
+          "Ownable: caller is not the owner"
         );
       });
     });
@@ -470,7 +470,7 @@ describe("GovSettings", () => {
 
         await truffleAssert.reverts(
           settings.addSettings([newSettings]),
-          "GovSettings: invalid validator vote duration value",
+          "GovSettings: invalid validator vote duration value"
         );
       });
 
@@ -573,7 +573,7 @@ describe("GovSettings", () => {
 
         await truffleAssert.reverts(
           settings.editSettings([1, 10], [newSettings1, newSettings1]),
-          "GovSettings: settings do not exist",
+          "GovSettings: settings do not exist"
         );
       });
     });

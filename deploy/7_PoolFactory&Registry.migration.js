@@ -14,11 +14,11 @@ module.exports = async (deployer) => {
 
   const poolSphereXEngine = await deployer.deployed(
     SphereXEngine,
-    await contractsRegistry.getPoolSphereXEngineContract(),
+    await contractsRegistry.getPoolSphereXEngineContract()
   );
 
   await poolSphereXEngine.grantRole(
     await poolSphereXEngine.SENDER_ADDER_ROLE(),
-    await contractsRegistry.getPoolFactoryContract(),
+    await contractsRegistry.getPoolFactoryContract()
   );
 };

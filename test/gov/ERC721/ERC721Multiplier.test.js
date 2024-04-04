@@ -65,7 +65,7 @@ describe("ERC721Multiplier", () => {
     it("should not initialize twice", async () => {
       await truffleAssert.reverts(
         nft.__ERC721Multiplier_init(NFT_NAME, NFT_SYMBOL),
-        "Initializable: contract is already initialized",
+        "Initializable: contract is already initialized"
       );
     });
   });
@@ -122,7 +122,7 @@ describe("ERC721Multiplier", () => {
       it("shouldn't mint if not the owner", async () => {
         await truffleAssert.reverts(
           nft.mint(OWNER, TOKENS[0].multiplier, TOKENS[0].duration, TOKENS[0].uri, { from: SECOND }),
-          "Ownable: caller is not the owner",
+          "Ownable: caller is not the owner"
         );
       });
 
@@ -164,7 +164,7 @@ describe("ERC721Multiplier", () => {
         it("should not set if not the owner", async () => {
           await truffleAssert.reverts(
             nft.setTokenURI(1, "placeholder", { from: SECOND }),
-            "Ownable: caller is not the owner",
+            "Ownable: caller is not the owner"
           );
         });
 
@@ -213,7 +213,7 @@ describe("ERC721Multiplier", () => {
           await nft.lock(first.id, { from: first.owner });
           await truffleAssert.reverts(
             nft.lock(second.id, { from: second.owner }),
-            "ERC721Multiplier: Cannot lock more than one nft",
+            "ERC721Multiplier: Cannot lock more than one nft"
           );
         });
 
@@ -350,7 +350,7 @@ describe("ERC721Multiplier", () => {
 
           await truffleAssert.reverts(
             nft.unlock({ from: first.owner }),
-            "ERC721Multiplier: Cannot unlock with active proposals",
+            "ERC721Multiplier: Cannot unlock with active proposals"
           );
         });
       });
@@ -500,7 +500,7 @@ describe("ERC721Multiplier", () => {
 
           await truffleAssert.reverts(
             nft.transferFrom(TOKENS[0].owner, TOKENS[1].owner, TOKENS[0].id, { from: TOKENS[0].owner }),
-            "ERC721Multiplier: Cannot transfer locked token",
+            "ERC721Multiplier: Cannot transfer locked token"
           );
         });
 

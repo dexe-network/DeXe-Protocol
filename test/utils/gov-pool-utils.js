@@ -18,7 +18,7 @@ const getBytesApprove = (address, amount) => {
         },
       ],
     },
-    [address, amount],
+    [address, amount]
   );
 };
 
@@ -38,7 +38,7 @@ const getBytesApproveAll = (address, action) => {
         },
       ],
     },
-    [address, action],
+    [address, action]
   );
 };
 
@@ -58,7 +58,7 @@ const getBytesTransfer = (address, amount) => {
         },
       ],
     },
-    [address, amount],
+    [address, amount]
   );
 };
 
@@ -77,7 +77,7 @@ const getBytesChangeVotePower = (votePower) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [votePower],
+    [votePower]
   );
 };
 
@@ -93,7 +93,7 @@ const getBytesEditUrl = (url) => {
         },
       ],
     },
-    [url],
+    [url]
   );
 };
 
@@ -109,7 +109,7 @@ const getBytesSetNftMultiplierAddress = (addr) => {
         },
       ],
     },
-    [addr],
+    [addr]
   );
 };
 
@@ -138,7 +138,7 @@ const getBytesDistributionProposal = (proposalId, token, amount) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [proposalId, token, amount],
+    [proposalId, token, amount]
   );
 };
 
@@ -158,7 +158,7 @@ const getBytesChangeBalances = (newValues, addresses) => {
         },
       ],
     },
-    [newValues, addresses],
+    [newValues, addresses]
   );
 };
 
@@ -174,7 +174,7 @@ const getBytesSetERC20Address = (address) => {
         },
       ],
     },
-    [address],
+    [address]
   );
 };
 
@@ -198,7 +198,7 @@ const getBytesSetERC721Address = (address, individualPower, nftsTotalSupply) => 
         },
       ],
     },
-    [address, individualPower, nftsTotalSupply],
+    [address, individualPower, nftsTotalSupply]
   );
 };
 
@@ -282,7 +282,7 @@ const getBytesAddSettings = (settings) => {
         },
       ],
     },
-    [settings],
+    [settings]
   );
 };
 
@@ -371,7 +371,7 @@ const getBytesEditSettings = (ids, settings) => {
         },
       ],
     },
-    [ids, settings],
+    [ids, settings]
   );
 };
 
@@ -391,7 +391,7 @@ const getBytesChangeExecutors = (executors, ids) => {
         },
       ],
     },
-    [executors, ids],
+    [executors, ids]
   );
 };
 
@@ -518,7 +518,7 @@ const getBytesCreateTiersTSP = (tiers) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [tiers],
+    [tiers]
   );
 };
 
@@ -554,7 +554,7 @@ const getBytesChangeParticipationDetailsTSP = (tierId, newSettings) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [tierId, newSettings],
+    [tierId, newSettings]
   );
 };
 
@@ -590,7 +590,7 @@ const getBytesAddToWhitelistTSP = (requests) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [requests],
+    [requests]
   );
 };
 
@@ -609,7 +609,7 @@ const getBytesOffTiersTSP = (tierIds) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [tierIds],
+    [tierIds]
   );
 };
 
@@ -628,7 +628,7 @@ const getBytesRecoverTSP = (tierIds) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [tierIds],
+    [tierIds]
   );
 };
 
@@ -662,7 +662,7 @@ const getBytesBuyTSP = (tierId, tokenToBuyWith, amount, proof) => {
       stateMutability: "payable",
       type: "function",
     },
-    [tierId, tokenToBuyWith, amount, proof],
+    [tierId, tokenToBuyWith, amount, proof]
   );
 };
 
@@ -691,7 +691,7 @@ const getBytesLockParticipationTokensTSP = (tierId, tokenToLock, amountToLock) =
       stateMutability: "payable",
       type: "function",
     },
-    [tierId, tokenToLock, amountToLock],
+    [tierId, tokenToLock, amountToLock]
   );
 };
 
@@ -720,7 +720,7 @@ const getBytesLockParticipationNftTSP = (tierId, nftToLock, nftIdsToLock) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [tierId, nftToLock, nftIdsToLock],
+    [tierId, nftToLock, nftIdsToLock]
   );
 };
 
@@ -739,7 +739,7 @@ const getBytesChangeVerifier = (newAddress) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [newAddress],
+    [newAddress]
   );
 };
 
@@ -758,7 +758,7 @@ const getBytesChangeBABTRestriction = (restrict) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [restrict],
+    [restrict]
   );
 };
 
@@ -777,7 +777,7 @@ const getBytesGovExecute = (proposalId) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [proposalId],
+    [proposalId]
   );
 };
 
@@ -801,7 +801,7 @@ const getBytesGovClaimRewards = (proposalIds, user) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [proposalIds, user],
+    [proposalIds, user]
   );
 };
 
@@ -835,7 +835,7 @@ const getBytesGovVote = (proposalId, voteAmount, voteNftIds, isVoteFor = true) =
       stateMutability: "nonpayable",
       type: "function",
     },
-    [proposalId, isVoteFor, voteAmount, voteNftIds],
+    [proposalId, isVoteFor, voteAmount, voteNftIds]
   );
 };
 
@@ -859,7 +859,7 @@ const getBytesGovDeposit = (amount, nftIds) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [amount, nftIds],
+    [amount, nftIds]
   );
 };
 
@@ -888,7 +888,7 @@ const getBytesGovWithdraw = (receiver, amount, nftIds) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [receiver, amount, nftIds],
+    [receiver, amount, nftIds]
   );
 };
 
@@ -917,7 +917,7 @@ const getBytesGovDelegate = (delegatee, amount, nftIds) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [delegatee, amount, nftIds],
+    [delegatee, amount, nftIds]
   );
 };
 
@@ -946,7 +946,7 @@ const getBytesGovUndelegate = (delegatee, amount, nftIds) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [delegatee, amount, nftIds],
+    [delegatee, amount, nftIds]
   );
 };
 
@@ -975,7 +975,7 @@ const getBytesKeeperWithdrawTokens = (payer, receiver, amount) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [payer, receiver, amount],
+    [payer, receiver, amount]
   );
 };
 
@@ -999,7 +999,7 @@ const getBytesSetCreditInfo = (tokens, amounts) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [tokens, amounts],
+    [tokens, amounts]
   );
 };
 
@@ -1023,7 +1023,7 @@ const getBytesChangeVoteModifiers = (regularModifier, expertModifier) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [regularModifier, expertModifier],
+    [regularModifier, expertModifier]
   );
 };
 
@@ -1047,7 +1047,7 @@ const getBytesMintExpertNft = (to, uri) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [to, uri],
+    [to, uri]
   );
 };
 
@@ -1066,7 +1066,7 @@ const getBytesBurnExpertNft = (from) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [from],
+    [from]
   );
 };
 
@@ -1095,7 +1095,7 @@ const getBytesDelegateTreasury = (delegatee, amount, nftIds) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [delegatee, amount, nftIds],
+    [delegatee, amount, nftIds]
   );
 };
 
@@ -1124,7 +1124,7 @@ const getBytesUndelegateTreasury = (delegatee, amount, nftIds) => {
       stateMutability: "nonpayable",
       type: "function",
     },
-    [delegatee, amount, nftIds],
+    [delegatee, amount, nftIds]
   );
 };
 

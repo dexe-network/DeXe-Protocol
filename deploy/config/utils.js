@@ -42,7 +42,7 @@ const getBytesPolynomialPowerInit = (k1, k2, k3) => {
         },
       ],
     },
-    [k1, k2, k3],
+    [k1, k2, k3]
   );
 };
 
@@ -53,7 +53,7 @@ const getBytesContractsRegistryInit = () => {
       type: "function",
       inputs: [],
     },
-    [],
+    []
   );
 };
 
@@ -73,7 +73,7 @@ const getBytesDexeMultiplierInit = (multiplierName, multiplierSymbol) => {
         },
       ],
     },
-    [multiplierName, multiplierSymbol],
+    [multiplierName, multiplierSymbol]
   );
 };
 

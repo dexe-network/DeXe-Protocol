@@ -18,6 +18,7 @@ contract ContractsRegistry is IContractsRegistry, MultiOwnableContractsRegistry,
     string public constant POOL_REGISTRY_NAME = "POOL_REGISTRY";
 
     string public constant DEXE_NAME = "DEXE";
+    string public constant WETH_NAME = "WETH";
     string public constant USD_NAME = "USD";
     string public constant BABT_NAME = "BABT";
     string public constant DEXE_EXPERT_NFT_NAME = "DEXE_EXPERT_NFT";
@@ -70,6 +71,10 @@ contract ContractsRegistry is IContractsRegistry, MultiOwnableContractsRegistry,
 
     function getDEXEContract() external view override returns (address) {
         return getContract(DEXE_NAME);
+    }
+
+    function getWETHContract() external view override returns (address) {
+        return getContract(WETH_NAME);
     }
 
     function getUSDContract() external view override returns (address) {

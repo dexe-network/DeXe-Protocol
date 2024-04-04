@@ -13,7 +13,7 @@ module.exports = async (deployer) => {
   await deployer.deploy(
     ERC1967Proxy,
     [dexeMultiplier.address, getBytesDexeMultiplierInit("DeXe Multiplier NFT", "DEXE MULTNFT")],
-    { name: "multiplierProxy" },
+    { name: "multiplierProxy" }
   );
 
   dexeMultiplier = await deployer.deployed(DexeMultiplier, "multiplierProxy");

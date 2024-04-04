@@ -86,7 +86,7 @@ describe("UserRegistry", () => {
     it("should not initialize twice", async () => {
       await truffleAssert.reverts(
         userRegistry.__UserRegistry_init(userRegistryName),
-        "Initializable: contract is already initialized",
+        "Initializable: contract is already initialized"
       );
     });
 
@@ -95,7 +95,7 @@ describe("UserRegistry", () => {
 
       await truffleAssert.reverts(
         userRegistry.setPrivacyPolicyDocumentHash(docHash, { from: SECOND }),
-        "MultiOwnable: caller is not the owner",
+        "MultiOwnable: caller is not the owner"
       );
     });
   });
@@ -129,7 +129,7 @@ describe("UserRegistry", () => {
 
       await truffleAssert.reverts(
         userRegistry.agreeToPrivacyPolicy(signature),
-        "UserRegistry: privacy policy is not set",
+        "UserRegistry: privacy policy is not set"
       );
     });
 

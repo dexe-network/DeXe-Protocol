@@ -505,7 +505,7 @@ describe("PoolFactory", () => {
 
         await truffleAssert.reverts(
           poolFactory.deployGovPool(POOL_PARAMETERS),
-          "PoolFactory: pool name is already taken",
+          "PoolFactory: pool name is already taken"
         );
       });
 
@@ -516,7 +516,7 @@ describe("PoolFactory", () => {
 
         await truffleAssert.reverts(
           poolFactory.deployGovPool(POOL_PARAMETERS),
-          "PoolFactory: pool name cannot be empty",
+          "PoolFactory: pool name cannot be empty"
         );
       });
     });

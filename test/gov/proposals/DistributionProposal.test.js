@@ -165,7 +165,7 @@ describe("DistributionProposal", () => {
       validators.address,
       userKeeper.address,
       poolParams.settingsParams.proposalSettings,
-      [...poolParams.settingsParams.additionalProposalExecutors, dp.address],
+      [...poolParams.settingsParams.additionalProposalExecutors, dp.address]
     );
 
     await validators.__GovValidators_init(
@@ -177,13 +177,13 @@ describe("DistributionProposal", () => {
         poolParams.validatorsParams.proposalSettings.quorum,
       ],
       poolParams.validatorsParams.validators,
-      poolParams.validatorsParams.balances,
+      poolParams.validatorsParams.balances
     );
     await userKeeper.__GovUserKeeper_init(
       poolParams.userKeeperParams.tokenAddress,
       poolParams.userKeeperParams.nftAddress,
       poolParams.userKeeperParams.individualPower,
-      poolParams.userKeeperParams.nftsTotalSupply,
+      poolParams.userKeeperParams.nftsTotalSupply
     );
 
     await dp.__DistributionProposal_init(govPool.address);
@@ -202,7 +202,7 @@ describe("DistributionProposal", () => {
       poolParams.onlyBABTHolders,
       poolParams.deployerBABTid,
       poolParams.descriptionURL,
-      poolParams.name,
+      poolParams.name
     );
 
     await settings.transferOwnership(govPool.address);
@@ -361,7 +361,7 @@ describe("DistributionProposal", () => {
       it("should not initialize twice", async () => {
         await truffleAssert.reverts(
           dp.__DistributionProposal_init(govPool.address),
-          "Initializable: contract is already initialized",
+          "Initializable: contract is already initialized"
         );
       });
     });
@@ -377,9 +377,9 @@ describe("DistributionProposal", () => {
               [token.address, 0, getBytesApprove(dp.address, wei("100"))],
               [dp.address, 0, getBytesDistributionProposal(2, token.address, wei("100"))],
             ],
-            [],
+            []
           ),
-          "Gov: validation failed",
+          "Gov: validation failed"
         );
       });
     });
@@ -412,7 +412,7 @@ describe("DistributionProposal", () => {
               [token.address, 0, getBytesApprove(dp.address, wei("100"))],
               [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100"))],
             ],
-            [],
+            []
           );
 
           await govPool.vote(1, false, 0, [9], { from: SECOND });
@@ -434,7 +434,7 @@ describe("DistributionProposal", () => {
           await govPool.createProposal(
             "example.com",
             [[dp.address, wei("1"), getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))]],
-            [],
+            []
           );
 
           await govPool.vote(1, false, 0, [9], { from: SECOND });
@@ -458,7 +458,7 @@ describe("DistributionProposal", () => {
 
           await truffleAssert.reverts(
             dp.execute(1, ETHER_ADDR, wei("1"), { value: wei("1"), from: dp.address }),
-            "DP: failed to send back eth",
+            "DP: failed to send back eth"
           );
         });
       });
@@ -479,7 +479,7 @@ describe("DistributionProposal", () => {
               [token.address, 0, getBytesApprove(dp.address, wei("100"))],
               [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100"))],
             ],
-            [],
+            []
           );
 
           await govPool.vote(1, true, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
@@ -505,7 +505,7 @@ describe("DistributionProposal", () => {
 
           await truffleAssert.reverts(
             dp.execute(1, token.address, wei("100"), { from: govPool.address }),
-            "DP: proposal already exists",
+            "DP: proposal already exists"
           );
         });
 
@@ -514,7 +514,7 @@ describe("DistributionProposal", () => {
 
           await truffleAssert.reverts(
             dp.execute(1, ZERO_ADDR, wei("100"), { from: govPool.address }),
-            "DP: zero address",
+            "DP: zero address"
           );
         });
 
@@ -528,7 +528,7 @@ describe("DistributionProposal", () => {
           await govPool.createProposal(
             "example.com",
             [[dp.address, 0, getBytesDistributionProposal(2, ETHER_ADDR, wei("1"))]],
-            [],
+            []
           );
 
           await govPool.vote(2, true, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
@@ -544,7 +544,7 @@ describe("DistributionProposal", () => {
           await govPool.createProposal(
             "example.com",
             [[dp.address, 1, getBytesDistributionProposal(2, token.address, 1)]],
-            [],
+            []
           );
 
           await govPool.vote(2, true, 0, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
@@ -592,7 +592,7 @@ describe("DistributionProposal", () => {
             [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
           ],
           [],
-          { from: SECOND },
+          { from: SECOND }
         );
 
         await govPool.vote(1, true, 0, [1, 2, 3, 4, 5], { from: SECOND });
@@ -615,7 +615,7 @@ describe("DistributionProposal", () => {
             [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
           ],
           [],
-          { from: SECOND },
+          { from: SECOND }
         );
 
         await govPool.vote(1, true, 0, [1, 2, 3, 4, 5], { from: SECOND });
@@ -654,7 +654,7 @@ describe("DistributionProposal", () => {
           "example.com",
           [[dp.address, wei("1"), getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))]],
           [],
-          { from: SECOND },
+          { from: SECOND }
         );
 
         await govPool.vote(1, true, 0, [1, 2, 3, 4, 5], { from: SECOND });
@@ -680,7 +680,7 @@ describe("DistributionProposal", () => {
             [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
           ],
           [],
-          { from: SECOND },
+          { from: SECOND }
         );
 
         await govPool.vote(1, false, 0, [2, 3, 4, 5], { from: SECOND });
@@ -696,7 +696,7 @@ describe("DistributionProposal", () => {
             [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
           ],
           [],
-          { from: SECOND },
+          { from: SECOND }
         );
 
         await govPool.vote(1, true, 0, [6, 7, 9], { from: THIRD });
@@ -716,7 +716,7 @@ describe("DistributionProposal", () => {
           "example.com",
           [[dp.address, wei("1"), getBytesDistributionProposal(1, ETHER_ADDR, wei("1"))]],
           [],
-          { from: SECOND },
+          { from: SECOND }
         );
 
         await govPool.vote(1, true, 0, [1, 2, 3, 4, 5], { from: SECOND });
@@ -728,7 +728,7 @@ describe("DistributionProposal", () => {
         assert.closeTo(
           (await dp.getPotentialReward(1, SECOND)).toNumber(),
           toBN(wei(1)).times(FOUR_NFT_VOTES.plus(ONE_NFT_VOTE)).idiv(ALL_NFT_VOTES.minus(ONE_NFT_VOTE)).toNumber(),
-          10,
+          10
         );
         assert.equal(await dp.getPotentialReward(1, THIRD), 0);
       });
@@ -741,7 +741,7 @@ describe("DistributionProposal", () => {
             [dp.address, 0, getBytesDistributionProposal(1, token.address, wei("100000"))],
           ],
           [],
-          { from: SECOND },
+          { from: SECOND }
         );
 
         await govPool.vote(1, true, 0, [1, 2, 3, 4, 5], { from: SECOND });

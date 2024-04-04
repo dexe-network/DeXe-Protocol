@@ -105,11 +105,11 @@ describe("LogExpMath", () => {
       it("should revert", async () => {
         await truffleAssert.reverts(
           math.exp(toBN("261951731874906267618555344999021733924457198851775325773392067866700000").negated()),
-          "LogExpMath: Invalid exponent",
+          "LogExpMath: Invalid exponent"
         );
         await truffleAssert.reverts(
           math.exp("261951731874906267618555344999021733924457198851775325773392067866700000"),
-          "LogExpMath: Invalid exponent",
+          "LogExpMath: Invalid exponent"
         );
       });
     });
@@ -119,7 +119,7 @@ describe("LogExpMath", () => {
         await testLog("1000000000000012345", "1000000000000012345");
         await testLog(
           "261951731874906267618555344999021733924457198851775325773392067866700000",
-          "261951731874906267618555344999021733924457198851775325773392067866700000",
+          "261951731874906267618555344999021733924457198851775325773392067866700000"
         );
         await testLog("1879528", "1879528");
       });

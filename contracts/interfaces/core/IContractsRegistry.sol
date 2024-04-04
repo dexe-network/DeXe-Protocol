@@ -24,6 +24,10 @@ interface IContractsRegistry {
     function getDEXEContract() external view returns (address);
 
     /// @notice Used in dependency injection mechanism
+    /// @return Wrapped native coin contract address
+    function getWETHContract() external view returns (address);
+
+    /// @notice Used in dependency injection mechanism
     /// @return Platform's native USD token contract address. This may be USDT/BUSD/USDC/DAI/FEI
     function getUSDContract() external view returns (address);
 

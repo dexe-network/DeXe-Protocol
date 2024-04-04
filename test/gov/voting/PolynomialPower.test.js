@@ -226,7 +226,7 @@ describe("PolynomialPower", () => {
     it("can't initialize twice", async () => {
       await truffleAssert.reverts(
         power.__PolynomialPower_init(PRECISION.times("1.08"), PRECISION.times("0.92"), PRECISION.times("0.97")),
-        "Initializable: contract is already initialized",
+        "Initializable: contract is already initialized"
       );
     });
   });
