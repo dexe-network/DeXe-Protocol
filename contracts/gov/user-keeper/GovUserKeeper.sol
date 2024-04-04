@@ -9,11 +9,14 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgra
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
+
 import "@solarity/solidity-lib/libs/utils/DecimalsConverter.sol";
 import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 import "@solarity/solidity-lib/libs/arrays/ArrayHelper.sol";
 import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
 
+import "../../interfaces/core/IContractsRegistry.sol";
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/ERC721/powers/IERC721Power.sol";
@@ -21,7 +24,12 @@ import "../../interfaces/gov/ERC721/powers/IERC721Power.sol";
 import "../../libs/math/MathHelper.sol";
 import "../../libs/gov/gov-user-keeper/GovUserKeeperView.sol";
 
-contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgradeable {
+contract GovUserKeeper is
+    IGovUserKeeper,
+    OwnableUpgradeable,
+    ERC721HolderUpgradeable,
+    AbstractDependant
+{
     using SafeERC20 for IERC20;
     using Math for uint256;
     using MathHelper for uint256;
@@ -39,6 +47,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     mapping(address => UserInfo) internal _usersInfo; // user => info
 
     mapping(uint256 => uint256) internal _nftLockedNums; // tokenId => locked num
+
+    address internal _wethAddress;
 
     event SetERC20(address token);
     event SetERC721(address token);
@@ -71,6 +81,12 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         if (_tokenAddress != address(0)) {
             _setERC20Address(_tokenAddress);
         }
+    }
+
+    function setDependencies(address contractsRegistry, bytes memory) public override {
+        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
+
+        _wethAddress = registry.getWETHContract();
     }
 
     function depositTokens(
