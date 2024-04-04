@@ -65,6 +65,7 @@ const VotePowerMock = artifacts.require("VotePowerMock");
 const ERC721RawPower = artifacts.require("ERC721RawPower");
 const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const WethMock = artifacts.require("WETHMock");
 const ERC20 = artifacts.require("ERC20");
 const BABTMock = artifacts.require("BABTMock");
 const ExecutorTransferMock = artifacts.require("ExecutorTransferMock");
@@ -98,6 +99,7 @@ ERC721Expert.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 ERC20.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
+WethMock.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
 describe("GovPool", () => {
@@ -119,6 +121,7 @@ describe("GovPool", () => {
   let rewardToken;
   let nftMultiplier;
   let babt;
+  let weth;
 
   let settings;
   let expertNft;
@@ -228,6 +231,7 @@ describe("GovPool", () => {
     const _poolRegistry = await PoolRegistry.new();
     dexeExpertNft = await ERC721Expert.new();
     babt = await BABTMock.new();
+    weth = await WethMock.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721EnumMock.new("Mock", "Mock");
     attacker = await GovPoolAttackerMock.new();
@@ -249,6 +253,7 @@ describe("GovPool", () => {
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), dexeExpertNft.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
+    await contractsRegistry.addContract(await contractsRegistry.WETH_NAME(), weth.address);
 
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());

@@ -160,7 +160,10 @@ contract GovPool is
         _proposals.execute(proposalId);
     }
 
-    function deposit(uint256 amount, uint256[] calldata nftIds) external override onlyBABTHolder {
+    function deposit(
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external payable override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty deposit");
 
         _lockBlock(DEPOSIT_WITHDRAW, msg.sender);
