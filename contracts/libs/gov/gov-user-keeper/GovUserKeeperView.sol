@@ -51,7 +51,7 @@ library GovUserKeeperView {
             false
         );
 
-        (, , , , address votePower) = IGovPool(GovUserKeeper(address(this)).owner())
+        (, , , , address votePower) = IGovPool(GovUserKeeper(payable(address(this))).owner())
             .getHelperContracts();
 
         personalPower = amount + nftPower;
@@ -69,7 +69,7 @@ library GovUserKeeperView {
         IGovPool.VoteType[] memory voteTypes,
         bool perNftPowerArray
     ) public view returns (IGovUserKeeper.VotingPowerView[] memory votingPowers) {
-        GovUserKeeper userKeeper = GovUserKeeper(address(this));
+        GovUserKeeper userKeeper = GovUserKeeper(payable(address(this)));
         votingPowers = new IGovUserKeeper.VotingPowerView[](users.length);
 
         for (uint256 i = 0; i < users.length; i++) {

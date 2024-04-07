@@ -120,7 +120,6 @@ contract GovUserKeeper is
         UserInfo storage payerInfo = _usersInfo[payer];
         BalanceInfo storage payerBalanceInfo = payerInfo.balances[IGovPool.VoteType.PersonalVote];
 
-        address token = tokenAddress;
         uint256 balance = payerBalanceInfo.tokens;
         uint256 maxTokensLocked = payerInfo.maxTokensLocked;
 
@@ -131,7 +130,7 @@ contract GovUserKeeper is
 
         payerBalanceInfo.tokens = balance - amount;
 
-        IERC20(token).safeTransfer(receiver, amount.from18Safe(token));
+        _sendNativeOrElse(receiver, amount);
     }
 
     function delegateTokens(
@@ -203,9 +202,7 @@ contract GovUserKeeper is
 
         delegateeBalanceInfo.tokens = balance - amount;
 
-        address token = tokenAddress;
-
-        IERC20(token).safeTransfer(msg.sender, amount.from18Safe(token));
+        _sendNativeOrElse(msg.sender, amount);
     }
 
     function depositNfts(
@@ -507,6 +504,8 @@ contract GovUserKeeper is
         _setERC721Address(_nftAddress, individualPower, nftsTotalSupply);
     }
 
+    receive() external payable {}
+
     function nftAddress() external view override returns (address) {
         return _nftInfo.nftAddress;
     }
@@ -546,6 +545,9 @@ contract GovUserKeeper is
         }
 
         ownedBalance = ERC20(tokenAddress).balanceOf(voter).to18(tokenAddress);
+        if (_isWrapped()) {
+            ownedBalance += address(voter).balance;
+        }
         totalBalance += ownedBalance;
     }
 
@@ -745,6 +747,23 @@ contract GovUserKeeper is
             );
     }
 
+    function _sendNativeOrElse(address receiver, uint256 amount) internal {
+        address token = tokenAddress;
+
+        if (_isWrapped()) {
+            _unwrapNative(amount);
+
+            (bool ok, ) = payable(receiver).call{value: amount}("");
+            if (ok) {
+                return;
+            }
+
+            _wrapNative(amount);
+        }
+
+        IERC20(token).safeTransfer(receiver, amount.from18Safe(token));
+    }
+
     function _cleanDelegatee(UserInfo storage delegatorInfo, address delegatee) internal {
         BalanceInfo storage delegatedBalance = delegatorInfo.delegatedBalances[delegatee];
 
@@ -812,9 +831,16 @@ contract GovUserKeeper is
     }
 
     function _wrapNative(uint256 value) internal {
-        bool isWrapped = _wethAddress != address(0) && _wethAddress == tokenAddress;
-        require(isWrapped, "GovUK: not native token pool");
+        require(_isWrapped(), "GovUK: not native token pool");
 
         IWETH(_wethAddress).deposit{value: value}();
+    }
+
+    function _unwrapNative(uint256 value) internal {
+        IWETH(_wethAddress).withdraw(value);
+    }
+
+    function _isWrapped() internal view returns (bool) {
+        return _wethAddress != address(0) && _wethAddress == tokenAddress;
     }
 }
