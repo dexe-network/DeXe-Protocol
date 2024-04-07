@@ -170,6 +170,8 @@ contract GovPool is
 
         if (amount != 0) {
             _govUserKeeper.depositTokens{value: msg.value}(msg.sender, msg.sender, amount);
+        } else {
+            require(msg.value == 0, "Gov:  value is greater than amount to deposit");
         }
 
         _govUserKeeper.depositNfts.exec(msg.sender, nftIds);
