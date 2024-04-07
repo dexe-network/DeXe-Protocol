@@ -20,6 +20,7 @@ import "../../interfaces/core/IContractsRegistry.sol";
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/ERC721/powers/IERC721Power.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 
 import "../../libs/math/MathHelper.sol";
 import "../../libs/gov/gov-user-keeper/GovUserKeeperView.sol";
@@ -93,12 +94,22 @@ contract GovUserKeeper is
         address payer,
         address receiver,
         uint256 amount
-    ) external override onlyOwner withSupportedToken {
+    ) external payable override onlyOwner withSupportedToken {
         address token = tokenAddress;
+        uint256 fullAmount = amount;
 
-        IERC20(token).safeTransferFrom(payer, address(this), amount.from18Safe(token));
+        if (msg.value != 0) {
+            require(amount >= msg.value, "GovUK: value is greater than amount to deposit");
 
-        _usersInfo[receiver].balances[IGovPool.VoteType.PersonalVote].tokens += amount;
+            _wrapNative(msg.value);
+            amount -= msg.value;
+        }
+
+        if (amount > 0) {
+            IERC20(token).safeTransferFrom(payer, address(this), amount.from18Safe(token));
+        }
+
+        _usersInfo[receiver].balances[IGovPool.VoteType.PersonalVote].tokens += fullAmount;
     }
 
     function withdrawTokens(
@@ -150,7 +161,10 @@ contract GovUserKeeper is
     function delegateTokensTreasury(
         address delegatee,
         uint256 amount
-    ) external override onlyOwner withSupportedToken {
+    ) external payable override onlyOwner withSupportedToken {
+        if (msg.value != 0) {
+            _wrapNative(msg.value);
+        }
         _usersInfo[delegatee].balances[IGovPool.VoteType.TreasuryVote].tokens += amount;
     }
 
@@ -795,5 +809,12 @@ contract GovUserKeeper is
 
     function _withSupportedNft() internal view {
         require(_nftInfo.nftAddress != address(0), "GovUK: nft is not supported");
+    }
+
+    function _wrapNative(uint256 value) internal {
+        bool isWrapped = _wethAddress != address(0) && _wethAddress == tokenAddress;
+        require(isWrapped, "GovUK: not native token pool");
+
+        IWETH(_wethAddress).deposit{value: value}();
     }
 }

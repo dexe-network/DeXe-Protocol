@@ -168,7 +168,10 @@ contract GovPool is
 
         _lockBlock(DEPOSIT_WITHDRAW, msg.sender);
 
-        _govUserKeeper.depositTokens.exec(msg.sender, amount);
+        if (amount != 0) {
+            _govUserKeeper.depositTokens{value: msg.value}(msg.sender, msg.sender, amount);
+        }
+
         _govUserKeeper.depositNfts.exec(msg.sender, nftIds);
 
         emit Deposited(amount, nftIds, msg.sender);
@@ -269,7 +272,7 @@ contract GovPool is
         address delegatee,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external override onlyThis {
+    ) external payable override onlyThis {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
         require(getExpertStatus(delegatee), "Gov: delegatee is not an expert");
 
@@ -277,12 +280,18 @@ contract GovPool is
 
         _unlock(delegatee);
 
+        require(msg.value <= amount, "Gov:  value is greater than amount to delegate");
+
         if (amount != 0) {
             address token = _govUserKeeper.tokenAddress();
 
-            IERC20(token).safeTransfer(address(_govUserKeeper), amount.from18Safe(token));
-
-            _govUserKeeper.delegateTokensTreasury(delegatee, amount);
+            if (amount != msg.value) {
+                IERC20(token).safeTransfer(
+                    address(_govUserKeeper),
+                    (amount - msg.value).from18Safe(token)
+                );
+            }
+            _govUserKeeper.delegateTokensTreasury{value: msg.value}(delegatee, amount);
         }
 
         if (nftIds.length != 0) {

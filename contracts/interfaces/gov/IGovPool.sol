@@ -383,7 +383,7 @@ interface IGovPool {
         address delegatee,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external;
+    ) external payable;
 
     /// @notice The function for undelegating delegated tokens
     /// @param delegatee the undelegation target address (person who will be undelegated)
