@@ -3134,6 +3134,33 @@ describe("GovPool", () => {
         assert.equal(await nft.ownerOf(1), OWNER);
       });
 
+      it("should deposit and withdraw native tokens", async () => {
+        await switchWeth(0, token.address);
+
+        await govPool.deposit(wei("1000"), [], { value: wei("1000") });
+
+        const ETH_BEFORE = toBN(await web3.eth.getBalance(OWNER));
+        const tx = await govPool.withdraw(OWNER, wei("1000"), []);
+        const GAS_USED = calculateUsedGas(tx);
+
+        assert.equal(
+          toBN(await web3.eth.getBalance(OWNER)).toFixed(),
+          ETH_BEFORE.minus(GAS_USED).plus(wei("1000")).toFixed()
+        );
+
+        await switchWeth(0, weth.address);
+      });
+
+      it("reverts if could not withdraw eth", async () => {
+        await switchWeth(0, token.address);
+
+        await govPool.deposit(wei("1000"), [], { value: wei("1000") });
+
+        await truffleAssert.reverts(govPool.withdraw(settings.address, wei("1000"), []), "GovUK: can't send ether");
+
+        await switchWeth(0, weth.address);
+      });
+
       it("should deposit, vote, unlock", async () => {
         await govPool.deposit(wei("1000"), [1, 2, 3, 4]);
 
