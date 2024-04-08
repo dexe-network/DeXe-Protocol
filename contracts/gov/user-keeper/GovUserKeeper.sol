@@ -49,7 +49,7 @@ contract GovUserKeeper is
 
     mapping(uint256 => uint256) internal _nftLockedNums; // tokenId => locked num
 
-    address internal _wethAddress;
+    address public wethAddress;
 
     event SetERC20(address token);
     event SetERC721(address token);
@@ -87,7 +87,7 @@ contract GovUserKeeper is
     function setDependencies(address contractsRegistry, bytes memory) public override {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
-        _wethAddress = registry.getWETHContract();
+        wethAddress = registry.getWETHContract();
     }
 
     function depositTokens(
@@ -130,7 +130,7 @@ contract GovUserKeeper is
 
         payerBalanceInfo.tokens = balance - amount;
 
-        _sendNativeOrElse(receiver, amount);
+        _sendNativeOrToken(receiver, amount);
     }
 
     function delegateTokens(
@@ -202,7 +202,7 @@ contract GovUserKeeper is
 
         delegateeBalanceInfo.tokens = balance - amount;
 
-        _sendNativeOrElse(msg.sender, amount);
+        _sendNativeOrToken(msg.sender, amount);
     }
 
     function depositNfts(
@@ -747,21 +747,17 @@ contract GovUserKeeper is
             );
     }
 
-    function _sendNativeOrElse(address receiver, uint256 amount) internal {
+    function _sendNativeOrToken(address receiver, uint256 amount) internal {
         address token = tokenAddress;
 
         if (_isWrapped()) {
             _unwrapNative(amount);
 
             (bool ok, ) = payable(receiver).call{value: amount}("");
-            if (ok) {
-                return;
-            }
-
-            _wrapNative(amount);
+            require(ok, "GovUK: can't send ether");
+        } else {
+            IERC20(token).safeTransfer(receiver, amount.from18Safe(token));
         }
-
-        IERC20(token).safeTransfer(receiver, amount.from18Safe(token));
     }
 
     function _cleanDelegatee(UserInfo storage delegatorInfo, address delegatee) internal {
@@ -833,14 +829,14 @@ contract GovUserKeeper is
     function _wrapNative(uint256 value) internal {
         require(_isWrapped(), "GovUK: not native token pool");
 
-        IWETH(_wethAddress).deposit{value: value}();
+        IWETH(wethAddress).deposit{value: value}();
     }
 
     function _unwrapNative(uint256 value) internal {
-        IWETH(_wethAddress).withdraw(value);
+        IWETH(wethAddress).withdraw(value);
     }
 
     function _isWrapped() internal view returns (bool) {
-        return _wethAddress != address(0) && _wethAddress == tokenAddress;
+        return wethAddress != address(0) && wethAddress == tokenAddress;
     }
 }

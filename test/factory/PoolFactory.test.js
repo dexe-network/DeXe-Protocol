@@ -387,6 +387,7 @@ describe("PoolFactory", () => {
         assert.equal(await tokenSale.latestTierId(), "0");
 
         assert.equal(await govUserKeeper.tokenAddress(), token.address);
+        assert.equal(await govUserKeeper.wethAddress(), WETH.address);
 
         const votePower = await PolynomialPower.at(helperContracts[4]);
 

@@ -151,6 +151,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _register(poolType, poolProxy);
         _injectDependencies(poolProxy);
         _injectDependencies(tokenSaleProxy);
+        _injectDependencies(govPoolDeps.userKeeperAddress);
     }
 
     function predictGovAddresses(
