@@ -469,6 +469,7 @@ library GovPoolCreate {
 
         require(actionFor.executor == metaGovPool, "Gov: invalid executor");
         require(amountFor == amountAgainst, "Gov: invalid amount");
+        require(actionFor.value == actionAgainst.value, "Gov: invalid value");
         require(nftIdsFor.length == nftIdsAgainst.length, "Gov: invalid nfts length");
 
         for (uint256 i = 0; i < nftIdsFor.length; i++) {

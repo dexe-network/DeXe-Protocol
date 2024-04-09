@@ -84,7 +84,7 @@ contract GovUserKeeper is
         }
     }
 
-    function setDependencies(address contractsRegistry, bytes memory) public override {
+    function setDependencies(address contractsRegistry, bytes memory) public override dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         wethAddress = registry.getWETHContract();
