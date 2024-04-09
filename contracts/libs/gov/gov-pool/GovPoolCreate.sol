@@ -245,17 +245,17 @@ library GovPoolCreate {
             bytes4 selector = actions[i].data.getSelector();
             uint256 executorSettings = govSettings.executorToSettings(actions[i].executor);
 
-            require(
-                executorSettings == uint256(IGovSettings.ExecutorType.INTERNAL),
-                "Gov: invalid internal data"
-            );
-
-            if (actions[i].value != 0 && selector == IGovPool.delegateTreasury.selector) {
+            if (
+                executorSettings == uint256(IGovSettings.ExecutorType.INTERNAL) &&
+                actions[i].value != 0 &&
+                selector == IGovPool.delegateTreasury.selector
+            ) {
                 continue;
             }
 
             require(
                 actions[i].value == 0 &&
+                    executorSettings == uint256(IGovSettings.ExecutorType.INTERNAL) &&
                     (selector == IGovSettings.addSettings.selector ||
                         selector == IGovSettings.editSettings.selector ||
                         selector == IGovSettings.changeExecutors.selector ||

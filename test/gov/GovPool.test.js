@@ -49,6 +49,7 @@ const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
 const { impersonate } = require("../helpers/impersonator");
 const { assert } = require("chai");
 const ethSigUtil = require("@metamask/eth-sig-util");
+const { default: BigNumber } = require("bignumber.js");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
@@ -502,18 +503,26 @@ describe("GovPool", () => {
     await executeValidatorProposal([[govPool.address, 0, getBytesSetNftMultiplierAddress(nftMultiplierAddress)]]);
   }
 
-  async function delegateTreasury(delegatee, amount, nftIds) {
+  async function delegateTreasury(delegatee, amount, nftIds, value = 0) {
     if (!(await govPool.getExpertStatus(delegatee))) {
       await executeValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(delegatee, "URI")]]);
     }
 
-    await token.mint(govPool.address, amount);
+    if (value != 0) {
+      web3.eth.sendTransaction({
+        from: OWNER,
+        to: govPool.address,
+        value: value,
+      });
+    }
+
+    await token.mint(govPool.address, BigNumber.maximum(toBN(amount), toBN(value)).minus(value));
 
     for (let i of nftIds) {
       await nft.mint(govPool.address, i);
     }
 
-    await executeValidatorProposal([[govPool.address, 0, getBytesDelegateTreasury(delegatee, amount, nftIds)]]);
+    await executeValidatorProposal([[govPool.address, value, getBytesDelegateTreasury(delegatee, amount, nftIds)]]);
   }
 
   async function undelegateTreasury(delegatee, amount, nftIds) {
@@ -3714,6 +3723,32 @@ describe("GovPool", () => {
               (await userKeeper.nftExactBalance(THIRD, VoteType.TreasuryVote)).ownedLength.toFixed(),
               "0"
             );
+          });
+
+          it("could delegate and undelegate treasury for native token", async () => {
+            await switchWeth(0, token.address);
+
+            assert.equal((await userKeeper.tokenBalance(THIRD, VoteType.TreasuryVote)).totalBalance.toFixed(), "0");
+
+            await truffleAssert.reverts(
+              delegateTreasury(THIRD, wei("100"), [], wei("200")),
+              "Gov:  value is greater than amount to delegate"
+            );
+
+            await delegateTreasury(THIRD, wei("100"), [], wei("100"));
+            assert.equal(
+              (await userKeeper.tokenBalance(THIRD, VoteType.TreasuryVote)).totalBalance.toFixed(),
+              wei("100")
+            );
+
+            const INITIAL_ETHER_BALANCE = toBN(await web3.eth.getBalance(govPool.address));
+            await undelegateTreasury(THIRD, wei("100"), []);
+            assert.equal(
+              toBN(await web3.eth.getBalance(govPool.address)).toFixed(),
+              INITIAL_ETHER_BALANCE.plus(wei("100")).toFixed()
+            );
+
+            await switchWeth(0, weth.address);
           });
 
           it("should revert if call is not from expert", async () => {
