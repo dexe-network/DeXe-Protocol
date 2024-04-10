@@ -163,13 +163,12 @@ contract GovPool is
         uint256[] calldata nftIds
     ) external payable override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty deposit");
+        _checkValue(amount);
 
         _lockBlock(DEPOSIT_WITHDRAW, msg.sender);
 
         if (amount != 0) {
             _govUserKeeper.depositTokens{value: msg.value}(msg.sender, msg.sender, amount);
-        } else {
-            require(msg.value == 0, "Gov:  value is greater than amount to deposit");
         }
 
         _govUserKeeper.depositNfts.exec(msg.sender, nftIds);
@@ -275,12 +274,11 @@ contract GovPool is
     ) external payable override onlyThis {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
         require(getExpertStatus(delegatee), "Gov: delegatee is not an expert");
+        _checkValue(amount);
 
         _lockBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender);
 
         _unlock(delegatee);
-
-        require(msg.value <= amount, "Gov:  value is greater than amount to delegate");
 
         if (amount != 0) {
             address token = _govUserKeeper.tokenAddress();
@@ -630,5 +628,9 @@ contract GovPool is
                 IPoolRegistry(_poolRegistry).isGovPool(msg.sender),
             "Gov: not BABT holder"
         );
+    }
+
+    function _checkValue(uint256 amount) internal view {
+        require(msg.value <= amount, "Gov: value is greater than amount to transfer");
     }
 }

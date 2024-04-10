@@ -92,8 +92,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 fullAmount = amount;
 
         if (msg.value != 0) {
-            require(amount >= msg.value, "GovUK: value is greater than amount to deposit");
-
             _wrapNative(msg.value);
             amount -= msg.value;
         }

@@ -692,17 +692,10 @@ describe("GovPool", () => {
         await truffleAssert.reverts(govPool.deposit(wei("100"), [], { value: 100 }), "GovUK: not native token pool");
       });
 
-      it("cant send ether with zero amount", async () => {
-        await truffleAssert.reverts(
-          govPool.deposit(0, [1, 2, 3], { value: 1 }),
-          "Gov:  value is greater than amount to deposit"
-        );
-      });
-
       it("cant overdeposit ether", async () => {
         await truffleAssert.reverts(
           govPool.deposit(1, [1, 2, 3], { value: 2 }),
-          "GovUK: value is greater than amount to deposit"
+          "Gov: value is greater than amount to transfer"
         );
       });
 
@@ -3742,7 +3735,7 @@ describe("GovPool", () => {
 
             await truffleAssert.reverts(
               delegateTreasury(THIRD, wei("100"), [], wei("200")),
-              "Gov:  value is greater than amount to delegate"
+              "Gov: value is greater than amount to transfer"
             );
 
             await delegateTreasury(THIRD, wei("100"), [], wei("100"));
