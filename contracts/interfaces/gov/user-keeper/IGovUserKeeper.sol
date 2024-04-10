@@ -86,6 +86,10 @@ interface IGovUserKeeper {
         uint256[] perNftPower;
     }
 
+    /// @notice The function for injecting dependencies from the GovPool
+    /// @param contractsRegistry the address of Contracts Registry
+    function setDependencies(address contractsRegistry, bytes memory) external;
+
     /// @notice The function for depositing tokens
     /// @param payer the address of depositor
     /// @param receiver the deposit receiver address

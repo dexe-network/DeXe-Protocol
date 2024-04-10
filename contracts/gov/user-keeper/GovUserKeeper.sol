@@ -9,8 +9,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgra
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
-
 import "@solarity/solidity-lib/libs/utils/DecimalsConverter.sol";
 import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 import "@solarity/solidity-lib/libs/arrays/ArrayHelper.sol";
@@ -25,12 +23,7 @@ import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "../../libs/math/MathHelper.sol";
 import "../../libs/gov/gov-user-keeper/GovUserKeeperView.sol";
 
-contract GovUserKeeper is
-    IGovUserKeeper,
-    OwnableUpgradeable,
-    ERC721HolderUpgradeable,
-    AbstractDependant
-{
+contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgradeable {
     using SafeERC20 for IERC20;
     using Math for uint256;
     using MathHelper for uint256;
@@ -84,7 +77,7 @@ contract GovUserKeeper is
         }
     }
 
-    function setDependencies(address contractsRegistry, bytes memory) public override dependant {
+    function setDependencies(address contractsRegistry, bytes memory) external onlyOwner {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         wethAddress = registry.getWETHContract();

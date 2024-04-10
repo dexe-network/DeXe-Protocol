@@ -144,7 +144,7 @@ describe("GovPool", () => {
   async function switchWeth(poolOffset, newWethAddress) {
     await contractsRegistry.addContract(await contractsRegistry.WETH_NAME(), newWethAddress);
 
-    await poolRegistry.injectDependenciesToExistingPools(await poolRegistry.USER_KEEPER_NAME(), poolOffset, 1);
+    await poolRegistry.injectDependenciesToExistingPools(await poolRegistry.GOV_POOL_NAME(), poolOffset, 1);
   }
 
   function calculateUsedGas(tx) {
@@ -293,7 +293,6 @@ describe("GovPool", () => {
 
   async function deployPool(poolParams) {
     const NAME = await poolRegistry.GOV_POOL_NAME();
-    const USER_KEEPER_NAME = await poolRegistry.USER_KEEPER_NAME();
 
     const settings = await GovSettings.new();
     const validators = await GovValidators.new();
@@ -360,12 +359,7 @@ describe("GovPool", () => {
       from: FACTORY,
     });
 
-    await poolRegistry.addProxyPool(USER_KEEPER_NAME, userKeeper.address, {
-      from: FACTORY,
-    });
-
     await poolRegistry.injectDependenciesToExistingPools(NAME, 0, 10);
-    await poolRegistry.injectDependenciesToExistingPools(USER_KEEPER_NAME, 0, 10);
 
     return {
       settings: settings,

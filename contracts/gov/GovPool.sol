@@ -88,8 +88,6 @@ contract GovPool is
     mapping(uint256 => Proposal) internal _proposals; // proposalId => info
     mapping(address => UserInfo) internal _userInfos; // user => info
 
-    address internal _wethAddress;
-
     string private constant DEPOSIT_WITHDRAW = "DEPOSIT_WITHDRAW";
     string private constant DELEGATE_UNDELEGATE = "DELEGATE_UNDELEGATE";
     string private constant DELEGATE_UNDELEGATE_TREASURY = "DELEGATE_UNDELEGATE_TREASURY";
@@ -147,7 +145,7 @@ contract GovPool is
         _dexeExpertNft = IERC721Expert(registry.getDexeExpertNftContract());
         _poolRegistry = registry.getPoolRegistryContract();
 
-        _wethAddress = registry.getWETHContract();
+        IGovUserKeeper(_govUserKeeper).setDependencies(contractsRegistry, bytes(""));
     }
 
     function unlock(address user) external override onlyBABTHolder {

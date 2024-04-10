@@ -119,6 +119,11 @@ describe("GovUserKeeper", () => {
 
       it("only owner should call these functions", async () => {
         await truffleAssert.reverts(
+          userKeeper.setDependencies(SECOND, "0x", { from: SECOND }),
+          "Ownable: caller is not the owner"
+        );
+
+        await truffleAssert.reverts(
           userKeeper.depositTokens(OWNER, SECOND, wei("100"), { from: SECOND }),
           "Ownable: caller is not the owner"
         );
