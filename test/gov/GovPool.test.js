@@ -1450,6 +1450,22 @@ describe("GovPool", () => {
               govPool.createProposal(
                 "",
                 [
+                  [govPool.address, wei("1"), getBytesGovDeposit(wei("1"), [])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [govPool.address, 0, getBytesGovDeposit(wei("1"), [])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND }
+              ),
+              "Gov: invalid value"
+            );
+
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
                   [govPool.address, 0, getBytesGovDeposit(wei("1"), [1])],
                   [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
                 ],
