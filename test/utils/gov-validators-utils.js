@@ -14,7 +14,7 @@ const getBytesChangeInternalBalances = (amounts, users) => {
         },
       ],
     },
-    [amounts, users]
+    [amounts, users],
   );
 };
 
@@ -38,7 +38,7 @@ const getBytesChangeValidatorSettings = ([duration, executionDelay, quorum]) => 
         },
       ],
     },
-    [duration, executionDelay, quorum]
+    [duration, executionDelay, quorum],
   );
 };
 
@@ -62,7 +62,7 @@ const getBytesMonthlyWithdraw = (tokens, amounts, destination) => {
         },
       ],
     },
-    [tokens, amounts, destination]
+    [tokens, amounts, destination],
   );
 };
 

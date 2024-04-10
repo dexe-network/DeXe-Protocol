@@ -5,7 +5,7 @@ const getBytesLinearPowerInit = () => {
       type: "function",
       inputs: [],
     },
-    []
+    [],
   );
 };
 
@@ -29,7 +29,7 @@ const getBytesPolynomialPowerInit = (k1, k2, k3) => {
         },
       ],
     },
-    [k1, k2, k3]
+    [k1, k2, k3],
   );
 };
 

@@ -87,7 +87,7 @@ describe("PriceFeed", () => {
     it("should not initialize twice", async () => {
       await truffleAssert.reverts(
         priceFeed.__PriceFeed_init(defaultPoolTypes),
-        "Initializable: contract is already initialized"
+        "Initializable: contract is already initialized",
       );
     });
 
@@ -98,17 +98,17 @@ describe("PriceFeed", () => {
     it("only owner should call these methods", async () => {
       await truffleAssert.reverts(
         priceFeed.addPathTokens([USD.address], { from: SECOND }),
-        "MultiOwnable: caller is not the owner"
+        "MultiOwnable: caller is not the owner",
       );
 
       await truffleAssert.reverts(
         priceFeed.removePathTokens([USD.address], { from: SECOND }),
-        "MultiOwnable: caller is not the owner"
+        "MultiOwnable: caller is not the owner",
       );
 
       await truffleAssert.reverts(
         priceFeed.setPoolTypes(defaultPoolTypes, { from: SECOND }),
-        "Ownable: caller is not the owner"
+        "Ownable: caller is not the owner",
       );
     });
   });
@@ -184,7 +184,7 @@ describe("PriceFeed", () => {
         DEXE.address,
         USD.address,
         wei("1000"),
-        [[], []]
+        [[], []],
       );
 
       assert.equal(pricesInfo.amountOut.toFixed(), normPricesInfo.amountOut.toFixed());

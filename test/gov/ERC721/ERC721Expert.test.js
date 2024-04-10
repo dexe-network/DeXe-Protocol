@@ -47,7 +47,7 @@ describe("ERC721Expert", () => {
 
       await truffleAssert.reverts(
         nft.__ERC721Expert_init(NAME, SYMBOL),
-        "Initializable: contract is already initialized"
+        "Initializable: contract is already initialized",
       );
     });
   });
@@ -106,7 +106,7 @@ describe("ERC721Expert", () => {
       await truffleAssert.reverts(contract.getIdByExpert(token.owner), "ERC721Expert: User is not an expert");
       await truffleAssert.reverts(
         contract.burnAuth(token.id),
-        "ERC721Expert: Cannot find Burn Auth for non existant badge"
+        "ERC721Expert: Cannot find Burn Auth for non existant badge",
       );
 
       assert.equal(await contract.balanceOf(token.owner), 0);
@@ -165,7 +165,7 @@ describe("ERC721Expert", () => {
         await mint(token, OWNER);
         await truffleAssert.reverts(
           nft.setTokenURI(TOKENS[1].id, "URI256"),
-          "ERC721URIStorage: URI set of nonexistent token"
+          "ERC721URIStorage: URI set of nonexistent token",
         );
       });
 
@@ -175,7 +175,7 @@ describe("ERC721Expert", () => {
         await mint(token, OWNER);
         await truffleAssert.reverts(
           nft.setTokenURI(token.id, "URI256", { from: SECOND }),
-          "Ownable: caller is not the owner"
+          "Ownable: caller is not the owner",
         );
       });
 
@@ -197,7 +197,7 @@ describe("ERC721Expert", () => {
         await mint(TOKENS[0], OWNER);
         await truffleAssert.reverts(
           nft.transferFrom(SECOND, THIRD, 1, { from: SECOND }),
-          "ERC721Expert: Expert badge cannot be transferred"
+          "ERC721Expert: Expert badge cannot be transferred",
         );
       });
 
@@ -274,7 +274,7 @@ describe("ERC721Expert", () => {
       it("could not set tags to non-existant badge", async () => {
         await truffleAssert.reverts(
           setTags(TOKENS[1], TAGS.slice(1), OWNER),
-          "ERC721Expert: Cannot set tags to non-existent badge"
+          "ERC721Expert: Cannot set tags to non-existent badge",
         );
       });
 

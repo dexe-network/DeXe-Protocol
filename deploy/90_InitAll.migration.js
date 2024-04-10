@@ -27,7 +27,7 @@ module.exports = async (deployer) => {
   const sphereXEngine = await deployer.deployed(SphereXEngine, await contractsRegistry.getSphereXEngineContract());
   const poolSphereXEngine = await deployer.deployed(
     SphereXEngine,
-    await contractsRegistry.getPoolSphereXEngineContract()
+    await contractsRegistry.getPoolSphereXEngineContract(),
   );
 
   ////////////////////////////////////////////////////////////
@@ -60,6 +60,6 @@ module.exports = async (deployer) => {
     ["PoolFactory", poolFactory.address],
     ["PoolRegistry", poolRegistry.address],
     ["SphereXEngine", sphereXEngine.address],
-    ["PoolSphereXEngine", poolSphereXEngine.address]
+    ["PoolSphereXEngine", poolSphereXEngine.address],
   );
 };
