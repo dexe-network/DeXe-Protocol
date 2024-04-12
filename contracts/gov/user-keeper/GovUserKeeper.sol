@@ -829,6 +829,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     function _isWrapped() internal view returns (bool) {
         address _wethAddress = wethAddress;
+        
         return _wethAddress != address(0) && wethAddress == tokenAddress;
     }
 }
