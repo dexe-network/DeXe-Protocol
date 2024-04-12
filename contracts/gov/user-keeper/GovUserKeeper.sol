@@ -536,9 +536,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
 
         ownedBalance = ERC20(tokenAddress).balanceOf(voter).to18(tokenAddress);
+
         if (_isWrapped()) {
             ownedBalance += address(voter).balance;
         }
+        
         totalBalance += ownedBalance;
     }
 
