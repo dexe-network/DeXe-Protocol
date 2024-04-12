@@ -155,6 +155,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         if (msg.value != 0) {
             _wrapNative(msg.value);
         }
+        
         _usersInfo[delegatee].balances[IGovPool.VoteType.TreasuryVote].tokens += amount;
     }
 
