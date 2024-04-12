@@ -14,11 +14,12 @@ import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 import "@solarity/solidity-lib/libs/arrays/ArrayHelper.sol";
 import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
 
+import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
+
 import "../../interfaces/core/IContractsRegistry.sol";
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/ERC721/powers/IERC721Power.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 
 import "../../libs/math/MathHelper.sol";
 import "../../libs/gov/gov-user-keeper/GovUserKeeperView.sol";
