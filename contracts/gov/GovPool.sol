@@ -289,6 +289,7 @@ contract GovPool is
                     (amount - msg.value).from18Safe(token)
                 );
             }
+            
             _govUserKeeper.delegateTokensTreasury{value: msg.value}(delegatee, amount);
         }
 
