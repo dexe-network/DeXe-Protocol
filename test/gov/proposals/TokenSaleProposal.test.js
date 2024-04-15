@@ -33,6 +33,7 @@ const GovValidators = artifacts.require("GovValidators");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const WethMock = artifacts.require("WETHMock");
+const BscProperties = artifacts.require("BSCProperties");
 const ERC721Mock = artifacts.require("ERC721Mock");
 const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
@@ -65,6 +66,7 @@ CoreProperties.numberFormat = "BigNumber";
 GovPool.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 WethMock.numberFormat = "BigNumber";
+BscProperties.numberFormat = "BigNumber";
 ERC721Mock.numberFormat = "BigNumber";
 ERC20Gov.numberFormat = "BigNumber";
 ERC721Expert.numberFormat = "BigNumber";
@@ -176,6 +178,7 @@ describe("TokenSaleProposal", () => {
     const _dexeExpertNft = await ERC721Expert.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
     weth = await WethMock.new();
+    networkProperties = await BscProperties.new();
     participationToken = await ERC20Mock.new("PTMock", "PTMock", 18);
     participationNft = await ERC721Mock.new("PNFTMock", "PNFTMock");
     const _sphereXEngine = await SphereXEngineMock.new();
@@ -196,6 +199,7 @@ describe("TokenSaleProposal", () => {
     await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), _dexeExpertNft.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
     await contractsRegistry.addContract(await contractsRegistry.WETH_NAME(), weth.address);
+    await contractsRegistry.addContract(await contractsRegistry.NETWORK_PROPERTIES_NAME(), networkProperties.address);
 
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());

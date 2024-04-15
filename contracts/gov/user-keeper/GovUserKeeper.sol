@@ -44,6 +44,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     mapping(uint256 => uint256) internal _nftLockedNums; // tokenId => locked num
 
     address public wethAddress;
+    address public networkPropertiesAddress;
 
     event SetERC20(address token);
     event SetERC721(address token);
@@ -82,6 +83,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         wethAddress = registry.getWETHContract();
+        networkPropertiesAddress = registry.getNetworkPropertiesContract();
     }
 
     function depositTokens(

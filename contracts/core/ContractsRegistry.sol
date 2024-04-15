@@ -28,6 +28,7 @@ contract ContractsRegistry is IContractsRegistry, MultiOwnableContractsRegistry,
     string public constant TREASURY_NAME = "TREASURY";
 
     string public constant CORE_PROPERTIES_NAME = "CORE_PROPERTIES";
+    string public constant NETWORK_PROPERTIES_NAME = "NETWORK_PROPERTIES";
 
     string public constant SPHEREX_ENGINE_NAME = "SPHEREX_ENGINE";
     string public constant POOL_SPHEREX_ENGINE_NAME = "POOL_SPHEREX_ENGINE";
@@ -91,6 +92,10 @@ contract ContractsRegistry is IContractsRegistry, MultiOwnableContractsRegistry,
 
     function getCorePropertiesContract() external view override returns (address) {
         return getContract(CORE_PROPERTIES_NAME);
+    }
+
+    function getNetworkPropertiesContract() external view override returns (address) {
+        return getContract(NETWORK_PROPERTIES_NAME);
     }
 
     function getBABTContract() external view override returns (address) {

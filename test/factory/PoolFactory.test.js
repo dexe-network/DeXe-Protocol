@@ -11,6 +11,7 @@ const ERC20Mock = artifacts.require("ERC20Mock");
 const ERC721Mock = artifacts.require("ERC721Mock");
 const BABTMock = artifacts.require("BABTMock");
 const WethMock = artifacts.require("WETHMock");
+const BscProperties = artifacts.require("BSCProperties");
 const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const LinearPower = artifacts.require("LinearPower");
@@ -49,6 +50,7 @@ const SphereXEngine = artifacts.require("SphereXEngine");
 ContractsRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 WethMock.numberFormat = "BigNumber";
+BscProperties.numberFormat = "BigNumber";
 ERC721Mock.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
@@ -140,6 +142,7 @@ describe("PoolFactory", () => {
     const DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     const USD = await ERC20Mock.new("USD", "USD", 6);
     WETH = await WethMock.new();
+    networkProperties = await BscProperties.new();
     babt = await BABTMock.new();
     const _dexeExpertNft = await ERC721Expert.new();
     const _coreProperties = await CoreProperties.new();
@@ -161,6 +164,7 @@ describe("PoolFactory", () => {
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
     await contractsRegistry.addContract(await contractsRegistry.WETH_NAME(), WETH.address);
+    await contractsRegistry.addContract(await contractsRegistry.NETWORK_PROPERTIES_NAME(), networkProperties.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
     await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), _dexeExpertNft.address);
 
@@ -388,6 +392,7 @@ describe("PoolFactory", () => {
 
         assert.equal(await govUserKeeper.tokenAddress(), token.address);
         assert.equal(await govUserKeeper.wethAddress(), WETH.address);
+        assert.equal(await govUserKeeper.networkPropertiesAddress(), networkProperties.address);
 
         const votePower = await PolynomialPower.at(helperContracts[4]);
 
