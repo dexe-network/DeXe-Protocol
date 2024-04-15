@@ -245,32 +245,31 @@ library GovPoolCreate {
             bytes4 selector = actions[i].data.getSelector();
             uint256 executorSettings = govSettings.executorToSettings(actions[i].executor);
 
-            if (
-                executorSettings == uint256(IGovSettings.ExecutorType.INTERNAL) &&
-                actions[i].value != 0 &&
-                selector == IGovPool.delegateTreasury.selector
-            ) {
-                continue;
-            }
-
-            require(
-                actions[i].value == 0 &&
+            if (actions[i].value != 0) {
+                require(
                     executorSettings == uint256(IGovSettings.ExecutorType.INTERNAL) &&
-                    (selector == IGovSettings.addSettings.selector ||
-                        selector == IGovSettings.editSettings.selector ||
-                        selector == IGovSettings.changeExecutors.selector ||
-                        selector == IGovUserKeeper.setERC20Address.selector ||
-                        selector == IGovUserKeeper.setERC721Address.selector ||
-                        selector == IGovPool.changeVotePower.selector ||
-                        selector == IGovPool.editDescriptionURL.selector ||
-                        selector == IGovPool.setNftMultiplierAddress.selector ||
-                        selector == IGovPool.changeVerifier.selector ||
-                        selector == IGovPool.delegateTreasury.selector ||
-                        selector == IGovPool.undelegateTreasury.selector ||
-                        selector == IGovPool.changeBABTRestriction.selector ||
-                        selector == IGovPool.setCreditInfo.selector),
-                "Gov: invalid internal data"
-            );
+                        selector == IGovPool.delegateTreasury.selector,
+                    "Gov: invalid internal data"
+                );
+            } else {
+                require(
+                    executorSettings == uint256(IGovSettings.ExecutorType.INTERNAL) &&
+                        (selector == IGovSettings.addSettings.selector ||
+                            selector == IGovSettings.editSettings.selector ||
+                            selector == IGovSettings.changeExecutors.selector ||
+                            selector == IGovUserKeeper.setERC20Address.selector ||
+                            selector == IGovUserKeeper.setERC721Address.selector ||
+                            selector == IGovPool.changeVotePower.selector ||
+                            selector == IGovPool.editDescriptionURL.selector ||
+                            selector == IGovPool.setNftMultiplierAddress.selector ||
+                            selector == IGovPool.changeVerifier.selector ||
+                            selector == IGovPool.delegateTreasury.selector ||
+                            selector == IGovPool.undelegateTreasury.selector ||
+                            selector == IGovPool.changeBABTRestriction.selector ||
+                            selector == IGovPool.setCreditInfo.selector),
+                    "Gov: invalid internal data"
+                );
+            }
         }
     }
 

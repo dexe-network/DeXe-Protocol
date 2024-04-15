@@ -924,6 +924,13 @@ describe("GovPool", () => {
         await truffleAssert.reverts(govPool.createProposal("example.com", [], []), "Gov: invalid array length");
       });
 
+      it("should not create internal proposal with wrong selector", async () => {
+        await truffleAssert.reverts(
+          govPool.createProposal("example.com", [[govPool.address, 0, getBytesApprove(SECOND, 1)]], []),
+          "Gov: invalid internal data",
+        );
+      });
+
       it("should not create proposal if insufficient deposited amount", async () => {
         await govPool.withdraw(OWNER, 0, [1]);
 

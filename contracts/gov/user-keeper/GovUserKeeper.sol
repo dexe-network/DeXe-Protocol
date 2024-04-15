@@ -156,7 +156,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         if (msg.value != 0) {
             _wrapNative(msg.value);
         }
-        
+
         _usersInfo[delegatee].balances[IGovPool.VoteType.TreasuryVote].tokens += amount;
     }
 
@@ -542,7 +542,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         if (_isWrapped()) {
             ownedBalance += address(voter).balance;
         }
-        
+
         totalBalance += ownedBalance;
     }
 
@@ -833,7 +833,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     function _isWrapped() internal view returns (bool) {
         address _wethAddress = wethAddress;
-        
+
         return _wethAddress != address(0) && wethAddress == tokenAddress;
     }
 }
