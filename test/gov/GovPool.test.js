@@ -1783,6 +1783,17 @@ describe("GovPool", () => {
         await govPool.deposit(wei("100000000000000000000"), [], { from: SECOND });
       });
 
+      it("should get totalPower of native coin", async () => {
+        await switchWeth(0, token.address);
+
+        const individualPower = wei("1000");
+        const totalNftPower = (await nft.totalSupply()).times(individualPower);
+
+        assert.equal((await userKeeper.getTotalPower()).toFixed(), totalNftPower.plus(wei("150000000")).toFixed());
+
+        await switchWeth(0, weth.address);
+      });
+
       it("should not vote if vote unavailable", async () => {
         await truffleAssert.reverts(
           govPool.vote(1, true, wei("100000000000000000000"), [], { from: SECOND }),

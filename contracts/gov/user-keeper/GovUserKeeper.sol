@@ -17,6 +17,7 @@ import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 
 import "../../interfaces/core/IContractsRegistry.sol";
+import "../../interfaces/core/INetworkProperties.sol";
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/ERC721/powers/IERC721Power.sol";
@@ -630,7 +631,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address token = tokenAddress;
 
         if (token != address(0)) {
-            power = IERC20(token).totalSupply().to18(token);
+            if (_isWrapped()) {
+                power = INetworkProperties(networkPropertiesAddress).getNativeSupply();
+            } else {
+                power = IERC20(token).totalSupply().to18(token);
+            }
         }
 
         token = _nftInfo.nftAddress;
