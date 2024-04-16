@@ -1,3 +1,4 @@
+const config = require("./config/utils.js").getConfig();
 const { accounts } = require("../scripts/utils/utils");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
@@ -7,6 +8,8 @@ module.exports = async (deployer) => {
   const DEPLOYER = await accounts(0);
 
   const contractsRegistry = await deployer.deployed(ContractsRegistry, "proxy");
+
+  await contractsRegistry.addContract(await contractsRegistry.NETWORK_PROPERTIES_NAME(), config.NETWORK_PROPERTIES);
 
   const sphereXEngine = await deployer.deploy(SphereXEngine, [0, DEPLOYER], { name: "SphereXEngine" });
   const poolSphereXEngine = await deployer.deploy(SphereXEngine, [0, DEPLOYER], { name: "PoolSphereXEngine" });
