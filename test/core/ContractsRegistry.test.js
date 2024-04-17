@@ -66,6 +66,7 @@ describe("ContractsRegistry", () => {
   describe("contract management", () => {
     it("should add and remove the contract", async () => {
       const USD = await ERC20Mock.new("USD", "USD", 18);
+      const WETH = await ERC20Mock.new("WETH", "WETH", 18);
 
       await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
 
@@ -76,6 +77,42 @@ describe("ContractsRegistry", () => {
 
       await truffleAssert.reverts(contractsRegistry.getUSDContract(), "ContractsRegistry: this mapping doesn't exist");
       assert.isFalse(await contractsRegistry.hasContract(await contractsRegistry.USD_NAME()));
+
+      await contractsRegistry.addContracts(
+        [await contractsRegistry.USD_NAME(), await contractsRegistry.WETH_NAME()],
+        [USD.address, WETH.address],
+      );
+
+      assert.equal(await contractsRegistry.getUSDContract(), USD.address);
+      assert.isTrue(await contractsRegistry.hasContract(await contractsRegistry.USD_NAME()));
+      assert.equal(await contractsRegistry.getWETHContract(), WETH.address);
+      assert.isTrue(await contractsRegistry.hasContract(await contractsRegistry.WETH_NAME()));
+    });
+
+    it("should not batch add if not owner", async () => {
+      const USD = await ERC20Mock.new("USD", "USD", 18);
+      const WETH = await ERC20Mock.new("WETH", "WETH", 18);
+
+      await truffleAssert.reverts(
+        contractsRegistry.addContracts(
+          [await contractsRegistry.USD_NAME(), await contractsRegistry.WETH_NAME()],
+          [USD.address, WETH.address],
+          { from: SECOND },
+        ),
+        "MultiOwnable: caller is not the owner",
+      );
+    });
+
+    it("should revert on names and addresses length mismatch", async () => {
+      const USD = await ERC20Mock.new("USD", "USD", 18);
+
+      await truffleAssert.reverts(
+        contractsRegistry.addContracts(
+          [await contractsRegistry.USD_NAME(), await contractsRegistry.WETH_NAME()],
+          [USD.address],
+        ),
+        "Contracts Registry: names and addresses lengths don't match",
+      );
     });
 
     it("should not add proxy contract without engine", async () => {

@@ -44,6 +44,22 @@ contract ContractsRegistry is IContractsRegistry, MultiOwnableContractsRegistry,
         _setSphereXEngine(CORE_PROPERTIES_NAME, sphereXEngine);
     }
 
+    function addContracts(
+        string[] calldata names_,
+        address[] calldata contractAddresses_
+    ) external onlyOwner {
+        uint256 length = names_.length;
+
+        require(
+            contractAddresses_.length == length,
+            "Contracts Registry: names and addresses lengths don't match"
+        );
+
+        for (uint256 i = 0; i < length; i++) {
+            _addContract(names_[i], contractAddresses_[i]);
+        }
+    }
+
     function protectContractFunctions(
         string calldata contractName,
         bytes4[] calldata selectors
