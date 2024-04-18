@@ -41,7 +41,7 @@ module.exports = {
       gasMultiplier: 1.2,
     },
     mumbai: {
-      url: `https://polygon-mumbai.infura.io/v3/${process.env.INFURA_KEY}`,
+      url: `https://polygon-testnet.public.blastapi.io`,
       accounts: privateKey(),
       gasPrice: 2000000000,
       gasMultiplier: 1.2,

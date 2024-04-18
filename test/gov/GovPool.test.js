@@ -49,6 +49,7 @@ const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
 const { impersonate } = require("../helpers/impersonator");
 const { assert } = require("chai");
 const ethSigUtil = require("@metamask/eth-sig-util");
+const { default: BigNumber } = require("bignumber.js");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const PoolRegistry = artifacts.require("PoolRegistry");
@@ -65,6 +66,8 @@ const VotePowerMock = artifacts.require("VotePowerMock");
 const ERC721RawPower = artifacts.require("ERC721RawPower");
 const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const WethMock = artifacts.require("WETHMock");
+const BscProperties = artifacts.require("BSCProperties");
 const ERC20 = artifacts.require("ERC20");
 const BABTMock = artifacts.require("BABTMock");
 const ExecutorTransferMock = artifacts.require("ExecutorTransferMock");
@@ -98,6 +101,8 @@ ERC721Expert.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 ERC20.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
+WethMock.numberFormat = "BigNumber";
+BscProperties.numberFormat = "BigNumber";
 ExecutorTransferMock.numberFormat = "BigNumber";
 
 describe("GovPool", () => {
@@ -119,6 +124,7 @@ describe("GovPool", () => {
   let rewardToken;
   let nftMultiplier;
   let babt;
+  let weth;
 
   let settings;
   let expertNft;
@@ -136,6 +142,16 @@ describe("GovPool", () => {
   const reverter = new Reverter();
 
   const getProposalByIndex = async (index) => (await govPool.getProposals(index - 1, 1))[0].proposal;
+
+  async function switchWeth(poolOffset, newWethAddress) {
+    await contractsRegistry.addContract(await contractsRegistry.WETH_NAME(), newWethAddress);
+
+    await poolRegistry.injectDependenciesToExistingPools(await poolRegistry.GOV_POOL_NAME(), poolOffset, 1);
+  }
+
+  function calculateUsedGas(tx) {
+    return toBN(tx.receipt.gasUsed).times(tx.receipt.effectiveGasPrice);
+  }
 
   async function depositAndVote(
     proposalId,
@@ -228,6 +244,8 @@ describe("GovPool", () => {
     const _poolRegistry = await PoolRegistry.new();
     dexeExpertNft = await ERC721Expert.new();
     babt = await BABTMock.new();
+    weth = await WethMock.new();
+    networkProperties = await BscProperties.new();
     token = await ERC20Mock.new("Mock", "Mock", 18);
     nft = await ERC721EnumMock.new("Mock", "Mock");
     attacker = await GovPoolAttackerMock.new();
@@ -249,6 +267,8 @@ describe("GovPool", () => {
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), dexeExpertNft.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
+    await contractsRegistry.addContract(await contractsRegistry.WETH_NAME(), weth.address);
+    await contractsRegistry.addContract(await contractsRegistry.NETWORK_PROPERTIES_NAME(), networkProperties.address);
 
     coreProperties = await CoreProperties.at(await contractsRegistry.getCorePropertiesContract());
     poolRegistry = await PoolRegistry.at(await contractsRegistry.getPoolRegistryContract());
@@ -481,18 +501,26 @@ describe("GovPool", () => {
     await executeValidatorProposal([[govPool.address, 0, getBytesSetNftMultiplierAddress(nftMultiplierAddress)]]);
   }
 
-  async function delegateTreasury(delegatee, amount, nftIds) {
+  async function delegateTreasury(delegatee, amount, nftIds, value = 0) {
     if (!(await govPool.getExpertStatus(delegatee))) {
       await executeValidatorProposal([[expertNft.address, 0, getBytesMintExpertNft(delegatee, "URI")]]);
     }
 
-    await token.mint(govPool.address, amount);
+    if (value != 0) {
+      web3.eth.sendTransaction({
+        from: OWNER,
+        to: govPool.address,
+        value: value,
+      });
+    }
+
+    await token.mint(govPool.address, BigNumber.maximum(toBN(amount), toBN(value)).minus(value));
 
     for (let i of nftIds) {
       await nft.mint(govPool.address, i);
     }
 
-    await executeValidatorProposal([[govPool.address, 0, getBytesDelegateTreasury(delegatee, amount, nftIds)]]);
+    await executeValidatorProposal([[govPool.address, value, getBytesDelegateTreasury(delegatee, amount, nftIds)]]);
   }
 
   async function undelegateTreasury(delegatee, amount, nftIds) {
@@ -663,6 +691,96 @@ describe("GovPool", () => {
         assert.equal((await userKeeper.nftBalance(OWNER, VoteType.PersonalVote)).totalBalance.toFixed(), "10");
         assert.equal((await userKeeper.nftBalance(OWNER, VoteType.PersonalVote)).ownedBalance.toFixed(), "7");
       });
+
+      it("cant deposit ether if gov token is not native", async () => {
+        await truffleAssert.reverts(govPool.deposit(wei("100"), [], { value: 100 }), "GovUK: not native token pool");
+      });
+
+      it("cant overdeposit ether", async () => {
+        await truffleAssert.reverts(
+          govPool.deposit(1, [1, 2, 3], { value: 2 }),
+          "Gov: value is greater than amount to transfer",
+        );
+      });
+
+      it("could deposit ether", async () => {
+        await switchWeth(0, token.address);
+
+        await token.mint(SECOND, wei("1000"));
+
+        const INITIAL_ETHER_BALANCE = toBN(await web3.eth.getBalance(SECOND));
+        const INITIAL_WRAPPED_BALANCE = await token.balanceOf(SECOND);
+        const INITIAL_OVERALL_BALANCE = INITIAL_ETHER_BALANCE.plus(INITIAL_WRAPPED_BALANCE);
+
+        assert.equal(
+          (await userKeeper.tokenBalance(SECOND, VoteType.PersonalVote)).totalBalance.toFixed(),
+          INITIAL_OVERALL_BALANCE.toFixed(),
+        );
+        assert.equal(
+          (await userKeeper.tokenBalance(SECOND, VoteType.PersonalVote)).ownedBalance.toFixed(),
+          INITIAL_OVERALL_BALANCE.toFixed(),
+        );
+
+        const tx = await govPool.deposit(wei("100"), [], { value: wei("100"), from: SECOND });
+        const USED_GAS = calculateUsedGas(tx);
+
+        assert.equal(
+          (await userKeeper.tokenBalance(SECOND, VoteType.PersonalVote)).totalBalance.toFixed(),
+          INITIAL_OVERALL_BALANCE.minus(USED_GAS).toFixed(),
+        );
+        assert.equal(
+          (await userKeeper.tokenBalance(SECOND, VoteType.PersonalVote)).ownedBalance.toFixed(),
+          INITIAL_OVERALL_BALANCE.minus(wei("100")).minus(USED_GAS).toFixed(),
+        );
+
+        await switchWeth(0, weth.address);
+      });
+
+      it("could make mixed deposit", async () => {
+        await switchWeth(0, token.address);
+
+        await token.mint(SECOND, wei("1000"));
+        await token.approve(userKeeper.address, wei("500"), { from: SECOND });
+
+        await truffleAssert.reverts(
+          govPool.deposit(wei("1001"), [], { value: wei("500"), from: SECOND }),
+          "ERC20: insufficient allowance",
+        );
+
+        const INITIAL_ETHER_BALANCE = toBN(await web3.eth.getBalance(SECOND));
+        const INITIAL_WRAPPED_BALANCE = await token.balanceOf(SECOND);
+        const INITIAL_OVERALL_BALANCE = INITIAL_ETHER_BALANCE.plus(INITIAL_WRAPPED_BALANCE);
+
+        assert.equal(
+          (await userKeeper.tokenBalance(SECOND, VoteType.PersonalVote)).totalBalance.toFixed(),
+          INITIAL_OVERALL_BALANCE.toFixed(),
+        );
+        assert.equal(
+          (await userKeeper.tokenBalance(SECOND, VoteType.PersonalVote)).ownedBalance.toFixed(),
+          INITIAL_OVERALL_BALANCE.toFixed(),
+        );
+
+        const tx = await govPool.deposit(wei("1000"), [], { value: wei("500"), from: SECOND });
+        const USED_GAS = calculateUsedGas(tx);
+
+        assert.equal(
+          (await userKeeper.tokenBalance(SECOND, VoteType.PersonalVote)).totalBalance.toFixed(),
+          INITIAL_OVERALL_BALANCE.minus(USED_GAS).toFixed(),
+        );
+        assert.equal(
+          (await userKeeper.tokenBalance(SECOND, VoteType.PersonalVote)).ownedBalance.toFixed(),
+          INITIAL_OVERALL_BALANCE.minus(wei("1000")).minus(USED_GAS).toFixed(),
+        );
+
+        assert.equal(
+          INITIAL_ETHER_BALANCE.minus(wei("500")).minus(USED_GAS).toFixed(),
+          toBN(await web3.eth.getBalance(SECOND)).toFixed(),
+        );
+
+        assert.equal(INITIAL_WRAPPED_BALANCE.minus(wei("500")).toFixed(), (await token.balanceOf(SECOND)).toFixed());
+
+        await switchWeth(0, weth.address);
+      });
     });
 
     describe("unlock()", () => {
@@ -808,6 +926,13 @@ describe("GovPool", () => {
 
       it("should not create proposal with empty actions", async () => {
         await truffleAssert.reverts(govPool.createProposal("example.com", [], []), "Gov: invalid array length");
+      });
+
+      it("should not create internal proposal with wrong selector", async () => {
+        await truffleAssert.reverts(
+          govPool.createProposal("example.com", [[govPool.address, 0, getBytesApprove(SECOND, 1)]], []),
+          "Gov: invalid internal data",
+        );
       });
 
       it("should not create proposal if insufficient deposited amount", async () => {
@@ -1323,6 +1448,22 @@ describe("GovPool", () => {
               govPool.createProposal(
                 "",
                 [
+                  [govPool.address, wei("1"), getBytesGovDeposit(wei("1"), [])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
+                ],
+                [
+                  [govPool.address, 0, getBytesGovDeposit(wei("1"), [])],
+                  [govPool.address, 0, getBytesGovVote(1, wei("1"), [], false)],
+                ],
+                { from: SECOND },
+              ),
+              "Gov: invalid value",
+            );
+
+            await truffleAssert.reverts(
+              govPool.createProposal(
+                "",
+                [
                   [govPool.address, 0, getBytesGovDeposit(wei("1"), [1])],
                   [govPool.address, 0, getBytesGovVote(1, wei("1"), [], true)],
                 ],
@@ -1640,6 +1781,17 @@ describe("GovPool", () => {
 
         await govPool.deposit(wei("1000"), [1, 2, 3, 4]);
         await govPool.deposit(wei("100000000000000000000"), [], { from: SECOND });
+      });
+
+      it("should get totalPower of native coin", async () => {
+        await switchWeth(0, token.address);
+
+        const individualPower = wei("1000");
+        const totalNftPower = (await nft.totalSupply()).times(individualPower);
+
+        assert.equal((await userKeeper.getTotalPower()).toFixed(), totalNftPower.plus(wei("150000000")).toFixed());
+
+        await switchWeth(0, weth.address);
       });
 
       it("should not vote if vote unavailable", async () => {
@@ -3016,6 +3168,33 @@ describe("GovPool", () => {
         assert.equal(await nft.ownerOf(1), OWNER);
       });
 
+      it("should deposit and withdraw native tokens", async () => {
+        await switchWeth(0, token.address);
+
+        await govPool.deposit(wei("1000"), [], { value: wei("1000") });
+
+        const ETH_BEFORE = toBN(await web3.eth.getBalance(OWNER));
+        const tx = await govPool.withdraw(OWNER, wei("1000"), []);
+        const GAS_USED = calculateUsedGas(tx);
+
+        assert.equal(
+          toBN(await web3.eth.getBalance(OWNER)).toFixed(),
+          ETH_BEFORE.minus(GAS_USED).plus(wei("1000")).toFixed(),
+        );
+
+        await switchWeth(0, weth.address);
+      });
+
+      it("reverts if could not withdraw eth", async () => {
+        await switchWeth(0, token.address);
+
+        await govPool.deposit(wei("1000"), [], { value: wei("1000") });
+
+        await truffleAssert.reverts(govPool.withdraw(settings.address, wei("1000"), []), "GovUK: can't send ether");
+
+        await switchWeth(0, weth.address);
+      });
+
       it("should deposit, vote, unlock", async () => {
         await govPool.deposit(wei("1000"), [1, 2, 3, 4]);
 
@@ -3569,6 +3748,32 @@ describe("GovPool", () => {
               (await userKeeper.nftExactBalance(THIRD, VoteType.TreasuryVote)).ownedLength.toFixed(),
               "0",
             );
+          });
+
+          it("could delegate and undelegate treasury for native token", async () => {
+            await switchWeth(0, token.address);
+
+            assert.equal((await userKeeper.tokenBalance(THIRD, VoteType.TreasuryVote)).totalBalance.toFixed(), "0");
+
+            await truffleAssert.reverts(
+              delegateTreasury(THIRD, wei("100"), [], wei("200")),
+              "Gov: value is greater than amount to transfer",
+            );
+
+            await delegateTreasury(THIRD, wei("100"), [], wei("100"));
+            assert.equal(
+              (await userKeeper.tokenBalance(THIRD, VoteType.TreasuryVote)).totalBalance.toFixed(),
+              wei("100"),
+            );
+
+            const INITIAL_ETHER_BALANCE = toBN(await web3.eth.getBalance(govPool.address));
+            await undelegateTreasury(THIRD, wei("100"), []);
+            assert.equal(
+              toBN(await web3.eth.getBalance(govPool.address)).toFixed(),
+              INITIAL_ETHER_BALANCE.plus(wei("100")).toFixed(),
+            );
+
+            await switchWeth(0, weth.address);
           });
 
           it("should revert if call is not from expert", async () => {

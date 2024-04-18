@@ -18,6 +18,7 @@ contract ContractsRegistry is IContractsRegistry, MultiOwnableContractsRegistry,
     string public constant POOL_REGISTRY_NAME = "POOL_REGISTRY";
 
     string public constant DEXE_NAME = "DEXE";
+    string public constant WETH_NAME = "WETH";
     string public constant USD_NAME = "USD";
     string public constant BABT_NAME = "BABT";
     string public constant DEXE_EXPERT_NFT_NAME = "DEXE_EXPERT_NFT";
@@ -27,6 +28,7 @@ contract ContractsRegistry is IContractsRegistry, MultiOwnableContractsRegistry,
     string public constant TREASURY_NAME = "TREASURY";
 
     string public constant CORE_PROPERTIES_NAME = "CORE_PROPERTIES";
+    string public constant NETWORK_PROPERTIES_NAME = "NETWORK_PROPERTIES";
 
     string public constant SPHEREX_ENGINE_NAME = "SPHEREX_ENGINE";
     string public constant POOL_SPHEREX_ENGINE_NAME = "POOL_SPHEREX_ENGINE";
@@ -40,6 +42,22 @@ contract ContractsRegistry is IContractsRegistry, MultiOwnableContractsRegistry,
         _setSphereXEngine(DEXE_EXPERT_NFT_NAME, sphereXEngine);
         _setSphereXEngine(PRICE_FEED_NAME, sphereXEngine);
         _setSphereXEngine(CORE_PROPERTIES_NAME, sphereXEngine);
+    }
+
+    function addContracts(
+        string[] calldata names_,
+        address[] calldata contractAddresses_
+    ) external onlyOwner {
+        uint256 length = names_.length;
+
+        require(
+            contractAddresses_.length == length,
+            "Contracts Registry: names and addresses lengths don't match"
+        );
+
+        for (uint256 i = 0; i < length; i++) {
+            _addContract(names_[i], contractAddresses_[i]);
+        }
     }
 
     function protectContractFunctions(
@@ -72,6 +90,10 @@ contract ContractsRegistry is IContractsRegistry, MultiOwnableContractsRegistry,
         return getContract(DEXE_NAME);
     }
 
+    function getWETHContract() external view override returns (address) {
+        return getContract(WETH_NAME);
+    }
+
     function getUSDContract() external view override returns (address) {
         return getContract(USD_NAME);
     }
@@ -86,6 +108,10 @@ contract ContractsRegistry is IContractsRegistry, MultiOwnableContractsRegistry,
 
     function getCorePropertiesContract() external view override returns (address) {
         return getContract(CORE_PROPERTIES_NAME);
+    }
+
+    function getNetworkPropertiesContract() external view override returns (address) {
+        return getContract(NETWORK_PROPERTIES_NAME);
     }
 
     function getBABTContract() external view override returns (address) {

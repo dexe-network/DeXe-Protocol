@@ -9,6 +9,8 @@ const UniswapPathFinderLib = artifacts.require("UniswapPathFinder");
 const UniswapV2RouterMock = artifacts.require("UniswapV2RouterMock");
 const UniswapV3QuoterMock = artifacts.require("UniswapV3QuoterMock");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const WethMock = artifacts.require("WETHMock");
+const BscProperties = artifacts.require("BSCProperties");
 const SphereXEngineMock = artifacts.require("SphereXEngineMock");
 
 ContractsRegistry.numberFormat = "BigNumber";
@@ -16,6 +18,8 @@ PriceFeed.numberFormat = "BigNumber";
 UniswapV2RouterMock.numberFormat = "BigNumber";
 UniswapV3QuoterMock.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
+WethMock.numberFormat = "BigNumber";
+BscProperties.numberFormat = "BigNumber";
 
 const SWAP_UNISWAP_V2 = "0";
 const SWAP_UNISWAP_V3_FEE500 = "1";
@@ -34,6 +38,7 @@ describe("PriceFeed", () => {
   let uniswapV3Quoter;
   let DEXE;
   let USD;
+  let WETH;
 
   const reverter = new Reverter();
 
@@ -49,6 +54,8 @@ describe("PriceFeed", () => {
     const _priceFeed = await PriceFeed.new();
     DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     USD = await ERC20Mock.new("USD", "USD", 18);
+    WETH = await WethMock.new();
+    networkProperties = await BscProperties.new();
     uniswapV2Router = await UniswapV2RouterMock.new();
     uniswapV3Quoter = await UniswapV3QuoterMock.new();
     const _sphereXEngine = await SphereXEngineMock.new();
@@ -57,6 +64,8 @@ describe("PriceFeed", () => {
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);
+    await contractsRegistry.addContract(await contractsRegistry.WETH_NAME(), WETH.address);
+    await contractsRegistry.addContract(await contractsRegistry.NETWORK_PROPERTIES_NAME(), networkProperties.address);
     await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
 
     await contractsRegistry.addProxyContract(await contractsRegistry.PRICE_FEED_NAME(), _priceFeed.address);

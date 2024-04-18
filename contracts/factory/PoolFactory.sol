@@ -139,7 +139,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         TokenSaleProposal(tokenSaleProxy).__TokenSaleProposal_init(poolProxy);
 
         GovSettings(govPoolDeps.settingsAddress).transferOwnership(poolProxy);
-        GovUserKeeper(govPoolDeps.userKeeperAddress).transferOwnership(poolProxy);
+        GovUserKeeper(payable(govPoolDeps.userKeeperAddress)).transferOwnership(poolProxy);
         GovValidators(govPoolDeps.validatorsAddress).transferOwnership(poolProxy);
         ERC721Expert(govPoolDeps.expertNftAddress).transferOwnership(poolProxy);
         ERC721Multiplier(govPoolDeps.nftMultiplierAddress).transferOwnership(poolProxy);
@@ -214,7 +214,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             parameters.validatorsParams.validators,
             parameters.validatorsParams.balances
         );
-        GovUserKeeper(govPoolDeps.userKeeperAddress).__GovUserKeeper_init(
+        GovUserKeeper(payable(govPoolDeps.userKeeperAddress)).__GovUserKeeper_init(
             parameters.userKeeperParams.tokenAddress,
             parameters.userKeeperParams.nftAddress,
             parameters.userKeeperParams.individualPower,

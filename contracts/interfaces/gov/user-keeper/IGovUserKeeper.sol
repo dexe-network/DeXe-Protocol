@@ -86,11 +86,15 @@ interface IGovUserKeeper {
         uint256[] perNftPower;
     }
 
+    /// @notice The function for injecting dependencies from the GovPool
+    /// @param contractsRegistry the address of Contracts Registry
+    function setDependencies(address contractsRegistry, bytes memory) external;
+
     /// @notice The function for depositing tokens
     /// @param payer the address of depositor
     /// @param receiver the deposit receiver address
     /// @param amount the erc20 deposit amount
-    function depositTokens(address payer, address receiver, uint256 amount) external;
+    function depositTokens(address payer, address receiver, uint256 amount) external payable;
 
     /// @notice The function for withdrawing tokens
     /// @param payer the address from whom to withdraw the tokens
@@ -107,7 +111,7 @@ interface IGovUserKeeper {
     /// @notice The function for delegating tokens from Treasury
     /// @param delegatee the address of delegatee
     /// @param amount the erc20 delegation amount
-    function delegateTokensTreasury(address delegatee, uint256 amount) external;
+    function delegateTokensTreasury(address delegatee, uint256 amount) external payable;
 
     /// @notice The function for undelegating tokens
     /// @param delegator the address of delegator

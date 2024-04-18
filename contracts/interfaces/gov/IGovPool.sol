@@ -361,7 +361,7 @@ interface IGovPool {
     /// @notice The function for depositing tokens to the pool
     /// @param amount the erc20 deposit amount
     /// @param nftIds the array of nft ids to deposit
-    function deposit(uint256 amount, uint256[] calldata nftIds) external;
+    function deposit(uint256 amount, uint256[] calldata nftIds) external payable;
 
     /// @notice The function for withdrawing deposited tokens
     /// @param receiver the withdrawal receiver address
@@ -383,7 +383,7 @@ interface IGovPool {
         address delegatee,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external;
+    ) external payable;
 
     /// @notice The function for undelegating delegated tokens
     /// @param delegatee the undelegation target address (person who will be undelegated)

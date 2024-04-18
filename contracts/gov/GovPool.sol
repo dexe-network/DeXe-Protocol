@@ -144,6 +144,8 @@ contract GovPool is
         _babt = ISBT721(registry.getBABTContract());
         _dexeExpertNft = IERC721Expert(registry.getDexeExpertNftContract());
         _poolRegistry = registry.getPoolRegistryContract();
+
+        IGovUserKeeper(_govUserKeeper).setDependencies(contractsRegistry, bytes(""));
     }
 
     function unlock(address user) external override onlyBABTHolder {
@@ -156,12 +158,19 @@ contract GovPool is
         _proposals.execute(proposalId);
     }
 
-    function deposit(uint256 amount, uint256[] calldata nftIds) external override onlyBABTHolder {
+    function deposit(
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external payable override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty deposit");
+        _checkValue(amount);
 
         _lockBlock(DEPOSIT_WITHDRAW, msg.sender);
 
-        _govUserKeeper.depositTokens.exec(msg.sender, amount);
+        if (amount != 0) {
+            _govUserKeeper.depositTokens{value: msg.value}(msg.sender, msg.sender, amount);
+        }
+
         _govUserKeeper.depositNfts.exec(msg.sender, nftIds);
 
         emit Deposited(amount, nftIds, msg.sender);
@@ -262,9 +271,10 @@ contract GovPool is
         address delegatee,
         uint256 amount,
         uint256[] calldata nftIds
-    ) external override onlyThis {
+    ) external payable override onlyThis {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
         require(getExpertStatus(delegatee), "Gov: delegatee is not an expert");
+        _checkValue(amount);
 
         _lockBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender);
 
@@ -273,9 +283,14 @@ contract GovPool is
         if (amount != 0) {
             address token = _govUserKeeper.tokenAddress();
 
-            IERC20(token).safeTransfer(address(_govUserKeeper), amount.from18Safe(token));
+            if (amount != msg.value) {
+                IERC20(token).safeTransfer(
+                    address(_govUserKeeper),
+                    (amount - msg.value).from18Safe(token)
+                );
+            }
 
-            _govUserKeeper.delegateTokensTreasury(delegatee, amount);
+            _govUserKeeper.delegateTokensTreasury{value: msg.value}(delegatee, amount);
         }
 
         if (nftIds.length != 0) {
@@ -614,5 +629,9 @@ contract GovPool is
                 IPoolRegistry(_poolRegistry).isGovPool(msg.sender),
             "Gov: not BABT holder"
         );
+    }
+
+    function _checkValue(uint256 amount) internal view {
+        require(msg.value <= amount, "Gov: value is greater than amount to transfer");
     }
 }

@@ -14,6 +14,10 @@ import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 import "@solarity/solidity-lib/libs/arrays/ArrayHelper.sol";
 import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
 
+import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
+
+import "../../interfaces/core/IContractsRegistry.sol";
+import "../../interfaces/core/INetworkProperties.sol";
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/ERC721/powers/IERC721Power.sol";
@@ -39,6 +43,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     mapping(address => UserInfo) internal _usersInfo; // user => info
 
     mapping(uint256 => uint256) internal _nftLockedNums; // tokenId => locked num
+
+    address public wethAddress;
+    address public networkPropertiesAddress;
 
     event SetERC20(address token);
     event SetERC721(address token);
@@ -73,16 +80,31 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
     }
 
+    function setDependencies(address contractsRegistry, bytes memory) external onlyOwner {
+        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
+
+        wethAddress = registry.getWETHContract();
+        networkPropertiesAddress = registry.getNetworkPropertiesContract();
+    }
+
     function depositTokens(
         address payer,
         address receiver,
         uint256 amount
-    ) external override onlyOwner withSupportedToken {
+    ) external payable override onlyOwner withSupportedToken {
         address token = tokenAddress;
+        uint256 fullAmount = amount;
 
-        IERC20(token).safeTransferFrom(payer, address(this), amount.from18Safe(token));
+        if (msg.value != 0) {
+            _wrapNative(msg.value);
+            amount -= msg.value;
+        }
 
-        _usersInfo[receiver].balances[IGovPool.VoteType.PersonalVote].tokens += amount;
+        if (amount > 0) {
+            IERC20(token).safeTransferFrom(payer, address(this), amount.from18Safe(token));
+        }
+
+        _usersInfo[receiver].balances[IGovPool.VoteType.PersonalVote].tokens += fullAmount;
     }
 
     function withdrawTokens(
@@ -93,7 +115,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         UserInfo storage payerInfo = _usersInfo[payer];
         BalanceInfo storage payerBalanceInfo = payerInfo.balances[IGovPool.VoteType.PersonalVote];
 
-        address token = tokenAddress;
         uint256 balance = payerBalanceInfo.tokens;
         uint256 maxTokensLocked = payerInfo.maxTokensLocked;
 
@@ -104,7 +125,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         payerBalanceInfo.tokens = balance - amount;
 
-        IERC20(token).safeTransfer(receiver, amount.from18Safe(token));
+        _sendNativeOrToken(receiver, amount);
     }
 
     function delegateTokens(
@@ -134,7 +155,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function delegateTokensTreasury(
         address delegatee,
         uint256 amount
-    ) external override onlyOwner withSupportedToken {
+    ) external payable override onlyOwner withSupportedToken {
+        if (msg.value != 0) {
+            _wrapNative(msg.value);
+        }
+
         _usersInfo[delegatee].balances[IGovPool.VoteType.TreasuryVote].tokens += amount;
     }
 
@@ -173,9 +198,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         delegateeBalanceInfo.tokens = balance - amount;
 
-        address token = tokenAddress;
-
-        IERC20(token).safeTransfer(msg.sender, amount.from18Safe(token));
+        _sendNativeOrToken(msg.sender, amount);
     }
 
     function depositNfts(
@@ -477,6 +500,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         _setERC721Address(_nftAddress, individualPower, nftsTotalSupply);
     }
 
+    receive() external payable {}
+
     function nftAddress() external view override returns (address) {
         return _nftInfo.nftAddress;
     }
@@ -516,6 +541,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
 
         ownedBalance = ERC20(tokenAddress).balanceOf(voter).to18(tokenAddress);
+
+        if (_isWrapped()) {
+            ownedBalance += address(voter).balance;
+        }
+
         totalBalance += ownedBalance;
     }
 
@@ -601,7 +631,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address token = tokenAddress;
 
         if (token != address(0)) {
-            power = IERC20(token).totalSupply().to18(token);
+            if (_isWrapped()) {
+                power = INetworkProperties(networkPropertiesAddress).getNativeSupply();
+            } else {
+                power = IERC20(token).totalSupply().to18(token);
+            }
         }
 
         token = _nftInfo.nftAddress;
@@ -715,6 +749,19 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             );
     }
 
+    function _sendNativeOrToken(address receiver, uint256 amount) internal {
+        address token = tokenAddress;
+
+        if (_isWrapped()) {
+            _unwrapNative(amount);
+
+            (bool ok, ) = payable(receiver).call{value: amount}("");
+            require(ok, "GovUK: can't send ether");
+        } else {
+            IERC20(token).safeTransfer(receiver, amount.from18Safe(token));
+        }
+    }
+
     function _cleanDelegatee(UserInfo storage delegatorInfo, address delegatee) internal {
         BalanceInfo storage delegatedBalance = delegatorInfo.delegatedBalances[delegatee];
 
@@ -779,5 +826,21 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     function _withSupportedNft() internal view {
         require(_nftInfo.nftAddress != address(0), "GovUK: nft is not supported");
+    }
+
+    function _wrapNative(uint256 value) internal {
+        require(_isWrapped(), "GovUK: not native token pool");
+
+        IWETH(wethAddress).deposit{value: value}();
+    }
+
+    function _unwrapNative(uint256 value) internal {
+        IWETH(wethAddress).withdraw(value);
+    }
+
+    function _isWrapped() internal view returns (bool) {
+        address _wethAddress = wethAddress;
+
+        return _wethAddress != address(0) && wethAddress == tokenAddress;
     }
 }
