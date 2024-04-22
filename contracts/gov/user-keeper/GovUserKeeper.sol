@@ -93,18 +93,18 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 amount
     ) external payable override onlyOwner withSupportedToken {
         address token = tokenAddress;
-        uint256 fullAmount = amount;
+        uint256 amountWithNativeDecimals = amount.from18Safe(token);
 
         if (msg.value != 0) {
             _wrapNative(msg.value);
-            amount -= msg.value;
+            amountWithNativeDecimals -= msg.value;
         }
 
         if (amount > 0) {
-            IERC20(token).safeTransferFrom(payer, address(this), amount.from18Safe(token));
+            IERC20(token).safeTransferFrom(payer, address(this), amountWithNativeDecimals);
         }
 
-        _usersInfo[receiver].balances[IGovPool.VoteType.PersonalVote].tokens += fullAmount;
+        _usersInfo[receiver].balances[IGovPool.VoteType.PersonalVote].tokens += amount;
     }
 
     function withdrawTokens(

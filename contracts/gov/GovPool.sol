@@ -282,11 +282,12 @@ contract GovPool is
 
         if (amount != 0) {
             address token = _govUserKeeper.tokenAddress();
+            uint256 amountWithNativeDecimals = amount.from18Safe(token);
 
-            if (amount != msg.value) {
+            if (amountWithNativeDecimals != msg.value) {
                 IERC20(token).safeTransfer(
                     address(_govUserKeeper),
-                    (amount - msg.value).from18Safe(token)
+                    amountWithNativeDecimals - msg.value
                 );
             }
 
@@ -632,6 +633,10 @@ contract GovPool is
     }
 
     function _checkValue(uint256 amount) internal view {
-        require(msg.value <= amount, "Gov: value is greater than amount to transfer");
+        address token = _govUserKeeper.tokenAddress();
+        require(
+            msg.value <= amount.from18Safe(token),
+            "Gov: value is greater than amount to transfer"
+        );
     }
 }
