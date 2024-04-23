@@ -93,7 +93,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 amount
     ) external payable override onlyOwner withSupportedToken {
         address token = tokenAddress;
-        uint256 amountWithNativeDecimals = getWrappedAmount(msg.value, amount);
+        uint256 amountWithNativeDecimals = getAmountWithNativeDecimals(msg.value, amount);
 
         _handleNative(msg.value, true);
 
@@ -744,7 +744,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             );
     }
 
-    function getWrappedAmount(
+    function getAmountWithNativeDecimals(
         uint256 value,
         uint256 amount
     ) public view returns (uint256 nativeAmount) {
@@ -762,6 +762,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     function _sendNativeOrToken(address receiver, uint256 amount) internal {
         address token = tokenAddress;
+        amount = amount.from18Safe(token);
 
         if (_isWrapped()) {
             _handleNative(amount, false);
@@ -769,7 +770,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             (bool ok, ) = payable(receiver).call{value: amount}("");
             require(ok, "GovUK: can't send ether");
         } else {
-            IERC20(token).safeTransfer(receiver, amount.from18Safe(token));
+            IERC20(token).safeTransfer(receiver, amount);
         }
     }
 

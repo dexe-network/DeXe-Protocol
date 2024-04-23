@@ -280,7 +280,10 @@ contract GovPool is
 
         if (amount != 0 || msg.value != 0) {
             address token = _govUserKeeper.tokenAddress();
-            uint256 amountWithNativeDecimals = _govUserKeeper.getWrappedAmount(msg.value, amount);
+            uint256 amountWithNativeDecimals = _govUserKeeper.getAmountWithNativeDecimals(
+                msg.value,
+                amount
+            );
 
             if (amountWithNativeDecimals != 0) {
                 IERC20(token).safeTransfer(address(_govUserKeeper), amountWithNativeDecimals);

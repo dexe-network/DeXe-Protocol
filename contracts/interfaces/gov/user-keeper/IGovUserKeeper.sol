@@ -356,7 +356,7 @@ interface IGovUserKeeper {
     /// @param value the ether value sent alongside the call
     /// @param amount the total amount of wrapped ether with 18 decimals
     /// @return nativeAmount the amount of wrapped ether with native decimals minus ether value
-    function getWrappedAmount(
+    function getAmountWithNativeDecimals(
         uint256 value,
         uint256 amount
     ) external view returns (uint256 nativeAmount);
