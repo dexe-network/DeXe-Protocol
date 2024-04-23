@@ -749,6 +749,21 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             );
     }
 
+    function getWrappedAmount(
+        uint256 value,
+        uint256 amount
+    ) public view returns (uint256 nativeAmount) {
+        require(
+            value == 0 || _isWrapped(),
+            "GovUK: should not send ether if Gov token is not native"
+        );
+
+        nativeAmount = amount.from18(tokenAddress);
+        require(nativeAmount >= value, "GovUK: ether value is greater than amount");
+
+        nativeAmount -= value;
+    }
+
     function _sendNativeOrToken(address receiver, uint256 amount) internal {
         address token = tokenAddress;
 
