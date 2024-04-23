@@ -163,11 +163,10 @@ contract GovPool is
         uint256[] calldata nftIds
     ) external payable override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty deposit");
-        _govUserKeeper.getWrappedAmount(msg.value, amount);
 
         _lockBlock(DEPOSIT_WITHDRAW, msg.sender);
 
-        if (amount != 0) {
+        if (amount != 0 || msg.value != 0) {
             _govUserKeeper.depositTokens{value: msg.value}(msg.sender, msg.sender, amount);
         }
 
@@ -274,20 +273,17 @@ contract GovPool is
     ) external payable override onlyThis {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
         require(getExpertStatus(delegatee), "Gov: delegatee is not an expert");
-        uint256 amountWithNativeDecimals = _govUserKeeper.getWrappedAmount(msg.value, amount);
 
         _lockBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender);
 
         _unlock(delegatee);
 
-        if (amount != 0) {
+        if (amount != 0 || msg.value != 0) {
             address token = _govUserKeeper.tokenAddress();
+            uint256 amountWithNativeDecimals = _govUserKeeper.getWrappedAmount(msg.value, amount);
 
-            if (amountWithNativeDecimals != msg.value) {
-                IERC20(token).safeTransfer(
-                    address(_govUserKeeper),
-                    amountWithNativeDecimals - msg.value
-                );
+            if (amountWithNativeDecimals != 0) {
+                IERC20(token).safeTransfer(address(_govUserKeeper), amountWithNativeDecimals);
             }
 
             _govUserKeeper.delegateTokensTreasury{value: msg.value}(delegatee, amount);

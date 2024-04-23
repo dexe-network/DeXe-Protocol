@@ -700,10 +700,19 @@ describe("GovPool", () => {
       });
 
       it("cant overdeposit ether", async () => {
+        await switchWeth(0, token.address);
+
         await truffleAssert.reverts(
           govPool.deposit(1, [1, 2, 3], { value: 2 }),
-          "GovUK: should not send ether if Gov token is not native",
+          "GovUK: ether value is greater than amount",
         );
+
+        await truffleAssert.reverts(
+          govPool.deposit(0, [1, 2, 3], { value: 1 }),
+          "GovUK: ether value is greater than amount",
+        );
+
+        await switchWeth(0, weth.address);
       });
 
       it("could deposit ether", async () => {
@@ -3663,6 +3672,13 @@ describe("GovPool", () => {
             await truffleAssert.reverts(delegateTreasury(THIRD, "0", []), "Gov: empty delegation");
           });
 
+          it("should not delegate treasury if incorrect amount and value", async () => {
+            await truffleAssert.reverts(
+              delegateTreasury(THIRD, "0", [11], wei("1")),
+              "GovUK: should not send ether if Gov token is not native",
+            );
+          });
+
           it("should create proposal for delegateTreasury and undelegateTreasury", async () => {
             assert.equal((await token.balanceOf(THIRD)).toFixed(), "0");
             assert.equal((await nft.balanceOf(THIRD)).toFixed(), "0");
@@ -3753,7 +3769,7 @@ describe("GovPool", () => {
             );
           });
 
-          it.only("could delegate and undelegate treasury for native token", async () => {
+          it("could delegate and undelegate treasury for native token", async () => {
             await switchWeth(0, token.address);
 
             assert.equal((await userKeeper.tokenBalance(THIRD, VoteType.TreasuryVote)).totalBalance.toFixed(), "0");
@@ -3764,19 +3780,19 @@ describe("GovPool", () => {
             );
 
             await delegateTreasury(THIRD, wei("100"), [], wei("100"));
-            // assert.equal(
-            //   (await userKeeper.tokenBalance(THIRD, VoteType.TreasuryVote)).totalBalance.toFixed(),
-            //   wei("100"),
-            // );
+            assert.equal(
+              (await userKeeper.tokenBalance(THIRD, VoteType.TreasuryVote)).totalBalance.toFixed(),
+              wei("100"),
+            );
 
-            // const INITIAL_ETHER_BALANCE = toBN(await web3.eth.getBalance(govPool.address));
-            // await undelegateTreasury(THIRD, wei("100"), []);
-            // assert.equal(
-            //   toBN(await web3.eth.getBalance(govPool.address)).toFixed(),
-            //   INITIAL_ETHER_BALANCE.plus(wei("100")).toFixed(),
-            // );
+            const INITIAL_ETHER_BALANCE = toBN(await web3.eth.getBalance(govPool.address));
+            await undelegateTreasury(THIRD, wei("100"), []);
+            assert.equal(
+              toBN(await web3.eth.getBalance(govPool.address)).toFixed(),
+              INITIAL_ETHER_BALANCE.plus(wei("100")).toFixed(),
+            );
 
-            // await switchWeth(0, weth.address);
+            await switchWeth(0, weth.address);
           });
 
           it("should revert if call is not from expert", async () => {
