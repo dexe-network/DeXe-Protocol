@@ -5302,6 +5302,10 @@ describe("GovPool", () => {
           await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1000"], SECOND, { from: VALIDATORS });
 
           assert.equal((await CREDIT_TOKEN_1.balanceOf(SECOND)).toFixed(), "1000");
+
+          await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["0"], SECOND, { from: VALIDATORS });
+
+          assert.equal((await CREDIT_TOKEN_1.balanceOf(SECOND)).toFixed(), "1000");
         });
 
         it("cant get more than month limit", async () => {

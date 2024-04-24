@@ -59,7 +59,7 @@ library TokenBalance {
     }
 
     function sendFunds(IERC20 token, address receiver, uint256 amount) internal {
-        token.safeTransfer(receiver, amount.from18(address(token)));
+        token.safeTransfer(receiver, amount.from18Safe(address(token)));
     }
 
     function thisBalance(address token) internal view returns (uint256) {
