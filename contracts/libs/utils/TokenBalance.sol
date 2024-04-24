@@ -28,7 +28,9 @@ library TokenBalance {
         uint256 amount,
         TransferType transferType
     ) internal returns (uint256) {
-        if (amount == 0) return 0;
+        if (amount == 0) {
+            return 0;
+        }
 
         uint256 balance = normThisBalance(token);
 

@@ -153,9 +153,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address delegatee,
         uint256 amount
     ) external payable override onlyOwner withSupportedToken {
-        _usersInfo[delegatee].balances[IGovPool.VoteType.TreasuryVote].tokens += amount;
-
         _handleNative(msg.value, true);
+
+        _usersInfo[delegatee].balances[IGovPool.VoteType.TreasuryVote].tokens += amount;
     }
 
     function undelegateTokens(
@@ -752,7 +752,6 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             value == 0 || _isWrapped(),
             "GovUK: should not send ether if Gov token is not native"
         );
-        require(amount > 0, "GovUK: ether value is greater than amount");
 
         nativeAmount = amount.from18Safe(tokenAddress);
         require(nativeAmount >= value, "GovUK: ether value is greater than amount");
@@ -841,7 +840,9 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function _handleNative(uint256 value, bool wrapping) internal {
-        if (value == 0) return;
+        if (value == 0) {
+            return;
+        }
 
         if (wrapping) {
             IWETH(wethAddress).deposit{value: value}();

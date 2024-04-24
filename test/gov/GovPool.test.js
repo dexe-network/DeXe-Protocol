@@ -709,7 +709,7 @@ describe("GovPool", () => {
 
         await truffleAssert.reverts(
           govPool.deposit(0, [1, 2, 3], { value: 1 }),
-          "GovUK: ether value is greater than amount",
+          "DecimalsConverter: conversion failed",
         );
 
         await switchWeth(0, weth.address);
