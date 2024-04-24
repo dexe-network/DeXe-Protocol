@@ -28,6 +28,8 @@ library TokenBalance {
         uint256 amount,
         TransferType transferType
     ) internal returns (uint256) {
+        if (amount == 0) return 0;
+
         uint256 balance = normThisBalance(token);
 
         require(balance >= amount || transferType == TransferType.TryMint, "Insufficient funds");
