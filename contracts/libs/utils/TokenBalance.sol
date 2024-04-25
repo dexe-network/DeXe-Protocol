@@ -28,6 +28,10 @@ library TokenBalance {
         uint256 amount,
         TransferType transferType
     ) internal returns (uint256) {
+        if (amount == 0) {
+            return 0;
+        }
+
         uint256 balance = normThisBalance(token);
 
         require(balance >= amount || transferType == TransferType.TryMint, "Insufficient funds");
@@ -57,7 +61,7 @@ library TokenBalance {
     }
 
     function sendFunds(IERC20 token, address receiver, uint256 amount) internal {
-        token.safeTransfer(receiver, amount.from18(address(token)));
+        token.safeTransfer(receiver, amount.from18Safe(address(token)));
     }
 
     function thisBalance(address token) internal view returns (uint256) {

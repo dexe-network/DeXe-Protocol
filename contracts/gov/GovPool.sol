@@ -163,11 +163,10 @@ contract GovPool is
         uint256[] calldata nftIds
     ) external payable override onlyBABTHolder {
         require(amount > 0 || nftIds.length > 0, "Gov: empty deposit");
-        _checkValue(amount);
 
         _lockBlock(DEPOSIT_WITHDRAW, msg.sender);
 
-        if (amount != 0) {
+        if (amount != 0 || msg.value != 0) {
             _govUserKeeper.depositTokens{value: msg.value}(msg.sender, msg.sender, amount);
         }
 
@@ -274,20 +273,20 @@ contract GovPool is
     ) external payable override onlyThis {
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
         require(getExpertStatus(delegatee), "Gov: delegatee is not an expert");
-        _checkValue(amount);
 
         _lockBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender);
 
         _unlock(delegatee);
 
-        if (amount != 0) {
+        if (amount != 0 || msg.value != 0) {
             address token = _govUserKeeper.tokenAddress();
+            uint256 amountWithNativeDecimals = _govUserKeeper.getAmountWithNativeDecimals(
+                msg.value,
+                amount
+            );
 
-            if (amount != msg.value) {
-                IERC20(token).safeTransfer(
-                    address(_govUserKeeper),
-                    (amount - msg.value).from18Safe(token)
-                );
+            if (amountWithNativeDecimals != 0) {
+                IERC20(token).safeTransfer(address(_govUserKeeper), amountWithNativeDecimals);
             }
 
             _govUserKeeper.delegateTokensTreasury{value: msg.value}(delegatee, amount);
@@ -629,9 +628,5 @@ contract GovPool is
                 IPoolRegistry(_poolRegistry).isGovPool(msg.sender),
             "Gov: not BABT holder"
         );
-    }
-
-    function _checkValue(uint256 amount) internal view {
-        require(msg.value <= amount, "Gov: value is greater than amount to transfer");
     }
 }

@@ -693,14 +693,26 @@ describe("GovPool", () => {
       });
 
       it("cant deposit ether if gov token is not native", async () => {
-        await truffleAssert.reverts(govPool.deposit(wei("100"), [], { value: 100 }), "GovUK: not native token pool");
+        await truffleAssert.reverts(
+          govPool.deposit(wei("100"), [], { value: 100 }),
+          "GovUK: should not send ether if Gov token is not native",
+        );
       });
 
       it("cant overdeposit ether", async () => {
+        await switchWeth(0, token.address);
+
         await truffleAssert.reverts(
           govPool.deposit(1, [1, 2, 3], { value: 2 }),
-          "Gov: value is greater than amount to transfer",
+          "GovUK: ether value is greater than amount",
         );
+
+        await truffleAssert.reverts(
+          govPool.deposit(0, [1, 2, 3], { value: 1 }),
+          "DecimalsConverter: conversion failed",
+        );
+
+        await switchWeth(0, weth.address);
       });
 
       it("could deposit ether", async () => {
@@ -3660,6 +3672,13 @@ describe("GovPool", () => {
             await truffleAssert.reverts(delegateTreasury(THIRD, "0", []), "Gov: empty delegation");
           });
 
+          it("should not delegate treasury if incorrect amount and value", async () => {
+            await truffleAssert.reverts(
+              delegateTreasury(THIRD, "0", [11], wei("1")),
+              "GovUK: should not send ether if Gov token is not native",
+            );
+          });
+
           it("should create proposal for delegateTreasury and undelegateTreasury", async () => {
             assert.equal((await token.balanceOf(THIRD)).toFixed(), "0");
             assert.equal((await nft.balanceOf(THIRD)).toFixed(), "0");
@@ -3757,7 +3776,7 @@ describe("GovPool", () => {
 
             await truffleAssert.reverts(
               delegateTreasury(THIRD, wei("100"), [], wei("200")),
-              "Gov: value is greater than amount to transfer",
+              "GovUK: ether value is greater than amount",
             );
 
             await delegateTreasury(THIRD, wei("100"), [], wei("100"));
@@ -5281,6 +5300,10 @@ describe("GovPool", () => {
           assert.equal((await CREDIT_TOKEN_1.balanceOf(SECOND)).toFixed(), "0");
 
           await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["1000"], SECOND, { from: VALIDATORS });
+
+          assert.equal((await CREDIT_TOKEN_1.balanceOf(SECOND)).toFixed(), "1000");
+
+          await govPool.transferCreditAmount([CREDIT_TOKEN_1.address], ["0"], SECOND, { from: VALIDATORS });
 
           assert.equal((await CREDIT_TOKEN_1.balanceOf(SECOND)).toFixed(), "1000");
         });

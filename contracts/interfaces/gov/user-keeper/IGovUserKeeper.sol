@@ -351,4 +351,13 @@ interface IGovUserKeeper {
         address delegator,
         address delegatee
     ) external view returns (uint256 delegatedPower);
+
+    /// @notice The function for getting the wrapped token amount, not covered by ether
+    /// @param value the ether value sent alongside the call
+    /// @param amount the total amount of wrapped ether with 18 decimals
+    /// @return nativeAmount the amount of wrapped ether with native decimals minus ether value
+    function getAmountWithNativeDecimals(
+        uint256 value,
+        uint256 amount
+    ) external view returns (uint256 nativeAmount);
 }
