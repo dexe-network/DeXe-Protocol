@@ -274,7 +274,7 @@ contract GovPool is
         require(amount > 0 || nftIds.length > 0, "Gov: empty delegation");
         require(getExpertStatus(delegatee), "Gov: delegatee is not an expert");
 
-        _lockBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender);
+        _lockBlock(DELEGATE_UNDELEGATE_TREASURY, delegatee);
 
         _unlock(delegatee);
 
@@ -339,7 +339,7 @@ contract GovPool is
     ) external override onlyThis {
         require(amount > 0 || nftIds.length > 0, "Gov: empty undelegation");
 
-        _checkBlock(DELEGATE_UNDELEGATE_TREASURY, msg.sender);
+        _checkBlock(DELEGATE_UNDELEGATE_TREASURY, delegatee);
 
         _unlock(delegatee);
 
