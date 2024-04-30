@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 interface INetworkProperties {
-    /// @notice Used to unwrap WEth out of SphereX contract
+    /// @notice Used to unwrap WEth out of SphereX-controlled beacon and return to the sender
     /// @param amount The amount to unwrap
     function unwrapWeth(uint256 amount) external;
 
