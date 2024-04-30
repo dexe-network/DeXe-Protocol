@@ -126,6 +126,7 @@ describe("DistributionProposal", () => {
     const _sphereXEngine = await SphereXEngineMock.new();
 
     await contractsRegistry.__MultiOwnableContractsRegistry_init();
+    await networkProperties.__NetworkProperties_init(WETH.address);
 
     await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
     await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), _sphereXEngine.address);

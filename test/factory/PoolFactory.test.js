@@ -151,6 +151,7 @@ describe("PoolFactory", () => {
     sphereXEngine = await SphereXEngine.new(0, OWNER);
 
     await contractsRegistry.__MultiOwnableContractsRegistry_init();
+    await networkProperties.__NetworkProperties_init(WETH.address);
 
     await sphereXEngine.grantRole(await sphereXEngine.SENDER_ADDER_ROLE(), contractsRegistry.address);
 

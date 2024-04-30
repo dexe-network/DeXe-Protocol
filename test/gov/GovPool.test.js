@@ -67,7 +67,7 @@ const ERC721RawPower = artifacts.require("ERC721RawPower");
 const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC20Mock = artifacts.require("ERC20Mock");
 const WethMock = artifacts.require("WETHMock");
-const BscProperties = artifacts.require("BSCProperties");
+const BscProperties = artifacts.require("NetworkPropertiesMock");
 const ERC20 = artifacts.require("ERC20");
 const BABTMock = artifacts.require("BABTMock");
 const ExecutorTransferMock = artifacts.require("ExecutorTransferMock");
@@ -145,6 +145,7 @@ describe("GovPool", () => {
 
   async function switchWeth(poolOffset, newWethAddress) {
     await contractsRegistry.addContract(await contractsRegistry.WETH_NAME(), newWethAddress);
+    await networkProperties.changeWeth(newWethAddress);
 
     await poolRegistry.injectDependenciesToExistingPools(await poolRegistry.GOV_POOL_NAME(), poolOffset, 1);
   }
@@ -254,6 +255,7 @@ describe("GovPool", () => {
     rewardToken = await ERC20Mock.new("REWARD", "RWD", 18);
 
     await contractsRegistry.__MultiOwnableContractsRegistry_init();
+    await networkProperties.__NetworkProperties_init(weth.address);
 
     await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
     await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
