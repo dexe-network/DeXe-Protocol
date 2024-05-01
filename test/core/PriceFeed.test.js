@@ -61,6 +61,7 @@ describe("PriceFeed", () => {
     const _sphereXEngine = await SphereXEngineMock.new();
 
     await contractsRegistry.__MultiOwnableContractsRegistry_init();
+    await networkProperties.__NetworkProperties_init(WETH.address);
 
     await contractsRegistry.addContract(await contractsRegistry.DEXE_NAME(), DEXE.address);
     await contractsRegistry.addContract(await contractsRegistry.USD_NAME(), USD.address);

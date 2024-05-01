@@ -18,7 +18,7 @@ const uniswap = {
   quoter: "0xbC203d7f83677c7ed3F7acEc959963E7F4ECC5C2",
 };
 
-const NETWORK_PROPERTIES = "0x35b3978fa2fA3cCC754e47cbD1D9956485A83736";
+const NETWORK_PROPERTIES = "";
 
 const DEXE_DAO_NAME = "DeXe Protocol";
 

@@ -15,10 +15,6 @@ const getConfig = () => {
     return require("./configs/dev-sepolia.conf.js");
   }
 
-  if (process.env.ENVIRONMENT == "DEV_MUMBAI") {
-    return require("./configs/dev-mumbai.conf.js");
-  }
-
   throw Error("No environment config specified");
 };
 
@@ -77,9 +73,26 @@ const getBytesDexeMultiplierInit = (multiplierName, multiplierSymbol) => {
   );
 };
 
+const getBytesNetworkPropertiesInit = (wethAddress) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      name: "__NetworkProperties_init",
+      type: "function",
+      inputs: [
+        {
+          type: "address",
+          name: "weth_",
+        },
+      ],
+    },
+    [wethAddress],
+  );
+};
+
 module.exports = {
   getConfig,
   getBytesPolynomialPowerInit,
   getBytesContractsRegistryInit,
   getBytesDexeMultiplierInit,
+  getBytesNetworkPropertiesInit,
 };

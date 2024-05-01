@@ -847,7 +847,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         if (wrapping) {
             IWETH(wethAddress).deposit{value: value}();
         } else {
-            IWETH(wethAddress).withdraw(value);
+            IWETH(wethAddress).transfer(networkPropertiesAddress, value);
+            INetworkProperties(networkPropertiesAddress).unwrapWeth(value);
         }
     }
 

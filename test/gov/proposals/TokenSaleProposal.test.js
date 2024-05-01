@@ -185,6 +185,7 @@ describe("TokenSaleProposal", () => {
     attacker = await GovTokenSaleAttackerMock.new();
 
     await contractsRegistry.__MultiOwnableContractsRegistry_init();
+    await networkProperties.__NetworkProperties_init(weth.address);
 
     await contractsRegistry.addContract(await contractsRegistry.SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
     await contractsRegistry.addContract(await contractsRegistry.POOL_SPHEREX_ENGINE_NAME(), _sphereXEngine.address);
