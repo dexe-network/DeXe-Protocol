@@ -77,9 +77,26 @@ const getBytesDexeMultiplierInit = (multiplierName, multiplierSymbol) => {
   );
 };
 
+const getBytesNetworkPropertiesInit = (wethAddress) => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      name: "__NetworkProperties_init",
+      type: "function",
+      inputs: [
+        {
+          type: "address",
+          name: "weth_",
+        },
+      ],
+    },
+    [wethAddress],
+  );
+};
+
 module.exports = {
   getConfig,
   getBytesPolynomialPowerInit,
   getBytesContractsRegistryInit,
   getBytesDexeMultiplierInit,
+  getBytesNetworkPropertiesInit,
 };
