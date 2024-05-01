@@ -1,8 +1,7 @@
 const { assert } = require("chai");
-const { toBN, accounts } = require("../../scripts/utils/utils");
+const { accounts } = require("../../scripts/utils/utils");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
-const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
 
 const ERC1967Proxy = artifacts.require("ERC1967Proxy");
 const NetworkProperties = artifacts.require("BSCProperties");
