@@ -66,6 +66,7 @@ const VotePowerMock = artifacts.require("VotePowerMock");
 const ERC721RawPower = artifacts.require("ERC721RawPower");
 const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const ERC20MockWithBadMint = artifacts.require("ERC20MockWithBadMint");
 const WethMock = artifacts.require("WETHMock");
 const BscProperties = artifacts.require("NetworkPropertiesMock");
 const ERC20 = artifacts.require("ERC20");
@@ -99,6 +100,7 @@ GovUserKeeper.numberFormat = "BigNumber";
 ERC721EnumMock.numberFormat = "BigNumber";
 ERC721Expert.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
+ERC20MockWithBadMint.numberFormat = "BigNumber";
 ERC20.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 WethMock.numberFormat = "BigNumber";
@@ -4506,6 +4508,41 @@ describe("GovPool", () => {
 
         assert.equal((await newToken.balanceOf(treasury)).toFixed(), wei("3.2"));
         assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("16"));
+      });
+
+      it("should send correct reward if mint neither revert nor mint", async () => {
+        newToken = await ERC20MockWithBadMint.new("NT", "NT", 18);
+
+        NEW_SETTINGS.rewardsInfo.rewardToken = newToken.address;
+
+        const bytes = getBytesEditSettings([1], [NEW_SETTINGS]);
+
+        await govPool.createProposal("example.com", [[settings.address, 0, bytes]], []);
+        await govPool.vote(1, true, wei("100000000000000000000"), [], { from: SECOND });
+
+        await govPool.moveProposalToValidators(1);
+        await validators.voteExternalProposal(1, wei("1000000000000"), true, { from: SECOND });
+
+        await govPool.execute(1);
+
+        await govPool.createProposal(
+          "example.com",
+
+          [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]],
+          [],
+        );
+        await govPool.vote(2, true, wei("1"), []);
+
+        assert.equal((await newToken.balanceOf(treasury)).toFixed(), "0");
+        assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("0"));
+
+        await executeAndClaim(2, OWNER);
+
+        // assert.equal((await newToken.balanceOf(treasury)).toFixed(), wei("3.2"));
+        // assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("16"));
+
+        assert.equal((await newToken.balanceOf(treasury)).toFixed(), wei("0"));
+        assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("0"));
       });
 
       describe("rewards with low pool balance", () => {
