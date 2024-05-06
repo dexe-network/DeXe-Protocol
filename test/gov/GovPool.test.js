@@ -4325,9 +4325,9 @@ describe("GovPool", () => {
         await govPool.moveProposalToValidators(1);
         await validators.voteExternalProposal(1, wei("1000000000000"), true, { from: SECOND });
 
-        await network.provider.send("hardhat_setBalance", [govPool.address, "0x" + wei("100")]);
-
         await govPool.execute(1);
+
+        await network.provider.send("hardhat_setBalance", [govPool.address, "0x" + toBN(wei("3.2")).toString(16)]);
 
         await govPool.createProposal("example.com", [[settings.address, 0, getBytesAddSettings([NEW_SETTINGS])]], []);
         await govPool.vote(2, true, wei("1"), []);
@@ -4350,6 +4350,16 @@ describe("GovPool", () => {
         assert.deepEqual(rewards.offchainRewards, []);
 
         let tx = await govPool.claimRewards([2], OWNER);
+
+        assert.equal(
+          await web3.eth.getBalance(OWNER),
+          balance.minus(toBN(tx.receipt.gasUsed).times(tx.receipt.effectiveGasPrice)).toFixed(),
+        );
+
+        await network.provider.send("hardhat_setBalance", [govPool.address, "0x" + wei("100")]);
+        balance = toBN(await web3.eth.getBalance(OWNER));
+
+        tx = await govPool.claimRewards([2], OWNER);
 
         assert.equal(
           await web3.eth.getBalance(OWNER),
