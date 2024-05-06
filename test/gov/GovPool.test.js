@@ -4548,9 +4548,6 @@ describe("GovPool", () => {
 
         await executeAndClaim(2, OWNER);
 
-        // assert.equal((await newToken.balanceOf(treasury)).toFixed(), wei("3.2"));
-        // assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("16"));
-
         assert.equal((await newToken.balanceOf(treasury)).toFixed(), wei("0"));
         assert.equal((await newToken.balanceOf(OWNER)).toFixed(), wei("0"));
       });
