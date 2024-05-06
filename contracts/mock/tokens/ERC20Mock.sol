@@ -20,7 +20,7 @@ contract ERC20Mock is ERC20 {
         return _decimals;
     }
 
-    function mint(address to, uint256 _amount) external {
+    function mint(address to, uint256 _amount) external virtual {
         require(_allowMint, "ERC20Mock: minting is off");
 
         _mint(to, _amount);

@@ -38,19 +38,25 @@ library TokenBalance {
 
         if (token == ETHEREUM_ADDRESS) {
             amount = amount.min(balance);
-            (bool status, ) = payable(receiver).call{value: amount}("");
 
-            require(status, "Failed to send eth");
+            if (amount > 0) {
+                (bool status, ) = payable(receiver).call{value: amount}("");
+                require(status, "Failed to send eth");
+            }
         } else {
             if (balance < amount) {
                 try
                     IERC20Gov(token).mint(address(this), (amount - balance).from18(token))
-                {} catch {
-                    amount = balance;
-                }
+                {} catch {}
+
+                amount = normThisBalance(token).min(amount);
             }
 
-            IERC20(token).safeTransfer(receiver, amount.from18(token));
+            uint256 amountWithDecimals = amount.from18(token);
+
+            if (amountWithDecimals > 0) {
+                IERC20(token).safeTransfer(receiver, amountWithDecimals);
+            }
         }
 
         return amount;
