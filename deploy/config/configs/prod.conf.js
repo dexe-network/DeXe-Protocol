@@ -3,7 +3,7 @@ const { wei } = require("../../../scripts/utils/utils.js");
 
 const { getBytesPolynomialPowerInit } = require("../utils.js");
 
-const owners = [];
+const owners = ["0x04130F8679394e3A8d55568F2189c3F3BF48ecbb"];
 
 const tokens = {
   DEXE: "0x6E88056E8376AE7709496BA64D37FA2F8015CE3E",
@@ -18,7 +18,7 @@ const uniswap = {
   quoter: "0xb048bbc1ee6b733fffcfb9e9cef7375518e25997",
 };
 
-const NETWORK_PROPERTIES = "";
+const NETWORK_PROPERTIES = "0xf1a47B630649a87ac521b13D3647cD72050d15c6";
 
 const DEXE_DAO_NAME = "DeXe Protocol";
 

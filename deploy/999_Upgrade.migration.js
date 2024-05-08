@@ -12,12 +12,12 @@ const TokenSaleProposal = artifacts.require("TokenSaleProposal");
 
 const contractsRegistryAddress = "0x46B46629B674b4C0b48B111DEeB0eAfd9F84A1c0";
 
-const contractsRegistryImplementationAddress = "0x181c9cc020aFc98d1D1d50dfE281c586A39AfbBB";
-const poolFactoryImplementationAddress = "0xFe97B4fA71B73C8e75Bb13bE34B1E4d0cEe8fB1A";
-const govPoolImplementationAddress = "0xBaDE4D8d8b3D93F7904c305964aBD098617553a2";
-const userKeeperImplementationAddress = "0xF88542C0DfEc822dc4F788D8b81fA50E79B0D1c1";
-const distributionImplementationAddress = "0xe6d2D0E65970c4362Faeb4A832393De1F6256E67";
-const tokenSaleImplementationAddress = "0x0CD3B582afDce232De54F87bb832d1e261aC0191";
+const contractsRegistryImplementationAddress = "0x3B4a1CD362ba5dCEd8C06FD723f2487FE9AE6f63";
+const poolFactoryImplementationAddress = "0x752eEbb4b0a40DB2F51de1f7B27Ac1a8921A2721";
+const govPoolImplementationAddress = "0xc4aE9E07e4D78fC588D32Ca7736C9Ab8D8d6ef7A";
+const userKeeperImplementationAddress = "0x372Cb8375F63444cD06F98f8f0b6073Be464D43C";
+const distributionImplementationAddress = "0xa104915E5729681075E308F8bB133213C839fe93";
+const tokenSaleImplementationAddress = "0xd6FF3566ddF1Ef2431e2f61Df1545C2AD570a69f";
 
 module.exports = async (deployer) => {
   const contractsRegistry = await ContractsRegistry.at(contractsRegistryAddress);

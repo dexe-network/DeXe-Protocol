@@ -26,10 +26,10 @@ module.exports = async (deployer) => {
   await networkProperties.addOwners(owners);
   await networkProperties.renounceOwnership();
 
-  await deployer.deploy(ContractsRegistry); //
-  await deployer.deploy(PoolFactory); //
-  await deployer.deploy(GovPool); //
-  await deployer.deploy(GovUserKeeper); //
-  await deployer.deploy(DistributionProposal); //
-  await deployer.deploy(TokenSaleProposal); //
+  await deployer.deploy(ContractsRegistry); // 0x3B4a1CD362ba5dCEd8C06FD723f2487FE9AE6f63
+  await deployer.deploy(PoolFactory); // 0x752eEbb4b0a40DB2F51de1f7B27Ac1a8921A2721
+  await deployer.deploy(GovPool); // 0xc4aE9E07e4D78fC588D32Ca7736C9Ab8D8d6ef7A
+  await deployer.deploy(GovUserKeeper); // 0x372Cb8375F63444cD06F98f8f0b6073Be464D43C
+  await deployer.deploy(DistributionProposal); // 0xa104915E5729681075E308F8bB133213C839fe93
+  await deployer.deploy(TokenSaleProposal); // 0xd6FF3566ddF1Ef2431e2f61Df1545C2AD570a69f
 };
