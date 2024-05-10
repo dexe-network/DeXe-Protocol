@@ -10,8 +10,8 @@ import "../../interfaces/core/INetworkProperties.sol";
 
 import "./NetworkProperties.sol";
 
-contract BSCProperties is NetworkProperties {
-    uint256 private constant BNB_SUPPLY = 150_000_000 * 10 ** 18;
+contract DevProperties is NetworkProperties {
+    uint256 private constant BNB_SUPPLY = 100 * 10 ** 18;
 
     function getNativeSupply() external view override returns (uint256) {
         return BNB_SUPPLY;

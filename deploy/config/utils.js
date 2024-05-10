@@ -11,6 +11,10 @@ const getConfig = () => {
     return require("./configs/dev.conf.js");
   }
 
+  if (process.env.ENVIRONMENT == "STAGE_SEPOLIA") {
+    return require("./configs/stage-sepolia.conf.js");
+  }
+
   if (process.env.ENVIRONMENT == "DEV_SEPOLIA") {
     return require("./configs/dev-sepolia.conf.js");
   }
