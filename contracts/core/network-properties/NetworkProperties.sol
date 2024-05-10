@@ -9,8 +9,6 @@ import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "../../interfaces/core/INetworkProperties.sol";
 
 abstract contract NetworkProperties is INetworkProperties, MultiOwnable, UUPSUpgradeable {
-    uint256 private constant BNB_SUPPLY = 150_000_000 * 10 ** 18;
-
     IWETH public weth;
 
     function __NetworkProperties_init(address weth_) external initializer {
