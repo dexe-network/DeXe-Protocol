@@ -3,10 +3,10 @@ pragma solidity ^0.8.20;
 
 import "./NetworkProperties.sol";
 
-contract BSCProperties is NetworkProperties {
-    uint256 private constant BNB_SUPPLY = 150_000_000 * 10 ** 18;
+contract ETHProperties is NetworkProperties {
+    uint256 private constant ETH_SUPPLY = 120_000_000 * 10 ** 18;
 
     function getNativeSupply() external view override returns (uint256) {
-        return BNB_SUPPLY;
+        return ETH_SUPPLY;
     }
 }
