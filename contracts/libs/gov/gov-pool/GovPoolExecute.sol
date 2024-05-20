@@ -77,21 +77,17 @@ library GovPoolExecute {
     }
 
     function tryExecute(IGovPool.ProposalAction[] calldata actions) external {
-        bool success;
         uint256 length = actions.length;
+
         for (uint256 i = 0; i < length; i++) {
-            (success, ) = actions[i].executor.call{value: actions[i].value}(actions[i].data);
+            (bool success, ) = actions[i].executor.call{value: actions[i].value}(actions[i].data);
 
             if (!success) {
-                break;
+                _throwRevert(false);
             }
         }
 
-        bytes memory result = abi.encode(success);
-
-        assembly {
-            revert(add(result, 32), 32)
-        }
+        _throwRevert(true);
     }
 
     function _proposalActionsResult(
@@ -110,5 +106,13 @@ library GovPoolExecute {
                 core.settings.rewardsInfo.voteRewardsCoefficient,
                 PRECISION
             );
+    }
+
+    function _throwRevert(bool success) internal pure {
+        bytes memory result = abi.encode(success);
+
+        assembly {
+            revert(add(result, 32), 32)
+        }
     }
 }

@@ -3322,7 +3322,7 @@ describe("GovPool", () => {
         await govPool.deposit(wei("100000000000000000000"), [], { from: SECOND });
       });
 
-      describe.only("tryExecute()", () => {
+      describe("tryExecute()", () => {
         it("true on success", async () => {
           assert.isTrue(
             await govPool.tryExecute.call([
