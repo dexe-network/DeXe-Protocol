@@ -19,6 +19,10 @@ const getConfig = () => {
     return require("./configs/dev-sepolia.conf.js");
   }
 
+  if (process.env.ENVIRONMENT == "DEV_AMOY") {
+    return require("./configs/dev-amoy.conf.js");
+  }
+
   throw Error("No environment config specified");
 };
 

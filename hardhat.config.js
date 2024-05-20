@@ -47,6 +47,11 @@ module.exports = {
       gasPrice: 6000000000,
       timeout: 600000,
     },
+    amoy: {
+      url: "https://rpc-amoy.polygon.technology",
+      accounts: privateKey(),
+      gasMultiplier: 1.2,
+    },
     bsc: {
       url: "https://bsc-dataseed.binance.org/",
       accounts: privateKey(),
@@ -75,7 +80,18 @@ module.exports = {
       sepolia: `${process.env.ETHERSCAN_KEY}`,
       bsc: `${process.env.BSCSCAN_KEY}`,
       bscTestnet: `${process.env.BSCSCAN_KEY}`,
+      polygonAmoy: `${process.env.POLYGONSCAN_KEY}`,
     },
+    customChains: [
+      {
+        network: "polygonAmoy",
+        chainId: 80002,
+        urls: {
+          apiURL: "https://api-amoy.polygonscan.com/api",
+          browserURL: "https://amoy.polygonscan.com",
+        },
+      },
+    ],
   },
   migrate: {
     pathToMigrations: "./deploy/",
