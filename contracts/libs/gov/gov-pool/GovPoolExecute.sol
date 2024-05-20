@@ -76,6 +76,24 @@ library GovPoolExecute {
         core.settings.rewardsInfo.rewardToken.payCommission(_getCommission(core));
     }
 
+    function tryExecute(IGovPool.ProposalAction[] calldata actions) external {
+        bool success;
+        uint256 length = actions.length;
+        for (uint256 i = 0; i < length; i++) {
+            (success, ) = actions[i].executor.call{value: actions[i].value}(actions[i].data);
+
+            if (!success) {
+                break;
+            }
+        }
+
+        bytes memory result = abi.encode(success);
+
+        assembly {
+            revert(result, 32)
+        }
+    }
+
     function _proposalActionsResult(
         IGovPool.Proposal storage proposal
     ) internal view returns (IGovPool.ProposalAction[] storage) {
