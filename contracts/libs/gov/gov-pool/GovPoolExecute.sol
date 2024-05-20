@@ -90,7 +90,7 @@ library GovPoolExecute {
         bytes memory result = abi.encode(success);
 
         assembly {
-            revert(result, 32)
+            revert(add(result, 32), 32)
         }
     }
 
