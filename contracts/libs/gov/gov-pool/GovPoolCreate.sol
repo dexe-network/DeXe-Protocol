@@ -207,7 +207,7 @@ library GovPoolCreate {
         address executor,
         IGovPool.ProposalAction[] calldata actionsFor
     ) internal view {
-        (bool ok, bytes memory data) = executor.staticcall(
+        (bool ok, bytes memory data) = executor.staticcall{gas: 100000}(
             abi.encodeWithSelector(IProposalValidator.validate.selector, actionsFor)
         );
 

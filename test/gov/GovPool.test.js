@@ -962,6 +962,10 @@ describe("GovPool", () => {
         );
       });
 
+      it("should successfully call validate on non-view function", async () => {
+        await govPool.createProposal("example.com", [[weth.address, 0, getBytesApprove(weth.address, 1)]], []);
+      });
+
       it("should create 2 proposals", async () => {
         await govPool.createProposal("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []);
 
