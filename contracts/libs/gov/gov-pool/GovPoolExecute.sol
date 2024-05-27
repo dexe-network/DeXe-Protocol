@@ -76,6 +76,20 @@ library GovPoolExecute {
         core.settings.rewardsInfo.rewardToken.payCommission(_getCommission(core));
     }
 
+    function tryExecute(IGovPool.ProposalAction[] calldata actions) external {
+        uint256 length = actions.length;
+
+        for (uint256 i = 0; i < length; i++) {
+            (bool success, ) = actions[i].executor.call{value: actions[i].value}(actions[i].data);
+
+            if (!success) {
+                _throwRevert(false);
+            }
+        }
+
+        _throwRevert(true);
+    }
+
     function _proposalActionsResult(
         IGovPool.Proposal storage proposal
     ) internal view returns (IGovPool.ProposalAction[] storage) {
@@ -92,5 +106,13 @@ library GovPoolExecute {
                 core.settings.rewardsInfo.voteRewardsCoefficient,
                 PRECISION
             );
+    }
+
+    function _throwRevert(bool success) internal pure {
+        bytes memory result = abi.encode(success);
+
+        assembly {
+            revert(add(result, 32), 32)
+        }
     }
 }

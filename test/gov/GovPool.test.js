@@ -71,6 +71,7 @@ const WethMock = artifacts.require("WETHMock");
 const BscProperties = artifacts.require("NetworkPropertiesMock");
 const ERC20 = artifacts.require("ERC20");
 const BABTMock = artifacts.require("BABTMock");
+const ExecutorMock = artifacts.require("ExecutorMock");
 const ExecutorTransferMock = artifacts.require("ExecutorTransferMock");
 const BigReturnValueMock = artifacts.require("BigReturnValueMock");
 const GovPoolAttackerMock = artifacts.require("GovPoolAttackerMock");
@@ -255,6 +256,7 @@ describe("GovPool", () => {
     const _sphereXEngine = await SphereXEngineMock.new();
     nftPower = await ERC721RawPower.new();
     rewardToken = await ERC20Mock.new("REWARD", "RWD", 18);
+    mockExecutor = await ExecutorMock.new();
 
     await contractsRegistry.__MultiOwnableContractsRegistry_init();
     await networkProperties.__NetworkProperties_init(weth.address);
@@ -3318,6 +3320,55 @@ describe("GovPool", () => {
 
         await govPool.deposit(wei("1000"), []);
         await govPool.deposit(wei("100000000000000000000"), [], { from: SECOND });
+      });
+
+      describe("tryExecute()", () => {
+        it("true on success", async () => {
+          assert.isTrue(
+            await govPool.tryExecute.call([
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000001"],
+            ]),
+          );
+
+          assert.isTrue(
+            await govPool.tryExecute.call([
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000001"],
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000001"],
+            ]),
+          );
+        });
+
+        it("false on revert", async () => {
+          assert.isFalse(
+            await govPool.tryExecute.call([
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000000"],
+            ]),
+          );
+
+          assert.isFalse(
+            await govPool.tryExecute.call([
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000000"],
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000001"],
+            ]),
+          );
+
+          assert.isFalse(
+            await govPool.tryExecute.call([
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000001"],
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000000"],
+            ]),
+          );
+        });
+
+        it("does not change state on success", async () => {
+          assert.isFalse(await mockExecutor.stateFlag());
+
+          await govPool.tryExecute([
+            [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000001"],
+          ]);
+
+          assert.isFalse(await mockExecutor.stateFlag());
+        });
       });
 
       it("should add new settings", async () => {
