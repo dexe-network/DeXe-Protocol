@@ -33,6 +33,7 @@
     "deploy-sepolia": "npx hardhat migrate --network sepolia --verify",
     "deploy-amoy": "npx hardhat migrate --network amoy --verify",
     "deploy-chapel": "npx hardhat migrate --network chapel --verify",
+    "deploy-sepolia-optimism": "npx hardhat migrate --network sepoliaOptimism --verify",
     "deploy-eth": "npx hardhat migrate --network ethereum --verify",
     "deploy-bsc": "npx hardhat migrate --network bsc --verify",
     "generate-types": "TYPECHAIN_FORCE=true npx hardhat typechain",
