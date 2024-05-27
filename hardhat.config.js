@@ -40,6 +40,11 @@ module.exports = {
       accounts: privateKey(),
       gasMultiplier: 1.2,
     },
+    sepoliaOptimism: {
+      url: `https://optimism-sepolia.blockpi.network/v1/rpc/public`,
+      accounts: privateKey(),
+      gasMultiplier: 1.2,
+    },
     chapel: {
       url: "https://data-seed-prebsc-1-s1.binance.org:8545",
       accounts: privateKey(),
@@ -81,6 +86,7 @@ module.exports = {
       bsc: `${process.env.BSCSCAN_KEY}`,
       bscTestnet: `${process.env.BSCSCAN_KEY}`,
       polygonAmoy: `${process.env.POLYGONSCAN_KEY}`,
+      sepoliaOptimism: `${process.env.OPTIMISM_KEY}`,
     },
     customChains: [
       {
@@ -89,6 +95,14 @@ module.exports = {
         urls: {
           apiURL: "https://api-amoy.polygonscan.com/api",
           browserURL: "https://amoy.polygonscan.com",
+        },
+      },
+      {
+        network: "sepoliaOptimism",
+        chainId: 11155420,
+        urls: {
+          apiURL: "https://api-sepolia-optimistic.etherscan.io/api",
+          browserURL: "https://api-sepolia-optimistic.etherscan.io",
         },
       },
     ],

@@ -23,6 +23,10 @@ const getConfig = () => {
     return require("./configs/dev-amoy.conf.js");
   }
 
+  if (process.env.ENVIRONMENT == "DEV_OPTIMISM") {
+    return require("./configs/dev-optimism.conf.js");
+  }
+
   throw Error("No environment config specified");
 };
 
