@@ -57,11 +57,6 @@ module.exports = {
       accounts: privateKey(),
       gasMultiplier: 1.2,
     },
-    sepoliaOptimism: {
-      url: "https://optimism-sepolia.blockpi.network/v1/rpc/public",
-      accounts: privateKey(),
-      gasMultiplier: 1.2,
-    },
     bsc: {
       url: "https://bsc-dataseed.binance.org/",
       accounts: privateKey(),
