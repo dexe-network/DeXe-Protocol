@@ -159,7 +159,9 @@ contract GovPool is
     }
 
     function tryExecute(ProposalAction[] calldata actions) external returns (bool) {
-        try actions.tryExecute() {} catch (bytes memory reason) {
+        try actions.tryExecute() {
+            revert();
+        } catch (bytes memory reason) {
             return abi.decode(reason, (bool));
         }
     }
