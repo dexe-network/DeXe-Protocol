@@ -90,6 +90,8 @@ const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
 const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
 const SphereXEngineMock = artifacts.require("SphereXEngineMock");
 
+let govPoolExecuteLib;
+
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
@@ -216,7 +218,7 @@ describe("GovPool", () => {
     await GovUserKeeper.link(govUserKeeperViewLib);
 
     const govPoolCreateLib = await GovPoolCreateLib.new();
-    const govPoolExecuteLib = await GovPoolExecuteLib.new();
+    govPoolExecuteLib = await GovPoolExecuteLib.new();
     const govPoolMicropoolLib = await GovPoolMicropoolLib.new();
     const govPoolRewardsLib = await GovPoolRewardsLib.new();
     const govPoolUnlockLib = await GovPoolUnlockLib.new();
@@ -3372,6 +3374,22 @@ describe("GovPool", () => {
           ]);
 
           assert.isFalse(await mockExecutor.stateFlag());
+        });
+
+        it("will revert if ever return from tryExecute lib with no revert", async () => {
+          const GovPoolExecuteMockLib = artifacts.require("GovPoolExecuteMock");
+
+          await hre.network.provider.request({
+            method: "hardhat_setCode",
+            params: [govPoolExecuteLib.address, GovPoolExecuteMockLib._hArtifact.deployedBytecode],
+          });
+
+          await truffleAssert.reverts(
+            govPool.tryExecute([
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000001"],
+            ]),
+            "",
+          );
         });
       });
 

@@ -3,18 +3,18 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "../../../interfaces/gov/IGovPool.sol";
-import "../../../interfaces/gov/settings/IGovSettings.sol";
-import "../../../interfaces/gov/validators/IGovValidators.sol";
+import "../../interfaces/gov/IGovPool.sol";
+import "../../interfaces/gov/settings/IGovSettings.sol";
+import "../../interfaces/gov/validators/IGovValidators.sol";
 
-import "../../utils/DataHelper.sol";
-import "../../math/MathHelper.sol";
-import "../../utils/TokenBalance.sol";
-import "./GovPoolCommission.sol";
+import "../../libs/utils/DataHelper.sol";
+import "../../libs/math/MathHelper.sol";
+import "../../libs/utils/TokenBalance.sol";
+import "../../libs/gov/gov-pool/GovPoolCommission.sol";
 
-import "../../../gov/GovPool.sol";
+import "../../gov/GovPool.sol";
 
-library GovPoolExecute {
+library GovPoolExecuteMock {
     using DataHelper for bytes;
     using MathHelper for uint256;
     using Math for uint256;
@@ -77,17 +77,7 @@ library GovPoolExecute {
     }
 
     function tryExecute(IGovPool.ProposalAction[] calldata actions) external {
-        uint256 length = actions.length;
-
-        for (uint256 i = 0; i < length; i++) {
-            (bool success, ) = actions[i].executor.call{value: actions[i].value}(actions[i].data);
-
-            if (!success) {
-                _throwRevert(false);
-            }
-        }
-
-        _throwRevert(true);
+        return;
     }
 
     function _proposalActionsResult(
