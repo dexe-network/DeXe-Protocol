@@ -374,6 +374,12 @@ library GovPoolVote {
             ) >= core.settings.quorum;
     }
 
+    function _quorumWasReachedAndNotUnreached(
+        IGovPool.ProposalCore storage core
+    ) internal view returns (bool) {
+        return core.executeAfter != 0;
+    }
+
     function _calculateVotes(
         EnumerableSet.UintSet storage treasuryExemptProposals,
         uint256 proposalId,
