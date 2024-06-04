@@ -90,7 +90,7 @@ library GovPoolView {
         }
 
         if (core.settings.earlyCompletion || voteEnd < block.timestamp) {
-            if (core._quorumWasReachedAndNotUnreached()) {
+            if (core._quorumReachedThroughVoting()) {
                 if (
                     !_votesForMoreThanAgainst(core) &&
                     proposals[proposalId].actionsOnAgainst.length == 0
