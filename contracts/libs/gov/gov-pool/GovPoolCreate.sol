@@ -292,11 +292,33 @@ library GovPoolCreate {
             return false;
         }
 
+        _restrictInternalAndValidatorsFunctions(govSettings, actions);
+
         if (settingsId == uint256(IGovSettings.ExecutorType.DEFAULT)) {
             return false;
         }
 
         return _handleDataForExistingSettingsProposal(govSettings, settingsId, actions);
+    }
+
+    function _restrictInternalAndValidatorsFunctions(
+        IGovSettings govSettings,
+        IGovPool.ProposalAction[] calldata actions
+    ) internal view {
+        for (uint256 i; i < actions.length - 1; i++) {
+            IGovPool.ProposalAction calldata action = actions[i];
+
+            uint256 executorSettings = govSettings.executorToSettings(action.executor);
+
+            bool noBannedInternalCalls = executorSettings !=
+                uint256(IGovSettings.ExecutorType.INTERNAL) ||
+                _verifyInternalFunctions(actions[i]);
+            bool noBannedValidatorCalls = executorSettings !=
+                uint256(IGovSettings.ExecutorType.VALIDATORS) ||
+                _verifyValidatorBalanceFunction(actions[i]);
+
+            require(noBannedInternalCalls && noBannedValidatorCalls, "Gov: invalid internal data");
+        }
     }
 
     function _handleDataForExistingSettingsProposal(

@@ -1634,6 +1634,13 @@ describe("GovPool", () => {
             "Gov: invalid internal data",
           );
         });
+
+        it("should revert when creating validator proposal with wrong function", async () => {
+          await truffleAssert.reverts(
+            govPool.createProposal("example.com", [[validators.address, 0, getBytesTransfer(THIRD, wei("10"))]], []),
+            "Gov: invalid internal data",
+          );
+        });
       });
 
       describe("internal", () => {
@@ -1669,6 +1676,43 @@ describe("GovPool", () => {
               [],
             ),
             "Created",
+          );
+        });
+
+        it("should revert when creating internal proposal with wrong function", async () => {
+          await truffleAssert.reverts(
+            govPool.createProposal("example.com", [[settings.address, 0, getBytesTransfer(THIRD, wei("1"))]], []),
+            "Gov: invalid internal data",
+          );
+        });
+      });
+
+      describe("default and custom", () => {
+        it("should revert when creating default proposal with banned internal function", async () => {
+          await truffleAssert.reverts(
+            govPool.createProposal(
+              "example.com",
+              [
+                [settings.address, 0, getBytesTransfer(THIRD, wei("1"))],
+                [token.address, 0, getBytesTransfer(THIRD, wei("1"))],
+              ],
+              [],
+            ),
+            "Gov: invalid internal data",
+          );
+        });
+
+        it("should revert when creating default proposal with banned validators function", async () => {
+          await truffleAssert.reverts(
+            govPool.createProposal(
+              "example.com",
+              [
+                [validators.address, 0, getBytesTransfer(THIRD, wei("1"))],
+                [token.address, 0, getBytesTransfer(THIRD, wei("1"))],
+              ],
+              [],
+            ),
+            "Gov: invalid internal data",
           );
         });
       });
