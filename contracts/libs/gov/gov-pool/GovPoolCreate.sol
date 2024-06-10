@@ -242,34 +242,38 @@ library GovPoolCreate {
         IGovPool.ProposalAction[] calldata actions
     ) internal view {
         for (uint256 i; i < actions.length; i++) {
-            bytes4 selector = actions[i].data.getSelector();
             uint256 executorSettings = govSettings.executorToSettings(actions[i].executor);
 
-            if (actions[i].value != 0) {
-                require(
-                    executorSettings == uint256(IGovSettings.ExecutorType.INTERNAL) &&
-                        selector == IGovPool.delegateTreasury.selector,
-                    "Gov: invalid internal data"
-                );
-            } else {
-                require(
-                    executorSettings == uint256(IGovSettings.ExecutorType.INTERNAL) &&
-                        (selector == IGovSettings.addSettings.selector ||
-                            selector == IGovSettings.editSettings.selector ||
-                            selector == IGovSettings.changeExecutors.selector ||
-                            selector == IGovUserKeeper.setERC20Address.selector ||
-                            selector == IGovUserKeeper.setERC721Address.selector ||
-                            selector == IGovPool.changeVotePower.selector ||
-                            selector == IGovPool.editDescriptionURL.selector ||
-                            selector == IGovPool.setNftMultiplierAddress.selector ||
-                            selector == IGovPool.changeVerifier.selector ||
-                            selector == IGovPool.delegateTreasury.selector ||
-                            selector == IGovPool.undelegateTreasury.selector ||
-                            selector == IGovPool.changeBABTRestriction.selector ||
-                            selector == IGovPool.setCreditInfo.selector),
-                    "Gov: invalid internal data"
-                );
-            }
+            require(
+                executorSettings == uint256(IGovSettings.ExecutorType.INTERNAL) &&
+                    _verifyInternalFunctions(actions[i]),
+                "Gov: invalid internal data"
+            );
+        }
+    }
+
+    function _verifyInternalFunctions(
+        IGovPool.ProposalAction calldata action
+    ) internal pure returns (bool) {
+        bytes4 selector = action.data.getSelector();
+
+        if (action.value != 0) {
+            return selector == IGovPool.delegateTreasury.selector;
+        } else {
+            return
+                selector == IGovSettings.addSettings.selector ||
+                selector == IGovSettings.editSettings.selector ||
+                selector == IGovSettings.changeExecutors.selector ||
+                selector == IGovUserKeeper.setERC20Address.selector ||
+                selector == IGovUserKeeper.setERC721Address.selector ||
+                selector == IGovPool.changeVotePower.selector ||
+                selector == IGovPool.editDescriptionURL.selector ||
+                selector == IGovPool.setNftMultiplierAddress.selector ||
+                selector == IGovPool.changeVerifier.selector ||
+                selector == IGovPool.delegateTreasury.selector ||
+                selector == IGovPool.undelegateTreasury.selector ||
+                selector == IGovPool.changeBABTRestriction.selector ||
+                selector == IGovPool.setCreditInfo.selector;
         }
     }
 
@@ -482,13 +486,16 @@ library GovPoolCreate {
         require(actions.length == 1, "Gov: invalid executors length");
 
         for (uint256 i; i < actions.length; i++) {
-            bytes4 selector = actions[i].data.getSelector();
-
-            require(
-                actions[i].value == 0 && (selector == IGovValidators.changeBalances.selector),
-                "Gov: invalid internal data"
-            );
+            require(_verifyValidatorBalanceFunction(actions[i]), "Gov: invalid internal data");
         }
+    }
+
+    function _verifyValidatorBalanceFunction(
+        IGovPool.ProposalAction calldata action
+    ) internal pure returns (bool) {
+        bytes4 selector = action.data.getSelector();
+
+        return action.value == 0 && (selector == IGovValidators.changeBalances.selector);
     }
 
     function _decodeVoteFunction(
