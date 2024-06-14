@@ -27,6 +27,10 @@ const getConfig = () => {
     return require("./configs/dev-optimism.conf.js");
   }
 
+  if (process.env.ENVIRONMENT == "DEV_BASE") {
+    return require("./configs/dev-base.conf.js");
+  }
+
   throw Error("No environment config specified");
 };
 

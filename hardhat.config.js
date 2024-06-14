@@ -45,6 +45,11 @@ module.exports = {
       accounts: privateKey(),
       gasMultiplier: 1.2,
     },
+    sepoliaBase: {
+      url: `https://base-sepolia-rpc.publicnode.com`,
+      accounts: privateKey(),
+      gasMultiplier: 1.2,
+    },
     chapel: {
       url: "https://data-seed-prebsc-1-s1.binance.org:8545",
       accounts: privateKey(),
