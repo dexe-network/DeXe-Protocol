@@ -92,6 +92,7 @@ module.exports = {
       bscTestnet: `${process.env.BSCSCAN_KEY}`,
       polygonAmoy: `${process.env.POLYGONSCAN_KEY}`,
       sepoliaOptimism: `${process.env.OPTIMISM_KEY}`,
+      sepoliaBase: `${process.env.BASE_KEY}`,
     },
     customChains: [
       {
@@ -108,6 +109,14 @@ module.exports = {
         urls: {
           apiURL: "https://api-sepolia-optimistic.etherscan.io/api",
           browserURL: "https://api-sepolia-optimistic.etherscan.io",
+        },
+      },
+      {
+        network: "sepoliaBase",
+        chainId: 84532,
+        urls: {
+          apiURL: "https://api-sepolia.basescan.org/api",
+          browserURL: "https://api-sepolia.basescan.org/api",
         },
       },
     ],

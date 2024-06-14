@@ -10,16 +10,16 @@ const owners = [
 ];
 
 const tokens = {
-  DEXE: "",
-  BUSD: "",
-  USDT: "",
+  DEXE: "0xDCf1A196f6468353980CfbFEe2BEd415c3bb73d9",
+  BUSD: "0x7132a08Cadb46a5F10b2f77047376FdA1CF06F67",
+  USDT: "0xA619986A4c4a35D0B42541C080E2Ae529Edff2f3",
   BABT: "0x0000000000000000000000000000000000000000",
-  WBNB: "",
+  WBNB: "0x4200000000000000000000000000000000000006",
 };
 
 const uniswap = {
   router: "",
-  quoter: "",
+  quoter: "0xC5290058841028F1614F3A6F0F5816cAd0df5E27",
 };
 
 const NETWORK_PROPERTIES = "";
@@ -37,9 +37,8 @@ const DEFAULT_CORE_PROPERTIES = {
 };
 
 const DEFAULT_POOL_TYPES = [
-  ["0", uniswap.router, "0"],
   ["1", uniswap.quoter, "500"],
-  ["1", uniswap.quoter, "2500"],
+  ["1", uniswap.quoter, "3000"],
   ["1", uniswap.quoter, "10000"],
 ];
 
