@@ -19,6 +19,15 @@ contract TokenAllocator {
         EnumerableSet.AddressSet claimed;
     }
 
+    struct AllocationInfoView {
+        uint256 id;
+        bool isClosed;
+        address allocator;
+        address token;
+        uint256 currentBalance;
+        bytes32 merkleRoot;
+    }
+
     uint256 public lastAllocationId;
     mapping(uint256 => AllocationData) internal _allocationInfos;
 
@@ -29,6 +38,7 @@ contract TokenAllocator {
         uint256 amount,
         bytes32 merkleRoot
     );
+    event AllocationClosed(uint256 id, address token, uint256 amountReturned);
     event TokenClaimed(
         address allocator,
         address token,
@@ -37,9 +47,14 @@ contract TokenAllocator {
         uint256 amount
     );
 
+    modifier withCorrectId(uint256 id) {
+        require(id <= lastAllocationId, "TA: invalid allocation id");
+        _;
+    }
+
     function createAllocation(address token, uint256 amount, bytes32 merkleRoot) external {
-        uint256 id = lastAllocationId;
         lastAllocationId++;
+        uint256 id = lastAllocationId;
 
         AllocationData storage allocationInfo = _allocationInfos[id];
 
@@ -60,9 +75,29 @@ contract TokenAllocator {
         emit AllocationCreated(id, allocator, token, amount, merkleRoot);
     }
 
-    function claim(uint256 id, uint256 amount, bytes32[] calldata proof) external {
-        require(id <= lastAllocationId, "TA: invalid allocation id");
+    function closeAllocation(uint256 id) external withCorrectId(id) {
+        AllocationData storage allocation = _allocationInfos[id];
 
+        address allocator = allocation.allocator;
+        require(allocator == msg.sender, "TA: wrong allocator");
+        require(!allocation.isClosed, "TA: already closed");
+
+        allocation.isClosed = true;
+
+        address token = allocation.token;
+        uint256 balance = allocation.amountToAllocate;
+        if (balance > 0) {
+            IERC20(token).safeTransfer(allocator, balance);
+        }
+
+        emit AllocationClosed(id, token, balance);
+    }
+
+    function claim(
+        uint256 id,
+        uint256 amount,
+        bytes32[] calldata proof
+    ) external withCorrectId(id) {
         AllocationData storage allocationInfo = _allocationInfos[id];
 
         require(!allocationInfo.isClosed, "TA: allocation is closed");
@@ -81,5 +116,20 @@ contract TokenAllocator {
         IERC20(token).safeTransfer(user, amount);
 
         emit TokenClaimed(allocationInfo.allocator, token, merkleRoot, user, amount);
+    }
+
+    function getAllocationInfo(
+        uint256 id
+    ) external view withCorrectId(id) returns (AllocationInfoView memory allocationInfo) {
+        AllocationData storage allocation = _allocationInfos[id];
+
+        allocationInfo = AllocationInfoView(
+            id,
+            allocation.isClosed,
+            allocation.allocator,
+            allocation.token,
+            allocation.amountToAllocate,
+            allocation.merkleRoot
+        );
     }
 }
