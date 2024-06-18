@@ -3,22 +3,32 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 contract TokenAllocator {
     using MerkleProof for *;
     using SafeERC20 for IERC20;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     struct AllocationData {
-        bool initialized;
-        uint256 balance;
-        mapping(address => bool) isClaimed;
+        bool isClosed;
+        address allocator;
+        address token;
+        uint256 amountToAllocate;
+        bytes32 merkleRoot;
+        EnumerableSet.AddressSet claimed;
     }
 
-    mapping(address => mapping(address => bytes32)) public merkleRoots;
-    mapping(address => mapping(address => mapping(bytes32 => AllocationData)))
-        internal _allocationInfos;
+    uint256 public lastAllocationId;
+    mapping(uint256 => AllocationData) internal _allocationInfos;
 
-    event AllocationCreated(address allocator, address token, uint256 amount, bytes32 merkleRoot);
+    event AllocationCreated(
+        uint256 id,
+        address allocator,
+        address token,
+        uint256 amount,
+        bytes32 merkleRoot
+    );
     event TokenClaimed(
         address allocator,
         address token,
@@ -28,40 +38,48 @@ contract TokenAllocator {
     );
 
     function createAllocation(address token, uint256 amount, bytes32 merkleRoot) external {
+        uint256 id = lastAllocationId;
+        lastAllocationId++;
+
+        AllocationData storage allocationInfo = _allocationInfos[id];
+
+        require(token != address(0), "TA: Zero token address");
+        allocationInfo.token = token;
+
+        require(amount > 0, "TA: Zero ammount to allocate");
+        allocationInfo.amountToAllocate = amount;
+
+        require(merkleRoot != bytes32(0), "TA: Zero Merkle root");
+        allocationInfo.merkleRoot = merkleRoot;
+
         address allocator = msg.sender;
-
-        require(
-            !_allocationInfos[allocator][token][merkleRoot].initialized,
-            "TA: Merkle root was already used for this token"
-        );
-
-        merkleRoots[allocator][token] = merkleRoot;
-        _allocationInfos[allocator][token][merkleRoot].initialized = true;
-        _allocationInfos[allocator][token][merkleRoot].balance = amount;
+        allocationInfo.allocator = allocator;
 
         IERC20(token).safeTransferFrom(allocator, address(this), amount);
 
-        emit AllocationCreated(allocator, token, amount, merkleRoot);
+        emit AllocationCreated(id, allocator, token, amount, merkleRoot);
     }
 
-    function claim(
-        address allocator,
-        address token,
-        uint256 amount,
-        bytes32[] calldata proof
-    ) external {
-        bytes32 root = merkleRoots[allocator][token];
-        require(root != bytes32(0), "TA: Allocation doesn't exist");
+    function claim(uint256 id, uint256 amount, bytes32[] calldata proof) external {
+        require(id <= lastAllocationId, "TA: invalid allocation id");
 
-        AllocationData storage allocation = _allocationInfos[allocator][token][root];
-        require(allocation.balance >= amount, "TA: allocation balance is low");
-        allocation.balance -= amount;
+        AllocationData storage allocationInfo = _allocationInfos[id];
 
-        bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(msg.sender, amount))));
-        require(proof.verifyCalldata(root, leaf), "TA: Invalid proof");
+        require(!allocationInfo.isClosed, "TA: allocation is closed");
 
-        IERC20(token).safeTransfer(msg.sender, amount);
+        address user = msg.sender;
+        require(allocationInfo.claimed.add(user), "TA: already claimed");
 
-        emit TokenClaimed(allocator, token, root, msg.sender, amount);
+        require(allocationInfo.amountToAllocate >= amount, "TA: insufficient funds");
+        allocationInfo.amountToAllocate -= amount;
+
+        bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(user, amount))));
+        bytes32 merkleRoot = allocationInfo.merkleRoot;
+        require(proof.verifyCalldata(merkleRoot, leaf), "TA: Invalid proof");
+
+        address token = allocationInfo.token;
+        IERC20(token).safeTransfer(user, amount);
+
+        emit TokenClaimed(allocationInfo.allocator, token, merkleRoot, user, amount);
     }
 }
