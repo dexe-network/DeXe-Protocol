@@ -4,32 +4,25 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-contract TokenAllocator {
+import "@solarity/solidity-lib/access-control/MultiOwnable.sol";
+
+import "../interfaces/core/ITokenAllocator.sol";
+import "../interfaces/core/IContractsRegistry.sol";
+import "../interfaces/factory/IPoolFactory.sol";
+
+import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
+
+contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUPSUpgradeable {
     using MerkleProof for *;
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    struct AllocationData {
-        bool isClosed;
-        address allocator;
-        address token;
-        uint256 amountToAllocate;
-        bytes32 merkleRoot;
-        EnumerableSet.AddressSet claimed;
-    }
-
-    struct AllocationInfoView {
-        uint256 id;
-        bool isClosed;
-        address allocator;
-        address token;
-        uint256 currentBalance;
-        bytes32 merkleRoot;
-    }
-
     uint256 public lastAllocationId;
     mapping(uint256 => AllocationData) internal _allocationInfos;
+
+    IPoolFactory internal _poolFactory;
 
     event AllocationCreated(
         uint256 id,
@@ -50,6 +43,19 @@ contract TokenAllocator {
     modifier withCorrectId(uint256 id) {
         require(id <= lastAllocationId, "TA: invalid allocation id");
         _;
+    }
+
+    function __TokenAllocator_init() external initializer {
+        __MultiOwnable_init();
+    }
+
+    function setDependencies(
+        address contractsRegistry,
+        bytes memory data_
+    ) public override(AbstractDependant, ITokenAllocator) {
+        IContractsRegistry registry = IContractsRegistry(contractsRegistry);
+
+        _poolFactory = IPoolFactory(registry.getPoolRegistryContract());
     }
 
     function createAllocation(address token, uint256 amount, bytes32 merkleRoot) external {
@@ -132,4 +138,6 @@ contract TokenAllocator {
             allocation.merkleRoot
         );
     }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }

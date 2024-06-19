@@ -18,6 +18,7 @@ const LinearPower = artifacts.require("LinearPower");
 const PolynomialPower = artifacts.require("PolynomialPower");
 const CoreProperties = artifacts.require("CoreProperties");
 const PoolRegistry = artifacts.require("PoolRegistry");
+const TokenAllocator = artifacts.require("TokenAllocator");
 const GovPool = artifacts.require("GovPool");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const GovSettings = artifacts.require("GovSettings");
@@ -55,6 +56,7 @@ ERC721Mock.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
+TokenAllocator.numberFormat = "BigNumber";
 GovPool.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 GovSettings.numberFormat = "BigNumber";
@@ -71,6 +73,7 @@ describe("PoolFactory", () => {
   let poolRegistry;
   let poolFactory;
   let coreProperties;
+  let tokenAllocator;
 
   let testERC20;
   let testERC721;
@@ -143,6 +146,7 @@ describe("PoolFactory", () => {
     const USD = await ERC20Mock.new("USD", "USD", 6);
     WETH = await WethMock.new();
     networkProperties = await BscProperties.new();
+    tokenAllocator = await TokenAllocator.new();
     babt = await BABTMock.new();
     const _dexeExpertNft = await ERC721Expert.new();
     const _coreProperties = await CoreProperties.new();
@@ -168,6 +172,7 @@ describe("PoolFactory", () => {
     await contractsRegistry.addContract(await contractsRegistry.NETWORK_PROPERTIES_NAME(), networkProperties.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
     await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), _dexeExpertNft.address);
+    await contractsRegistry.addContract(await contractsRegistry.TOKEN_ALLOCATOR_NAME(), tokenAllocator.address);
 
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
 

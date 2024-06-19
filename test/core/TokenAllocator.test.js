@@ -7,13 +7,14 @@ const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
 
 const TokenAllocator = artifacts.require("TokenAllocator");
 const ERC20Mock = artifacts.require("ERC20Mock");
+const ERC1967Proxy = artifacts.require("ERC1967Proxy");
 
 TokenAllocator.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 
 describe.only("TokenAllocator", () => {
   let OWNER, SECOND, THIRD;
-  let allocator;
+  let allocator, proxy;
   let merkleTree;
   let token;
 
@@ -200,6 +201,30 @@ describe.only("TokenAllocator", () => {
       await allocator.closeAllocation(1);
 
       await truffleAssert.reverts(allocator.closeAllocation(1), "TA: already closed");
+    });
+  });
+
+  describe("basic functionality", () => {
+    beforeEach(async () => {
+      proxy = await TokenAllocator.at((await ERC1967Proxy.new(allocator.address, "0x")).address);
+      await proxy.__TokenAllocator_init();
+    });
+
+    it("should not initialize twice", async () => {
+      await truffleAssert.reverts(proxy.__TokenAllocator_init(), "Initializable: contract is already initialized");
+    });
+
+    it("could not upgrade if not owner", async () => {
+      await truffleAssert.reverts(
+        proxy.upgradeTo(allocator.address, { from: SECOND }),
+        "MultiOwnable: caller is not the owner",
+      );
+    });
+
+    it("could upgrade if owner", async () => {
+      let allocatorNew = await TokenAllocator.new();
+
+      await proxy.upgradeTo(allocatorNew.address);
     });
   });
 });
