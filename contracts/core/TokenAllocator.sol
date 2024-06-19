@@ -14,22 +14,15 @@ import "../interfaces/factory/IPoolFactory.sol";
 
 import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
 
-import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
-import "../proxy/ProtectedPublicBeaconProxy.sol";
-import "@solarity/solidity-lib/contracts-registry/pools/AbstractPoolContractsRegistry.sol";
-
 contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUPSUpgradeable {
     using MerkleProof for *;
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    string public constant GOV_POOL_NAME = "GOV_POOL";
-
     uint256 public lastAllocationId;
     mapping(uint256 => AllocationData) internal _allocationInfos;
 
     IPoolFactory internal _poolFactory;
-    address internal _poolRegistry;
 
     event AllocationCreated(
         uint256 id,
@@ -63,7 +56,6 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         _poolFactory = IPoolFactory(registry.getPoolFactoryContract());
-        _poolRegistry = registry.getPoolRegistryContract();
     }
 
     function createAllocation(address token, uint256 amount, bytes32 merkleRoot) external {
@@ -169,9 +161,9 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
     function _retrieveAllocationData(
         IPoolFactory.GovPoolDeployParams calldata parameters
     ) internal view returns (address allocator, address token, uint256 amount) {
-        string calldata name = parameters.name;
-        bytes32 salt = _calculateGovSalt(tx.origin, name);
-        allocator = _predictPoolAddress(salt);
+        IPoolFactory.GovPoolPredictedAddresses memory predictedAddresses = _poolFactory
+            .predictGovAddresses(tx.origin, parameters.name);
+        allocator = predictedAddresses.govPool;
 
         token = parameters.userKeeperParams.tokenAddress;
         amount = 0;
@@ -187,27 +179,6 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
         }
 
         require(amount != 0, "TA: no allocation in GovPool params");
-    }
-
-    function _predictPoolAddress(bytes32 salt) internal view returns (address) {
-        bytes32 bytecodeHash = keccak256(
-            abi.encodePacked(
-                type(ProtectedPublicBeaconProxy).creationCode,
-                abi.encode(
-                    AbstractPoolContractsRegistry(_poolRegistry).getProxyBeacon(GOV_POOL_NAME),
-                    bytes("")
-                )
-            )
-        );
-
-        return Create2.computeAddress(salt, bytecodeHash);
-    }
-
-    function _calculateGovSalt(
-        address deployer,
-        string memory poolName
-    ) private pure returns (bytes32) {
-        return keccak256(abi.encodePacked(deployer, poolName));
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}

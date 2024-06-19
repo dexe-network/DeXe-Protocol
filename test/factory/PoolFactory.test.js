@@ -5,6 +5,8 @@ const truffleAssert = require("truffle-assertions");
 const { getBytesLinearPowerInit, getBytesPolynomialPowerInit } = require("../utils/gov-vote-power-utils");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { DEFAULT_CORE_PROPERTIES, VotePowerType } = require("../utils/constants");
+const { artifacts } = require("hardhat");
+const { StandardMerkleTree } = require("@openzeppelin/merkle-tree");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const ERC20Mock = artifacts.require("ERC20Mock");
@@ -18,6 +20,7 @@ const LinearPower = artifacts.require("LinearPower");
 const PolynomialPower = artifacts.require("PolynomialPower");
 const CoreProperties = artifacts.require("CoreProperties");
 const PoolRegistry = artifacts.require("PoolRegistry");
+const TokenAllocator = artifacts.require("TokenAllocator");
 const GovPool = artifacts.require("GovPool");
 const GovUserKeeper = artifacts.require("GovUserKeeper");
 const GovSettings = artifacts.require("GovSettings");
@@ -55,6 +58,7 @@ ERC721Mock.numberFormat = "BigNumber";
 BABTMock.numberFormat = "BigNumber";
 CoreProperties.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
+TokenAllocator.numberFormat = "BigNumber";
 GovPool.numberFormat = "BigNumber";
 GovUserKeeper.numberFormat = "BigNumber";
 GovSettings.numberFormat = "BigNumber";
@@ -66,8 +70,10 @@ TokenSaleProposal.numberFormat = "BigNumber";
 describe("PoolFactory", () => {
   let OWNER;
   let SECOND;
+  let THIRD;
   let NOTHING;
 
+  let contractsRegistry;
   let poolRegistry;
   let poolFactory;
   let coreProperties;
@@ -76,6 +82,7 @@ describe("PoolFactory", () => {
   let testERC721;
   let babt;
   let WETH;
+  let tokenAllocator;
   let sphereXEngine;
 
   const reverter = new Reverter();
@@ -83,6 +90,7 @@ describe("PoolFactory", () => {
   before("setup", async () => {
     OWNER = await accounts(0);
     SECOND = await accounts(1);
+    THIRD = await accounts(2);
     NOTHING = await accounts(3);
 
     const govTokenDeployerLib = await GovTokenDeployerLib.new();
@@ -138,12 +146,13 @@ describe("PoolFactory", () => {
     testERC20 = await ERC20Mock.new("TestERC20", "TS", 18);
     testERC721 = await ERC721Mock.new("TestERC721", "TS");
 
-    const contractsRegistry = await ContractsRegistry.new();
+    contractsRegistry = await ContractsRegistry.new();
     const DEXE = await ERC20Mock.new("DEXE", "DEXE", 18);
     const USD = await ERC20Mock.new("USD", "USD", 6);
     WETH = await WethMock.new();
     networkProperties = await BscProperties.new();
     babt = await BABTMock.new();
+    tokenAllocator = await TokenAllocator.new();
     const _dexeExpertNft = await ERC721Expert.new();
     const _coreProperties = await CoreProperties.new();
     const _poolRegistry = await PoolRegistry.new();
@@ -168,6 +177,7 @@ describe("PoolFactory", () => {
     await contractsRegistry.addContract(await contractsRegistry.NETWORK_PROPERTIES_NAME(), networkProperties.address);
     await contractsRegistry.addContract(await contractsRegistry.BABT_NAME(), babt.address);
     await contractsRegistry.addContract(await contractsRegistry.DEXE_EXPERT_NFT_NAME(), _dexeExpertNft.address);
+    await contractsRegistry.addContract(await contractsRegistry.TOKEN_ALLOCATOR_NAME(), tokenAllocator.address);
 
     await contractsRegistry.addContract(await contractsRegistry.TREASURY_NAME(), NOTHING);
 
@@ -180,9 +190,12 @@ describe("PoolFactory", () => {
     await poolRegistry.__MultiOwnablePoolContractsRegistry_init();
     await coreProperties.__CoreProperties_init(DEFAULT_CORE_PROPERTIES);
 
-    await contractsRegistry.injectDependencies(await contractsRegistry.POOL_FACTORY_NAME());
-    await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
-    await contractsRegistry.injectDependencies(await contractsRegistry.CORE_PROPERTIES_NAME());
+    await contractsRegistry.injectDependenciesBatch([
+      await contractsRegistry.POOL_FACTORY_NAME(),
+      await contractsRegistry.POOL_REGISTRY_NAME(),
+      await contractsRegistry.CORE_PROPERTIES_NAME(),
+      await contractsRegistry.TOKEN_ALLOCATOR_NAME(),
+    ]);
 
     let distributionProposal = await DistributionProposal.new();
     let tokenSaleProposal = await TokenSaleProposal.new();
@@ -543,6 +556,79 @@ describe("PoolFactory", () => {
         assert.equal(predictedAddress.distributionProposal, ZERO_ADDR);
         assert.equal(predictedAddress.expertNft, ZERO_ADDR);
         assert.equal(predictedAddress.nftMultiplier, ZERO_ADDR);
+      });
+    });
+
+    describe("token allocation", () => {
+      let merkleTree;
+
+      beforeEach(async () => {
+        merkleTree = StandardMerkleTree.of(
+          [
+            [SECOND, wei("10")],
+            [THIRD, wei("5")],
+          ],
+          ["address", "uint256"],
+        );
+      });
+
+      it("sets token allocator address correct", async () => {
+        assert.equal(await contractsRegistry.getTokenAllocatorContract(), tokenAllocator.address);
+      });
+
+      it("could create token allocation", async () => {
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+
+        const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+
+        POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedGovAddresses.govToken;
+        POOL_PARAMETERS.tokenParams.users.push(tokenAllocator.address);
+        POOL_PARAMETERS.tokenParams.amounts.push(wei("15"));
+        POOL_PARAMETERS.tokenParams.users.push(THIRD);
+        POOL_PARAMETERS.tokenParams.amounts.push(wei("1"));
+
+        await tokenAllocator.allocateAndDeployGovPool(merkleTree.root, POOL_PARAMETERS);
+
+        const token = await ERC20Mock.at(predictedGovAddresses.govToken);
+        assert.equal((await token.balanceOf(tokenAllocator.address)).toFixed(), wei("15"));
+
+        const info = await tokenAllocator.getAllocationInfo(1);
+        assert.equal(info.id, "1");
+        assert.equal(info.isClosed, false);
+        assert.equal(info.allocator, predictedGovAddresses.govPool);
+        assert.equal(info.token, token.address);
+        assert.equal(info.currentBalance, wei("15"));
+        assert.equal(info.merkleRoot, merkleTree.root);
+      });
+
+      it("reverts if double allocation", async () => {
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+
+        const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+
+        POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedGovAddresses.govToken;
+        POOL_PARAMETERS.tokenParams.users.push(tokenAllocator.address);
+        POOL_PARAMETERS.tokenParams.amounts.push(wei("15"));
+        POOL_PARAMETERS.tokenParams.users.push(tokenAllocator.address);
+        POOL_PARAMETERS.tokenParams.amounts.push(wei("20"));
+
+        await truffleAssert.reverts(
+          tokenAllocator.allocateAndDeployGovPool(merkleTree.root, POOL_PARAMETERS),
+          "TA: multiple allocations in GovPool params",
+        );
+      });
+
+      it("reverts if no allocation", async () => {
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+
+        const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+
+        POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedGovAddresses.govToken;
+
+        await truffleAssert.reverts(
+          tokenAllocator.allocateAndDeployGovPool(merkleTree.root, POOL_PARAMETERS),
+          "TA: no allocation in GovPool params",
+        );
       });
     });
   });
