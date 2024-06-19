@@ -10,7 +10,6 @@ import "@spherex-xyz/engine-contracts/src/SphereXEngine.sol";
 
 import "../interfaces/factory/IPoolFactory.sol";
 import "../interfaces/core/IContractsRegistry.sol";
-import "../interfaces/core/ITokenAllocator.sol";
 import "../interfaces/core/ISBT721.sol";
 
 import {DistributionProposal} from "../gov/proposals/DistributionProposal.sol";
@@ -48,8 +47,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
     mapping(bytes32 => bool) private _usedSalts;
 
-    ITokenAllocator internal _tokenAllocator;
-
     event DaoPoolDeployed(
         string name,
         address govPool,
@@ -67,7 +64,6 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         _poolRegistry = PoolRegistry(registry.getPoolRegistryContract());
         _coreProperties = CoreProperties(registry.getCorePropertiesContract());
-        _tokenAllocator = ITokenAllocator(registry.getTokenAllocatorContract());
         _babt = ISBT721(registry.getBABTContract());
         _poolSphereXEngine = ISphereXEngine(registry.getPoolSphereXEngineContract());
     }

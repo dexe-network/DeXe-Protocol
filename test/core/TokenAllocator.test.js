@@ -12,7 +12,7 @@ const ERC1967Proxy = artifacts.require("ERC1967Proxy");
 TokenAllocator.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 
-describe.only("TokenAllocator", () => {
+describe("TokenAllocator", () => {
   let OWNER, SECOND, THIRD;
   let allocator, proxy;
   let merkleTree;

@@ -36,10 +36,6 @@ interface IContractsRegistry {
     function getPriceFeedContract() external view returns (address);
 
     /// @notice Used in dependency injection mechanism
-    /// @return TokenAllocator contract address
-    function getTokenAllocatorContract() external view returns (address);
-
-    /// @notice Used in dependency injection mechanism
     /// @return Treasury contract/wallet address
     function getTreasuryContract() external view returns (address);
 

@@ -24,7 +24,6 @@ contract ContractsRegistry is IContractsRegistry, MultiOwnableContractsRegistry,
     string public constant DEXE_EXPERT_NFT_NAME = "DEXE_EXPERT_NFT";
 
     string public constant PRICE_FEED_NAME = "PRICE_FEED";
-    string public constant TOKEN_ALLOCATOR_NAME = "TOKEN_ALLOCATOR";
 
     string public constant TREASURY_NAME = "TREASURY";
 
@@ -108,10 +107,6 @@ contract ContractsRegistry is IContractsRegistry, MultiOwnableContractsRegistry,
 
     function getPriceFeedContract() external view override returns (address) {
         return getContract(PRICE_FEED_NAME);
-    }
-
-    function getTokenAllocatorContract() external view override returns (address) {
-        return getContract(TOKEN_ALLOCATOR_NAME);
     }
 
     function getTreasuryContract() external view override returns (address) {
