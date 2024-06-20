@@ -561,6 +561,7 @@ describe("PoolFactory", () => {
 
     describe("token allocation", () => {
       let merkleTree;
+      const DESCRIPTION_URL = "ipfs address";
 
       beforeEach(async () => {
         merkleTree = StandardMerkleTree.of(
@@ -587,7 +588,7 @@ describe("PoolFactory", () => {
         POOL_PARAMETERS.tokenParams.users.push(THIRD);
         POOL_PARAMETERS.tokenParams.amounts.push(wei("1"));
 
-        await tokenAllocator.allocateAndDeployGovPool(merkleTree.root, POOL_PARAMETERS);
+        await tokenAllocator.allocateAndDeployGovPool(merkleTree.root, DESCRIPTION_URL, POOL_PARAMETERS);
 
         const token = await ERC20Mock.at(predictedGovAddresses.govToken);
         assert.equal((await token.balanceOf(tokenAllocator.address)).toFixed(), wei("15"));
@@ -613,7 +614,7 @@ describe("PoolFactory", () => {
         POOL_PARAMETERS.tokenParams.amounts.push(wei("20"));
 
         await truffleAssert.reverts(
-          tokenAllocator.allocateAndDeployGovPool(merkleTree.root, POOL_PARAMETERS),
+          tokenAllocator.allocateAndDeployGovPool(merkleTree.root, DESCRIPTION_URL, POOL_PARAMETERS),
           "TA: multiple allocations in GovPool params",
         );
       });
@@ -626,7 +627,7 @@ describe("PoolFactory", () => {
         POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedGovAddresses.govToken;
 
         await truffleAssert.reverts(
-          tokenAllocator.allocateAndDeployGovPool(merkleTree.root, POOL_PARAMETERS),
+          tokenAllocator.allocateAndDeployGovPool(merkleTree.root, DESCRIPTION_URL, POOL_PARAMETERS),
           "TA: no allocation in GovPool params",
         );
       });

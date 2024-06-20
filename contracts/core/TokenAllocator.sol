@@ -28,7 +28,8 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
         address allocator,
         address token,
         uint256 amount,
-        bytes32 merkleRoot
+        bytes32 merkleRoot,
+        string descriptionUrl
     );
     event AllocationClosed(uint256 id, address token, uint256 amountReturned);
     event TokenClaimed(
@@ -62,20 +63,22 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
         address payee,
         address token,
         uint256 amount,
-        bytes32 merkleRoot
+        bytes32 merkleRoot,
+        string calldata descriptionURL
     ) external {
-        _createAllocation(allocator, token, amount, merkleRoot);
+        _createAllocation(allocator, token, amount, merkleRoot, descriptionURL);
 
         IERC20(token).safeTransferFrom(payee, address(this), amount);
     }
 
     function allocateAndDeployGovPool(
         bytes32 merkleRoot,
+        string calldata descriptionURL,
         IPoolFactory.GovPoolDeployParams calldata parameters
     ) external {
         (address allocator, address token, uint256 amount) = _retrieveAllocationData(parameters);
 
-        _createAllocation(allocator, token, amount, merkleRoot);
+        _createAllocation(allocator, token, amount, merkleRoot, descriptionURL);
 
         _poolFactory.deployGovPool(parameters);
     }
@@ -134,15 +137,25 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
             allocation.allocator,
             allocation.token,
             allocation.amountToAllocate,
-            allocation.merkleRoot
+            allocation.merkleRoot,
+            allocation.descriptionURL
         );
+    }
+
+    function isClaimed(uint256 id, address user) external view withCorrectId(id) returns (bool) {
+        AllocationData storage allocationInfo = _allocationInfos[id];
+
+        require(!allocationInfo.isClosed, "TA: allocation is closed");
+
+        return allocationInfo.claimed.contains(user);
     }
 
     function _createAllocation(
         address allocator,
         address token,
         uint256 amount,
-        bytes32 merkleRoot
+        bytes32 merkleRoot,
+        string calldata descriptionURL
     ) internal {
         lastAllocationId++;
         uint256 id = lastAllocationId;
@@ -160,7 +173,9 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
 
         allocationInfo.allocator = allocator;
 
-        emit AllocationCreated(id, allocator, token, amount, merkleRoot);
+        allocationInfo.descriptionURL = descriptionURL;
+
+        emit AllocationCreated(id, allocator, token, amount, merkleRoot, descriptionURL);
     }
 
     function _retrieveAllocationData(

@@ -12,6 +12,7 @@ interface ITokenAllocator {
         address token;
         uint256 amountToAllocate;
         bytes32 merkleRoot;
+        string descriptionURL;
         EnumerableSet.AddressSet claimed;
     }
 
@@ -22,6 +23,7 @@ interface ITokenAllocator {
         address token;
         uint256 currentBalance;
         bytes32 merkleRoot;
+        string descriptionUrl;
     }
 
     function lastAllocationId() external returns (uint256);
@@ -33,11 +35,13 @@ interface ITokenAllocator {
         address payee,
         address token,
         uint256 amount,
-        bytes32 merkleRoot
+        bytes32 merkleRoot,
+        string calldata descriptionURL
     ) external;
 
     function allocateAndDeployGovPool(
         bytes32 merkleRoot,
+        string calldata descriptionURL,
         IPoolFactory.GovPoolDeployParams calldata parameters
     ) external;
 
