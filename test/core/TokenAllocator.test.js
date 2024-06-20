@@ -12,7 +12,7 @@ const ERC1967Proxy = artifacts.require("ERC1967Proxy");
 TokenAllocator.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
 
-describe("TokenAllocator", () => {
+describe.only("TokenAllocator", () => {
   let OWNER, SECOND, THIRD;
   let allocator, proxy;
   let merkleTree;
@@ -48,17 +48,19 @@ describe("TokenAllocator", () => {
 
     it("create allocation reverts on wrong data", async () => {
       await truffleAssert.reverts(
-        allocator.createAllocation(ZERO_ADDR, wei("1"), merkleTree.root),
+        allocator.createAllocation(OWNER, OWNER, ZERO_ADDR, wei("1"), merkleTree.root),
         "TA: Zero token address",
       );
 
       await truffleAssert.reverts(
-        allocator.createAllocation(token.address, 0, merkleTree.root),
+        allocator.createAllocation(OWNER, OWNER, token.address, 0, merkleTree.root),
         "TA: Zero ammount to allocate",
       );
 
       await truffleAssert.reverts(
         allocator.createAllocation(
+          OWNER,
+          OWNER,
           token.address,
           wei("1"),
           "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -67,7 +69,7 @@ describe("TokenAllocator", () => {
       );
 
       await truffleAssert.reverts(
-        allocator.createAllocation(token.address, wei("1"), merkleTree.root),
+        allocator.createAllocation(OWNER, OWNER, token.address, wei("1"), merkleTree.root),
         "ERC20: insufficient allowance",
       );
     });
@@ -76,7 +78,7 @@ describe("TokenAllocator", () => {
       assert.equal(await allocator.lastAllocationId(), 0);
 
       await token.approve(allocator.address, wei("1"));
-      await allocator.createAllocation(token.address, wei("1"), merkleTree.root);
+      await allocator.createAllocation(OWNER, OWNER, token.address, wei("1"), merkleTree.root);
 
       assert.equal(await allocator.lastAllocationId(), 1);
     });
@@ -86,7 +88,7 @@ describe("TokenAllocator", () => {
       assert.equal(await token.balanceOf(allocator.address), 0);
 
       await token.approve(allocator.address, wei("1"));
-      await allocator.createAllocation(token.address, wei("1"), merkleTree.root);
+      await allocator.createAllocation(OWNER, OWNER, token.address, wei("1"), merkleTree.root);
 
       assert.equal((await token.balanceOf(OWNER)).toFixed(), wei("99"));
       assert.equal((await token.balanceOf(allocator.address)).toFixed(), wei("1"));
@@ -94,7 +96,7 @@ describe("TokenAllocator", () => {
 
     it("returns correct data about proposal", async () => {
       await token.approve(allocator.address, wei("1"));
-      await allocator.createAllocation(token.address, wei("1"), merkleTree.root);
+      await allocator.createAllocation(OWNER, OWNER, token.address, wei("1"), merkleTree.root);
 
       await truffleAssert.reverts(allocator.getAllocationInfo(2), "TA: invalid allocation id");
 
@@ -109,7 +111,7 @@ describe("TokenAllocator", () => {
 
     it("could claim", async () => {
       await token.approve(allocator.address, wei("15"));
-      await allocator.createAllocation(token.address, wei("15"), merkleTree.root);
+      await allocator.createAllocation(OWNER, OWNER, token.address, wei("15"), merkleTree.root);
 
       assert.equal(await token.balanceOf(SECOND), 0);
 
@@ -123,7 +125,7 @@ describe("TokenAllocator", () => {
 
     it("claim reverts", async () => {
       await token.approve(allocator.address, wei("15"));
-      await allocator.createAllocation(token.address, wei("15"), merkleTree.root);
+      await allocator.createAllocation(OWNER, OWNER, token.address, wei("15"), merkleTree.root);
 
       await truffleAssert.reverts(
         allocator.claim(2, wei("15"), merkleTree.getProof(0), { from: SECOND }),
@@ -145,7 +147,7 @@ describe("TokenAllocator", () => {
       );
 
       await token.approve(allocator.address, wei("10"));
-      await allocator.createAllocation(token.address, wei("10"), newMerkleTree.root);
+      await allocator.createAllocation(OWNER, OWNER, token.address, wei("10"), newMerkleTree.root);
 
       await truffleAssert.reverts(
         allocator.claim(2, wei("15"), newMerkleTree.getProof(0), { from: SECOND }),
@@ -155,7 +157,7 @@ describe("TokenAllocator", () => {
 
     it("could close allocation", async () => {
       await token.approve(allocator.address, wei("15"));
-      await allocator.createAllocation(token.address, wei("15"), merkleTree.root);
+      await allocator.createAllocation(OWNER, OWNER, token.address, wei("15"), merkleTree.root);
 
       await allocator.claim(1, wei("5"), merkleTree.getProof(1), { from: THIRD });
 
@@ -179,7 +181,7 @@ describe("TokenAllocator", () => {
       const newMerkleTree = StandardMerkleTree.of([[SECOND, wei("15")]], ["address", "uint256"]);
 
       await token.approve(allocator.address, wei("15"));
-      await allocator.createAllocation(token.address, wei("15"), newMerkleTree.root);
+      await allocator.createAllocation(OWNER, OWNER, token.address, wei("15"), newMerkleTree.root);
 
       await allocator.claim(1, wei("15"), newMerkleTree.getProof(0), { from: SECOND });
 
@@ -192,7 +194,7 @@ describe("TokenAllocator", () => {
 
     it("close allocation reverts", async () => {
       await token.approve(allocator.address, wei("15"));
-      await allocator.createAllocation(token.address, wei("15"), merkleTree.root);
+      await allocator.createAllocation(OWNER, OWNER, token.address, wei("15"), merkleTree.root);
 
       await truffleAssert.reverts(allocator.closeAllocation(2), "TA: invalid allocation id");
 

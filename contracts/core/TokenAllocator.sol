@@ -10,7 +10,6 @@ import "@solarity/solidity-lib/access-control/MultiOwnable.sol";
 
 import "../interfaces/core/ITokenAllocator.sol";
 import "../interfaces/core/IContractsRegistry.sol";
-import "../interfaces/factory/IPoolFactory.sol";
 
 import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
 
@@ -58,10 +57,16 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
         _poolFactory = IPoolFactory(registry.getPoolFactoryContract());
     }
 
-    function createAllocation(address token, uint256 amount, bytes32 merkleRoot) external {
-        _createAllocation(msg.sender, token, amount, merkleRoot);
+    function createAllocation(
+        address allocator,
+        address payee,
+        address token,
+        uint256 amount,
+        bytes32 merkleRoot
+    ) external {
+        _createAllocation(allocator, token, amount, merkleRoot);
 
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        IERC20(token).safeTransferFrom(payee, address(this), amount);
     }
 
     function allocateAndDeployGovPool(
