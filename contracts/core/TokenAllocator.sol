@@ -6,19 +6,21 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
+import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
 import "@solarity/solidity-lib/access-control/MultiOwnable.sol";
 
 import "../interfaces/core/ITokenAllocator.sol";
 import "../interfaces/core/IContractsRegistry.sol";
 
-import "@solarity/solidity-lib/contracts-registry/AbstractDependant.sol";
-
 contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUPSUpgradeable {
     using MerkleProof for *;
     using SafeERC20 for IERC20;
-    using EnumerableSet for EnumerableSet.AddressSet;
+    using EnumerableSet for *;
 
     uint256 public lastAllocationId;
+    mapping(address => EnumerableSet.AddressSet) internal _tokensByAllocator;
+    mapping(address => EnumerableSet.AddressSet) internal _allocatorsByToken;
+    mapping(address => mapping(address => EnumerableSet.UintSet)) internal _allocations;
     mapping(uint256 => AllocationData) internal _allocationInfos;
 
     IPoolFactory internal _poolFactory;
@@ -85,14 +87,16 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
 
     function closeAllocation(uint256 id) external withCorrectId(id) {
         AllocationData storage allocation = _allocationInfos[id];
-
         address allocator = allocation.allocator;
+
         require(allocator == msg.sender, "TA: wrong allocator");
         require(!allocation.isClosed, "TA: already closed");
 
         allocation.isClosed = true;
 
         address token = allocation.token;
+        _allocations[allocator][token].remove(id);
+
         uint256 balance = allocation.amountToAllocate;
         if (balance > 0) {
             IERC20(token).safeTransfer(allocator, balance);
@@ -126,9 +130,45 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
         emit TokenClaimed(allocationInfo.allocator, token, merkleRoot, user, amount);
     }
 
+    function getAllocations(
+        address allocator,
+        address token
+    ) public view returns (AllocationInfoView[] memory allocations) {
+        uint256[] memory ids = _allocations[allocator][token].values();
+        allocations = _idsToAllocationInfos(ids);
+    }
+
+    function getAllocationsByTokenOrAllocator(
+        address key,
+        bool byToken
+    ) external view returns (AllocationInfoView[] memory allocations) {
+        address token;
+        address allocator;
+        byToken ? token = key : allocator = key;
+
+        address[] memory addresses = byToken
+            ? _allocatorsByToken[token].values()
+            : _tokensByAllocator[allocator].values();
+
+        uint256 allocationsLength = 0;
+        for (uint i = 0; i < addresses.length; i++) {
+            byToken ? allocator = addresses[i] : token = addresses[i];
+            allocationsLength += _allocations[allocator][token].length();
+        }
+
+        allocations = new AllocationInfoView[](allocationsLength);
+        uint256 index;
+        for (uint i = 0; i < addresses.length; i++) {
+            byToken ? allocator = addresses[i] : token = addresses[i];
+
+            _arraysCopy(getAllocations(allocator, token), allocations, index);
+            index += _allocations[allocator][token].length();
+        }
+    }
+
     function getAllocationInfo(
         uint256 id
-    ) external view withCorrectId(id) returns (AllocationInfoView memory allocationInfo) {
+    ) public view withCorrectId(id) returns (AllocationInfoView memory allocationInfo) {
         AllocationData storage allocation = _allocationInfos[id];
 
         allocationInfo = AllocationInfoView(
@@ -160,22 +200,48 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
         lastAllocationId++;
         uint256 id = lastAllocationId;
 
+        require(token != address(0), "TA: Zero token address");
+        require(amount > 0, "TA: Zero ammount to allocate");
+        require(merkleRoot != bytes32(0), "TA: Zero Merkle root");
+
         AllocationData storage allocationInfo = _allocationInfos[id];
 
-        require(token != address(0), "TA: Zero token address");
         allocationInfo.token = token;
-
-        require(amount > 0, "TA: Zero ammount to allocate");
         allocationInfo.amountToAllocate = amount;
-
-        require(merkleRoot != bytes32(0), "TA: Zero Merkle root");
-        allocationInfo.merkleRoot = merkleRoot;
-
         allocationInfo.allocator = allocator;
-
+        allocationInfo.merkleRoot = merkleRoot;
         allocationInfo.descriptionURL = descriptionURL;
 
+        _updateGlobalInfo(allocator, token, id);
+
         emit AllocationCreated(id, allocator, token, amount, merkleRoot, descriptionURL);
+    }
+
+    function _updateGlobalInfo(address allocator, address token, uint256 id) internal {
+        _tokensByAllocator[allocator].add(token);
+        _allocatorsByToken[token].add(allocator);
+        _allocations[allocator][token].add(id);
+    }
+
+    function _idsToAllocationInfos(
+        uint256[] memory ids
+    ) internal view returns (AllocationInfoView[] memory infos) {
+        uint256 length = ids.length;
+        infos = new AllocationInfoView[](length);
+
+        for (uint256 i = 0; i < length; i++) {
+            infos[i] = getAllocationInfo(ids[i]);
+        }
+    }
+
+    function _arraysCopy(
+        AllocationInfoView[] memory from,
+        AllocationInfoView[] memory to,
+        uint256 startingIndex
+    ) internal pure {
+        for (uint256 i = 0; i < from.length; i++) {
+            to[startingIndex + i] = from[i];
+        }
     }
 
     function _retrieveAllocationData(

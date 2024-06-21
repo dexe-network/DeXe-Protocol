@@ -14,7 +14,7 @@ ERC20Mock.numberFormat = "BigNumber";
 
 const DESCRIPTION_URL = "ipfs address";
 
-describe.only("TokenAllocator", () => {
+describe("TokenAllocator", () => {
   let OWNER, SECOND, THIRD;
   let allocator, proxy;
   let merkleTree;
@@ -129,7 +129,7 @@ describe.only("TokenAllocator", () => {
       assert.equal(info.currentBalance, wei("5"));
     });
 
-    it("claim reverts", async () => {
+    it("claiming revert cases", async () => {
       await token.approve(allocator.address, wei("15"));
       await allocator.createAllocation(OWNER, OWNER, token.address, wei("15"), merkleTree.root, DESCRIPTION_URL);
 
@@ -198,7 +198,7 @@ describe.only("TokenAllocator", () => {
       assert.equal((await token.balanceOf(allocator.address)).toFixed(), 0);
     });
 
-    it("close allocation reverts", async () => {
+    it("closing allocation revert cases", async () => {
       await token.approve(allocator.address, wei("15"));
       await allocator.createAllocation(OWNER, OWNER, token.address, wei("15"), merkleTree.root, DESCRIPTION_URL);
 
@@ -209,6 +209,67 @@ describe.only("TokenAllocator", () => {
       await allocator.closeAllocation(1);
 
       await truffleAssert.reverts(allocator.closeAllocation(1), "TA: already closed");
+    });
+  });
+
+  describe("view functions", () => {
+    let token0, token1;
+
+    beforeEach(async () => {
+      token0 = await ERC20Mock.new("ERC20 Token", "ERC20", 18);
+      token1 = await ERC20Mock.new("ERC20 Token", "ERC20", 18);
+    });
+
+    it("correct number of alloctions in the view functions", async () => {
+      await token0.mint(OWNER, wei("6"));
+      await token0.approve(allocator.address, wei("6"));
+      await token1.mint(OWNER, wei("8"));
+      await token1.approve(allocator.address, wei("8"));
+
+      let allocationsNumber = 2;
+
+      for (creator of [SECOND, THIRD]) {
+        for (currentToken of [token0, token1]) {
+          for (let i = 0; i < allocationsNumber; i++) {
+            await allocator.createAllocation(
+              creator,
+              OWNER,
+              currentToken.address,
+              wei("1"),
+              merkleTree.root,
+              DESCRIPTION_URL,
+            );
+          }
+          allocationsNumber++;
+        }
+      }
+
+      assert.equal((await token0.balanceOf(allocator.address)).toFixed(), wei("6"));
+      assert.equal((await token1.balanceOf(allocator.address)).toFixed(), wei("8"));
+
+      allocationsNumber = 2;
+      for (creator of [SECOND, THIRD]) {
+        for (currentToken of [token0, token1]) {
+          for (let i = 0; i < allocationsNumber; i++) {
+            assert.equal((await allocator.getAllocations(creator, currentToken.address)).length, allocationsNumber);
+          }
+          allocationsNumber++;
+        }
+      }
+
+      assert.equal((await allocator.getAllocationsByTokenOrAllocator(SECOND, false)).length, 5);
+      assert.equal((await allocator.getAllocationsByTokenOrAllocator(THIRD, false)).length, 9);
+      assert.equal((await allocator.getAllocationsByTokenOrAllocator(token0.address, true)).length, 6);
+      assert.equal((await allocator.getAllocationsByTokenOrAllocator(token1.address, true)).length, 8);
+
+      await allocator.closeAllocation(14, { from: THIRD });
+
+      assert.equal((await allocator.getAllocations(THIRD, token1.address)).length, 4);
+
+      assert.equal((await allocator.getAllocationsByTokenOrAllocator(SECOND, false)).length, 5);
+      assert.equal((await allocator.getAllocationsByTokenOrAllocator(THIRD, false)).length, 8);
+      assert.equal((await allocator.getAllocationsByTokenOrAllocator(token0.address, true)).length, 6);
+      assert.equal((await allocator.getAllocationsByTokenOrAllocator(token1.address, true)).length, 7);
     });
   });
 
