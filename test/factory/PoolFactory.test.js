@@ -573,6 +573,13 @@ describe("PoolFactory", () => {
         );
       });
 
+      it("injects only from injector address", async () => {
+        await truffleAssert.reverts(
+          tokenAllocator.setDependencies(contractsRegistry.address, "0x"),
+          "Dependant: not an injector",
+        );
+      });
+
       it("sets token allocator address correct", async () => {
         assert.equal(await contractsRegistry.getTokenAllocatorContract(), tokenAllocator.address);
       });

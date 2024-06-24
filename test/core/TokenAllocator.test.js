@@ -138,6 +138,8 @@ describe("TokenAllocator", () => {
         "TA: invalid allocation id",
       );
 
+      await truffleAssert.reverts(allocator.isClaimed(2, SECOND), "TA: invalid allocation id");
+
       const newMerkleTree = StandardMerkleTree.of([[SECOND, wei("15")]], ["address", "uint256"]);
 
       await truffleAssert.reverts(

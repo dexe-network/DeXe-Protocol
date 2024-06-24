@@ -54,7 +54,7 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
     function setDependencies(
         address contractsRegistry,
         bytes memory data_
-    ) public override(AbstractDependant, ITokenAllocator) {
+    ) public override(AbstractDependant, ITokenAllocator) dependant {
         IContractsRegistry registry = IContractsRegistry(contractsRegistry);
 
         _poolFactory = IPoolFactory(registry.getPoolFactoryContract());
@@ -184,8 +184,6 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
 
     function isClaimed(uint256 id, address user) external view withCorrectId(id) returns (bool) {
         AllocationData storage allocationInfo = _allocationInfos[id];
-
-        require(!allocationInfo.isClosed, "TA: allocation is closed");
 
         return allocationInfo.claimed.contains(user);
     }
