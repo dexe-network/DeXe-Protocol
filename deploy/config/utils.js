@@ -101,10 +101,22 @@ const getBytesNetworkPropertiesInit = (wethAddress) => {
   );
 };
 
+const getBytesTokenAllocatorInit = () => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      name: "__TokenAllocator_init",
+      type: "function",
+      inputs: [],
+    },
+    [],
+  );
+};
+
 module.exports = {
   getConfig,
   getBytesPolynomialPowerInit,
   getBytesContractsRegistryInit,
   getBytesDexeMultiplierInit,
   getBytesNetworkPropertiesInit,
+  getBytesTokenAllocatorInit,
 };
