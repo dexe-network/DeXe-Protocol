@@ -10,7 +10,7 @@ interface ITokenAllocator {
         bool isClosed;
         address allocator;
         address token;
-        uint256 amountToAllocate;
+        uint256 balance;
         bytes32 merkleRoot;
         string descriptionURL;
         EnumerableSet.AddressSet claimed;

@@ -97,7 +97,7 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
         address token = allocation.token;
         _allocations[allocator][token].remove(id);
 
-        uint256 balance = allocation.amountToAllocate;
+        uint256 balance = allocation.balance;
         if (balance > 0) {
             IERC20(token).safeTransfer(allocator, balance);
         }
@@ -117,8 +117,8 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
         address user = msg.sender;
         require(allocationInfo.claimed.add(user), "TA: already claimed");
 
-        require(allocationInfo.amountToAllocate >= amount, "TA: insufficient funds");
-        allocationInfo.amountToAllocate -= amount;
+        require(allocationInfo.balance >= amount, "TA: insufficient funds");
+        allocationInfo.balance -= amount;
 
         bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(user, amount))));
         bytes32 merkleRoot = allocationInfo.merkleRoot;
@@ -176,7 +176,7 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
             allocation.isClosed,
             allocation.allocator,
             allocation.token,
-            allocation.amountToAllocate,
+            allocation.balance,
             allocation.merkleRoot,
             allocation.descriptionURL
         );
@@ -205,7 +205,7 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
         AllocationData storage allocationInfo = _allocationInfos[id];
 
         allocationInfo.token = token;
-        allocationInfo.amountToAllocate = amount;
+        allocationInfo.balance = amount;
         allocationInfo.allocator = allocator;
         allocationInfo.merkleRoot = merkleRoot;
         allocationInfo.descriptionURL = descriptionURL;
