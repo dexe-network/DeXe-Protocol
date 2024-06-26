@@ -51,15 +51,11 @@ interface ITokenAllocator {
     function setDependencies(address contractsRegistry, bytes memory data_) external;
 
     /// @notice The function to directly create an allocation
-    /// @param allocator the owner of this allocation
-    /// @param payee the address to trasferFrom allocation amount
     /// @param token the address of the token to allocate
     /// @param amount the ammount of tokens to allocate
     /// @param merkleRoot the Merkle root of tree with users and amounts to claim
     /// @param descriptionURL the ipfs of Merkle tree
     function createAllocation(
-        address allocator,
-        address payee,
         address token,
         uint256 amount,
         bytes32 merkleRoot,

@@ -61,16 +61,15 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
     }
 
     function createAllocation(
-        address allocator,
-        address payee,
         address token,
         uint256 amount,
         bytes32 merkleRoot,
         string calldata descriptionURL
     ) external {
+        address allocator = msg.sender;
         _createAllocation(allocator, token, amount, merkleRoot, descriptionURL);
 
-        IERC20(token).safeTransferFrom(payee, address(this), amount);
+        IERC20(token).safeTransferFrom(allocator, address(this), amount);
     }
 
     function allocateAndDeployGovPool(
@@ -250,6 +249,11 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
         allocator = predictedAddresses.govPool;
 
         token = parameters.userKeeperParams.tokenAddress;
+        require(
+            token == predictedAddresses.govToken,
+            "TA: Could preallocate only the new GovToken"
+        );
+
         amount = 0;
 
         IERC20Gov.ConstructorParams calldata tokenParams = parameters.tokenParams;

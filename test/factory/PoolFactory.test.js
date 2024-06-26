@@ -609,6 +609,19 @@ describe("PoolFactory", () => {
         assert.equal(info.merkleRoot, merkleTree.root);
       });
 
+      it("reverts if not new gov token", async () => {
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+
+        POOL_PARAMETERS.userKeeperParams.tokenAddress = testERC20.address;
+        POOL_PARAMETERS.tokenParams.users.push(tokenAllocator.address);
+        POOL_PARAMETERS.tokenParams.amounts.push(wei("15"));
+
+        await truffleAssert.reverts(
+          tokenAllocator.allocateAndDeployGovPool(merkleTree.root, DESCRIPTION_URL, POOL_PARAMETERS),
+          "TA: Could preallocate only the new GovToken",
+        );
+      });
+
       it("reverts if double allocation", async () => {
         let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
 
