@@ -71,6 +71,7 @@ const WethMock = artifacts.require("WETHMock");
 const BscProperties = artifacts.require("NetworkPropertiesMock");
 const ERC20 = artifacts.require("ERC20");
 const BABTMock = artifacts.require("BABTMock");
+const ExecutorMock = artifacts.require("ExecutorMock");
 const ExecutorTransferMock = artifacts.require("ExecutorTransferMock");
 const BigReturnValueMock = artifacts.require("BigReturnValueMock");
 const GovPoolAttackerMock = artifacts.require("GovPoolAttackerMock");
@@ -88,6 +89,8 @@ const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
 const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
 const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
 const SphereXEngineMock = artifacts.require("SphereXEngineMock");
+
+let govPoolExecuteLib;
 
 ContractsRegistry.numberFormat = "BigNumber";
 PoolRegistry.numberFormat = "BigNumber";
@@ -215,7 +218,7 @@ describe("GovPool", () => {
     await GovUserKeeper.link(govUserKeeperViewLib);
 
     const govPoolCreateLib = await GovPoolCreateLib.new();
-    const govPoolExecuteLib = await GovPoolExecuteLib.new();
+    govPoolExecuteLib = await GovPoolExecuteLib.new();
     const govPoolMicropoolLib = await GovPoolMicropoolLib.new();
     const govPoolRewardsLib = await GovPoolRewardsLib.new();
     const govPoolUnlockLib = await GovPoolUnlockLib.new();
@@ -255,6 +258,7 @@ describe("GovPool", () => {
     const _sphereXEngine = await SphereXEngineMock.new();
     nftPower = await ERC721RawPower.new();
     rewardToken = await ERC20Mock.new("REWARD", "RWD", 18);
+    mockExecutor = await ExecutorMock.new();
 
     await contractsRegistry.__MultiOwnableContractsRegistry_init();
     await networkProperties.__NetworkProperties_init(weth.address);
@@ -958,6 +962,10 @@ describe("GovPool", () => {
           govPool.createProposal("example.com", [[SECOND, 0, getBytesApprove(SECOND, 1)]], []),
           "Gov: low creating power",
         );
+      });
+
+      it("should successfully call validate on non-view function", async () => {
+        await govPool.createProposal("example.com", [[weth.address, 0, getBytesApprove(weth.address, 1)]], []);
       });
 
       it("should create 2 proposals", async () => {
@@ -2829,6 +2837,24 @@ describe("GovPool", () => {
         assert.equal(await govPool.getProposalState(2), ProposalState.Defeated);
       });
 
+      it("should not change Defeated state if quorum changed", async () => {
+        await changeInternalSettings(false);
+
+        await govPool.createProposal(
+          "example.com",
+          [[settings.address, 0, getBytesChangeExecutors([userKeeper.address], [4])]],
+          [],
+        );
+
+        await govPool.vote(2, false, wei("51000000051000005100"), [], { from: SECOND });
+
+        assert.equal(await govPool.getProposalState(2), ProposalState.Defeated);
+
+        await token.mint(SECOND, wei("1"));
+
+        assert.equal(await govPool.getProposalState(2), ProposalState.Defeated);
+      });
+
       it("should return SucceededFor state when quorum has reached and vote result is for and without validators", async () => {
         await changeInternalSettings(false);
 
@@ -3318,6 +3344,71 @@ describe("GovPool", () => {
 
         await govPool.deposit(wei("1000"), []);
         await govPool.deposit(wei("100000000000000000000"), [], { from: SECOND });
+      });
+
+      describe("tryExecute()", () => {
+        it("true on success", async () => {
+          assert.isTrue(
+            await govPool.tryExecute.call([
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000001"],
+            ]),
+          );
+
+          assert.isTrue(
+            await govPool.tryExecute.call([
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000001"],
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000001"],
+            ]),
+          );
+        });
+
+        it("false on revert", async () => {
+          assert.isFalse(
+            await govPool.tryExecute.call([
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000000"],
+            ]),
+          );
+
+          assert.isFalse(
+            await govPool.tryExecute.call([
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000000"],
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000001"],
+            ]),
+          );
+
+          assert.isFalse(
+            await govPool.tryExecute.call([
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000001"],
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000000"],
+            ]),
+          );
+        });
+
+        it("does not change state on success", async () => {
+          assert.isFalse(await mockExecutor.stateFlag());
+
+          await govPool.tryExecute([
+            [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000001"],
+          ]);
+
+          assert.isFalse(await mockExecutor.stateFlag());
+        });
+
+        it("will revert if ever return from tryExecute lib with no revert", async () => {
+          const GovPoolExecuteMockLib = artifacts.require("GovPoolExecuteMock");
+
+          await hre.network.provider.request({
+            method: "hardhat_setCode",
+            params: [govPoolExecuteLib.address, GovPoolExecuteMockLib._hArtifact.deployedBytecode],
+          });
+
+          await truffleAssert.reverts(
+            govPool.tryExecute([
+              [mockExecutor.address, 0, "0x972213ad0000000000000000000000000000000000000000000000000000000000000001"],
+            ]),
+            "",
+          );
+        });
       });
 
       it("should add new settings", async () => {

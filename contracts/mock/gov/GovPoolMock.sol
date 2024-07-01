@@ -17,6 +17,8 @@ contract GovPoolMock {
         _votePowerContract = votePowerContract;
     }
 
+    function unlock(address user) external {}
+
     function getHelperContracts()
         external
         view

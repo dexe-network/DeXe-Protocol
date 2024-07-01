@@ -18,7 +18,7 @@ const uniswap = {
   quoter: "0xed1f6473345f45b75f8179591dd5ba1888cf2fb3",
 };
 
-const NETWORK_PROPERTIES = "0xeEf4962269b8c8693e910D1e5B3BCf52bA4Ca80A";
+const NETWORK_PROPERTIES_CONTRACT_NAME = "DevProperties";
 
 const DEXE_DAO_NAME = "DeXe Protocol";
 
@@ -182,7 +182,7 @@ module.exports = {
   owners,
   tokens,
   uniswap,
-  NETWORK_PROPERTIES,
+  NETWORK_PROPERTIES_CONTRACT_NAME,
   DEXE_DAO_NAME,
   DOCUMENT_HASH,
   DEFAULT_CORE_PROPERTIES,

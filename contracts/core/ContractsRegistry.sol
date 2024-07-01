@@ -24,6 +24,7 @@ contract ContractsRegistry is IContractsRegistry, MultiOwnableContractsRegistry,
     string public constant DEXE_EXPERT_NFT_NAME = "DEXE_EXPERT_NFT";
 
     string public constant PRICE_FEED_NAME = "PRICE_FEED";
+    string public constant TOKEN_ALLOCATOR_NAME = "TOKEN_ALLOCATOR";
 
     string public constant TREASURY_NAME = "TREASURY";
 
@@ -57,6 +58,13 @@ contract ContractsRegistry is IContractsRegistry, MultiOwnableContractsRegistry,
 
         for (uint256 i = 0; i < length; i++) {
             _addContract(names_[i], contractAddresses_[i]);
+        }
+    }
+
+    function injectDependenciesBatch(string[] calldata names_) external onlyOwner {
+        uint256 length = names_.length;
+        for (uint256 i = 0; i < length; i++) {
+            _injectDependencies(names_[i]);
         }
     }
 
@@ -100,6 +108,10 @@ contract ContractsRegistry is IContractsRegistry, MultiOwnableContractsRegistry,
 
     function getPriceFeedContract() external view override returns (address) {
         return getContract(PRICE_FEED_NAME);
+    }
+
+    function getTokenAllocatorContract() external view override returns (address) {
+        return getContract(TOKEN_ALLOCATOR_NAME);
     }
 
     function getTreasuryContract() external view override returns (address) {

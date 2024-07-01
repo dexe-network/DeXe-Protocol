@@ -19,6 +19,18 @@ const getConfig = () => {
     return require("./configs/dev-sepolia.conf.js");
   }
 
+  if (process.env.ENVIRONMENT == "DEV_AMOY") {
+    return require("./configs/dev-amoy.conf.js");
+  }
+
+  if (process.env.ENVIRONMENT == "DEV_OPTIMISM") {
+    return require("./configs/dev-optimism.conf.js");
+  }
+
+  if (process.env.ENVIRONMENT == "DEV_BASE") {
+    return require("./configs/dev-base.conf.js");
+  }
+
   throw Error("No environment config specified");
 };
 
@@ -93,10 +105,22 @@ const getBytesNetworkPropertiesInit = (wethAddress) => {
   );
 };
 
+const getBytesTokenAllocatorInit = () => {
+  return web3.eth.abi.encodeFunctionCall(
+    {
+      name: "__TokenAllocator_init",
+      type: "function",
+      inputs: [],
+    },
+    [],
+  );
+};
+
 module.exports = {
   getConfig,
   getBytesPolynomialPowerInit,
   getBytesContractsRegistryInit,
   getBytesDexeMultiplierInit,
   getBytesNetworkPropertiesInit,
+  getBytesTokenAllocatorInit,
 };

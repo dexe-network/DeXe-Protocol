@@ -61,6 +61,8 @@ abstract contract AbstractERC721Multiplier is
 
         _onlyTokenOwner(tokenId);
 
+        IGovPool(owner()).unlock(msg.sender);
+
         require(
             IGovPool(owner()).getUserActiveProposalsCount(msg.sender) == 0,
             "ERC721Multiplier: Cannot unlock with active proposals"
