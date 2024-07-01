@@ -12,7 +12,17 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 function privateKey() {
-  return process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [];
+  const keyBundle = [];
+
+  if (process.env.PRIVATE_KEY !== undefined) {
+    keyBundle.push(process.env.PRIVATE_KEY);
+
+    if (process.env.AUXILIARY_KEY !== undefined) {
+      keyBundle.push(process.env.AUXILIARY_KEY);
+    }
+  }
+
+  return keyBundle;
 }
 
 function typechainTarget() {

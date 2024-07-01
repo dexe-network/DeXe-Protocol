@@ -126,7 +126,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             distributionAddress,
             tokenSaleProxy,
             parameters.userKeeperParams.tokenAddress,
-            msg.sender
+            tx.origin
         );
 
         _addToEngine(vector);
@@ -203,8 +203,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     ) internal {
         uint256 babtId;
 
-        if (_babt.balanceOf(msg.sender) > 0) {
-            babtId = _babt.tokenIdOf(msg.sender);
+        if (_babt.balanceOf(tx.origin) > 0) {
+            babtId = _babt.tokenIdOf(tx.origin);
         }
 
         GovValidators(govPoolDeps.validatorsAddress).__GovValidators_init(

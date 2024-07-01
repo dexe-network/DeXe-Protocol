@@ -62,7 +62,7 @@
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@solarity/hardhat-gobind": "^1.2.2",
     "@solarity/hardhat-markup": "^1.0.7",
-    "@solarity/hardhat-migrate": "^2.1.7",
+    "@solarity/hardhat-migrate": "^2.1.10",
     "@openzeppelin/merkle-tree": "^1.0.6",
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.3",

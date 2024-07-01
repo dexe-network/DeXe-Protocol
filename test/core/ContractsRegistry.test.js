@@ -103,6 +103,16 @@ describe("ContractsRegistry", () => {
       );
     });
 
+    it("should not batch inject if not owner", async () => {
+      await truffleAssert.reverts(
+        contractsRegistry.injectDependenciesBatch(
+          [await contractsRegistry.PRICE_FEED_NAME(), await contractsRegistry.TOKEN_ALLOCATOR_NAME()],
+          { from: SECOND },
+        ),
+        "MultiOwnable: caller is not the owner",
+      );
+    });
+
     it("should revert on names and addresses length mismatch", async () => {
       const USD = await ERC20Mock.new("USD", "USD", 18);
 
