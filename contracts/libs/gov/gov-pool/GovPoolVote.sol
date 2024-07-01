@@ -367,11 +367,11 @@ library GovPoolVote {
     function _quorumReached(IGovPool.ProposalCore storage core) internal view returns (bool) {
         (, address userKeeperAddress, , , ) = IGovPool(address(this)).getHelperContracts();
 
+        uint256 totalPower = IGovUserKeeper(userKeeperAddress).getTotalPower();
+
         return
-            PERCENTAGE_100.ratio(
-                core.votesFor + core.votesAgainst,
-                IGovUserKeeper(userKeeperAddress).getTotalPower()
-            ) >= core.settings.quorum;
+            PERCENTAGE_100.ratio(core.votesFor, totalPower) >= core.settings.quorum ||
+            PERCENTAGE_100.ratio(core.votesAgainst, totalPower) >= core.settings.quorum;
     }
 
     function _quorumReachedThroughVoting(
