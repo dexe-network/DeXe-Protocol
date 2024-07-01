@@ -2837,6 +2837,24 @@ describe("GovPool", () => {
         assert.equal(await govPool.getProposalState(2), ProposalState.Defeated);
       });
 
+      it("should not change Defeated state if quorum changed", async () => {
+        await changeInternalSettings(false);
+
+        await govPool.createProposal(
+          "example.com",
+          [[settings.address, 0, getBytesChangeExecutors([userKeeper.address], [4])]],
+          [],
+        );
+
+        await govPool.vote(2, false, wei("51000000051000005100"), [], { from: SECOND });
+
+        assert.equal(await govPool.getProposalState(2), ProposalState.Defeated);
+
+        await token.mint(SECOND, wei("1"));
+
+        assert.equal(await govPool.getProposalState(2), ProposalState.Defeated);
+      });
+
       it("should return SucceededFor state when quorum has reached and vote result is for and without validators", async () => {
         await changeInternalSettings(false);
 

@@ -716,10 +716,16 @@ describe("DistributionProposal", () => {
       });
 
       it("should correctly calculate reward", async () => {
-        const ONE_NFT_VOTE = SINGLE_NFT_POWER.dividedBy(9).integerValue();
-        const THREE_NFT_VOTES = SINGLE_NFT_POWER.times(3).dividedBy(9).integerValue();
-        const FOUR_NFT_VOTES = SINGLE_NFT_POWER.times(4).dividedBy(9).integerValue();
-        const ALL_NFT_VOTES = THREE_NFT_VOTES.plus(FOUR_NFT_VOTES).plus(ONE_NFT_VOTE.times(2));
+        for (let i = 10; i < 15; i++) {
+          await nft.mint(SECOND, i);
+        }
+
+        await nft.setApprovalForAll(userKeeper.address, true, { from: SECOND });
+        await govPool.deposit(0, [10, 11, 12, 13, 14], { from: SECOND });
+
+        const ONE_NFT_VOTE = SINGLE_NFT_POWER.dividedBy(14).integerValue();
+        const TEN_NFT_VOTES = SINGLE_NFT_POWER.times(10).dividedBy(14).integerValue();
+        const ALL_NFT_VOTES = SINGLE_NFT_POWER.times(13).dividedBy(14).integerValue();
 
         await govPool.createProposal(
           "example.com",
@@ -728,15 +734,15 @@ describe("DistributionProposal", () => {
           { from: SECOND },
         );
 
-        await govPool.vote(1, true, 0, [1, 2, 3, 4, 5], { from: SECOND });
         await govPool.vote(1, false, 0, [6, 7, 9], { from: THIRD });
+        await govPool.vote(1, true, 0, [1, 2, 3, 4, 5, 10, 11, 12, 13, 14], { from: SECOND });
 
         await setTime(startTime + 10000);
         await govPool.execute(1);
 
         assert.closeTo(
           (await dp.getPotentialReward(1, SECOND)).toNumber(),
-          toBN(wei(1)).times(FOUR_NFT_VOTES.plus(ONE_NFT_VOTE)).idiv(ALL_NFT_VOTES.minus(ONE_NFT_VOTE)).toNumber(),
+          toBN(wei(1)).times(TEN_NFT_VOTES).idiv(ALL_NFT_VOTES).toNumber(),
           10,
         );
         assert.equal(await dp.getPotentialReward(1, THIRD), 0);
