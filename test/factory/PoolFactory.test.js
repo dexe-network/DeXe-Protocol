@@ -657,11 +657,21 @@ describe("PoolFactory", () => {
       });
     });
 
-    describe.only("createTokenAndDeployPool", () => {
+    describe("createTokenAndDeployPool", () => {
       let erc20Gov;
+      let merkleTree;
+      const DESCRIPTION_URL = "ipfs address";
 
       beforeEach("", async () => {
         erc20Gov = await ERC20Gov.new();
+
+        merkleTree = StandardMerkleTree.of(
+          [
+            [SECOND, wei("10")],
+            [THIRD, wei("5")],
+          ],
+          ["address", "uint256"],
+        );
       });
 
       it("different methods deploy GovToken on different addresses", async () => {
@@ -767,6 +777,41 @@ describe("PoolFactory", () => {
           "",
           0,
         );
+      });
+
+      it("integration with allocator", async () => {
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+
+        const predictedAddress = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+        const predictedGovAddress = predictedAddress.govPool;
+        const predictedTokenAddress = await poolFactory.predictTokenAddress(
+          erc20Gov.address,
+          OWNER,
+          POOL_PARAMETERS.name,
+        );
+        POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedTokenAddress;
+
+        await poolFactory.createTokenAndDeployPool(
+          erc20Gov.address,
+          getBytesERC20GovInit([
+            predictedGovAddress,
+            ["gov token", "st", [poolFactory.address], wei("1000"), wei("150"), [wei("15")]],
+          ]),
+          predictedGovAddress,
+          POOL_PARAMETERS,
+          merkleTree.root,
+          DESCRIPTION_URL,
+          wei("15"),
+        );
+
+        const info = await tokenAllocator.getAllocationInfo(1);
+
+        assert.equal(info.id, "1");
+        assert.equal(info.isClosed, false);
+        assert.equal(info.allocator, predictedGovAddress);
+        assert.equal(info.token, predictedTokenAddress);
+        assert.equal(info.currentBalance, wei("15"));
+        assert.equal(info.merkleRoot, merkleTree.root);
       });
     });
   });

@@ -6,7 +6,7 @@ const { ZERO_ADDR } = require("../../scripts/utils/constants");
 const CloneMock = artifacts.require("CloneMock");
 const ERC20Gov = artifacts.require("ERC20Gov");
 
-describe.only("Clone library", () => {
+describe("Clone library", () => {
   let cloneFactory, token;
 
   const reverter = new Reverter();

@@ -75,6 +75,13 @@ describe("TokenAllocator", () => {
       );
     });
 
+    it("allocateFromFactory reverts on wrong sender", async () => {
+      await truffleAssert.reverts(
+        allocator.allocateFromFactory(token.address, wei("1"), OWNER, merkleTree.root, DESCRIPTION_URL),
+        "TA: Not factory",
+      );
+    });
+
     it("successful allocation increases id", async () => {
       assert.equal(await allocator.lastAllocationId(), 0);
 
