@@ -27,11 +27,13 @@ import {PoolRegistry} from "./PoolRegistry.sol";
 import "../proxy/ProtectedPublicBeaconProxy.sol";
 
 import "../libs/factory/GovTokenDeployer.sol";
+import "../libs/factory/Clone.sol";
 
 import "../core/Globals.sol";
 
 contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     using GovTokenDeployer for *;
+    using Clone for *;
     using Vector for Vector.AddressVector;
 
     string internal constant EXPERT_NAME_POSTFIX = (" Expert NFT");
@@ -68,7 +70,9 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _poolSphereXEngine = ISphereXEngine(registry.getPoolSphereXEngineContract());
     }
 
-    function deployGovPool(GovPoolDeployParams calldata parameters) external override {
+    function deployGovPool(
+        GovPoolDeployParams calldata parameters
+    ) public override returns (address) {
         string memory poolType = _poolRegistry.GOV_POOL_NAME();
 
         Vector.AddressVector memory vector = Vector.newAddress();
@@ -151,6 +155,38 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _register(poolType, poolProxy);
         _injectDependencies(poolProxy);
         _injectDependencies(tokenSaleProxy);
+
+        return (poolProxy);
+    }
+
+    function createTokenAndDeployPool(
+        address contractToClone,
+        bytes calldata initializeCode,
+        address expectedPoolAddress,
+        GovPoolDeployParams calldata parameters
+    ) external override {
+        bytes32 salt = _calculateGovSalt(tx.origin, parameters.name);
+
+        address tokenAddress = contractToClone.clone2(salt);
+        (bool success, ) = tokenAddress.call(initializeCode);
+        require(success, "Pool Factory: can't initialize token");
+
+        require(
+            tokenAddress == parameters.userKeeperParams.tokenAddress,
+            "Pool Factory: wrong address"
+        );
+
+        address poolAddress = deployGovPool(parameters);
+        require(poolAddress == expectedPoolAddress, "Pool Factory: unexpected pool address");
+    }
+
+    function predictTokenAddress(
+        address tokenToClone,
+        address deployer,
+        string calldata poolName
+    ) external view override returns (address predictedAddress) {
+        bytes32 salt = _calculateGovSalt(deployer, poolName);
+        predictedAddress = tokenToClone.predictClonedAddress(salt);
     }
 
     function predictGovAddresses(

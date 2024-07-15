@@ -106,7 +106,20 @@ interface IPoolFactory {
 
     /// @notice This function is used to deploy DAO Pool with TokenSale proposal
     /// @param parameters the pool deploy parameters
-    function deployGovPool(GovPoolDeployParams calldata parameters) external;
+    /// @return the deployed pool address
+    function deployGovPool(GovPoolDeployParams calldata parameters) external returns (address);
+
+    /// @notice This function is used to clone existent token and deploy DAO Pool with it
+    /// @param contractToClone the token address that will be cloned
+    /// @param initializeCode the bytecode to initialize token
+    /// @param expectedPoolAddress the predicted address of the pool
+    /// @param parameters the pool deploy parameters
+    function createTokenAndDeployPool(
+        address contractToClone,
+        bytes calldata initializeCode,
+        address expectedPoolAddress,
+        GovPoolDeployParams calldata parameters
+    ) external;
 
     /// @notice The view function that predicts the addresses where
     /// the gov pool proxy, the gov token sale proxy and the gov token will be stored
@@ -117,4 +130,15 @@ interface IPoolFactory {
         address deployer,
         string calldata poolName
     ) external view returns (GovPoolPredictedAddresses memory);
+
+    /// @notice The view function that predicts the token address cloned with create2
+    /// @param tokenToClone the user that deploys the gov pool (tx.origin)
+    /// @param deployer the user that deploys the gov pool (tx.origin)
+    /// @param poolName the name of the pool which is part of the salt
+    /// @return the predicted address
+    function predictTokenAddress(
+        address tokenToClone,
+        address deployer,
+        string calldata poolName
+    ) external view returns (address);
 }
