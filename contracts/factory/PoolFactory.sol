@@ -10,6 +10,7 @@ import "@spherex-xyz/engine-contracts/src/SphereXEngine.sol";
 
 import "../interfaces/factory/IPoolFactory.sol";
 import "../interfaces/core/IContractsRegistry.sol";
+import "../interfaces/core/ITokenAllocator.sol";
 import "../interfaces/core/ISBT721.sol";
 
 import {DistributionProposal} from "../gov/proposals/DistributionProposal.sol";
@@ -49,6 +50,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
     mapping(bytes32 => bool) private _usedSalts;
 
+    ITokenAllocator internal _allocator;
+
     event DaoPoolDeployed(
         string name,
         address govPool,
@@ -68,6 +71,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _coreProperties = CoreProperties(registry.getCorePropertiesContract());
         _babt = ISBT721(registry.getBABTContract());
         _poolSphereXEngine = ISphereXEngine(registry.getPoolSphereXEngineContract());
+        _allocator = ITokenAllocator(registry.getTokenAllocatorContract());
     }
 
     function deployGovPool(
@@ -163,7 +167,10 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         address contractToClone,
         bytes calldata initializeCode,
         address expectedPoolAddress,
-        GovPoolDeployParams calldata parameters
+        GovPoolDeployParams calldata parameters,
+        bytes32 merkleRoot,
+        string calldata descriptionURL,
+        uint256 amountToAllocate
     ) external override {
         bytes32 salt = _calculateGovSalt(tx.origin, parameters.name);
 
@@ -178,6 +185,18 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
 
         address poolAddress = deployGovPool(parameters);
         require(poolAddress == expectedPoolAddress, "Pool Factory: unexpected pool address");
+
+        if (merkleRoot != bytes32(0)) {
+            IERC20(tokenAddress).approve(address(_allocator), amountToAllocate);
+
+            _allocator.allocateFromFactory(
+                tokenAddress,
+                amountToAllocate,
+                poolAddress,
+                merkleRoot,
+                descriptionURL
+            );
+        }
     }
 
     function predictTokenAddress(

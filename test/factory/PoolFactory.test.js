@@ -657,7 +657,7 @@ describe("PoolFactory", () => {
       });
     });
 
-    describe("createTokenAndDeployPool", () => {
+    describe.only("createTokenAndDeployPool", () => {
       let erc20Gov;
 
       beforeEach("", async () => {
@@ -686,6 +686,9 @@ describe("PoolFactory", () => {
             getBytesERC20GovInit([predictedGovAddresses, ["gov token", "st", [], wei("1000"), wei("150"), []]]),
             predictedGovAddresses,
             POOL_PARAMETERS,
+            "0x0",
+            "",
+            0,
           ),
           "Pool Factory: wrong address",
         );
@@ -709,6 +712,9 @@ describe("PoolFactory", () => {
             getBytesERC20GovInit([predictedGovAddresses, ["gov token", "st", [], wei("1000"), wei("150"), []]]),
             OWNER,
             POOL_PARAMETERS,
+            "0x0",
+            "",
+            0,
           ),
           "Pool Factory: unexpected pool address",
         );
@@ -727,7 +733,15 @@ describe("PoolFactory", () => {
         POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedTokenAddress;
 
         await truffleAssert.reverts(
-          poolFactory.createTokenAndDeployPool(erc20Gov.address, "0x", predictedGovAddresses, POOL_PARAMETERS),
+          poolFactory.createTokenAndDeployPool(
+            erc20Gov.address,
+            "0x",
+            predictedGovAddresses,
+            POOL_PARAMETERS,
+            "0x0",
+            "",
+            0,
+          ),
           "Pool Factory: can't initialize token",
         );
       });
@@ -749,6 +763,9 @@ describe("PoolFactory", () => {
           getBytesERC20GovInit([predictedGovAddresses, ["gov token", "st", [], wei("1000"), wei("150"), []]]),
           predictedGovAddresses,
           POOL_PARAMETERS,
+          "0x0",
+          "",
+          0,
         );
       });
     });

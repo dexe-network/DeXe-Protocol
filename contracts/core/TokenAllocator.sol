@@ -83,6 +83,20 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
         _poolFactory.deployGovPool(parameters);
     }
 
+    function allocateFromFactory(
+        address token,
+        uint256 amount,
+        address pool,
+        bytes32 merkleRoot,
+        string calldata descriptionURL
+    ) external {
+        require(address(_poolFactory) == msg.sender, "TA: Not factory");
+
+        _createAllocation(pool, token, amount, merkleRoot, descriptionURL);
+
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+    }
+
     function closeAllocation(uint256 id) external withCorrectId(id) {
         AllocationData storage allocation = _allocationInfos[id];
         address allocator = allocation.allocator;

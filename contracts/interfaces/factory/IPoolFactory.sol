@@ -114,11 +114,17 @@ interface IPoolFactory {
     /// @param initializeCode the bytecode to initialize token
     /// @param expectedPoolAddress the predicted address of the pool
     /// @param parameters the pool deploy parameters
+    /// @param merkleRoot the Merkle root of tree with users and amounts to claim
+    /// @param descriptionURL the ipfs of Merkle tree
+    /// @param amountToAllocate the amount of tokens to be allocated via Merkle tree
     function createTokenAndDeployPool(
         address contractToClone,
         bytes calldata initializeCode,
         address expectedPoolAddress,
-        GovPoolDeployParams calldata parameters
+        GovPoolDeployParams calldata parameters,
+        bytes32 merkleRoot,
+        string calldata descriptionURL,
+        uint256 amountToAllocate
     ) external;
 
     /// @notice The view function that predicts the addresses where

@@ -72,6 +72,20 @@ interface ITokenAllocator {
         IPoolFactory.GovPoolDeployParams calldata parameters
     ) external;
 
+    /// @notice The function to preallocate tokens by request from Pool Factory
+    /// @param token the address of the token to allocate
+    /// @param amount the ammount of tokens to allocate
+    /// @param pool the address of the allocator pool
+    /// @param merkleRoot the Merkle root of tree with users and amounts to claim
+    /// @param descriptionURL the ipfs of Merkle tree
+    function allocateFromFactory(
+        address token,
+        uint256 amount,
+        address pool,
+        bytes32 merkleRoot,
+        string calldata descriptionURL
+    ) external;
+
     /// @notice The function to close allocation and retrieve remaining balance
     /// @param id the allocation id
     function closeAllocation(uint256 id) external;
