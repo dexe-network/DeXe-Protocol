@@ -3,6 +3,8 @@ const { accounts, wei } = require("../../scripts/utils/utils");
 const Reverter = require("../helpers/reverter");
 const truffleAssert = require("truffle-assertions");
 const { getBytesLinearPowerInit, getBytesPolynomialPowerInit } = require("../utils/gov-vote-power-utils");
+const { getBytesERC20GovInit } = require("../utils/gov-create-token-utils");
+const {} = require("../utils/gov-vote-power-utils");
 const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { DEFAULT_CORE_PROPERTIES, VotePowerType } = require("../utils/constants");
 const { artifacts } = require("hardhat");
@@ -14,6 +16,7 @@ const ERC721Mock = artifacts.require("ERC721Mock");
 const BABTMock = artifacts.require("BABTMock");
 const WethMock = artifacts.require("WETHMock");
 const BscProperties = artifacts.require("BSCProperties");
+const ERC20Gov = artifacts.require("ERC20Gov");
 const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const LinearPower = artifacts.require("LinearPower");
@@ -52,6 +55,7 @@ const SphereXEngine = artifacts.require("SphereXEngine");
 
 ContractsRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
+ERC20Gov.numberFormat = "BigNumber";
 WethMock.numberFormat = "BigNumber";
 BscProperties.numberFormat = "BigNumber";
 ERC721Mock.numberFormat = "BigNumber";
@@ -650,6 +654,164 @@ describe("PoolFactory", () => {
           tokenAllocator.allocateAndDeployGovPool(merkleTree.root, DESCRIPTION_URL, POOL_PARAMETERS),
           "TA: no allocation in GovPool params",
         );
+      });
+    });
+
+    describe("createTokenAndDeployPool", () => {
+      let erc20Gov;
+      let merkleTree;
+      const DESCRIPTION_URL = "ipfs address";
+
+      beforeEach("", async () => {
+        erc20Gov = await ERC20Gov.new();
+
+        merkleTree = StandardMerkleTree.of(
+          [
+            [SECOND, wei("10")],
+            [THIRD, wei("5")],
+          ],
+          ["address", "uint256"],
+        );
+      });
+
+      it("different methods deploy GovToken on different addresses", async () => {
+        const predictedAddress = await poolFactory.predictGovAddresses(OWNER, "Test");
+
+        const address0 = predictedAddress.govToken;
+        const address1 = await poolFactory.predictTokenAddress(erc20Gov.address, OWNER, "Test");
+
+        assert.isFalse(address0 == address1);
+      });
+
+      it("reverts on wrong token address", async () => {
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+
+        const predictedAddress = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+        const predictedGovAddresses = predictedAddress.govPool;
+        POOL_PARAMETERS.userKeeperParams.tokenAddress = erc20Gov.address;
+
+        await truffleAssert.reverts(
+          poolFactory.createTokenAndDeployPool(
+            erc20Gov.address,
+            getBytesERC20GovInit([predictedGovAddresses, ["gov token", "st", [], wei("1000"), wei("150"), []]]),
+            predictedGovAddresses,
+            POOL_PARAMETERS,
+            "0x0",
+            "",
+            0,
+          ),
+          "Pool Factory: wrong address",
+        );
+      });
+
+      it("reverts on wrong govpool address", async () => {
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+
+        const predictedAddress = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+        const predictedGovAddresses = predictedAddress.govPool;
+        const predictedTokenAddress = await poolFactory.predictTokenAddress(
+          erc20Gov.address,
+          OWNER,
+          POOL_PARAMETERS.name,
+        );
+        POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedTokenAddress;
+
+        await truffleAssert.reverts(
+          poolFactory.createTokenAndDeployPool(
+            erc20Gov.address,
+            getBytesERC20GovInit([predictedGovAddresses, ["gov token", "st", [], wei("1000"), wei("150"), []]]),
+            OWNER,
+            POOL_PARAMETERS,
+            "0x0",
+            "",
+            0,
+          ),
+          "Pool Factory: unexpected pool address",
+        );
+      });
+
+      it("reverts on wrong initialization", async () => {
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+
+        const predictedAddress = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+        const predictedGovAddresses = predictedAddress.govPool;
+        const predictedTokenAddress = await poolFactory.predictTokenAddress(
+          erc20Gov.address,
+          OWNER,
+          POOL_PARAMETERS.name,
+        );
+        POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedTokenAddress;
+
+        await truffleAssert.reverts(
+          poolFactory.createTokenAndDeployPool(
+            erc20Gov.address,
+            "0x",
+            predictedGovAddresses,
+            POOL_PARAMETERS,
+            "0x0",
+            "",
+            0,
+          ),
+          "Pool Factory: can't initialize token",
+        );
+      });
+
+      it("passes on correct parameters", async () => {
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+
+        const predictedAddress = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+        const predictedGovAddresses = predictedAddress.govPool;
+        const predictedTokenAddress = await poolFactory.predictTokenAddress(
+          erc20Gov.address,
+          OWNER,
+          POOL_PARAMETERS.name,
+        );
+        POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedTokenAddress;
+
+        await poolFactory.createTokenAndDeployPool(
+          erc20Gov.address,
+          getBytesERC20GovInit([predictedGovAddresses, ["gov token", "st", [], wei("1000"), wei("150"), []]]),
+          predictedGovAddresses,
+          POOL_PARAMETERS,
+          "0x0",
+          "",
+          0,
+        );
+      });
+
+      it("integration with allocator", async () => {
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+
+        const predictedAddress = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+        const predictedGovAddress = predictedAddress.govPool;
+        const predictedTokenAddress = await poolFactory.predictTokenAddress(
+          erc20Gov.address,
+          OWNER,
+          POOL_PARAMETERS.name,
+        );
+        POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedTokenAddress;
+
+        await poolFactory.createTokenAndDeployPool(
+          erc20Gov.address,
+          getBytesERC20GovInit([
+            predictedGovAddress,
+            ["gov token", "st", [poolFactory.address], wei("1000"), wei("150"), [wei("15")]],
+          ]),
+          predictedGovAddress,
+          POOL_PARAMETERS,
+          merkleTree.root,
+          DESCRIPTION_URL,
+          wei("15"),
+        );
+
+        const info = await tokenAllocator.getAllocationInfo(1);
+
+        assert.equal(info.id, "1");
+        assert.equal(info.isClosed, false);
+        assert.equal(info.allocator, predictedGovAddress);
+        assert.equal(info.token, predictedTokenAddress);
+        assert.equal(info.currentBalance, wei("15"));
+        assert.equal(info.merkleRoot, merkleTree.root);
       });
     });
   });
