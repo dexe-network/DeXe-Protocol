@@ -2,14 +2,15 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
 
-contract ERC20GovMinimal is ERC20Upgradeable {
+contract ERC20GovBurnable is ERC20Upgradeable, ERC20BurnableUpgradeable {
     struct InitMint {
         address user;
         uint256 amount;
     }
 
-    function __ERC20GovMinimal_init(
+    function __ERC20GovBurnable_init(
         string calldata name,
         string calldata symbol,
         InitMint[] calldata distributions
