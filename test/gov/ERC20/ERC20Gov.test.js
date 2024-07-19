@@ -5,10 +5,8 @@ const truffleAssert = require("truffle-assertions");
 const Reverter = require("../../helpers/reverter");
 
 const ERC20Gov = artifacts.require("ERC20Gov");
-const ERC20GovMinimal = artifacts.require("ERC20GovMinimal");
 
 ERC20Gov.numberFormat = "BigNumber";
-ERC20GovMinimal.numberFormat = "BigNumber";
 
 describe("ERC20Gov", () => {
   let OWNER;
@@ -248,28 +246,6 @@ describe("ERC20Gov", () => {
 
         assert.deepEqual(await erc20Gov.getBlacklistAccounts(0, 10), [SECOND]);
       });
-    });
-  });
-
-  describe("ERC20GovMinimal", () => {
-    let erc20GovMinimal;
-
-    beforeEach("", async () => {
-      erc20GovMinimal = await ERC20GovMinimal.new();
-      await erc20GovMinimal.__ERC20GovMinimal_init("Token", "TKN", [[OWNER, wei("1")]]);
-    });
-
-    it("can't initialize twice", async () => {
-      await truffleAssert.reverts(
-        erc20GovMinimal.__ERC20GovMinimal_init("Token", "TKN", [[OWNER, wei("1")]]),
-        "Initializable: contract is already initialized",
-      );
-    });
-
-    it("initializes correctly", async () => {
-      assert.equal(await erc20GovMinimal.name(), "Token");
-      assert.equal(await erc20GovMinimal.symbol(), "TKN");
-      assert.equal((await erc20GovMinimal.balanceOf(OWNER)).toFixed(), wei("1"));
     });
   });
 });
