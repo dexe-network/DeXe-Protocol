@@ -2,6 +2,8 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "@solarity/solidity-lib/libs/arrays/ArrayHelper.sol";
 
@@ -15,6 +17,7 @@ import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 
 library GovPoolMicropool {
     using TokenBalance for address;
+    using SafeERC20 for IERC20;
     using Math for uint256;
     using MathHelper for uint256;
     using ArrayHelper for uint256[];
@@ -122,6 +125,35 @@ library GovPoolMicropool {
             rewards.rewardTokens[i] = proposal.core.settings.rewardsInfo.rewardToken;
             rewards.isVoteFor[i] = userInfo.voteInfos[proposalId].isVoteFor;
             rewards.isClaimed[i] = userInfo.delegatorInfos[delegator].isClaimed[proposalId];
+        }
+    }
+
+    function transferTreasury(
+        IGovUserKeeper _govUserKeeper,
+        address delegatee,
+        uint256 amount,
+        uint256[] calldata nftIds
+    ) external {
+        if (amount != 0 || msg.value != 0) {
+            address token = _govUserKeeper.tokenAddress();
+            uint256 amountWithNativeDecimals = _govUserKeeper.getAmountWithNativeDecimals(
+                msg.value,
+                amount
+            );
+
+            if (amountWithNativeDecimals != 0) {
+                IERC20(token).safeTransfer(address(_govUserKeeper), amountWithNativeDecimals);
+            }
+
+            _govUserKeeper.delegateTokensTreasury{value: msg.value}(delegatee, amount);
+        }
+
+        if (nftIds.length != 0) {
+            IERC721 nft = IERC721(_govUserKeeper.nftAddress());
+
+            for (uint256 i; i < nftIds.length; i++) {
+                nft.safeTransferFrom(address(this), address(_govUserKeeper), nftIds[i]);
+            }
         }
     }
 

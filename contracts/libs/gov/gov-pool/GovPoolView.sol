@@ -8,18 +8,20 @@ import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
 
 import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../interfaces/gov/IGovPool.sol";
+import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../interfaces/gov/validators/IGovValidators.sol";
 
 import "../../../gov/GovPool.sol";
 
 import "./GovPoolVote.sol";
 
-import "../../../core/Globals.sol";
+import "../../../libs/math/MathHelper.sol";
 
 library GovPoolView {
     using EnumerableSet for EnumerableSet.UintSet;
     using GovPoolVote for IGovPool.ProposalCore;
     using Vector for Vector.UintVector;
+    using MathHelper for uint256;
     using Math for uint256;
 
     function getWithdrawableAssets(
@@ -111,6 +113,17 @@ library GovPoolView {
         }
 
         return IGovPool.ProposalState.Voting;
+    }
+
+    function getProposalRequiredQuorum(
+        IGovPool.ProposalCore storage core,
+        IGovUserKeeper userKeeper
+    ) external view returns (uint256) {
+        if (core.voteEnd == 0) {
+            return 0;
+        }
+
+        return userKeeper.getTotalPower().ratio(core.settings.quorum, PERCENTAGE_100);
     }
 
     function _getValidatorsExternalProposalState(

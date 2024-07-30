@@ -3,7 +3,6 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Multicall.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
@@ -32,8 +31,6 @@ import "../libs/gov/gov-pool/GovPoolMicropool.sol";
 import "../libs/gov/gov-pool/GovPoolCredit.sol";
 import "../libs/gov/gov-pool/GovPoolOffchain.sol";
 import "../libs/math/MathHelper.sol";
-
-import "../core/Globals.sol";
 
 contract GovPool is
     IGovPool,
@@ -286,27 +283,9 @@ contract GovPool is
 
         _unlock(delegatee);
 
-        if (amount != 0 || msg.value != 0) {
-            address token = _govUserKeeper.tokenAddress();
-            uint256 amountWithNativeDecimals = _govUserKeeper.getAmountWithNativeDecimals(
-                msg.value,
-                amount
-            );
-
-            if (amountWithNativeDecimals != 0) {
-                IERC20(token).safeTransfer(address(_govUserKeeper), amountWithNativeDecimals);
-            }
-
-            _govUserKeeper.delegateTokensTreasury{value: msg.value}(delegatee, amount);
-        }
+        _govUserKeeper.transferTreasury(delegatee, amount, nftIds);
 
         if (nftIds.length != 0) {
-            IERC721 nft = IERC721(_govUserKeeper.nftAddress());
-
-            for (uint256 i; i < nftIds.length; i++) {
-                nft.safeTransferFrom(address(this), address(_govUserKeeper), nftIds[i]);
-            }
-
             _updateNftPowers(nftIds);
 
             _govUserKeeper.delegateNftsTreasury(delegatee, nftIds);
@@ -482,13 +461,7 @@ contract GovPool is
     function getProposalRequiredQuorum(
         uint256 proposalId
     ) external view override returns (uint256) {
-        ProposalCore storage core = _proposals[proposalId].core;
-
-        if (core.voteEnd == 0) {
-            return 0;
-        }
-
-        return _govUserKeeper.getTotalPower().ratio(core.settings.quorum, PERCENTAGE_100);
+        return _proposals[proposalId].core.getProposalRequiredQuorum(_govUserKeeper);
     }
 
     function getTotalVotes(
