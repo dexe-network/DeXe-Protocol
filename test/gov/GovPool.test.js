@@ -672,6 +672,26 @@ describe("GovPool", () => {
         await truffleAssert.reverts(govPool.deposit(0, []), "Gov: empty deposit");
       });
 
+      it("should not deposit if receiver is blacklisted", async () => {
+        await token.setBlacklistOption(1);
+        await token.blacklist(OWNER, true);
+
+        await truffleAssert.reverts(govPool.deposit(wei("100"), []), "GovUK: user is blacklisted");
+
+        await truffleAssert.reverts(govPool.deposit(0, [1, 2, 3]), "GovUK: user is blacklisted");
+      });
+
+      it.only("could deposit if no blacklist function in token", async () => {
+        await token.setBlacklistOption(2);
+        await govPool.deposit(1, []);
+
+        await token.setBlacklistOption(3);
+        await govPool.deposit(1, []);
+
+        await token.setBlacklistOption(4);
+        await govPool.deposit(1, [], { gas: 100000 });
+      });
+
       it("should deposit tokens", async () => {
         assert.equal(
           (await userKeeper.tokenBalance(OWNER, VoteType.PersonalVote)).totalBalance.toFixed(),
@@ -3237,6 +3257,16 @@ describe("GovPool", () => {
         await switchWeth(0, weth.address);
       });
 
+      it("reverts on withdraw if user is blacklisted", async () => {
+        await govPool.deposit(wei("1000"), [1, 2, 3]);
+
+        await token.setBlacklistOption(1);
+        await token.blacklist(OWNER, true);
+
+        await truffleAssert.reverts(govPool.withdraw(SECOND, wei("1000"), []), "'GovUK: user is blacklisted'");
+        await truffleAssert.reverts(govPool.withdraw(SECOND, 0, [1, 2, 3]), "'GovUK: user is blacklisted'");
+      });
+
       it("should deposit, vote, unlock", async () => {
         await govPool.deposit(wei("1000"), [1, 2, 3, 4]);
 
@@ -3278,6 +3308,27 @@ describe("GovPool", () => {
 
       it("should not delegate zero tokens", async () => {
         await truffleAssert.reverts(govPool.delegate(OWNER, 0, []), "Gov: empty delegation");
+      });
+
+      it("should not delegate if blacklisted", async () => {
+        await govPool.deposit(wei("1000"), [1, 2, 3]);
+
+        await token.setBlacklistOption(1);
+        await token.blacklist(OWNER, true);
+
+        await truffleAssert.reverts(govPool.delegate(SECOND, 1, []), "GovUK: user is blacklisted");
+        await truffleAssert.reverts(govPool.delegate(SECOND, 0, [1]), "GovUK: user is blacklisted");
+      });
+
+      it("should not undelegate if blacklisted", async () => {
+        await govPool.deposit(wei("1000"), [1, 2, 3]);
+        await govPool.delegate(SECOND, 1, [1]);
+
+        await token.setBlacklistOption(1);
+        await token.blacklist(OWNER, true);
+
+        await truffleAssert.reverts(govPool.undelegate(SECOND, 1, []), "GovUK: user is blacklisted");
+        await truffleAssert.reverts(govPool.undelegate(SECOND, 0, [1]), "GovUK: user is blacklisted");
       });
 
       it("should not delegate if delegator's equal delegatee", async () => {

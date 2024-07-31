@@ -89,6 +89,10 @@ contract ERC20Gov is
         return _blacklistAccounts.part(offset, limit);
     }
 
+    function isBlacklisted(address user) external view override returns (bool) {
+        return _blacklistAccounts.contains(user);
+    }
+
     function _beforeTokenTransfer(
         address from,
         address to,

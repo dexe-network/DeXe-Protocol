@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract ERC20Mock is ERC20 {
     uint8 internal _decimals;
     bool internal _allowMint;
+    uint256 internal _blacklistOption;
+    mapping(address => bool) internal _isBlacklisted;
 
     constructor(
         string memory name,
@@ -46,5 +48,32 @@ contract ERC20Mock is ERC20 {
         require(balanceOf(msg.sender) >= wad, "");
         _burn(msg.sender, wad);
         payable(msg.sender).transfer(wad);
+    }
+
+    function blacklist(address user, bool state) external {
+        _isBlacklisted[user] = state;
+    }
+
+    function setBlacklistOption(uint256 opt) external {
+        _blacklistOption = opt;
+    }
+
+    function isBlacklisted(address user) external view returns (bool) {
+        if (_blacklistOption == 0) {
+            // disabled
+            return false;
+        } else if (_blacklistOption == 1) {
+            // regular case
+            return _isBlacklisted[user];
+        } else if (_blacklistOption == 2) {
+            // silent revert
+            revert();
+        } else if (_blacklistOption == 3) {
+            // regular revert
+            revert("No such function");
+        } else {
+            // hard revert
+            address(this).staticcall(abi.encodeWithSelector(this.setDecimals.selector, 20));
+        }
     }
 }

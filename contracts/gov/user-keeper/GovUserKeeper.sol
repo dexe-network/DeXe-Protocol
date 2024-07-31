@@ -21,6 +21,7 @@ import "../../interfaces/core/INetworkProperties.sol";
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/ERC721/powers/IERC721Power.sol";
+import "../../interfaces/gov/ERC20/IERC20Gov.sol";
 
 import "../../libs/math/MathHelper.sol";
 import "../../libs/gov/gov-user-keeper/GovUserKeeperView.sol";
@@ -60,6 +61,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         _;
     }
 
+    modifier ifNotBlacklisted(address user) {
+        require(!_isBlacklisted(user), "GovUK: user is blacklisted");
+        _;
+    }
+
     function __GovUserKeeper_init(
         address _tokenAddress,
         address _nftAddress,
@@ -91,7 +97,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address payer,
         address receiver,
         uint256 amount
-    ) external payable override onlyOwner withSupportedToken {
+    ) external payable override onlyOwner withSupportedToken ifNotBlacklisted(receiver) {
         address token = tokenAddress;
         uint256 amountWithNativeDecimals = getAmountWithNativeDecimals(msg.value, amount);
 
@@ -108,7 +114,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address payer,
         address receiver,
         uint256 amount
-    ) external override onlyOwner withSupportedToken {
+    ) external override onlyOwner withSupportedToken ifNotBlacklisted(payer) {
         UserInfo storage payerInfo = _usersInfo[payer];
         BalanceInfo storage payerBalanceInfo = payerInfo.balances[IGovPool.VoteType.PersonalVote];
 
@@ -129,7 +135,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address delegator,
         address delegatee,
         uint256 amount
-    ) external override onlyOwner withSupportedToken {
+    ) external override onlyOwner withSupportedToken ifNotBlacklisted(delegator) {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
         BalanceInfo storage delegatorBalanceInfo = delegatorInfo.balances[
             IGovPool.VoteType.PersonalVote
@@ -162,7 +168,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address delegator,
         address delegatee,
         uint256 amount
-    ) external override onlyOwner withSupportedToken {
+    ) external override onlyOwner withSupportedToken ifNotBlacklisted(delegator) {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
 
         require(
@@ -200,7 +206,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address payer,
         address receiver,
         uint256[] calldata nftIds
-    ) external override onlyOwner withSupportedNft {
+    ) external override onlyOwner withSupportedNft ifNotBlacklisted(receiver) {
         EnumerableSet.UintSet storage receiverNftBalance = _usersInfo[receiver]
             .balances[IGovPool.VoteType.PersonalVote]
             .nfts;
@@ -220,7 +226,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address payer,
         address receiver,
         uint256[] calldata nftIds
-    ) external override onlyOwner withSupportedNft {
+    ) external override onlyOwner withSupportedNft ifNotBlacklisted(payer) {
         EnumerableSet.UintSet storage payerNftBalance = _usersInfo[payer]
             .balances[IGovPool.VoteType.PersonalVote]
             .nfts;
@@ -245,7 +251,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address delegator,
         address delegatee,
         uint256[] calldata nftIds
-    ) external override onlyOwner withSupportedNft {
+    ) external override onlyOwner withSupportedNft ifNotBlacklisted(delegator) {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
         UserInfo storage delegateeInfo = _usersInfo[delegatee];
 
@@ -327,7 +333,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address delegator,
         address delegatee,
         uint256[] calldata nftIds
-    ) external override onlyOwner withSupportedNft {
+    ) external override onlyOwner withSupportedNft ifNotBlacklisted(delegator) {
         UserInfo storage delegatorInfo = _usersInfo[delegator];
         UserInfo storage delegateeInfo = _usersInfo[delegatee];
 
@@ -856,5 +862,17 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address _wethAddress = wethAddress;
 
         return _wethAddress != address(0) && wethAddress == tokenAddress;
+    }
+
+    function _isBlacklisted(address user) internal view returns (bool) {
+        if (tokenAddress == address(0)) {
+            return false;
+        }
+
+        (bool ok, bytes memory data) = tokenAddress.staticcall{gas: 10000}(
+            abi.encodeWithSelector(IERC20Gov.isBlacklisted.selector, user)
+        );
+
+        return (ok && data.length != 0 && abi.decode(data, (bool)));
     }
 }

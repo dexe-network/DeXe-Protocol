@@ -48,4 +48,8 @@ interface IERC20Gov {
         uint256 offset,
         uint256 limit
     ) external view returns (address[] memory);
+
+    /// @notice The function to check if user is blacklisted
+    /// @param user the address to check
+    function isBlacklisted(address user) external view returns (bool);
 }
