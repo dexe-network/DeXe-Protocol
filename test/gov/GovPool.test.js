@@ -681,7 +681,7 @@ describe("GovPool", () => {
         await truffleAssert.reverts(govPool.deposit(0, [1, 2, 3]), "GovUK: user is blacklisted");
       });
 
-      it.only("could deposit if no blacklist function in token", async () => {
+      it("could deposit if no blacklist function in token", async () => {
         await token.setBlacklistOption(2);
         await govPool.deposit(1, []);
 
@@ -3329,6 +3329,26 @@ describe("GovPool", () => {
 
         await truffleAssert.reverts(govPool.undelegate(SECOND, 1, []), "GovUK: user is blacklisted");
         await truffleAssert.reverts(govPool.undelegate(SECOND, 0, [1]), "GovUK: user is blacklisted");
+      });
+
+      it("could force undelegate", async () => {
+        await govPool.deposit(wei("1000"), [1, 2, 3]);
+        await govPool.delegate(SECOND, 1, []);
+
+        await truffleAssert.reverts(userKeeper.forceUndelegate(OWNER), "Ownable: caller is not the owner");
+
+        assert.equal((await userKeeper.delegations(OWNER, false))[1][0].delegatedTokens, 1);
+
+        await impersonate(govPool.address);
+        await userKeeper.forceUndelegate(OWNER, { from: govPool.address });
+
+        assert.equal((await userKeeper.delegations(OWNER, false))[1].length, 0);
+
+        await govPool.delegate(SECOND, 0, [1]);
+        assert.equal((await userKeeper.delegations(OWNER, false))[1][0].delegatedNfts.length, 1);
+
+        await userKeeper.forceUndelegate(OWNER, { from: govPool.address });
+        assert.equal((await userKeeper.delegations(OWNER, false))[1].length, 0);
       });
 
       it("should not delegate if delegator's equal delegatee", async () => {

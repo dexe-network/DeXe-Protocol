@@ -161,6 +161,10 @@ interface IGovUserKeeper {
         uint256[] calldata nftIds
     ) external;
 
+    /// @notice The function to force undelegation of all user delegations
+    /// @param delegator the address of delegator
+    function forceUndelegate(address delegator) external;
+
     /// @notice The function for undelegating nfts from Treasury
     /// @param delegatee the address of delegatee
     /// @param nftIds the array of undelegated nft ids
