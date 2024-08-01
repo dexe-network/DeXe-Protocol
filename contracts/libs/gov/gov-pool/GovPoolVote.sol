@@ -124,10 +124,33 @@ library GovPoolVote {
         mapping(address => IGovPool.UserInfo) storage userInfos,
         uint256 proposalId
     ) external {
+        _cancelVote(proposals, userInfos, proposalId, msg.sender);
+    }
+
+    function forceCancel(
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        mapping(address => IGovPool.UserInfo) storage userInfos,
+        address user
+    ) external {
+        IGovPool.UserInfo storage userInfo = userInfos[user];
+        uint256[] memory proposalIds = userInfo.votedInProposals.values();
+        for (uint i = 0; i < proposalIds.length; i++) {
+            if (_isVotingState(proposalIds[i])) {
+                _cancelVote(proposals, userInfos, proposalIds[i], user);
+            }
+        }
+    }
+
+    function _cancelVote(
+        mapping(uint256 => IGovPool.Proposal) storage proposals,
+        mapping(address => IGovPool.UserInfo) storage userInfos,
+        uint256 proposalId,
+        address userToCancel
+    ) internal {
         require(_isVotingState(proposalId), "Gov: cancel unavailable");
 
         IGovPool.ProposalCore storage core = proposals[proposalId].core;
-        IGovPool.UserInfo storage userInfo = userInfos[msg.sender];
+        IGovPool.UserInfo storage userInfo = userInfos[userToCancel];
         IGovPool.VoteInfo storage voteInfo = userInfo.voteInfos[proposalId];
 
         mapping(IGovPool.VoteType => IGovPool.RawVote) storage rawVotes = voteInfo.rawVotes;
@@ -137,7 +160,7 @@ library GovPoolVote {
         IGovUserKeeper userKeeper = IGovUserKeeper(userKeeperAddress);
 
         if (personalRawVote.tokensVoted != 0) {
-            userKeeper.unlockTokens(proposalId, msg.sender);
+            userKeeper.unlockTokens(proposalId, userToCancel);
         }
 
         if (personalRawVote.nftsVoted.length() != 0) {
@@ -151,9 +174,9 @@ library GovPoolVote {
             _cancel(rawVotes[IGovPool.VoteType.TreasuryVote]);
         }
 
-        _updateGlobalState(core, userInfos, proposalId, msg.sender, voteInfo.isVoteFor);
+        _updateGlobalState(core, userInfos, proposalId, userToCancel, voteInfo.isVoteFor);
 
-        userKeeper.updateMaxTokenLockedAmount(userInfo.votedInProposals.values(), msg.sender);
+        userKeeper.updateMaxTokenLockedAmount(userInfo.votedInProposals.values(), userToCancel);
     }
 
     function _voteDelegated(

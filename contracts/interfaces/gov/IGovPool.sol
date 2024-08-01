@@ -354,6 +354,10 @@ interface IGovPool {
         uint256[] calldata voteNftIds
     ) external;
 
+    /// @notice The function to force cancel all active votes of the user
+    /// @param user the address of user to force cance
+    function forceCancel(address user) external;
+
     /// @notice The function for canceling vote
     /// @param proposalId the id of the proposal to cancel all votes from which
     function cancelVote(uint256 proposalId) external;

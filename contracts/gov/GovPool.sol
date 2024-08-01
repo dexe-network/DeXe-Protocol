@@ -229,6 +229,10 @@ contract GovPool is
         _proposals.cancelVote(_userInfos, proposalId);
     }
 
+    function forceCancel(address user) external override onlyThis {
+        _proposals.forceCancel(_userInfos, user);
+    }
+
     function withdraw(
         address receiver,
         uint256 amount,
