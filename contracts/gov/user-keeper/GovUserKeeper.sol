@@ -115,20 +115,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address receiver,
         uint256 amount
     ) external override onlyOwner withSupportedToken ifNotBlacklisted(payer) {
-        UserInfo storage payerInfo = _usersInfo[payer];
-        BalanceInfo storage payerBalanceInfo = payerInfo.balances[IGovPool.VoteType.PersonalVote];
-
-        uint256 balance = payerBalanceInfo.tokens;
-        uint256 maxTokensLocked = payerInfo.maxTokensLocked;
-
-        require(
-            amount <= balance.max(maxTokensLocked) - maxTokensLocked,
-            "GovUK: can't withdraw this"
-        );
-
-        payerBalanceInfo.tokens = balance - amount;
-
-        _sendNativeOrToken(receiver, amount);
+        _withdrawTokens(payer, receiver, amount);
     }
 
     function delegateTokens(
@@ -214,24 +201,13 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address receiver,
         uint256[] calldata nftIds
     ) external override onlyOwner withSupportedNft ifNotBlacklisted(payer) {
-        EnumerableSet.UintSet storage payerNftBalance = _usersInfo[payer]
-            .balances[IGovPool.VoteType.PersonalVote]
-            .nfts;
+        _withdrawNfts(payer, receiver, nftIds);
+    }
 
-        IERC721 nft = IERC721(_nftInfo.nftAddress);
-
-        for (uint256 i; i < nftIds.length; i++) {
-            uint256 nftId = nftIds[i];
-
-            require(
-                payerNftBalance.contains(nftId) && _nftLockedNums[nftId] == 0,
-                "GovUK: NFT is not owned or locked"
-            );
-
-            payerNftBalance.remove(nftId);
-
-            nft.safeTransferFrom(address(this), receiver, nftId);
-        }
+    function forceWithdraw(address user) external onlyOwner {
+        (uint256 amount, uint256[] memory nftIds) = IGovPool(owner()).getWithdrawableAssets(user);
+        _withdrawTokens(user, owner(), amount);
+        _withdrawNfts(user, owner(), nftIds);
     }
 
     function delegateNfts(
@@ -735,6 +711,44 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             require(ok, "GovUK: can't send ether");
         } else {
             IERC20(token).safeTransfer(receiver, amount);
+        }
+    }
+
+    function _withdrawTokens(address payer, address receiver, uint256 amount) internal {
+        UserInfo storage payerInfo = _usersInfo[payer];
+        BalanceInfo storage payerBalanceInfo = payerInfo.balances[IGovPool.VoteType.PersonalVote];
+
+        uint256 balance = payerBalanceInfo.tokens;
+        uint256 maxTokensLocked = payerInfo.maxTokensLocked;
+
+        require(
+            amount <= balance.max(maxTokensLocked) - maxTokensLocked,
+            "GovUK: can't withdraw this"
+        );
+
+        payerBalanceInfo.tokens = balance - amount;
+
+        _sendNativeOrToken(receiver, amount);
+    }
+
+    function _withdrawNfts(address payer, address receiver, uint256[] memory nftIds) internal {
+        EnumerableSet.UintSet storage payerNftBalance = _usersInfo[payer]
+            .balances[IGovPool.VoteType.PersonalVote]
+            .nfts;
+
+        IERC721 nft = IERC721(_nftInfo.nftAddress);
+
+        for (uint256 i; i < nftIds.length; i++) {
+            uint256 nftId = nftIds[i];
+
+            require(
+                payerNftBalance.contains(nftId) && _nftLockedNums[nftId] == 0,
+                "GovUK: NFT is not owned or locked"
+            );
+
+            payerNftBalance.remove(nftId);
+
+            nft.safeTransferFrom(address(this), receiver, nftId);
         }
     }
 

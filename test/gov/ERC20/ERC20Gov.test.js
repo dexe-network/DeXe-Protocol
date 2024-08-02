@@ -246,6 +246,14 @@ describe("ERC20Gov", () => {
 
         assert.deepEqual(await erc20Gov.getBlacklistAccounts(0, 10), [SECOND]);
       });
+
+      it("should return blacklist status for an account", async () => {
+        assert.equal(await erc20Gov.isBlacklisted(SECOND), false);
+
+        await erc20Gov.blacklist([SECOND], true, { from: GOV_ADDRESS });
+
+        assert.equal(await erc20Gov.isBlacklisted(SECOND), true);
+      });
     });
   });
 });

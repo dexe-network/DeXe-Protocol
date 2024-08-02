@@ -2478,6 +2478,10 @@ describe("GovPool", () => {
         assert.equal(toBN(balanceBefore).plus(wei("1000")).toFixed(), toBN(await token.balanceOf(OWNER)).toFixed());
       });
 
+      it("should revert force cancel from the wrong address", async () => {
+        await truffleAssert.reverts(govPool.forceCancel(OWNER), "Gov: not this contract");
+      });
+
       it("should force cancel vote", async () => {
         await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
 
@@ -2497,6 +2501,25 @@ describe("GovPool", () => {
         const withdrawable = await govPool.getWithdrawableAssets(OWNER);
 
         assert.equal(toBN(withdrawable.tokens).toFixed(), wei("1000"));
+      });
+
+      it("should not force cancel validators stage", async () => {
+        await govPool.createProposal("example.com", [[token.address, 0, getBytesApprove(SECOND, 1)]], []);
+
+        await govPool.vote(1, true, wei("100"), []);
+        await govPool.vote(1, true, wei("100000000000000000000"), [], { from: SECOND });
+
+        let vote = await govPool.getUserVotes(1, OWNER, VoteType.PersonalVote);
+        assert.equal(vote.totalRawVoted, wei("100"));
+
+        await setTime((await getCurrentBlockTime()) + 1000);
+        assert.equal((await govPool.getProposalState(1)).toFixed(), 1);
+
+        await impersonate(govPool.address);
+        await govPool.forceCancel(OWNER, { from: govPool.address });
+
+        vote = await govPool.getUserVotes(1, OWNER, VoteType.PersonalVote);
+        assert.equal(vote.totalRawVoted, wei("100"));
       });
 
       it("should cancel micropool for if all conditions are met", async () => {
@@ -3284,8 +3307,27 @@ describe("GovPool", () => {
         await token.setBlacklistOption(1);
         await token.blacklist(OWNER, true);
 
-        await truffleAssert.reverts(govPool.withdraw(SECOND, wei("1000"), []), "'GovUK: user is blacklisted'");
-        await truffleAssert.reverts(govPool.withdraw(SECOND, 0, [1, 2, 3]), "'GovUK: user is blacklisted'");
+        await truffleAssert.reverts(govPool.withdraw(SECOND, wei("1000"), []), "GovUK: user is blacklisted");
+        await truffleAssert.reverts(govPool.withdraw(SECOND, 0, [1, 2, 3]), "GovUK: user is blacklisted");
+      });
+
+      it("reverts on forceWithdraw if not owner", async () => {
+        await govPool.deposit(wei("100"), [1, 2]);
+
+        await truffleAssert.reverts(userKeeper.forceWithdraw(OWNER), "Ownable: caller is not the owner");
+      });
+
+      it("could force withdraw", async () => {
+        await govPool.deposit(wei("100"), [1, 2]);
+
+        assert.equal((await token.balanceOf(govPool.address)).toFixed(), 0);
+        assert.equal((await nft.balanceOf(govPool.address)).toFixed(), 0);
+
+        await impersonate(govPool.address);
+        await userKeeper.forceWithdraw(OWNER, { from: govPool.address });
+
+        assert.equal((await token.balanceOf(govPool.address)).toFixed(), wei("100"));
+        assert.equal((await nft.balanceOf(govPool.address)).toFixed(), 2);
       });
 
       it("should deposit, vote, unlock", async () => {
