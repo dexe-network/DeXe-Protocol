@@ -114,6 +114,8 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
             IERC20(token).safeTransfer(allocator, balance);
         }
 
+        allocation.balance = 0;
+
         emit AllocationClosed(id, token, balance);
     }
 
@@ -207,8 +209,7 @@ contract TokenAllocator is ITokenAllocator, AbstractDependant, MultiOwnable, UUP
         bytes32 merkleRoot,
         string calldata descriptionURL
     ) internal {
-        lastAllocationId++;
-        uint256 id = lastAllocationId;
+        uint256 id = ++lastAllocationId;
 
         require(token != address(0), "TA: Zero token address");
         require(amount > 0, "TA: Zero ammount to allocate");
