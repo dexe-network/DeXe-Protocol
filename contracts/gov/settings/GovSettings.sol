@@ -13,6 +13,10 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
     mapping(uint256 => ProposalSettings) public settings; // settingsId => info
     mapping(address => uint256) public executorToSettings; // executor => settingsId
 
+    uint256 public totalStakes;
+
+    mapping(uint256 => StakingInfo) public stakingList; // stakingId => info
+
     event SettingsChanged(uint256 settingsId, string description);
     event ExecutorChanged(uint256 settingsId, address executor);
 
@@ -91,6 +95,29 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         }
     }
 
+    function createNewStaking(
+        uint64 lockTime,
+        uint256 rewardMultiplier,
+        uint256 redeemPenalty
+    ) external override onlyOwner {
+        require(
+            lockTime > 0 &&
+                rewardMultiplier > 0 &&
+                (redeemPenalty == type(uint256).max || redeemPenalty <= PERCENTAGE_100),
+            "GovSettings: wrong staking info"
+        );
+
+        uint256 id = ++totalStakes;
+        stakingList[id] = StakingInfo(lockTime, rewardMultiplier, redeemPenalty, true);
+    }
+
+    function closeStaking(uint256 id) external onlyOwner {
+        require(id > 0 && id <= totalStakes, "GovSettings: invalid staking id");
+
+        StakingInfo storage stake = stakingList[id];
+        stake.disabled = true;
+    }
+
     function _validateProposalSettings(ProposalSettings calldata _settings) internal pure {
         require(_settings.duration > 0, "GovSettings: invalid vote duration value");
         require(_settings.quorum <= PERCENTAGE_100, "GovSettings: invalid quorum value");
@@ -103,10 +130,6 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
             _settings.quorumValidators <= PERCENTAGE_100,
             "GovSettings: invalid validator quorum value"
         );
-    }
-
-    function _settingsExist(uint256 settingsId) internal view returns (bool) {
-        return settings[settingsId].duration > 0;
     }
 
     function getDefaultSettings() external view override returns (ProposalSettings memory) {
@@ -123,6 +146,23 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         return settings[executorToSettings[executor]];
     }
 
+    function getStakingSettings(
+        uint256 id
+    ) public view override returns (StakingInfo memory stakingInfo) {
+        require(id > 0 && id <= totalStakes, "GovSettings: invalid id");
+        stakingInfo = stakingList[id];
+    }
+
+    function getStakingSettingsList(
+        uint256[] calldata ids
+    ) external view override returns (StakingInfo[] memory stakingInfos) {
+        stakingInfos = new StakingInfo[](ids.length);
+
+        for (uint256 i = 0; i < ids.length; i++) {
+            stakingInfos[i] = getStakingSettings(ids[i]);
+        }
+    }
+
     function _setExecutor(address executor, uint256 settingsId) internal {
         executorToSettings[executor] = settingsId;
 
@@ -133,5 +173,9 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         settings[settingsId] = _settings;
 
         emit SettingsChanged(settingsId, _settings.executorDescription);
+    }
+
+    function _settingsExist(uint256 settingsId) internal view returns (bool) {
+        return settings[settingsId].duration > 0;
     }
 }

@@ -19,6 +19,7 @@ import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "../../interfaces/core/IContractsRegistry.sol";
 import "../../interfaces/core/INetworkProperties.sol";
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
+import "../../interfaces/gov/settings/IGovSettings.sol";
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/ERC721/powers/IERC721Power.sol";
 
@@ -47,6 +48,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     address public wethAddress;
     address public networkPropertiesAddress;
 
+    mapping(address => Stake) internal _stakes;
+
     event SetERC20(address token);
     event SetERC721(address token);
 
@@ -57,6 +60,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     modifier withSupportedNft() {
         _withSupportedNft();
+        _;
+    }
+
+    modifier whenNotStaked(address user) {
+        require(!_isStaked(user), "GovUK: staked");
         _;
     }
 
@@ -108,21 +116,32 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address payer,
         address receiver,
         uint256 amount
-    ) external override onlyOwner withSupportedToken {
-        UserInfo storage payerInfo = _usersInfo[payer];
-        BalanceInfo storage payerBalanceInfo = payerInfo.balances[IGovPool.VoteType.PersonalVote];
-
-        uint256 balance = payerBalanceInfo.tokens;
-        uint256 maxTokensLocked = payerInfo.maxTokensLocked;
-
-        require(
-            amount <= balance.max(maxTokensLocked) - maxTokensLocked,
-            "GovUK: can't withdraw this"
-        );
-
-        payerBalanceInfo.tokens = balance - amount;
+    ) external override onlyOwner withSupportedToken whenNotStaked(payer) {
+        _prepareTokenWithdraw(payer, amount);
 
         _sendNativeOrToken(receiver, amount);
+    }
+
+    function redeemTokens(
+        address payer,
+        address receiver,
+        uint256 amount
+    ) external override onlyOwner withSupportedToken {
+        require(amount > 0, "GovUK: empty redeem");
+        require(_isStaked(payer), "GovUK: not staked");
+
+        _prepareTokenWithdraw(payer, amount);
+
+        uint256 id = _stakes[payer].stakeId;
+        (address settings, , , , ) = IGovPool(owner()).getHelperContracts();
+        IGovSettings.StakingInfo memory stakeInfo = IGovSettings(settings).getStakingSettings(id);
+
+        uint256 redeemPenalty = stakeInfo.redeemPenalty;
+        require(redeemPenalty != type(uint256).max, "GovUK: redeem forbidden");
+        uint256 redeemToGovpoolAmount = amount.percentage(redeemPenalty);
+
+        _sendNativeOrToken(owner(), redeemToGovpoolAmount);
+        _sendNativeOrToken(receiver, amount - redeemToGovpoolAmount);
     }
 
     function delegateTokens(
@@ -483,6 +502,28 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         IERC721Power(_nftInfo.nftAddress).recalculateNftPowers(nftIds);
     }
 
+    function stake(uint256 id) external {
+        (address settings, , , , ) = IGovPool(owner()).getHelperContracts();
+        uint256[] memory ids = new uint256[](2);
+
+        Stake storage currentStake = _stakes[msg.sender];
+        ids[0] = currentStake.stakeId;
+        ids[1] = id;
+
+        IGovSettings.StakingInfo[] memory stakeInfos = IGovSettings(settings)
+            .getStakingSettingsList(ids);
+
+        require(!stakeInfos[1].disabled, "GovUK: staking tier is disabled");
+        require(
+            ids[0] == 0 ||
+                currentStake.startedAt + stakeInfos[0].lockTime <= block.timestamp ||
+                stakeInfos[0].lockTime < stakeInfos[1].lockTime,
+            "GovUK: Already staked"
+        );
+
+        _stake(currentStake, ids[1]);
+    }
+
     function setERC20Address(address _tokenAddress) external override onlyOwner {
         _setERC20Address(_tokenAddress);
     }
@@ -759,6 +800,22 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         nativeAmount -= value;
     }
 
+    function getStakingMultiplier(address user) public view returns (uint256) {
+        Stake storage currentStake = _stakes[user];
+        uint256 id = currentStake.stakeId;
+
+        if (id == 0) return 0;
+
+        (address settings, , , , ) = IGovPool(owner()).getHelperContracts();
+        IGovSettings.StakingInfo memory stakeInfo = IGovSettings(settings).getStakingSettings(id);
+
+        if (stakeInfo.disabled) return 0;
+
+        if (currentStake.startedAt + stakeInfo.lockTime <= block.timestamp) return 0;
+
+        return stakeInfo.rewardMultiplier;
+    }
+
     function _sendNativeOrToken(address receiver, uint256 amount) internal {
         address token = tokenAddress;
         amount = amount.from18Safe(token);
@@ -839,6 +896,21 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         require(_nftInfo.nftAddress != address(0), "GovUK: nft is not supported");
     }
 
+    function _prepareTokenWithdraw(address payer, uint256 amount) internal {
+        UserInfo storage payerInfo = _usersInfo[payer];
+        BalanceInfo storage payerBalanceInfo = payerInfo.balances[IGovPool.VoteType.PersonalVote];
+
+        uint256 balance = payerBalanceInfo.tokens;
+        uint256 maxTokensLocked = payerInfo.maxTokensLocked;
+
+        require(
+            amount <= balance.max(maxTokensLocked) - maxTokensLocked,
+            "GovUK: can't withdraw this"
+        );
+
+        payerBalanceInfo.tokens = balance - amount;
+    }
+
     function _handleNative(uint256 value, bool wrapping) internal {
         if (value == 0) {
             return;
@@ -856,5 +928,14 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address _wethAddress = wethAddress;
 
         return _wethAddress != address(0) && wethAddress == tokenAddress;
+    }
+
+    function _stake(Stake storage userStake, uint256 newId) internal {
+        userStake.startedAt = uint64(block.timestamp);
+        userStake.stakeId = newId;
+    }
+
+    function _isStaked(address user) internal view returns (bool) {
+        return getStakingMultiplier(user) != 0;
     }
 }

@@ -803,6 +803,42 @@ describe("GovPool", () => {
       });
     });
 
+    describe.only("staking", () => {
+      beforeEach(async () => {
+        await impersonate(govPool.address);
+      });
+
+      it("must be govPool to create staking", async () => {
+        await truffleAssert.reverts(settings.createNewStaking(1, 1, 0), "Ownable: caller is not the owner");
+      });
+
+      it("staking must have correct parameters", async () => {
+        await truffleAssert.reverts(
+          settings.createNewStaking(0, 1, 0, { from: govPool.address }),
+          "GovSettings: wrong staking info",
+        );
+
+        await truffleAssert.reverts(
+          settings.createNewStaking(1, 0, 0, { from: govPool.address }),
+          "GovSettings: wrong staking info",
+        );
+
+        await truffleAssert.reverts(
+          settings.createNewStaking(1, 1, wei("1000000001"), { from: govPool.address }),
+          "GovSettings: wrong staking info",
+        );
+      });
+
+      it("could create staking", async () => {
+        assert.equal(await settings.totalStakes(), 0);
+        await truffleAssert.reverts(settings.getStakingSettings(1), "GovSettings: invalid id");
+
+        await settings.createNewStaking(1, 1, 0, { from: govPool.address });
+        assert.equal(await settings.totalStakes(), 1);
+        assert.deepEqual(await settings.getStakingSettings(1), ["1", "1", "0", true]);
+      });
+    });
+
     describe("unlock()", () => {
       beforeEach("setup", async () => {
         await token.mint(SECOND, wei("100000000000000000000"));

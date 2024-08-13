@@ -51,6 +51,18 @@ interface IGovSettings {
         uint256 voteRewardsCoefficient;
     }
 
+    /// @notice The struct holds information about staking
+    /// @param lockTime the lock time of the stake
+    /// @param rewardMultiplier the reward bonus for the staker
+    /// @param redeemPenalty the percent substracted for early unstake, 0-100*10**25, uint.max if not allowed
+    /// @param disabled the state of staking
+    struct StakingInfo {
+        uint64 lockTime;
+        uint256 rewardMultiplier;
+        uint256 redeemPenalty;
+        bool disabled;
+    }
+
     /// @notice The function to get settings of this executor
     /// @param executor the executor
     /// @return setting id of the executor
@@ -76,6 +88,16 @@ interface IGovSettings {
         uint256[] calldata settingsIds
     ) external;
 
+    /// @notice Create new staking
+    /// @param lockTime Time to lock assets
+    /// @param rewardMultiplier The reward multiplier with precision
+    /// @param redeemPenalty The penalty for early unstake 0-100% precision or uint.max
+    function createNewStaking(
+        uint64 lockTime,
+        uint256 rewardMultiplier,
+        uint256 redeemPenalty
+    ) external;
+
     /// @notice The function to get default settings
     /// @return default setting
     function getDefaultSettings() external view returns (ProposalSettings memory);
@@ -88,4 +110,16 @@ interface IGovSettings {
     /// @param executor Executor address
     /// @return `ProposalSettings` by `executor` address
     function getExecutorSettings(address executor) external view returns (ProposalSettings memory);
+
+    /// @notice The function the get the staking settings
+    /// @param id Staking id
+    /// @return `StakingInfo` by staking `id`
+    function getStakingSettings(uint256 id) external view returns (StakingInfo memory);
+
+    /// @notice The function the get the staking settings list
+    /// @param ids Staking ids list
+    /// @return `StakingInfo` list by staking `ids` list
+    function getStakingSettingsList(
+        uint256[] calldata ids
+    ) external view returns (StakingInfo[] memory);
 }

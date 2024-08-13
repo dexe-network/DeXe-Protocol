@@ -86,6 +86,14 @@ interface IGovUserKeeper {
         uint256[] perNftPower;
     }
 
+    /// @notice The struct that hold information about user's stake
+    /// @param stakeId the if of staking parameters
+    /// @param startedAt the timestamp of staking start
+    struct Stake {
+        uint256 stakeId;
+        uint64 startedAt;
+    }
+
     /// @notice The function for injecting dependencies from the GovPool
     /// @param contractsRegistry the address of Contracts Registry
     function setDependencies(address contractsRegistry, bytes memory) external;
@@ -101,6 +109,12 @@ interface IGovUserKeeper {
     /// @param receiver the withdrawal receiver address
     /// @param amount the erc20 withdrawal amount
     function withdrawTokens(address payer, address receiver, uint256 amount) external;
+
+    /// @notice The function for redeeming staked tokens
+    /// @param payer the address from whom to redeem the tokens
+    /// @param receiver the redeem receiver address
+    /// @param amount the erc20 redeeming amount
+    function redeemTokens(address payer, address receiver, uint256 amount) external;
 
     /// @notice The function for delegating tokens
     /// @param delegator the address of delegator
