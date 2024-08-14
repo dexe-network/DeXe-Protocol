@@ -133,8 +133,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         _prepareTokenWithdraw(payer, amount);
 
         uint256 id = _stakes[payer].stakeId;
-        (address settings, , , , ) = IGovPool(owner()).getHelperContracts();
-        IGovSettings.StakingInfo memory stakeInfo = IGovSettings(settings).getStakingSettings(id);
+        IGovSettings.StakingInfo memory stakeInfo = _getStakeInfo(id);
 
         uint256 redeemPenalty = stakeInfo.redeemPenalty;
         require(redeemPenalty != type(uint256).max, "GovUK: redeem forbidden");
@@ -503,25 +502,26 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function stake(uint256 id) external override {
-        (address settings, , , , ) = IGovPool(owner()).getHelperContracts();
-        uint256[] memory ids = new uint256[](2);
+        address user = msg.sender;
+        Stake storage userStake = _stakes[user];
 
-        Stake storage currentStake = _stakes[msg.sender];
-        ids[0] = currentStake.stakeId;
-        ids[1] = id;
+        // inderect check for correct id is here
+        IGovSettings.StakingInfo memory newStakeInfo = _getStakeInfo(id);
+        require(!newStakeInfo.disabled, "GovUK: staking tier is disabled");
 
-        IGovSettings.StakingInfo[] memory stakeInfos = IGovSettings(settings)
-            .getStakingSettingsList(ids);
+        if (!_isStaked(user)) {
+            _stake(userStake, id);
+            return;
+        }
 
-        require(!stakeInfos[1].disabled, "GovUK: staking tier is disabled");
-        require(
-            ids[0] == 0 ||
-                currentStake.startedAt + stakeInfos[0].lockTime <= block.timestamp ||
-                stakeInfos[0].lockTime < stakeInfos[1].lockTime,
-            "GovUK: Already staked"
-        );
+        IGovSettings.StakingInfo memory oldStakeInfo = _getStakeInfo(userStake.stakeId);
 
-        _stake(currentStake, ids[1]);
+        if (oldStakeInfo.lockTime < newStakeInfo.lockTime) {
+            _stake(userStake, id);
+            return;
+        }
+
+        revert("GovUK: Already staked");
     }
 
     function setERC20Address(address _tokenAddress) external override onlyOwner {
@@ -931,12 +931,18 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function _stake(Stake storage userStake, uint256 newId) internal {
-        require(newId != 0, "GovUK: zero staking id");
         userStake.startedAt = uint64(block.timestamp);
         userStake.stakeId = newId;
     }
 
     function _isStaked(address user) internal view returns (bool) {
         return getStakingMultiplier(user) != 0;
+    }
+
+    function _getStakeInfo(
+        uint256 id
+    ) internal view returns (IGovSettings.StakingInfo memory stakeInfo) {
+        (address settings, , , , ) = IGovPool(owner()).getHelperContracts();
+        stakeInfo = IGovSettings(settings).getStakingSettings(id);
     }
 }

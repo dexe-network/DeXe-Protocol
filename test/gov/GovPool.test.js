@@ -842,7 +842,11 @@ describe("GovPool", () => {
 
         await settings.createNewStaking(1, 1, 0, { from: govPool.address });
         assert.equal(await settings.totalStakes(), 1);
-        assert.deepEqual(await settings.getStakingSettings(1), ["1", "1", "0", false]);
+        await settings.createNewStaking(2, 2, 1, { from: govPool.address });
+        assert.equal(await settings.totalStakes(), 2);
+        const list = await settings.getStakingSettingsList([1, 2]);
+        assert.deepEqual(list[0], ["1", "1", "0", false]);
+        assert.deepEqual(list[1], ["2", "2", "1", false]);
       });
 
       it("could disable staking", async () => {
@@ -867,7 +871,7 @@ describe("GovPool", () => {
       });
 
       it("cant stake on zero tier", async () => {
-        await truffleAssert.reverts(userKeeper.stake(0), "GovUK: zero staking id");
+        await truffleAssert.reverts(userKeeper.stake(0), "GovSettings: invalid id");
       });
 
       it("cant stake on non existent tier", async () => {

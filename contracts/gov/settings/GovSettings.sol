@@ -149,7 +149,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
     function getStakingSettings(
         uint256 id
     ) public view override returns (StakingInfo memory stakingInfo) {
-        require(id <= totalStakes, "GovSettings: invalid id");
+        require(id != 0 && id <= totalStakes, "GovSettings: invalid id");
         stakingInfo = stakingList[id];
     }
 
