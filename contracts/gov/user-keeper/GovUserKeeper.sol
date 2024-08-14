@@ -502,7 +502,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         IERC721Power(_nftInfo.nftAddress).recalculateNftPowers(nftIds);
     }
 
-    function stake(uint256 id) external {
+    function stake(uint256 id) external override {
         (address settings, , , , ) = IGovPool(owner()).getHelperContracts();
         uint256[] memory ids = new uint256[](2);
 
@@ -931,6 +931,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     function _stake(Stake storage userStake, uint256 newId) internal {
+        require(newId != 0, "GovUK: zero staking id");
         userStake.startedAt = uint64(block.timestamp);
         userStake.stakeId = newId;
     }

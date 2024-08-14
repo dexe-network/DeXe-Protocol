@@ -369,6 +369,11 @@ interface IGovPool {
     /// @param nftIds the array of nft ids to withdraw
     function withdraw(address receiver, uint256 amount, uint256[] calldata nftIds) external;
 
+    /// @notice The function for redeemings staked tokens
+    /// @param receiver the redeeming receiver address
+    /// @param amount the erc20 redeeming amount
+    function redeemTokens(address receiver, uint256 amount) external;
+
     /// @notice The function for delegating tokens
     /// @param delegatee the target address for delegation (person who will receive the delegation)
     /// @param amount the erc20 delegation amount

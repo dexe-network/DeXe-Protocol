@@ -108,10 +108,10 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         );
 
         uint256 id = ++totalStakes;
-        stakingList[id] = StakingInfo(lockTime, rewardMultiplier, redeemPenalty, true);
+        stakingList[id] = StakingInfo(lockTime, rewardMultiplier, redeemPenalty, false);
     }
 
-    function closeStaking(uint256 id) external onlyOwner {
+    function closeStaking(uint256 id) external override onlyOwner {
         require(id > 0 && id <= totalStakes, "GovSettings: invalid staking id");
 
         StakingInfo storage stake = stakingList[id];
@@ -149,7 +149,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
     function getStakingSettings(
         uint256 id
     ) public view override returns (StakingInfo memory stakingInfo) {
-        require(id > 0 && id <= totalStakes, "GovSettings: invalid id");
+        require(id <= totalStakes, "GovSettings: invalid id");
         stakingInfo = stakingList[id];
     }
 

@@ -98,6 +98,10 @@ interface IGovSettings {
         uint256 redeemPenalty
     ) external;
 
+    /// @notice Disables active staking
+    /// @param id The staking id
+    function closeStaking(uint256 id) external;
+
     /// @notice The function to get default settings
     /// @return default setting
     function getDefaultSettings() external view returns (ProposalSettings memory);

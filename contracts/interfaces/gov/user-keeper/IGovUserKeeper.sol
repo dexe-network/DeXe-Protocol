@@ -217,6 +217,10 @@ interface IGovUserKeeper {
     /// @param nftIds the array of nft ids to recalculate the power for
     function updateNftPowers(uint256[] calldata nftIds) external;
 
+    /// @notice The function for staking tokens
+    /// @param id the id of the staking tier
+    function stake(uint256 id) external;
+
     /// @notice The function for setting erc20 address
     /// @param _tokenAddress the erc20 address
     function setERC20Address(address _tokenAddress) external;
