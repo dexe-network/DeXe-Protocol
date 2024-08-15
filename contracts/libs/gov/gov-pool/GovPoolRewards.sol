@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../../../interfaces/core/ICoreProperties.sol";
 
 import "../../../interfaces/gov/IGovPool.sol";
+import "../../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../../interfaces/gov/ERC721/multipliers/IAbstractERC721Multiplier.sol";
 
 import "../../utils/TokenBalance.sol";
@@ -224,12 +225,24 @@ library GovPoolRewards {
 
     function _getMultipliedRewards(address user, uint256 amount) internal view returns (uint256) {
         (address nftMultiplier, , , ) = IGovPool(address(this)).getNftContracts();
+        (, address userKeeper, , , ) = IGovPool(address(this)).getHelperContracts();
+
+        uint256 multiplierReward;
+        uint256 stakingReward;
 
         if (nftMultiplier != address(0)) {
-            amount += IAbstractERC721Multiplier(nftMultiplier).getExtraRewards(user, amount);
+            multiplierReward = IAbstractERC721Multiplier(nftMultiplier).getExtraRewards(
+                user,
+                amount
+            );
         }
 
-        return amount;
+        stakingReward = amount.ratio(
+            IGovUserKeeper(userKeeper).getStakingMultiplier(user),
+            PRECISION
+        );
+
+        return amount + multiplierReward + stakingReward;
     }
 
     function _getVotingRewards(

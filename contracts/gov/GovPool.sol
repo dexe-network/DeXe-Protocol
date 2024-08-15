@@ -254,7 +254,7 @@ contract GovPool is
 
         _unlock(msg.sender);
 
-        _govUserKeeper.redeemTokens(msg.sender, receiver, amount);
+        _govUserKeeper.redeemTokens(msg.sender, receiver, amount, coreProperties);
     }
 
     function delegate(

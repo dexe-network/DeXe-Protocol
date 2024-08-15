@@ -98,7 +98,8 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
     function createNewStaking(
         uint64 lockTime,
         uint256 rewardMultiplier,
-        uint256 redeemPenalty
+        uint256 redeemPenalty,
+        bool allowStakingUpgrade
     ) external override onlyOwner {
         require(
             lockTime > 0 &&
@@ -108,7 +109,13 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         );
 
         uint256 id = ++totalStakes;
-        stakingList[id] = StakingInfo(lockTime, rewardMultiplier, redeemPenalty, false);
+        stakingList[id] = StakingInfo(
+            lockTime,
+            rewardMultiplier,
+            redeemPenalty,
+            allowStakingUpgrade,
+            false
+        );
     }
 
     function closeStaking(uint256 id) external override onlyOwner {

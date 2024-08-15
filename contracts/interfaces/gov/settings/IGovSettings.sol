@@ -55,11 +55,13 @@ interface IGovSettings {
     /// @param lockTime the lock time of the stake
     /// @param rewardMultiplier the reward bonus for the staker
     /// @param redeemPenalty the percent substracted for early unstake, 0-100*10**25, uint.max if not allowed
+    /// @param allowStakingUpgrade the possibility to switch to long-term staking without penalties
     /// @param disabled the state of staking
     struct StakingInfo {
         uint64 lockTime;
         uint256 rewardMultiplier;
         uint256 redeemPenalty;
+        bool allowStakingUpgrade;
         bool disabled;
     }
 
@@ -95,7 +97,8 @@ interface IGovSettings {
     function createNewStaking(
         uint64 lockTime,
         uint256 rewardMultiplier,
-        uint256 redeemPenalty
+        uint256 redeemPenalty,
+        bool allowStakingUpgrade
     ) external;
 
     /// @notice Disables active staking

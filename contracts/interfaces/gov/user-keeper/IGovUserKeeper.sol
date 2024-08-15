@@ -114,7 +114,13 @@ interface IGovUserKeeper {
     /// @param payer the address from whom to redeem the tokens
     /// @param receiver the redeem receiver address
     /// @param amount the erc20 redeeming amount
-    function redeemTokens(address payer, address receiver, uint256 amount) external;
+    /// @param coreProperties the CoreProperties contract address
+    function redeemTokens(
+        address payer,
+        address receiver,
+        uint256 amount,
+        ICoreProperties coreProperties
+    ) external;
 
     /// @notice The function for delegating tokens
     /// @param delegator the address of delegator
@@ -378,4 +384,9 @@ interface IGovUserKeeper {
         uint256 value,
         uint256 amount
     ) external view returns (uint256 nativeAmount);
+
+    /// @notice The function for getting the staking multiplier for a user
+    /// @param user the address of the user
+    /// @return the multiplier amount with 25 digits precision
+    function getStakingMultiplier(address user) external view returns (uint256);
 }

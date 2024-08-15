@@ -22,6 +22,7 @@ import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/settings/IGovSettings.sol";
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/ERC721/powers/IERC721Power.sol";
+import "../../interfaces/core/ICoreProperties.sol";
 
 import "../../libs/math/MathHelper.sol";
 import "../../libs/gov/gov-user-keeper/GovUserKeeperView.sol";
@@ -125,7 +126,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     function redeemTokens(
         address payer,
         address receiver,
-        uint256 amount
+        uint256 amount,
+        ICoreProperties coreProperties
     ) external override onlyOwner withSupportedToken {
         require(amount > 0, "GovUK: empty redeem");
         require(_isStaked(payer), "GovUK: not staked");
@@ -137,10 +139,14 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         uint256 redeemPenalty = stakeInfo.redeemPenalty;
         require(redeemPenalty != type(uint256).max, "GovUK: redeem forbidden");
-        uint256 redeemToGovpoolAmount = amount.percentage(redeemPenalty);
+        uint256 redeemToGovPoolAmount = amount.percentage(redeemPenalty);
 
-        _sendNativeOrToken(owner(), redeemToGovpoolAmount);
-        _sendNativeOrToken(receiver, amount - redeemToGovpoolAmount);
+        (uint256 commission, address dexeTreasury) = coreProperties.getDEXECommissionPercentages();
+        uint256 redeemToDexeAmount = redeemToGovPoolAmount.percentage(commission);
+
+        _sendNativeOrToken(dexeTreasury, redeemToDexeAmount);
+        _sendNativeOrToken(owner(), redeemToGovPoolAmount - redeemToDexeAmount);
+        _sendNativeOrToken(receiver, amount - redeemToGovPoolAmount);
     }
 
     function delegateTokens(
@@ -516,7 +522,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
         IGovSettings.StakingInfo memory oldStakeInfo = _getStakeInfo(userStake.stakeId);
 
-        if (oldStakeInfo.lockTime < newStakeInfo.lockTime) {
+        if (oldStakeInfo.lockTime < newStakeInfo.lockTime && oldStakeInfo.allowStakingUpgrade) {
             _stake(userStake, id);
             return;
         }
@@ -800,7 +806,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         nativeAmount -= value;
     }
 
-    function getStakingMultiplier(address user) public view returns (uint256) {
+    function getStakingMultiplier(address user) public view override returns (uint256) {
         Stake storage currentStake = _stakes[user];
         uint256 id = currentStake.stakeId;
 
