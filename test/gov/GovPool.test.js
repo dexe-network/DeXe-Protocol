@@ -838,7 +838,7 @@ describe("GovPool", () => {
 
       it("could create staking", async () => {
         assert.equal(await settings.totalStakes(), 0);
-        await truffleAssert.reverts(settings.getStakingSettings(1), "GovSettings: invalid id");
+        await truffleAssert.reverts(settings.getStakingSettings(1), "GovSettings: invalid staking id");
 
         await settings.createNewStaking(1, 1, 0, false, { from: govPool.address });
         assert.equal(await settings.totalStakes(), 1);
@@ -871,11 +871,11 @@ describe("GovPool", () => {
       });
 
       it("cant stake on zero tier", async () => {
-        await truffleAssert.reverts(userKeeper.stake(0), "GovSettings: invalid id");
+        await truffleAssert.reverts(userKeeper.stake(0), "GovSettings: invalid staking id");
       });
 
       it("cant stake on non existent tier", async () => {
-        await truffleAssert.reverts(userKeeper.stake(2), "GovSettings: invalid id");
+        await truffleAssert.reverts(userKeeper.stake(2), "GovSettings: invalid staking id");
       });
 
       it("cant stake on disabled tier", async () => {
@@ -6102,6 +6102,10 @@ describe("GovPool", () => {
 
       it("withdraw()", async () => {
         await truffleAssert.reverts(govPool.withdraw(SECOND, wei("1000"), []), REVERT_STRING);
+      });
+
+      it("redeem()", async () => {
+        await truffleAssert.reverts(govPool.redeemTokens(SECOND, wei("1000")), REVERT_STRING);
       });
 
       it("delegate()", async () => {

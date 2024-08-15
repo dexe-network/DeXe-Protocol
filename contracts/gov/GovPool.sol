@@ -249,7 +249,7 @@ contract GovPool is
         emit Withdrawn(amount, nftIds, receiver);
     }
 
-    function redeemTokens(address receiver, uint256 amount) external {
+    function redeemTokens(address receiver, uint256 amount) external override onlyBABTHolder {
         _checkBlock(DEPOSIT_WITHDRAW, msg.sender);
 
         _unlock(msg.sender);

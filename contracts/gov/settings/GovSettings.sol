@@ -20,6 +20,11 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
     event SettingsChanged(uint256 settingsId, string description);
     event ExecutorChanged(uint256 settingsId, address executor);
 
+    modifier withCorrectStakingId(uint256 id) {
+        require(id > 0 && id <= totalStakes, "GovSettings: invalid staking id");
+        _;
+    }
+
     function __GovSettings_init(
         address govPoolAddress,
         address validatorsAddress,
@@ -118,9 +123,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
         );
     }
 
-    function closeStaking(uint256 id) external override onlyOwner {
-        require(id > 0 && id <= totalStakes, "GovSettings: invalid staking id");
-
+    function closeStaking(uint256 id) external override onlyOwner withCorrectStakingId(id) {
         StakingInfo storage stake = stakingList[id];
         stake.disabled = true;
     }
@@ -155,8 +158,7 @@ contract GovSettings is IGovSettings, OwnableUpgradeable {
 
     function getStakingSettings(
         uint256 id
-    ) public view override returns (StakingInfo memory stakingInfo) {
-        require(id != 0 && id <= totalStakes, "GovSettings: invalid id");
+    ) public view override withCorrectStakingId(id) returns (StakingInfo memory stakingInfo) {
         stakingInfo = stakingList[id];
     }
 
