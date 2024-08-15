@@ -8,9 +8,10 @@ const SECONDS_IN_MONTH = SECONDS_IN_DAY * 30;
 
 const PRECISION = toBN(10).pow(25);
 const PERCENTAGE_100 = PRECISION.times(100);
+const PERCENTAGE_50 = PRECISION.times(50);
 const DECIMAL = toBN(10).pow(18);
 
-const MAX_UINT = toBN(2).pow(256) - 1;
+const MAX_UINT = toBN(2).pow(256).minus(1);
 
 module.exports = {
   ZERO_ADDR,
@@ -19,6 +20,7 @@ module.exports = {
   SECONDS_IN_MONTH,
   PRECISION,
   PERCENTAGE_100,
+  PERCENTAGE_50,
   DECIMAL,
   MAX_UINT,
 };

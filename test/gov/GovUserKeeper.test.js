@@ -1054,6 +1054,11 @@ describe("GovUserKeeper", () => {
       await truffleAssert.reverts(userKeeper.delegateTokens(OWNER, OWNER, wei("100")), "GovUK: token is not supported");
 
       await truffleAssert.reverts(
+        userKeeper.redeemTokens(OWNER, OWNER, wei("100"), OWNER),
+        "GovUK: token is not supported",
+      );
+
+      await truffleAssert.reverts(
         userKeeper.delegateTokensTreasury(OWNER, wei("100")),
         "GovUK: token is not supported",
       );
