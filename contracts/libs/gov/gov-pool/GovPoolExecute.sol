@@ -104,7 +104,7 @@ library GovPoolExecute {
             core.givenRewards +
             (core.rawVotesFor + core.rawVotesAgainst).ratio(
                 core.settings.rewardsInfo.voteRewardsCoefficient,
-                PRECISION
+                (PRECISION * 100)
             );
     }
 

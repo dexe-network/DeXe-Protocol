@@ -267,10 +267,9 @@ library GovPoolRewards {
             : (core.votesAgainst, core.rawVotesAgainst);
 
         return
-            coreRawVotes.ratio(core.settings.rewardsInfo.voteRewardsCoefficient, PRECISION).ratio(
-                voteInfo.totalVoted,
-                coreVotes
-            );
+            coreRawVotes
+                .ratio(core.settings.rewardsInfo.voteRewardsCoefficient, (PRECISION * 100))
+                .ratio(voteInfo.totalVoted, coreVotes);
     }
 
     function _splitVotingRewards(
