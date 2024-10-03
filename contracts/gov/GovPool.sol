@@ -158,6 +158,14 @@ contract GovPool is
         _proposals.execute(proposalId);
     }
 
+    function tryExecute(ProposalAction[] calldata actions) external returns (bool) {
+        try actions.tryExecute() {
+            revert();
+        } catch (bytes memory reason) {
+            return abi.decode(reason, (bool));
+        }
+    }
+
     function deposit(
         uint256 amount,
         uint256[] calldata nftIds

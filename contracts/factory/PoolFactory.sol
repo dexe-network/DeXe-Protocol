@@ -10,6 +10,7 @@ import "@spherex-xyz/engine-contracts/src/SphereXEngine.sol";
 
 import "../interfaces/factory/IPoolFactory.sol";
 import "../interfaces/core/IContractsRegistry.sol";
+import "../interfaces/core/ITokenAllocator.sol";
 import "../interfaces/core/ISBT721.sol";
 
 import {DistributionProposal} from "../gov/proposals/DistributionProposal.sol";
@@ -27,11 +28,13 @@ import {PoolRegistry} from "./PoolRegistry.sol";
 import "../proxy/ProtectedPublicBeaconProxy.sol";
 
 import "../libs/factory/GovTokenDeployer.sol";
+import "../libs/factory/Clone.sol";
 
 import "../core/Globals.sol";
 
 contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     using GovTokenDeployer for *;
+    using Clone for *;
     using Vector for Vector.AddressVector;
 
     string internal constant EXPERT_NAME_POSTFIX = (" Expert NFT");
@@ -46,6 +49,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     ISphereXEngine internal _poolSphereXEngine;
 
     mapping(bytes32 => bool) private _usedSalts;
+
+    ITokenAllocator internal _allocator;
 
     event DaoPoolDeployed(
         string name,
@@ -66,9 +71,12 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _coreProperties = CoreProperties(registry.getCorePropertiesContract());
         _babt = ISBT721(registry.getBABTContract());
         _poolSphereXEngine = ISphereXEngine(registry.getPoolSphereXEngineContract());
+        _allocator = ITokenAllocator(registry.getTokenAllocatorContract());
     }
 
-    function deployGovPool(GovPoolDeployParams calldata parameters) external override {
+    function deployGovPool(
+        GovPoolDeployParams calldata parameters
+    ) public override returns (address) {
         string memory poolType = _poolRegistry.GOV_POOL_NAME();
 
         Vector.AddressVector memory vector = Vector.newAddress();
@@ -126,7 +134,7 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
             distributionAddress,
             tokenSaleProxy,
             parameters.userKeeperParams.tokenAddress,
-            msg.sender
+            tx.origin
         );
 
         _addToEngine(vector);
@@ -151,6 +159,53 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
         _register(poolType, poolProxy);
         _injectDependencies(poolProxy);
         _injectDependencies(tokenSaleProxy);
+
+        return (poolProxy);
+    }
+
+    function createTokenAndDeployPool(
+        address contractToClone,
+        bytes calldata initializeCode,
+        address expectedPoolAddress,
+        GovPoolDeployParams calldata parameters,
+        bytes32 merkleRoot,
+        string calldata descriptionURL,
+        uint256 amountToAllocate
+    ) external override {
+        bytes32 salt = _calculateGovSalt(tx.origin, parameters.name);
+
+        address tokenAddress = contractToClone.clone2(salt);
+        (bool success, ) = tokenAddress.call(initializeCode);
+        require(success, "Pool Factory: can't initialize token");
+
+        require(
+            tokenAddress == parameters.userKeeperParams.tokenAddress,
+            "Pool Factory: wrong address"
+        );
+
+        address poolAddress = deployGovPool(parameters);
+        require(poolAddress == expectedPoolAddress, "Pool Factory: unexpected pool address");
+
+        if (merkleRoot != bytes32(0)) {
+            IERC20(tokenAddress).approve(address(_allocator), amountToAllocate);
+
+            _allocator.allocateFromFactory(
+                tokenAddress,
+                amountToAllocate,
+                poolAddress,
+                merkleRoot,
+                descriptionURL
+            );
+        }
+    }
+
+    function predictTokenAddress(
+        address tokenToClone,
+        address deployer,
+        string calldata poolName
+    ) external view override returns (address predictedAddress) {
+        bytes32 salt = _calculateGovSalt(deployer, poolName);
+        predictedAddress = tokenToClone.predictClonedAddress(salt);
     }
 
     function predictGovAddresses(
@@ -203,8 +258,8 @@ contract PoolFactory is IPoolFactory, AbstractPoolFactory {
     ) internal {
         uint256 babtId;
 
-        if (_babt.balanceOf(msg.sender) > 0) {
-            babtId = _babt.tokenIdOf(msg.sender);
+        if (_babt.balanceOf(tx.origin) > 0) {
+            babtId = _babt.tokenIdOf(tx.origin);
         }
 
         GovValidators(govPoolDeps.validatorsAddress).__GovValidators_init(

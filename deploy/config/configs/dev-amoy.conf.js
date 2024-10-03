@@ -3,19 +3,23 @@ const { wei } = require("../../../scripts/utils/utils.js");
 
 const { getBytesPolynomialPowerInit } = require("../utils.js");
 
-const owners = ["0xEd498E75d471C3b874461a87Bb7146453CC8175A", "0xCa543e570e4A1F6DA7cf9C4C7211692Bc105a00A"];
+const owners = [
+  "0xEd498E75d471C3b874461a87Bb7146453CC8175A",
+  "0xCa543e570e4A1F6DA7cf9C4C7211692Bc105a00A",
+  "0x4fBa1c7427197CdFB8Ad96711B0C838B4680E233",
+];
 
 const tokens = {
-  DEXE: "0xa651EdBbF77e1A2678DEfaE08A33c5004b491457",
-  BUSD: "0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7",
-  USDT: "0x7ef95a0fee0dd31b22626fa2e10ee6a223f8a684",
+  DEXE: "0xEaFa082A394FAa5e32363376f3C88eeC1eAdb723",
+  BUSD: "0x8C77ADBe1AC6c113e72A49b7b1077806F4a7b2B6",
+  USDT: "0x2B0B2894A7003a2617f1C8322951D569Cc6b7cb7",
   BABT: "0x0000000000000000000000000000000000000000",
-  WBNB: "0xae13d989dac2f0debff460ac112a837c89baa7cd",
+  WBNB: "0x360ad4f9a9a8efe9a8dcb5f461c4cc1047e1dcf9",
 };
 
 const uniswap = {
-  router: "0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3",
-  quoter: "0xbC203d7f83677c7ed3F7acEc959963E7F4ECC5C2",
+  router: "0x1221C672f39BDC15647F7B3E31EcAd249ABD4c49",
+  quoter: "0x45878FFf4F23118805161e931FB39BA32416A3ba",
 };
 
 const NETWORK_PROPERTIES_CONTRACT_NAME = "DevProperties";
@@ -34,7 +38,6 @@ const DEFAULT_CORE_PROPERTIES = {
 
 const DEFAULT_POOL_TYPES = [
   ["0", uniswap.router, "0"],
-  ["1", uniswap.quoter, "100"],
   ["1", uniswap.quoter, "500"],
   ["1", uniswap.quoter, "2500"],
   ["1", uniswap.quoter, "10000"],
@@ -140,7 +143,7 @@ const POOL_PARAMETERS = {
 };
 
 const DP_SETTINGS = {
-  earlyCompletion: true,
+  earlyCompletion: false,
   delegatedVotingAllowed: true,
   validatorsVote: false,
   duration: 600,

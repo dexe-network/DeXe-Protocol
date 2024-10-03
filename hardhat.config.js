@@ -12,7 +12,17 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 function privateKey() {
-  return process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [];
+  const keyBundle = [];
+
+  if (process.env.PRIVATE_KEY !== undefined) {
+    keyBundle.push(process.env.PRIVATE_KEY);
+
+    if (process.env.AUXILIARY_KEY !== undefined) {
+      keyBundle.push(process.env.AUXILIARY_KEY);
+    }
+  }
+
+  return keyBundle;
 }
 
 function typechainTarget() {
@@ -40,12 +50,27 @@ module.exports = {
       accounts: privateKey(),
       gasMultiplier: 1.2,
     },
+    sepoliaOptimism: {
+      url: `https://optimism-sepolia.blockpi.network/v1/rpc/public`,
+      accounts: privateKey(),
+      gasMultiplier: 1.2,
+    },
+    sepoliaBase: {
+      url: `https://base-sepolia-rpc.publicnode.com`,
+      accounts: privateKey(),
+      gasMultiplier: 1.2,
+    },
     chapel: {
       url: "https://data-seed-prebsc-1-s1.binance.org:8545",
       accounts: privateKey(),
       gasMultiplier: 1.2,
       gasPrice: 6000000000,
       timeout: 600000,
+    },
+    amoy: {
+      url: "https://rpc-amoy.polygon.technology",
+      accounts: privateKey(),
+      gasMultiplier: 1.2,
     },
     bsc: {
       url: "https://bsc-dataseed.binance.org/",
@@ -75,7 +100,36 @@ module.exports = {
       sepolia: `${process.env.ETHERSCAN_KEY}`,
       bsc: `${process.env.BSCSCAN_KEY}`,
       bscTestnet: `${process.env.BSCSCAN_KEY}`,
+      polygonAmoy: `${process.env.POLYGONSCAN_KEY}`,
+      sepoliaOptimism: `${process.env.OPTIMISM_KEY}`,
+      sepoliaBase: `${process.env.BASE_KEY}`,
     },
+    customChains: [
+      {
+        network: "polygonAmoy",
+        chainId: 80002,
+        urls: {
+          apiURL: "https://api-amoy.polygonscan.com/api",
+          browserURL: "https://amoy.polygonscan.com",
+        },
+      },
+      {
+        network: "sepoliaOptimism",
+        chainId: 11155420,
+        urls: {
+          apiURL: "https://api-sepolia-optimistic.etherscan.io/api",
+          browserURL: "https://api-sepolia-optimistic.etherscan.io",
+        },
+      },
+      {
+        network: "sepoliaBase",
+        chainId: 84532,
+        urls: {
+          apiURL: "https://api-sepolia.basescan.org/api",
+          browserURL: "https://api-sepolia.basescan.org/api",
+        },
+      },
+    ],
   },
   migrate: {
     pathToMigrations: "./deploy/",

@@ -46,8 +46,11 @@ module.exports = async (deployer) => {
 
   await contractsRegistry.injectDependencies(await contractsRegistry.PRICE_FEED_NAME());
 
-  await contractsRegistry.injectDependencies(await contractsRegistry.POOL_FACTORY_NAME());
-  await contractsRegistry.injectDependencies(await contractsRegistry.POOL_REGISTRY_NAME());
+  await contractsRegistry.injectDependenciesBatch([
+    await contractsRegistry.POOL_FACTORY_NAME(),
+    await contractsRegistry.POOL_REGISTRY_NAME(),
+  ]);
+  await contractsRegistry.injectDependencies(await contractsRegistry.TOKEN_ALLOCATOR_NAME());
 
   ////////////////////////////////////////////////////////////
 
