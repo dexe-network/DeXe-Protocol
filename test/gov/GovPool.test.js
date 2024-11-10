@@ -35,7 +35,14 @@ const {
   getBytesChangeValidatorSettings,
   getBytesMonthlyWithdraw,
 } = require("../utils/gov-validators-utils");
-const { ZERO_ADDR, ETHER_ADDR, PRECISION, PERCENTAGE_100 } = require("../../scripts/utils/constants");
+const {
+  ZERO_ADDR,
+  ETHER_ADDR,
+  PRECISION,
+  PERCENTAGE_100,
+  PERCENTAGE_50,
+  MAX_UINT,
+} = require("../../scripts/utils/constants");
 const {
   ProposalState,
   DEFAULT_CORE_PROPERTIES,
@@ -800,6 +807,196 @@ describe("GovPool", () => {
         assert.equal(INITIAL_WRAPPED_BALANCE.minus(wei("500")).toFixed(), (await token.balanceOf(SECOND)).toFixed());
 
         await switchWeth(0, weth.address);
+      });
+    });
+
+    describe("staking", () => {
+      beforeEach(async () => {
+        await impersonate(govPool.address);
+      });
+
+      it("must be govPool to create staking", async () => {
+        await truffleAssert.reverts(settings.createNewStaking(1, 1, 0, false), "Ownable: caller is not the owner");
+      });
+
+      it("staking must have correct parameters", async () => {
+        await truffleAssert.reverts(
+          settings.createNewStaking(0, 1, 0, false, { from: govPool.address }),
+          "GovSettings: wrong staking info",
+        );
+
+        await truffleAssert.reverts(
+          settings.createNewStaking(1, 0, 0, false, { from: govPool.address }),
+          "GovSettings: wrong staking info",
+        );
+
+        await truffleAssert.reverts(
+          settings.createNewStaking(1, 1, wei("1000000001"), false, { from: govPool.address }),
+          "GovSettings: wrong staking info",
+        );
+      });
+
+      it("could create staking", async () => {
+        assert.equal(await settings.totalStakes(), 0);
+        await truffleAssert.reverts(settings.getStakingSettings(1), "GovSettings: invalid staking id");
+
+        await settings.createNewStaking(1, 1, 0, false, { from: govPool.address });
+        assert.equal(await settings.totalStakes(), 1);
+        await settings.createNewStaking(2, 2, 1, false, { from: govPool.address });
+        assert.equal(await settings.totalStakes(), 2);
+        const list = await settings.getStakingSettingsList([1, 2]);
+        assert.deepEqual(list[0], ["1", "1", "0", false, false]);
+        assert.deepEqual(list[1], ["2", "2", "1", false, false]);
+      });
+
+      it("could disable staking", async () => {
+        await settings.createNewStaking(1, 1, 0, false, { from: govPool.address });
+        assert.deepEqual(await settings.getStakingSettings(1), ["1", "1", "0", false, false]);
+
+        await truffleAssert.reverts(settings.closeStaking(1), "Ownable: caller is not the owner");
+
+        await settings.closeStaking(1, { from: govPool.address });
+        assert.deepEqual(await settings.getStakingSettings(1), ["1", "1", "0", false, true]);
+      });
+
+      it("can't disable invalid staking", async () => {
+        await truffleAssert.reverts(
+          settings.closeStaking(0, { from: govPool.address }),
+          "GovSettings: invalid staking id",
+        );
+        await truffleAssert.reverts(
+          settings.closeStaking(1, { from: govPool.address }),
+          "GovSettings: invalid staking id",
+        );
+      });
+
+      it("cant stake on zero tier", async () => {
+        await truffleAssert.reverts(userKeeper.stake(0), "GovSettings: invalid staking id");
+      });
+
+      it("cant stake on non existent tier", async () => {
+        await truffleAssert.reverts(userKeeper.stake(2), "GovSettings: invalid staking id");
+      });
+
+      it("cant stake on disabled tier", async () => {
+        await settings.createNewStaking(5, 1, 0, false, { from: govPool.address });
+        await settings.closeStaking(1, { from: govPool.address });
+        await truffleAssert.reverts(userKeeper.stake(1), "GovUK: staking tier is disabled");
+      });
+
+      it("cant stake if already staked", async () => {
+        await settings.createNewStaking(10, 1, 0, false, { from: govPool.address });
+        await userKeeper.stake(1);
+        await settings.createNewStaking(5, 1, 0, false, { from: govPool.address });
+        await truffleAssert.reverts(userKeeper.stake(2), "GovUK: Already staked");
+      });
+
+      it("could stake anything and withdraw nfts", async () => {
+        await govPool.deposit(wei("100"), [1, 2, 3]);
+
+        await setTime((await getCurrentBlockTime()) + 1);
+        await govPool.withdraw.call(OWNER, wei("100"), [1, 2, 3]);
+
+        await settings.createNewStaking(5, 1, 0, false, { from: govPool.address });
+        await userKeeper.stake(1);
+        await truffleAssert.reverts(govPool.withdraw(OWNER, wei("100"), [1, 2, 3]), "GovUK: staked");
+
+        await govPool.withdraw(OWNER, 0, [1, 2, 3]);
+      });
+
+      it("could withdraw from disabled tier", async () => {
+        await govPool.deposit(wei("100"), []);
+        await settings.createNewStaking(100, 1, 0, false, { from: govPool.address });
+        await userKeeper.stake(1);
+
+        await truffleAssert.reverts(govPool.withdraw(OWNER, wei("100"), []), "GovUK: staked");
+
+        await settings.closeStaking(1, { from: govPool.address });
+
+        await govPool.withdraw(OWNER, wei("100"), []);
+      });
+
+      it("could withdraw after staking end", async () => {
+        await govPool.deposit(wei("100"), []);
+        await settings.createNewStaking(100, 1, 0, false, { from: govPool.address });
+        await userKeeper.stake(1);
+
+        await truffleAssert.reverts(govPool.withdraw(OWNER, wei("100"), []), "GovUK: staked");
+
+        await setTime((await getCurrentBlockTime()) + 100);
+
+        await govPool.withdraw(OWNER, wei("100"), []);
+      });
+
+      it("could restake after staking end", async () => {
+        await govPool.deposit(wei("100"), []);
+        await settings.createNewStaking(100, 1, 0, false, { from: govPool.address });
+        await userKeeper.stake(1);
+
+        await truffleAssert.reverts(govPool.withdraw(OWNER, wei("100"), []), "GovUK: staked");
+
+        await setTime((await getCurrentBlockTime()) + 100);
+
+        await settings.createNewStaking(100, 2, 0, false, { from: govPool.address });
+
+        await userKeeper.stake(2);
+      });
+
+      it("could restake to a longer tier", async () => {
+        await govPool.deposit(wei("100"), []);
+        await settings.createNewStaking(100, 1, 0, true, { from: govPool.address });
+        await userKeeper.stake(1);
+
+        await truffleAssert.reverts(govPool.withdraw(OWNER, wei("100"), []), "GovUK: staked");
+
+        await settings.createNewStaking(200, 2, 0, false, { from: govPool.address });
+
+        await userKeeper.stake(2);
+      });
+
+      it("cant redeem from user keeper", async () => {
+        await truffleAssert.reverts(
+          userKeeper.redeemTokens(OWNER, OWNER, wei("100"), OWNER),
+          "Ownable: caller is not the owner",
+        );
+      });
+
+      it("cant redeem zero tokens", async () => {
+        await govPool.deposit(wei("100"), []);
+        await settings.createNewStaking(100, 1, 50, false, { from: govPool.address });
+        await userKeeper.stake(1);
+
+        await truffleAssert.reverts(govPool.withdraw(OWNER, wei("100"), []), "GovUK: staked");
+
+        await truffleAssert.reverts(govPool.redeemTokens(OWNER, 0), "GovUK: empty redeem");
+      });
+
+      it("cant redeem if not staked", async () => {
+        await govPool.deposit(wei("100"), []);
+        await truffleAssert.reverts(govPool.redeemTokens(OWNER, wei("100")), "GovUK: not staked");
+      });
+
+      it("cant redeem when redeem forbidden", async () => {
+        await govPool.deposit(wei("100"), []);
+        await settings.createNewStaking(100, 1, MAX_UINT, false, { from: govPool.address });
+        await userKeeper.stake(1);
+
+        await truffleAssert.reverts(govPool.redeemTokens(OWNER, wei("100")), "GovUK: redeem forbidden");
+      });
+
+      it("could redeem", async () => {
+        await govPool.deposit(wei("100"), []);
+        await settings.createNewStaking(100, 1, PERCENTAGE_50, false, { from: govPool.address });
+        await userKeeper.stake(1);
+
+        const ownerBalance = (await token.balanceOf(OWNER)).plus(wei("50"));
+        const govPoolBalance = (await token.balanceOf(govPool.address)).plus(wei("40"));
+        const treasuryBalance = (await token.balanceOf(ETHER_ADDR)).plus(wei("10"));
+        await govPool.redeemTokens(OWNER, wei("100"));
+
+        assert.equal((await token.balanceOf(OWNER)).toFixed(), ownerBalance.toFixed());
+        assert.equal((await token.balanceOf(govPool.address)).toFixed(), govPoolBalance.toFixed());
+        assert.equal((await token.balanceOf(ETHER_ADDR)).toFixed(), treasuryBalance.toFixed());
       });
     });
 
@@ -5919,6 +6116,10 @@ describe("GovPool", () => {
 
       it("withdraw()", async () => {
         await truffleAssert.reverts(govPool.withdraw(SECOND, wei("1000"), []), REVERT_STRING);
+      });
+
+      it("redeem()", async () => {
+        await truffleAssert.reverts(govPool.redeemTokens(SECOND, wei("1000")), REVERT_STRING);
       });
 
       it("delegate()", async () => {
