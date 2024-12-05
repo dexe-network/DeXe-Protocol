@@ -75,6 +75,7 @@ module.exports = {
     bsc: {
       url: "https://bsc-dataseed.binance.org/",
       accounts: privateKey(),
+      gasPrice: 1500000000,
       gasMultiplier: 1.2,
     },
     ethereum: {
