@@ -10,7 +10,7 @@ abstract contract AbstractValueDistributor {
         uint256 owedValue;
     }
 
-    mapping(uint256 => uint256) private _totalShares; // id => totalShares
+    mapping(uint256 => uint256) internal _totalShares; // id => totalShares
     mapping(uint256 => uint256) private _cumulativeSum; // id => cumulativeSum
     mapping(uint256 => uint256) internal _updatedAt; // id => updatedAt
     mapping(uint256 => uint256) internal _owedToProtocol; // id => owedToProtocol

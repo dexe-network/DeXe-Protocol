@@ -141,6 +141,34 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
             userDist.owedValue;
     }
 
+    function getUserInfo(
+        address user
+    ) external view returns (TierUserInfo[] memory tiersUserInfo) {
+        UserStakes storage userInfo = _userInfos[user];
+
+        EnumerableSet.UintSet storage activeInfo = userInfo.activeTiersList;
+        EnumerableSet.UintSet storage finishedInfo = userInfo.claimTiersList;
+
+        uint256 length = activeInfo.length() + finishedInfo.length();
+        uint256 activeLength = activeInfo.length();
+        tiersUserInfo = new TierUserInfo[](length);
+
+        for (uint256 i = 0; i < length; i++) {
+            uint256 id = i < activeLength ? activeInfo.at(i) : finishedInfo.at(i - activeLength);
+
+            StakingInfo storage info = stakingInfos[id];
+
+            tiersUserInfo[i].tierId = id;
+            tiersUserInfo[i].isActive = isActiveTier(id);
+            tiersUserInfo[i].rewardToken = info.rewardToken;
+            tiersUserInfo[i].startedAt = info.startedAt;
+            tiersUserInfo[i].deadline = info.deadline;
+            tiersUserInfo[i].currentStake = _userDistributions[id][user].shares;
+            tiersUserInfo[i].currentRewards = getOwedValue(id, user);
+            tiersUserInfo[i].tierCurrentStakes = _totalShares[id];
+        }
+    }
+
     function _recalculateActiveTiers(
         EnumerableSet.UintSet storage _tiers
     ) internal returns (EnumerableSet.UintSet storage) {
@@ -152,7 +180,6 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
                 _tiers.remove(id);
             }
         }
-
         return _tiers;
     }
 
