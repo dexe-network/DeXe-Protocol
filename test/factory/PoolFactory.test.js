@@ -9,6 +9,8 @@ const { ZERO_ADDR, PRECISION } = require("../../scripts/utils/constants");
 const { DEFAULT_CORE_PROPERTIES, VotePowerType } = require("../utils/constants");
 const { artifacts } = require("hardhat");
 const { StandardMerkleTree } = require("@openzeppelin/merkle-tree");
+const { impersonate } = require("../helpers/impersonator");
+const { getCurrentBlockTime, setTime } = require("../helpers/block-helper");
 
 const ContractsRegistry = artifacts.require("ContractsRegistry");
 const ERC20Mock = artifacts.require("ERC20Mock");
@@ -52,6 +54,7 @@ const GovValidatorsCreateLib = artifacts.require("GovValidatorsCreate");
 const GovValidatorsVoteLib = artifacts.require("GovValidatorsVote");
 const GovValidatorsExecuteLib = artifacts.require("GovValidatorsExecute");
 const SphereXEngine = artifacts.require("SphereXEngine");
+const StakingProposal = artifacts.require("StakingProposal");
 
 ContractsRegistry.numberFormat = "BigNumber";
 ERC20Mock.numberFormat = "BigNumber";
@@ -70,6 +73,7 @@ GovValidators.numberFormat = "BigNumber";
 PoolFactory.numberFormat = "BigNumber";
 DistributionProposal.numberFormat = "BigNumber";
 TokenSaleProposal.numberFormat = "BigNumber";
+StakingProposal.numberFormat = "BigNumber";
 
 describe("PoolFactory", () => {
   let OWNER;
@@ -500,6 +504,86 @@ describe("PoolFactory", () => {
         POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
 
         await truffleAssert.reverts(poolFactory.deployGovPool(POOL_PARAMETERS), "PoolFactory: power init failed");
+      });
+
+      it("can't deploy staking proposal before adding it to pools registry", async () => {
+        let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+
+        const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+
+        POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedGovAddresses.govToken;
+        POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
+
+        await poolFactory.deployGovPool(POOL_PARAMETERS);
+        let govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+
+        let helperContracts = await govPool.getHelperContracts();
+        let govUserKeeper = await GovUserKeeper.at(helperContracts[1]);
+
+        await truffleAssert.reverts(govUserKeeper.deployStakingProposal(), "PoolContractsRegistry: bad ProxyBeacon");
+      });
+
+      describe("staking proposal", async () => {
+        let govPool, govUserKeeper;
+        beforeEach(async () => {
+          await poolRegistry.setNewImplementations(
+            [await poolRegistry.STAKING_PROPOSAL_NAME()],
+            [(await StakingProposal.new()).address],
+          );
+
+          let POOL_PARAMETERS = getGovPoolSaleConfiguredParams();
+
+          const predictedGovAddresses = await poolFactory.predictGovAddresses(OWNER, POOL_PARAMETERS.name);
+
+          POOL_PARAMETERS.userKeeperParams.tokenAddress = predictedGovAddresses.govToken;
+          POOL_PARAMETERS.settingsParams.additionalProposalExecutors[0] = predictedGovAddresses.govTokenSale;
+
+          await poolFactory.deployGovPool(POOL_PARAMETERS);
+          govPool = await GovPool.at((await poolRegistry.listPools(await poolRegistry.GOV_POOL_NAME(), 0, 1))[0]);
+
+          let helperContracts = await govPool.getHelperContracts();
+          govUserKeeper = await GovUserKeeper.at(helperContracts[1]);
+        });
+
+        it("should be zero address before turning on", async () => {
+          assert.equal(await govUserKeeper.stakingProposalAddress(), ZERO_ADDR);
+          await truffleAssert.reverts(govUserKeeper.stakeTokens(0, 0), "GovUK: Staking disable");
+        });
+
+        it("could turn on and correctly initialize", async () => {
+          await govUserKeeper.deployStakingProposal();
+          let stakingProposal = await StakingProposal.at(await govUserKeeper.stakingProposalAddress());
+
+          assert.equal(await stakingProposal.govPoolAddress(), govPool.address);
+          assert.equal(await stakingProposal.userKeeperAddress(), govUserKeeper.address);
+        });
+
+        it("could not turn on twice", async () => {
+          await govUserKeeper.deployStakingProposal();
+          await truffleAssert.reverts(govUserKeeper.deployStakingProposal(), "GovUK: Already deployed");
+        });
+
+        it("can't withdraw or stake if staked", async () => {
+          await govUserKeeper.deployStakingProposal();
+          let token = await ERC20Mock.at(await govUserKeeper.tokenAddress());
+          let stakingProposal = await StakingProposal.at(await govUserKeeper.stakingProposalAddress());
+
+          await impersonate(govPool.address);
+
+          await token.transfer(OWNER, wei("10"), { from: govPool.address });
+          await token.approve(stakingProposal.address, wei("10"), { from: govPool.address });
+          await stakingProposal.createStaking(token.address, wei("10"), 1000, { from: govPool.address });
+          await truffleAssert.reverts(govUserKeeper.stakeTokens(1, wei("10")), "GovUK: low balance (including stakes)");
+
+          await token.approve(govUserKeeper.address, wei("10"));
+          await govPool.deposit(wei("10"), []);
+          await govUserKeeper.stakeTokens(1, wei("10"));
+          await truffleAssert.reverts(govPool.withdraw(OWNER, wei("10"), []), "GovUK: low balance (including stakes)");
+
+          await setTime((await getCurrentBlockTime()) + 1000);
+
+          await govPool.withdraw(OWNER, wei("10"), []);
+        });
       });
     });
 

@@ -13,6 +13,7 @@ import "@solarity/solidity-lib/libs/utils/DecimalsConverter.sol";
 import "@solarity/solidity-lib/libs/arrays/Paginator.sol";
 import "@solarity/solidity-lib/libs/arrays/ArrayHelper.sol";
 import "@solarity/solidity-lib/libs/data-structures/memory/Vector.sol";
+import "@solarity/solidity-lib/contracts-registry/pools/AbstractPoolContractsRegistry.sol";
 
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 
@@ -21,6 +22,7 @@ import "../../interfaces/core/INetworkProperties.sol";
 import "../../interfaces/gov/user-keeper/IGovUserKeeper.sol";
 import "../../interfaces/gov/IGovPool.sol";
 import "../../interfaces/gov/ERC721/powers/IERC721Power.sol";
+import "../../interfaces/gov/proposals/IStakingProposal.sol";
 
 import "../../libs/math/MathHelper.sol";
 import "../../libs/gov/gov-user-keeper/GovUserKeeperView.sol";
@@ -37,6 +39,8 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     using GovUserKeeperView for *;
     using Vector for Vector.UintVector;
 
+    string constant STAKING_PROPOSAL_NAME = "STAKING_PROPOSAL";
+
     address public tokenAddress;
     NFTInfo internal _nftInfo;
 
@@ -46,6 +50,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     address public wethAddress;
     address public networkPropertiesAddress;
+    address public stakingProposalAddress;
 
     event SetERC20(address token);
     event SetERC721(address token);
@@ -57,6 +62,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
 
     modifier withSupportedNft() {
         _withSupportedNft();
+        _;
+    }
+
+    modifier ifNotStaken(address user, uint256 amount) {
+        require(_notStaked(user, amount), "GovUK: low balance (including stakes)");
         _;
     }
 
@@ -108,7 +118,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         address payer,
         address receiver,
         uint256 amount
-    ) external override onlyOwner withSupportedToken {
+    ) external override onlyOwner withSupportedToken ifNotStaken(payer, amount) {
         UserInfo storage payerInfo = _usersInfo[payer];
         BalanceInfo storage payerBalanceInfo = payerInfo.balances[IGovPool.VoteType.PersonalVote];
 
@@ -403,6 +413,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         }
     }
 
+    function stakeTokens(uint256 tierId, uint256 amount) external ifNotStaken(msg.sender, amount) {
+        require(stakingProposalAddress != address(0), "GovUK: Staking disabled");
+        IStakingProposal(stakingProposalAddress).stake(msg.sender, amount, tierId);
+    }
+
     function updateMaxTokenLockedAmount(
         uint256[] calldata lockedProposals,
         address voter
@@ -493,6 +508,17 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         uint256 nftsTotalSupply
     ) external override onlyOwner {
         _setERC721Address(_nftAddress, individualPower, nftsTotalSupply);
+    }
+
+    function deployStakingProposal() external {
+        require(stakingProposalAddress == address(0), "GovUK: Already deployed");
+        AbstractPoolContractsRegistry poolRegistry = AbstractPoolContractsRegistry(
+            IGovPool(owner()).getPoolRegistryContract()
+        );
+        address stakingProposalBeacon = poolRegistry.getProxyBeacon(STAKING_PROPOSAL_NAME);
+
+        stakingProposalAddress = stakingProposalBeacon.deployStakingProposalProxy();
+        IStakingProposal(stakingProposalAddress).__StakingProposal_init(owner());
     }
 
     receive() external payable {}
@@ -829,6 +855,23 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
             voteType == IGovPool.VoteType.DelegatedVote
                 ? _usersInfo[voter].balances[IGovPool.VoteType.PersonalVote]
                 : _usersInfo[voter].balances[voteType];
+    }
+
+    function _calculateTotalStakes(address user) internal returns (uint256) {
+        return IStakingProposal(stakingProposalAddress).calculateTotalStakes(user);
+    }
+
+    function _notStaked(address user, uint256 amount) internal returns (bool) {
+        if (stakingProposalAddress == address(0)) return true;
+
+        (uint256 totalBalance, uint256 ownedBalance) = tokenBalance(
+            user,
+            IGovPool.VoteType.DelegatedVote
+        );
+
+        uint256 depositedTokens = totalBalance - ownedBalance;
+        uint256 stakedTokens = _calculateTotalStakes(user);
+        return depositedTokens >= stakedTokens + amount;
     }
 
     function _withSupportedToken() internal view {

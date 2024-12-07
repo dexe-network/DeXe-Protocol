@@ -23,6 +23,7 @@ contract PoolRegistry is IPoolRegistry, MultiOwnablePoolContractsRegistry {
     string public constant USER_KEEPER_NAME = "USER_KEEPER";
     string public constant DISTRIBUTION_PROPOSAL_NAME = "DISTRIBUTION_PROPOSAL";
     string public constant TOKEN_SALE_PROPOSAL_NAME = "TOKEN_SALE_PROPOSAL";
+    string public constant STAKING_PROPOSAL_NAME = "STAKING_PROPOSAL";
 
     string public constant EXPERT_NFT_NAME = "EXPERT_NFT";
     string public constant NFT_MULTIPLIER_NAME = "NFT_MULTIPLIER";
