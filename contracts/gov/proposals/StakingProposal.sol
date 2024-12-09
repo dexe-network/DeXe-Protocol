@@ -55,11 +55,12 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
     function createStaking(
         address rewardToken,
         uint256 rewardAmount,
-        uint256 duration,
+        uint256 startedAt,
+        uint256 deadline,
         string calldata metadata
     ) external onlyGov {
         require(
-            duration > 0 && rewardToken != address(0) && rewardAmount > 0,
+            startedAt < deadline && rewardToken != address(0) && rewardAmount > 0,
             "SP: Invalid settings"
         );
         require(
@@ -67,28 +68,28 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
             "SP: Max tiers reached"
         );
 
+        if (deadline < block.timestamp) {
+            IERC20(rewardToken).safeTransferFrom(govPoolAddress, address(this), rewardAmount);
+            IERC20(rewardToken).safeTransfer(govPoolAddress, rewardAmount);
+            return;
+        }
+
         uint256 id = ++stakingsCount;
         StakingInfo storage info = stakingInfos[id];
 
         info.rewardToken = rewardToken;
         info.totalRewardsAmount = rewardAmount;
-        info.startedAt = block.timestamp;
-        info.deadline = block.timestamp + duration;
+        info.startedAt = startedAt;
+        info.deadline = deadline;
         info.metadata = metadata;
 
         _activeTiers.add(id);
 
-        _updatedAt[id] = block.timestamp;
+        _updatedAt[id] = startedAt;
 
         IERC20(rewardToken).safeTransferFrom(govPoolAddress, address(this), rewardAmount);
 
-        emit StakingCreated(
-            rewardToken,
-            rewardAmount,
-            block.timestamp,
-            block.timestamp + duration,
-            metadata
-        );
+        emit StakingCreated(rewardToken, rewardAmount, startedAt, deadline, metadata);
     }
 
     function stake(address user, uint256 amount, uint256 id) external onlyKeeper {
@@ -138,17 +139,19 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
     }
 
     function isActiveTier(uint256 id) public view returns (bool) {
+        uint256 startedAt = stakingInfos[id].startedAt;
         uint256 deadline = stakingInfos[id].deadline;
         if (deadline == 0) return false;
-        return deadline >= block.timestamp;
+        return deadline >= block.timestamp && block.timestamp >= startedAt;
     }
 
     function getOwedValue(uint256 id, address user_) public view returns (uint256) {
         UserDistribution storage userDist = _userDistributions[id][user_];
 
+        uint256 startedAt = stakingInfos[id].startedAt;
         uint256 deadline = stakingInfos[id].deadline;
 
-        if (deadline == 0) return 0;
+        if (deadline == 0 || block.timestamp < startedAt) return 0;
 
         uint256 time = block.timestamp > deadline ? deadline : block.timestamp;
 
@@ -197,7 +200,7 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
             info.totalRewardsAmount = tierInfo.totalRewardsAmount;
             info.startedAt = tierInfo.startedAt;
             info.deadline = tierInfo.deadline;
-            info.isActive = block.timestamp <= info.deadline;
+            info.isActive = info.startedAt <= block.timestamp && block.timestamp <= info.deadline;
             info.totalStaked = _totalShares[id];
             info.owedToProtocol = _owedToProtocol[id];
         }

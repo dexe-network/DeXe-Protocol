@@ -39,7 +39,8 @@ interface IStakingProposal {
     function createStaking(
         address rewardToken,
         uint256 rewardAmount,
-        uint256 duration,
+        uint256 startedAt,
+        uint256 deadline,
         string calldata metadata
     ) external;
 
