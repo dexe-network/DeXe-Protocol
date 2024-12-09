@@ -20,8 +20,7 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
     address public userKeeperAddress;
 
     mapping(uint256 => StakingInfo) internal stakingInfos;
-    mapping(address => UserStakes) internal _userInfos;
-    mapping(uint256 => EnumerableSet.AddressSet) internal _activeUsers; // move to events
+    mapping(address => EnumerableSet.UintSet) internal _userClaimableTiers;
     EnumerableSet.UintSet internal _activeTiers;
 
     uint256 public stakingsCount;
@@ -82,6 +81,7 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
         _updatedAt[id] = block.timestamp;
 
         IERC20(rewardToken).safeTransferFrom(govPoolAddress, address(this), rewardAmount);
+
         emit StakingCreated(
             rewardToken,
             rewardAmount,
@@ -94,8 +94,7 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
     function stake(address user, uint256 amount, uint256 id) external onlyKeeper {
         require(isActiveTier(id), "SP: Not Active");
 
-        UserStakes storage info = _userInfos[user];
-        info.activeTiersList.add(id);
+        _userClaimableTiers[user].add(id);
 
         _addShares(id, user, amount);
 
@@ -105,20 +104,16 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
     function claim(uint256 id) external {
         _couldClaim(id);
         _claim(id);
-        _userInfos[msg.sender].activeTiersList.remove(id);
-        _userInfos[msg.sender].claimTiersList.remove(id);
     }
 
     function claimAll() external {
-        UserStakes storage userStake = _userInfos[msg.sender];
-        _recalculateActiveTiers(userStake);
-
-        EnumerableSet.UintSet storage claimTiersList = userStake.claimTiersList;
-        uint256 length = claimTiersList.length();
+        EnumerableSet.UintSet storage claimableTiersList = _userClaimableTiers[msg.sender];
+        uint256 length = claimableTiersList.length();
         for (uint i = length; i > 0; i--) {
-            uint256 id = claimTiersList.at(i - 1);
+            uint256 id = claimableTiersList.at(i - 1);
+            uint256 deadline = stakingInfos[id].deadline;
+            if (block.timestamp <= deadline) continue;
             _claim(id);
-            claimTiersList.remove(id);
         }
     }
 
@@ -127,13 +122,18 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
         _reclaim(id);
     }
 
-    function calculateTotalStakes(address user) external returns (uint256 totalStakes) {
-        _recalculateActiveTiers(_userInfos[user]);
-        EnumerableSet.UintSet storage activeTiers = _userInfos[user].activeTiersList;
+    function getTotalStakes(address user) external view returns (uint256 totalStakes) {
+        uint256[] memory userActiveTiers = _activeTiers.length() <
+            _userClaimableTiers[user].length()
+            ? _activeTiers.values()
+            : _userClaimableTiers[user].values();
 
-        uint256 length = activeTiers.length();
-        for (uint i = 0; i < length; i++) {
-            totalStakes += _userDistributions[activeTiers.at(i)][user].shares;
+        uint256 length = userActiveTiers.length;
+        for (uint256 i = 0; i < length; i++) {
+            uint256 id = userActiveTiers[i];
+            if (isActiveTier(id)) {
+                totalStakes += _userDistributions[id][user].shares;
+            }
         }
     }
 
@@ -161,17 +161,13 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
     function getUserInfo(
         address user
     ) external view returns (TierUserInfo[] memory tiersUserInfo) {
-        UserStakes storage userInfo = _userInfos[user];
+        EnumerableSet.UintSet storage claimableTiers = _userClaimableTiers[user];
 
-        EnumerableSet.UintSet storage activeInfo = userInfo.activeTiersList;
-        EnumerableSet.UintSet storage finishedInfo = userInfo.claimTiersList;
-
-        uint256 length = activeInfo.length() + finishedInfo.length();
-        uint256 activeLength = activeInfo.length();
+        uint256 length = claimableTiers.length();
         tiersUserInfo = new TierUserInfo[](length);
 
         for (uint256 i = 0; i < length; i++) {
-            uint256 id = i < activeLength ? activeInfo.at(i) : finishedInfo.at(i - activeLength);
+            uint256 id = claimableTiers.at(i);
 
             StakingInfo storage info = stakingInfos[id];
 
@@ -221,20 +217,6 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
         return _tiers;
     }
 
-    function _recalculateActiveTiers(UserStakes storage userStake) internal {
-        EnumerableSet.UintSet storage activeTiersList = userStake.activeTiersList;
-        EnumerableSet.UintSet storage claimTiersList = userStake.claimTiersList;
-        uint256 length = activeTiersList.length();
-        for (uint256 i = length; i > 0; i--) {
-            uint256 id = activeTiersList.at(i - 1);
-
-            if (!isActiveTier(id)) {
-                activeTiersList.remove(id);
-                claimTiersList.add(id);
-            }
-        }
-    }
-
     function _couldClaim(uint256 id) internal view {
         StakingInfo storage info = stakingInfos[id];
         uint256 deadline = info.deadline;
@@ -248,11 +230,14 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
 
         address rewardToken = info.rewardToken;
         address user = msg.sender;
+
+        _userClaimableTiers[user].remove(id);
+
         _updateOnTime(id, user, deadline);
         uint256 amountToPay = _userDistributions[id][user].owedValue;
         if (amountToPay != 0) {
-            IERC20(rewardToken).safeTransfer(user, amountToPay);
             _userDistributions[id][user].owedValue = 0;
+            IERC20(rewardToken).safeTransfer(user, amountToPay);
         }
         emit RewardClaimed(id, user, rewardToken, amountToPay);
     }
@@ -264,8 +249,8 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
         _updateFromProtocol(id, deadline);
         uint256 amountToPay = _owedToProtocol[id];
         if (amountToPay != 0) {
-            IERC20(info.rewardToken).safeTransfer(govPoolAddress, amountToPay);
             _owedToProtocol[id] = 0;
+            IERC20(info.rewardToken).safeTransfer(govPoolAddress, amountToPay);
         }
     }
 

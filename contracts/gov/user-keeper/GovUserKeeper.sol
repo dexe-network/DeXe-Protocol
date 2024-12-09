@@ -857,11 +857,11 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
                 : _usersInfo[voter].balances[voteType];
     }
 
-    function _calculateTotalStakes(address user) internal returns (uint256) {
-        return IStakingProposal(stakingProposalAddress).calculateTotalStakes(user);
+    function _getTotalStakes(address user) internal view returns (uint256) {
+        return IStakingProposal(stakingProposalAddress).getTotalStakes(user);
     }
 
-    function _notStaked(address user, uint256 amount) internal returns (bool) {
+    function _notStaked(address user, uint256 amount) internal view returns (bool) {
         if (stakingProposalAddress == address(0)) return true;
 
         (uint256 totalBalance, uint256 ownedBalance) = tokenBalance(
@@ -870,7 +870,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         );
 
         uint256 depositedTokens = totalBalance - ownedBalance;
-        uint256 stakedTokens = _calculateTotalStakes(user);
+        uint256 stakedTokens = _getTotalStakes(user);
         return depositedTokens >= stakedTokens + amount;
     }
 

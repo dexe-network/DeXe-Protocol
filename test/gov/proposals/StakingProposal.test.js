@@ -220,19 +220,19 @@ describe("StakingProposal", () => {
       await token2.approve(stakingProposal.address, wei("1000000000"), { from: GOVPOOL });
 
       await stakingProposal.stake(OWNER, 1, 1, { from: USERKEEPER });
-      assert.equal((await stakingProposal.calculateTotalStakes.call(OWNER)).toFixed(), "1");
+      assert.equal((await stakingProposal.getTotalStakes(OWNER)).toFixed(), "1");
 
       for (let i = 2; i < 10; i++) {
         await stakingProposal.createStaking(token2.address, wei("1"), duration * i, "ipfs://default", {
           from: GOVPOOL,
         });
         await stakingProposal.stake(OWNER, 1, i, { from: USERKEEPER });
-        assert.equal((await stakingProposal.calculateTotalStakes.call(OWNER)).toFixed(), i.toString());
+        assert.equal((await stakingProposal.getTotalStakes(OWNER)).toFixed(), i.toString());
       }
 
       for (let i = 1; i <= 10; i++) {
         await setTime(startTime + duration * i);
-        assert.equal((await stakingProposal.calculateTotalStakes.call(OWNER)).toFixed(), (10 - i).toString());
+        assert.equal((await stakingProposal.getTotalStakes(OWNER)).toFixed(), (10 - i).toString());
       }
 
       assert.equal((await token.balanceOf(OWNER)).toFixed(), 0);

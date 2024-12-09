@@ -23,11 +23,6 @@ interface IStakingProposal {
         uint256 owedToProtocol;
     }
 
-    struct UserStakes {
-        EnumerableSet.UintSet activeTiersList;
-        EnumerableSet.UintSet claimTiersList; // Remove
-    }
-
     struct TierUserInfo {
         uint256 tierId;
         bool isActive;
@@ -58,7 +53,7 @@ interface IStakingProposal {
 
     function getOwedValue(uint256 id, address user_) external view returns (uint256);
 
-    function calculateTotalStakes(address user) external returns (uint256 totalStakes);
+    function getTotalStakes(address user) external view returns (uint256 totalStakes);
 
     function isActiveTier(uint256 id) external view returns (bool);
 
