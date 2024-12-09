@@ -572,7 +572,9 @@ describe("PoolFactory", () => {
 
           await token.transfer(OWNER, wei("10"), { from: govPool.address });
           await token.approve(stakingProposal.address, wei("10"), { from: govPool.address });
-          await stakingProposal.createStaking(token.address, wei("10"), 1000, { from: govPool.address });
+          await stakingProposal.createStaking(token.address, wei("10"), 1000, "ipfs://default", {
+            from: govPool.address,
+          });
           await truffleAssert.reverts(govUserKeeper.stakeTokens(1, wei("10")), "GovUK: low balance (including stakes)");
 
           await token.approve(govUserKeeper.address, wei("10"));

@@ -11,24 +11,30 @@ import "../../interfaces/gov/proposals/IStakingProposal.sol";
 import "../../core/Globals.sol";
 
 contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistributor {
-    using EnumerableSet for EnumerableSet.UintSet;
+    using EnumerableSet for *;
     using SafeERC20 for IERC20;
-
-    struct UserStakes {
-        EnumerableSet.UintSet activeTiersList;
-        EnumerableSet.UintSet claimTiersList;
-    }
 
     uint256 constant MAX_TIERS_AMOUNT = 10;
 
     address public govPoolAddress;
     address public userKeeperAddress;
 
-    mapping(uint256 => StakingInfo) public stakingInfos;
+    mapping(uint256 => StakingInfo) internal stakingInfos;
     mapping(address => UserStakes) internal _userInfos;
+    mapping(uint256 => EnumerableSet.AddressSet) internal _activeUsers; // move to events
     EnumerableSet.UintSet internal _activeTiers;
 
     uint256 public stakingsCount;
+
+    event StakingCreated(
+        address rewardToken,
+        uint256 totalRewardsAmount,
+        uint256 startedAt,
+        uint256 deadline,
+        string metadata
+    );
+    event StakeAdded(uint256 id, address user, uint256 amount);
+    event RewardClaimed(uint256 id, address user, address rewardToken, uint256 rewardsAmount); // Add govpool
 
     modifier onlyGov() {
         require(msg.sender == govPoolAddress, "SP: not a Gov contract");
@@ -50,7 +56,8 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
     function createStaking(
         address rewardToken,
         uint256 rewardAmount,
-        uint256 duration
+        uint256 duration,
+        string calldata metadata
     ) external onlyGov {
         require(
             duration > 0 && rewardToken != address(0) && rewardAmount > 0,
@@ -68,12 +75,20 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
         info.totalRewardsAmount = rewardAmount;
         info.startedAt = block.timestamp;
         info.deadline = block.timestamp + duration;
+        info.metadata = metadata;
 
         _activeTiers.add(id);
 
         _updatedAt[id] = block.timestamp;
 
         IERC20(rewardToken).safeTransferFrom(govPoolAddress, address(this), rewardAmount);
+        emit StakingCreated(
+            rewardToken,
+            rewardAmount,
+            block.timestamp,
+            block.timestamp + duration,
+            metadata
+        );
     }
 
     function stake(address user, uint256 amount, uint256 id) external onlyKeeper {
@@ -83,6 +98,8 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
         info.activeTiersList.add(id);
 
         _addShares(id, user, amount);
+
+        emit StakeAdded(id, user, amount);
     }
 
     function claim(uint256 id) external {
@@ -169,6 +186,27 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
         }
     }
 
+    function getStakingInfo(
+        uint256[] calldata ids
+    ) external view returns (StakingInfoView[] memory stakingInfo) {
+        stakingInfo = new StakingInfoView[](ids.length);
+        for (uint i = 0; i < ids.length; i++) {
+            StakingInfoView memory info = stakingInfo[i];
+
+            uint256 id = ids[i];
+            StakingInfo storage tierInfo = stakingInfos[id];
+
+            info.metadata = tierInfo.metadata;
+            info.rewardToken = tierInfo.rewardToken;
+            info.totalRewardsAmount = tierInfo.totalRewardsAmount;
+            info.startedAt = tierInfo.startedAt;
+            info.deadline = tierInfo.deadline;
+            info.isActive = block.timestamp <= info.deadline;
+            info.totalStaked = _totalShares[id];
+            info.owedToProtocol = _owedToProtocol[id];
+        }
+    }
+
     function _recalculateActiveTiers(
         EnumerableSet.UintSet storage _tiers
     ) internal returns (EnumerableSet.UintSet storage) {
@@ -208,13 +246,15 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
         StakingInfo storage info = stakingInfos[id];
         uint256 deadline = info.deadline;
 
+        address rewardToken = info.rewardToken;
         address user = msg.sender;
         _updateOnTime(id, user, deadline);
         uint256 amountToPay = _userDistributions[id][user].owedValue;
         if (amountToPay != 0) {
-            IERC20(info.rewardToken).safeTransfer(user, amountToPay);
+            IERC20(rewardToken).safeTransfer(user, amountToPay);
             _userDistributions[id][user].owedValue = 0;
         }
+        emit RewardClaimed(id, user, rewardToken, amountToPay);
     }
 
     function _reclaim(uint256 id) internal {

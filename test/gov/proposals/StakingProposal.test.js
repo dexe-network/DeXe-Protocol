@@ -56,20 +56,23 @@ describe("StakingProposal", () => {
 
   describe("Create staking", () => {
     it("Can't create staking not from govpool", async () => {
-      await truffleAssert.reverts(stakingProposal.createStaking(ZERO_ADDR, 0, 0), "SP: not a Gov contract");
+      await truffleAssert.reverts(
+        stakingProposal.createStaking(ZERO_ADDR, 0, 0, "ipfs://default"),
+        "SP: not a Gov contract",
+      );
     });
 
     it("Can't create invalid staking", async () => {
       await truffleAssert.reverts(
-        stakingProposal.createStaking(ZERO_ADDR, 1, 1, { from: GOVPOOL }),
+        stakingProposal.createStaking(ZERO_ADDR, 1, 1, "ipfs://default", { from: GOVPOOL }),
         "SP: Invalid settings",
       );
       await truffleAssert.reverts(
-        stakingProposal.createStaking(OWNER, 0, 1, { from: GOVPOOL }),
+        stakingProposal.createStaking(OWNER, 0, 1, "ipfs://default", { from: GOVPOOL }),
         "SP: Invalid settings",
       );
       await truffleAssert.reverts(
-        stakingProposal.createStaking(OWNER, 1, 0, { from: GOVPOOL }),
+        stakingProposal.createStaking(OWNER, 1, 0, "ipfs://default", { from: GOVPOOL }),
         "SP: Invalid settings",
       );
     });
@@ -82,17 +85,17 @@ describe("StakingProposal", () => {
       await token.approve(stakingProposal.address, wei("1000"), { from: GOVPOOL });
 
       for (let i = 0; i < MAX_TOKENSALE_AMOUNT; i++) {
-        await stakingProposal.createStaking(token.address, wei("1"), 1000, { from: GOVPOOL });
+        await stakingProposal.createStaking(token.address, wei("1"), 1000, "ipfs://default", { from: GOVPOOL });
       }
 
       await truffleAssert.reverts(
-        stakingProposal.createStaking(token.address, wei("1"), 1000, { from: GOVPOOL }),
+        stakingProposal.createStaking(token.address, wei("1"), 1000, "ipfs://default", { from: GOVPOOL }),
         "SP: Max tiers reached",
       );
 
       await setTime((await getCurrentBlockTime()) + 2000);
 
-      await stakingProposal.createStaking(token.address, wei("1"), 1000, { from: GOVPOOL });
+      await stakingProposal.createStaking(token.address, wei("1"), 1000, "ipfs://default", { from: GOVPOOL });
     });
 
     it("Could create proposal", async () => {
@@ -102,22 +105,30 @@ describe("StakingProposal", () => {
       let duration = 1000;
       assert.equal((await token.balanceOf(stakingProposal.address)).toFixed(), "0");
 
-      await stakingProposal.createStaking(token.address, wei("1"), duration, { from: GOVPOOL });
+      await stakingProposal.createStaking(token.address, wei("1"), duration, "ipfs://default", { from: GOVPOOL });
       assert.equal((await token.balanceOf(stakingProposal.address)).toFixed(), wei("1"));
 
-      let stakingInfo = await stakingProposal.stakingInfos(1);
+      let stakingInfo = (await stakingProposal.getStakingInfo([1]))[0];
 
+      assert.equal(stakingInfo.metadata, "ipfs://default");
       assert.equal(stakingInfo.rewardToken, token.address);
-      assert.equal(stakingInfo.totalRewardsAmount.toFixed(), wei("1"));
-      assert.equal(stakingInfo.startedAt.toFixed(), (startTime + 1).toString());
-      assert.equal(stakingInfo.deadline.toFixed(), (startTime + duration + 1).toString());
+      assert.equal(stakingInfo.totalRewardsAmount, wei("1"));
+      assert.equal(stakingInfo.startedAt, (startTime + 1).toString());
+      assert.equal(stakingInfo.deadline, (startTime + duration + 1).toString());
+      assert.equal(stakingInfo.isActive, true);
+      assert.equal(stakingInfo.totalStaked, "0");
+      assert.equal(stakingInfo.owedToProtocol, "0");
 
-      stakingInfo = await stakingProposal.stakingInfos(0);
+      stakingInfo = (await stakingProposal.getStakingInfo([0]))[0];
 
+      assert.equal(stakingInfo.metadata, "");
       assert.equal(stakingInfo.rewardToken, ZERO_ADDR);
-      assert.equal(stakingInfo.totalRewardsAmount.toFixed(), "0");
-      assert.equal(stakingInfo.startedAt.toFixed(), "0");
-      assert.equal(stakingInfo.deadline.toFixed(), "0");
+      assert.equal(stakingInfo.totalRewardsAmount, "0");
+      assert.equal(stakingInfo.startedAt, "0");
+      assert.equal(stakingInfo.deadline, "0");
+      assert.equal(stakingInfo.isActive, false);
+      assert.equal(stakingInfo.totalStaked, "0");
+      assert.equal(stakingInfo.owedToProtocol, "0");
     });
   });
 
@@ -128,7 +139,7 @@ describe("StakingProposal", () => {
       duration = 1000;
       amount = wei("1000000000");
       await token.approve(stakingProposal.address, amount, { from: GOVPOOL });
-      await stakingProposal.createStaking(token.address, amount, duration, { from: GOVPOOL });
+      await stakingProposal.createStaking(token.address, amount, duration, "ipfs://default", { from: GOVPOOL });
       startTime = await getCurrentBlockTime();
     });
 
@@ -212,7 +223,9 @@ describe("StakingProposal", () => {
       assert.equal((await stakingProposal.calculateTotalStakes.call(OWNER)).toFixed(), "1");
 
       for (let i = 2; i < 10; i++) {
-        await stakingProposal.createStaking(token2.address, wei("1"), duration * i, { from: GOVPOOL });
+        await stakingProposal.createStaking(token2.address, wei("1"), duration * i, "ipfs://default", {
+          from: GOVPOOL,
+        });
         await stakingProposal.stake(OWNER, 1, i, { from: USERKEEPER });
         assert.equal((await stakingProposal.calculateTotalStakes.call(OWNER)).toFixed(), i.toString());
       }

@@ -1,13 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-// import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-// import "./helpers/AbstractValueDistributor.sol";
-
-// import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-// import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-// import "../../core/Globals.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 interface IStakingProposal {
     struct StakingInfo {
@@ -15,6 +9,23 @@ interface IStakingProposal {
         uint256 totalRewardsAmount;
         uint256 startedAt;
         uint256 deadline;
+        string metadata;
+    }
+
+    struct StakingInfoView {
+        string metadata;
+        address rewardToken;
+        uint256 totalRewardsAmount;
+        uint256 startedAt;
+        uint256 deadline;
+        bool isActive;
+        uint256 totalStaked;
+        uint256 owedToProtocol;
+    }
+
+    struct UserStakes {
+        EnumerableSet.UintSet activeTiersList;
+        EnumerableSet.UintSet claimTiersList; // Remove
     }
 
     struct TierUserInfo {
@@ -30,7 +41,12 @@ interface IStakingProposal {
 
     function __StakingProposal_init(address _govPoolAddress) external;
 
-    function createStaking(address rewardToken, uint256 rewardAmount, uint256 duration) external;
+    function createStaking(
+        address rewardToken,
+        uint256 rewardAmount,
+        uint256 duration,
+        string calldata metadata
+    ) external;
 
     function stake(address user, uint256 amount, uint256 id) external;
 
@@ -46,17 +62,17 @@ interface IStakingProposal {
 
     function isActiveTier(uint256 id) external view returns (bool);
 
-    function stakingInfos(
-        uint256 id
-    )
-        external
-        view
-        returns (
-            address rewardToken,
-            uint256 totalRewardsAmount,
-            uint256 startedAt,
-            uint256 deadline
-        );
+    // function stakingInfos(
+    //     uint256 id
+    // )
+    //     external
+    //     view
+    //     returns (
+    //         address rewardToken,
+    //         uint256 totalRewardsAmount,
+    //         uint256 startedAt,
+    //         uint256 deadline
+    //     );
 
     function stakingsCount() external view returns (uint256);
 }

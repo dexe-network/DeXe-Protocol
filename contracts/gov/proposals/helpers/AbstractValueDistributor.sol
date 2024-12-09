@@ -17,8 +17,6 @@ abstract contract AbstractValueDistributor {
 
     mapping(uint256 => mapping(address => UserDistribution)) internal _userDistributions; // id => user => UserDistributions
 
-    event StakeAdded(uint256 id, address user, uint256 amount);
-
     function _addShares(uint256 id, address user_, uint256 amount_) internal virtual {
         require(amount_ > 0, "ValueDistributor: amount has to be more than 0");
 
@@ -26,8 +24,6 @@ abstract contract AbstractValueDistributor {
 
         _totalShares[id] += amount_;
         _userDistributions[id][user_].shares += amount_;
-
-        emit StakeAdded(id, user_, amount_);
     }
 
     function _update(uint256 id, address user_) internal {
