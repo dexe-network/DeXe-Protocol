@@ -33,7 +33,7 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
         string metadata
     );
     event StakeAdded(uint256 id, address user, uint256 amount);
-    event RewardClaimed(uint256 id, address user, address rewardToken, uint256 rewardsAmount); // Add govpool
+    event RewardClaimed(uint256 id, address user, address rewardToken, uint256 rewardsAmount);
 
     modifier onlyGov() {
         require(msg.sender == govPoolAddress, "SP: not a Gov contract");
@@ -186,8 +186,8 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
     }
 
     function getStakingInfo(
-        uint256[] calldata ids
-    ) external view returns (StakingInfoView[] memory stakingInfo) {
+        uint256[] memory ids
+    ) public view returns (StakingInfoView[] memory stakingInfo) {
         stakingInfo = new StakingInfoView[](ids.length);
         for (uint i = 0; i < ids.length; i++) {
             StakingInfoView memory info = stakingInfo[i];
@@ -195,6 +195,7 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
             uint256 id = ids[i];
             StakingInfo storage tierInfo = stakingInfos[id];
 
+            info.id = id;
             info.metadata = tierInfo.metadata;
             info.rewardToken = tierInfo.rewardToken;
             info.totalRewardsAmount = tierInfo.totalRewardsAmount;
@@ -204,6 +205,29 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
             info.totalStaked = _totalShares[id];
             info.owedToProtocol = _owedToProtocol[id];
         }
+    }
+
+    function getActiveStakings() external view returns (StakingInfoView[] memory stakingInfo) {
+        uint256[] memory claimableIds = _activeTiers.values();
+        uint256 length;
+        for (uint256 i = 0; i < claimableIds.length; i++) {
+            if (isActiveTier(claimableIds[i])) {
+                length++;
+            }
+        }
+
+        uint256[] memory ids = new uint256[](length);
+
+        uint256 counter;
+        for (uint256 i = 0; i < claimableIds.length; i++) {
+            uint256 id = claimableIds[i];
+            if (isActiveTier(id)) {
+                ids[counter] = id;
+                counter++;
+            }
+        }
+
+        stakingInfo = getStakingInfo(ids);
     }
 
     function _recalculateActiveTiers(

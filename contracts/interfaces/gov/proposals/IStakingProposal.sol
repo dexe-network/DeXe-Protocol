@@ -13,6 +13,7 @@ interface IStakingProposal {
     }
 
     struct StakingInfoView {
+        uint256 id;
         string metadata;
         address rewardToken;
         uint256 totalRewardsAmount;
@@ -58,17 +59,13 @@ interface IStakingProposal {
 
     function isActiveTier(uint256 id) external view returns (bool);
 
-    // function stakingInfos(
-    //     uint256 id
-    // )
-    //     external
-    //     view
-    //     returns (
-    //         address rewardToken,
-    //         uint256 totalRewardsAmount,
-    //         uint256 startedAt,
-    //         uint256 deadline
-    //     );
-
     function stakingsCount() external view returns (uint256);
+
+    function getUserInfo(address user) external view returns (TierUserInfo[] memory tiersUserInfo);
+
+    function getStakingInfo(
+        uint256[] memory ids
+    ) external view returns (StakingInfoView[] memory stakingInfo);
+
+    function getActiveStakings() external view returns (StakingInfoView[] memory stakingInfo);
 }

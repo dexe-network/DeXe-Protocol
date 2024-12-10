@@ -136,6 +136,7 @@ describe("StakingProposal", () => {
 
       let stakingInfo = (await stakingProposal.getStakingInfo([1]))[0];
 
+      assert.equal(stakingInfo.id, 1);
       assert.equal(stakingInfo.metadata, "ipfs://default");
       assert.equal(stakingInfo.rewardToken, token.address);
       assert.equal(stakingInfo.totalRewardsAmount, wei("1"));
@@ -147,6 +148,7 @@ describe("StakingProposal", () => {
 
       stakingInfo = (await stakingProposal.getStakingInfo([0]))[0];
 
+      assert.equal(stakingInfo.id, 0);
       assert.equal(stakingInfo.metadata, "");
       assert.equal(stakingInfo.rewardToken, ZERO_ADDR);
       assert.equal(stakingInfo.totalRewardsAmount, "0");
@@ -378,6 +380,16 @@ describe("StakingProposal", () => {
       expectedInfo.isActive = false;
       expectedInfo.currentRewards = toBN(wei("1000000000")).times(999).idiv(1000).toFixed();
       assert.deepEqual(expectedInfo, extractNamedFields(info[0]));
+    });
+
+    it("getActiveStakings", async () => {
+      let info = await stakingProposal.getActiveStakings();
+      assert.equal(info.length.toFixed(), 1);
+      assert.equal(info[0].id, 1);
+
+      await setTime(startTime + 1001);
+      info = await stakingProposal.getActiveStakings();
+      assert.equal(info.length.toFixed(), 0);
     });
   });
 });

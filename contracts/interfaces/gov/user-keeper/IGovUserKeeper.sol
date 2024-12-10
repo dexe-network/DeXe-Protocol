@@ -360,4 +360,10 @@ interface IGovUserKeeper {
         uint256 value,
         uint256 amount
     ) external view returns (uint256 nativeAmount);
+
+    function stakeTokens(uint256 tierId, uint256 amount) external;
+
+    function stakingProposalAddress() external view returns (address);
+
+    function deployStakingProposal() external;
 }
