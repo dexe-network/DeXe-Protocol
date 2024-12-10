@@ -248,13 +248,15 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
     function _reclaim(uint256 id) internal {
         StakingInfo storage info = stakingInfos[id];
         uint256 deadline = info.deadline;
+        address rewardToken = info.rewardToken;
 
         _updateFromProtocol(id, deadline);
         uint256 amountToPay = _owedToProtocol[id];
         if (amountToPay != 0) {
             _owedToProtocol[id] = 0;
-            IERC20(info.rewardToken).safeTransfer(govPoolAddress, amountToPay);
+            IERC20(rewardToken).safeTransfer(govPoolAddress, amountToPay);
         }
+        emit RewardClaimed(id, govPoolAddress, rewardToken, amountToPay);
     }
 
     function _getValueToDistribute(
