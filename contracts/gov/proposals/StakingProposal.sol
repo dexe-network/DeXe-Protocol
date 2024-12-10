@@ -236,8 +236,9 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
         uint256 length = _tiers.length();
         for (uint256 i = length; i > 0; i--) {
             uint256 id = _tiers.at(i - 1);
+            StakingInfo storage info = stakingInfos[id];
 
-            if (!isActiveTier(id)) {
+            if (info.deadline < block.timestamp) {
                 _tiers.remove(id);
             }
         }
