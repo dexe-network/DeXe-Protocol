@@ -66,7 +66,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
     }
 
     modifier ifNotStaken(address user, uint256 amount) {
-        require(_notStaked(user, amount), "GovUK: low balance (including stakes)");
+        require(_canMove(user, amount), "GovUK: low balance (including stakes)");
         _;
     }
 
@@ -861,7 +861,7 @@ contract GovUserKeeper is IGovUserKeeper, OwnableUpgradeable, ERC721HolderUpgrad
         return IStakingProposal(stakingProposalAddress).getTotalStakes(user);
     }
 
-    function _notStaked(address user, uint256 amount) internal view returns (bool) {
+    function _canMove(address user, uint256 amount) internal view returns (bool) {
         if (stakingProposalAddress == address(0)) return true;
 
         (uint256 totalBalance, uint256 ownedBalance) = tokenBalance(
