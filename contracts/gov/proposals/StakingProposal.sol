@@ -26,6 +26,14 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
     uint256 public stakingsCount;
 
     event StakingCreated(
+        uint256 id,
+        address rewardToken,
+        uint256 totalRewardsAmount,
+        uint256 startedAt,
+        uint256 deadline,
+        string metadata
+    );
+    event StakingRejected(
         address rewardToken,
         uint256 totalRewardsAmount,
         uint256 startedAt,
@@ -71,6 +79,7 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
         if (deadline < block.timestamp) {
             IERC20(rewardToken).safeTransferFrom(govPoolAddress, address(this), rewardAmount);
             IERC20(rewardToken).safeTransfer(govPoolAddress, rewardAmount);
+            emit StakingRejected(rewardToken, rewardAmount, startedAt, deadline, metadata);
             return;
         }
 
@@ -89,7 +98,7 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
 
         IERC20(rewardToken).safeTransferFrom(govPoolAddress, address(this), rewardAmount);
 
-        emit StakingCreated(rewardToken, rewardAmount, startedAt, deadline, metadata);
+        emit StakingCreated(id, rewardToken, rewardAmount, startedAt, deadline, metadata);
     }
 
     function stake(address user, uint256 amount, uint256 id) external onlyKeeper {
@@ -266,8 +275,8 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
         if (amountToPay != 0) {
             _userDistributions[id][user].owedValue = 0;
             IERC20(rewardToken).safeTransfer(user, amountToPay);
+            emit RewardClaimed(id, user, rewardToken, amountToPay);
         }
-        emit RewardClaimed(id, user, rewardToken, amountToPay);
     }
 
     function _reclaim(uint256 id) internal {
@@ -280,8 +289,8 @@ contract StakingProposal is IStakingProposal, Initializable, AbstractValueDistri
         if (amountToPay != 0) {
             _owedToProtocol[id] = 0;
             IERC20(rewardToken).safeTransfer(govPoolAddress, amountToPay);
+            emit RewardClaimed(id, govPoolAddress, rewardToken, amountToPay);
         }
-        emit RewardClaimed(id, govPoolAddress, rewardToken, amountToPay);
     }
 
     function _getValueToDistribute(
