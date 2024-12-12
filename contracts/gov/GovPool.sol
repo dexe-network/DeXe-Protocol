@@ -468,6 +468,10 @@ contract GovPool is
         return (_nftMultiplier, address(_expertNft), address(_dexeExpertNft), address(_babt));
     }
 
+    function getPoolRegistryContract() external view override returns (address) {
+        return _poolRegistry;
+    }
+
     function getProposals(
         uint256 offset,
         uint256 limit

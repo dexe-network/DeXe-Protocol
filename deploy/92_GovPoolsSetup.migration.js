@@ -10,6 +10,7 @@ const ERC721Expert = artifacts.require("ERC721Expert");
 const ERC721Multiplier = artifacts.require("ERC721Multiplier");
 const LinearPower = artifacts.require("LinearPower");
 const PolynomialPower = artifacts.require("PolynomialPower");
+const StakingProposal = artifacts.require("StakingProposal");
 
 module.exports = async (deployer) => {
   const contractsRegistry = await deployer.deployed(ContractsRegistry, "proxy");
@@ -29,6 +30,8 @@ module.exports = async (deployer) => {
   const linearPower = await deployer.deploy(LinearPower);
   const polynomialPower = await deployer.deploy(PolynomialPower);
 
+  const stakingProposal = await deployer.deployed(ContractsRegistry, "StakingProposalContract");
+
   const govPoolName = await poolRegistry.GOV_POOL_NAME();
   const govSettingsName = await poolRegistry.SETTINGS_NAME();
   const govValidatorsName = await poolRegistry.VALIDATORS_NAME();
@@ -39,6 +42,7 @@ module.exports = async (deployer) => {
   const nftMultiplierName = await poolRegistry.NFT_MULTIPLIER_NAME();
   const linearPowerName = await poolRegistry.LINEAR_POWER_NAME();
   const polynomialPowerName = await poolRegistry.POLYNOMIAL_POWER_NAME();
+  const stakingProposalName = await poolRegistry.STAKING_PROPOSAL_NAME();
 
   await poolRegistry.setNewImplementations(
     [
@@ -52,6 +56,7 @@ module.exports = async (deployer) => {
       nftMultiplierName,
       linearPowerName,
       polynomialPowerName,
+      stakingProposalName,
     ],
     [
       govPool.address,
@@ -64,6 +69,7 @@ module.exports = async (deployer) => {
       nftMultiplier.address,
       linearPower.address,
       polynomialPower.address,
+      stakingProposal.address,
     ],
   );
 };

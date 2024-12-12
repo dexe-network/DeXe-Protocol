@@ -303,6 +303,10 @@ interface IGovPool {
             address votePower
         );
 
+    /// @notice The function to get helper contract of this pool
+    /// @return pool registry address
+    function getPoolRegistryContract() external view returns (address);
+
     /// @notice The function to get the nft contracts of this pool
     /// @return nftMultiplier rewards multiplier nft contract
     /// @return expertNft local expert nft contract
