@@ -15,6 +15,7 @@ import "../../math/MathHelper.sol";
 import "../../utils/TypeHelper.sol";
 
 import "../../../gov/user-keeper/GovUserKeeper.sol";
+import "../../../proxy/ProtectedPublicBeaconProxy.sol";
 
 library GovUserKeeperView {
     using EnumerableSet for EnumerableSet.UintSet;
@@ -24,6 +25,12 @@ library GovUserKeeperView {
     using Math for uint256;
     using TypeCaster for *;
     using TypeHelper for *;
+
+    function deployStakingProposalProxy(
+        address stakingProposalBeacon_
+    ) external returns (address) {
+        return address(new ProtectedPublicBeaconProxy(stakingProposalBeacon_, bytes("")));
+    }
 
     function transformedVotingPower(
         mapping(address => IGovUserKeeper.UserInfo) storage usersInfo,
